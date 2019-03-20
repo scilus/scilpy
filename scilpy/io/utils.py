@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-import six
-import xml.etree.ElementTree as ET
-
-import nibabel as nib
-import numpy as np
-
-from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+# import six
+# import xml.etree.ElementTree as ET
+#
+# import nibabel as nib
+# import numpy as np
+#
+# from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
 def add_overwrite_arg(parser):

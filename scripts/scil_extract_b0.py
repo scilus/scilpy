@@ -17,6 +17,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.utils import assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
@@ -85,13 +86,16 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    # We don't assert the existence of any input/output here because there
+    assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
+
+    # We don't assert the existence of any output here because there
     # are many possible inputs/outputs.
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
     bvals_min = bvals.min()
 
     # TODO refactor those checks
+    # Should be min bval, then b0.
     if bvals_min < 0 or bvals_min > 20:
         raise ValueError(
             'The minimal b-value is lesser than 0 or greater than 20. This '
