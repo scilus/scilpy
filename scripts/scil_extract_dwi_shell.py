@@ -93,7 +93,8 @@ def volumes(img, size):
             logging.info(
                 'Loading volumes {} to {}.'
                 .format(i + size, nb_volumes - 1))
-            yield list(range(i + size, nb_volumes)), img.dataobj[..., i + size:]
+            yield list(range(i + size, nb_volumes)), \
+                img.dataobj[..., i + size:]
 
 
 def verify_overwrite(filename, parser, force):
@@ -123,9 +124,8 @@ def main():
 
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
-
-    #get_shell_indices
-    indices = [get_shell_indices(bvals, shell) for shell in args.bvals_to_extract]
+    indices = [get_shell_indices(bvals, shell, tol=tol)
+               for shell in args.bvals_to_extract]
     indices = np.sort(np.hstack(indices))
 
     if len(indices) == 0:
@@ -158,7 +158,8 @@ def main():
     bvals.shape = (1, len(bvals))
     np.savetxt(args.output_bvals, bvals, '%d')
     np.savetxt(args.output_bvecs, bvecs[indices, :].T, '%0.15f')
-    nib.save(nib.Nifti1Image(shell_data, img.affine, img.header), args.output_dwi)
+    nib.save(nib.Nifti1Image(shell_data, img.affine, img.header),
+             args.output_dwi)
 
 
 if __name__ == "__main__":
