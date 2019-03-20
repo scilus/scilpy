@@ -4,12 +4,13 @@ from builtins import str
 from builtins import range
 import argparse
 import logging
-import os
 
 import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
+                             add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 
 DESCRIPTION = """
@@ -72,9 +73,8 @@ def build_args_parser():
     parser.add_argument('--verbose', '-v', action='store_true', dest='verbose',
                         help='Produce verbose output.')
 
-    parser.add_argument('--force', '-f', action='store_true', dest='force',
-                        help='Overwrite output file if present.')
-
+    add_overwrite_arg(parser)
+    
     return parser
 
 
@@ -97,17 +97,6 @@ def volumes(img, size):
                 img.dataobj[..., i + size:]
 
 
-def verify_overwrite(filename, parser, force):
-
-    if os.path.isfile(filename):
-        if force:
-            logging.info('Overwriting {0}.'.format(filename))
-        else:
-            parser.error(
-                '{0} already exist! Use -f to overwrite it.'
-                .format(filename))
-
-
 def main():
 
     parser = build_args_parser()
@@ -116,9 +105,9 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    verify_overwrite(args.output_dwi, parser, args.force)
-    verify_overwrite(args.output_bvals, parser, args.force)
-    verify_overwrite(args.output_bvecs, parser, args.force)
+    assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
+    assert_outputs_exists(parser, args, [args.output_dwi, args.output_bvals,
+                                         args.output_bvecs])
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
