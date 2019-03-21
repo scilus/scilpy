@@ -3,11 +3,20 @@
 
 import os
 
+from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+
 
 def add_overwrite_arg(parser):
     parser.add_argument(
         '-f', dest='overwrite', action='store_true',
         help='Force overwriting of the output files.')
+
+
+def add_force_b0_arg(parser):
+    parser.add_argument('--force_b0_threshold', action='store_true',
+                        help='If set, the script will continue even if the '
+                             'minimum bvalue is suspiciously high ( > {})'
+                        .format(DEFAULT_B0_THRESHOLD))
 
 
 def assert_inputs_exist(parser, required, optional=None):
