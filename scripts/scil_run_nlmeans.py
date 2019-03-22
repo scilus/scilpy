@@ -52,7 +52,7 @@ def _build_args_parser():
         '--processes', dest='nbr_processes', metavar='int', type=int,
         help='Number of sub processes to start. Default: Use all cores.')
     p.add_argument(
-        '-v', '--verbose',  action="store_true", dest="verbose",
+        '-v', '--verbose', action="store_true", dest="verbose",
         help="Print more info. Default : Print only warnings.")
     add_overwrite_arg(p)
     return p

@@ -191,10 +191,10 @@ def main():
     # Get tensors
     if args.method == 'restore':
         sigma = ne.estimate_sigma(data)
-        tenmodel = TensorModel(gtab, fit_method=args.method, sigma=sigma, 
+        tenmodel = TensorModel(gtab, fit_method=args.method, sigma=sigma,
                                min_signal=_get_min_nonzero_signal(data))
     else:
-        tenmodel = TensorModel(gtab, fit_method=args.method, 
+        tenmodel = TensorModel(gtab, fit_method=args.method,
                                min_signal=_get_min_nonzero_signal(data))
 
     tenfit = tenmodel.fit(data, mask)

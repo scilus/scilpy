@@ -26,7 +26,7 @@ def _build_arg_parser():
     p.add_argument('frf_file', metavar='input',
                    help='Path of the FRF file.')
     p.add_argument('new_frf', metavar='tuple',
-                   help='Replace the response function with\n' +
+                   help='Replace the response function with\n'
                         'this fiber response function x 10**-4 (e.g. '
                         '15,4,4).')
     p.add_argument('output_frf_file', metavar='output',
