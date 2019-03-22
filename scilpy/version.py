@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function
-from os.path import join as pjoin
+import glob
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
@@ -66,3 +66,4 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 REQUIRES = ["numpy"]
+SCRIPTS = glob.glob("scripts/*.py")
