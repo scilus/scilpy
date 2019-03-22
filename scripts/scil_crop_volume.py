@@ -11,6 +11,8 @@ it's looking for non-zero data. Therefore, you should validate the results on
 other types of images that haven't been masked.
 """
 
+from builtins import range
+from builtins import object
 import argparse
 import pickle
 
