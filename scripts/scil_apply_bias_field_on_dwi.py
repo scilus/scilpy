@@ -7,6 +7,8 @@ field itself. It ONLY applies an existing bias field. Use the ANTs
 N4BiasFieldCorrection executable to compute the bias field
 """
 
+from __future__ import division
+from past.utils import old_div
 import argparse
 
 import nibabel as nib
@@ -49,7 +51,7 @@ def _rescale_dwi(in_data, bc_data, mask_data=None):
     bc_min = np.amin(nz_bc_data)
     bc_max = np.amax(nz_bc_data)
 
-    slope = (in_max - in_min) / (bc_max - bc_min)
+    slope = old_div((in_max - in_min), (bc_max - bc_min))
 
     rescale_func = np.vectorize(_rescale_intensity, otypes=[np.float])
     rescaled_data = rescale_func(nz_bc_data, slope, in_max, bc_max)
