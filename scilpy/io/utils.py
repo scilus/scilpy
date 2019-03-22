@@ -19,6 +19,30 @@ def add_force_b0_arg(parser):
                         .format(DEFAULT_B0_THRESHOLD))
 
 
+def add_sh_basis_args(parser, mandatory=False):
+    """Add spherical harmonics (SH) bases argument.
+    :param parser: argparse.ArgumentParser object
+    :param mandatory: should this argument be mandatory
+    """
+    choices = ['descoteaux07', 'tournier07']
+    def_val = 'descoteaux07'
+    help_msg = 'Spherical harmonics basis used for the SH coefficients.\nMust ' +\
+               'be either \'descoteaux07\' or \'tournier07\' [%(default)s]:\n' +\
+               '    \'descoteaux07\': SH basis from the Descoteaux et al.\n' +\
+               '                      MRM 2007 paper\n' +\
+               '    \'tournier07\'  : SH basis from the Tournier et al.\n' +\
+               '                      NeuroImage 2007 paper.'
+
+    if mandatory:
+        arg_name = 'sh_basis'
+    else:
+        arg_name = '--sh_basis'
+
+    parser.add_argument(arg_name,
+                        choices=choices, default=def_val,
+                        help=help_msg)
+
+
 def assert_inputs_exist(parser, required, optional=None):
     """
     Assert that all inputs exist. If not, print parser's usage and exit.
