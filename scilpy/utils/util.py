@@ -2,7 +2,6 @@
 
 import numpy as np
 from numpy.lib.index_tricks import r_ as row
-import six
 
 
 def voxel_to_world(coord, affine):
