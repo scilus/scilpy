@@ -40,13 +40,13 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input', metavar='input',
+    p.add_argument('input',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals', metavar='bvals',
+    p.add_argument('bvals',
                    help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs', metavar='bvecs',
+    p.add_argument('bvecs',
                    help='Path of the bvecs file, in FSL format.')
-    p.add_argument('frf_file', metavar='frf',
+    p.add_argument('frf_file',
                    help='Path of the FRF file')
 
     p.add_argument(

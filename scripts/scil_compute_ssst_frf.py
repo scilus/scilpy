@@ -21,9 +21,10 @@ from dipy.segment.mask import applymask
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
-from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+    assert_outputs_exists, add_force_b0_arg)
+from scilpy.utils.bvec_bval_tools import (
+    check_b0_threshold, normalize_bvecs, is_normalized_bvecs)
 
 
 def _build_arg_parser():
@@ -41,6 +42,8 @@ def _build_arg_parser():
     p.add_argument('frf_file',
                    help='Path to the output FRF file, in .txt format, '
                         'saved by Numpy.')
+
+    add_force_b0_arg(p)
 
     p.add_argument(
         '--mask',
@@ -104,18 +107,8 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    if bvals.min() != 0:
-        if bvals.min() > 20:
-            raise ValueError(
-                'The minimal bvalue is greater than 20. This is highly '
-                'suspicious. Please check your data to ensure everything is '
-                'correct.\nValue found: {}'.format(bvals.min()))
-        else:
-            logging.warning('Warning: no b=0 image. Setting b0_threshold to '
-                            'bvals.min() = %s', bvals.min())
-            gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
-    else:
-        gtab = gradient_table(bvals, bvecs)
+    check_b0_threshold(args, bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     if args.min_fa_thresh < 0.4:
         logging.warn(

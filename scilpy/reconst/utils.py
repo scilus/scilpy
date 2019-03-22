@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import os
 import warnings
 
-from dipy.core.sphere import Sphere
-from dipy.utils.arrfuncs import as_native_array
 from dipy.reconst.peaks import peak_directions
-from dipy.reconst.shm import sph_harm_lookup, smooth_pinv
+from dipy.reconst.shm import sph_harm_lookup
 import numpy as np
 
 
@@ -42,3 +39,11 @@ def get_b_matrix(order, sphere, sh_basis_type, return_all=False):
     if return_all:
         return b_matrix, m, n
     return b_matrix
+
+
+def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
+                min_separation_angle=25):
+    spherical_func = np.dot(data, b_matrix.T)
+    spherical_func[np.nonzero(spherical_func < absolute_threshold)] = 0.
+    return peak_directions(
+        spherical_func, sphere, threshold, min_separation_angle)
