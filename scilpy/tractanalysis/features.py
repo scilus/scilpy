@@ -9,9 +9,9 @@ import numpy as np
 
 
 def remove_loops_and_sharp_turns(streamlines,
-                                 use_qb,
                                  max_angle,
-                                 qb_threshold):
+                                 use_qb=False,
+                                 qb_threshold=15.):
     """
     Remove loops and sharp turns from a list of streamlines.
 
@@ -153,10 +153,10 @@ def _outliers_removal_using_hierarchical_quickbundles(streamlines,
 
 
 # TODO threshold as param
-def remove_outliers(streamlines):
+def remove_outliers(streamlines, threshold):
     summary = _outliers_removal_using_hierarchical_quickbundles(streamlines)
     outliers, outliers_removed = _prune(streamlines,
-                                        0.3, summary)
+                                        threshold, summary)
     outliers_strl = Cluster(indices=outliers, refdata=streamlines)
     no_outliers_strl = Cluster(indices=outliers_removed,
                                refdata=streamlines)

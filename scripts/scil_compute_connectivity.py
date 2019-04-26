@@ -24,7 +24,8 @@ import numpy as np
 
 from scilpy.io.streamlines import (load_trk_in_voxel_space,
                                    save_from_voxel_space)
-from scilpy.io.utils import (assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.features import (remove_outliers,
                                            remove_loops_and_sharp_turns)
@@ -105,6 +106,19 @@ def _symmetrize_con_info(con_info):
     return final_con_info
 
 
+def _prune_segments(segments, min_length, max_length, vox_size):
+    lengths = list(length(segments) * vox_size)
+    valid = []
+    invalid = []
+
+    for s, l in zip(segments, lengths):
+        if min_length <= l <= max_length:
+            valid.append(s)
+        else:
+            invalid.append(s)
+    return valid, invalid
+
+
 def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -123,36 +137,55 @@ def build_args_parser():
     p.add_argument(dest='output', metavar='output_dir',
                    help='output directory path.')
 
-    p.add_argument('--no_pruning', action='store_true',
-                   help='if set, no pruning step will be applied')
-    p.add_argument('--no_remove_loops', action='store_true',
-                   help='if set, will NOT remove streamlines making 360 degrees'
-                        ' loops.')
-    p.add_argument('--no_remove_outliers', action='store_true',
-                   help='if set, will NOT Remove outliers with alpha of 0.3.')
-    p.add_argument('--no_remove_loops_again', action='store_true',
-                   help='if set, will NOT remove streamlines that looping '
-                        'according to QuickBundles with threshold of 15 mm. '
-                        'Normally done after initial loop and outlier removals.')
+    post_proc = p.add_argument_group('Post-processing options')
+    post_proc.add_argument('--no_pruning', action='store_true',
+                           help='if set, will NOT prune on length.\n'
+                                'Length criteria in --min_length, '
+                                '--max_length')
+    post_proc.add_argument('--no_remove_loops', action='store_true',
+                           help='if set, will NOT remove streamlines making '
+                                'loops.\nAngle criteria based on '
+                                '--loop_max_angle')
+    post_proc.add_argument('--no_remove_outliers', action='store_true',
+                           help='if set, will NOT Remove outliers using QB.\n'
+                                'Criteria based on --outlier_threshold.')
+    post_proc.add_argument('--no_remove_loops_again', action='store_true',
+                           help='if set, will NOT remove streamlines that '
+                                'loop according to QuickBundles.\n'
+                                'Threshold based on --loop_qb_distance.')
 
-    p.add_argument('--save_raw_connections', action='store_true',
+    pr = p.add_argument_group('Pruning options')
+    pr.add_argument('--min_length', type=float, default=20.,
+                    help='Pruning minimal segment length. [%(default)s]')
+    pr.add_argument('--max_length', type=float, default=200.,
+                    help='Pruning maximal segment length. [%(default)s]')
+
+    og = p.add_argument_group('Outliers and loops options')
+    og.add_argument('--outlier_threshold', type=float, default=0.3,
+                    help='Outlier removal threshold when using hierarchical '
+                         'QB. [%(default)s]')
+    og.add_argument('--loop_max_angle', type=float, default=360.,
+                    help='Maximal winding angle over which a streamline is '
+                         'considered as looping. [%(default)s]')
+    og.add_argument('--loop_qb_distance', type=float, default=15.,
+                    help='Maximal distance to a centroid for loop / turn '
+                         'filtering with QB. [%(default)s]')
+
+    s = p.add_argument_group('Saving options')
+    s.add_argument('--save_raw_connections', action='store_true',
                    help='if set, will save all raw cut connections in a subdirectory')
-    p.add_argument('--save_intermediate', action='store_true',
+    s.add_argument('--save_intermediate', action='store_true',
                    help='if set, will save the intermediate results of filtering')
-    p.add_argument('--save_discarded', action='store_true',
-                   help='if set, will save discarded streamlines in subdirectories. '
-                        'This includes loops, outliers and qb_loops')
+    s.add_argument('--save_discarded', action='store_true',
+                   help='if set, will save discarded streamlines in '
+                        'subdirectories.\nIncludes loops, outliers and '
+                        'qb_loops')
 
-    # TODO overwrite with checks
-    p.add_argument('-f', dest='overwrite', action='store_true',
-                   help='overwrite output files if they exist.')
+    add_overwrite_arg(p)
 
     p.add_argument('--verbose', '-v', dest='verbose',
                    action='store_true', default=False,
                    help='Verbose. [%(default)s]')
-    p.add_argument('--debug', action='store_true',
-                   help='print full debug logs. Will slow down generation')
-
     return p
 
 
@@ -166,8 +199,6 @@ def main():
     log_level = logging.WARNING
     if args.verbose:
         log_level = logging.INFO
-    if args.debug:
-        log_level = logging.DEBUG
     logging.basicConfig(level=log_level)
 
     img_labels = nb.load(args.labels)
@@ -199,23 +230,18 @@ def main():
     # Symmetrize matrix
     final_con_info = _symmetrize_con_info(con_info)
 
-    # TODO move consts
-    MIN_LENGTH = 20
-    MAX_LENGTH = 200
-
     # Prepare directories and information needed to save.
     saving_opts = _get_saving_options(args)
     out_paths = _get_output_paths(args.output)
     _create_required_output_dirs(out_paths, args)
 
-    # TODO move?
-    nb_labels = args.max_labels
-
     # Here, we use nb_labels + 1 since we want the direct mapping from image
     # label to matrix element. We will remove the first row and column before
     # saving.
-    # TODO later on: dtype should be adjusted depending on the type of
-    # elements stored in the con_mat
+    # TODO for other metrics
+    # dtype should be adjusted depending on the type of elements
+    # stored in the con_mat
+    nb_labels = args.max_labels
     con_mat = np.zeros((nb_labels + 1, nb_labels + 1),
                        dtype=np.uint32)
 
@@ -241,16 +267,14 @@ def main():
 
             # Doing all post-processing
             if not args.no_pruning:
-                lengths = list(length(final_strl) * vox_sizes[0])
-                pruned_strl = [s for s, l in zip(final_strl, lengths)
-                               if MIN_LENGTH <= l <= MAX_LENGTH]
+                pruned_strl, invalid_strl = _prune_segments(final_strl,
+                                                            args.min_length,
+                                                            args.max_length,
+                                                            vox_sizes[0])
 
-                if args.save_discarded:
-                    invalid_strl = [s for s, l in zip(final_strl, lengths)
-                                    if l < MIN_LENGTH or l > MAX_LENGTH]
-                    _save_if_needed(invalid_strl, args, saving_opts, out_paths,
-                                    'discarded', 'removed_length',
-                                    in_label, out_label)
+                _save_if_needed(invalid_strl, args, saving_opts, out_paths,
+                                'discarded', 'removed_length',
+                                in_label, out_label)
             else:
                 pruned_strl = final_strl
 
@@ -262,8 +286,7 @@ def main():
 
             if not args.no_remove_loops:
                 no_loops_strl, loops = remove_loops_and_sharp_turns(pruned_strl,
-                                                                    False, 360,
-                                                                    15.0)
+                                                                    args.loop_max_angle)
                 _save_if_needed(loops, args, saving_opts, out_paths,
                                 'discarded', 'loops', in_label, out_label)
             else:
@@ -276,8 +299,8 @@ def main():
                             'intermediate', 'no_loops', in_label, out_label)
 
             if not args.no_remove_outliers:
-                # TODO threshold as param
-                no_outliers, outliers = remove_outliers(no_loops_strl)
+                no_outliers, outliers = remove_outliers(no_loops_strl,
+                                                        args.outlier_threshold)
                 _save_if_needed(outliers, args, saving_opts, out_paths,
                                 'discarded', 'outliers', in_label, out_label)
             else:
@@ -291,8 +314,8 @@ def main():
 
             if not args.no_remove_loops_again:
                 no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-                                                    no_outliers, True,
-                                                    360, 15.0)
+                                                    no_outliers, args.loop_max_angle,
+                                                    True, args.loop_qb_distance)
                 _save_if_needed(loops2, args, saving_opts, out_paths,
                                 'discarded', 'qb_loops', in_label, out_label)
             else:
@@ -301,6 +324,9 @@ def main():
             _save_if_needed(no_qb_loops_strl, args, saving_opts, out_paths,
                             'final', 'final', in_label, out_label)
 
+            # TODO for other metrics
+            # This would be where this is modified and the value
+            # is computed (eg: mean FA in the connection.
             con_mat[in_label, out_label] += len(no_qb_loops_strl)
 
     # Remove first line and column, since they are index 0 and would represent a
@@ -309,14 +335,8 @@ def main():
     con_mat = con_mat[1:, 1:]
     np.save(os.path.join(args.output, 'final_matrix.npy'), con_mat)
 
-    #
-    # #str_labels = ["{}".format(k) for k in sorted(final_con_info.keys())]
-    # str_labels = ["{}".format(k) for k in range(scale_info.get_max_label() + 1)]
-    # final_mat = pd.DataFrame(data=con_mat,
-    #                          columns=str_labels[1:],
-    #                          index=str_labels[1:])
-    # final_mat.to_json(os.path.join(args.output, 'final_mat.json'),
-    #                   orient='split')
+    # In the future, could also be saved as a .json file, using pandas.
+    # Contact JC Houde for example.
 
 
 if __name__ == "__main__":

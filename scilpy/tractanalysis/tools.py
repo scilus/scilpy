@@ -46,98 +46,6 @@ def get_point_on_line(first_point, second_point, vox_lower_corner):
             t1 = min(t1, max(v0, v1))
 
     return first_point + ray * (t0 + t1) / 2.
-#
-#
-# def intersects_two_rois(roi_data_1, roi_data_2, voxel_map):
-#     entry_found = False
-#     exit_found = False
-#     went_out_of_exit = False
-#     exit_roi_data = None
-#     in_strl_idx = None
-#     out_strl_idx = None
-#
-#     # TODO simplify
-#     strl_indices = voxel_map
-#
-#     logging.debug(strl_indices)
-#     for idx, point in enumerate(strl_indices):
-#         # logging.debug("Point: {}".format(point))
-#         if entry_found and exit_found:
-#             # Still add points that are in exit roi, to mimic entry ROI
-#             # This will need to be modified to correctly handle continuation
-#             if exit_roi_data[tuple(point)] > 0:
-#                 if not went_out_of_exit:
-#                     out_strl_idx = idx
-#             else:
-#                 went_out_of_exit = True
-#         elif entry_found and not exit_found:
-#             # If we reached the exit ROI
-#             if exit_roi_data[tuple(point)] > 0:
-#                 exit_found = True
-#                 out_strl_idx = idx
-#         elif not entry_found:
-#             # Check if we are in one of ROIs
-#             if roi_data_1[tuple(point)] > 0 or roi_data_2[tuple(point)] > 0:
-#                 entry_found = True
-#                 in_strl_idx = idx
-#                 if roi_data_1[tuple(point)] > 0:
-#                     exit_roi_data = roi_data_2
-#                 else:
-#                     exit_roi_data = roi_data_1
-#
-#     return in_strl_idx, out_strl_idx
-#
-#
-# def intersects_two_rois_atlas(atlas_data, voxel_map,
-#                               allow_self_connection=True,
-#                               minimize_self_connections=True):
-#     entry_found = False
-#     exit_found = False
-#
-#     entry_label = None
-#     exit_label = None
-#     went_out_of_entry = False
-#     reentered_entry = False
-#
-#     in_strl_idx = None
-#     out_strl_idx = None
-#
-#     # TODO simplify
-#     strl_indices = voxel_map
-#
-#     for idx, point in enumerate(strl_indices):
-#         # logging.debug("Point: {}".format(point))
-#         if entry_found and not exit_found:
-#             if atlas_data[tuple(point)] == 0:
-#                 went_out_of_entry = True
-#             elif atlas_data[tuple(point)] == entry_label:
-#                 if went_out_of_entry:
-#                     if not allow_self_connection:
-#                         continue
-#                     else:
-#                         reentered_entry = True
-#                         if not minimize_self_connections:
-#                             exit_label = entry_label
-#                             exit_found = True
-#                             out_strl_idx = idx
-#             else:
-#                 exit_found = True
-#                 exit_label = atlas_data[tuple(point)]
-#                 out_strl_idx = idx
-#         elif not entry_found:
-#             # Check if we are in one of ROIs
-#             if atlas_data[tuple(point)] > 0:
-#                 entry_found = True
-#                 entry_label = atlas_data[tuple(point)]
-#                 in_strl_idx = idx
-#
-#     # Can happen when allowing self connections but minimizing
-#     if entry_label is not None and exit_label is None:
-#         if allow_self_connection and reentered_entry:
-#             exit_label == entry_label
-#             # TODO missing the index
-#
-#     return entry_label, exit_label, in_strl_idx, out_strl_idx
 
 
 def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
@@ -151,9 +59,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
                                             in_vox_idx)
 
     if in_strl_point is None:
-        #logging.debug("No direct mapping to in streamline point found.")
-        #logging.debug("  Looking for next valid point")
-
         # Find the next real streamline point
         in_strl_point = get_next_real_point(points_to_indices, in_vox_idx)
 
@@ -168,9 +73,6 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
                                               from_start=False)
 
     if exit_strl_point is None:
-        #logging.debug("No direct mapping to streamline exit point found.")
-        #logging.debug("  Looking for previous valid point")
-
         # Find the previous real streamline point
         exit_strl_point = get_previous_real_point(points_to_indices,
                                                   out_vox_idx)
@@ -188,34 +90,21 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     at_point = 0
 
     if additional_start_pt is not None:
-        #logging.debug("  adding artifical entry point: {}".format(
-        #              additional_start_pt))
         segment[0] = additional_start_pt
         at_point += 1
 
     if exit_strl_point >= in_strl_point:
-        #logging.debug("  adding points [{}:{}] from orig strl".format(
-        #              in_strl_point, exit_strl_point + 1))
-
         # Note: this works correctly even in the case where the "previous"
         # point is the same or lower than the entry point, because of
         # numpy indexing
-        ##print(in_strl_point, exit_strl_point)
         segment[at_point:at_point + nb_points_orig_strl] = \
             orig_strl[in_strl_point:exit_strl_point + 1]
         at_point += nb_points_orig_strl
-    #else:
-        #logging.debug("  exit point was found before entry point. "
-        #              "Not inserting from orig strl.")
-
 
     if additional_exit_pt is not None:
-        #logging.debug("  adding artifical exit point: {}".format(
-        #              additional_exit_pt))
         segment[at_point] = additional_exit_pt
         at_point += 1
 
-    #logging.debug("    new segment: {}".format(segment))
     return segment
 
 
