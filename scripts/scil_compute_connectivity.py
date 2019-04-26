@@ -1,0 +1,364 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Compute a connectivity matrix from a tractogram and a parcellation.
+
+Current strategy is to keep the longest streamline segment connecting
+2 regions. If the streamlines crosses other gray matter regions before
+reaching its final connected region, the kept connection is still the
+longest.
+
+This is robust to compressed streamlines.
+"""
+from __future__ import division
+
+import argparse
+import logging
+import os
+# import pickle
+# import shutil
+import time
+
+from dipy.tracking.streamlinespeed import length
+# from dipy.segment.clustering import Cluster
+import nibabel as nb
+import numpy as np
+# import pandas as pd
+
+#from connectome_atlas.io.streamlines import save_from_voxel_space)
+# from connectome_atlas.tractanalysis.features import \
+#     (remove_loops_and_sharp_turns,
+#      outliers_removal_using_hierarchical_quickbundles,
+#      prune)
+# from connectome_atlas.tractanalysis.tools import (compute_connectivity,
+#                                                   ,
+#                                                   ,
+#                                                   extract_minimal_gm_wm_gm_segments_from_profile,
+#                                                   extract_longest_segments_from_profile_thalamus_split,
+#                                                   extract_longest_segments_from_profile_all_nuclei_split)
+
+from scilpy.io.streamlines import (load_trk_in_voxel_space,
+                                   save_from_voxel_space)
+from scilpy.io.utils import (assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty)
+from scilpy.tractanalysis.features import (remove_outliers,
+                                           remove_loops_and_sharp_turns)
+from scilpy.tractanalysis.tools import (compute_connectivity,
+                                        compute_streamline_segment,
+                                        extract_longest_segments_from_profile)
+from scilpy.tractanalysis.uncompress import uncompress
+
+# STRATEGIES = {'gm_wm_gm': extract_minimal_gm_wm_gm_segments_from_profile,
+#               'longest': extract_longest_segments_from_profile,
+#               'longest_split_thalamus': extract_longest_segments_from_profile_thalamus_split,
+#               'longest_split_all': extract_longest_segments_from_profile_all_nuclei_split}
+
+
+# def save_bundle(streamlines, ref_anat, ref_tracts, out_dir, in_label, out_label):
+#     save_from_voxel_space(streamlines, ref_anat, ref_tracts,
+#                           os.path.join(out_dir, '{}_{}.trk'.format(in_label,
+#                                                                    out_label)))
+
+
+def _get_output_paths(root_dir):
+    paths = {'raw': os.path.join(root_dir, 'raw_connections/'),
+             'final': os.path.join(root_dir, 'final_connections/'),
+             'removed_length': os.path.join(root_dir, 'removed_length/'),
+             'loops': os.path.join(root_dir, 'loops/'),
+             'outliers': os.path.join(root_dir, 'outliers/'),
+             'qb_loops': os.path.join(root_dir, 'qb_loops/'),
+             'pruned': os.path.join(root_dir, 'pruned/'),
+             'no_loops': os.path.join(root_dir, 'no_loops/'),
+             'no_outliers': os.path.join(root_dir, 'no_outliers/')}
+
+    return paths
+
+
+def _get_saving_options(args):
+    saving_options = {'raw': args.save_raw_connections,
+                      'intermediate': args.save_intermediate,
+                      'discarded': args.save_discarded,
+                      'final': True}
+
+    return saving_options
+
+
+def _create_required_output_dirs(out_paths, args):
+    os.mkdir(out_paths['final'])
+
+    if args.save_raw_connections:
+        os.mkdir(out_paths['raw'])
+
+    if args.save_discarded:
+        os.mkdir(out_paths['loops'])
+        os.mkdir(out_paths['outliers'])
+        os.mkdir(out_paths['qb_loops'])
+        os.mkdir(out_paths['removed_length'])
+
+    if args.save_intermediate:
+        os.mkdir(out_paths['pruned'])
+        os.mkdir(out_paths['no_loops'])
+        os.mkdir(out_paths['no_outliers'])
+
+
+def _save_if_needed(streamlines, args, saving_options, out_paths,
+                    save_type, step_type, in_label, out_label):
+    if saving_options[save_type] and len(streamlines):
+        save_from_voxel_space(streamlines, args.labels, args.tracts,
+                              os.path.join(out_paths[step_type],
+                                           '{}_{}.trk'.format(in_label,
+                                                              out_label)))
+
+
+def build_args_parser():
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=__doc__)
+    p.add_argument('tracts',
+                   help='path of the tracts file, in a format supported by ' +
+                        'the Nibabel streamlines API.')
+    p.add_argument('labels',
+                   help='labels file name (nifti). Labels must be consecutive '
+                        'from 0 to N, with 0 the background.'
+                        'This generates a NxN connectivity matrix.')
+    p.add_argument('max_labels', type=int,
+                   help='maximal label value that could be present in the '
+                        'parcellation. Used to generate matrices with the '
+                        'same size for all subjects.')
+    p.add_argument(dest='output', metavar='output_dir',
+                   help='output directory path.')
+
+    p.add_argument('--no_pruning', action='store_true',
+                   help='if set, no pruning step will be applied')
+    p.add_argument('--no_remove_loops', action='store_true',
+                   help='if set, will NOT remove streamlines making 360 degrees'
+                        ' loops.')
+    p.add_argument('--no_remove_outliers', action='store_true',
+                   help='if set, will NOT Remove outliers with alpha of 0.3.')
+    p.add_argument('--no_remove_loops_again', action='store_true',
+                   help='if set, will NOT remove streamlines that looping '
+                        'according to QuickBundles with threshold of 15 mm. '
+                        'Normally done after initial loop and outlier removals.')
+
+    p.add_argument('--save_raw_connections', action='store_true',
+                   help='if set, will save all raw cut connections in a subdirectory')
+    p.add_argument('--save_intermediate', action='store_true',
+                   help='if set, will save the intermediate results of filtering')
+    p.add_argument('--save_discarded', action='store_true',
+                   help='if set, will save discarded streamlines in subdirectories. '
+                        'This includes loops, outliers and qb_loops')
+
+    # TODO overwrite with checks
+    p.add_argument('-f', dest='overwrite', action='store_true',
+                   help='overwrite output files if they exist.')
+
+    p.add_argument('--verbose', '-v', dest='verbose',
+                   action='store_true', default=False,
+                   help='Verbose. [%(default)s]')
+    p.add_argument('--debug', action='store_true',
+                   help='print full debug logs. Will slow down generation')
+
+    return p
+
+
+def main():
+    debug = False
+
+    parser = build_args_parser()
+    args = parser.parse_args()
+
+    assert_inputs_exist(parser, [args.tracts, args.labels])
+    assert_output_dirs_exist_and_empty(parser, args, args.output)
+
+    log_level = logging.WARNING
+    if args.verbose:
+        log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level)
+
+    saving_opts = _get_saving_options(args)
+    out_paths = _get_output_paths(args.output)
+    _create_required_output_dirs(out_paths, args)
+
+
+    # TODO: Should probably make sure labels is a datatype int
+    img_labels = nb.load(args.labels)
+    # labels = img_labels.get_data().astype('int')
+
+    # Ensure that voxel size is isotropic. Currently, for speed considerations,
+    # we take the length in voxel space and multiply by the voxel size. For this
+    # to work correctly, voxel size must be isotropic.
+    vox_sizes = img_labels.header.get_zooms()
+    if not np.mean(vox_sizes) == vox_sizes[0]:
+        parser.error('Labels must be isotropic')
+
+    streamlines = load_trk_in_voxel_space(args.tracts, args.labels)
+    logging.info('Number of streamlines to process: {}'.format(len(streamlines)))
+
+    # Get all streamlines intersection indices
+    indices, points_to_idx = uncompress(streamlines, return_mapping=True)
+
+    con_info = compute_connectivity(indices, img_labels.get_data(),
+                                    extract_longest_segments_from_profile,
+                                    False, True)
+    # Symmetrize matrix
+    final_con_info = {}
+    for in_label in con_info.keys():
+        for out_label in con_info[in_label].keys():
+
+            pair_info = con_info[in_label][out_label]
+
+            final_in_label = min(in_label, out_label)
+            final_out_label = max(in_label, out_label)
+
+            if final_con_info.get(final_in_label) is None:
+                final_con_info[final_in_label] = {}
+
+            if final_con_info[final_in_label].get(final_out_label) is None:
+                final_con_info[final_in_label][final_out_label] = []
+
+            final_con_info[final_in_label][final_out_label].extend(pair_info)
+
+    nb_raw_segments = 0
+    nb_strl_after_pruning = 0
+    nb_strl_after_loop = 0
+    nb_strl_after_outliers = 0
+    nb_strl_after_qb_loops = 0
+    # TODO move consts
+    MIN_LENGTH = 20
+    MAX_LENGTH = 200
+
+    # TODO move?
+    nb_labels = args.max_labels
+
+    # Here, we use nb_labels + 1 since we want the direct mapping from image
+    # label to matrix element. We will remove the first row and column before
+    # saving.
+    # TODO later on: dtype should be adjusted depending on the type of
+    # elements stored in the con_mat
+    con_mat = np.zeros((nb_labels + 1, nb_labels + 1),
+                       dtype=np.uint32)
+
+    for in_label in final_con_info.keys():
+        for out_label in final_con_info[in_label].keys():
+            pair_info = final_con_info[in_label][out_label]
+
+            nb_raw_segments += len(pair_info)
+            if not len(pair_info):
+                continue
+
+            final_strl = []
+
+            # TODO post process for self-connection, etc.
+            for connection in pair_info:
+                strl_idx = connection['strl_idx']
+                final_strl.append(compute_streamline_segment(streamlines[strl_idx],
+                                                             indices[strl_idx],
+                                                             connection['in_idx'],
+                                                             connection['out_idx'],
+                                                             points_to_idx[strl_idx]))
+
+            _save_if_needed(final_strl, args, saving_opts, out_paths, 'raw',
+                            'raw', in_label, out_label)
+
+            # Doing all post-processing
+            if not args.no_pruning:
+                lengths = list(length(final_strl) * vox_sizes[0])
+                pruned_strl = [s for s, l in zip(final_strl, lengths)
+                               if MIN_LENGTH <= l <= MAX_LENGTH]
+                nb_strl_after_pruning += len(pruned_strl)
+
+                if args.save_discarded:
+                    invalid_strl = [s for s, l in zip(final_strl, lengths)
+                                    if l < MIN_LENGTH or l > MAX_LENGTH]
+                    _save_if_needed(invalid_strl, args, saving_opts, out_paths,
+                                    'discarded', 'removed_length',
+                                    in_label, out_label)
+            else:
+                pruned_strl = final_strl
+
+            if not len(pruned_strl):
+                continue
+
+            _save_if_needed(pruned_strl, args, saving_opts, out_paths,
+                            'intermediate', 'pruned', in_label, out_label)
+
+            if not args.no_remove_loops:
+                no_loops_strl, loops = remove_loops_and_sharp_turns(pruned_strl,
+                                                                    False, 360,
+                                                                    15.0)
+                nb_strl_after_loop += len(no_loops_strl)
+
+                _save_if_needed(loops, args, saving_opts, out_paths,
+                                'discarded', 'loops', in_label, out_label)
+            else:
+                no_loops_strl = pruned_strl
+
+            if not len(no_loops_strl):
+                continue
+
+            _save_if_needed(no_loops_strl, args, saving_opts, out_paths,
+                            'intermediate', 'no_loops', in_label, out_label)
+
+            if not args.no_remove_outliers:
+                # TODO threshold as param
+                no_outliers, outliers = remove_outliers(no_loops_strl)
+
+                nb_strl_after_outliers += len(no_outliers)
+
+                _save_if_needed(outliers, args, saving_opts, out_paths,
+                                'discarded', 'outliers', in_label, out_label)
+            else:
+                no_outliers = no_loops_strl
+
+            if not len(no_outliers):
+                continue
+
+            _save_if_needed(no_outliers, args, saving_opts, out_paths,
+                            'intermediate', 'no_outliers', in_label, out_label)
+
+            if not args.no_remove_loops_again:
+                no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
+                                                    no_outliers, True,
+                                                    360, 15.0)
+                nb_strl_after_qb_loops += len(no_qb_loops_strl)
+
+                _save_if_needed(loops2, args, saving_opts, out_paths,
+                                'discarded', 'qb_loops', in_label, out_label)
+            else:
+                no_qb_loops_strl = no_outliers
+
+            _save_if_needed(no_qb_loops_strl, args, saving_opts, out_paths,
+                            'final', 'final', in_label, out_label)
+
+            con_mat[in_label, out_label] += len(no_qb_loops_strl)
+
+    # Remove first line and column, since they are index 0 and would represent a
+    # connection to non-label voxels. Only used when post-processing to avoid
+    # unnecessary -1 on labels for each access.
+    con_mat = con_mat[1:, 1:]
+
+    np.save(os.path.join(args.output, 'final_matrix.npy'), con_mat)
+    #
+    # #str_labels = ["{}".format(k) for k in sorted(final_con_info.keys())]
+    # str_labels = ["{}".format(k) for k in range(scale_info.get_max_label() + 1)]
+    # final_mat = pd.DataFrame(data=con_mat,
+    #                          columns=str_labels[1:],
+    #                          index=str_labels[1:])
+    # final_mat.to_json(os.path.join(args.output, 'final_mat.json'),
+    #                   orient='split')
+    #
+    # return
+    #
+    #     # # TODO how do we manage
+    #     # if m1 == 0 or m2 == 0: # or m1 == m2:
+    #     #     continue
+    #     #
+    #     # # TODO this should probably be done at the end of the loop,
+    #     # # to ensure that the bundle was not completly removed
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,9 @@
 import os
+
+from Cython.Build import cythonize
+import numpy
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
 PACKAGES = find_packages()
 
 # Get version and release info, which is all stored in scilpy/version.py
@@ -24,6 +28,15 @@ opts = dict(name=NAME,
             install_requires=REQUIRES,
             requires=REQUIRES,
             scripts=SCRIPTS)
+
+extensions = [Extension('scilpy.tractanalysis.uncompress',
+                        ['scilpy/tractanalysis/uncompress.pyx'],
+                        include_dirs=[numpy.get_include()]),
+              Extension('scilpy.tractanalysis.quick_tools',
+                        ['scilpy/tractanalysis/quick_tools.pyx'],
+                        include_dirs=[numpy.get_include()])]
+
+opts['ext_modules'] = cythonize(extensions)
 
 
 if __name__ == '__main__':
