@@ -175,9 +175,11 @@ def build_args_parser():
 
     s = p.add_argument_group('Saving options')
     s.add_argument('--save_raw_connections', action='store_true',
-                   help='if set, will save all raw cut connections in a subdirectory')
+                   help='if set, will save all raw cut connections in a '
+                        'subdirectory')
     s.add_argument('--save_intermediate', action='store_true',
-                   help='if set, will save the intermediate results of filtering')
+                   help='if set, will save the intermediate results of '
+                        'filtering')
     s.add_argument('--save_discarded', action='store_true',
                    help='if set, will save discarded streamlines in '
                         'subdirectories.\nIncludes loops, outliers and '
@@ -208,18 +210,19 @@ def main():
         parser.error("Label image should contain integers for labels.")
 
     # Ensure that voxel size is isotropic. Currently, for speed considerations,
-    # we take the length in voxel space and multiply by the voxel size. For this
-    # to work correctly, voxel size must be isotropic.
+    # we take the length in voxel space and multiply by the voxel size. For
+    # this to work correctly, voxel size must be isotropic.
     vox_sizes = img_labels.header.get_zooms()
     if not np.mean(vox_sizes) == vox_sizes[0]:
         parser.error('Labels must be isotropic')
 
     if np.min(img_labels.get_data()) < 0 or \
-        np.max(img_labels.get_data()) > args.max_labels:
+            np.max(img_labels.get_data()) > args.max_labels:
         parser.error('Invalid labels in labels image')
 
     streamlines = load_trk_in_voxel_space(args.tracts, args.labels)
-    logging.info('Number of streamlines to process: {}'.format(len(streamlines)))
+    logging.info('Number of streamlines to process: {}'.format(
+        len(streamlines)))
 
     # Get all streamlines intersection indices
     indices, points_to_idx = uncompress(streamlines, return_mapping=True)
@@ -287,26 +290,26 @@ def main():
                             'intermediate', 'pruned', in_label, out_label)
 
             if not args.no_remove_loops:
-                no_loops_strl, loops = remove_loops_and_sharp_turns(pruned_strl,
-                                                                    args.loop_max_angle)
+                no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
+                                                               args.loop_max_angle)
                 _save_if_needed(loops, args, saving_opts, out_paths,
                                 'discarded', 'loops', in_label, out_label)
             else:
-                no_loops_strl = pruned_strl
+                no_loops = pruned_strl
 
-            if not len(no_loops_strl):
+            if not len(no_loops):
                 continue
 
-            _save_if_needed(no_loops_strl, args, saving_opts, out_paths,
+            _save_if_needed(no_loops, args, saving_opts, out_paths,
                             'intermediate', 'no_loops', in_label, out_label)
 
             if not args.no_remove_outliers:
-                no_outliers, outliers = remove_outliers(no_loops_strl,
+                no_outliers, outliers = remove_outliers(no_loops,
                                                         args.outlier_threshold)
                 _save_if_needed(outliers, args, saving_opts, out_paths,
                                 'discarded', 'outliers', in_label, out_label)
             else:
-                no_outliers = no_loops_strl
+                no_outliers = no_loops
 
             if not len(no_outliers):
                 continue
@@ -316,8 +319,10 @@ def main():
 
             if not args.no_remove_loops_again:
                 no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-                                                    no_outliers, args.loop_max_angle,
-                                                    True, args.loop_qb_distance)
+                                                    no_outliers,
+                                                    args.loop_max_angle,
+                                                    True,
+                                                    args.loop_qb_distance)
                 _save_if_needed(loops2, args, saving_opts, out_paths,
                                 'discarded', 'qb_loops', in_label, out_label)
             else:
@@ -331,9 +336,9 @@ def main():
             # is computed (eg: mean FA in the connection.
             con_mat[in_label, out_label] += len(no_qb_loops_strl)
 
-    # Remove first line and column, since they are index 0 and would represent a
-    # connection to non-label voxels. Only used when post-processing to avoid
-    # unnecessary -1 on labels for each access.
+    # Remove first line and column, since they are index 0 and
+    # would represent a connection to non-label voxels. Only used when
+    # post-processing to avoid unnecessary -1 on labels for each access.
     con_mat = con_mat[1:, 1:]
     np.save(os.path.join(args.output, 'final_matrix.npy'), con_mat)
 
