@@ -10,7 +10,10 @@ reaching its final connected region, the kept connection is still the
 longest.
 
 This is robust to compressed streamlines.
+
+NOTE: this script can take a while to run. Please be patient.
 """
+
 from __future__ import division
 
 import argparse
@@ -20,7 +23,6 @@ import os
 from dipy.tracking.streamlinespeed import length
 import nibabel as nb
 import numpy as np
-# import pandas as pd
 
 from scilpy.io.streamlines import (load_trk_in_voxel_space,
                                    save_from_voxel_space)
