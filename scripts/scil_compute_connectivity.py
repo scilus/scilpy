@@ -16,6 +16,7 @@ NOTE: this script can take a while to run. Please be patient.
 
 from __future__ import division
 
+from builtins import zip
 import argparse
 import logging
 import os
@@ -89,8 +90,8 @@ def _save_if_needed(streamlines, args, saving_options, out_paths,
 
 def _symmetrize_con_info(con_info):
     final_con_info = {}
-    for in_label in con_info.keys():
-        for out_label in con_info[in_label].keys():
+    for in_label in list(con_info.keys()):
+        for out_label in list(con_info[in_label].keys()):
 
             pair_info = con_info[in_label][out_label]
 
@@ -250,8 +251,8 @@ def main():
     con_mat = np.zeros((nb_labels + 1, nb_labels + 1),
                        dtype=np.uint32)
 
-    for in_label in final_con_info.keys():
-        for out_label in final_con_info[in_label].keys():
+    for in_label in list(final_con_info.keys()):
+        for out_label in list(final_con_info[in_label].keys()):
             pair_info = final_con_info[in_label][out_label]
 
             if not len(pair_info):
