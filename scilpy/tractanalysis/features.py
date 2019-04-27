@@ -155,7 +155,6 @@ def _outliers_removal_using_hierarchical_quickbundles(streamlines,
     return summary
 
 
-# TODO threshold as param
 def remove_outliers(streamlines, threshold):
     summary = _outliers_removal_using_hierarchical_quickbundles(streamlines)
     outliers, outliers_removed = _prune(streamlines,
