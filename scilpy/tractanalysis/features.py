@@ -95,9 +95,9 @@ def _prune(streamlines, threshold, features):
 
 # TODO could replace QB by QBx. Would need to adjust thresholds.
 def _outliers_removal_using_hierarchical_quickbundles(streamlines,
-                                                     min_threshold=0.5,
-                                                     nb_samplings_max=30,
-                                                     sampling_seed=1234):
+                                                      min_threshold=0.5,
+                                                      nb_samplings_max=30,
+                                                      sampling_seed=1234):
     if nb_samplings_max < 2:
         raise ValueError("'nb_samplings_max' must be >= 2")
 

@@ -129,7 +129,7 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
         el_idx += 1
 
     if el_idx >= nb_el_indices or not found_WM:
-       return []
+        return []
 
     el_idx = nb_el_indices - 1
     while end_label is None and el_idx > start_idx:
