@@ -9,7 +9,6 @@ import cython
 import nibabel as nib
 import numpy as np
 cimport numpy as cnp
-# TODO update Requirements.txt
 
 cdef struct Pointers:
     # Incremented when we complete a streamline. Saved at the start of each
