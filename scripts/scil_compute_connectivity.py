@@ -5,7 +5,7 @@
 Compute a connectivity matrix from a tractogram and a parcellation.
 
 Current strategy is to keep the longest streamline segment connecting
-2 regions. If the streamlines crosses other gray matter regions before
+2 regions. If the streamline crosses other gray matter regions before
 reaching its final connected region, the kept connection is still the
 longest.
 
@@ -127,33 +127,33 @@ def build_args_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
     p.add_argument('tracts',
-                   help='path of the tracts file, in a format supported by ' +
+                   help='Path of the tracts file, in a format supported by ' +
                         'the Nibabel streamlines API.')
     p.add_argument('labels',
-                   help='labels file name (nifti). Labels must be consecutive '
-                        'from 0 to N, with 0 the background.'
+                   help='Labels file name (nifti). Labels must be consecutive '
+                        'from 0 to N, with 0 the background. '
                         'This generates a NxN connectivity matrix.')
     p.add_argument('max_labels', type=int,
-                   help='maximal label value that could be present in the '
+                   help='Maximal label value that could be present in the '
                         'parcellation. Used to generate matrices with the '
                         'same size for all subjects.')
     p.add_argument(dest='output', metavar='output_dir',
-                   help='output directory path.')
+                   help='Output directory path.')
 
     post_proc = p.add_argument_group('Post-processing options')
     post_proc.add_argument('--no_pruning', action='store_true',
-                           help='if set, will NOT prune on length.\n'
+                           help='If set, will NOT prune on length.\n'
                                 'Length criteria in --min_length, '
                                 '--max_length')
     post_proc.add_argument('--no_remove_loops', action='store_true',
-                           help='if set, will NOT remove streamlines making '
+                           help='If set, will NOT remove streamlines making '
                                 'loops.\nAngle criteria based on '
                                 '--loop_max_angle')
     post_proc.add_argument('--no_remove_outliers', action='store_true',
-                           help='if set, will NOT Remove outliers using QB.\n'
+                           help='If set, will NOT Remove outliers using QB.\n'
                                 'Criteria based on --outlier_threshold.')
     post_proc.add_argument('--no_remove_loops_again', action='store_true',
-                           help='if set, will NOT remove streamlines that '
+                           help='If set, will NOT remove streamlines that '
                                 'loop according to QuickBundles.\n'
                                 'Threshold based on --loop_qb_distance.')
 
@@ -176,13 +176,13 @@ def build_args_parser():
 
     s = p.add_argument_group('Saving options')
     s.add_argument('--save_raw_connections', action='store_true',
-                   help='if set, will save all raw cut connections in a '
+                   help='If set, will save all raw cut connections in a '
                         'subdirectory')
     s.add_argument('--save_intermediate', action='store_true',
-                   help='if set, will save the intermediate results of '
+                   help='If set, will save the intermediate results of '
                         'filtering')
     s.add_argument('--save_discarded', action='store_true',
-                   help='if set, will save discarded streamlines in '
+                   help='If set, will save discarded streamlines in '
                         'subdirectories.\nIncludes loops, outliers and '
                         'qb_loops')
 
@@ -199,6 +199,10 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.tracts, args.labels])
+
+    if os.path.abspath(args.output) == os.getcwd():
+        parser.error('Do not use the current path as output directory.')
+
     assert_output_dirs_exist_and_empty(parser, args, args.output)
 
     log_level = logging.WARNING
