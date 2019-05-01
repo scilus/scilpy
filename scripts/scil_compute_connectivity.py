@@ -20,6 +20,7 @@ from builtins import zip
 import argparse
 import logging
 import os
+import time
 
 from dipy.tracking.streamlinespeed import length
 import nibabel as nb
@@ -225,18 +226,37 @@ def main():
             np.max(img_labels.get_data()) > args.max_labels:
         parser.error('Invalid labels in labels image')
 
+    logging.info('*** Loading streamlines ***')
+    time1 = time.time()
     streamlines = load_trk_in_voxel_space(args.tracts, args.labels)
-    logging.info('Number of streamlines to process: {}'.format(
+    time2 = time.time()
+
+    logging.info('    Number of streamlines to process: {}'.format(
         len(streamlines)))
+    logging.info('    Loading streamlines took %0.3f ms',
+                 (time2 - time1) * 1000.0)
 
     # Get all streamlines intersection indices
+    logging.info('*** Computing streamlines intersection ***')
+    time1 = time.time()
+
     indices, points_to_idx = uncompress(streamlines, return_mapping=True)
+
+    time2 = time.time()
+    logging.info('    Streamlines intersection took %0.3f ms',
+                 (time2 - time1) * 1000.0)
 
     # Compute the connectivity mapping
     # TODO self connection?
+    logging.info('*** Computing connectivity information ***')
+    time1 = time.time()
     con_info = compute_connectivity(indices, img_labels.get_data(),
                                     extract_longest_segments_from_profile,
                                     False, True)
+    time2 = time.time()
+    logging.info('    Connectivity computation took %0.3f ms',
+                 (time2 - time1) * 1000.0)
+
     # Symmetrize matrix
     final_con_info = _symmetrize_con_info(con_info)
 
@@ -255,6 +275,9 @@ def main():
     con_mat = np.zeros((nb_labels + 1, nb_labels + 1),
                        dtype=np.uint32)
 
+    logging.info('*** Starting connection post-processing and saving. ***')
+    logging.info('    This can be long, be patient.')
+    time1 = time.time()
     for in_label in list(final_con_info.keys()):
         for out_label in list(final_con_info[in_label].keys()):
             pair_info = final_con_info[in_label][out_label]
@@ -340,6 +363,10 @@ def main():
             # This would be where this is modified and the value
             # is computed (eg: mean FA in the connection.
             con_mat[in_label, out_label] += len(no_qb_loops_strl)
+
+    time2 = time.time()
+    logging.info('    Connection post-processing and saving took %0.3f ms',
+                 (time2 - time1) * 1000.0)
 
     # Remove first line and column, since they are index 0 and
     # would represent a connection to non-label voxels. Only used when
