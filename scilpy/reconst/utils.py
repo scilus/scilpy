@@ -4,7 +4,7 @@ from __future__ import division
 
 import warnings
 
-from dipy.reconst.peaks import peak_directions
+from dipy.direction.peaks import peak_directions
 from dipy.reconst.shm import sph_harm_lookup
 import numpy as np
 

@@ -34,7 +34,7 @@ import nibabel as nib
 
 from dipy.core.ndindex import ndindex
 from dipy.data import get_sphere
-from dipy.reconst.peaks import reshape_peaks_for_visualization
+from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exists)
