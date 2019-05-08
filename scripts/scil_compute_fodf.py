@@ -24,7 +24,7 @@ from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
-from dipy.reconst.peaks import (peaks_from_model,
+from dipy.direction.peaks import (peaks_from_model,
                                 reshape_peaks_for_visualization)
 import nibabel as nib
 import numpy as np
