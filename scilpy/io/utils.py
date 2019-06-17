@@ -87,6 +87,9 @@ def assert_outputs_exists(parser, args, required, optional=None):
 
 
 def create_header_from_anat(reference, base_filetype=TrkFile):
+    """
+    Create a valid header for a TRK or TCK file from an reference NIFTI file
+    """
     if isinstance(reference, six.string_types):
         reference = nib.load(reference)
 

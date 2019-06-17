@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Transform *.nii or *.nii.gz using an affine/rigid transformation.
+
+    For more informations on how to use the various registration scripts
+    see the doc/tractogram_registration.md readme file
+"""
+
 import argparse
 import os
 
@@ -10,17 +17,9 @@ from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import transform_anatomy
 
 
-DESCRIPTION = """
-    Transform *.nii or *.nii.gz using an affine/rigid transformation.
-
-    For more informations on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
-"""
-
-
 def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('in_file',
                    help='Path of the file that will be transformed')

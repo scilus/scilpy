@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Warp *.trk using a non linear deformation.
+    Can be used with Ants or Dipy deformation map.
+
+    For more informations on how to use the various registration scripts
+    see the doc/tractogram_registration.md readme file
+"""
+
 import argparse
 import os
 
@@ -10,14 +18,6 @@ import numpy as np
 from scilpy.io.utils import create_header_from_anat
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.streamlines import warp_tractogram
-
-DESCRIPTION = """
-    Warp *.trk using a non linear deformation.
-    Can be used with Ants or Dipy deformation map.
-
-    For more informations on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
-"""
 
 
 def transform_tractogram(in_filename, ref_filename, def_filename,
@@ -49,6 +49,7 @@ def transform_tractogram(in_filename, ref_filename, def_filename,
         raise ValueError('Both dimensions are not equal')
 
     transfo = in_tractogram.header["voxel_to_rasmm"]
+    # Warning: Apply warp in-place
     warp_tractogram(in_tractogram.streamlines, transfo, deformation_data,
                     field_source)
 
@@ -59,7 +60,7 @@ def transform_tractogram(in_filename, ref_filename, def_filename,
 
 def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('in_file',
                    help='Path of the file that will be warped (*.trk).')

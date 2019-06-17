@@ -7,6 +7,23 @@ from dipy.tracking.streamline import transform_streamlines
 
 
 def warp_tractogram(streamlines, transfo, deformation_data, source):
+    """
+    Warp tractogram using a deformation map.
+    Support Ants and Dipy deformation map.
+    Apply warp in-place
+
+    Parameters
+    ----------
+    streamlines: list or ArraySequence
+        Streamlines as loaded by the nibabel API (RASMM)
+    transfo: numpy.ndarray
+        Transformation matrix to bring streamlines from RASMM to Voxel space
+    deformation_data: numpy.ndarray
+        4D numpy array containing a 3D displacement vector in each voxel
+    source: str
+        Source of the deformation map [ants, dipy]
+    """
+
     if source == 'ants':
         flip = [-1, -1, 1]
     elif source == 'dipy':

@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Transform tractogram using an affine/rigid transformation.
+
+    For more informations on how to use the various registration scripts
+    see the doc/tractogram_registration.md readme file
+"""
+
 import argparse
 import os
 
@@ -9,14 +16,6 @@ import numpy as np
 
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.utils import create_header_from_anat
-
-
-DESCRIPTION = """
-    Transform *.trk using an affine/rigid transformation.
-
-    For more informations on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
-"""
 
 
 def transform_tractogram(in_filename, ref_filename, transfo,
@@ -45,7 +44,7 @@ def transform_tractogram(in_filename, ref_filename, transfo,
 
 def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('in_file',
                    help='Path of the file that will be transformed (*.trk)')
