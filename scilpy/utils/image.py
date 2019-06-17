@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dipy.align.imaffine importAffineMap
+from dipy.align.imaffine import AffineMap
 import nibabel as nib
 import numpy as np
 

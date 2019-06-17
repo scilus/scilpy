@@ -20,8 +20,8 @@ DESCRIPTION = """
 """
 
 
-def transform_tractogram(in_filename, ref_filename, def_filename, filename_to_save,
-                      field_source):
+def transform_tractogram(in_filename, ref_filename, def_filename,
+                         filename_to_save, field_source):
     in_tractogram = nib.streamlines.load(in_filename)
 
     _, out_extension = split_name_with_nii(filename_to_save)
@@ -61,22 +61,21 @@ def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
-    p.add_argument('in_file', action='store', metavar='IN_FILE',
-                   type=str, help='Path of the file that will be warped (*.trk).')
+    p.add_argument('in_file',
+                   help='Path of the file that will be warped (*.trk).')
 
-    p.add_argument('ref_file', action='store', metavar='REF_FILE',
-                   type=str, help='Path of the reference file, can be *.trk or '
-                                  'in the Nifti format')
+    p.add_argument('ref_file',
+                   help='Path of the reference file, can be *.trk or '
+                   'in the Nifti format')
 
-    p.add_argument('deformation', action='store', metavar='DEFORMATION',
-                   type=str, help='Path of the file containing the \n'
-                                  'deformation field.')
+    p.add_argument('deformation',
+                   help='Path of the file containing the \n'
+                   'deformation field.')
 
-    p.add_argument('out_name', action='store', metavar='OUT_NAME',
-                   type=str, help='Output filename of the transformed tractogram.')
+    p.add_argument('out_name',
+                   help='Output filename of the transformed tractogram.')
 
-    p.add_argument('--field_source', action='store', dest='field_source',
-                   metavar='FIELD_SOURCE', default='ants', choices=['ants', 'dipy'],
+    p.add_argument('--field_source', default='ants', choices=['ants', 'dipy'],
                    help='Source of the deformation field: \n'
                         '[ants, dipy] - be cautious, the default is ants')
 
@@ -109,10 +108,11 @@ def main():
 
     _, ref_extension = split_name_with_nii(args.ref_file)
     if ref_extension not in ['.trk', '.nii', '.nii.gz']:
-        raise ValueError('"{0}" is in an unsupported format.'.format(args.ref_file))
+        raise ValueError(
+            '"{0}" is in an unsupported format.'.format(args.ref_file))
 
     transform_tractogram(args.in_file, args.ref_file, args.deformation,
-                      args.out_name, args.field_source)
+                         args.out_name, args.field_source)
 
 
 if __name__ == "__main__":

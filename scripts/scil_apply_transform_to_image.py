@@ -22,20 +22,20 @@ def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
-    p.add_argument('in_file', action='store', metavar='IN_FILE',
-                   type=str, help='Path of the file that will be transformed')
+    p.add_argument('in_file',
+                   help='Path of the file that will be transformed')
 
-    p.add_argument('ref_file', action='store', metavar='REF_FILE',
-                   type=str, help='Path of the reference file (the static \n'
-                                  'file from registration), \n'
-                                  'must be in the Nifti format')
+    p.add_argument('ref_file',
+                   help='Path of the reference file (the static \n'
+                   'file from registration), \n'
+                   'must be in the Nifti format')
 
-    p.add_argument('transformation', action='store', metavar='TRANSFORMATION',
-                   type=str, help='Path of the file containing the 4x4 \n'
-                                  'transformation, matrix (*.npy).')
+    p.add_argument('transformation',
+                   help='Path of the file containing the 4x4 \n'
+                   'transformation, matrix (*.npy).')
 
-    p.add_argument('out_name', action='store', metavar='OUT_NAME',
-                   type=str, help='Output filename of the transformed data.')
+    p.add_argument('out_name',
+                   help='Output filename of the transformed data.')
 
     p.add_argument('--inverse', action='store_true',
                    help='Will apply the inverse transformation.')
@@ -68,13 +68,13 @@ def main():
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
-    ref_name, ref_extension = split_name_with_nii(args.ref_file)
-    in_name, in_extension = split_name_with_nii(args.in_file)
+    _, ref_extension = split_name_with_nii(args.ref_file)
+    _, in_extension = split_name_with_nii(args.in_file)
 
     if ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('"{0}" is in an unsupported format.'.format(args.ref_file))
+        parser.error('"{0}" is an unsupported format.'.format(args.ref_file))
     if in_extension not in ['.nii', '.nii.gz']:
-        parser.error('"{0}" is in an unsupported format.'.format(args.in_file))
+        parser.error('"{0}" is an unsupported format.'.format(args.in_file))
 
     transform_anatomy(transfo, args.ref_file, args.in_file,
                       args.out_name)

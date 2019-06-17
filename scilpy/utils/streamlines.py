@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from dipy.tracking.streamline import transform_streamlines
-import nibabel as nib
 import numpy as np
 from scipy import ndimage
+
+from dipy.tracking.streamline import transform_streamlines
+
 
 def warp_tractogram(streamlines, transfo, deformation_data, source):
     if source == 'ants':
@@ -38,7 +39,9 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
                                         current_streamline_vox_list, order=1)
 
         # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
-        final_streamline = np.array([flip[0]*x_def, flip[1]*y_def, flip[2]*z_def])
+        final_streamline = np.array([flip[0]*x_def,
+                                     flip[1]*y_def,
+                                     flip[2]*z_def])
 
         # The deformation obtained is in worldSpace
         if source == 'ants':

@@ -47,21 +47,20 @@ def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
-    p.add_argument('in_file', action='store', metavar='IN_FILE',
-                   type=str, help='Path of the file that will be transformed (*.trk)')
+    p.add_argument('in_file',
+                   help='Path of the file that will be transformed (*.trk)')
 
-    p.add_argument('ref_file', action='store', metavar='REF_FILE',
-                   type=str, help='Path of the reference file, can be *.trk \n'
-                                  'or in the Nifti format')
+    p.add_argument('ref_file',
+                   help='Path of the reference file, can be *.trk \n'
+                   'or in the Nifti format')
 
-    p.add_argument('transformation', action='store', metavar='TRANSFORMATION',
-                   type=str, help='Path of the file containing the 4x4 \n'
-                                  'transformation, matrix (*.npy).'
-                                  'See the script description for more information'
-                                  ' on how to get this matrix')
+    p.add_argument('transformation',
+                   help='Path of the file containing the 4x4 \n'
+                   'transformation, matrix (*.npy).'
+                   'See the script description for more information')
 
-    p.add_argument('out_name', action='store', metavar='OUT_NAME',
-                   type=str, help='Output filename of the transformed data.')
+    p.add_argument('out_name',
+                   help='Output filename of the transformed data.')
 
     p.add_argument('--inverse', action='store_true',
                    help='Will apply the inverse transformation.')
@@ -96,9 +95,11 @@ def main():
     _, ref_extension = split_name_with_nii(args.ref_file)
     if ref_extension == '.trk':
         if not nib.streamlines.TrkFile.is_correct_format(args.ref_file):
-            parser.error('"{0}" is not a valid TRK file.'.format(args.ref_file))
+            parser.error(
+                '"{0}" is not a valid TRK file.'.format(args.ref_file))
     elif ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('"{0}" is in an unsupported format.'.format(args.ref_file))
+        parser.error(
+            '"{0}" is in an unsupported format.'.format(args.ref_file))
 
     transfo = np.loadtxt(args.transformation)
     if args.inverse:

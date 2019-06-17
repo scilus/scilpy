@@ -32,5 +32,5 @@ def get_data(nib_file, return_object=False):
 
     if return_object:
         return data, nib_file
-    else:
-        return data
+
+    return data
