@@ -10,12 +10,12 @@
 """
 
 import argparse
-import os
 
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import create_header_from_anat
+from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
+                             assert_inputs_exist, assert_outputs_exists)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.streamlines import warp_tractogram
 
@@ -80,8 +80,7 @@ def _buildArgsParser():
                    help='Source of the deformation field: \n'
                         '[ants, dipy] - be cautious, the default is ants')
 
-    p.add_argument('-f', action='store_true', dest='force_overwrite',
-                   help='force (overwrite output file if present)')
+    add_overwrite_arg(p)
 
     return p
 
@@ -90,27 +89,19 @@ def main():
     parser = _buildArgsParser()
     args = parser.parse_args()
 
-    # Check if the files exist
-    if not os.path.isfile(args.in_file):
-        parser.error('"{0}" must be a file!'.format(args.in_file))
-
-    if not os.path.isfile(args.ref_file):
-        parser.error('"{0}" must be a file!'.format(args.ref_file))
-
-    if not os.path.isfile(args.deformation):
-        parser.error('"{0}" must be a file!'.format(args.deformation))
-
-    if os.path.isfile(args.out_name) and not args.force_overwrite:
-        parser.error('"{0}" already exists! Use -f to overwrite it.'
-                     .format(args.out_name))
+    assert_inputs_exist(parser, [args.in_file, args.ref_file,
+                                 args.deformation])
+    assert_outputs_exists(parser, args, [args.out_name])
 
     if not nib.streamlines.TrkFile.is_correct_format(args.in_file):
         parser.error('The input file needs to be a TRK file')
 
     _, ref_extension = split_name_with_nii(args.ref_file)
-    if ref_extension not in ['.trk', '.nii', '.nii.gz']:
-        raise ValueError(
-            '"{0}" is in an unsupported format.'.format(args.ref_file))
+    if ref_extension == '.trk':
+        if not nib.streamlines.TrkFile.is_correct_format(args.ref_file):
+            parser.error('{} is not a valid TRK file.'.format(args.ref_file))
+    elif ref_extension not in ['.nii', '.nii.gz']:
+        parser.error('{} is an unsupported format.'.format(args.ref_file))
 
     transform_tractogram(args.in_file, args.ref_file, args.deformation,
                          args.out_name, args.field_source)
