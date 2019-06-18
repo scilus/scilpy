@@ -14,10 +14,38 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 
 
-class RecoBundlesX(object):
+class RecobundlesX(object):
+    """
+    This class is a 'remastered' version of the Dipy Recobundles class.
+    Made to be used in synch with the voting_scheme
+    Adapted in many way for HPC processing and increase control over
+    parameters and logging.
+    However, in essence they do the same thing
+    https://github.com/nipy/dipy/blob/master/dipy/segment/bundles.py
+
+    References
+    ----------
+    .. [Garyfallidis17] Garyfallidis et al. Recognition of white matter
+        bundles using local and global streamline-based registration and
+        clustering, Neuroimage, 2017.
+    """
     def __init__(self, streamlines, cluster_map,
-                 nb_points=20, neighbors_reduction_thr=18,
-                 slr_num_thread=1, rng=None):
+                 nb_points=20, slr_num_thread=1, rng=None):
+        """
+        Parameters
+        ----------
+        streamlines : list or ArraySequence
+            Whole brain tractogram as loaded by the nibabel API
+        cluster_map : obj
+            Contains the clusters of QuickBundlesX
+        nb_points : int
+            Number of points used for all resampling of streamlines
+        slr_num_thread : int
+            Number of threads for SLR 
+            Should remain 1 for nearly all use-case
+        rng : RandomState
+            If None then RandomState is initialized internally.
+        """
         self.streamlines = streamlines
         self.cluster_map = cluster_map
         self.centroids = self.cluster_map.centroids
@@ -25,7 +53,6 @@ class RecoBundlesX(object):
 
         # Parameters
         self.nb_points = nb_points
-        self.neighbors_reduction_thr = neighbors_reduction_thr
         self.slr_num_thread = slr_num_thread
 
         # For declaration outside of init
@@ -42,6 +69,26 @@ class RecoBundlesX(object):
     def recognize(self, model_bundle,
                   model_clust_thr=8, bundle_pruning_thr=8,
                   slr_transform_type='similarity', identifier=None):
+        """
+        Parameters
+        ----------
+        model_bundle : list or ArraySequence
+            Model bundle as loaded by the nibabel API
+        model_clust_thr : obj
+            Distance threshold (mm) for model clustering (QBx)
+        bundle_pruning_thr : int
+            Distance threshold (mm) for the final pruning
+        slr_transform_type : str
+            Define the transformation for the local SLR
+            [translation, rigid, similarity, scaling]
+        identifier : str
+            Identify the current bundle being recognize for the logging
+
+        Returns
+        -------
+        clusters : obj
+            Contains the clusters of the last layer of QuickBundlesX after merging.
+        """
         self._cluster_model_bundle(model_bundle, model_clust_thr,
                                    identifier=identifier)
 
@@ -65,6 +112,9 @@ class RecoBundlesX(object):
         return self.pruned_streamlines
 
     def _cluster_model_bundle(self, model, model_clust_thr, identifier=None):
+        """
+        Wrapper function to compute QBx for the model and logging informations
+        """
         thresholds = [30, 20, 15, model_clust_thr]
         self.model_cluster_map = qbx_and_merge(model, thresholds,
                                                nb_pts=self.nb_points,
@@ -78,11 +128,15 @@ class RecoBundlesX(object):
                             str(model_clust_thr),
                             str(len_centroids))
 
-    def _reduce_search_space(self):
+    def _reduce_search_space(self, neighbors_reduction_thr=18):
+        """
+        Wrapper function to discard clusters from the tractogram too far from
+        the model and logging informations
+        """
         centroid_matrix = bundles_distances_mdf(self.model_centroids,
                                                 self.centroids)
         centroid_matrix[centroid_matrix >
-                        self.neighbors_reduction_thr] = np.inf
+                        neighbors_reduction_thr] = np.inf
 
         mins = np.min(centroid_matrix, axis=0)
         close_clusters_indices = list(np.where(mins != np.inf)[0])
@@ -105,7 +159,7 @@ class RecoBundlesX(object):
 
         close_clusters = self.cluster_map[close_clusters_indices]
         self.neighb_streamlines = list(chain(*close_clusters))
-        if len(close_clusters_indices) < 1:
+        if not close_clusters_indices:
             return False
 
         self.neighb_centroids = [self.centroids[i]
@@ -117,6 +171,25 @@ class RecoBundlesX(object):
     def _register_neighb_to_model(self, slr_num_thread=1,
                                   select_model=1000, select_target=1000,
                                   slr_transform_type='scaling'):
+        """
+        Parameters
+        ----------
+        slr_num_thread : int
+            Number of threads for SLR 
+            Should remain 1 for nearly all use-case
+        select_model : int
+            Maximum number of clusters to select from the model
+        select_target : int
+            Maximum number of clusters to select from the neighborhood
+        slr_transform_type : str
+            Define the transformation for the local SLR
+            [translation, rigid, similarity, scaling]
+
+        Returns
+        -------
+        transf_neighbor : list
+            The neighborhood clusters transformed into model space
+        """
         possible_slr_transform_type = {'translation': 0, 'rigid': 1,
                                        'similarity': 2, 'scaling': 3}
         static = select_random_set_of_streamlines(self.model_centroids,
@@ -177,6 +250,10 @@ class RecoBundlesX(object):
 
     def _prune_what_not_in_model(self, neighbors_to_prune, bundle_pruning_thr=10,
                                  neighbors_cluster_thr=8):
+        """
+        Wrapper function to prune clusters from the tractogram too far from
+        the model
+        """
         # Neighbors can be refined since the search space is smaller
         thresholds = [40, 30, 20, neighbors_cluster_thr]
         self.rtransf_cluster_map = qbx_and_merge(neighbors_to_prune, thresholds,
@@ -206,4 +283,7 @@ class RecoBundlesX(object):
         return final_indices
 
     def get_pruned_indices(self):
+        """
+        Public getter for the final indices recognize by the algorithm
+        """
         return self.pruned_indices_per_clusters

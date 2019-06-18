@@ -16,12 +16,31 @@ from scipy.sparse import dok_matrix
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 
-from rheault_research.segment.recobundlesx import RecobundlesX
+from scilpy.segment.recobundlesx import RecobundlesX
 
 
 class VotingScheme(object):
     def __init__(self, config, atlas_directory, transformation,
                  output_directory, minimal_vote_ratio=0.5, multi_parameters=1):
+        """
+        Parameters
+        ----------
+        config : dict
+            Dictionary containing information relative to bundle recognition
+        atlas_directory : list
+            List of all directories to be used as atlas by RBx
+            Must contain all bundles as declared in the config file 
+        transformation : numpy.ndarray
+            Transformation (4x4) bringing the models into subject space
+        output_directory : str
+            Directory name where all files will be saved
+        minimal_vote_ratio : float
+            Value for the vote ratio for a streamline to be considered 
+            (0 < minimal_vote_ratio < 1)
+        multi_parameters : int
+            Number of runs RBx will performed
+            Enough parameter choices must be provided
+        """
         self.config = config
         self.multi_parameters = multi_parameters
         self.minimal_vote_ratio = minimal_vote_ratio
@@ -36,11 +55,15 @@ class VotingScheme(object):
         self.output_directory = output_directory
 
     def _init_bundles_tag(self):
+        """
+        Using all bundles in the configuration file and the input models
+        folders, generate all model filepaths.
+        Bundles must exist across all folders.
+        """
         bundle_names = []
         bundles_filepath = []
         # Generate all input files based on the config file and model directory
         for key in self.config.keys():
-            # key = key.encode('ascii', 'ignore')
             bundle_names.append(key)
             all_atlas_models = list(product(self.atlas_dir, [key]))
             tmp_list = [os.path.join(tag.encode('ascii', 'ignore'),
@@ -81,6 +104,10 @@ class VotingScheme(object):
         return bundle_names_exist, bundles_filepath_exist
 
     def _load_bundles_dictionary(self, bundles_filepath):
+        """
+        Load all model bundles and store them in a dictionnary where the
+        filepaths are the keys and the streamlines the values
+        """
         filenames = [filepath for filepath in bundles_filepath]
 
         model_bundles_dict = {}
@@ -98,6 +125,11 @@ class VotingScheme(object):
 
     def _find_max_in_sparse_matrix(self, bundle_id, min_vote,
                                    streamlines_wise_vote, bundles_wise_vote):
+        """
+        Will find the maximum values of a specific row (bundle_id), make
+        sure they are the maximum values across bundles (argmax) and above the
+        min_vote threshold. Return the indices respecting all three conditions.
+        """ 
         streamlines_indices_in_bundles = []
         streamline_ids = bundles_wise_vote[bundle_id]
         for streamline_id in streamline_ids.keys():
@@ -118,6 +150,27 @@ class VotingScheme(object):
     def _save_recognized_bundles(self, tractogram, bundle_names,
                                  streamlines_wise_vote, bundles_wise_vote,
                                  minimum_vote, extension):
+        """
+        Parameters
+        ----------
+        tractogram : list or ArraySequence
+            Filepath of the whole brain tractogram to segment as loaded
+            by the nibabel API
+        bundle_names : list
+            Bundle names as defined in the configuration file
+            Will save the bundle using that filename and the extension
+        streamlines_wise_vote : dok_matrix
+            Array of zeros of shape (nbr_streamlines x nbr_bundles)
+        bundles_wise_vote : dok_matrix
+            Array of zeros of shape (nbr_bundles x nbr_streamlines)
+        minimum_vote : float
+            Value for the vote ratio for a streamline to be considered 
+            (0 < minimal_vote < 1)
+        extension : str
+            Extension for file saving (TRK or TCK)
+
+        Will save multiple TRK/TCK file and results.json (contains indices)
+        """
         results_dict = {}
         for bundle_id in range(len(bundle_names)):
             streamlines_id = self._find_max_in_sparse_matrix(bundle_id,
@@ -155,7 +208,22 @@ class VotingScheme(object):
             json.dump(results_dict, outfile)
 
     def multi_recognize(self, input_tractogram_path, tractogram_clustering_thr,
-                        nb_points=20, nbr_processes=1, save_all=False, seeds=None):
+                        nb_points=20, nbr_processes=1, seeds=None):
+        """
+        Parameters
+        ----------
+        input_tractogram_path : str
+            Filepath of the whole brain tractogram to segment
+        tractogram_clustering_thr : int
+            Distance in mm (for QBx) to cluster the input tractogram
+        nb_points : str
+            Number of points used for all resampling of streamlines
+        nbr_processes : int
+            Number of processes used for the parallel bundle recognition
+        seeds : list
+            List of seed for the RandomState
+        """
+
         # Load the subject tractogram
         timer = time()
         tractogram = nib.streamlines.load(input_tractogram_path)
@@ -306,6 +374,36 @@ class VotingScheme(object):
 
 
 def single_recognize(args):
+    """
+    Parameters
+    ----------
+    rbx_all : dict
+        Dictionary with int as key and QBx ClusterMap as values
+    bundle_id : int
+        Unique value to each bundle to identify them
+    tag : str
+        Model bundle filepath for logging
+    model_bundle : list or Array Sequence
+        Model bundle as loaded by the nibabel API
+    tct : int
+        Tractogram clustering threshold, distance in mm (for QBx)
+    mct : int
+        Model clustering threshold, distance in mm (for QBx)
+    bpt : int
+        Bundle pruning threshold, distance in mm
+    slr_transform_type : str
+        Define the transformation for the local SLR
+        [translation, rigid, similarity, scaling]
+    seed : int
+        Value to initialize the RandomState of numpy
+    Returns
+    -------
+    transf_neighbor : tuple
+        bundle_id (int) 
+            Unique value to each bundle to identify them
+        recognized_indices (numpy.ndarray) 
+            Streamlines indices from the original tractogram
+    """
     rbx_all = args[0]
     bundle_id = args[1]
     tag = args[2]
