@@ -29,13 +29,13 @@ class VotingScheme(object):
             Dictionary containing information relative to bundle recognition
         atlas_directory : list
             List of all directories to be used as atlas by RBx
-            Must contain all bundles as declared in the config file 
+            Must contain all bundles as declared in the config file
         transformation : numpy.ndarray
             Transformation (4x4) bringing the models into subject space
         output_directory : str
             Directory name where all files will be saved
         minimal_vote_ratio : float
-            Value for the vote ratio for a streamline to be considered 
+            Value for the vote ratio for a streamline to be considered
             (0 < minimal_vote_ratio < 1)
         multi_parameters : int
             Number of runs RBx will performed
@@ -82,11 +82,11 @@ class VotingScheme(object):
                     missing_files.append(bundles_filepath[i][j])
 
             if missing_count == len(bundles_filepath[i]):
-                logging.warning("None of the %s exist, this bundle recognition" +
-                                " will be skipped", bundle_names[i])
+                logging.warning('None of the %s exist, this bundle' +
+                                ' will be skipped', bundle_names[i])
             elif missing_count < len(bundles_filepath[i]) and missing_count > 0:
-                logging.error("%s do not exist, this bundle recognition " +
-                              "will be skipped", missing_files)
+                logging.error('%s do not exist, this bundle ' +
+                              'will be skipped', missing_files)
             else:
                 to_keep.append(i)
 
@@ -94,12 +94,12 @@ class VotingScheme(object):
         bundle_names_exist = [bundle_names[i] for i in to_keep]
 
         bundles_filepath_exist = [bundles_filepath[i] for i in to_keep]
-        logging.info("%s sub-model directory were found each " +
-                     "with %s model bundles",
+        logging.info('%s sub-model directory were found each ' +
+                     'with %s model bundles',
                      len(self.atlas_dir),
                      len(bundle_names_exist))
-        logging.debug("The models use for RecobundlesX " +
-                      "will be %s", bundles_filepath_exist)
+        logging.debug('The models use for RecobundlesX ' +
+                      'will be %s', bundles_filepath_exist)
 
         return bundle_names_exist, bundles_filepath_exist
 
@@ -116,10 +116,10 @@ class VotingScheme(object):
             bundle = transform_streamlines(streamlines, self.transformation)
             model_bundles_dict[filename] = bundle
 
-            logging.debug("Loaded %s with %s streamlines", filename,
+            logging.debug('Loaded %s with %s streamlines', filename,
                           len(bundle))
             if len(bundle) > 5000:
-                logging.warning("%s has above 5000 streamlines", filename)
+                logging.warning('%s has above 5000 streamlines', filename)
 
         return model_bundles_dict
 
@@ -129,7 +129,7 @@ class VotingScheme(object):
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
-        """ 
+        """
         streamlines_indices_in_bundles = []
         streamline_ids = bundles_wise_vote[bundle_id]
         for streamline_id in streamline_ids.keys():
@@ -137,7 +137,8 @@ class VotingScheme(object):
             current_arg_max = -1
 
             for vote_id in streamlines_wise_vote[streamline_id[1]].keys():
-                current_vote = streamlines_wise_vote[streamline_id[1], vote_id[1]]
+                current_vote = streamlines_wise_vote[streamline_id[1],
+                                                     vote_id[1]]
                 if current_vote > current_max_vote:
                     current_max_vote = current_vote
                     current_arg_max = vote_id[1]
@@ -164,7 +165,7 @@ class VotingScheme(object):
         bundles_wise_vote : dok_matrix
             Array of zeros of shape (nbr_bundles x nbr_streamlines)
         minimum_vote : float
-            Value for the vote ratio for a streamline to be considered 
+            Value for the vote ratio for a streamline to be considered
             (0 < minimal_vote < 1)
         extension : str
             Extension for file saving (TRK or TCK)
@@ -178,12 +179,12 @@ class VotingScheme(object):
                                                              streamlines_wise_vote,
                                                              bundles_wise_vote)
 
-            if len(streamlines_id) < 1:
-                logging.error("%s final recognition got %s streamlines",
+            if not streamlines_id < 1:
+                logging.error('%s final recognition got %s streamlines',
                               bundle_names[bundle_id], len(streamlines_id))
                 continue
             else:
-                logging.info("%s final recognition got %s streamlines",
+                logging.info('%s final recognition got %s streamlines',
                              bundle_names[bundle_id], len(streamlines_id))
 
             streamlines = tractogram.streamlines[streamlines_id.T]
@@ -228,8 +229,8 @@ class VotingScheme(object):
         timer = time()
         tractogram = nib.streamlines.load(input_tractogram_path)
         wb_streamlines = tractogram.streamlines
-        logging.debug("Tractogram %s with %s streamlines " +
-                      "is loaded in %s", input_tractogram_path,
+        logging.debug('Tractogram %s with %s streamlines ' +
+                      'is loaded in %s', input_tractogram_path,
                       len(tractogram.streamlines),
                       round(time() - timer, 2))
 
@@ -259,8 +260,8 @@ class VotingScheme(object):
                                                                nb_points=nb_points,
                                                                rng=rng)
 
-                logging.info("QBx with seed %s at %smm took %ssec. gave " +
-                             "%s centroids", seed, current_thr_list,
+                logging.info('QBx with seed %s at %smm took %ssec. gave ' +
+                             '%s centroids', seed, current_thr_list,
                              round(time() - timer, 2),
                              len(cluster_map.centroids))
 
@@ -280,24 +281,24 @@ class VotingScheme(object):
             for bundle_id in range(len(bundle_names)):
                 random.seed(seed)
                 bundle_parameters = self.config[bundle_names[bundle_id]]
-                model_cluster_thr = bundle_parameters["model_clustering_thr"]
-                bundle_pruning_thr = bundle_parameters["bundle_pruning_thr"]
-                slr_transform_type = bundle_parameters["slr_transform_type"]
+                model_cluster_thr = bundle_parameters['model_clustering_thr']
+                bundle_pruning_thr = bundle_parameters['bundle_pruning_thr']
+                slr_transform_type = bundle_parameters['slr_transform_type']
                 potential_parameters = list(product(tractogram_clustering_thr,
                                                     model_cluster_thr,
                                                     bundle_pruning_thr))
                 random.shuffle(potential_parameters)
 
                 if self.multi_parameters > len(potential_parameters):
-                    logging.error("More multi-parameters executions than " +
-                                  "potential parameters")
+                    logging.error('More multi-parameters executions than ' +
+                                  'potential parameters')
                     self.multi_parameters = len(potential_parameters)
 
                 # Generate a set of parameters for each run
                 picked_parameters = potential_parameters[0:self.multi_parameters]
 
-                logging.debug("Parameters choice for %s, for the %s" +
-                              " executions are %s", bundle_names[bundle_id],
+                logging.debug('Parameters choice for %s, for the %s' +
+                              ' executions are %s', bundle_names[bundle_id],
                               self.multi_parameters,
                               picked_parameters)
 
@@ -350,12 +351,12 @@ class VotingScheme(object):
 
         nb_exec = len(self.atlas_dir) * self.multi_parameters * len(seeds) * \
             len(bundle_names)
-        logging.info("RBx took %s sec. for a total of " +
-                     "%s exectutions", round(time() - total_timer, 2),
+        logging.info('RBx took %s sec. for a total of ' +
+                     '%s exectutions', round(time() - total_timer, 2),
                      nb_exec)
-        logging.debug("%s tractogram clustering, %s seeds, " +
-                      "%s multi-parameters, %s sub-model directory, " +
-                      "%s bundles",
+        logging.debug('%s tractogram clustering, %s seeds, ' +
+                      '%s multi-parameters, %s sub-model directory, ' +
+                      '%s bundles',
                       len(tractogram_clustering_thr), len(seeds),
                       self.multi_parameters,
                       len(self.atlas_dir),
@@ -399,9 +400,9 @@ def single_recognize(args):
     Returns
     -------
     transf_neighbor : tuple
-        bundle_id (int) 
+        bundle_id (int)
             Unique value to each bundle to identify them
-        recognized_indices (numpy.ndarray) 
+        recognized_indices (numpy.ndarray)
             Streamlines indices from the original tractogram
     """
     rbx_all = args[0]
@@ -424,10 +425,10 @@ def single_recognize(args):
                                       identifier=tag)
     recognized_indices = rbx.get_pruned_indices()
 
-    logging.info("Model %s recognized %s streamlines",
+    logging.info('Model %s recognized %s streamlines',
                  tag, len(recognized_bundle))
-    logging.debug("Model %s (seed %s) with parameters " +
-                  "tct=%s, mct=%s, bpt=%s took %s sec.", tag, seed,
+    logging.debug('Model %s (seed %s) with parameters ' +
+                  'tct=%s, mct=%s, bpt=%s took %s sec.', tag, seed,
                   tct, mct, bpt, round(time() - timer, 2))
     if recognized_indices is None:
         recognized_indices = []

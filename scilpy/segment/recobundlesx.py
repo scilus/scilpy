@@ -41,7 +41,7 @@ class RecobundlesX(object):
         nb_points : int
             Number of points used for all resampling of streamlines
         slr_num_thread : int
-            Number of threads for SLR 
+            Number of threads for SLR
             Should remain 1 for nearly all use-case
         rng : RandomState
             If None then RandomState is initialized internally.
@@ -86,16 +86,17 @@ class RecobundlesX(object):
 
         Returns
         -------
-        clusters : obj
-            Contains the clusters of the last layer of QuickBundlesX after merging.
+        clusters : list
+            Streamlines that were recognized by Recobundles and these
+            parameters
         """
         self._cluster_model_bundle(model_bundle, model_clust_thr,
                                    identifier=identifier)
 
         if not self._reduce_search_space():
             if identifier:
-                logging.error("%s did not find any neighbors in " +
-                              "the tractogram", identifier)
+                logging.error('%s did not find any neighbors in ' +
+                              'the tractogram', identifier)
             return []
 
         if self.slr_num_thread > 0:
@@ -123,8 +124,8 @@ class RecobundlesX(object):
         self.model_centroids = self.model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logging.warning("Model %s simplified at threshod " +
-                            "%smm with %s centroids", identifier,
+            logging.warning('Model %s simplified at threshod ' +
+                            '%smm with %s centroids', identifier,
                             str(model_clust_thr),
                             str(len_centroids))
 
@@ -175,7 +176,7 @@ class RecobundlesX(object):
         Parameters
         ----------
         slr_num_thread : int
-            Number of threads for SLR 
+            Number of threads for SLR
             Should remain 1 for nearly all use-case
         select_model : int
             Maximum number of clusters to select from the model

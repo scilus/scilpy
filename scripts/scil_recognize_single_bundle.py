@@ -120,5 +120,5 @@ def main():
                              header=wb_file.header)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
