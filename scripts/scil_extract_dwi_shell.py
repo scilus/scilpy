@@ -116,7 +116,7 @@ def main():
     tol = args.tolerance
     indices = [get_shell_indices(bvals, shell, tol=tol)
                for shell in args.bvals_to_extract]
-    indices = np.sort(np.hstack(indices))
+    indices = np.unique(np.sort(np.hstack(indices)))
 
     if len(indices) == 0:
         parser.error('There are no volumes that have the supplied b-values.')
