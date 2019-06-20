@@ -179,7 +179,7 @@ class VotingScheme(object):
                                                              streamlines_wise_vote,
                                                              bundles_wise_vote)
 
-            if not streamlines_id < 1:
+            if streamlines_id:
                 logging.error('%s final recognition got %s streamlines',
                               bundle_names[bundle_id], len(streamlines_id))
                 continue
