@@ -28,43 +28,43 @@ def buildArgsParser():
                                 description=__doc__)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename')
+                   help='Input tractogram filename (trk or tck).')
     p.add_argument('in_model',
-                   help='Model to use for recognition')
+                   help='Model to use for recognition (trk or tck).')
     p.add_argument('transformation',
                    help='4x4 transformation to bring the model onto \n'
                    'the input tractogram')
     p.add_argument('output_name',
-                   help='Output tractogram filename')
+                   help='Output tractogram filename.')
 
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
-                   '[%(default)smm]')
+                   '[%(default)smm].')
     p.add_argument('--model_clustering_thr', type=float, default=4,
                    help='Clustering threshold used for the model '
-                   '[%(default)smm]')
+                   '[%(default)smm].')
     p.add_argument('--pruning_thr', type=float, default=6,
                    help='MDF threshold used for final streamlines selection '
-                   '[%(default)smm]')
+                   '[%(default)smm].')
 
     p.add_argument('--slr_threads', type=int, default=None,
-                   help='Number of threads for SLR [all]')
+                   help='Number of threads for SLR [all].')
     p.add_argument('--seed', type=int, default=None,
-                   help='Random number generator seed [%(default)s]')
+                   help='Random number generator seed [%(default)s].')
     p.add_argument('--inverse', action='store_true',
-                   help='Will use the inverse transformation')
+                   help='Use the inverse transformation.')
     p.add_argument('--no_empty', action='store_true',
-                   help='Do not write file if there is no streamline')
+                   help='Do not write file if there is no streamline.')
 
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                       'Will override the wb_clustering_thr parameter')
+                       'Will override the wb_clustering_thr parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
     p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Produce verbose output. [false]')
+                   help='Produce verbose output. [false].')
 
     add_overwrite_arg(p)
 

@@ -28,39 +28,39 @@ def _buildArgsParser():
                                 description=__doc__)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename')
+                   help='Input tractogram filename (trk or tck).')
     p.add_argument('config_file',
-                   help='Path of the config file (*.json)')
+                   help='Path of the config file (json)')
     p.add_argument('models_directories', nargs='+',
-                   help='Path for the directories containing model')
+                   help='Path for the directories containing model.')
     p.add_argument('transformation',
-                   help='Path for the transformation to model space')
+                   help='Path for the transformation to model space.')
 
     p.add_argument('--output_dir', default='voting_results/',
-                   help='Path for the output directory')
+                   help='Path for the output directory.')
     p.add_argument('--log_level', default='INFO',
                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                    help='Log level of the logging class')
 
     p.add_argument('--multi_parameters', type=int, default=1,
                    help='Pick parameters from the potential combinations\n' +
-                   'Will multiply the number of time Recobundles is ran')
+                   'Will multiply the number of time Recobundles is ran.')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
                    help='Streamlines will only be considered for saving if\n ' +
-                   'recognized often enough')
+                   'recognized often enough.')
 
     p.add_argument('--tractogram_clustering_thr',
                    type=int, default=[12], nargs='+',
                    help='Input tractogram clustering thresholds ' +
-                   '[%(default)smm]')
+                   '[%(default)smm].')
 
     p.add_argument('--processes', type=int, default=1,
-                   help='Number of thread used for computation [%(default)s]')
+                   help='Number of thread used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
                    help='Random number generator seed [%(default)s]\n' +
-                   'Will multiply the number of time Recobundles is ran')
+                   'Will multiply the number of time Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
-                   help='Will use the inverse transformation')
+                   help='Use the inverse transformation.')
 
     add_overwrite_arg(p)
 
