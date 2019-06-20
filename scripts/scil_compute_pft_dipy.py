@@ -38,7 +38,7 @@ from nibabel.streamlines import Field, LazyTractogram
 from nibabel.orientations import aff2axcodes
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args, add_verbose,
                              assert_inputs_exist, assert_outputs_exists)
 from scilpy.tracking.tools import get_theta
 
@@ -134,13 +134,12 @@ def _build_args_parser():
              'NOT RECOMMENDED, except for debugging.')
     out_g.add_argument(
         '--seed', type=int,
-        help='Random number generator seed')
+        help='Random number generator seed.')
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    log_g.add_argument(
-        '-v', action='store_true', dest='isVerbose',
-        help='If set, produces verbose output.')
+    add_verbose(log_g)
+
     return p
 
 

@@ -16,6 +16,7 @@ from the SF.
 """
 
 import argparse
+import logging
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import SPHERE_FILES, get_sphere
@@ -35,7 +36,7 @@ import numpy as np
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
 from scilpy.tracking.tools import get_theta
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args, add_verbose,
                              assert_inputs_exist, assert_outputs_exists)
 
 DETERMINISTIC = 'det'
@@ -106,9 +107,12 @@ def _build_arg_parser():
              'streamlines.')
     out_g.add_argument(
         '--seed', type=int,
-        help='Random number generator seed')
-
+        help='Random number generator seed.')
     add_overwrite_arg(out_g)
+
+    log_g = p.add_argument_group('Logging options')
+    add_verbose(log_g)
+
     return p
 
 
@@ -162,6 +166,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    if args.isVerbose:
+        logging.basicConfig(level=logging.DEBUG)
+
     assert_inputs_exist(parser, [args.sh_file, args.seed_file, args.mask_file])
     assert_outputs_exists(parser, args, [args.output_file])
 
@@ -175,6 +182,14 @@ def main():
     if args.max_length < args.min_length:
         parser.error('maxL must be > than minL, (minL={}mm, maxL={}mm).'
                      .format(args.min_length, args.max_length))
+
+    if args.compress:
+        if args.compress < 0.001 or args.compress > 1:
+            logging.warning(
+                'You are using an error rate of {}.\nWe recommend setting it '
+                'between 0.001 and 1.\n0.001 will do almost nothing to the '
+                'tracts while 1 will higly compress/linearize the tracts'
+                .format(args.compress))
 
     if args.npv and args.npv <= 0:
         parser.error('Number of seeds per voxel must be > 0.')
@@ -237,7 +252,7 @@ def main():
     tractogram = LazyTractogram(lambda: filtered_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
-    # Header with the affine/shape from mask image
+    # TODO replace with create_header_from_image after PR #9
     header = {
         Field.VOXEL_TO_RASMM: seed_img.affine.copy(),
         Field.VOXEL_SIZES: seed_img.header.get_zooms(),

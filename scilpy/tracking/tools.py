@@ -30,6 +30,24 @@ def get_max_angle_from_curvature(curvature, step_size):
 
 
 def get_theta(requested_theta, curvature, step_size, tracking_type):
+    """
+    Parameters
+    ----------
+    requested_theta : float or None
+        Desired angular threshold (or None if unused)
+    curvature: float
+        Minimum radius of curvature in mm.
+    step_size: float
+        The tracking step size in mm.
+    tracking_type: str
+        Choice of algorithm for tractography
+            [PROBABILISTIC, DETERMINISTIC, EUDX]
+
+    Return
+    ------
+    theta: float
+        The maximum deviation angle in degree
+    """
     if requested_theta is not None:
         theta = requested_theta
     elif curvature > 0:
