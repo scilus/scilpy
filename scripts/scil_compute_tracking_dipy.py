@@ -128,7 +128,8 @@ def _get_direction_getter(args, mask_data):
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
             shcoeff=sh_data, max_angle=theta, sphere=sphere,
-            basis_type=args.sh_basis, relative_peak_threshold=args.sf_threshold)
+            basis_type=args.sh_basis,
+            relative_peak_threshold=args.sf_threshold)
 
     # Code for type EUDX. We don't use peaks_from_model
     # because we want the peaks from the provided sh.
@@ -238,7 +239,7 @@ def main():
         maxlen=max_steps,
         fixedstep=True, return_all=True,
         random_seed=args.seed)
-    
+
     scaled_min_length = args.min_length / voxel_size
     scaled_max_length = args.max_length / voxel_size
 
