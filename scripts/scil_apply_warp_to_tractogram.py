@@ -63,22 +63,20 @@ def _buildArgsParser():
                                 description=__doc__)
 
     p.add_argument('in_file',
-                   help='Path of the file that will be warped (*.trk).')
+                   help='Path of the tractogram to be warped (trk).')
 
     p.add_argument('ref_file',
-                   help='Path of the reference file, can be *.trk or '
-                   'in the Nifti format')
+                   help='Path of the reference file (trk, nii or nii.gz')
 
     p.add_argument('deformation',
-                   help='Path of the file containing the \n'
-                   'deformation field.')
+                   help='Path of the file containing deformation field.')
 
     p.add_argument('out_name',
                    help='Output filename of the transformed tractogram.')
 
     p.add_argument('--field_source', default='ants', choices=['ants', 'dipy'],
-                   help='Source of the deformation field: \n'
-                        '[ants, dipy] - be cautious, the default is ants')
+                   help='Source of the deformation field: [%(choices)s]  \n'
+                        'be cautious, the default is  [%(default)s].')
 
     add_overwrite_arg(p)
 

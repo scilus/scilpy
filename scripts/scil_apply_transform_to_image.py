@@ -23,12 +23,11 @@ def _buildArgsParser():
                                 description=__doc__)
 
     p.add_argument('in_file',
-                   help='Path of the file that will be transformed')
+                   help='Path of the file to be transformed (nii or nii.gz)')
 
     p.add_argument('ref_file',
                    help='Path of the reference file (the static \n'
-                   'file from registration), \n'
-                   'must be in the Nifti format')
+                   'file from registration), must be in the Nifti format.')
 
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
@@ -38,7 +37,7 @@ def _buildArgsParser():
                    help='Output filename of the transformed data.')
 
     p.add_argument('--inverse', action='store_true',
-                   help='Will apply the inverse transformation.')
+                   help='Apply the inverse transformation.')
 
     add_overwrite_arg(p)
 
@@ -60,7 +59,7 @@ def main():
     _, ref_extension = split_name_with_nii(args.ref_file)
     _, in_extension = split_name_with_nii(args.in_file)
     if ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is unsupported format.'.format(args.in_file))
+        parser.error('{} is an unsupported format.'.format(args.in_file))
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.ref_file))
 

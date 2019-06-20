@@ -47,22 +47,21 @@ def _buildArgsParser():
                                 description=__doc__)
 
     p.add_argument('in_file',
-                   help='Path of the file that will be transformed (*.trk)')
+                   help='Path of the tractogram to be transformed (trk or tck).')
 
     p.add_argument('ref_file',
-                   help='Path of the reference file, can be *.trk \n'
-                   'or in the Nifti format')
+                   help='Path of the reference file (trk or nii)')
 
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
                    'transformation, matrix (*.npy).'
-                   'See the script description for more information')
+                   'See the script description for more information.')
 
     p.add_argument('out_name',
                    help='Output filename of the transformed data.')
 
     p.add_argument('--inverse', action='store_true',
-                   help='Will apply the inverse transformation.')
+                   help='Apply the inverse transformation.')
 
     add_overwrite_arg(p)
 
