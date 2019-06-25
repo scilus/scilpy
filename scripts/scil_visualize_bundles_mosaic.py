@@ -16,10 +16,10 @@ from PIL import ImageDraw
 
 def build_arg_parser():
     parser = argparse.ArgumentParser(
-            description='Visualize bundles from a list. '
-                        'The script will output one screenshot per direction '
-                        '(6 total) for each bundle in the list.',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='Visualize bundles from a list. '
+                    'The script will output one screenshot per direction '
+                    '(6 total) for each bundle in the list.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('anat_reference',
                         help='Image used as background (e.g. T1, FA, b0).')
     parser.add_argument('inputs', nargs='+',
@@ -90,18 +90,18 @@ def main():
         j = height * num + 50
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
-                    name[:name.find('_')],  font=font)
+                  name[:name.find('_')], font=font)
         draw.text((i + text_pos_x, j + text_pos_y + 50),
-                    name[1+name.find('_'):],  font=font)
+                  name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
     viewNumber = 6
     i = 0
     j = height * viewNumber
     draw.text((i + text_pos_x, j + text_pos_y),
-                ('Bundle'), font=font)
+              ('Bundle'), font=font)
     draw.text((i + text_pos_x, j + text_pos_y + 50),
-                ('Streamlines'), font=font)
+              ('Streamlines'), font=font)
 
     # ----------------------------------------------------------------------- #
     # Columns with bundles
@@ -111,14 +111,14 @@ def main():
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, _ = os.path.splitext(bundle_file_name)
 
-        # !! It creates a temporal folder to create the images to concatenate in the mosaic !! ----------------------
+        # !! It creates a temporal folder to create the images to concatenate in the mosaic !!
         output_bundle_dir = os.path.join(output_dir, bundle_name)
         if not os.path.isdir(output_bundle_dir):
             os.makedirs(output_bundle_dir)
 
         output_paths = [
             os.path.join(output_bundle_dir,
-                        '{}_' + os.path.basename(output_bundle_dir)).format(name)
+                         '{}_' + os.path.basename(output_bundle_dir)).format(name)
             for name in output_names]
         stats[bundle_name] = {}
 
@@ -133,11 +133,11 @@ def main():
             stats[bundle_name]['number_streamlines'] = 0
 
             draw.text((i + text_pos_x, j + text_pos_y),
-                            (bundle_file_name),
-                            font=font)
+                      (bundle_file_name),
+                      font=font)
             draw.text((i + text_pos_x, j + text_pos_y + 50),
-                            ('%d' % stats[bundle_name]['number_streamlines']),
-                            font=font)
+                      ('%d' % stats[bundle_name]['number_streamlines']),
+                      font=font)
 
         else:
             # Select the streamlines to plot
@@ -234,9 +234,9 @@ def main():
             stats[bundle_name]['number_streamlines'] = len(streamlines)
 
             draw.text((i + text_pos_x, j + text_pos_y),
-                        (bundle_file_name), font=font)
+                      (bundle_file_name), font=font)
             draw.text((i + text_pos_x, j + text_pos_y + 50),
-                        ('%d' % stats[bundle_name]['number_streamlines']), font=font)
+                      ('%d' % stats[bundle_name]['number_streamlines']), font=font)
 
         shutil.rmtree(output_bundle_dir)
 
