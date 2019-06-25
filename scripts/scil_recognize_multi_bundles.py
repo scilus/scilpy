@@ -39,7 +39,7 @@ def _buildArgsParser():
     p.add_argument('--output_dir', default='voting_results/',
                    help='Path for the output directory.')
     p.add_argument('--log_level', default='INFO',
-                   choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                   choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                    help='Log level of the logging class')
 
     p.add_argument('--multi_parameters', type=int, default=1,

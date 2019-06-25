@@ -230,7 +230,7 @@ class VotingScheme(object):
         tractogram = nib.streamlines.load(input_tractogram_path)
         wb_streamlines = tractogram.streamlines
         logging.debug('Tractogram %s with %s streamlines ' +
-                      'is loaded in %s', input_tractogram_path,
+                      'is loaded in %s seconds', input_tractogram_path,
                       len(tractogram.streamlines),
                       round(time() - timer, 2))
 
