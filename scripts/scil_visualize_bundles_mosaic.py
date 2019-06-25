@@ -18,7 +18,7 @@ def build_arg_parser():
     parser = argparse.ArgumentParser(
             description='Visualize bundles from a list. '
                         'The script will output one screenshot per direction '
-                        '(6 total) for each bundles of the list.',
+                        '(6 total) for each bundle in the list.',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('anat_reference',
                         help='Image used as background (e.g. T1, FA, b0).')
@@ -234,7 +234,7 @@ def main():
             stats[bundle_name]['number_streamlines'] = len(streamlines)
 
             draw.text((i + text_pos_x, j + text_pos_y),
-                            (bundle_file_name), font=font)
+                        (bundle_file_name), font=font)
             draw.text((i + text_pos_x, j + text_pos_y + 50),
                         ('%d' % stats[bundle_name]['number_streamlines']), font=font)
 
