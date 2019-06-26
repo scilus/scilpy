@@ -36,7 +36,8 @@ import numpy as np
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
 from scilpy.tracking.tools import get_theta
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args, add_verbose,
+from scilpy.io.utils import (create_header_from_anat,
+                             add_overwrite_arg, add_sh_basis_args, add_verbose,
                              assert_inputs_exist, assert_outputs_exists)
 
 DETERMINISTIC = 'det'
@@ -253,13 +254,8 @@ def main():
     tractogram = LazyTractogram(lambda: filtered_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
-    # TODO replace with create_header_from_image after PR #9
-    header = {
-        Field.VOXEL_TO_RASMM: seed_img.affine.copy(),
-        Field.VOXEL_SIZES: seed_img.header.get_zooms(),
-        Field.DIMENSIONS: seed_img.shape,
-        Field.VOXEL_ORDER: ''.join(aff2axcodes(seed_img.affine))
-    }
+    filetype = nib.streamlines.detect_format(args.output_file)
+    header = create_header_from_anat(seed_img, base_filetype=filetype)
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.output_file, header=header)
