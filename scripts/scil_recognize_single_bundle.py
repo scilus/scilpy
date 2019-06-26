@@ -24,8 +24,13 @@ from scilpy.io.utils import (add_overwrite_arg,
 
 
 def buildArgsParser():
-    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=__doc__,
+        epilog="Garyfallidis, E., Côté, M. A., Rheault, F., Sidhu, J., Hau, J.,"
+        "Petit, L., ... & Descoteaux, M. (2018). Recognition of white matter"
+        "bundles using local and global streamline-based registration and "
+        "clustering. NeuroImage, 170, 283-295.")
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename (trk or tck).')

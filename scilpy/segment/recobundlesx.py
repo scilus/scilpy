@@ -29,6 +29,7 @@ class RecobundlesX(object):
         bundles using local and global streamline-based registration and
         clustering, Neuroimage, 2017.
     """
+
     def __init__(self, streamlines, cluster_map,
                  nb_points=20, slr_num_thread=1, rng=None):
         """
@@ -95,8 +96,8 @@ class RecobundlesX(object):
 
         if not self._reduce_search_space():
             if identifier:
-                logging.error('%s did not find any neighbors in ' +
-                              'the tractogram', identifier)
+                logging.error('{} did not find any neighbors in ' +
+                              'the tractogram'.format(identifier))
             return []
 
         if self.slr_num_thread > 0:
@@ -115,6 +116,9 @@ class RecobundlesX(object):
     def _cluster_model_bundle(self, model, model_clust_thr, identifier=None):
         """
         Wrapper function to compute QBx for the model and logging informations
+        :param model, list or arraySequence, streamlines to be used as model
+        :param model_clust_thr, float, distance in mm for clustering
+        :param identifier, str, name of the bundle for logging
         """
         thresholds = [30, 20, 15, model_clust_thr]
         self.model_cluster_map = qbx_and_merge(model, thresholds,
@@ -133,6 +137,8 @@ class RecobundlesX(object):
         """
         Wrapper function to discard clusters from the tractogram too far from
         the model and logging informations
+        :param neighbors_reduction_thr, float, distance in mm for thresholding
+            to discard distant streamlines
         """
         centroid_matrix = bundles_distances_mdf(self.model_centroids,
                                                 self.centroids)
@@ -249,11 +255,15 @@ class RecobundlesX(object):
 
         return transform_streamlines(self.neighb_streamlines, slm.matrix)
 
-    def _prune_what_not_in_model(self, neighbors_to_prune, bundle_pruning_thr=10,
+    def _prune_what_not_in_model(self, neighbors_to_prune,
+                                 bundle_pruning_thr=10,
                                  neighbors_cluster_thr=8):
         """
         Wrapper function to prune clusters from the tractogram too far from
         the model
+        :param neighbors_to_prune, list or arraySequence, streamlines to prune
+        :param bundle_pruning_thr, float, distance in mm for pruning
+        :param neighbors_cluster_thr, float, distance in mm for clustering
         """
         # Neighbors can be refined since the search space is smaller
         thresholds = [40, 30, 20, neighbors_cluster_thr]
