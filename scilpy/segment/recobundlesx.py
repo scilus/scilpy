@@ -96,7 +96,7 @@ class RecobundlesX(object):
 
         if not self._reduce_search_space():
             if identifier:
-                logging.error('{} did not find any neighbors in ' +
+                logging.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
             return []
 
@@ -128,10 +128,10 @@ class RecobundlesX(object):
         self.model_centroids = self.model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logging.warning('Model %s simplified at threshod ' +
-                            '%smm with %s centroids', identifier,
+            logging.warning('Model {0} simplified at threshod '
+                            '{1}mm with {2} centroids'.format(identifier,
                             str(model_clust_thr),
-                            str(len_centroids))
+                            str(len_centroids)))
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
         """
