@@ -48,21 +48,22 @@ def _buildArgsParser():
                    help='Log level of the logging class')
 
     p.add_argument('--multi_parameters', type=int, default=1,
-                   help='Pick parameters from the potential combinations\n' +
-                   'Will multiply the number of time Recobundles is ran.')
+                   help='Pick parameters from the potential combinations\n'
+                   'Will multiply the number of time Recobundles is ran.\n'
+                   'Enough parameter choices are necessary, see config file')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
-                   help='Streamlines will only be considered for saving if\n ' +
+                   help='Streamlines will only be considered for saving if\n '
                    'recognized often enough.')
 
     p.add_argument('--tractogram_clustering_thr',
                    type=int, default=[12], nargs='+',
-                   help='Input tractogram clustering thresholds ' +
+                   help='Input tractogram clustering thresholds '
                    '[%(default)smm].')
 
     p.add_argument('--processes', type=int, default=1,
                    help='Number of thread used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
-                   help='Random number generator seed [%(default)s]\n' +
+                   help='Random number generator seed [%(default)s]\n'
                    'Will multiply the number of time Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')

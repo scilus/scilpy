@@ -117,7 +117,7 @@ class VotingScheme(object):
             model_bundles_dict[filename] = bundle
 
             logging.debug('Loaded {0} with {1} streamlines'.format(filename,
-                                                                 len(bundle)))
+                                                                   len(bundle)))
             if len(bundle) > 5000:
                 logging.warning(
                     '{0} has above 5000 streamlines'.format(filename))
@@ -232,40 +232,12 @@ class VotingScheme(object):
         wb_streamlines = tractogram.streamlines
         logging.debug('Tractogram {0} with {1} streamlines '
                       'is loaded in {2} seconds'.format(input_tractogram_path,
-                                                       len(wb_streamlines),
-                                                       round(time() -
-                                                             timer, 2)))
+                                                        len(wb_streamlines),
+                                                        round(time() -
+                                                              timer, 2)))
 
         # Prepare all tags to read the atlas properly
         bundle_names, bundles_filepath = self._init_bundles_tag()
-
-        # Cluster the whole tractogram only once per possible clustering threshold
-        rbx_all = {}
-        base_thresholds = [45, 35, 25]
-        for seed in seeds:
-            rng = np.random.RandomState(seed)
-            for clustering_thr in tractogram_clustering_thr:
-                timer = time()
-                # If necessary, add an extra layer (more optimal)
-                if clustering_thr < 15:
-                    current_thr_list = base_thresholds + [15, clustering_thr]
-                else:
-                    current_thr_list = base_thresholds + [clustering_thr]
-
-                cluster_map = qbx_and_merge(wb_streamlines,
-                                            current_thr_list,
-                                            nb_pts=nb_points, rng=rng,
-                                            verbose=False)
-
-                rbx_all[(seed, clustering_thr)] = RecobundlesX(wb_streamlines,
-                                                               cluster_map,
-                                                               nb_points=nb_points,
-                                                               rng=rng)
-
-                logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
-                             '{3} centroids'.format(seed, current_thr_list,
-                                                   round(time() - timer, 2),
-                                                   len(cluster_map.centroids)))
 
         total_timer = time()
         processing_dict = {}
@@ -293,8 +265,10 @@ class VotingScheme(object):
 
                 if self.multi_parameters > len(potential_parameters):
                     logging.error('More multi-parameters executions than '
-                                  'potential parameters')
-                    self.multi_parameters = len(potential_parameters)
+                                  'potential parameters, not enough parameter '
+                                  'choices for bundle {0}'.format(
+                                      bundle_names[bundle_id]))
+                    raise ValueError('Multi-parameters option is too high')
 
                 # Generate a set of parameters for each run
                 picked_parameters = potential_parameters[0:self.multi_parameters]
@@ -326,6 +300,34 @@ class VotingScheme(object):
                         processing_dict['slr_transform_type'] += [slr_transform_type]
                         processing_dict['seed'] += [seed]
 
+        # Cluster the whole tractogram only once per possible clustering threshold
+        rbx_all = {}
+        base_thresholds = [45, 35, 25]
+        for seed in seeds:
+            rng = np.random.RandomState(seed)
+            for clustering_thr in tractogram_clustering_thr:
+                timer = time()
+                # If necessary, add an extra layer (more optimal)
+                if clustering_thr < 15:
+                    current_thr_list = base_thresholds + [15, clustering_thr]
+                else:
+                    current_thr_list = base_thresholds + [clustering_thr]
+
+                cluster_map = qbx_and_merge(wb_streamlines,
+                                            current_thr_list,
+                                            nb_pts=nb_points, rng=rng,
+                                            verbose=False)
+
+                rbx_all[(seed, clustering_thr)] = RecobundlesX(wb_streamlines,
+                                                               cluster_map,
+                                                               nb_points=nb_points,
+                                                               rng=rng)
+
+                logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
+                             '{3} centroids'.format(seed, current_thr_list,
+                                                    round(time() - timer, 2),
+                                                    len(cluster_map.centroids)))
+
         pool = multiprocessing.Pool(nbr_processes)
         all_measures_dict = pool.map(single_recognize,
                                      zip(repeat(rbx_all),
@@ -356,7 +358,7 @@ class VotingScheme(object):
             len(bundle_names)
         logging.info('RBx took {0} sec. for a total of '
                      '{1} exectutions'.format(round(time() - total_timer, 2),
-                                             nb_exec))
+                                              nb_exec))
         logging.debug('{0} tractogram clustering, {1} seeds, '
                       '{2} multi-parameters, {3} sub-model directory, '
                       '{4} bundles'.format(
@@ -432,9 +434,9 @@ def single_recognize(args):
                  tag, len(recognized_bundle)))
     logging.debug('Model {0} (seed {1}) with parameters '
                   'tct={2}, mct={3}, bpt={4} took {5} sec.'.format(tag, seed,
-                                                               tct, mct, bpt,
-                                                               round(time() -
-                                                                     timer, 2)))
+                                                                   tct, mct, bpt,
+                                                                   round(time() -
+                                                                         timer, 2)))
     if recognized_indices is None:
         recognized_indices = []
     return bundle_id, np.asarray(recognized_indices, dtype=np.int)

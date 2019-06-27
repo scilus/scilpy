@@ -130,8 +130,8 @@ class RecobundlesX(object):
         if len_centroids > 1000:
             logging.warning('Model {0} simplified at threshod '
                             '{1}mm with {2} centroids'.format(identifier,
-                            str(model_clust_thr),
-                            str(len_centroids)))
+                                                              str(model_clust_thr),
+                                                              str(len_centroids)))
 
     def _reduce_search_space(self, neighbors_reduction_thr=18):
         """
