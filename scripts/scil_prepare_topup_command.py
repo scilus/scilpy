@@ -47,8 +47,8 @@ def _build_arg_parser():
     p.add_argument('--encoding_direction', default='y', choices=['x', 'y', 'z'],
                    help='acquisition direction, default is AP-PA [%(default)s].')
 
-    p.add_argument('--dwell_time', type=float, default=0.062,
-                   help='dwell time from the DICOM metadata [%(default)s].')
+    p.add_argument('--readout', type=float, default=0.062,
+                   help='total readout time from the DICOM metadata [%(default)s].')
 
     p.add_argument('--output_b0s', default='fused_b0s.nii.gz',
                    help='output fused b0 file [%(default)s].')
@@ -102,7 +102,7 @@ def main():
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
-    acqparams = create_acqparams(gtab, args.dwell_time, args.encoding_direction)
+    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction)
 
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
