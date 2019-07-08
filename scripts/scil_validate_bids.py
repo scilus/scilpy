@@ -11,6 +11,8 @@ import argparse
 from bids import BIDSLayout
 import json
 
+from scilpy.io.utils import add_overwrite_arg, assert_outputs_exists
+
 
 def _build_args_parser():
     parser = argparse.ArgumentParser(
@@ -24,6 +26,8 @@ def _build_args_parser():
     parser.add_argument(
             "output_json",
             help="Output json file")
+
+    add_overwrite_arg(parser)
 
     return parser
 
@@ -201,6 +205,9 @@ def get_data(nSub, dwi, t1s, associations, nRun):
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
+
+    assert_outputs_exists(parser, args, args.output_json)
+
     data = []
     layout = BIDSLayout(args.bids_folder, index_metadata=False)
     subjects = layout.get_subjects()
