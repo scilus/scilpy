@@ -22,4 +22,4 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
     ext_2 = os.path.splitext(tractogram_2)[1]
     if not ext_1 == ext_2:
         parser.error(
-            'Input and output tractogram file must use the same format.')
+            'Input and output tractogram files must use the same format.')
