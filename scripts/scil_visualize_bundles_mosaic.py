@@ -1,36 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Visualize bundles from a list.
+The script will output a mosaic (image) with screenshots,
+6 views per bundle in the list.
+"""
+
+from __future__ import division, print_function
 import argparse
 import os
 import shutil
+
 import nibabel as nib
+from fury import actor, window
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
-
-from dipy.viz import actor, window
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 
+from scilpy.io.utils import (
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+
 
 def build_arg_parser():
     parser = argparse.ArgumentParser(
-        description='Visualize bundles from a list. '
-                    'The script will output one screenshot per direction '
-                    '(6 total) for each bundle in the list.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('anat_reference',
                         help='Image used as background (e.g. T1, FA, b0).')
     parser.add_argument('inputs', nargs='+',
                         help='List of streamline files supported by nibabel.')
     parser.add_argument('output_name',
-                        help='Name of the output image mosaic (e.g. jpg, png).')
+                        help='Name of the output image mosaic '
+                             '(e.g. mosaic.jpg, mosaic.png).')
     parser.add_argument('--zoom', type=float, default=1.0,
                         help='Rendering zoom. '
-                        'A value greater than 1 is a zoom-in, a value less than 1 is a zoom-out.')
+                             'A value greater than 1 is a zoom-in, '
+                             'a value less than 1 is a zoom-out.')
     parser.add_argument('--ttf', default=None,
-                        help='Path of the true type font to use for the legends.')
+                        help='Path of the true type font to use for legends.')
     parser.add_argument('--ttf_size', type=int, default=35,
                         help='Font size (int) to use for the legends.')
     parser.add_argument('--opacity_background', type=float, default=0.4,
@@ -38,6 +46,55 @@ def build_arg_parser():
 
     add_overwrite_arg(parser)
     return parser
+
+
+def get_font(args):
+    """Returns a ttf font object."""
+    if args.ttf is not None:
+        try:
+            font = ImageFont.truetype(args.ttf, args.ttf_size)
+        except:
+            print('Font {} was not found. '
+                  'Default font will be used.'.format(args.ttf))
+            font = ImageFont.load_default()
+    else:
+        font = ImageFont.load_default()
+    return font
+
+
+def draw_column_with_names(draw, output_names, text_pos_x,
+                           text_pos_y, height, font):
+    """
+    Draw the first column with row's description
+    (views and bundle information to display).
+    """
+    # Orientation's names
+    for num, name in enumerate(output_names):
+        i = 0
+        j = height * num + 50
+        # Name splited in two lines
+        draw.text((i + text_pos_x, j + text_pos_y),
+                  name[:name.find('_')], font=font)
+        draw.text((i + text_pos_x, j + text_pos_y + 50),
+                  name[1+name.find('_'):], font=font)
+
+    # First column, last row: description of the information to show
+    view_number = 6
+    i = 0
+    j = height * view_number
+    draw.text((i + text_pos_x, j + text_pos_y),
+              ('Bundle'), font=font)
+    draw.text((i + text_pos_x, j + text_pos_y + 50),
+              ('Streamlines'), font=font)
+
+
+def draw_bundle_information(draw, bundle_file_name, number_streamlines,
+                            pos_x, pos_y, font):
+    """Draw text with bundle information."""
+    draw.text((pos_x, pos_y),
+              (bundle_file_name), font=font)
+    draw.text((pos_x, pos_y + 50),
+              ('{}'.format(number_streamlines)), font=font)
 
 
 def main():
@@ -51,67 +108,48 @@ def main():
                     'coronal_posterior', 'coronal_anterior',
                     'sagittal_left', 'sagittal_right']
 
-    listOfBundles = [f for f in args.inputs]
-    output_dir = os.path.dirname(args.output_name)  # Where temporal files will be created
+    list_of_bundles = [f for f in args.inputs]
+    # output_dir: where temporary files will be created
+    output_dir = os.path.dirname(args.output_name)
+
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
     # ----------------------------------------------------------------------- #
     width = 300
     height = 300
     rows = 6
-    cols = len(listOfBundles)
+    cols = len(list_of_bundles)
     text_pos_x = 50
     text_pos_y = 50
 
     # Creates a new empty image, RGB mode
     mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
+
     # Prepare draw and font objects to render text
     draw = ImageDraw.Draw(mosaic)
-    if args.ttf is not None:
-        try:
-            font = ImageFont.truetype(args.ttf, args.ttf_size)
-        except:
-            print('Font %s was not found. Default font will be used.' % (args.ttf))
-            font = ImageFont.load_default()
-    else:
-        font = ImageFont.load_default()
+    font = get_font(args)
 
-    # T1 as background
+    # Data of the image used as background
     ref_img = nib.load(args.anat_reference)
     data = ref_img.get_data()
     affine = ref_img.affine
     mean, std = data[data > 0].mean(), data[data > 0].std()
     value_range = (mean - 0.5 * std, mean + 1.5 * std)
 
-    stats = {}
-    # Orientation's names
-    for num, name in enumerate(output_names):
-        i = 0
-        j = height * num + 50
-        # Name splited in two lines
-        draw.text((i + text_pos_x, j + text_pos_y),
-                  name[:name.find('_')], font=font)
-        draw.text((i + text_pos_x, j + text_pos_y + 50),
-                  name[1+name.find('_'):], font=font)
-
-    # First column, last row: description of the information to show
-    viewNumber = 6
-    i = 0
-    j = height * viewNumber
-    draw.text((i + text_pos_x, j + text_pos_y),
-              ('Bundle'), font=font)
-    draw.text((i + text_pos_x, j + text_pos_y + 50),
-              ('Streamlines'), font=font)
+    # First column with rows description
+    draw_column_with_names(draw, output_names, text_pos_x,
+                           text_pos_y, height, font)
 
     # ----------------------------------------------------------------------- #
     # Columns with bundles
     # ----------------------------------------------------------------------- #
-    for numBundle, bundle_file in enumerate(listOfBundles):
+    for idx_bundle, bundle_file in enumerate(list_of_bundles):
 
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, _ = os.path.splitext(bundle_file_name)
 
-        # !! It creates a temporal folder to create the images to concatenate in the mosaic !!
+        # !! It creates a temporary folder to create
+        # the images to concatenate in the mosaic !!
         output_bundle_dir = os.path.join(output_dir, bundle_name)
         if not os.path.isdir(output_bundle_dir):
             os.makedirs(output_bundle_dir)
@@ -120,24 +158,19 @@ def main():
             os.path.join(output_bundle_dir,
                          '{}_' + os.path.basename(output_bundle_dir)).format(name)
             for name in output_names]
-        stats[bundle_name] = {}
 
-        i = (numBundle + 1)*width
+        i = (idx_bundle + 1)*width
 
         if not os.path.isfile(bundle_file):
-            print('\nInput file %s doesn\'t exist.' % (bundle_file))
+            print('\nInput file {} doesn\'t exist.'.format(bundle_file))
 
-            viewNumber = 6
-            j = height * viewNumber
+            number_streamlines = 0
 
-            stats[bundle_name]['number_streamlines'] = 0
+            view_number = 6
+            j = height * view_number
 
-            draw.text((i + text_pos_x, j + text_pos_y),
-                      (bundle_file_name),
-                      font=font)
-            draw.text((i + text_pos_x, j + text_pos_y + 50),
-                      ('%d' % stats[bundle_name]['number_streamlines']),
-                      font=font)
+            draw_bundle_information(draw, bundle_file_name, number_streamlines,
+                                    i + text_pos_x, j + text_pos_y, font)
 
         else:
             # Select the streamlines to plot
@@ -145,6 +178,8 @@ def main():
             streamlines = bundle_tractogram_file.streamlines
 
             tubes = actor.line(streamlines)
+
+            number_streamlines = len(streamlines)
 
             # Render
             ren = window.Renderer()
@@ -166,13 +201,14 @@ def main():
             slice_actor3.opacity(opacity)
             ren.add(slice_actor3)
 
+            # Streamlines
             ren.add(tubes)
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[0])
-            viewNumber = 0
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 0
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
@@ -180,9 +216,9 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[1])
-            viewNumber = 1
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 1
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
@@ -191,9 +227,9 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[2])
-            viewNumber = 2
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 2
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
@@ -202,9 +238,9 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[3])
-            viewNumber = 3
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 3
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
@@ -212,9 +248,9 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[4])
-            viewNumber = 4
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 4
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
@@ -222,21 +258,16 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             window.snapshot(ren, output_paths[5])
-            viewNumber = 5
-            j = height * viewNumber
-            image = Image.open(output_paths[viewNumber])
+            view_number = 5
+            j = height * view_number
+            image = Image.open(output_paths[view_number])
             image.thumbnail((width, height))
             mosaic.paste(image, (i, j))
 
-            viewNumber = 6
-            j = height * viewNumber
-
-            stats[bundle_name]['number_streamlines'] = len(streamlines)
-
-            draw.text((i + text_pos_x, j + text_pos_y),
-                      (bundle_file_name), font=font)
-            draw.text((i + text_pos_x, j + text_pos_y + 50),
-                      ('%d' % stats[bundle_name]['number_streamlines']), font=font)
+            view_number = 6
+            j = height * view_number
+            draw_bundle_information(draw, bundle_file_name, number_streamlines,
+                                    i + text_pos_x, j + text_pos_y, font)
 
         shutil.rmtree(output_bundle_dir)
 
