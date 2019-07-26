@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from scilpy.utils.nibabel_tools import get_data
+import nibabel as nib
 
 
 def get_reference_info(reference):
