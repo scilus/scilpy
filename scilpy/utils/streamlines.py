@@ -4,10 +4,9 @@
 from functools import reduce
 import itertools
 
+from dipy.tracking.streamline import transform_streamlines
 import numpy as np
 from scipy import ndimage
-
-from dipy.tracking.streamline import transform_streamlines
 
 
 MIN_NB_POINTS = 10
@@ -66,6 +65,15 @@ def subtraction(left, right):
     return {k: v for k, v in left.items() if k not in right}
 
 
+def union(left, right):
+    """Union of two streamlines dict (see hash_streamlines)"""
+
+    # In python 3 : return {**left, **right}
+    result = left.copy()
+    result.update(right)
+    return result
+
+
 def perform_streamlines_operation(operation, streamlines, precision=None):
     """Peforms an operation on a list of list of streamlines
 
@@ -104,15 +112,6 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     indices = sorted(to_keep.values())
     streamlines = [all_streamlines[i] for i in indices]
     return streamlines, indices
-
-
-def union(left, right):
-    """Union of two streamlines dict (see hash_streamlines)"""
-
-    # In python 3 : return {**left, **right}
-    result = left.copy()
-    result.update(right)
-    return result
 
 
 def warp_tractogram(streamlines, transfo, deformation_data, source):
