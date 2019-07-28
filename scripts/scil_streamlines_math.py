@@ -37,12 +37,12 @@ import logging
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
-
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exists)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
+
 
 OPERATIONS = {
     'subtraction': subtraction,
