@@ -58,7 +58,7 @@ def transform_tractogram(in_filename, ref_filename, def_filename,
     nib.streamlines.save(new_tractogram, filename_to_save, header=ref_header)
 
 
-def _buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -84,7 +84,7 @@ def _buildArgsParser():
 
 
 def main():
-    parser = _buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
