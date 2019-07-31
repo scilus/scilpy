@@ -4,10 +4,34 @@
 import os
 import six
 
+from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+
+
+def add_reference(parser):
+    parser.add_argument('--reference',
+                        help='Reference anatomy for Tck/Vtk/Dpy file support.\n'
+                        '(.nii or .nii.gz)')
+
+
+def load_tractogram_with_reference(parser, args, filepath,
+                                   bbox_check=True):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.trk':
+        sft = load_tractogram(filepath, 'same')
+    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
+        if args.reference is None:
+            parser.error('--reference is required for this file format '
+                         '{}.'.format(filepath))
+        sft = load_tractogram(filepath, args.reference,
+                              bbox_valid_check=bbox_check)
+    else:
+        parser.error('{} is an unsupported file format'.format(filepath))
+    
+    return sft
 
 
 def add_overwrite_arg(parser):
