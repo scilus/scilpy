@@ -5,9 +5,6 @@ import argparse
 import os
 
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import create_tractogram_header
-import nibabel as nib
-import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist, assert_outputs_exists,

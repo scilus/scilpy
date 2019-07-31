@@ -30,7 +30,7 @@ def load_tractogram_with_reference(parser, args, filepath,
                               bbox_valid_check=bbox_check)
     else:
         parser.error('{} is an unsupported file format'.format(filepath))
-    
+
     return sft
 
 
