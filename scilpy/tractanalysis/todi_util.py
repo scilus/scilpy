@@ -1,32 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from dipy.tracking.streamline import set_number_of_points, length
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
-
-
-# streamlines to segments and points functions
-def filter_streamlines(streamlines, min_length=None, max_length=None,
-                       resample_length=0.5):
-    if min_length is None:
-        min_length = resample_length / 2.0
-    if max_length is None:
-        max_length = np.finfo(np.float).max
-
-    filtered_streamlines = []
-    for s in streamlines:
-        s_length = length(s)
-
-        if (s_length < min_length or s_length > max_length):
-            continue
-
-        nb_resample = max([int(s_length / resample_length) + 1, 2])
-        s = set_number_of_points(s, nb_resample)
-
-        filtered_streamlines.append(s)
-
-    return filtered_streamlines
 
 
 def streamlines_to_segments(streamlines):

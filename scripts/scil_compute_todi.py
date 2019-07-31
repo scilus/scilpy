@@ -3,15 +3,15 @@
 
 import argparse
 import logging
+import os
 
-from dipy.tracking.streamline import transform_streamlines
+from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exists)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
-import scilpy.tractanalysis.todi_util as todi_u
 
 
 DESCRIPTION = """
@@ -42,15 +42,8 @@ def buildArgsParser():
     p.add_argument('--mask',
                    help='Use the given mask')
 
-    p.add_argument('--min_length', default=None, type=float,
-                   help='streamlines minimum length in mm')
-
-    p.add_argument('--max_length', default=None, type=float,
-                   help='streamlines maximum length in mm')
-
-    p.add_argument('--resample_mm', default=0.2, type=float,
-                   help='streamlines resample step size (precision in mm)\n'
-                   ' [default: %(default)s]')
+    p.add_argument('--reference',
+                   help='Reference anatomy for Tck/Vtk file support')
 
     p.add_argument('--out_mask',
                    help='Mask showing where TDI > 0')
@@ -84,7 +77,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, required=[args.tract_filename],
-                        optional=[args.mask])
+                        optional=[args.mask, args.reference])
     output_file_list = []
     if args.out_mask:
         output_file_list.append(args.out_mask)
@@ -100,19 +93,24 @@ def main():
     else:
         assert_outputs_exists(parser, args, output_file_list)
 
-    trk_f = nib.streamlines.load(args.tract_filename)
-    affine = trk_f.header["voxel_to_rasmm"]
-    data_shape = tuple(trk_f.header["dimensions"][:3])
-    inv_affine = np.linalg.inv(affine)
-    inv_affine[:3, 3] += 0.5
-
-    streamlines = todi_u.filter_streamlines(
-        trk_f.streamlines, args.min_length, args.max_length, args.resample_mm)
-    streamlines = transform_streamlines(streamlines, inv_affine)
+    _, ext = os.path.splitext(args.tract_filename)
+    if ext == '.trk':
+        sft = load_tractogram(args.tract_filename, 'same')
+        affine, data_shape, _, _ = sft.space_attribute
+    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
+        if args.reference is None:
+            parser.error('--reference is required for this file format '
+                         '{}.'.format(args.tract_filename))
+        sft = load_tractogram(args.tract_filename, args.reference)
+        affine, data_shape, _, _ = sft.space_attribute
+    else:
+        parser.error('{} is an unsupported file format'.format(
+            args.tract_filename))
+    sft.to_vox()
 
     logging.info('Computing length-weighted TODI ...')
-    todi_obj = TrackOrientationDensityImaging(data_shape, args.sphere)
-    todi_obj.compute_todi(streamlines, length_weights=True)
+    todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
+    todi_obj.compute_todi(sft.streamlines, length_weights=True)
 
     if args.smooth:
         logging.info('Smoothing ...')
