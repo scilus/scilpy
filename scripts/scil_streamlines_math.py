@@ -74,15 +74,15 @@ def build_args_p():
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
 
-    p.add_argument('--no-data', '-n', action='store_true',
+    p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
 
-    p.add_argument('--save-meta-indices', '-m', action='store_true',
+    p.add_argument('--save_metadata_indices', '-m', action='store_true',
                    help='Save streamline indices to metadata. Has no '
                    'effect if --no-data\nis present. Will '
                    'overwrite \'ids\' metadata if already present.')
 
-    p.add_argument('--save-indices', '-s', metavar='OUTPUT_INDEX_FILE',
+    p.add_argument('--save_indices', '-s', metavar='OUTPUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
                    'json file.')
 
@@ -134,14 +134,14 @@ def main():
     # Get the meta data of the streamlines.
     new_data_per_streamline = {}
     new_data_per_point = {}
-    if not args.no_data:
+    if not args.no_metadata:
 
         for key in data_per_streamline[0].keys():
             all_data = np.vstack([s[key] for s in data_per_streamline])
             new_data_per_streamline[key] = all_data[indices, :]
 
         # Add the indices to the metadata if requested.
-        if args.save_meta_indices:
+        if args.save_metadata_indices:
             new_data_per_streamline['ids'] = indices
 
         for key in data_per_point[0].keys():
