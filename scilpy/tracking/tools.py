@@ -1,11 +1,8 @@
 from __future__ import division
 
 import dipy.tracking.metrics
-import dipy.tracking.utils
-from dipy.tracking.metrics import downsample
 from dipy.tracking.streamline import set_number_of_points
-
-import logging
+import dipy.tracking.utils
 import numpy as np
 
 
@@ -45,7 +42,7 @@ def filter_streamlines_by_length(streamlines,
     for i in np.arange(num_streamlines):
         lengths[i] = dipy.tracking.metrics.length(streamlines[i])
 
-    filterStream = np.logical_and(lengths>=min_length, lengths<=max_length)
+    filterStream = np.logical_and(lengths >= min_length, lengths <= max_length)
     per_point = data_per_point[filterStream]
     per_streamline = data_per_streamline[filterStream]
 
@@ -53,6 +50,7 @@ def filter_streamlines_by_length(streamlines,
             'per_streamline': per_streamline}
 
     return list(np.asarray(streamlines)[filterStream]), data
+
 
 def get_subset_streamlines(streamlines,
                            data_per_point,
@@ -89,6 +87,7 @@ def get_subset_streamlines(streamlines,
 
     return list(np.asarray(streamlines)[ind[:max_streamlines]]), data
 
+
 def resample_streamlines(streamlines, num_points=0, arc_length=False):
     """
     Parameters
@@ -110,7 +109,7 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
         if arc_length:
             line = set_number_of_points(streamlines[i], num_points)
         else:
-            line = downsample(streamlines[i], num_points)
+            line = dipy.tracking.metrics.downsample(streamlines[i], num_points)
         results.append(line)
 
     return results

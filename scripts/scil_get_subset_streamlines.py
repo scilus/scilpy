@@ -1,24 +1,21 @@
 #!/usr/bin/env python
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import argparse
 import logging
-import os
-import time
 
-from nibabel.streamlines import load, save
+from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
-from scilpy.tracking.tools import resample_streamlines
+from scilpy.tracking.tools import get_subset_streamlines
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
+
 
 def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Subsample a set of streamlines.\n'
-                    'WARNING: data_per_point is carried')
+                    'WARNING: data_per_point is not carried')
     p.add_argument(
         'input', action='store',  metavar='input',
         type=str,  help='Streamlines input file name.')
@@ -28,7 +25,7 @@ def build_args_parser():
     p.add_argument(
         '-n', dest='n', action='store', metavar=' ', default=0,
         type=int, help='Maximum number of streamlines to output. [all]')
-    p.add_argument('-v', action='store_true', dest='isVerbose',
+    p.add_argument('-v', action='store_true', dest='verbose',
                    help='Produce verbose output. [%(default)s]')
 
     add_overwrite_arg(p)
@@ -50,18 +47,21 @@ def main():
     tractogramFile = load(args.input)
     streamlines = list(tractogramFile.streamlines)
 
+    data_per_point = tractogramFile.tractogram.data_per_point
+    data_per_streamline = tractogramFile.tractogram.data_per_streamline
+
     new_streamlines, new_data = get_subset_streamlines(streamlines,
-                                             data_per_point,
-                                             data_per_streamline,
-                                             args.n)
+                                                       data_per_point,
+                                                       data_per_streamline,
+                                                       args.n)
 
     new_tractogram = Tractogram(new_streamlines,
-                                data_per_streamline=new_data['per_streamline'],
                                 data_per_point=new_data['per_point'],
+                                data_per_streamline=new_data['per_streamline'],
                                 affine_to_rasmm=np.eye(4))
 
     save(new_tractogram, args.output, header=tractogramFile.header)
-    streamlines.save()
+
 
 if __name__ == "__main__":
     main()

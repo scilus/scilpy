@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import argparse
 import logging
-import os
-import time
 
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
@@ -13,6 +9,7 @@ import numpy as np
 from scilpy.tracking.tools import resample_streamlines
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
+
 
 def build_args_parser():
     p = argparse.ArgumentParser(
@@ -26,7 +23,8 @@ def build_args_parser():
         'output', action='store',  metavar='output',
         type=str,  help='Streamlines output file name.')
     p.add_argument(
-        '--npts', dest='npts', action='store', metavar=' ', default=0, type=int,
+        '--npts', dest='npts', action='store', metavar=' ',
+        default=0, type=int,
         help='Number of points per streamline in the output. [%(default)s]')
     p.add_argument(
         '--arclength', dest='arclength', action='store_true', default=False,
@@ -55,7 +53,9 @@ def main():
     tractogramFile = load(args.input)
     streamlines = list(tractogramFile.streamlines)
 
-    new_streamlines = resample_streamlines(streamlines, args.npts, args.arclength)
+    new_streamlines = resample_streamlines(streamlines,
+                                           args.npts,
+                                           args.arclength)
 
     new_tractogram = Tractogram(
         new_streamlines,
@@ -63,6 +63,7 @@ def main():
         affine_to_rasmm=np.eye(4))
 
     save(new_tractogram, args.output, header=tractogramFile.header)
+
 
 if __name__ == "__main__":
     main()

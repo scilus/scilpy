@@ -1,11 +1,7 @@
 #!/usr/bin/env python
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import argparse
 import logging
-import os
-import time
 
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
@@ -13,6 +9,7 @@ import numpy as np
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
+
 
 def build_args_parser():
     p = argparse.ArgumentParser(
@@ -57,17 +54,17 @@ def main():
     data_per_streamline = tractogramFile.tractogram.data_per_streamline
 
     new_streamlines, new_data = filter_streamlines_by_length(streamlines,
-                                             data_per_point,
-                                             data_per_streamline,
-                                             args.minL,
-                                             args.maxL)
+                                                             data_per_point,
+                                                             data_per_streamline,
+                                                             args.minL,
+                                                             args.maxL)
 
     new_tractogram = Tractogram(new_streamlines,
                                 data_per_streamline=new_data['per_streamline'],
                                 data_per_point=new_data['per_point'],
                                 affine_to_rasmm=np.eye(4))
 
-    save(new_tractogram, args.output, header=tractogramFile.header) 
+    save(new_tractogram, args.output, header=tractogramFile.header)
 
 
 if __name__ == "__main__":
