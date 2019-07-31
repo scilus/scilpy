@@ -132,8 +132,9 @@ def read_info_from_mb_bdo(filename):
                 key = 'col' + str(j+1)
                 value = float(row.attrib[key].replace(',', '.'))
                 if abs(value) > 0.01:
-                    raise ValueError('Does not support rotation, for now only \n'
-                                     'SO aligned on the X,Y,Z axis are supported')
+                    raise ValueError('Does not support rotation, for now \n'
+                                     'only SO aligned on the X,Y,Z axis are '
+                                     'supported')
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center

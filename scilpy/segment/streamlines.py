@@ -3,10 +3,10 @@
 import itertools
 
 from dipy.tracking.metrics import length
-from dipy.tracking.streamline import set_number_of_points, transform_streamlines
+from dipy.tracking.streamline import (set_number_of_points,
+                                      transform_streamlines)
 from dipy.tracking._utils import _mapping_to_voxel
 from dipy.tracking.vox2track import _streamlines_in_mask
-import nibabel as nib
 from nibabel.affines import apply_affine
 import numpy as np
 
@@ -75,7 +75,8 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
                                           np.unique(line_based_indices))
 
     # From indices to streamlines
-    final_streamlines = list(sft.streamlines[line_based_indices.astype(np.int32)])
+    final_streamlines = list(
+        sft.streamlines[line_based_indices.astype(np.int32)])
 
     return final_streamlines, line_based_indices
 

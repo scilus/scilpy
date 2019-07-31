@@ -71,7 +71,7 @@ def _buildArgsParser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline')
     p.add_argument('--output_not_filtered',
-                    help='Path to the remaining non filtered streamlines')
+                   help='Path to the remaining non filtered streamlines')
     p.add_argument('-v', action='store_true', dest='verbose',
                    help='Print the filtering information')
 
@@ -253,8 +253,8 @@ def main():
                 for i in indexes]
 
         sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-            data_per_streamline=data_per_streamline,
-            data_per_point=data_per_point)
+                                 data_per_streamline=data_per_streamline,
+                                 data_per_point=data_per_point)
 
     if not filtered_streamlines:
         if args.no_empty:
