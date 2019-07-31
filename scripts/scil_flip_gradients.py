@@ -1,8 +1,10 @@
 #! /usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import argparse
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists)
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exists)
 from scilpy.utils.flip_tools import flip_mrtrix_encoding_scheme, flip_fsl_bvecs
 from scilpy.utils.util import str_to_index
 
@@ -10,20 +12,18 @@ from scilpy.utils.util import str_to_index
 def build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description='Flip one or more axes of the '
-                                            ' encoding scheme matrix.')
+                                            'encoding scheme matrix.')
 
-    p.add_argument('encoding_file', action='store', metavar='encoding_file',
-                   type=str,
+    p.add_argument('encoding_file',
                    help='Path to encoding file.')
 
-    p.add_argument('flipped_encoding', action='store',
-                   metavar='flipped_encoding', type=str,
+    p.add_argument('flipped_encoding',
                    help='Path to the flipped encoding file.')
 
-    p.add_argument('axes', action='store', metavar='dimension',
+    p.add_argument('axes', metavar='dimension',
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to flip. eg: to flip the x '
-                        ' and y axes use: x y')
+                        'and y axes use: x y')
 
     gradients_type = p.add_mutually_exclusive_group(required=True)
     gradients_type.add_argument('--fsl', dest='fsl_bvecs', action='store_true',
@@ -32,8 +32,7 @@ def build_arg_parser():
                                 action='store_false',
                                 help='Specify mrtrix format')
 
-    p.add_argument('-f', action='store_true', dest='overwrite',
-                   help='Force (overwrite output file). [%(default)s]')
+    add_overwrite_arg(p)
 
     return p
 

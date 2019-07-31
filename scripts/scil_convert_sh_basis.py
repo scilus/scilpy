@@ -13,8 +13,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exists)
 
 DESCRIPTION = """
-    Convert an SH file between the two commonly used basis
-    ('descoteaux07' or 'tournier07'). The basis specified corresponds to the
+    Convert a SH file between the two commonly used bases
+    ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
     input data basis.
 """
 
@@ -41,12 +41,9 @@ def main():
     assert_inputs_exist(parser, [args.input_sh])
     assert_outputs_exists(parser, args, [args.output_name])
 
-    if args.sh_basis == 'tournier07':
-        input_basis = 'tournier07'
-        output_basis = 'descoteaux07'
-    elif args.sh_basis == 'descoteaux07':
-        input_basis = 'descoteaux07'
-        output_basis = 'tournier07'
+    input_basis = args.sh_basis
+    output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'
+
     sph_harm_basis_ori = sph_harm_lookup.get(input_basis)
     sph_harm_basis_des = sph_harm_lookup.get(output_basis)
 
