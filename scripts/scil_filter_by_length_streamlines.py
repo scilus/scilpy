@@ -7,15 +7,14 @@ import logging
 import os
 import time
 
-from dipy.io.util import
-from nibabel.streamlines import load, save
+from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
 
-def buildArgsParser():
+def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Subsample a set of streamlines.\n'
@@ -32,7 +31,7 @@ def buildArgsParser():
     p.add_argument(
         '--maxL', default=0., type=float,
         help='Maximum length of streamlines. [%(default)s]')
-    p.add_argument('-v', action='store_true', dest='isVerbose',
+    p.add_argument('-v', action='store_true', dest='verbose',
                    help='Produce verbose output. [%(default)s]')
 
     add_overwrite_arg(p)
@@ -54,6 +53,9 @@ def main():
     tractogramFile = load(args.input)
     streamlines = list(tractogramFile.streamlines)
 
+    data_per_point = tractogramFile.tractogram.data_per_point
+    data_per_streamline = tractogramFile.tractogram.data_per_streamline
+
     new_streamlines, new_data = filter_streamlines_by_length(streamlines,
                                              data_per_point,
                                              data_per_streamline,
@@ -65,8 +67,8 @@ def main():
                                 data_per_point=new_data['per_point'],
                                 affine_to_rasmm=np.eye(4))
 
-    save(new_tractogram, args.output, header=tractogramFile.header)
-    streamlines.save()
+    save(new_tractogram, args.output, header=tractogramFile.header) 
+
 
 if __name__ == "__main__":
     main()

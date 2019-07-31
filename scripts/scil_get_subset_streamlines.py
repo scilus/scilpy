@@ -7,7 +7,6 @@ import logging
 import os
 import time
 
-from dipy.io.util import
 from nibabel.streamlines import load, save
 import numpy as np
 
@@ -15,7 +14,7 @@ from scilpy.tracking.tools import resample_streamlines
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
 
-def buildArgsParser():
+def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Subsample a set of streamlines.\n'

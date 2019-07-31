@@ -2,11 +2,11 @@ from __future__ import division
 
 import dipy.tracking.metrics
 import dipy.tracking.utils
-import logging
-import numpy as np
-
 from dipy.tracking.metrics import downsample
 from dipy.tracking.streamline import set_number_of_points
+
+import logging
+import numpy as np
 
 
 def filter_streamlines_by_length(streamlines,
@@ -49,8 +49,8 @@ def filter_streamlines_by_length(streamlines,
     per_point = data_per_point[filterStream]
     per_streamline = data_per_streamline[filterStream]
 
-    data = {per_point: per_point,
-            per_streamline: per_streamline}
+    data = {'per_point': per_point,
+            'per_streamline': per_streamline}
 
     return list(np.asarray(streamlines)[filterStream]), data
 
@@ -105,7 +105,7 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
     average: list
         List of subsampled streamlines.
     """
-
+    results = []
     for i in range(len(streamlines)):
         if arc_length:
             line = set_number_of_points(streamlines[i], num_points)
