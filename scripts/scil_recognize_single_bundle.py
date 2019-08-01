@@ -12,15 +12,18 @@
 import argparse
 import pickle
 
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import load_tractogram, save_tractogram
 from dipy.segment.bundles import RecoBundles
 from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exists,
+                             load_tractogram_with_reference)
 
 
 def buildArgsParser():
@@ -41,6 +44,8 @@ def buildArgsParser():
                    'the input tractogram')
     p.add_argument('output_name',
                    help='Output tractogram filename.')
+
+    add_reference(p)
 
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
@@ -68,8 +73,7 @@ def buildArgsParser():
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Produce verbose output. [false].')
+    add_verbose(p)
 
     add_overwrite_arg(p)
 
@@ -83,9 +87,9 @@ def main():
     assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
     assert_outputs_exists(parser, args, [args.output_name])
 
-    wb_file = nib.streamlines.load(args.in_tractogram)
+    wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines
-    model_file = nib.streamlines.load(args.in_model)
+    model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
     # Default transformation source is expected to be ANTs
     transfo = np.loadtxt(args.transformation)
@@ -116,13 +120,15 @@ def main():
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
                                     slr_num_threads=args.slr_threads)
-    recognized = [wb_streamlines[indice] for indice in indices]
+    new_streamlines = wb_streamlines[indices]
+    new_data_per_streamlines = wb_file.data_per_streamline[indices]
+    new_data_per_points = wb_file.data_per_point[indices]
 
-    if not args.no_empty or recognized:
-        out_tractogram = nib.streamlines.Tractogram(recognized,
-                                                    affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(out_tractogram, args.output_name,
-                             header=wb_file.header)
+    if not args.no_empty or new_streamlines:
+        sft = StatefulTractogram(new_streamlines, wb_file, Space.RASMM,
+                                 data_per_streamline=new_data_per_streamlines,
+                                 data_per_point=new_data_per_points)
+        save_tractogram(sft, args.output_name)
 
 
 if __name__ == '__main__':
