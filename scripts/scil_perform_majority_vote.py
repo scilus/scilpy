@@ -102,7 +102,6 @@ def main():
         real_indices = []
         for i in range(len(fusion_streamlines)):
             ratio_value = int(args.ratio_streamlines*len(args.bundles))
-            print(ratio_value)
             if np.sum(streamlines_vote[i]) >= ratio_value:
                 real_indices.append(i)
 
