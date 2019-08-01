@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 
+import logging
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
@@ -35,6 +36,9 @@ def main():
 
     parser = _build_args_parser()
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.in_tractogram])
     assert_outputs_exists(parser, args, args.out_tractogram)
