@@ -18,12 +18,12 @@ def _build_args_parser():
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('nb_pts_per_streamline', type=int,
-                   help='Number of points per streamline in the output. [%(default)s]')
+                   help='Number of points per streamline in the output.')
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
     p.add_argument('--arclength', action="store_true",
                    help='Whether to downsample using arc length ' +
-                   'parametrization. [%(default)s]')
+                   'parametrization.')
 
     add_overwrite_arg(p)
 
