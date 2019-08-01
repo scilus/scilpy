@@ -9,7 +9,7 @@ from scilpy.utils.flip_tools import flip_mrtrix_encoding_scheme, flip_fsl_bvecs
 from scilpy.utils.util import str_to_index
 
 
-def build_arg_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description='Flip one or more axes of the '
                                             'encoding scheme matrix.')
