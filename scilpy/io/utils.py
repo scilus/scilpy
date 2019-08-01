@@ -13,8 +13,8 @@ from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 def add_reference(parser):
     parser.add_argument('--reference',
-                        help='Reference anatomy for Tck/Vtk/Dpy file support.\n'
-                        '(.nii or .nii.gz)')
+                        help='Reference anatomy for tck/vtk/fib/dpy file\n'
+                        'support (.nii or .nii.gz)')
 
 
 def load_tractogram_with_reference(parser, args, filepath,
