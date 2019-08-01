@@ -6,14 +6,15 @@ import logging
 import os
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exists, 
+                             load_tractogram_with_reference,
                              read_info_from_mb_bdo)
 from scilpy.segment.streamlines import (filter_grid_roi,
                                         filter_ellipsoid,
@@ -38,42 +39,39 @@ def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
-    p.add_argument('in_tractogram', metavar='IN_TRACTOGRAM',
-                   help='Path of the input tractogram file (.trk)')
-    p.add_argument('out_tractogram', metavar='OUT_TRACTOGRAM',
-                   help='Path of the output tractogram file (.trk)')
+    p.add_argument('in_tractogram',
+                   help='Path of the input tractogram file.')
+    p.add_argument('out_tractogram',
+                   help='Path of the output tractogram file.')
 
-    p.add_argument('--reference',
-                   help='Reference anatomy for Tck/Vtk file support')
+    add_reference(p)
 
     p.add_argument('--drawn_roi', nargs=3, action='append',
                    metavar=('ROI_NAME', 'MODE', 'CRITERIA'),
-                   help='Filename of a hand drawn ROI (.nii or .nii.gz)')
+                   help='Filename of a hand drawn ROI (.nii or .nii.gz).')
     p.add_argument('--atlas_roi', nargs=4, action='append',
                    metavar=('ROI_NAME', 'ID', 'MODE', 'CRITERIA'),
-                   help='Filename of an atlas (.nii or .nii.gz)')
+                   help='Filename of an atlas (.nii or .nii.gz).')
     p.add_argument('--bdo', dest='bdo', nargs=3, action='append',
                    metavar=('BDO_NAME', 'MODE', 'CRITERIA'),
-                   help='Filename of a bounding box (bdo) file from MI-Brain')
+                   help='Filename of a bounding box (bdo) file from MI-Brain.')
 
     p.add_argument('--x_plane', nargs=3, action='append',
                    metavar=('PLANE', 'MODE', 'CRITERIA'),
-                   help='Slice number in X, in voxel space')
+                   help='Slice number in X, in voxel space.')
     p.add_argument('--y_plane', nargs=3, action='append',
                    metavar=('PLANE', 'MODE', 'CRITERIA'),
-                   help='Slice number in Y, in voxel space')
+                   help='Slice number in Y, in voxel space.')
     p.add_argument('--z_plane', nargs=3, action='append',
                    metavar=('PLANE', 'MODE', 'CRITERIA'),
-                   help='Slice number in Z, in voxel space')
+                   help='Slice number in Z, in voxel space.')
     p.add_argument('--filtering_list',
                    help='Text file containing one rule per line\n'
-                   '(i.e. drawn_roi mask.nii.gz both_ends include)')
+                   '(i.e. drawn_roi mask.nii.gz both_ends include).')
     p.add_argument('--no_empty', action='store_true',
-                   help='Do not write file if there is no streamline')
-    p.add_argument('--output_not_filtered',
-                   help='Path to the remaining non filtered streamlines')
+                   help='Do not write file if there is no streamline.')
     p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Print the filtering information')
+                   help='Print the filtering information.')
 
     add_overwrite_arg(p)
 
@@ -135,17 +133,7 @@ def main():
 
     roi_opt_list = prepare_filtering_list(parser, args)
 
-    _, ext = os.path.splitext(args.in_tractogram)
-    if ext == '.trk':
-        sft = load_tractogram(args.in_tractogram, 'same')
-    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-        if args.reference is None:
-            parser.error('--reference is required for this file format '
-                         '{}.'.format(args.in_tractogram))
-        sft = load_tractogram(args.in_tractogram, args.reference)
-    else:
-        parser.error('{} is an unsupported file format'.format(
-            args.in_tractogram))
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
