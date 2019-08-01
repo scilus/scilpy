@@ -21,7 +21,6 @@ from scilpy.segment.streamlines import (filter_grid_roi,
                                         filter_cuboid)
 
 DESCRIPTION = """
-    Updated version of the robust filtering script.
     Now supports sequential filtering condition and mix filtering object.
     For example, --atlas_roi ROI_NAME ID MODE CRITERIA
     - ROI_NAME is the filename of a Nifti
@@ -225,8 +224,9 @@ def main():
                     filter_mode,
                     is_not)
 
-        logging.debug('The filtering options %s resulted in '
-                      '%s streamlines', roi_opt, len(filtered_streamlines))
+        logging.debug('The filtering options {0} resulted in '
+                      '{1} streamlines'.format(roi_opt,
+                                               len(filtered_streamlines)))
 
         data_per_streamline = sft.data_per_streamline[indexes]
         data_per_point = sft.data_per_point[indexes]
@@ -237,15 +237,15 @@ def main():
 
     if not filtered_streamlines:
         if args.no_empty:
-            logging.debug("The file %s won't be written (0 streamline)",
-                          args.out_tractogram)
+            logging.debug("The file {} won't be written (0 streamline)".format(
+                args.out_tractogram))
+
             return
-        else:
-            save_tractogram(sft, args.out_tractogram)
-            logging.debug("The file %s contains 0 streamline",
-                          args.out_tractogram)
-    else:
-        save_tractogram(sft, args.out_tractogram)
+
+        logging.debug('The file {} contains 0 streamline'.format(
+            args.out_tractogram))
+
+    save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
