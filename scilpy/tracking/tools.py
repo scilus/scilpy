@@ -35,9 +35,9 @@ def filter_streamlines_by_length(streamlines,
     filtered_streamlines: list
         List of filtered streamlines by length.
 
-    filtered_per_point: dict
+    filtered_data_per_point: dict
         dict of data per point for filtered streamlines
-    filtered_per_streamline: dict
+    filtered_data_per_streamline: dict
         dict of data per streamline for filtered streamlines
     """
 
@@ -76,25 +76,23 @@ def get_subset_streamlines(streamlines,
 
     max_streamlines: int
         Maximum number of streamlines to output.
-    rng: int
+    rng_seed: int
         Random number to use for shuffling the data.
-        By default, a constant seed is used.
 
     Return
     ------
     subset_streamlines: list
         List of a subset streamline.
 
-    subset_per_point: dict
+    subset_data_per_point: dict
         dict of data per point for subset of streamlines
-    subset_per_streamline: dict
+    subset_data_per_streamline: dict
         dict of data per streamline for subset of streamlines
     """
 
-    if rng_seed:
-        rng = np.random.RandomState(rng_seed)
-        ind = np.arange(len(streamlines))
-        rng.shuffle(ind)
+    rng = np.random.RandomState(rng_seed)
+    ind = np.arange(len(streamlines))
+    rng.shuffle(ind)
 
     subset_streamlines = list(np.asarray(streamlines)[ind[:max_streamlines]])
     subset_data_per_point = data_per_point[ind[:max_streamlines]]
