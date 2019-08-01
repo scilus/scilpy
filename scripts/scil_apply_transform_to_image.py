@@ -18,7 +18,7 @@ from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import transform_anatomy
 
 
-def _buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -45,7 +45,7 @@ def _buildArgsParser():
 
 
 def main():
-    parser = _buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
