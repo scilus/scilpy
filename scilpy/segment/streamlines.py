@@ -182,7 +182,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
 def filter_cuboid(sft, cuboid_radius, cuboid_center,
                   filter_type, is_not):
 
-    pre_filtered_streamlines, _, pre_filtered_indices = \
+    pre_filtered_streamlines, pre_filtered_indices = \
         pre_filtering_for_geometrical_shape(sft, cuboid_radius,
                                             cuboid_center, filter_type,
                                             False)

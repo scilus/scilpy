@@ -240,17 +240,8 @@ def main():
         logging.debug('The filtering options %s resulted in '
                       '%s streamlines', roi_opt, len(filtered_streamlines))
 
-        data_per_streamline = {}
-        for key in sft.data_per_streamline.keys():
-            data_per_streamline[key] = [
-                sft.data_per_streamline[key][int(i)]
-                for i in indexes]
-
-        data_per_point = {}
-        for key in sft.data_per_point.keys():
-            data_per_point[key] = [
-                sft.data_per_point[key][int(i)]
-                for i in indexes]
+        data_per_streamline = sft.data_per_streamline[indexes]
+        data_per_point = sft.data_per_point[indexes]
 
         sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
                                  data_per_streamline=data_per_streamline,
