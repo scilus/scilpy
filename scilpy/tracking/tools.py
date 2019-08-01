@@ -8,7 +8,6 @@ from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
 
 
-
 def filter_streamlines_by_length(streamlines,
                                  data_per_point,
                                  data_per_streamline,
@@ -134,6 +133,7 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
         resampled_streamlines.append(line)
 
     return resampled_streamlines
+
 
 def get_theta(requested_theta, tracking_type):
     if requested_theta is not None:
