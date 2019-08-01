@@ -2,7 +2,6 @@ from __future__ import division
 
 from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
-import dipy.tracking.utils
 import numpy as np
 
 
@@ -41,15 +40,16 @@ def filter_streamlines_by_length(streamlines,
 
     lengths = []
     for streamline in streamlines:
-        lengths.append(lengths(streamline))
+        lengths.append(length(streamline))
 
     lengths = np.asarray(lengths)
 
-    filter_stream = np.logical_and(lengths >= min_length, lengths <= max_length)
+    filter_stream = np.logical_and(lengths >= min_length,
+                                   lengths <= max_length)
 
     filtered_streamlines = list(np.asarray(streamlines)[filter_stream])
-    filtered_data_per_point = data_per_point[filter_stream]
-    filtered_data_per_streamline = data_per_streamline[filter_stream]
+    filtered_per_point = data_per_point[filter_stream]
+    filtered_per_streamline = data_per_streamline[filter_stream]
 
     return filtered_streamlines, filtered_per_point, filtered_per_streamline
 
@@ -100,7 +100,7 @@ def get_subset_streamlines(streamlines,
     subset_per_point = data_per_point[ind[:max_streamlines]]
     subset_per_streamline = data_per_streamline[ind[:max_streamlines]]
 
-    return subset_streamlines, subset_per_point, subset_streamlines
+    return subset_streamlines, subset_per_point, subset_per_streamline
 
 
 def resample_streamlines(streamlines, num_points=0, arc_length=False):
@@ -122,7 +122,7 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
         List of resampled streamlines.
     """
     resampled_streamlines = []
-    for streamline in in streamlines:
+    for streamline in streamlines:
         if arc_length:
             line = set_number_of_points(streamline, num_points)
         else:
