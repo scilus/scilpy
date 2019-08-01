@@ -127,8 +127,8 @@ def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
-    p.add_argument('tracts',
-                   help='Path of the tracts file, in a format supported by ' +
+    p.add_argument('tracks',
+                   help='Path of the tracks file, in a format supported by ' +
                         'the Nibabel streamlines API.')
     p.add_argument('labels',
                    help='Labels file name (nifti). Labels must be consecutive '
@@ -151,7 +151,7 @@ def build_args_parser():
                                 'loops.\nAngle criteria based on '
                                 '--loop_max_angle')
     post_proc.add_argument('--no_remove_outliers', action='store_true',
-                           help='If set, will NOT Remove outliers using QB.\n'
+                           help='If set, will NOT remove outliers using QB.\n'
                                 'Criteria based on --outlier_threshold.')
     post_proc.add_argument('--no_remove_loops_again', action='store_true',
                            help='If set, will NOT remove streamlines that '
@@ -199,7 +199,7 @@ def main():
     parser = build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.tracts, args.labels])
+    assert_inputs_exist(parser, [args.tracks, args.labels])
 
     if os.path.abspath(args.output) == os.getcwd():
         parser.error('Do not use the current path as output directory.')
@@ -228,7 +228,7 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    streamlines = load_trk_in_voxel_space(args.tracts, args.labels)
+    streamlines = load_trk_in_voxel_space(args.tracks, args.labels)
     time2 = time.time()
 
     logging.info('    Number of streamlines to process: {}'.format(
