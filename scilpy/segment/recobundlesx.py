@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 from itertools import chain
-
-import numpy as np
+import logging
 
 from dipy.align.streamlinear import (StreamlineLinearRegistration,
                                      BundleMinDistanceMetric)
@@ -12,6 +10,7 @@ from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
+import numpy as np
 
 
 class RecobundlesX(object):

@@ -13,10 +13,9 @@ import argparse
 import pickle
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 from dipy.segment.bundles import RecoBundles
 from dipy.tracking.streamline import transform_streamlines
-import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
@@ -26,14 +25,14 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              load_tractogram_with_reference)
 
 
-def buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
-        epilog="Garyfallidis, E., Côté, M. A., Rheault, F., Sidhu, J., Hau, J.,"
-        "Petit, L., ... & Descoteaux, M. (2018). Recognition of white matter"
-        "bundles using local and global streamline-based registration and "
-        "clustering. NeuroImage, 170, 283-295.")
+        epilog="""Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+        Descoteaux, M. (2018). Recognition of white matter
+        bundles using local and global streamline-based registration and
+        clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename (trk or tck).')
@@ -81,7 +80,7 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram, args.transformation])

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute  RecobundlesX (multi-atlas & multi-parameters).
-    The model need to be cleaned and lightweight.
+    Compute RecobundlesX (multi-atlas & multi-parameters).
+    The model needs to be cleaned and lightweight.
     Transform should come from ANTs: (using the --inverse flag)
     AntsRegistration -m MODEL_REF -f SUBJ_REF
     ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
@@ -23,14 +23,14 @@ from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
 from scilpy.segment.voting_scheme import VotingScheme
 
 
-def _buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
-        epilog="Garyfallidis, E., Côté, M. A., Rheault, F., Sidhu, J., Hau, J.,"
-        "Petit, L., ... & Descoteaux, M. (2018). Recognition of white matter"
-        "bundles using local and global streamline-based registration and "
-        "clustering. NeuroImage, 170, 283-295.")
+        epilog="""Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+        Descoteaux, M. (2018). Recognition of white matter
+        bundles using local and global streamline-based registration and
+        clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename (trk or tck).')
@@ -74,7 +74,7 @@ def _buildArgsParser():
 
 
 def main():
-    parser = _buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram,

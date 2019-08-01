@@ -155,9 +155,8 @@ class VotingScheme(object):
         """
         Parameters
         ----------
-        tractogram : list or ArraySequence
-            Filepath of the whole brain tractogram to segment as loaded
-            by the nibabel API
+        tractogram : nib.streamlines.tractogram
+            Nibabel tractogram object
         bundle_names : list
             Bundle names as defined in the configuration file
             Will save the bundle using that filename and the extension
@@ -188,16 +187,23 @@ class VotingScheme(object):
                 logging.info('{0} final recognition got {1} streamlines'.format(
                              bundle_names[bundle_id], len(streamlines_id)))
 
+            header = tractogram.header
+            tractogram = tractogram.tractogram
             streamlines = tractogram.streamlines[streamlines_id.T]
+            data_per_streamline = tractogram.data_per_streamline[streamlines_id.T]
+            data_per_point = tractogram.data_per_point[streamlines_id.T]
             vote_score = streamlines_wise_vote[streamlines_id.T, bundle_id]
 
             # All models of the same bundle have the same basename
             basename = os.path.join(self.output_directory,
                                     os.path.splitext(bundle_names[bundle_id])[0])
-            out_tractogram = nib.streamlines.Tractogram(streamlines,
-                                                        affine_to_rasmm=np.eye(4))
+            out_tractogram = nib.streamlines.Tractogram(
+                streamlines,
+                data_per_streamline=data_per_streamline,
+                data_per_point=data_per_point,
+                affine_to_rasmm=np.eye(4))
             nib.streamlines.save(out_tractogram, basename + extension,
-                                 header=tractogram.header)
+                                 header=header)
 
             curr_results_dict = {}
             curr_results_dict['indices'] = np.asarray(streamlines_id).tolist()
