@@ -43,6 +43,8 @@ def build_arg_parser():
                         help='Font size (int) to use for the legends.')
     parser.add_argument('--opacity_background', type=float, default=0.4,
                         help='Opacity of background image [0, 1.0]')
+    parser.add_argument('--resolution_of_thumbnails', type=int, default=300,
+                        help='Resolution of thumbnails used in mosaic.')
 
     add_overwrite_arg(parser)
     return parser
@@ -53,7 +55,7 @@ def get_font(args):
     if args.ttf is not None:
         try:
             font = ImageFont.truetype(args.ttf, args.ttf_size)
-        except:
+        except Exception:
             print('Font {} was not found. '
                   'Default font will be used.'.format(args.ttf))
             font = ImageFont.load_default()
@@ -75,7 +77,7 @@ def draw_column_with_names(draw, output_names, text_pos_x,
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
                   name[:name.find('_')], font=font)
-        draw.text((i + text_pos_x, j + text_pos_y + 50),
+        draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
                   name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
@@ -84,7 +86,7 @@ def draw_column_with_names(draw, output_names, text_pos_x,
     j = height * view_number
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
-    draw.text((i + text_pos_x, j + text_pos_y + 50),
+    draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
               ('Streamlines'), font=font)
 
 
@@ -93,8 +95,17 @@ def draw_bundle_information(draw, bundle_file_name, number_streamlines,
     """Draw text with bundle information."""
     draw.text((pos_x, pos_y),
               (bundle_file_name), font=font)
-    draw.text((pos_x, pos_y + 50),
+    draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
               ('{}'.format(number_streamlines)), font=font)
+
+
+def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
+    """Set a snapshot of the bundle in a cell of mosaic"""
+    window.snapshot(ren, path, size=(width, height))
+    j = height * view_number
+    image = Image.open(path)
+    image.thumbnail((width, height))
+    mosaic.paste(image, (i, j))
 
 
 def main():
@@ -115,8 +126,8 @@ def main():
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
     # ----------------------------------------------------------------------- #
-    width = 300
-    height = 300
+    width = args.resolution_of_thumbnails
+    height = args.resolution_of_thumbnails
     rows = 6
     cols = len(list_of_bundles)
     text_pos_x = 50
@@ -156,7 +167,8 @@ def main():
 
         output_paths = [
             os.path.join(output_bundle_dir,
-                         '{}_' + os.path.basename(output_bundle_dir)).format(name)
+                         '{}_' + os.path.basename(
+                             output_bundle_dir)).format(name)
             for name in output_names]
 
         i = (idx_bundle + 1)*width
@@ -191,78 +203,62 @@ def main():
             slice_actor.opacity(opacity)
             ren.add(slice_actor)
 
-            slice_actor2 = slice_actor.copy()
-            slice_actor2.display(slice_actor2.shape[0]//2, None, None)
-            slice_actor2.opacity(opacity)
-            ren.add(slice_actor2)
-
-            slice_actor3 = slice_actor.copy()
-            slice_actor3.display(None, slice_actor3.shape[1]//2, None)
-            slice_actor3.opacity(opacity)
-            ren.add(slice_actor3)
-
             # Streamlines
             ren.add(tubes)
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[0])
             view_number = 0
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
 
             ren.pitch(180)
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[1])
             view_number = 1
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
+
+            ren.rm(slice_actor)
+            slice_actor2 = slice_actor.copy()
+            slice_actor2.display(None, slice_actor2.shape[1]//2, None)
+            slice_actor2.opacity(opacity)
+            ren.add(slice_actor2)
 
             ren.pitch(90)
             ren.set_camera(view_up=(0, 0, 1))
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[2])
             view_number = 2
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
 
             ren.pitch(180)
             ren.set_camera(view_up=(0, 0, 1))
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[3])
             view_number = 3
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
+
+            ren.rm(slice_actor2)
+            slice_actor3 = slice_actor.copy()
+            slice_actor3.display(slice_actor3.shape[0]//2, None, None)
+            slice_actor3.opacity(opacity)
+            ren.add(slice_actor3)
 
             ren.yaw(90)
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[4])
             view_number = 4
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
 
             ren.yaw(180)
             ren.reset_camera()
             ren.zoom(zoom)
-            window.snapshot(ren, output_paths[5])
             view_number = 5
-            j = height * view_number
-            image = Image.open(output_paths[view_number])
-            image.thumbnail((width, height))
-            mosaic.paste(image, (i, j))
+            set_img_in_cell(mosaic, ren, view_number,
+                            output_paths[view_number], width, height, i)
 
             view_number = 6
             j = height * view_number
