@@ -11,7 +11,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
 
 
-def build_args_parser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Subsample a set of streamlines.\n'
@@ -38,7 +38,7 @@ def build_args_parser():
 
 def main():
 
-    parser = build_args_parser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     if args.verbose:
