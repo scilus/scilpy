@@ -16,7 +16,7 @@ from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 def add_reference(parser):
     parser.add_argument('--reference',
                         help='Reference anatomy for tck/vtk/fib/dpy file\n'
-                        'support (.nii or .nii.gz)')
+                        'support (.nii or .nii.gz).')
 
 
 def load_tractogram_with_reference(parser, args, filepath,
@@ -158,7 +158,7 @@ def read_info_from_mb_bdo(filename):
                 if abs(value) > 0.01:
                     raise ValueError('Does not support rotation, for now \n'
                                      'only SO aligned on the X,Y,Z axis are '
-                                     'supported')
+                                     'supported.')
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center
