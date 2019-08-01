@@ -49,7 +49,7 @@ def add_force_b0_arg(parser):
                         .format(DEFAULT_B0_THRESHOLD))
 
 
-def add_verbose_arg(parser):
+def add_verbose(parser):
     parser.add_argument('-v', action='store_true', dest='isVerbose',
                         help='If set, produces verbose output.')
 
