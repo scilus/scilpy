@@ -5,12 +5,13 @@ import argparse
 import logging
 import os
 
-from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+from scilpy.io.utils import (add_overwrite_arg, add_reference,
+                             add_sh_basis_args,
+                             assert_inputs_exist, assert_outputs_exists,
+                             load_tractogram_with_reference)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
@@ -36,14 +37,13 @@ def _build_arg_parser():
     p.add_argument('tract_filename',
                    help="Streamlines file.")
 
+    add_reference(p)
+
     p.add_argument('--sphere', default='repulsion724',
                    help="sphere used for the angular discretization")
 
     p.add_argument('--mask',
                    help='Use the given mask')
-
-    p.add_argument('--reference',
-                   help='Reference anatomy for Tck/Vtk file support')
 
     p.add_argument('--out_mask',
                    help='Mask showing where TDI > 0')
@@ -93,19 +93,8 @@ def main():
     else:
         assert_outputs_exists(parser, args, output_file_list)
 
-    _, ext = os.path.splitext(args.tract_filename)
-    if ext == '.trk':
-        sft = load_tractogram(args.tract_filename, 'same')
-        affine, data_shape, _, _ = sft.space_attribute
-    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-        if args.reference is None:
-            parser.error('--reference is required for this file format '
-                         '{}.'.format(args.tract_filename))
-        sft = load_tractogram(args.tract_filename, args.reference)
-        affine, data_shape, _, _ = sft.space_attribute
-    else:
-        parser.error('{} is an unsupported file format'.format(
-            args.tract_filename))
+    sft = load_tractogram_with_reference(parser, args, args.tract_filename)
+    affine, data_shape, _, _ = sft.space_attribute
     sft.to_vox()
 
     logging.info('Computing length-weighted TODI ...')
