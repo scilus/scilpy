@@ -11,7 +11,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
                              assert_outputs_exists,
                              load_tractogram_with_reference,
@@ -69,8 +69,7 @@ def _buildArgsParser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include).')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Print the filtering information.')
+    add_verbose(p)
 
     add_overwrite_arg(p)
 
