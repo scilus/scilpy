@@ -38,7 +38,7 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
                              assert_outputs_exists,
                              load_tractogram_with_reference)
@@ -90,8 +90,7 @@ def build_args_p():
                    help='Save the streamline indices to the supplied '
                    'json file.')
 
-    p.add_argument('--verbose', '-v', action='store_true', dest='verbose',
-                   help='Produce verbose output.')
+    add_verbose(p)
 
     add_overwrite_arg(p)
 
