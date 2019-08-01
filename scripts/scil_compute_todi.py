@@ -3,7 +3,6 @@
 
 import argparse
 import logging
-import os
 
 import nibabel as nib
 import numpy as np
@@ -35,36 +34,37 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('tract_filename',
-                   help="Streamlines file.")
+                   help='Input streamlines file.')
 
     add_reference(p)
 
     p.add_argument('--sphere', default='repulsion724',
-                   help="sphere used for the angular discretization")
+                   help='sphere used for the angular discretization.')
 
     p.add_argument('--mask',
                    help='Use the given mask')
 
     p.add_argument('--out_mask',
-                   help='Mask showing where TDI > 0')
+                   help='Mask showing where TDI > 0.')
 
     p.add_argument('--out_lw_tdi',
-                   help='Output length-weighted TDI map')
+                   help='Output length-weighted TDI map.')
 
     p.add_argument('--out_lw_todi',
-                   help='Output length-weighted TODI map')
+                   help='Output length-weighted TODI map.')
 
     p.add_argument('--out_lw_todi_sh',
-                   help='Output length-weighted TODI map, with SH coefficient')
+                   help='Output length-weighted TODI map, '
+                   'with SH coefficient.')
 
     p.add_argument('--sh_order', type=int, default=8,
-                   help='Order of the original SH')
+                   help='Order of the original SH.')
 
     p.add_argument('--sh_normed', action='store_true',
-                   help='normalize sh')
+                   help='Normalize sh.')
 
     p.add_argument('--smooth', action='store_true',
-                   help='smooth todi (angular and spatial)')
+                   help='Smooth todi (angular and spatial).')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -138,5 +138,5 @@ def main():
         img.to_filename(args.out_lw_todi)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

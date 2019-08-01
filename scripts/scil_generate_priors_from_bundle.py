@@ -5,13 +5,12 @@ import argparse
 import logging
 import os
 
-from dipy.reconst.shm import sf_to_sh, sh_to_sf
 from dipy.data import get_sphere
+from dipy.io.streamline import load_tractogram
+from dipy.reconst.shm import sf_to_sh, sh_to_sf
 import nibabel as nib
 import numpy as np
 
-from dipy.io.streamline import load_tractogram
-from dipy.io.utils import is_header_compatible
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_inputs_exist,
@@ -28,35 +27,36 @@ DESCRIPTION = """
 
 EPILOG = """
     References:
-        [1] Rheault, Francois, et al. "Bundle-specific tractography with 
-        incorporated anatomical and orientational priors." 
+        [1] Rheault, Francois, et al. "Bundle-specific tractography with
+        incorporated anatomical and orientational priors."
         NeuroImage 186 (2019): 382-398
     """
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION, epilog=EPILOG,)
     p.add_argument('bundle_filename',
-                   help="Input bundle filename")
+                   help='Input bundle filename.')
 
     p.add_argument('fod_filename',
-                   help="Input FOD filename")
+                   help='Input FOD filename.')
 
     p.add_argument('mask_filename',
                    help='Mask to constrain the TODI spatial smoothing,\n'
-                        'for example a WM mask')
+                        'for example a WM mask.')
     add_sh_basis_args(p)
     p.add_argument('--todi_sigma', choices=[0, 1, 2, 3, 4],
                    default=1, type=int,
-                   help='Smooth the orientation histogram')
+                   help='Smooth the orientation histogram.')
     p.add_argument('--sf_threshold', default=0.2, type=float,
-                   help='Relative threshold for sf masking (0.0-1.0)')
+                   help='Relative threshold for sf masking (0.0-1.0).')
     p.add_argument('--output_prefix', default='',
                    help='Add a prefix to all output filename, \n'
-                   'default is no prefix')
+                   'default is no prefix.')
     p.add_argument('--output_dir', default='./',
                    help='Output directory for all generated files,\n'
-                   'default is current directory')
+                   'default is current directory.')
 
     add_overwrite_arg(p)
 
@@ -155,7 +155,8 @@ def main():
         if img_mask.get_data()[tuple(streamline[0].astype(np.int16))]:
             endpoints_mask[tuple(streamline[0].astype(np.int16))] = 1
             endpoints_mask[tuple(streamline[-1].astype(np.int16))] = 1
-    nib.save(nib.Nifti1Image(endpoints_mask, img_mask.affine), out_endpoints_mask)
+    nib.save(nib.Nifti1Image(endpoints_mask,
+                             img_mask.affine), out_endpoints_mask)
 
 
 if __name__ == "__main__":
