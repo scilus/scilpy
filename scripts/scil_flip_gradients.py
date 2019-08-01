@@ -23,14 +23,14 @@ def _build_arg_parser():
     p.add_argument('axes', metavar='dimension',
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to flip. eg: to flip the x '
-                        'and y axes use: x y')
+                        'and y axes use: x y.')
 
     gradients_type = p.add_mutually_exclusive_group(required=True)
     gradients_type.add_argument('--fsl', dest='fsl_bvecs', action='store_true',
-                                help='Specify fsl format')
+                                help='Specify fsl format.')
     gradients_type.add_argument('--mrtrix', dest='fsl_bvecs',
                                 action='store_false',
-                                help='Specify mrtrix format')
+                                help='Specify mrtrix format.')
 
     add_overwrite_arg(p)
 

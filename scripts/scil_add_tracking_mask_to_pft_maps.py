@@ -10,18 +10,18 @@ from scilpy.io.utils import (
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
-        description='Modify PFT maps to allow PFT tracking in given mask',
+        description='Modify PFT maps to allow PFT tracking in given mask.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('map_include',
-                        help='PFT map include')
+                        help='PFT map include.')
     parser.add_argument('map_exclude',
-                        help='PFT map exclude')
+                        help='PFT map exclude.')
     parser.add_argument('additional_mask',
-                        help='Allow PFT tracking in this mask')
+                        help='Allow PFT tracking in this mask.')
     parser.add_argument('map_include_corr',
-                        help='Corrected PFT map include output file name')
+                        help='Corrected PFT map include output file name.')
     parser.add_argument('map_exclude_corr',
-                        help='Corrected PFT map exclude output file name')
+                        help='Corrected PFT map exclude output file name.')
     add_overwrite_arg(parser)
     return parser
 

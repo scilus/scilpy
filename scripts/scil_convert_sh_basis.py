@@ -24,10 +24,10 @@ def _build_arg_parser():
                                 description=DESCRIPTION)
 
     p.add_argument('input_sh',
-                   help='Input SH filename (nii or nii.gz)')
+                   help='Input SH filename. (nii or nii.gz)')
 
     p.add_argument('output_name',
-                   help='Name of the output file')
+                   help='Name of the output file.')
 
     add_sh_basis_args(p, mandatory=True)
     add_overwrite_arg(p)
