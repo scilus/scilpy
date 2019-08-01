@@ -5,10 +5,10 @@ from builtins import range
 import numpy as np
 
 
-def create_acqparams(gtab, dwell_time, encoding_direction):
+def create_acqparams(gtab, readout, encoding_direction):
     b0_idx = np.where(gtab.b0s_mask)[0]
     acqparams = np.zeros((len(b0_idx) + 1, 4))
-    acqparams[:, 3] = dwell_time
+    acqparams[:, 3] = readout
 
     enum_direction = {'x': 0, 'y': 1, 'z': 2}
     acqparams[0:-1, enum_direction[encoding_direction]] = 1

@@ -1,12 +1,12 @@
 bz2file==0.98
 cycler==0.10.0
-dipy==0.16.0
 future==0.17.1
 h5py==2.9.0
 kiwisolver==1.0.1
 matplotlib==2.2.2
 nibabel==2.3.3
 numpy==1.16.2
+pybids==0.9.1
 pyparsing==2.2.0
 python-dateutil==2.7.2
 pytz==2018.4
