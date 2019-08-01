@@ -24,3 +24,26 @@ def world_to_voxel(coord, affine):
     vox_coord = np.dot(iaffine, normalized_coord)
     vox_coord = np.round(vox_coord).astype(int)
     return vox_coord[0:3]
+
+
+def str_to_index(axis):
+    """
+    Convert x y z axis string to 0 1 2 axis index
+
+    Parameters
+    ----------
+    axis: str
+        Axis value (x, y or z)
+
+    Returns
+    -------
+    index: int or None
+        Axis index
+    """
+    axis = axis.lower()
+    axes = {'x': 0, 'y': 1, 'z': 2}
+
+    if axis in axes:
+        return axes[axis]
+
+    return None
