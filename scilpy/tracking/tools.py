@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from __future__ import division
+
+import numpy as np
 
 from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
-import numpy as np
+
 
 
 def filter_streamlines_by_length(streamlines,
@@ -130,3 +134,15 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
         resampled_streamlines.append(line)
 
     return resampled_streamlines
+
+
+def get_theta(requested_theta, tracking_type):
+    if requested_theta is not None:
+        theta = requested_theta
+    elif tracking_type == 'prob':
+        theta = 20
+    elif tracking_type == 'eudx':
+        theta = 60
+    else:
+        theta = 45
+    return theta
