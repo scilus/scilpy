@@ -13,7 +13,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist,
-                             assert_outputs_exists, 
+                             assert_outputs_exists,
                              load_tractogram_with_reference,
                              read_info_from_mb_bdo)
 from scilpy.segment.streamlines import (filter_grid_roi,
