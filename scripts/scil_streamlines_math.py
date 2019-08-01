@@ -34,12 +34,14 @@ from itertools import chain
 import json
 import logging
 
-from nibabel.streamlines import load, save, Tractogram
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exists,
+                             load_tractogram_with_reference)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
 
@@ -71,6 +73,8 @@ def build_args_p():
                    help='The file where the remaining streamlines '
                    'are saved.')
 
+    add_reference(p)
+
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
 
@@ -94,30 +98,30 @@ def build_args_p():
     return p
 
 
-def load_data(path):
+def load_data(parser, args, path):
     logging.info(
         'Loading streamlines from {0}.'.format(path))
-    tractogram = load(path).tractogram
-    streamlines = list(tractogram.streamlines)
-    data_per_streamline = tractogram.data_per_streamline
-    data_per_point = tractogram.data_per_point
+    sft = load_tractogram_with_reference(parser, args, path)
+    streamlines = list(sft.streamlines)
+    data_per_streamline = sft.data_per_streamline
+    data_per_point = sft.data_per_point
 
     return streamlines, data_per_streamline, data_per_point
 
 
 def main():
 
-    p = build_args_p()
-    args = p.parse_args()
+    parser = build_args_p()
+    args = parser.parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(p, args.inputs)
-    assert_outputs_exists(p, args, [args.output])
+    assert_inputs_exist(parser, args.inputs)
+    assert_outputs_exists(parser, args, [args.output])
 
     # Load all input streamlines.
-    data = [load_data(f) for f in args.inputs]
+    data = [load_data(parser, args, f) for f in args.inputs]
     streamlines, data_per_streamline, data_per_point = zip(*data)
     nb_streamlines = [len(s) for s in streamlines]
 
@@ -163,13 +167,17 @@ def main():
 
     # Save the new streamlines.
     logging.info('Saving streamlines to {0}.'.format(args.output))
-    reference_file = load(args.inputs[0], lazy_load=True)
-    new_tractogram = Tractogram(
-        new_streamlines, data_per_streamline=new_data_per_streamline,
-        data_per_point=new_data_per_point, affine_to_rasmm=np.eye(4))
 
-    reference_file.header['nb_streamlines'] = len(new_streamlines)
-    save(new_tractogram, args.output, header=reference_file.header)
+    # If no reference was provided, it means all input were trk file
+    if args.reference:
+        reference_file = args.reference
+    else:
+        reference_file = args.input[0]
+
+    sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM,
+                             data_per_streamline=new_data_per_streamline,
+                             data_per_point=new_data_per_point)
+    save_tractogram(sft, args.output)
 
 
 if __name__ == "__main__":
