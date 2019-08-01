@@ -3,10 +3,12 @@
 
 import os
 import six
+import xml.etree.ElementTree as ET
 
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import TrkFile
+import numpy as np
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
@@ -14,7 +16,7 @@ from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 def add_reference(parser):
     parser.add_argument('--reference',
                         help='Reference anatomy for tck/vtk/fib/dpy file\n'
-                        'support (.nii or .nii.gz)')
+                        'support (.nii or .nii.gz).')
 
 
 def load_tractogram_with_reference(parser, args, filepath,
@@ -137,3 +139,31 @@ def create_header_from_anat(reference, base_filetype=TrkFile):
         nib.aff2axcodes(affine))
 
     return new_header
+
+
+def read_info_from_mb_bdo(filename):
+    tree = ET.parse(filename)
+    root = tree.getroot()
+    geometry = root.attrib['type']
+    center_tag = root.find('origin')
+    flip = [-1, -1, 1]
+    center = [flip[0]*float(center_tag.attrib['x'].replace(',', '.')),
+              flip[1]*float(center_tag.attrib['y'].replace(',', '.')),
+              flip[2]*float(center_tag.attrib['z'].replace(',', '.'))]
+    row_list = tree.getiterator('Row')
+    radius = [None, None, None]
+    for i, row in enumerate(row_list):
+        for j in range(0, 3):
+            if j == i:
+                key = 'col' + str(j+1)
+                radius[i] = float(row.attrib[key].replace(',', '.'))
+            else:
+                key = 'col' + str(j+1)
+                value = float(row.attrib[key].replace(',', '.'))
+                if abs(value) > 0.01:
+                    raise ValueError('Does not support rotation, for now \n'
+                                     'only SO aligned on the X,Y,Z axis are '
+                                     'supported.')
+    radius = np.asarray(radius, dtype=np.float32)
+    center = np.asarray(center, dtype=np.float32)
+    return geometry, radius, center
