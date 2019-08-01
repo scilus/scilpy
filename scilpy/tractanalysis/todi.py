@@ -26,7 +26,6 @@ class TrackOrientationDensityImaging(object):
 
         self.mask = None
         self.todi = None
-        return
 
     def set_todi(self, mask, todi):
         self.mask = mask
@@ -43,7 +42,7 @@ class TrackOrientationDensityImaging(object):
         pts_sphere_id = \
             todi_u.get_dir_to_sphere_id(pts_dir, self.sphere.vertices)
 
-        # Get voxel indices for each points
+        # Get voxel indices for each point
         pts_unmasked_vox = todi_u.get_indices_1d(self.img_shape, pts_pos)
 
         # Generate mask from streamlines points
@@ -64,7 +63,6 @@ class TrackOrientationDensityImaging(object):
 
         # Bincount of sphere id for each voxel
         self.todi = todi_bin_1d.reshape(todi_bin_shape)
-        return
 
     def get_todi(self):
         return self.todi
@@ -91,7 +89,6 @@ class TrackOrientationDensityImaging(object):
                 self.reshape_to_3d(self.todi[:, i]).flatten()[new_mask]
         self.mask = new_mask
         self.todi = new_todi
-        return
 
     def smooth_todi_dir(self, order=1):
         assert(order >= 1)
@@ -100,7 +97,6 @@ class TrackOrientationDensityImaging(object):
         sphere_psf = np.abs(sphere_dot) ** order
         self.todi = np.dot(self.todi, sphere_psf)
         self.todi *= todi_sum / np.sum(self.todi, axis=-1, keepdims=True)
-        return
 
     def smooth_todi_spatial(self, sigma=0.5):
         # This operation changes the mask as well as the TODI
@@ -137,7 +133,6 @@ class TrackOrientationDensityImaging(object):
 
         self.mask = new_mask
         self.todi = new_todi
-        return
 
     def normalize_todi_per_voxel(self, p_norm=2):
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
@@ -169,7 +164,6 @@ class TrackOrientationDensityImaging(object):
             img_unmasked[self.mask] = img_voxelly_masked
             return np.reshape(img_unmasked, img_shape)
         else:
-            print("WARNING : Volume might already be in 3d shape")
             return img_voxelly_masked
 
     def compute_distance_to_peak(self, peak_img, normalize_count=True,

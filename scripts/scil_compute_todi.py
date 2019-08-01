@@ -16,8 +16,8 @@ from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 DESCRIPTION = """
     Compute a length-weighted Track Orientation Density Image (TODI).
-    This script can afterwards output a length-weighted Density image (TDI)
-    or a length-weighted TODI, based on streamlines' segments.\n\n
+    This script can afterwards output a length-weighted Track Density Image
+    (TDI) or a length-weighted TODI, based on streamlines' segments.\n\n
     """
 
 EPILOG = """
@@ -29,7 +29,7 @@ EPILOG = """
     """
 
 
-def buildArgsParser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
@@ -72,7 +72,7 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 

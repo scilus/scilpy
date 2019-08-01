@@ -26,10 +26,16 @@ DESCRIPTION = """
     be used for bundle-specific tractography, but not for FOD metrics.
 """
 
+EPILOG = """
+    References:
+        [1] Rheault, Francois, et al. "Bundle-specific tractography with 
+        incorporated anatomical and orientational priors." 
+        NeuroImage 186 (2019): 382-398
+    """
 
-def buildArgsParser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=DESCRIPTION, epilog=EPILOG,)
     p.add_argument('bundle_filename',
                    help="Input bundle filename")
 
@@ -48,7 +54,7 @@ def buildArgsParser():
     p.add_argument('--output_prefix', default='',
                    help='Add a prefix to all output filename, \n'
                    'default is no prefix')
-    p.add_argument('--output_dir', default='',
+    p.add_argument('--output_dir', default='./',
                    help='Output directory for all generated files,\n'
                    'default is current directory')
 
@@ -59,7 +65,7 @@ def buildArgsParser():
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     required = [args.bundle_filename, args.fod_filename, args.mask_filename]
