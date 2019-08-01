@@ -17,13 +17,11 @@ def _build_args_parser():
                     'WARNING: data_per_point is not carried')
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
+    p.add_argument('nb_pts_per_streamline', type=int,
+                   help='Number of points per streamline in the output. [%(default)s]')
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
-    p.add_argument('--npts',
-                   default=0, type=int,
-                   help='Number of points per streamline in the output. [%(default)s]')
-    p.add_argument('--arclength',
-                   default=False,
+    p.add_argument('--arclength', action="store_true",
                    help='Whether to downsample using arc length ' +
                    'parametrization. [%(default)s]')
 
@@ -44,7 +42,7 @@ def main():
     streamlines = list(tractogram_file.streamlines)
 
     new_streamlines = resample_streamlines(streamlines,
-                                           args.npts,
+                                           args.nb_pts_per_streamline,
                                            args.arclength)
 
     new_tractogram = Tractogram(

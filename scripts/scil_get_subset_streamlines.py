@@ -16,13 +16,11 @@ def _build_args_parser():
         description='Get a subset of streamlines.')
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
-    p.add_argument('max_num_streamlines',
-                   default=0, type=int,
+    p.add_argument('max_num_streamlines', type=int,
                    help='Maximum number of streamlines to output. [all]')
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
-    p.add_argument('--seed',
-                   default=None, type=int,
+    p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the resampling.')
 
     add_overwrite_arg(p)

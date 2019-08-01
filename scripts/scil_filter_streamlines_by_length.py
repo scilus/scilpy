@@ -14,15 +14,13 @@ def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Filter streamlines by length.')
-    p.add_argument('in_tractogram',
-                   type=str,  help='Streamlines input file name.')
-    p.add_argument('out_tractogram',
-                   type=str,  help='Streamlines output file name.')
-    p.add_argument('--minL',
-                   default=0., type=float,
+    p.add_argument('in_tractogram', type=str,
+                   help='Streamlines input file name.')
+    p.add_argument('out_tractogram', type=str,
+                   help='Streamlines output file name.')
+    p.add_argument('--minL', default=0., type=float,
                    help='Minimum length of streamlines. [%(default)s]')
-    p.add_argument('--maxL',
-                   default=0., type=float,
+    p.add_argument('--maxL', default=0., type=float,
                    help='Maximum length of streamlines. [%(default)s]')
 
     add_overwrite_arg(p)
