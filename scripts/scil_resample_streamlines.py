@@ -23,7 +23,7 @@ def _build_args_parser():
                    help='Streamlines output file name.')
     p.add_argument('--arclength', action="store_true",
                    help='Whether to downsample using arc length ' +
-                   'parametrization.')
+                   'parametrization. [%(default)s]')
 
     add_overwrite_arg(p)
 
