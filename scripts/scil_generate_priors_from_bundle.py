@@ -96,7 +96,7 @@ def main():
     sft.to_vox()
     streamlines = sft.streamlines
     if len(streamlines) < 1:
-        raise ValueError('The input bundle contains no streamline')
+        raise ValueError('The input bundle contains no streamline.')
 
     # Compute TODI from streamlines
     with TrackOrientationDensityImaging(img_mask.shape,
