@@ -135,7 +135,6 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
 
     return resampled_streamlines
 
-
 def get_theta(requested_theta, tracking_type):
     if requested_theta is not None:
         theta = requested_theta
