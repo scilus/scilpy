@@ -21,9 +21,9 @@ def filter_streamlines_by_length(streamlines,
         List of list of 3D points.
 
     data_per_point: dict
-        dict of metrics with one value per point per streamline
+        dict of data with one value per point per streamline
     data_per_streamline: dict
-        dict of metrics with one value per streamline
+        dict of data with one value per streamline
 
     min_length: float
         Minimum length of streamlines.
@@ -36,9 +36,9 @@ def filter_streamlines_by_length(streamlines,
         List of filtered streamlines by length.
 
     filtered_per_point: dict
-        dict of metrics per point for filtered streamlines
+        dict of data per point for filtered streamlines
     filtered_per_streamline: dict
-            dict of metrics per streamline for filtered streamlines
+        dict of data per streamline for filtered streamlines
     """
 
     lengths = []
@@ -51,10 +51,10 @@ def filter_streamlines_by_length(streamlines,
                                    lengths <= max_length)
 
     filtered_streamlines = list(np.asarray(streamlines)[filter_stream])
-    filtered_per_point = data_per_point[filter_stream]
-    filtered_per_streamline = data_per_streamline[filter_stream]
+    filtered_data_per_point = data_per_point[filter_stream]
+    filtered_data_per_streamline = data_per_streamline[filter_stream]
 
-    return filtered_streamlines, filtered_per_point, filtered_per_streamline
+    return filtered_streamlines, filtered_data_per_point, filtered_data_per_streamline
 
 
 def get_subset_streamlines(streamlines,
@@ -70,14 +70,14 @@ def get_subset_streamlines(streamlines,
         List of list of 3D points.
 
     data_per_point: dict
-        dict of metrics with one value per point per streamline
+        dict of data with one value per point per streamline
     data_per_streamline: dict
-        dict of metrics with one value per streamline
+        dict of data with one value per streamline
 
     max_streamlines: int
         Maximum number of streamlines to output.
-    rng: RandomState object
-        Random number generator to use for shuffling the data.
+    rng: int
+        Random number to use for shuffling the data.
         By default, a constant seed is used.
 
     Return
@@ -86,24 +86,21 @@ def get_subset_streamlines(streamlines,
         List of a subset streamline.
 
     subset_per_point: dict
-        dict of metrics per point for filtered streamlines
+        dict of data per point for subset of streamlines
     subset_per_streamline: dict
-            dict of metrics per streamline for filtered streamlines
+        dict of data per streamline for subset of streamlines
     """
 
-    if rng_seed is None:
-        rng_seed = np.random.RandomState(1234)
-    else:
-        rng_seed = np.random.RandomState(rng_seed)
-
-    ind = np.arange(len(streamlines))
-    rng_seed.shuffle(ind)
+    if rng_seed:
+        rng = np.random.RandomState(rng_seed)
+        ind = np.arange(len(streamlines))
+        rng.shuffle(ind)
 
     subset_streamlines = list(np.asarray(streamlines)[ind[:max_streamlines]])
-    subset_per_point = data_per_point[ind[:max_streamlines]]
-    subset_per_streamline = data_per_streamline[ind[:max_streamlines]]
+    subset_data_per_point = data_per_point[ind[:max_streamlines]]
+    subset_data_per_streamline = data_per_streamline[ind[:max_streamlines]]
 
-    return subset_streamlines, subset_per_point, subset_per_streamline
+    return subset_streamlines, subset_data_per_point, subset_data_per_streamline
 
 
 def resample_streamlines(streamlines, num_points=0, arc_length=False):

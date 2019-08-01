@@ -39,9 +39,6 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-
     assert_inputs_exist(parser, [args.in_tractogram])
     assert_outputs_exists(parser, args, args.out_tractogram)
 
