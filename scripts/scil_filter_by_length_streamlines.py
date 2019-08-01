@@ -14,13 +14,10 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Subsample a set of streamlines.\n'
-                    'WARNING: data_per_point is carried')
-    p.add_argument(
-        'input', action='store',  metavar='input',
+        description='Filter streamlines by length.')
+    p.add_argument('in_tractogram',
         type=str,  help='Streamlines input file name.')
-    p.add_argument(
-        'output', action='store',  metavar='output',
+    p.add_argument('out_tractogram',
         type=str,  help='Streamlines output file name.')
     p.add_argument(
         '--minL', default=0., type=float,
@@ -44,14 +41,14 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.input])
-    assert_outputs_exists(parser, args, args.output)
+    assert_inputs_exist(parser, [args.in_tractogram])
+    assert_outputs_exists(parser, args, args.out_tractogram)
 
-    tractogramFile = load(args.input)
-    streamlines = list(tractogramFile.streamlines)
+    tractogram_file = load(args.in_tractogram)
+    streamlines = list(tractogram_file.streamlines)
 
-    data_per_point = tractogramFile.tractogram.data_per_point
-    data_per_streamline = tractogramFile.tractogram.data_per_streamline
+    data_per_point = tractogram_file.tractogram.data_per_point
+    data_per_streamline = tractogram_file.tractogram.data_per_streamline
 
     new_streamlines, new_data = filter_streamlines_by_length(streamlines,
                                                              data_per_point,
@@ -64,7 +61,7 @@ def main():
                                 data_per_point=new_data['per_point'],
                                 affine_to_rasmm=np.eye(4))
 
-    save(new_tractogram, args.output, header=tractogramFile.header)
+    save(new_tractogram, args.out_tractogram, header=tractogram_file.header)
 
 
 if __name__ == "__main__":
