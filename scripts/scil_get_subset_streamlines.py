@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 import argparse
 
-import logging
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
 from scilpy.tracking.tools import get_subset_streamlines
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
-                             add_overwrite_arg, add_verbose_arg)
+                             add_overwrite_arg)
 
 
 def _build_args_parser():
@@ -27,7 +26,6 @@ def _build_args_parser():
                    help='Use a specific random seed for the resampling.')
 
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 
@@ -36,9 +34,6 @@ def main():
 
     parser = _build_args_parser()
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.in_tractogram])
     assert_outputs_exists(parser, args, args.out_tractogram)

@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import logging
 
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
-                             add_overwrite_arg, add_verbose_arg)
+                             add_overwrite_arg)
 
 
 def _build_args_parser():
@@ -25,11 +24,8 @@ def _build_args_parser():
     p.add_argument('--maxL',
                    default=0., type=float,
                    help='Maximum length of streamlines. [%(default)s]')
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Produce verbose output. [%(default)s]')
 
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 
