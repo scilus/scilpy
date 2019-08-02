@@ -11,7 +11,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exists,
                              load_tractogram_with_reference,
