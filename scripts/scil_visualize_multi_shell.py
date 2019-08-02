@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
+from __future__ import print_function
 
 import argparse
 import logging
@@ -14,18 +15,21 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
 
 DESCRIPTION = """
 Vizualisation for sampling scheme from generate_sampling_scheme.py.
-Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals and .b (MRtrix).
+Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
+and .b (MRtrix).
 """
 
-def buildArgsParser():
+
+def _build_args_parser():
     p = argparse.ArgumentParser(
-    formatter_class = argparse.RawDescriptionHelpFormatter,
-    description = DESCRIPTION)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=DESCRIPTION)
     p._optionals.title = "Options and Parameters"
 
     p.add_argument(
         'scheme_file', action='store', metavar='scheme_file', type=str,
-        help='Sampling scheme filename. (only accepts .txt or .caru or .bvecs or .bvals or .b or .dir or .dvs)')
+        help='Sampling scheme filename. (only accepts .txt or .caru or ' +
+             '.bvecs or .bvals or .b or .dir or .dvs)')
     p.add_argument(
         '--no-sym', action='store_false', dest='sym', default=True,
         help='Disable antipodal symmetry.')
@@ -42,14 +46,14 @@ def buildArgsParser():
         '--each', action='store_true', dest='each', default=False,
         help='Enable rendering each shell individually.')
     p.add_argument(
-        '--opacity', dest='opacity', type = float, default=1.0,
+        '--opacity', dest='opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
     return p
 
-def main():
 
-    parser = buildArgsParser()
+def main():
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     proj = args.proj
@@ -75,7 +79,7 @@ def main():
         tmp = np.genfromtxt(scheme_file)
         points = tmp[:, :3]
         bvals = tmp[:, 3]
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bvecs':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
@@ -83,7 +87,7 @@ def main():
         if points.shape[0] == 3:
             points = points.T
         bvals = np.genfromtxt(scheme_file[:-5] + 'bvals')
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bvec':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
@@ -92,7 +96,7 @@ def main():
         if points.shape[0] == 3:
             points = points.T
         bvals = np.genfromtxt(scheme_file[:-4] + 'bval')
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bvals':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
@@ -100,7 +104,7 @@ def main():
         points = np.genfromtxt(scheme_file[:-5] + 'bvecs')
         if points.shape[0] == 3:
             points = points.T
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bval':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
@@ -109,7 +113,7 @@ def main():
         points = np.genfromtxt(scheme_file[:-4] + 'bvec')
         if points.shape[0] == 3:
             points = points.T
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'dir' or ext == 'dvs':
         vect = []
@@ -120,7 +124,7 @@ def main():
                     vect.append([float(f) for f in line.split('=')[1][2:-3].split(',')])
         vect = np.array(vect)
 
-        norms = np.linalg.norm(vect, axis = 1)
+        norms = np.linalg.norm(vect, axis=1)
         # ugly work around for the division by b0 / replacing NaNs with 0.0
         old_settings = np.seterr(divide='ignore', invalid='ignore')
         points = vect / norms[:, None]
@@ -129,29 +133,35 @@ def main():
         points[np.isinf(points)] = 0.0
 
         fake_bmax = 3000.
-        shell_idx=build_shell_idx_from_bval(fake_bmax * norms**2, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(fake_bmax * norms**2,
+                                              shell_th=50)
 
     elif ext == "b":
         # MRtrix format X, Y, Z, b
         tmp = np.genfromtxt(scheme_file, delimiter=',')
         points = tmp[:, :3]
         bvals = tmp[:, 3]
-        shell_idx=build_shell_idx_from_bval(bvals, shell_th = 50)
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     else:
-        logging.error('Unknown format (Only supports .caru, .txt (Philips), .bvecs/.bvals (FSL), .b (MRtrix), .dir or .dvs (Siemens))')
+        logging.error('Unknown format (Only supports .caru, .txt (Philips),' +
+                      ' .bvecs/.bvals (FSL), .b (MRtrix), .dir or ' +
+                      '.dvs (Siemens))')
         return
 
     sym = args.sym
     sph = args.sph
     same = args.same
 
-    ms=build_ms_from_shell_idx(points, shell_idx)
+    ms = build_ms_from_shell_idx(points, shell_idx)
 
     if proj:
-        plot_proj_shell(ms, use_sym = sym, use_sphere = sph, same_color = same, rad = 0.025, opacity=args.opacity)
+        plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
+                        rad=0.025, opacity=args.opacity)
     if each:
-        plot_each_shell(ms, use_sym = sym, use_sphere = sph, same_color = same, rad = 0.025, opacity=args.opacity)
+        plot_each_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
+                        rad=0.025, opacity=args.opacity)
+
 
 if __name__ == "__main__":
-    main()   
+    main()
