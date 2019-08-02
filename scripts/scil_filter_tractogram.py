@@ -69,8 +69,8 @@ def _buildArgsParser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include).')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
-    add_verbose(p)
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

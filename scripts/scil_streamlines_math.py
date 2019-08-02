@@ -90,8 +90,7 @@ def build_args_p():
                    help='Save the streamline indices to the supplied '
                    'json file.')
 
-    add_verbose(p)
-
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

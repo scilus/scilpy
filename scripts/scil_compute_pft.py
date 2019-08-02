@@ -138,7 +138,7 @@ def _build_args_parser():
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    add_verbose(log_g)
+    add_verbose_arg(log_g)
 
     return p
 
