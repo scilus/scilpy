@@ -66,6 +66,9 @@ def main():
     assert_outputs_exists(parser, args, [output_voxels_filename,
                                          output_streamlines_filename])
 
+    if not 0 <= args.ratio_voxels <= 1 or not 0 <= args.ratio_streamlines <= 1:
+        parser.error('Ratios must be between 0 and 1.')
+
     fusion_streamlines = []
     for name in args.bundles:
         fusion_streamlines.extend(
