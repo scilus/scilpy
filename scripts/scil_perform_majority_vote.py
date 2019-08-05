@@ -16,8 +16,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_outputs_exists,
                              load_tractogram_with_reference)
 from scilpy.tractanalysis.robust_streamlines_metrics import compute_robust_tract_counts_map
-from scilpy.utils.streamlines import perform_streamlines_operation
-from scilpy.utils.streamlines import intersection
+from scilpy.utils.streamlines import (perform_streamlines_operation,
+                                      intersection, union)
 
 DESCRIPTION = """
     Use multiple bundles to perform a voxel-wise vote (occurence across input).
@@ -74,6 +74,9 @@ def main():
         fusion_streamlines.extend(
             load_tractogram_with_reference(parser, args, name).streamlines)
 
+    fusion_streamlines, _ = perform_streamlines_operation(union,
+                                                          [fusion_streamlines], 
+                                                          0)
     fusion_streamlines = ArraySequence(fusion_streamlines)
     if args.reference:
         reference_file = args.reference
