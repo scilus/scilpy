@@ -188,10 +188,9 @@ class VotingScheme(object):
                              bundle_names[bundle_id], len(streamlines_id)))
 
             header = tractogram.header
-            tractogram = tractogram.tractogram
             streamlines = tractogram.streamlines[streamlines_id.T]
-            data_per_streamline = tractogram.data_per_streamline[streamlines_id.T]
-            data_per_point = tractogram.data_per_point[streamlines_id.T]
+            data_per_streamline = tractogram.tractogram.data_per_streamline[streamlines_id.T]
+            data_per_point = tractogram.tractogram.data_per_point[streamlines_id.T]
             vote_score = streamlines_wise_vote[streamlines_id.T, bundle_id]
 
             # All models of the same bundle have the same basename
