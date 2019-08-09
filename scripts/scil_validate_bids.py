@@ -16,16 +16,17 @@ from scilpy.io.utils import add_overwrite_arg, assert_outputs_exists
 
 def _build_args_parser():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description=__doc__)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__)
 
-    parser.add_argument(
-            "bids_folder",
-            help="Input BIDS folder.")
+    parser.add_argument("bids_folder",
+                        help="Input BIDS folder.")
 
-    parser.add_argument(
-            "output_json",
-            help="Output json file")
+    parser.add_argument("output_json",
+                        help="Output json file.")
+
+    parser.add_argument("--readout", type=int, default=0.062,
+                        help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(parser)
 
@@ -44,7 +45,7 @@ def get_metadata(bf):
     Dictionnary containing the metadata
     """
     filename = bf.path.replace(
-                '.' + bf.get_entities()['extension'], '')
+        '.' + bf.get_entities()['extension'], '')
     with open(filename + '.json', 'r') as handle:
         return json.load(handle)
 
@@ -104,7 +105,7 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, nRun):
+def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
     """ Return subject data
 
     Parameters
@@ -160,18 +161,24 @@ def get_data(nSub, dwi, t1s, associations, nRun):
     totalreadout = ''
     for nfmap in fmaps:
         nfmap_metadata = get_metadata(nfmap)
-        if 'PhaseEncodingDirection' in nfmap_metadata and\
-           'TotalReadoutTime' in dwi_metadata and\
-           'TotalReadoutTime' in nfmap_metadata:
-
+        if 'PhaseEncodingDirection' in nfmap_metadata:
             fmap_PE = nfmap_metadata['PhaseEncodingDirection']
             fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
-            dwi_RT = dwi_metadata['TotalReadoutTime']
-            fmap_RT = nfmap_metadata['TotalReadoutTime']
-            if fmap_PE == dwi_revPE and dwi_RT == fmap_RT:
-                revb0_path = nfmap.path
-                totalreadout = dwi_RT
-                break
+            if fmap_PE == dwi_revPE:
+                if 'TotalReadoutTime' in dwi_metadata:
+                    if 'TotalReadoutTime' in nfmap_metadata:
+                        dwi_RT = dwi_metadata['TotalReadoutTime']
+                        fmap_RT = nfmap_metadata['TotalReadoutTime']
+                        if dwi_RT != fmap_RT and totalreadout == '':
+                            totalreadout = 'error'
+                            revb0_path = 'error'
+                        elif dwi_RT == fmap_RT:
+                            revb0_path = nfmap.path
+                            totalreadout = dwi_RT
+                            break
+                else:
+                    revb0_path = nfmap.path
+                    totalreadout = default_readout
 
     t1_path = 'todo'
     t1_nSess = []
@@ -233,7 +240,8 @@ def main():
 
         # Get the data for each run of DWIs
         for nRun, dwi in enumerate(dwis):
-            data.append(get_data(nSub, dwi, t1s, associations, nRun))
+            data.append(get_data(nSub, dwi, t1s, associations, nRun,
+                                 args.readout))
 
     with open(args.output_json, 'w') as outfile:
         json.dump(data,
