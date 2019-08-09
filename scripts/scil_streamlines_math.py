@@ -171,7 +171,7 @@ def main():
     if args.reference:
         reference_file = args.reference
     else:
-        reference_file = args.input[0]
+        reference_file = args.inputs[0]
 
     sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM,
                              data_per_streamline=new_data_per_streamline,
