@@ -7,7 +7,7 @@ import os
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
-                             assert_inputs_exist, assert_outputs_exists,
+                             assert_inputs_exist, assert_outputs_exist,
                              load_tractogram_with_reference)
 
 DESCRIPTION = """

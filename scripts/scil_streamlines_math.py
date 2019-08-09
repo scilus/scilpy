@@ -40,7 +40,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exist,
                              load_tractogram_with_reference)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)

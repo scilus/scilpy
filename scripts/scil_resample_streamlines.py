@@ -6,7 +6,7 @@ from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
 from scilpy.tracking.tools import resample_streamlines
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 
 

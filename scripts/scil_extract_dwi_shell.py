@@ -10,7 +10,7 @@ import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 

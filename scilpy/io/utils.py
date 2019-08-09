@@ -96,7 +96,7 @@ def assert_inputs_exist(parser, required, optional=None):
             check(optional_file)
 
 
-def assert_outputs_exists(parser, args, required, optional=None):
+def assert_outputs_exist(parser, args, required, optional=None):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.

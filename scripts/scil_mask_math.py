@@ -12,7 +12,7 @@ import os
 import nibabel
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exists,
+from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
                              assert_inputs_exist)
 
 DESCRIPTION = """
