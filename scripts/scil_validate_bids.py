@@ -213,7 +213,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_outputs_exists(parser, args, args.output_json)
+    assert_outputs_exist(parser, args, args.output_json)
 
     data = []
     layout = BIDSLayout(args.bids_folder, index_metadata=False)

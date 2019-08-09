@@ -89,7 +89,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
                                  args.deformation])
-    assert_outputs_exists(parser, args, [args.out_name])
+    assert_outputs_exist(parser, args, [args.out_name])
 
     if not nib.streamlines.TrkFile.is_correct_format(args.in_file):
         parser.error('The input file needs to be a TRK file')

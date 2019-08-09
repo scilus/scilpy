@@ -167,7 +167,7 @@ def main():
 
     assert_inputs_exist(
         parser, [args.input, args.bvals, args.bvecs], [args.mask])
-    assert_outputs_exists(parser, args, outputs)
+    assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
     data = img.get_data()

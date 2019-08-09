@@ -116,7 +116,7 @@ def main():
     img_inputs = [s for s in args.inputs if s != 'ones']
     if len(img_inputs):
         assert_inputs_exist(parser, img_inputs)
-    assert_outputs_exists(parser, args, [args.output])
+    assert_outputs_exist(parser, args, [args.output])
 
     # Load all input masks.
     masks = [load_data(f) for f in args.inputs]

@@ -81,7 +81,7 @@ def main():
                                       '{0}endpoints_mask.nii.gz'.format(
                                           args.output_prefix))
     required = [out_efod, out_priors, out_todi_mask, out_endpoints_mask]
-    assert_outputs_exists(parser, args, required)
+    assert_outputs_exist(parser, args, required)
 
     if args.output_dir and not os.path.isdir(args.output_dir):
         os.mkdir(args.output_dir)

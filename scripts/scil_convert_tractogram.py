@@ -48,7 +48,7 @@ def main():
     if in_extension == out_extension:
         parser.error('Input and output cannot be of the same file format')
 
-    assert_outputs_exists(parser, args, args.output_name)
+    assert_outputs_exist(parser, args, args.output_name)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)

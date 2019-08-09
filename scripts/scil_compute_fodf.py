@@ -102,7 +102,7 @@ def main():
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
                                  args.frf_file])
-    assert_outputs_exists(parser, args, arglist)
+    assert_outputs_exist(parser, args, arglist)
 
     nbr_processes = args.nbr_processes
     parallel = True

@@ -91,7 +91,7 @@ def main():
     if not output_file_list:
         parser.error('No output to be done')
     else:
-        assert_outputs_exists(parser, args, output_file_list)
+        assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.tract_filename)
     affine, data_shape, _, _ = sft.space_attribute

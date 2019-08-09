@@ -39,7 +39,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input_sh])
-    assert_outputs_exists(parser, args, [args.output_name])
+    assert_outputs_exist(parser, args, [args.output_name])
 
     input_basis = args.sh_basis
     output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'

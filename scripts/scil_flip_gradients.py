@@ -42,7 +42,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.encoding_file])
-    assert_outputs_exists(parser, args, [args.flipped_encoding])
+    assert_outputs_exist(parser, args, [args.flipped_encoding])
 
     indices = [str_to_index(axis) for axis in list(args.axes)]
     if args.fsl_bvecs:

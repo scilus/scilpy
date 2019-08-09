@@ -66,7 +66,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.wm, args.gm, args.csf])
-    assert_outputs_exists(parser, args,
+    assert_outputs_exist(parser, args,
                           [args.include, args.exclude, args.interface])
 
     wm_pve = nib.load(args.wm)

@@ -119,7 +119,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input, args.fa, args.md])
-    assert_outputs_exists(parser, args, [],
+    assert_outputs_exist(parser, args, [],
                           [args.max_value_output, args.mask_output])
 
     if args.verbose:

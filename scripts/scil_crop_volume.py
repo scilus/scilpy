@@ -105,7 +105,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input_path], [args.input_bbox])
-    assert_outputs_exists(parser, args, [args.output_path], [args.output_bbox])
+    assert_outputs_exist(parser, args, [args.output_path], [args.output_bbox])
 
     img = nib.load(args.input_path)
     if args.input_bbox:

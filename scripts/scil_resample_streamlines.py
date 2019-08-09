@@ -36,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exists(parser, args, args.out_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     tractogram_file = load(args.in_tractogram)
     streamlines = list(tractogram_file.streamlines)

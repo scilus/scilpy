@@ -107,7 +107,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
-    assert_outputs_exists(parser, args, [args.output_dwi, args.output_bvals,
+    assert_outputs_exist(parser, args, [args.output_dwi, args.output_bvals,
                                          args.output_bvecs])
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)

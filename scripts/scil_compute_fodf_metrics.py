@@ -174,7 +174,7 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [])
-    assert_outputs_exists(parser, args, arglist)
+    assert_outputs_exist(parser, args, arglist)
 
     data, affine = load(args.input)
     if args.mask is None:

@@ -100,7 +100,7 @@ def main():
                         args.baseName + '.bvec']
 
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exists(parser, args, output_filenames)
+    assert_outputs_exist(parser, args, output_filenames)
 
     oTable = np.loadtxt(args.table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.bval, args.bvec)

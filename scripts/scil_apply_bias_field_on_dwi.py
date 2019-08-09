@@ -69,7 +69,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.dwi, args.bias_field], [args.mask])
-    assert_outputs_exists(parser, args, [args.output])
+    assert_outputs_exist(parser, args, [args.output])
 
     dwi_img = nib.load(args.dwi)
     dwi_data = dwi_img.get_data()
