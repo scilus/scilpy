@@ -25,7 +25,11 @@ def _build_args_parser():
 
     parser.add_argument(
             "output_json",
-            help="Output json file")
+            help="Output json file.")
+    
+    parser.add_argument(
+            "--readout", type=int, default=0.062, 
+            help="Default total readout time value.")
 
     add_overwrite_arg(parser)
 
@@ -104,7 +108,7 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, nRun):
+def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
     """ Return subject data
 
     Parameters
@@ -160,18 +164,25 @@ def get_data(nSub, dwi, t1s, associations, nRun):
     totalreadout = ''
     for nfmap in fmaps:
         nfmap_metadata = get_metadata(nfmap)
-        if 'PhaseEncodingDirection' in nfmap_metadata and\
-           'TotalReadoutTime' in dwi_metadata and\
-           'TotalReadoutTime' in nfmap_metadata:
-
+        if 'PhaseEncodingDirection' in nfmap_metadata:
             fmap_PE = nfmap_metadata['PhaseEncodingDirection']
             fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
-            dwi_RT = dwi_metadata['TotalReadoutTime']
-            fmap_RT = nfmap_metadata['TotalReadoutTime']
-            if fmap_PE == dwi_revPE and dwi_RT == fmap_RT:
+            if fmap_PE == dwi_revPE:
                 revb0_path = nfmap.path
-                totalreadout = dwi_RT
-                break
+                if 'TotalReadoutTime' in dwi_metadata and\
+                'TotalReadoutTime' in nfmap_metadata:
+                    dwi_RT = dwi_metadata['TotalReadoutTime']
+                    fmap_RT = nfmap_metadata['TotalReadoutTime']
+                    if dwi_RT != fmap_RT:
+                        totalreadout = 'error'
+                    elif dwi_RT == fmap_RT:
+                        totalreadout = dwi_RT
+                        break
+                elif 'TotalReadoutTime' in dwi_metadata or\
+                'TotalReadoutTime' in nfmap_metadata:
+                    totalreadout = 'todo'
+                else:
+                    totalreadout = default_readout
 
     t1_path = 'todo'
     t1_nSess = []
@@ -233,7 +244,7 @@ def main():
 
         # Get the data for each run of DWIs
         for nRun, dwi in enumerate(dwis):
-            data.append(get_data(nSub, dwi, t1s, associations, nRun))
+            data.append(get_data(nSub, dwi, t1s, associations, nRun, args.readout))
 
     with open(args.output_json, 'w') as outfile:
         json.dump(data,
