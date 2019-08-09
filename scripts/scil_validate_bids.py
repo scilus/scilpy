@@ -168,20 +168,19 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
             fmap_PE = nfmap_metadata['PhaseEncodingDirection']
             fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
             if fmap_PE == dwi_revPE:
-                revb0_path = nfmap.path
-                if 'TotalReadoutTime' in dwi_metadata and\
-                'TotalReadoutTime' in nfmap_metadata:
-                    dwi_RT = dwi_metadata['TotalReadoutTime']
-                    fmap_RT = nfmap_metadata['TotalReadoutTime']
-                    if dwi_RT != fmap_RT:
-                        totalreadout = 'error'
-                    elif dwi_RT == fmap_RT:
-                        totalreadout = dwi_RT
-                        break
-                elif 'TotalReadoutTime' in dwi_metadata or\
-                'TotalReadoutTime' in nfmap_metadata:
-                    totalreadout = 'todo'
+                if 'TotalReadoutTime' in dwi_metadata:
+                    if 'TotalReadoutTime' in nfmap_metadata:
+                        dwi_RT = dwi_metadata['TotalReadoutTime']
+                        fmap_RT = nfmap_metadata['TotalReadoutTime']
+                        if dwi_RT != fmap_RT and totalreadout == '':
+                            totalreadout = 'error'
+                            revb0_path = 'error'
+                        elif dwi_RT == fmap_RT:
+                            revb0_path = nfmap.path
+                            totalreadout = dwi_RT
+                            break
                 else:
+                    revb0_path = nfmap.path
                     totalreadout = default_readout
 
     t1_path = 'todo'
