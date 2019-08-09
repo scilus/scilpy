@@ -106,7 +106,8 @@ class VotingScheme(object):
     def _load_bundles_dictionary(self, bundles_filepath):
         """
         Load all model bundles and store them in a dictionnary where the
-        filepaths are the keys and the streamlines the values
+        filepaths are the keys and the streamlines the values.
+        :param bundles_filepath, list, list of filepaths of model bundles
         """
         filenames = [filepath for filepath in bundles_filepath]
 
@@ -130,6 +131,12 @@ class VotingScheme(object):
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
+        :param bundle_id, int, indices of the bundles in the dok_matrix
+        :param min_vote, int, minimum value for considering (voting)
+        :param streamlines_wise_vote, dok_matrix, streamlines-wise
+            sparse matrix for voting
+        :param bundles_wise_vote, dok_matrix, bundles-wise
+            sparse matrix for voting
         """
         streamlines_indices_in_bundles = []
         streamline_ids = bundles_wise_vote[bundle_id]
