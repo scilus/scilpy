@@ -16,20 +16,17 @@ from scilpy.io.utils import add_overwrite_arg, assert_outputs_exists
 
 def _build_args_parser():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description=__doc__)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__)
 
-    parser.add_argument(
-            "bids_folder",
-            help="Input BIDS folder.")
+    parser.add_argument("bids_folder",
+                        help="Input BIDS folder.")
 
-    parser.add_argument(
-            "output_json",
-            help="Output json file.")
-    
-    parser.add_argument(
-            "--readout", type=int, default=0.062, 
-            help="Default total readout time value.")
+    parser.add_argument("output_json",
+                        help="Output json file.")
+
+    parser.add_argument("--readout", type=int, default=0.062,
+                        help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(parser)
 
@@ -48,7 +45,7 @@ def get_metadata(bf):
     Dictionnary containing the metadata
     """
     filename = bf.path.replace(
-                '.' + bf.get_entities()['extension'], '')
+        '.' + bf.get_entities()['extension'], '')
     with open(filename + '.json', 'r') as handle:
         return json.load(handle)
 
