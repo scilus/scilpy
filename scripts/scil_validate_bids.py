@@ -240,7 +240,8 @@ def main():
 
         # Get the data for each run of DWIs
         for nRun, dwi in enumerate(dwis):
-            data.append(get_data(nSub, dwi, t1s, associations, nRun, args.readout))
+            data.append(get_data(nSub, dwi, t1s, associations, nRun,
+                                 args.readout))
 
     with open(args.output_json, 'w') as outfile:
         json.dump(data,
