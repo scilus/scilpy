@@ -17,7 +17,7 @@ from scilpy.io.utils import (
     assert_outputs_exists)
 
 
-def _build_arg_parser():
+def _build_args_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -30,7 +30,7 @@ def _build_arg_parser():
 
 
 def main():
-    parser = _build_arg_parser()
+    parser = _build_args_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, [args.tractogram])
     assert_outputs_exists(parser, args, [], [args.dest])

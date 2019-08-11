@@ -7,7 +7,6 @@ Compute a density map of seeds saved in .trk file.
 
 import argparse
 
-import numpy as np
 from nibabel import Nifti1Image
 from nibabel.affines import apply_affine
 from nibabel.streamlines import (
@@ -15,14 +14,14 @@ from nibabel.streamlines import (
     Field,
     load,
     TckFile)
-
+import numpy as np
 from scilpy.io.utils import (
     add_overwrite_arg,
-    assert_outputs_exists,
-    assert_inputs_exist)
+    assert_inputs_exist,
+    assert_outputs_exists)
 
 
-def buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
@@ -30,11 +29,12 @@ def buildArgsParser():
                    help='tracts filename. Format must be .trk.')
     p.add_argument('seed_density_filename',
                    help='Output seed density filename. Format must be Nifti.')
-    p.add_argument('--binary', metavar='FIXED_VALUE', type=int, nargs='?', const=1,
-                   help='If set, will store the same value for all intersected '
-                        'voxels, creating a binary map.\nWhen set without a '
-                        'value, 1 is used.\n If a value is given, will be used '
-                        'as the stored value.')
+    p.add_argument('--binary',
+                   metavar='FIXED_VALUE', type=int, nargs='?', const=1,
+                   help='If set, will store the same value for all '
+                        'intersected voxels, creating a binary map.\nWhen set '
+                        'without a value, 1 is used.\n If a value is given, '
+                        'will be used as the stored value.')
     p.add_argument('--lazy_load', action='store_true',
                    help='Load the file in lazy-loading')
     add_overwrite_arg(p)
@@ -43,7 +43,7 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.tractogram_filename])
