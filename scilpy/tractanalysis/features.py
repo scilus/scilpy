@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 from builtins import range
 from itertools import count, takewhile
 import logging
@@ -96,9 +94,9 @@ def prune(streamlines, threshold, features):
 
 # TODO could replace QB by QBx. Would need to adjust thresholds.
 def outliers_removal_using_hierarchical_quickbundles(streamlines,
-                                                      min_threshold=0.5,
-                                                      nb_samplings_max=30,
-                                                      sampling_seed=1234):
+                                                     min_threshold=0.5,
+                                                     nb_samplings_max=30,
+                                                     sampling_seed=1234):
     if nb_samplings_max < 2:
         raise ValueError("'nb_samplings_max' must be >= 2")
 
@@ -156,7 +154,7 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
 def remove_outliers(streamlines, threshold):
     summary = outliers_removal_using_hierarchical_quickbundles(streamlines)
     outliers, outliers_removed = prune(streamlines,
-                                        threshold, summary)
+                                       threshold, summary)
     outliers_strl = Cluster(indices=outliers, refdata=streamlines)
     no_outliers_strl = Cluster(indices=outliers_removed,
                                refdata=streamlines)

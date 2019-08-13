@@ -1,22 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 import argparse
-from distutils.version import LooseVersion
-from itertools import takewhile, count
 import logging
 
-from dipy.segment.clustering import QuickBundles, Cluster
 import nibabel as nib
-
-from nibabel.streamlines.tractogram import LazyDict, LazyTractogram
+from nibabel.streamlines.tractogram import Tractogram
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
-from scilpy.tractanalysis.features import (get_streamlines_bounding_box,
-                                           outliers_removal_using_hierarchical_quickbundles,
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exists,
+                             check_tracts_same_format)
+from scilpy.tractanalysis.features import (outliers_removal_using_hierarchical_quickbundles,
                                            prune)
 
 DESCRIPTION = """
@@ -55,63 +51,44 @@ def main():
         logging.warning("Bundle file contains no streamline")
         return
 
+    check_tracts_same_format(parser, [args.input_bundle, args.inliers,
+                                      args.outliers])
+
     streamlines = tractogram.streamlines
 
     summary = outliers_removal_using_hierarchical_quickbundles(streamlines)
-    outliers, outliers_removed = prune(streamlines, args.alpha, summary)
+    outliers, inliers = prune(streamlines, args.alpha, summary)
 
-    outliers_cluster = Cluster(indices=outliers, refdata=streamlines)
-    outliers_removed_cluster = Cluster(indices=outliers_removed,
-                                       refdata=streamlines)
+    inliers_streamlines = tractogram.streamlines[inliers]
+    inliers_data_per_streamline = tractogram.tractogram.data_per_streamline[inliers]
+    inliers_data_per_point = tractogram.tractogram.data_per_point[inliers]
 
+    outliers_streamlines = tractogram.streamlines[outliers]
     outliers_data_per_streamline = tractogram.tractogram.data_per_streamline[outliers]
-    
-    # outliers_data_per_streamline = LazyDict()
-    # outliers_removed_data_per_streamline = LazyDict()
-    # for key in tractogram.tractogram.data_per_streamline.keys():
-    #     outliers_data_per_streamline[key] = lambda: [
-    #         tractogram.tractogram.data_per_streamline[key][int(i)]
-    #         for i in outliers]
-    #     outliers_removed_data_per_streamline[key] = lambda: [
-    #         tractogram.tractogram.data_per_streamline[key][int(i)]
-    #         for i in outliers_removed]
+    outliers_data_per_point = tractogram.tractogram.data_per_point[outliers]
 
-    # outliers_data_per_point = LazyDict()
-    # outliers_removed_data_per_point = LazyDict()
-    # for key in tractogram.tractogram.data_per_point.keys():
-    #     outliers_data_per_point[key] = lambda: [
-    #         tractogram.tractogram.data_per_point[key][int(i)]
-    #         for i in outliers]
-    #     outliers_removed_data_per_point[key] = lambda: [
-    #         tractogram.tractogram.data_per_point[key][int(i)]
-    #         for i in outliers_removed]
-
-    if len(outliers_removed_cluster) == 0:
+    if len(inliers_streamlines) == 0:
         print("All streamlines are considered outliers. Please lower the "
               "--alpha parameter")
     else:
-        outlier_removed_tractogram = LazyTractogram(
-            lambda: outliers_removed_cluster,
+        inliers_tractogram = Tractogram(
+            inliers_streamlines,
             affine_to_rasmm=np.eye(4),
-            data_per_streamline=outliers_removed_data_per_streamline,
-            data_per_point=outliers_removed_data_per_point)
-        nib.streamlines.save(
-            outlier_removed_tractogram,
-            args.inliers,
-            header=tractogram.header)
+            data_per_streamline=inliers_data_per_streamline,
+            data_per_point=inliers_data_per_point)
+        nib.streamlines.save(inliers_tractogram, args.inliers,
+                             header=tractogram.header)
 
-    if len(outliers_cluster) == 0:
+    if len(outliers_streamlines) == 0:
         print("No outlier found. Please raise the --alpha parameter")
     else:
-        outlier_tractogram = LazyTractogram(
-            lambda: outliers_cluster,
+        outlier_tractogram = Tractogram(
+            outliers_streamlines,
             affine_to_rasmm=np.eye(4),
             data_per_streamline=outliers_data_per_streamline,
             data_per_point=outliers_data_per_point)
-        nib.streamlines.save(
-            outlier_tractogram,
-            args.outliers,
-            header=tractogram.header)
+        nib.streamlines.save(outlier_tractogram, args.outliers,
+                             header=tractogram.header)
 
 
 if __name__ == '__main__':
