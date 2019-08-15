@@ -5,13 +5,14 @@ import argparse
 import logging
 import os
 
-from dipy.external.fsl import write_bvals_bvecs
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nb
 import numpy as np
 
-from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exists
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exists,
+                             write_bvals_bvecs)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -115,7 +116,7 @@ def main():
     data = data[:, :, :, newIndex]
 
     nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,
-            header=dwis.header), output_filenames[0])
+                           header=dwis.header), output_filenames[0])
     write_bvals_bvecs(bvals, bvecs, outpath=None,
                       prefix=args.baseName+'.')
 

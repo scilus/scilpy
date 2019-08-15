@@ -27,10 +27,11 @@ import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
-from dipy.direction import ProbabilisticDirectionGetter, \
-    DeterministicMaximumDirectionGetter
-from dipy.tracking.local import \
-    ActTissueClassifier, CmcTissueClassifier, ParticleFilteringTracking
+from dipy.direction import (ProbabilisticDirectionGetter,
+                            DeterministicMaximumDirectionGetter)
+from dipy.tracking.local_tracking import ParticleFilteringTracking
+from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
+                                              CmcStoppingCriterion)
 from dipy.tracking import utils as track_utils
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 import nibabel as nib
@@ -229,13 +230,13 @@ def main():
 
     tissue_classifier = None
     if not args.act:
-        tissue_classifier = CmcTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data(),
-                                                step_size=args.step_size,
-                                                average_voxel_size=voxel_size)
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data(),
+                                                 step_size=args.step_size,
+                                                 average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data())
 
     if args.npv:
         nb_seeds = args.npv

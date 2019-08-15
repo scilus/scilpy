@@ -23,7 +23,8 @@ from dipy.data import SPHERE_FILES, get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.tracking.local import BinaryTissueClassifier, LocalTracking
+from dipy.tracking.local_tracking import LocalTracking
+from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
@@ -226,7 +227,7 @@ def main():
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines = LocalTracking(
         _get_direction_getter(args, mask_data),
-        BinaryTissueClassifier(mask_data),
+        BinaryStoppingCriterion(mask_data),
         seeds, np.eye(4),
         step_size=vox_step_size, max_cross=1,
         maxlen=max_steps,
