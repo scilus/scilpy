@@ -253,6 +253,7 @@ def main():
     seed_img = nib.load(args.seed_file)
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_data(),
+        np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
