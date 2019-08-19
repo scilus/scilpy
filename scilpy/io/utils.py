@@ -23,7 +23,8 @@ def load_tractogram_with_reference(parser, args, filepath,
                                    bbox_check=True):
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
-        sft = load_tractogram(filepath, 'same')
+        sft = load_tractogram(filepath, 'same',
+                              bbox_valid_check=bbox_check)
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
         if args.reference is None:
             parser.error('--reference is required for this file format '
