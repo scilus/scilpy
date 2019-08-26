@@ -7,7 +7,7 @@ import os
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
-                             assert_inputs_exist, assert_outputs_exists,
+                             assert_inputs_exist, assert_outputs_exist,
                              load_tractogram_with_reference)
 
 DESCRIPTION = """
@@ -48,7 +48,7 @@ def main():
     if in_extension == out_extension:
         parser.error('Input and output cannot be of the same file format')
 
-    assert_outputs_exists(parser, args, args.output_name)
+    assert_outputs_exist(parser, args, args.output_name)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)

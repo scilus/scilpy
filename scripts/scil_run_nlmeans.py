@@ -17,7 +17,7 @@ import nibabel as nb
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_args_parser():
@@ -79,7 +79,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input])
-    assert_outputs_exists(parser, args, [args.output],
+    assert_outputs_exist(parser, args, [args.output],
                           [args.logfile])
 
     logging.basicConfig()

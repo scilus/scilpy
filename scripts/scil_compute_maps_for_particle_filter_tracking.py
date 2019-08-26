@@ -20,7 +20,7 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -66,7 +66,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.wm, args.gm, args.csf])
-    assert_outputs_exists(parser, args,
+    assert_outputs_exist(parser, args,
                           [args.include, args.exclude, args.interface])
 
     wm_pve = nib.load(args.wm)

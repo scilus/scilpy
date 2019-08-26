@@ -40,7 +40,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exist,
                              load_tractogram_with_reference)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
@@ -117,7 +117,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, args.inputs)
-    assert_outputs_exists(parser, args, [args.output])
+    assert_outputs_exist(parser, args, [args.output])
 
     # Load all input streamlines.
     data = [load_data(parser, args, f) for f in args.inputs]

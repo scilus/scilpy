@@ -4,7 +4,7 @@
 import argparse
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 from scilpy.utils.flip_tools import flip_mrtrix_encoding_scheme, flip_fsl_bvecs
 from scilpy.utils.util import str_to_index
 
@@ -42,7 +42,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.encoding_file])
-    assert_outputs_exists(parser, args, [args.flipped_encoding])
+    assert_outputs_exist(parser, args, [args.flipped_encoding])
 
     indices = [str_to_index(axis) for axis in list(args.axes)]
     if args.fsl_bvecs:

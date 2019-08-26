@@ -21,7 +21,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exist,
                              load_tractogram_with_reference)
 
 
@@ -84,7 +84,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
-    assert_outputs_exists(parser, args, [args.output_name])
+    assert_outputs_exist(parser, args, [args.output_name])
 
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines

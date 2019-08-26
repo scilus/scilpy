@@ -13,7 +13,7 @@ import argparse
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import transform_anatomy
 
@@ -50,7 +50,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
                                  args.transformation])
-    assert_outputs_exists(parser, args, [args.out_name])
+    assert_outputs_exist(parser, args, [args.out_name])
 
     transfo = np.loadtxt(args.transformation)
     if args.inverse:

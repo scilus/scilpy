@@ -14,7 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
 def interp_code_to_order(interp_code):
@@ -61,7 +61,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input], [args.ref])
-    assert_outputs_exists(parser, args, [args.output])
+    assert_outputs_exist(parser, args, [args.output])
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 
