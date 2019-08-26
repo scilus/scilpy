@@ -9,9 +9,10 @@ from scilpy.utils.bvec_bval_tools import mrtrix2fsl
 
 DESCRIPTION = "Script to convert bval/bvec mrtrix style to fsl style."
 
+
 def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='DESCRIPTION)
+                                description=DESCRIPTION)
 
     p.add_argument('mrtrix_enc', type=str,
                    help='Path to gradient directions encoding file.')

@@ -48,6 +48,12 @@ def _build_args_parser():
     p.add_argument(
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
+    p.add_argument(
+        '--out', type=str,
+        help='Output file name picture without extension (png file)')
+    p.add_argument(
+        '--res', type=int, default=(300, 300), nargs='+',
+        help='Resolution of the output picture(s)')
 
     return p
 
@@ -157,10 +163,12 @@ def main():
 
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
-                        rad=0.025, opacity=args.opacity)
+                        rad=0.025, opacity=args.opacity,
+                        ofile=args.out, ores=tuple(args.res))
     if each:
         plot_each_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
-                        rad=0.025, opacity=args.opacity)
+                        rad=0.025, opacity=args.opacity,
+                        ofile=args.out, ores=tuple(args.res))
 
 
 if __name__ == "__main__":

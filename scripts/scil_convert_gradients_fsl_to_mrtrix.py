@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import argparse
 
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
@@ -9,6 +8,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 
 DESCRIPTION = "Script to convert bval/bvec fsl style to mrtrix style."
+
 
 def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
