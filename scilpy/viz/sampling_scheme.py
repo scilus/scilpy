@@ -20,7 +20,8 @@ vtkcolors = [window.colors.blue,
 
 
 def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
-                    rad=0.025, opacity=1.0):
+                    rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+
     if use_sphere:
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
@@ -47,9 +48,13 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
             ren.add(pts_actor)
         window.show(ren)
 
+        if ofile:
+            window.snapshot(ren, fname=ofile + '_shell_' + str(i) + '.png',
+                            size=ores)
+
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
-                    rad=0.025, opacity=1.0):
+                    rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
 
     ren = window.Renderer()
     ren.SetBackground(1, 1, 1)
@@ -76,6 +81,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
             pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
             ren.add(pts_actor)
     window.show(ren)
+    if ofile:
+        window.snapshot(ren, fname=ofile + '.png', size=ores)
 
 
 def build_shell_idx_from_bval(bvals, shell_th=50):
