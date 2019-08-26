@@ -9,6 +9,7 @@ import six
 def count_non_zero_voxels(image):
     """
     Count number of non zero voxels
+
     Parameters:
     -----------
     image: string
