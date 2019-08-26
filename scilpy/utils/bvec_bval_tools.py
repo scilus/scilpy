@@ -126,8 +126,6 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
 
     np.savetxt(mrtrix_filename, mrtrix_b, "%.8f %.8f %.8f %f")
 
-    return
-
 
 def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None, fsl_bvec_filename=None,
                fsl_base_filename=None):
@@ -174,5 +172,3 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None, fsl_bvec_filename=None,
 
     np.savetxt(fsl_bvec_filename, bvec, "%.8f")
     np.savetxt(fsl_bval_filename, bval, "%i")
-
-    return
