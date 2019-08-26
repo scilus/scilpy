@@ -21,7 +21,7 @@ def _build_arg_parser():
                         ' by nibabel')
     parser.add_argument('--out', action='store',
                         metavar='OUTPUT_FILE', type=str,
-                        help='path of the output text file. ' +
+                        help='path of the output json file. ' +
                         'If not given, will print to stdout')
     return parser
 
