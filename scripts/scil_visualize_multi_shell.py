@@ -31,22 +31,22 @@ def _build_args_parser():
         help='Sampling scheme filename. (only accepts .txt or .caru or ' +
              '.bvecs or .bvals or .b or .dir or .dvs)')
     p.add_argument(
-        '--no-sym', action='store_false', dest='sym', default=True,
+        '--no-sym', action='store_false', dest='sym',
         help='Disable antipodal symmetry.')
     p.add_argument(
-        '--no-sphere', action='store_false', dest='sph', default=True,
+        '--no-sphere', action='store_false', dest='sph',
         help='Disable the rendering of the sphere.')
     p.add_argument(
-        '--same', action='store_true', dest='same', default=False,
+        '--same', action='store_true',
         help='Use same color for all shell.')
     p.add_argument(
-        '--no-proj', action='store_false', dest='proj', default=True,
+        '--no-proj', action='store_false', dest='proj',
         help='Disable rendering of the projection supershell.')
     p.add_argument(
-        '--each', action='store_true', dest='each', default=False,
+        '--each', action='store_true',
         help='Enable rendering each shell individually.')
     p.add_argument(
-        '--opacity', dest='opacity', type=float, default=1.0,
+        '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
     return p

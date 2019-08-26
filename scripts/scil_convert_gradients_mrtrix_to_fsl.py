@@ -1,7 +1,5 @@
 #! /usr/bin/env python
-'''
-    Script to convert bval/bvec mrtrix style to fsl style.
-'''
+# -*- coding: utf-8 -*-
 
 import argparse
 
@@ -9,11 +7,11 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import mrtrix2fsl
 
+DESCRIPTION = "Script to convert bval/bvec mrtrix style to fsl style."
 
 def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Convert bval/bvec mrtrix' +
-                                            ' style to fsl style.')
+                                description='DESCRIPTION)
 
     p.add_argument('mrtrix_enc', type=str,
                    help='Path to gradient directions encoding file.')
