@@ -11,7 +11,7 @@ import argparse
 from bids import BIDSLayout
 import json
 
-from scilpy.io.utils import add_overwrite_arg, assert_outputs_exists
+from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 
 
 def _build_args_parser():

@@ -17,7 +17,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
 

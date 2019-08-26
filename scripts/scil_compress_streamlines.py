@@ -19,7 +19,7 @@ import numpy as np
 from scilpy.io.streamlines import check_tracts_same_format
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 
 
 def _build_args_parser():

@@ -14,7 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 
 

@@ -8,7 +8,7 @@ from ast import literal_eval
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
 Replace the fiber response function in the FRF file.

@@ -39,7 +39,7 @@ import numpy as np
 
 from scilpy.io.utils import (create_header_from_anat,
                              add_overwrite_arg, add_sh_basis_args, add_verbose,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
 
