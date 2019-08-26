@@ -26,7 +26,7 @@ def _build_args_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('tractogram_filename',
-                   help='tracts filename. Format must be .trk.')
+                   help='Tracts filename. Format must be .trk.')
     p.add_argument('seed_density_filename',
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
@@ -88,7 +88,7 @@ def main():
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
-    dm_img = Nifti1Image(seed_density.astype(np.int16),
+    dm_img = Nifti1Image(seed_density.astype(np.int32),
                          tracts_file.affine)
     dm_img.to_filename(args.seed_density_filename)
 
