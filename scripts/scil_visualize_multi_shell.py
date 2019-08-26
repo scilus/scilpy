@@ -8,13 +8,17 @@ import argparse
 import logging
 import numpy as np
 
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exists)
 from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         build_shell_idx_from_bval,
                                         plot_each_shell,
                                         plot_proj_shell)
 
+
 DESCRIPTION = """
-Vizualisation for sampling scheme from generate_sampling_scheme.py.
+Vizualisation for sampling schemes.
 Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
 and .b (MRtrix).
 """
@@ -24,12 +28,10 @@ def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=DESCRIPTION)
-    p._optionals.title = "Options and Parameters"
 
     p.add_argument(
         'scheme_file', action='store', metavar='scheme_file', type=str,
-        help='Sampling scheme filename. (only accepts .txt or .caru or ' +
-             '.bvecs or .bvals or .b or .dir or .dvs)')
+        help=DESCRIPTION)
     p.add_argument(
         '--no-sym', action='store_false', dest='sym',
         help='Disable antipodal symmetry.')
@@ -49,18 +51,26 @@ def _build_args_parser():
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
     p.add_argument(
-        '--out', type=str,
-        help='Output file name picture without extension (png file)')
+        '--out',
+        help='Output file name picture without extension ' +
+             '(will be png file(s))')
     p.add_argument(
         '--res', type=int, default=(300, 300), nargs='+',
         help='Resolution of the output picture(s)')
-
+    add_overwrite_arg(p)
     return p
 
 
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
+    assert_inputs_exist(parser, [args.scheme_file])
+
+    if args.out:
+        possibleOutputPaths = [args.out + '_shell_' + str(i) +
+                               '.png' for i in range(5)]
+        possibleOutputPaths.append(args.out + '.png')
+        assert_outputs_exists(parser, args, possibleOutputPaths)
 
     proj = args.proj
     each = args.each
