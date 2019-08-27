@@ -3,12 +3,12 @@
 
 import argparse
 
-import numpy as np
-import nibabel as nib
-from nibabel.streamlines.array_sequence import ArraySequence
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
+import nibabel as nib
+import numpy as np
+from nibabel.streamlines.array_sequence import ArraySequence
 from scipy.sparse import dok_matrix
 
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
