@@ -19,8 +19,10 @@ import logging
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exists,
+                             add_verbose_arg)
 
 
 def _build_arg_parser():
