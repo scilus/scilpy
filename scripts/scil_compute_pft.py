@@ -148,8 +148,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    if args.isVerbose:
-        logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
                                  args.map_include_file,
