@@ -14,7 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -74,7 +74,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
                                  args.transformation])
-    assert_outputs_exists(parser, args, [args.out_name])
+    assert_outputs_exist(parser, args, [args.out_name])
 
     _, ref_extension = split_name_with_nii(args.ref_file)
     if ref_extension == '.trk':

@@ -11,7 +11,7 @@ import nibabel as nb
 import numpy as np
 
 from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exists
+    assert_inputs_exist, assert_outputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -100,7 +100,7 @@ def main():
                         args.baseName + '.bvec']
 
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exists(parser, args, output_filenames)
+    assert_outputs_exist(parser, args, output_filenames)
 
     oTable = np.loadtxt(args.table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.bval, args.bvec)
