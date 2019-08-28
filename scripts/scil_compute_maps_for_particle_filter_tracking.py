@@ -19,8 +19,10 @@ import logging
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -53,8 +55,7 @@ def _build_arg_parser():
         help='Minimum gm and wm PVE values in a voxel to be in to the '
              'interface. [0.1]')
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='isVerbose',
-                   help='produce verbose output. [false]')
+    add_verbose_arg(p)
     return p
 
 
@@ -62,7 +63,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.isVerbose:
+    if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.wm, args.gm, args.csf])

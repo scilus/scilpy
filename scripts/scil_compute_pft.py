@@ -38,7 +38,8 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args, add_verbose,
+                             add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
@@ -138,7 +139,7 @@ def _build_args_parser():
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    add_verbose(log_g)
+    add_verbose_arg(log_g)
 
     return p
 
@@ -147,7 +148,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    if args.isVerbose:
+    if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
