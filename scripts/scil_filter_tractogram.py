@@ -124,8 +124,8 @@ def main():
     parser = _buildArgsParser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exist(parser, args, [args.out_tractogram])
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 

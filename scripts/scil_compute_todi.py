@@ -76,8 +76,9 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, required=[args.tract_filename],
-                        optional=[args.mask, args.reference])
+    assert_inputs_exist(parser, args.tract_filename,
+                        [args.mask, args.reference])
+
     output_file_list = []
     if args.out_mask:
         output_file_list.append(args.out_mask)

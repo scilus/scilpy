@@ -78,9 +78,9 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input])
-    assert_outputs_exist(parser, args, [args.output],
-                          [args.logfile])
+    assert_inputs_exist(parser, args.input)
+    assert_outputs_exist(parser, args, args.output,
+                          args.logfile)
 
     logging.basicConfig()
     log = logging.getLogger(__name__)

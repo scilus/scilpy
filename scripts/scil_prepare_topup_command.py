@@ -81,10 +81,8 @@ def main():
 
     required_args = [args.input_dwi, args.bvals, args.bvecs, args.reverse_b0]
 
-    optional_args = [args.output_b0s]
-
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exist(parser, args, [], optional_args)
+    assert_outputs_exist(parser, args, [], args.output_b0s)
 
     if os.path.splitext(args.output_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')

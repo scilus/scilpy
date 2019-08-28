@@ -47,8 +47,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exist(parser, args, [args.out_tractogram])
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
     check_tracts_same_format(parser, args.in_tractogram, args.out_tractogram)
 
     if args.error_rate < 0.001 or args.error_rate > 1:

@@ -96,7 +96,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
-    assert_outputs_exist(parser, args, [args.frf_file])
+    assert_outputs_exist(parser, args, args.frf_file)
 
     vol = nib.load(args.input)
     data = vol.get_data()

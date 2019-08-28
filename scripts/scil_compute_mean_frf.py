@@ -38,7 +38,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, args.frf_files)
-    assert_outputs_exist(parser, args, [args.mean_frf])
+    assert_outputs_exist(parser, args, args.mean_frf)
 
     all_frfs = np.zeros((len(args.frf_files), 4))
 

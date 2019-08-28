@@ -166,7 +166,7 @@ def main():
                      'one metric to output.')
 
     assert_inputs_exist(
-        parser, [args.input, args.bvals, args.bvecs], [args.mask])
+        parser, [args.input, args.bvals, args.bvecs], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)

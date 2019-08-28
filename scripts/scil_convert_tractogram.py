@@ -40,7 +40,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram], [args.reference])
+    assert_inputs_exist(parser, args.in_tractogram, args.reference)
 
     in_extension = os.path.splitext(args.in_tractogram)[1]
     out_extension = os.path.splitext(args.output_name)[1]

@@ -50,7 +50,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
                                  args.transformation])
-    assert_outputs_exist(parser, args, [args.out_name])
+    assert_outputs_exist(parser, args, args.out_name)
 
     transfo = np.loadtxt(args.transformation)
     if args.inverse:
