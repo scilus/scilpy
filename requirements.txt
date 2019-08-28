@@ -4,7 +4,7 @@ future==0.17.1
 h5py==2.9.0
 kiwisolver==1.0.1
 matplotlib==2.2.2
-nibabel==2.3.3
+nibabel==2.4.0
 numpy==1.16.2
 pybids==0.9.1
 pyparsing==2.2.0
