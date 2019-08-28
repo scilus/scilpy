@@ -115,7 +115,7 @@ def main():
 
     nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,
                            header=dwis.header), output_filenames[0])
-    np.savetxt(args.baseName + '.bval', bvals, '%d')
+    np.savetxt(args.baseName + '.bval', bvals.reshape(1, len(bvals)), '%d')
     np.savetxt(args.baseName + '.bvec', bvecs.T, '%0.15f')
 
 
