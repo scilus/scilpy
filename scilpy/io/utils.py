@@ -89,6 +89,12 @@ def assert_inputs_exist(parser, required, optional=None):
         if not os.path.isfile(path):
             parser.error('Input file {} does not exist'.format(path))
 
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
+
     for required_file in required:
         check(required_file)
     for optional_file in optional or []:
@@ -102,13 +108,20 @@ def assert_outputs_exist(parser, args, required, optional=None):
     If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
     :param args: argparse namespace
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string of list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
                          'overwriting'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
 
     for required_file in required:
         check(required_file)
