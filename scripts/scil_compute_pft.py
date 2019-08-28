@@ -39,8 +39,9 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args, add_verbose,
-                             assert_inputs_exist, assert_outputs_exists)
+                             add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
 
@@ -139,7 +140,7 @@ def _build_args_parser():
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    add_verbose(log_g)
+    add_verbose_arg(log_g)
 
     return p
 
@@ -154,7 +155,7 @@ def main():
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
                                  args.map_include_file,
                                  args.map_exclude_file])
-    assert_outputs_exists(parser, args, [args.output_file])
+    assert_outputs_exist(parser, args, args.output_file)
 
     if not nib.streamlines.is_supported(args.output_file):
         parser.error('Invalid output streamline file format (must be trk or ' +
