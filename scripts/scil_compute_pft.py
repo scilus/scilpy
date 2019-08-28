@@ -38,7 +38,8 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args, add_verbose,
+                             add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
