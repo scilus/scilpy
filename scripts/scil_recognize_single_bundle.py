@@ -84,7 +84,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
-    assert_outputs_exist(parser, args, [args.output_name])
+    assert_outputs_exist(parser, args, args.output_name)
 
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines

@@ -60,8 +60,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input], [args.ref])
-    assert_outputs_exist(parser, args, [args.output])
+    assert_inputs_exist(parser, args.input, args.ref)
+    assert_outputs_exist(parser, args, args.output)
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 

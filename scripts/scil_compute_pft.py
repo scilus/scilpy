@@ -154,7 +154,7 @@ def main():
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
                                  args.map_include_file,
                                  args.map_exclude_file])
-    assert_outputs_exist(parser, args, [args.output_file])
+    assert_outputs_exist(parser, args, args.output_file)
 
     if not nib.streamlines.is_supported(args.output_file):
         parser.error('Invalid output streamline file format (must be trk or ' +

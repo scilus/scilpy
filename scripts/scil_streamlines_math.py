@@ -116,7 +116,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, args.inputs)
-    assert_outputs_exist(parser, args, [args.output])
+    assert_outputs_exist(parser, args, args.output)
 
     # Load all input streamlines.
     data = [load_data(parser, args, f) for f in args.inputs]
