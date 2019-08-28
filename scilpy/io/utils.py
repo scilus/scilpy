@@ -110,7 +110,7 @@ def assert_outputs_exist(parser, args, required, optional=None):
     :param parser: argparse.ArgumentParser object
     :param args: argparse namespace
     :param required: string or list of paths
-    :param optional: string of list of paths.
+    :param optional: string or list of paths.
                      Each element will be ignored if None
     """
     def check(path):
