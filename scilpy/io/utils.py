@@ -82,8 +82,9 @@ def assert_inputs_exist(parser, required, optional=None):
     """
     Assert that all inputs exist. If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string or list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if not os.path.isfile(path):
