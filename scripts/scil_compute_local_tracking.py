@@ -160,7 +160,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG)
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.sh_file, args.seed_file, args.mask_file])
     assert_outputs_exist(parser, args, [args.output_file])
