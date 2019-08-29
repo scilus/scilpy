@@ -20,10 +20,10 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
-def build_arg_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('anat_reference',
@@ -109,11 +109,11 @@ def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
 
 
 def main():
-    parser = build_arg_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.anat_reference])
-    assert_outputs_exists(parser, args, [args.output_name])
+    assert_outputs_exist(parser, args, [args.output_name])
 
     output_names = ['axial_superior', 'axial_inferior',
                     'coronal_posterior', 'coronal_anterior',
