@@ -38,7 +38,7 @@ def _build_arg_parser():
 
 
 def main():
-    parser = build_arg_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.encoding_file)
