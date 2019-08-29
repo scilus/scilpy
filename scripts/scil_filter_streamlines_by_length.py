@@ -6,7 +6,7 @@ from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 
 
@@ -33,8 +33,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exists(parser, args, args.out_tractogram)
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     tractogram_file = load(args.in_tractogram)
     streamlines = list(tractogram_file.streamlines)
