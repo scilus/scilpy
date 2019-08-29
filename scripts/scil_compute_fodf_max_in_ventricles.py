@@ -17,7 +17,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
 
@@ -119,7 +119,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input, args.fa, args.md])
-    assert_outputs_exists(parser, args, [],
+    assert_outputs_exist(parser, args, [],
                           [args.max_value_output, args.mask_output])
 
     if args.verbose:

@@ -46,7 +46,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input_filename])
+    assert_inputs_exist(parser, args.input_filename)
     # out_filename can exist or not
 
     # Load image file
