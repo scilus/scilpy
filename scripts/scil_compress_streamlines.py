@@ -19,7 +19,7 @@ import numpy as np
 from scilpy.io.streamlines import check_tracts_same_format
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 
 
 def _build_args_parser():
@@ -47,8 +47,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exists(parser, args, [args.out_tractogram])
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
     check_tracts_same_format(parser, args.in_tractogram, args.out_tractogram)
 
     if args.error_rate < 0.001 or args.error_rate > 1:

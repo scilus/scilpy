@@ -10,7 +10,7 @@ import numpy as np
 
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
     Convert a SH file between the two commonly used bases
@@ -38,8 +38,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input_sh])
-    assert_outputs_exists(parser, args, [args.output_name])
+    assert_inputs_exist(parser, args.input_sh)
+    assert_outputs_exist(parser, args, args.output_name)
 
     input_basis = args.sh_basis
     output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'

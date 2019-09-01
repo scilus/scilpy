@@ -22,7 +22,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-    assert_outputs_exists, add_force_b0_arg)
+                             assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (
     check_b0_threshold, normalize_bvecs, is_normalized_bvecs)
 
@@ -96,7 +96,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
-    assert_outputs_exists(parser, args, [args.frf_file])
+    assert_outputs_exist(parser, args, args.frf_file)
 
     vol = nib.load(args.input)
     data = vol.get_data()
