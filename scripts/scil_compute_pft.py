@@ -27,10 +27,11 @@ import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
-from dipy.direction import ProbabilisticDirectionGetter, \
-    DeterministicMaximumDirectionGetter
-from dipy.tracking.local import \
-    ActTissueClassifier, CmcTissueClassifier, ParticleFilteringTracking
+from dipy.direction import (ProbabilisticDirectionGetter,
+                            DeterministicMaximumDirectionGetter)
+from dipy.tracking.local_tracking import ParticleFilteringTracking
+from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
+                                              CmcStoppingCriterion)
 from dipy.tracking import utils as track_utils
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 import nibabel as nib
@@ -38,8 +39,9 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args, add_verbose,
-                             assert_inputs_exist, assert_outputs_exists)
+                             add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
 
@@ -138,7 +140,7 @@ def _build_args_parser():
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    add_verbose(log_g)
+    add_verbose_arg(log_g)
 
     return p
 
@@ -147,13 +149,13 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    if args.isVerbose:
+    if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
                                  args.map_include_file,
                                  args.map_exclude_file])
-    assert_outputs_exists(parser, args, [args.output_file])
+    assert_outputs_exist(parser, args, args.output_file)
 
     if not nib.streamlines.is_supported(args.output_file):
         parser.error('Invalid output streamline file format (must be trk or ' +
@@ -229,13 +231,13 @@ def main():
 
     tissue_classifier = None
     if not args.act:
-        tissue_classifier = CmcTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data(),
-                                                step_size=args.step_size,
-                                                average_voxel_size=voxel_size)
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data(),
+                                                 step_size=args.step_size,
+                                                 average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data())
 
     if args.npv:
         nb_seeds = args.npv
@@ -252,6 +254,7 @@ def main():
     seed_img = nib.load(args.seed_file)
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_data(),
+        np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)

@@ -49,7 +49,7 @@ def add_force_b0_arg(parser):
                         .format(DEFAULT_B0_THRESHOLD))
 
 
-def add_verbose(parser):
+def add_verbose_arg(parser):
     parser.add_argument('-v', action='store_true', dest='verbose',
                         help='If set, produces verbose output.')
 
@@ -82,12 +82,19 @@ def assert_inputs_exist(parser, required, optional=None):
     """
     Assert that all inputs exist. If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string or list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if not os.path.isfile(path):
             parser.error('Input file {} does not exist'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
 
     for required_file in required:
         check(required_file)
@@ -96,19 +103,26 @@ def assert_inputs_exist(parser, required, optional=None):
             check(optional_file)
 
 
-def assert_outputs_exists(parser, args, required, optional=None):
+def assert_outputs_exist(parser, args, required, optional=None):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
     :param args: argparse namespace
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string or list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
                          'overwriting'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
 
     for required_file in required:
         check(required_file)
