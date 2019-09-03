@@ -33,7 +33,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, [args.tractogram])
-    assert_outputs_exists(parser, args, [], [args.dest])
+    assert_outputs_exists(parser, args, [], [args.save])
 
     tracts_format = detect_format(args.tractogram)
     if tracts_format is not TrkFile:
@@ -58,8 +58,8 @@ def main():
     r.add(points)
 
     # Show and record if needed
-    if args.dest is not None:
-        window.record(r, out_path=args.dest, size=(1000, 1000))
+    if args.save is not None:
+        window.record(r, out_path=args.save, size=(1000, 1000))
     window.show(r)
 
 
