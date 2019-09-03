@@ -14,7 +14,7 @@ from nibabel.streamlines import detect_format, TrkFile
 from scilpy.io.utils import (
     add_overwrite_arg,
     assert_inputs_exist,
-    assert_outputs_exists)
+    assert_outputs_exist)
 
 
 def _build_args_parser():
@@ -33,7 +33,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, [args.tractogram])
-    assert_outputs_exists(parser, args, [], [args.save])
+    assert_outputs_exist(parser, args, [], [args.save])
 
     tracts_format = detect_format(args.tractogram)
     if tracts_format is not TrkFile:

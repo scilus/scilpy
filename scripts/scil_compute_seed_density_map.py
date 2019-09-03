@@ -18,7 +18,7 @@ import numpy as np
 from scilpy.io.utils import (
     add_overwrite_arg,
     assert_inputs_exist,
-    assert_outputs_exists)
+    assert_outputs_exist)
 
 
 def _build_args_parser():
@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.tractogram_filename])
-    assert_outputs_exists(parser, args, [args.seed_density_filename])
+    assert_outputs_exist(parser, args, [args.seed_density_filename])
 
     tracts_format = detect_format(args.tractogram_filename)
     if tracts_format is TckFile:
