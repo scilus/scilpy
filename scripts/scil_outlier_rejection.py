@@ -10,7 +10,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exist,
                              check_tracts_same_format)
 from scilpy.tractanalysis.features import (outliers_removal_using_hierarchical_quickbundles,
                                            prune)
@@ -41,7 +41,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input_bundle])
-    assert_outputs_exists(parser, args, [args.inliers, args.outliers])
+    assert_outputs_exist(parser, args, [args.inliers, args.outliers])
     if args.alpha <= 0 or args.alpha > 1:
         parser.error('--alpha should be ]0, 1]')
 
