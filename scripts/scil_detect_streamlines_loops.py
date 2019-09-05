@@ -9,7 +9,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists,
+                             assert_outputs_exist,
                              check_tracts_same_format)
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
@@ -64,8 +64,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input])
-    assert_outputs_exists(parser, args, [args.output_clean],
-                          optional=[args.output_loops])
+    assert_outputs_exist(parser, args, [args.output_clean],
+                         optional=[args.output_loops])
     check_tracts_same_format(parser, [args.input, args.output_clean,
                                       args.output_loops])
 
