@@ -37,7 +37,7 @@ from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import (
     find_order_from_nb_coeff, get_b_matrix, get_maximas)
 
@@ -174,7 +174,7 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [])
-    assert_outputs_exists(parser, args, arglist)
+    assert_outputs_exist(parser, args, arglist)
 
     data, affine = load(args.input)
     if args.mask is None:

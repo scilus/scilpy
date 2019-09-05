@@ -11,7 +11,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exists
+    assert_inputs_exist, assert_outputs_exist
 from scilpy.preprocessing.distortion_correction import create_acqparams
 
 DESCRIPTION = """
@@ -81,10 +81,8 @@ def main():
 
     required_args = [args.input_dwi, args.bvals, args.bvecs, args.reverse_b0]
 
-    optional_args = [args.output_b0s]
-
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exists(parser, args, [], optional_args)
+    assert_outputs_exist(parser, args, [], args.output_b0s)
 
     if os.path.splitext(args.output_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
