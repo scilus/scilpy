@@ -170,8 +170,8 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
                         dwi_RT = dwi_metadata['TotalReadoutTime']
                         fmap_RT = nfmap_metadata['TotalReadoutTime']
                         if dwi_RT != fmap_RT and totalreadout == '':
-                            totalreadout = 'error'
-                            revb0_path = 'error'
+                            totalreadout = 'error_readout'
+                            revb0_path = 'error_readout'
                         elif dwi_RT == fmap_RT:
                             revb0_path = nfmap.path
                             totalreadout = dwi_RT
