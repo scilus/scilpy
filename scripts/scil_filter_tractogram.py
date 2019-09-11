@@ -175,7 +175,7 @@ def main():
         # below the dimension, since this is a voxel space operation
         elif filter_type in ['x_plane', 'y_plane', 'z_plane']:
             filter_arg = int(filter_arg)
-            _, dim, _, _ = sft.space_attribute
+            _, dim, _, _ = sft.space_attributes
             mask = np.zeros(dim, dtype=np.int16)
             error_msg = None
             if filter_type == 'x_plane':
