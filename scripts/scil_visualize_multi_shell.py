@@ -10,7 +10,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         build_shell_idx_from_bval,
                                         plot_each_shell,
