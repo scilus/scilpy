@@ -32,7 +32,6 @@ def main():
 
     assert_inputs_exist(parser, args.tractogram)
 
-
     bundle_name, _ = os.path.splitext(os.path.basename(args.tractogram))
     bundle_tractogram_file = nib.streamlines.load(args.tractogram,
                                                   lazy_load=True)
