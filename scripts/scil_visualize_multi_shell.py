@@ -70,7 +70,7 @@ def main():
         possibleOutputPaths = [args.out + '_shell_' + str(i) +
                                '.png' for i in range(5)]
         possibleOutputPaths.append(args.out + '.png')
-        assert_outputs_exists(parser, args, possibleOutputPaths)
+        assert_outputs_exist(parser, args, possibleOutputPaths)
 
     proj = args.proj
     each = args.each

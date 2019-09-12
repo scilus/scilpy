@@ -26,10 +26,10 @@ DESCRIPTION = """
 Generate multi-shell sampling schemes with various processing to accelerate
 acquisition and help artefact correction.
 
-Multi-shell schemes are generated as in [1], the bvecs are then flipped to maximize
-spread for eddy current correction, b0s are interleaved at equal spacing and the
-non-b0 samples are finally shuffled to minimize the total diffusion gradient
-amplitude over a few TR.
+Multi-shell schemes are generated as in [1], the bvecs are then flipped
+to maximize spread for eddy current correction, b0s are interleaved
+at equal spacing and the non-b0 samples are finally shuffled
+to minimize the total diffusion gradient amplitude over a few TR.
     """
 
 EPILOG = """
@@ -56,15 +56,18 @@ def buildArgsParser():
 
     p.add_argument(
         '--eddy', action='store_true', dest='eddy', default=False,
-        help='Apply eddy optimization.\nB-vectors are flipped to be well spread without symmetry. [%(default)s]')
+        help='Apply eddy optimization.\nB-vectors are flipped to be well \
+              spread without symmetry. [%(default)s]')
     p.add_argument(
         '--duty', action='store_true', dest='duty', default=False,
-        help='Apply duty cycle optimization. \nB-vectors are shuffled to reduce consecutive colinearity in the samples. [%(default)s]')
+        help='Apply duty cycle optimization. \nB-vectors are shuffled \
+             to reduce consecutive colinearity in the samples. [%(default)s]')
 
     p.add_argument(
         '--b0inter', dest='b0_every', action='store',
         metavar='b0_every', type=int, default=-1,
-        help='Interleave a b0 every b0_every. \nNo b0 if 0. \nOnly 1 b0 at beginning if > number of samples or negative. [%(default)s]')
+        help='Interleave a b0 every b0_every. \nNo b0 if 0. \nOnly 1 b0 \
+              at beginning if > number of samples or negative. [%(default)s]')
     p.add_argument(
         '--b0end', action='store_true', dest='b0_end', default=False,
         help='Add a b0 as last sample. [%(default)s]')
@@ -80,11 +83,13 @@ def buildArgsParser():
     bvalues_group.add_argument(
         '--blinmax', dest='b_lin_max', action='store',
         metavar='b_lin_max', type=float,
-        help='b-max for linear b-value distribution in *b*. [replaces -bvalues]')
+        help='b-max for linear b-value distribution in *b*. \
+              [replaces -bvalues]')
     bvalues_group.add_argument(
         '--qlinmax', dest='q_lin_max', action='store',
         metavar='q_lin_max', type=float,
-        help='b-max for linear b-value distribution in *q*. [replaces -bvalues]')
+        help='b-max for linear b-value distribution in *q*.\
+              [replaces -bvalues]')
 
     p.add_argument(
         '--caru', action='store_true',

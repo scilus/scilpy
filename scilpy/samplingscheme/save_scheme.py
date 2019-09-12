@@ -5,44 +5,59 @@ import numpy as np
 
 # TODO: add some filename extension checking
 
-def save_scheme_caru(points, shell_idx, filename, verbose = 1):
+
+def save_scheme_caru(points, shell_idx, filename, verbose=1):
     fullfilename = filename + '.caru'
     f = open(fullfilename, 'w')
     f.write('# Caruyer format sampling scheme\n')
     f.write('# X Y Z shell_idx\n')
     for idx in range(points.shape[0]):
-        f.write('{:.8f} {:.8f} {:.8f} {:.0f}\n'.format(points[idx,0], points[idx,1], points[idx,2], shell_idx[idx]))
+        f.write('{:.8f} {:.8f} {:.8f} {:.0f}\n'.format(points[idx, 0],
+                                                       points[idx, 1],
+                                                       points[idx, 2],
+                                                       shell_idx[idx]))
     f.close()
 
     logging.info('Scheme saved in Caruyer format as {}'.format(fullfilename))
 
-def save_scheme_philips(points, shell_idx, bvalues, filename, verbose = 1):
+
+def save_scheme_philips(points, shell_idx, bvalues, filename, verbose=1):
     fullfilename = filename + '.txt'
     f = open(fullfilename, 'w')
     f.write('# Philips format sampling scheme\n')
     f.write('# X Y Z bval\n')
     for idx in range(points.shape[0]):
-        f.write('{:.3f} {:.3f} {:.3f} {:.2f}\n'.format(points[idx,0], points[idx,1], points[idx,2], bvalues[shell_idx[idx]]))
+        f.write('{:.3f} {:.3f} {:.3f} {:.2f}\n'.format(points[idx, 0],
+                                                       points[idx, 1],
+                                                       points[idx, 2],
+                                                       bvalues[shell_idx[idx]]))
     f.close()
 
     logging.info('Scheme saved in Philips format as {}'.format(fullfilename))
 
-def save_scheme_mrtrix(points, shell_idx, bvalues, filename, verbose = 1):
+
+def save_scheme_mrtrix(points, shell_idx, bvalues, filename, verbose=1):
     fullfilename = filename + '.b'
     f = open(fullfilename, 'w')
     for idx in range(points.shape[0]):
-        f.write('{:.8f},{:.8f},{:.8f},{:.8f}\n'.format(points[idx,0], points[idx,1], points[idx,2], bvalues[shell_idx[idx]]))
+        f.write('{:.8f},{:.8f},{:.8f},{:.8f}\n'.format(points[idx, 0],
+                                                       points[idx, 1],
+                                                       points[idx, 2],
+                                                       bvalues[shell_idx[idx]]))
     f.close()
 
     logging.info('Scheme saved in MRtrix format as {}'.format(fullfilename))
-    
-def save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename, verbose = 1):
-    np.savetxt(filename + '.bvecs', points.T, fmt = '%.8f')
-    np.savetxt(filename + '.bvals', np.array([bvalues[idx] for idx in shell_idx])[None, :], fmt = '%.3f')
 
-    logging.info('Scheme saved in FSL format as {}'.format(filename + '{.bvecs/.bvals}'))
 
-def save_scheme_siemens(points, shell_idx, bvalues, filename, verbose = 1):
+def save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename, verbose=1):
+    np.savetxt(filename + '.bvecs', points.T, fmt='%.8f')
+    np.savetxt(filename + '.bvals', np.array([bvalues[idx] for idx in shell_idx])[None, :], fmt='%.3f')
+
+    logging.info('Scheme saved in FSL format as {}'.format(filename +
+                                                           '{.bvecs/.bvals}'))
+
+
+def save_scheme_siemens(points, shell_idx, bvalues, filename, verbose=1):
     str_save = []
     str_save.append('[Directions={}]'.format(points.shape[0]))
     str_save.append('CoordinateSystem = XYZ')
@@ -60,9 +75,11 @@ def save_scheme_siemens(points, shell_idx, bvalues, filename, verbose = 1):
     points[np.isnan(points)] = 0.0
     points[np.isinf(points)] = 0.0
 
-
     for idx in range(points.shape[0]):
-        str_save.append('vector[{}] = ( {}, {}, {} )'.format(idx, points[idx, 0], points[idx, 1], points[idx, 2]))
+        str_save.append('vector[{}] = ( {}, {}, {} )'.format(idx,
+                                                             points[idx, 0],
+                                                             points[idx, 1],
+                                                             points[idx, 2]))
 
     fullfilename = filename + '.dvs'
     f = open(fullfilename, 'w')
