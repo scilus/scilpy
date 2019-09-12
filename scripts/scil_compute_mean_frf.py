@@ -14,7 +14,7 @@ import logging
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -38,7 +38,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, args.frf_files)
-    assert_outputs_exists(parser, args, [args.mean_frf])
+    assert_outputs_exist(parser, args, args.mean_frf)
 
     all_frfs = np.zeros((len(args.frf_files), 4))
 
