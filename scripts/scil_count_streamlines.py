@@ -16,11 +16,11 @@ def _build_arg_parser():
         description='Return the number of streamlines in a tractogram',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('tractogram', action='store',
-                        metavar='TRACTOGRAM', type=str,
+                        metavar='TRACTOGRAM',
                         help='path of the tracts file, in a format supported' +
                         ' by nibabel')
     parser.add_argument('--out', action='store',
-                        metavar='OUTPUT_FILE', type=str,
+                        metavar='OUTPUT_FILE',
                         help='path of the output json file. ' +
                         'If not given, will print to stdout')
     return parser
@@ -30,7 +30,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.tractogram])
+    assert_inputs_exist(parser, args.tractogram)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.tractogram))
     bundle_tractogram_file = nib.streamlines.load(args.tractogram,
@@ -42,7 +42,7 @@ def main():
     }
 
     if args.out:
-        with open(args.out, 'a+') as f:
+        with open(args.out, 'w') as f:
             json.dump(stats, f, indent=2)
     else:
         print(json.dumps(stats, indent=2))
