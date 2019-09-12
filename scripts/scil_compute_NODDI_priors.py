@@ -98,10 +98,10 @@ def main():
 
     assert_inputs_exist(parser, [args.ad, args.fa, args.md])
     assert_outputs_exist(parser, args, [],
-                          [args.mask_output_1fiber,
-                           args.mask_output_ventricles,
-                           args.output_ventricles,
-                           args.output_1fiber])
+                         [args.mask_output_1fiber,
+                         args.mask_output_ventricles,
+                         args.output_ventricles,
+                         args.output_1fiber])
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
