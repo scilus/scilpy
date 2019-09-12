@@ -19,7 +19,7 @@ except ImportError as e:
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 
 amico.core.setup()
 
@@ -98,7 +98,7 @@ def main():
 
     assert_inputs_exist(parser,
                         required_in,
-                        [args.mask])
+                        args.mask)
 
     out_dir = ''
     if args.output_dir:
@@ -110,7 +110,7 @@ def main():
                        'FIT_ISOVF.nii.gz', 'FIT_OD.nii.gz']
     out_files = [os.path.join(out_dir, f) for f in basic_out_files]
 
-    assert_outputs_exists(parser, args, out_files)
+    assert_outputs_exist(parser, args, out_files)
 
     if args.processes <= 0:
         parser.error('Number of processes cannot be <= 0.')

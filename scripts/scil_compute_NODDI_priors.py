@@ -13,7 +13,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 EPILOG = """
 Reference:
@@ -97,7 +97,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.ad, args.fa, args.md])
-    assert_outputs_exists(parser, args, [],
+    assert_outputs_exist(parser, args, [],
                           [args.mask_output_1fiber,
                            args.mask_output_ventricles,
                            args.output_ventricles,
