@@ -7,12 +7,12 @@ from scipy.spatial.distance import cdist, pdist, squareform
 
 
 # TODO: make this robust to having b0s
-def swap_sampling_eddy(points, shell_idx, verbose = 1):
+def swap_sampling_eddy(points, shell_idx, verbose=1):
     """
-    Optimize the b-vectors of fixed multi-shell scheme for eddy 
+    Optimize the b-vectors of fixed multi-shell scheme for eddy
     currents correction (fsl EDDY).
 
-    Bruteforce approach to maximally spread the b-vector, 
+    Bruteforce approach to maximally spread the b-vector,
     shell per shell.
 
     For each shell:
@@ -20,7 +20,7 @@ def swap_sampling_eddy(points, shell_idx, verbose = 1):
             1) find the closest neighbor,
             2) flips it,
             3) if global system energy is better, keep it flipped
-    
+
         repeat until convergence.
 
 
@@ -76,7 +76,10 @@ def swap_sampling_eddy(points, shell_idx, verbose = 1):
 
                     converged = False
 
-                    logging.debug('Swapped {} ({:.2f} --> {:.2f})'.format(toMove, old_pts_ener, new_pts_ener))
+                    logging.debug('Swapped {} ({:.2f} -->  \
+                                  {:.2f})'.format(toMove,
+                                                  old_pts_ener,
+                                                  new_pts_ener))
 
             it += 1
 
@@ -110,7 +113,7 @@ def compute_ks_from_shell_idx(shell_idx):
     return Ks
 
 
-def add_b0s(points, shell_idx, b0_every = 10, finish_b0 = False, verbose = 1):
+def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     """
     Add interleaved b0s to sampling scheme.
 
@@ -133,7 +136,7 @@ def add_b0s(points, shell_idx, b0_every = 10, finish_b0 = False, verbose = 1):
     new_shell_idx = []
 
     for idx in range(shell_idx.shape[0]):
-        if not idx%(b0_every - 1):
+        if not idx % (b0_every - 1):
             # insert b0
             new_points.append(np.array([0.0, 0.0, 0.0]))
             new_shell_idx.append(-1)
@@ -146,18 +149,19 @@ def add_b0s(points, shell_idx, b0_every = 10, finish_b0 = False, verbose = 1):
         new_points.append(np.array([0.0, 0.0, 0.0]))
         new_shell_idx.append(-1)
 
-    logging.info('Interleaved {} b0s'.format(len(new_shell_idx) - shell_idx.shape[0]))
+    logging.info('Interleaved {} b0s'.format(len(new_shell_idx) -
+                                             shell_idx.shape[0]))
 
     return np.array(new_points), np.array(new_shell_idx)
 
 
-def correct_b0s_philips(points, shell_idx, verbose = 1):
+def correct_b0s_philips(points, shell_idx, verbose=1):
     """
     Replace the [0.0, 0.0, 0.0] value of b0s b-vectors
     by existing b-vectors in the sampling scheme.
 
-    This is useful because Recon 1.0 of Philips allocates memory proportional to
-    (total nb. of diff. b-values) x (total nb. diff. b-vectors)
+    This is useful because Recon 1.0 of Philips allocates memory
+    proportional to (total nb. of diff. b-values) x (total nb. diff. b-vectors)
     and we can't leave multiple b0s with b-vector [0.0, 0.0, 0.0] and b-value 0
     because (b-vector, b-value) pairs have to be unique.
 
@@ -189,13 +193,14 @@ def correct_b0s_philips(points, shell_idx, verbose = 1):
     return new_points, shell_idx
 
 
-def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter = 100000, 
-                              verbose = 1, plotting = False, rand_seed = 0):
+def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
+                              Niter=100000, verbose=1, plotting=False,
+                              rand_seed=0):
     """
     Optimize the ordering of non-b0s sample to optimize gradient duty-cycle.
 
-    Philips scanner (and other) will find the peak power requirements with its 
-    duty cycle model (this is an approximation) and increase the TR accordingly 
+    Philips scanner (and other) will find the peak power requirements with its
+    duty cycle model (this is an approximation) and increase the TR accordingly
     to the hardware needs. This minimize this effects by:
 
     1) Randomly permuting the non-b0s samples
@@ -212,7 +217,7 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
     ker_size: integer, kernel size for the sliding window.
     Niter: integer, number of bruteforce iterations.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
-    plotting: boolean, plot the energy at each iteration. 
+    plotting: boolean, plot the energy at each iteration.
     rand_seed: integer, seed for the random permutations.
 
     Return
@@ -222,11 +227,11 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
 
     """
 
-    logging.debug('Shuffling Data (N_iter = {}, ker_size = {})'.format(Niter, ker_size))
+    logging.debug('Shuffling Data (N_iter = {}, \
+                                   ker_size = {})'.format(Niter, ker_size))
 
     if plotting:
         store_best_value = []
-    
 
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
@@ -236,7 +241,7 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
     q_scheme_current = q_scheme.copy()
 
     ordering_best = np.arange(N_dir)
-    power_best = _peak_power(q_scheme_current, ker_size = ker_size)
+    power_best = _peak_power(q_scheme_current, ker_size=ker_size)
 
     if plotting:
         store_best_value.append((0, power_best))
@@ -244,13 +249,13 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
     np.random.seed(rand_seed)
 
     for it in range(Niter):
-        if not it%np.ceil(Niter/10.):
+        if not it % np.ceil(Niter/10.):
             logging.debug('Iter {} / {}  : {}'.format(it, Niter, power_best))
 
         ordering_current = np.random.permutation(N_dir)
         q_scheme_current[non_b0s_mask] = q_scheme[non_b0s_mask][ordering_current]
 
-        power_current = _peak_power(q_scheme_current, ker_size = ker_size)
+        power_current = _peak_power(q_scheme_current, ker_size=ker_size)
 
         if power_current < power_best:
             ordering_best = ordering_current.copy()
@@ -266,9 +271,8 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
     if plotting:
         store_best_value = np.array(store_best_value)
         import pylab as pl
-        pl.plot(store_best_value[:,0], store_best_value[:,1], '-o')
+        pl.plot(store_best_value[:, 0], store_best_value[:, 1], '-o')
         pl.show()
-
 
     new_points = points.copy()
     new_points[non_b0s_mask] = points[non_b0s_mask][ordering_best]
@@ -279,7 +283,7 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size = 10, Niter =
     return new_points, new_shell_idx
 
 
-def _peak_power(q_scheme, ker_size = 10):
+def _peak_power(q_scheme, ker_size=10):
     # Note: np.convolve inverses the filter
     ker = np.ones(ker_size)
 
@@ -294,9 +298,10 @@ def _peak_power(q_scheme, ker_size = 10):
     return np.max([max_pow_x, max_pow_y, max_pow_z])
 
 
-def bvalue_lin_q(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = True, verbose = 1):
+def bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
+                 verbose=1):
     """
-    Compute b-values linearly distributed in q-value in the 
+    Compute b-values linearly distributed in q-value in the
     interval [bmin, bmax].
 
     Parameters
@@ -304,7 +309,8 @@ def bvalue_lin_q(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = T
     bmin: float, Minimum b-value, lower b-value bounds.
     bmax: float, Maximum b-value, upper b-value bounds.
     nb_of_b_inside: integer, number of b-value excluding bmin and bmax.
-    exclude_bmin: boolean, exclude bmin from the interval, useful if bmin = 0.0.
+    exclude_bmin: boolean, exclude bmin from the interval, useful
+                  if bmin = 0.0.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
@@ -313,7 +319,9 @@ def bvalue_lin_q(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = T
 
     """
 
-    b_values = list(np.linspace(np.sqrt(bmin), np.sqrt(bmax), nb_of_b_inside + 2)**2)
+    b_values = list(np.linspace(np.sqrt(bmin),
+                                np.sqrt(bmax),
+                                nb_of_b_inside + 2)**2)
     if exclude_bmin:
         b_values = b_values[1:]
 
@@ -322,9 +330,10 @@ def bvalue_lin_q(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = T
     return b_values
 
 
-def bvalue_lin_b(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = True, verbose = 1):
+def bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
+                 verbose=1):
     """
-    Compute b-values linearly distributed in b-value in the 
+    Compute b-values linearly distributed in b-value in the
     interval [bmin, bmax].
 
     Parameters
@@ -332,7 +341,8 @@ def bvalue_lin_b(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = T
     bmin: float, Minimum b-value, lower b-value bounds.
     bmax: float, Maximum b-value, upper b-value bounds.
     nb_of_b_inside: integer, number of b-value excluding bmin and bmax.
-    exclude_bmin: boolean, exclude bmin from the interval, useful if bmin = 0.0.
+    exclude_bmin: boolean, exclude bmin from the interval, useful
+                  if bmin = 0.0.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
@@ -350,7 +360,7 @@ def bvalue_lin_b(bmin = 0.0, bmax = 3000.0, nb_of_b_inside = 2, exclude_bmin = T
     return b_values
 
 
-def add_bvalue_b0(b_values, b0_value = 0.0):
+def add_bvalue_b0(b_values, b0_value=0.0):
     """
     Add the b0 value to the b-values list.
 

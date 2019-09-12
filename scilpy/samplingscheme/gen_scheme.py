@@ -2,14 +2,17 @@ from __future__ import division
 
 import numpy as np
 
-from scilpy.samplingscheme.multiple_shell_energy import compute_weights, multiple_shell
+from scilpy.samplingscheme.multiple_shell_energy import (compute_weights,
+                                                         multiple_shell)
 
-def gen_scheme(Ks, verbose = 1):
+
+def gen_scheme(Ks, verbose=1):
     """
-    Wrapper code to generate sampling scheme from Caruyer's multiple_shell_energy.py
+    Wrapper code to generate sampling scheme from Caruyer's
+    multiple_shell_energy.py
 
-    Generate the bvecs of a multiple shell sampling scheme using generalized Jones 
-    electrostatic repulsion.
+    Generate the bvecs of a multiple shell sampling scheme using generalized
+     Jones electrostatic repulsion.
 
     Parameters
     ----------
@@ -28,7 +31,7 @@ def gen_scheme(Ks, verbose = 1):
     # Groups of shells and relative coupling weights
     shell_groups = ()
     for i in range(S):
-        shell_groups+=([i],)
+        shell_groups += ([i],)
 
     shell_groups += (range(S),)
     alphas = len(shell_groups) * (1.0,)
@@ -36,7 +39,7 @@ def gen_scheme(Ks, verbose = 1):
 
     # Where the optimized sampling scheme is computed
     # max_iter hardcoded to fit default Caruyer's value
-    points = multiple_shell(S, Ks, weights, max_iter=100, verbose = verbose)
+    points = multiple_shell(S, Ks, weights, max_iter=100, verbose=verbose)
 
     shell_idx = []
     for idx in range(S):

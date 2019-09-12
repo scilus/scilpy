@@ -33,7 +33,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.mrtrix_enc])
-    assert_outputs_exists(parser, args, [args.fsl_bval, args.fsl_bvec])
+    assert_outputs_exist(parser, args, [args.fsl_bval, args.fsl_bvec])
 
     mrtrix2fsl(args.mrtrix_enc, args.fsl_bval, args.fsl_bvec)
 
