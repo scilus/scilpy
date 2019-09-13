@@ -18,7 +18,7 @@ from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
 DESCRIPTION = """
-   Register DWI to a template for screenshots. 
+   Register DWI to a template for screenshots.
    The template are in /mnt/braindata/Other/simple_template_viz/
    Uses the dataset's B0 for registration.
    Axial, coronal and sagittal slices are captured.
@@ -52,7 +52,8 @@ def _build_args_parser():
 
 
 def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
-                            target_template_filename, slices_choice, shells=None):
+                            target_template_filename, slices_choice,
+                            shells=None):
     # Load and prepare the data
     dwi_img = nib.load(dwi_filename)
     dwi_data = dwi_img.get_data()
@@ -81,7 +82,8 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
         indices = np.sort(np.hstack(indices))
 
         if len(indices) < 1:
-            raise ValueError('There are no volumes that have the supplied b-values.')
+            raise ValueError(
+                'There are no volumes that have the supplied b-values.')
         shell_data = np.zeros((dwi_data.shape[:-1] + (len(indices),)),
                               dtype=dwi_data.dtype)
         shell_bvecs = np.zeros((len(indices), 3))
@@ -145,8 +147,8 @@ def main():
         if args.output_suffix:
             output_filenames.append(os.path.join(args.output_dir,
                                                  '{0}_{1}.png'.format(
-                                                    axis_name,
-                                                    args.output_suffix)))
+                                                     axis_name,
+                                                     args.output_suffix)))
         else:
             output_filenames.append(os.path.join(args.output_dir,
                                                  '{0}.png'.format(axis_name)))
@@ -166,13 +168,14 @@ def main():
     slices_choice = (x_slice, y_slice, z_slice)
 
     FA, evals, evecs = prepare_data_for_actors(args.dwi, args.bval, args.bvec,
-                                               args.target_template, slices_choice,
+                                               args.target_template,
+                                               slices_choice,
                                                shells=args.shells)
 
     # Create actors from each dataset for Dipy
     volume_actor = actor.slicer(FA, opacity=0.3, interpolation='nearest')
     peaks_actor = actor.peak_slicer(evecs, peaks_values=evals,
-                              colors=None, linewidth=1)
+                                    colors=None, linewidth=1)
 
     # Take a snapshot of each dataset, camera setting are fixed for the
     # known template, won't work with another.

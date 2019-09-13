@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from fury import window, actor
+from fury import window
 import vtk
 from vtk.util import numpy_support
 
