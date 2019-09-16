@@ -17,7 +17,7 @@ def check_tracts_same_format(parser, filename_list):
     _, ref_ext = os.path.splitext(filename_list[0])
 
     for filename in filename_list[1:]:
-        if not os.path.splitext(filename)[1] == ref_ext:
+        if not filename is None and not os.path.splitext(filename)[1] == ref_ext:
             parser.error('All tracts file must use the same format.')
 
 
