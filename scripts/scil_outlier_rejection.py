@@ -12,11 +12,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.tractanalysis.features import (outliers_removal_using_hierarchical_quickbundles,
-                                           prune)
+from scilpy.tractanalysis.features import (
+    outliers_removal_using_hierarchical_quickbundles,
+    prune)
 
 DESCRIPTION = """
-    Clean a bundle (inliers/outliers) using hiearchical clustering.
+Clean a bundle (inliers/outliers) using hiearchical clustering.
+http://archive.ismrm.org/2015/2844.html
 """
 
 
@@ -25,13 +27,14 @@ def _build_arg_parser():
         description=DESCRIPTION,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input_bundle',
-                        help='Fiber bundle file to remove outliers from')
+                        help='Fiber bundle file to remove outliers from.')
     parser.add_argument('inliers',
-                        help='Fiber bundle without outliers')
-    parser.add_argument('outliers', help='Removed outliers')
+                        help='Fiber bundle without outliers.')
+    parser.add_argument('outliers',
+                        help='Removed outliers.')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Percent of the length of the tree that clusters '
-                        'of individual streamlines will be pruned')
+                        'of individual streamlines will be pruned.')
     add_overwrite_arg(parser)
     return parser
 
@@ -40,7 +43,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input_bundle])
+    assert_inputs_exist(parser, args.input_bundle)
     assert_outputs_exist(parser, args, [args.inliers, args.outliers])
     if args.alpha <= 0 or args.alpha > 1:
         parser.error('--alpha should be ]0, 1]')

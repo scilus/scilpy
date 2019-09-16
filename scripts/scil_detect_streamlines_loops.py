@@ -40,7 +40,7 @@ def _build_arg_parser():
     p.add_argument('output_clean',
                    help='Output tractogram without loops.')
     p.add_argument('--output_loops',
-                   help='If set, saves detected looping streamlines')
+                   help='If set, saves detected looping streamlines.')
     p.add_argument('--qb', action='store_true',
                    help='If set, uses QuickBundles to detect\n' +
                         'outliers (loops, sharp angle turns).\n' +
@@ -63,9 +63,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input])
-    assert_outputs_exist(parser, args, [args.output_clean],
-                         optional=[args.output_loops])
+    assert_inputs_exist(parser, args.input)
+    assert_outputs_exist(parser, args, args.output_clean,
+                         optional=args.output_loops)
     check_tracts_same_format(parser, [args.input, args.output_clean,
                                       args.output_loops])
 
