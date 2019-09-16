@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from fury import window
+import numpy as np
 import vtk
 from vtk.util import numpy_support
 

@@ -18,11 +18,11 @@ from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
 DESCRIPTION = """
-   Register DWI to a template for screenshots.
-   The template are in /mnt/braindata/Other/simple_template_viz/
-   Uses the dataset's B0 for registration.
-   Axial, coronal and sagittal slices are captured.
-   """
+Register DWI to a template for screenshots.
+The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009
+For quick quality control, the MNI template can be downsampled to 2mm iso.
+Axial, coronal and sagittal slices are captured.
+"""
 
 
 def _build_args_parser():
@@ -36,8 +36,8 @@ def _build_args_parser():
     p.add_argument('bvec',
                    help='Path of the bvec file, in FSL format.')
     p.add_argument('target_template',
-                   help='Path to the target template for registration, '
-                        'use the one provided on Braindata\n'
+                   help='Path to the target MNI152 template for registration, '
+                        'use the one provided online\n'
                         'Any choice of modality works')
     p.add_argument('--shells', type=int, nargs='+',
                    help='Shells to use for DTI fit (usually below 1200), '
