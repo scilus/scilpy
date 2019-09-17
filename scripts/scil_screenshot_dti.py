@@ -36,16 +36,15 @@ def _build_args_parser():
     p.add_argument('bvec',
                    help='Path of the bvec file, in FSL format.')
     p.add_argument('target_template',
-                   help='Path to the target MNI152 template for registration, '
-                        'use the one provided online\n'
-                        'Any choice of modality works')
+                   help='Path to the target MNI152 template for registration,\n'
+                        'use the one provided online.')
     p.add_argument('--shells', type=int, nargs='+',
                    help='Shells to use for DTI fit (usually below 1200), '
-                        'b0 must be listed')
+                        'b0 must be listed.')
     p.add_argument('--output_suffix',
-                   help='Add a suffix to the output, else the axis name is used')
+                   help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--output_dir', default='',
-                   help='Put all images in a specific directory')
+                   help='Put all images in a specific directory.')
     add_overwrite_arg(p)
 
     return p
