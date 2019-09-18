@@ -31,4 +31,3 @@ scil_apply_warp_to_tractogram.py MOVING_FILE REFERENCE_FILE DEFORMATION_FILE OUT
 * The DEFORMATION_FILE needs to be the InverseWarp.nii.gz (very important)
 
 *The file outputted by this script is a tractogram*
-

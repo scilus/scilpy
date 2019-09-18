@@ -14,20 +14,20 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
-    Generate a linear transformation matrix from the registration of
-    2 tractograms. Typically, this script is run before
-    scil_apply_transform_to_tractogram.py.
+Generate a linear transformation matrix from the registration of
+2 tractograms. Typically, this script is run before
+scil_apply_transform_to_tractogram.py.
 
-    For more informations on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+For more informations on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file
 """
 
 EPILOG = """
-    References:
-    [1] E. Garyfallidis, O. Ocegueda, D. Wassermann, M. Descoteaux
-    Robust and efficient linear registration of white-matter fascicles in the
-    space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
-    (http://www.sciencedirect.com/science/article/pii/S1053811915003961)
+References:
+[1] E. Garyfallidis, O. Ocegueda, D. Wassermann, M. Descoteaux
+Robust and efficient linear registration of white-matter fascicles in the
+space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
+(http://www.sciencedirect.com/science/article/pii/S1053811915003961)
 """
 
 
@@ -62,28 +62,26 @@ def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION, epilog=EPILOG)
 
-    p.add_argument('moving_file', action='store',
-                   metavar='MOVING_FILE', type=str,
-                   help='Path of the moving tractogram (*.trk)')
+    p.add_argument('moving_file',
+                   help='Path of the moving tractogram (*.trk).')
 
-    p.add_argument('static_file', action='store',
-                   metavar='STATIC_FILE', type=str,
-                   help='Path of the target tractogram (*.trk)')
+    p.add_argument('static_file',
+                   help='Path of the target tractogram (*.trk).')
 
-    p.add_argument('--out_name', action='store',
-                   type=str, default='transformation.npy',
+    p.add_argument('--out_name',
+                   default='transformation.npy',
                    help='Filename of the transformation matrix, \n'
                         'the registration type will be appended as a suffix,\n'
                         '[transformation_affine/rigid.npy]')
 
-    p.add_argument('--only_rigid', action='store_true', dest='only_rigid',
+    p.add_argument('--only_rigid', action='store_true',
                    help='Will only use a rigid transformation, '
                         'uses affine by default.')
 
-    p.add_argument('--amount_to_load', action='store', type=int,
-                   default=250000, dest='amount_to_load',
+    p.add_argument('--amount_to_load', type=int,
+                   default=250000,
                    help='Amount of streamlines to load for each tractogram \n'
-                        'using lazy load.  [%(default)s]')
+                        'using lazy load. [%(default)s]')
 
     add_overwrite_arg(p)
 
