@@ -11,10 +11,10 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             load_tractogram_with_reference,
                              read_info_from_mb_bdo)
 from scilpy.segment.streamlines import (filter_grid_roi,
                                         filter_ellipsoid,
