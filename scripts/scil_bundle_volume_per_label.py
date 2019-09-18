@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import argparse
-from distutils.version import LooseVersion
 import json
 
 import nibabel as nib

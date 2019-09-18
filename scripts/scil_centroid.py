@@ -16,7 +16,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description='Compute bundle centroid',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

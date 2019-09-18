@@ -21,16 +21,17 @@ def _build_arg_parser():
         description='Compute mean and std along the bundle for each metric',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('bundle',
-                        help='Fiber bundle file to compute statistics on')
+                   help='Fiber bundle file to compute statistics on')
     p.add_argument('metrics', nargs='+',
-                        help='Nifti metric(s) to compute statistics on')
+                   help='Nifti metric(s) to compute statistics on')
     p.add_argument('--density_weighting', action='store_true',
-                        help='If set, weight statistics by the number of '
-                             'fibers passing through each voxel.')
+                   help='If set, weight statistics by the number of '
+                        'fibers passing through each voxel.')
     p.add_argument('--indent', type=int, default=2,
-                        help='Indent for json pretty print.')
+                   help='Indent for json pretty print.')
     p.add_argument('--sort_keys', action='store_true',
-                        help='Sort keys in output json.')
+                   help='Sort keys in output json.')
+
     return p
 
 

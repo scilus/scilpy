@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-from distutils.version import LooseVersion
 import logging
 
 import nibabel as nib
@@ -39,6 +38,8 @@ def _build_arg_parser():
                         '[%(default)s]')
 
     add_overwrite_arg(p)
+
+    add_verbose_arg(p)
 
     return p
 
