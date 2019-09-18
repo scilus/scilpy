@@ -12,8 +12,7 @@ from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import assert_inputs_exist, add_reference
-from scilpy.utils.metrics_tools import (
-    get_metrics_stats_over_streamlines_robust)
+from scilpy.utils.metrics_tools import get_metrics_stats_over_streamlines
 
 
 def _build_arg_parser():
@@ -53,8 +52,9 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-    bundle_stats = get_metrics_stats_over_streamlines_robust(
-        sft, metrics, args.density_weighting)
+    bundle_stats = get_metrics_stats_over_streamlines(sft,
+                                                      metrics,
+                                                      args.density_weighting)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
 

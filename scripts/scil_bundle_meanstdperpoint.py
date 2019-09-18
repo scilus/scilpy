@@ -56,7 +56,9 @@ def main():
     assert_inputs_exist(parser, [args.bundle, args.label_map,
                                  args.distance_map] + args.metrics)
 
-    bundle_tractogram_file = nib.streamlines.load(args.bundle)
+    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft.to_vox()
+    sft.to_corner()
 
     stats = {}
     bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
@@ -68,9 +70,7 @@ def main():
     metrics = [nib.load(m) for m in args.metrics]
     assert_same_resolution(*metrics)
 
-    sft = load_tractogram_with_reference(parser, args, args.bundle)
-    sft.to_vox()
-    sft.to_corner()
+
 
     if args.density_weighting:
         track_count = compute_tract_counts_map(

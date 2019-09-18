@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scilpy.tractanalysis import compute_robust_tract_counts_map
+from scilpy.tractanalysis import compute_tract_counts_map
 
 
 def weighted_mean_stddev(weights, data):
