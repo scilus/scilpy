@@ -5,7 +5,6 @@ import os
 import six
 import xml.etree.ElementTree as ET
 
-from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
@@ -17,24 +16,6 @@ def add_reference(parser):
     parser.add_argument('--reference',
                         help='Reference anatomy for tck/vtk/fib/dpy file\n'
                         'support (.nii or .nii.gz).')
-
-
-def load_tractogram_with_reference(parser, args, filepath,
-                                   bbox_check=True):
-    _, ext = os.path.splitext(filepath)
-    if ext == '.trk':
-        sft = load_tractogram(filepath, 'same',
-                              bbox_valid_check=bbox_check)
-    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-        if args.reference is None:
-            parser.error('--reference is required for this file format '
-                         '{}.'.format(filepath))
-        sft = load_tractogram(filepath, args.reference,
-                              bbox_valid_check=bbox_check)
-    else:
-        parser.error('{} is an unsupported file format'.format(filepath))
-
-    return sft
 
 
 def add_overwrite_arg(parser):
