@@ -10,10 +10,10 @@ import nibabel as nib
 
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import assert_inputs_exist, add_reference
 from scilpy.utils.metrics_tools import (
     get_metrics_stats_over_streamlines_robust)
-from scilpy.io.streamlines import load_trk_in_voxel_space
 
 
 def _build_arg_parser():
@@ -22,12 +22,17 @@ def _build_arg_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('bundle',
                    help='Fiber bundle file to compute statistics on')
+
+    add_reference(p)
+
     p.add_argument('metrics', nargs='+',
                    help='Nifti metric(s) to compute statistics on')
-    p.add_argument('--density_weighting', action='store_true',
+    p.add_argument('--density_weighting',
+                   action='store_true',
                    help='If set, weight statistics by the number of '
                         'fibers passing through each voxel.')
-    p.add_argument('--indent', type=int, default=2,
+    p.add_argument('--indent',
+                   type=int, default=2,
                    help='Indent for json pretty print.')
     p.add_argument('--sort_keys', action='store_true',
                    help='Sort keys in output json.')
@@ -43,9 +48,13 @@ def main():
 
     metrics = [nib.load(metric) for metric in args.metrics]
     assert_same_resolution(*metrics)
-    streamlines_vox = load_trk_in_voxel_space(args.bundle, anat=metrics[0])
+
+    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft.to_vox()
+    sft.to_corner()
+
     bundle_stats = get_metrics_stats_over_streamlines_robust(
-        streamlines_vox, metrics, args.density_weighting)
+        sft, metrics, args.density_weighting)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
 

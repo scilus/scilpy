@@ -11,12 +11,10 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.streamlines import load_trk_in_voxel_space
-from scilpy.io.utils import assert_inputs_exist
-from scilpy.tractanalysis import compute_robust_tract_counts_map
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import assert_inputs_exist, add_reference
+from scilpy.tractanalysis import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
-
-logger = logging.getLogger(__file__)
 
 
 def _build_arg_parser():
@@ -27,6 +25,9 @@ def _build_arg_parser():
 
     parser.add_argument('bundle',
                         help='Fiber bundle file to compute statistics on.')
+
+    add_reference(p)
+
     parser.add_argument('label_map',
                         help='Label map (.npz) of the corresponding '
                              'fiber bundle.')
@@ -66,11 +67,13 @@ def main():
 
     metrics = [nib.load(m) for m in args.metrics]
     assert_same_resolution(*metrics)
-    streamlines_vox = load_trk_in_voxel_space(bundle_tractogram_file,
-                                              anat=metrics[0])
+
+    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft.to_vox()
+    sft.to_corner()
 
     if args.density_weighting:
-        track_count = compute_robust_tract_counts_map(
+        track_count = compute_tract_counts_map(
             streamlines_vox, metrics[0].shape).astype(np.float64)
     else:
         track_count = np.ones(metrics[0].shape)
