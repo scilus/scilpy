@@ -7,10 +7,10 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exist,
-                             load_tractogram_with_reference)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
