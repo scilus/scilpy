@@ -3,6 +3,7 @@
 
 import os
 
+from dipy.io.streamline import load_tractogram
 import nibabel as nib
 
 

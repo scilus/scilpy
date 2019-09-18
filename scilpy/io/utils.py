@@ -5,7 +5,6 @@ import os
 import six
 import xml.etree.ElementTree as ET
 
-from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
