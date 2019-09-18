@@ -31,7 +31,7 @@ def _build_arg_parser():
                    default=200., type=float,
                    help='Keep streamlines shorter than max_length. ' +
                         '[%(default)s]')
-                        
+
     add_overwrite_arg(p)
 
     return p

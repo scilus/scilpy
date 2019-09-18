@@ -57,7 +57,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.bundle)
-    assert_outputs_exists(parser, args, args.centroid_streamline)
+    assert_outputs_exist(parser, args, args.centroid_streamline)
 
     if args.distance_thres < 0.0:
         parser.error('--distance_thres {} should be '

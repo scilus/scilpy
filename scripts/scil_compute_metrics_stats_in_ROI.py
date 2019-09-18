@@ -21,7 +21,7 @@ import numpy as np
 import os
 import json
 
-from scilpy.io.utils import assert_inputs_exist, assert_outputs_exist
+from scilpy.io.utils import assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_stats_over_volume
 
@@ -65,7 +65,7 @@ def _build_arg_parser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.mask)
@@ -110,6 +110,7 @@ def main():
         }
 
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
+
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import argparse
-from distutils.version import LooseVersion
 from itertools import takewhile, count
 import logging
 
@@ -19,7 +18,7 @@ from scilpy.utils.streamlines import get_streamlines_bounding_box
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description='Outlier removal of streamlines',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

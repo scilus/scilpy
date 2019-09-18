@@ -102,7 +102,9 @@ def main():
         for cur_min, cur_max, cur_ind, orig_s in zip(mins, maxs,
                                                      indices,
                                                      bundle_streamlines_vox):
-            streamline_mean = _compute_streamline_mean(cur_ind, cur_min, cur_max,
+            streamline_mean = _compute_streamline_mean(cur_ind,
+                                                       cur_min,
+                                                       cur_max,
                                                        data)
 
             xyz = orig_s[0, :].astype(int)

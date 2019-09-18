@@ -13,21 +13,22 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.tractometry.distance_to_centroid import min_dist_to_centroid
 
-DESCRIPTION='''
-Compute assignment map from bundle and centroid
-streamline. This script can be very memory hungry on
-large fiber bundle.
+DESCRIPTION = '''
+Compute assignment map from bundle and centroid streamline.
+This script can be very memory hungry on large fiber bundle.
 '''
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=,
+        description=DESCRIPTION,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('bundle',
                    help='Fiber bundle file.')
     p.add_argument('centroid_streamline',
-                   help='Centroid streamline associated to input fiber bundle.')
+                   help='Centroid streamline associated to input '
+                        'fiber bundle.')
     p.add_argument('output_label',
                    help='Output (.npz) file containing the label of the '
                    'nearest point on the centroid streamline for each point '
