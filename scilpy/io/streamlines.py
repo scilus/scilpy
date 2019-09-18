@@ -25,6 +25,7 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
         parser.error(
             'Input and output tractogram files must use the same format.')
 
+
 def ichunk(sequence, n):
     """ Yield successive n-sized chunks from sequence. """
     sequence = iter(sequence)
