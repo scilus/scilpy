@@ -5,14 +5,14 @@ import argparse
 
 from dipy.io.streamline import save_tractogram
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
-                             assert_inputs_exist, assert_outputs_exist,
-                             load_tractogram_with_reference)
+                             assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
 Removal of streamlines that are out of the volume bounding box. In voxel space
 no negative coordinate and no above volume dimension coordinate are possible.
-Any streamlines that do not respect these two conditions are removed.
+Any streamline that do not respect these two conditions are removed.
 """
 
 
