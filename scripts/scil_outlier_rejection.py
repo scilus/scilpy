@@ -30,7 +30,7 @@ def _build_arg_parser():
                         help='Fiber bundle file to remove outliers from.')
     parser.add_argument('inliers',
                         help='Fiber bundle without outliers.')
-    parser.add_argument('outliers',
+    parser.add_argument('--outliers',
                         help='Removed outliers.')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Percent of the length of the tree that clusters '
@@ -44,7 +44,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.input_bundle)
-    assert_outputs_exist(parser, args, [args.inliers, args.outliers])
+    assert_outputs_exist(parser, args, args.inliers, args.outliers)
     if args.alpha <= 0 or args.alpha > 1:
         parser.error('--alpha should be ]0, 1]')
 
@@ -84,7 +84,7 @@ def main():
 
     if len(outliers_streamlines) == 0:
         print("No outlier found. Please raise the --alpha parameter")
-    else:
+    elif args.outliers:
         outlier_tractogram = Tractogram(
             outliers_streamlines,
             affine_to_rasmm=np.eye(4),
