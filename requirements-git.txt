@@ -1,1 +1,0 @@
-git+https://github.com/nipy/dipy@01c8d72e6428491a68c21270d591b4f8ccff6d52#dipy

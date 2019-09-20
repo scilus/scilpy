@@ -42,7 +42,7 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists, add_force_b0_arg)
+                             assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
@@ -166,8 +166,8 @@ def main():
                      'one metric to output.')
 
     assert_inputs_exist(
-        parser, [args.input, args.bvals, args.bvecs], [args.mask])
-    assert_outputs_exists(parser, args, outputs)
+        parser, [args.input, args.bvals, args.bvecs], args.mask)
+    assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
     data = img.get_data()

@@ -3,15 +3,15 @@
 
 import argparse
 import logging
-import os
 
-from dipy.external.fsl import write_bvals_bvecs
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nb
 import numpy as np
 
-from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exists
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -41,8 +41,7 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
 
-    p.add_argument('--verbose', '-v', action='store_true',
-                   help='produce verbose output.')
+    add_verbose_arg(p)
 
     return p
 
@@ -100,7 +99,7 @@ def main():
                         args.baseName + '.bvec']
 
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exists(parser, args, output_filenames)
+    assert_outputs_exist(parser, args, output_filenames)
 
     oTable = np.loadtxt(args.table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.bval, args.bvec)
@@ -115,12 +114,9 @@ def main():
     data = data[:, :, :, newIndex]
 
     nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,
-            header=dwis.header), output_filenames[0])
-    write_bvals_bvecs(bvals, bvecs, outpath=None,
-                      prefix=args.baseName+'.')
-
-    for nFile in output_filenames[1:]:
-        os.rename(nFile+'s', nFile)
+                           header=dwis.header), output_filenames[0])
+    np.savetxt(args.baseName + '.bval', bvals.reshape(1, len(bvals)), '%d')
+    np.savetxt(args.baseName + '.bvec', bvecs.T, '%0.15f')
 
 
 if __name__ == '__main__':
