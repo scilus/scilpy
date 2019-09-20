@@ -11,10 +11,10 @@ import numpy as np
 from nibabel.streamlines.array_sequence import ArraySequence
 from scipy.sparse import dok_matrix
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist,
-                             assert_outputs_exists,
-                             load_tractogram_with_reference)
+                             assert_outputs_exist)
 from scilpy.tractanalysis.robust_streamlines_metrics import compute_robust_tract_counts_map
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
@@ -63,7 +63,7 @@ def main():
     output_streamlines_filename = '{}streamlines.trk'.format(
         args.output_prefix)
     output_voxels_filename = '{}voxels.nii.gz'.format(args.output_prefix)
-    assert_outputs_exists(parser, args, [output_voxels_filename,
+    assert_outputs_exist(parser, args, [output_voxels_filename,
                                          output_streamlines_filename])
 
     if not 0 <= args.ratio_voxels <= 1 or not 0 <= args.ratio_streamlines <= 1:
