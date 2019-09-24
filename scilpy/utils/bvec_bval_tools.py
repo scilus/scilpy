@@ -4,6 +4,9 @@ import logging
 
 import numpy as np
 
+from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
+                                               save_scheme_mrtrix)
+from scilpy.utils.filenames import split_name_with_nii
 DEFAULT_B0_THRESHOLD = 20
 
 
@@ -101,34 +104,25 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     -------
 
     """
-    fsl_bval = np.loadtxt(fsl_bval_filename)
-    fsl_bvec = np.loadtxt(fsl_bvec_filename)
 
-    if not fsl_bvec.shape[0] == 3:
-        fsl_bvec = fsl_bvec.transpose()
-        logging.warning('WARNING: Your bvecs seem transposed. ' +
-                        'Transposing them.')
+    shells = np.loadtxt(fsl_bval_filename)
+    points = np.loadtxt(fsl_bvec_filename)
+    bvalues = np.unique(shells).tolist()
 
-    if not fsl_bval.shape[0] == 1:
-        fsl_bval = fsl_bval.transpose()
-        logging.warning('WARNING: Your bvals seem transposed. ' +
-                        'Transposing them.')
+    points = points.transpose()
 
-    if not fsl_bvec[0].shape == fsl_bval.shape:
-        raise ValueError('Bvec and Bval files have a different ' +
-                         'number of entries.')
+    shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]
 
-    mrtrix_b = np.array([fsl_bvec[0], fsl_bvec[1],
-                         fsl_bvec[2], fsl_bval]).transpose()
+    basefilename, ext = split_name_with_nii(mrtrix_filename)
 
-    if mrtrix_filename is None:
-        mrtrix_filename = fsl_bvec_filename + ".b"
-
-    np.savetxt(mrtrix_filename, mrtrix_b, "%.8f %.8f %.8f %f")
+    save_scheme_mrtrix(points,
+                       shell_idx,
+                       bvalues,
+                       basefilename,
+                       verbose=1)
 
 
-def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None, fsl_bvec_filename=None,
-               fsl_base_filename=None):
+def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
     """
     Convert a mrtrix encoding.b file to fsl dir_grad.bvec/.bval files.
 
@@ -136,39 +130,29 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None, fsl_bvec_filename=None,
     ----------
     mrtrix_filename : str
         path to mrtrix encoding.b file.
-    fsl_bval_filename: str, optional
-        path to output fsl bval file. Default is
-        mrtrix_filename.bval.
-    fsl_bvec_filename: str, optional
-        path to output fsl bvec file. Default is
-        mrtrix_filename.bvec.
     fsl_base_filename: str, optional
         path to the output fsl bvec/.bval files. Default is
-        mrtrix_filename.bval/.bvec. Used if fsl_bval_filename
-        and fsl_bvec_filename are not specified.
+        mrtrix_filename.bval/.bvec.
 
     Returns
     -------
 
     """
-
     mrtrix_b = np.loadtxt(mrtrix_filename)
     if not len(mrtrix_b.shape) == 2 or not mrtrix_b.shape[1] == 4:
         raise ValueError('mrtrix file must have 4 columns')
 
-    bvec = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
-    bval = np.array([mrtrix_b[:, 3]])
+    points = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
+    shells = np.array([mrtrix_b[:, 3]])
 
-    if fsl_bval_filename is None:
-        if fsl_base_filename is None:
-            fsl_bval_filename = mrtrix_filename + str(".bval")
-        else:
-            fsl_bval_filename = fsl_base_filename + str(".bval")
-    if fsl_bvec_filename is None:
-        if fsl_base_filename is None:
-            fsl_bvec_filename = mrtrix_filename + str(".bvec")
-        else:
-            fsl_bvec_filename = fsl_base_filename + str(".bvec")
+    bvalues = np.unique(shells).tolist()
+    shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]
 
-    np.savetxt(fsl_bvec_filename, bvec, "%.8f")
-    np.savetxt(fsl_bval_filename, bval, "%i")
+    if fsl_base_filename is None:
+        fsl_bvec_filename, ext = split_name_with_nii(mrtrix_filename)
+
+    save_scheme_bvecs_bvals(points,
+                            shell_idx,
+                            bvalues,
+                            fsl_base_filename,
+                            verbose=1)

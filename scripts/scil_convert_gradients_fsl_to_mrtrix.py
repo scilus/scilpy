@@ -7,7 +7,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 
-DESCRIPTION = "Script to convert bval/bvec fsl style to mrtrix style."
+DESCRIPTION = "Script to convert bval/bvec FSL style to MRtrix style."
 
 
 def _build_args_parser():
@@ -15,10 +15,10 @@ def _build_args_parser():
                                 description=DESCRIPTION)
 
     p.add_argument('fsl_bval',
-                   help='path to fsl b-value file.')
+                   help='path to FSL b-value file.')
 
     p.add_argument('fsl_bvec',
-                   help='path to fsl gradient directions file.')
+                   help='path to FSL gradient directions file.')
 
     p.add_argument('mrtrix_enc',
                    help='path to gradient directions encoding file.')
