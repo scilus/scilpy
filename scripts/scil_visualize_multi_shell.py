@@ -104,7 +104,8 @@ def main():
             points = points.T
         bvals = np.genfromtxt(scheme_file[:-5] + 'bvals')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
-
+        print(bvals)
+        print(points)
     elif ext == 'bvec':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         print('Should rename .bvec/.bval to .bvecs/.bvals')

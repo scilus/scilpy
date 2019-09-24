@@ -6,7 +6,6 @@ from tempfile import mkstemp
 from dipy.data import get_sphere
 from fury import actor, window
 
-# TODO: Make it robust to more than 10 b-values
 vtkcolors = [window.colors.blue,
              window.colors.red,
              window.colors.yellow,
@@ -18,9 +17,13 @@ vtkcolors = [window.colors.blue,
              window.colors.brown,
              window.colors.grey]
 
-
 def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+
+    #if len(ms)>10:
+#        vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
+#    else:
+#        print(len(ms))
 
     if use_sphere:
         sphere = get_sphere('symmetric724')
