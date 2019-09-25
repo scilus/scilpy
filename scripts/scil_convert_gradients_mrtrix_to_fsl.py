@@ -15,13 +15,11 @@ def _build_args_parser():
                                 description=DESCRIPTION)
 
     p.add_argument('mrtrix_enc', type=str,
-                   help='Path to gradient directions encoding file.')
+                   help='Gradient directions encoding file. (.b)')
 
-    p.add_argument('fsl_bval', type=str,
-                   help='Path to FSL b-value file.')
-
-    p.add_argument('fsl_bvec', type=str,
-                   help='Path to FSL gradient directions file.')
+    p.add_argument('fsl_basename', type=str,
+                   help='Output basename gradient directions encoding file. '
+                   '(without extension)')
 
     add_overwrite_arg(p)
 
@@ -32,10 +30,11 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.mrtrix_enc])
-    assert_outputs_exist(parser, args, [args.fsl_bval, args.fsl_bvec])
+    assert_inputs_exist(parser, args.mrtrix_enc)
+    assert_outputs_exist(parser, args, [args.fsl_basename + '.bvec',
+                                        args.fsl_basename + '.bval'])
 
-    mrtrix2fsl(args.mrtrix_enc, args.fsl_bval, args.fsl_bvec)
+    mrtrix2fsl(args.mrtrix_enc, args.fsl_basename)
 
 
 if __name__ == "__main__":
