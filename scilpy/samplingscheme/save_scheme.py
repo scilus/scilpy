@@ -3,11 +3,12 @@ from __future__ import division
 import logging
 import numpy as np
 
-# TODO: add some filename extension checking
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def save_scheme_caru(points, shell_idx, filename, verbose=1):
-    fullfilename = filename + '.caru'
+    fullfilename, ext = split_name_with_nii(filename)
+    fullfilename = fullfilename + '.caru'
     f = open(fullfilename, 'w')
     f.write('# Caruyer format sampling scheme\n')
     f.write('# X Y Z shell_idx\n')
@@ -22,7 +23,8 @@ def save_scheme_caru(points, shell_idx, filename, verbose=1):
 
 
 def save_scheme_philips(points, shell_idx, bvalues, filename, verbose=1):
-    fullfilename = filename + '.txt'
+    fullfilename, ext = split_name_with_nii(filename)
+    fullfilename = fullfilename + '.txt'
     f = open(fullfilename, 'w')
     f.write('# Philips format sampling scheme\n')
     f.write('# X Y Z bval\n')
@@ -37,12 +39,9 @@ def save_scheme_philips(points, shell_idx, bvalues, filename, verbose=1):
 
 
 def save_scheme_mrtrix(points, shell_idx, bvalues, filename, verbose=1):
-    fullfilename = filename + '.b'
+    fullfilename, ext = split_name_with_nii(filename)
+    fullfilename = fullfilename + '.b'
     f = open(fullfilename, 'w')
-
-
-    print(shell_idx.__class__)
-    print(shell_idx)
 
     for idx in range(points.shape[0]):
         f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
@@ -55,10 +54,11 @@ def save_scheme_mrtrix(points, shell_idx, bvalues, filename, verbose=1):
 
 
 def save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename, verbose=1):
-    np.savetxt(filename + '.bvecs', points.T, fmt='%.8f')
-    np.savetxt(filename + '.bvals', np.array([bvalues[idx] for idx in shell_idx])[None, :], fmt='%.3f')
+    fullfilename, ext = split_name_with_nii(filename)
+    np.savetxt(fullfilename + '.bvecs', points.T, fmt='%.8f')
+    np.savetxt(fullfilename + '.bvals', np.array([bvalues[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
-    logging.info('Scheme saved in FSL format as {}'.format(filename +
+    logging.info('Scheme saved in FSL format as {}'.format(fullfilename +
                                                            '{.bvecs/.bvals}'))
 
 
@@ -86,7 +86,8 @@ def save_scheme_siemens(points, shell_idx, bvalues, filename, verbose=1):
                                                              points[idx, 1],
                                                              points[idx, 2]))
 
-    fullfilename = filename + '.dvs'
+    fullfilename, ext = split_name_with_nii(filename)
+    fullfilename = fullfilename + '.dvs'
     f = open(fullfilename, 'w')
     for idx in range(len(str_save)):
         f.write(str_save[idx] + '\n')
