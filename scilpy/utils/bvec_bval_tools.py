@@ -7,6 +7,7 @@ import numpy as np
 from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
                                                save_scheme_mrtrix)
 from scilpy.utils.filenames import split_name_with_nii
+
 DEFAULT_B0_THRESHOLD = 20
 
 
