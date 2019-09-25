@@ -109,7 +109,10 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     points = np.loadtxt(fsl_bvec_filename)
     bvalues = np.unique(shells).tolist()
 
-    points = points.transpose()
+    if not points.shape[0] == 3:
+        points = points.transpose()
+        logging.warning('WARNING: Your bvecs seem transposed. ' +
+                        'Transposing them.')
 
     shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]
 
