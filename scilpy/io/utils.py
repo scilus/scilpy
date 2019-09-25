@@ -2,13 +2,21 @@
 # -*- coding: utf-8 -*-
 
 import os
+import shutil
 import six
+import xml.etree.ElementTree as ET
 
 import nibabel as nib
 from nibabel.streamlines import TrkFile
-import shutil
+import numpy as np
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+
+
+def add_reference(parser):
+    parser.add_argument('--reference',
+                        help='Reference anatomy for tck/vtk/fib/dpy file\n'
+                        'support (.nii or .nii.gz).')
 
 
 def add_overwrite_arg(parser):
@@ -22,6 +30,11 @@ def add_force_b0_arg(parser):
                         help='If set, the script will continue even if the '
                              'minimum bvalue is suspiciously high ( > {})'
                         .format(DEFAULT_B0_THRESHOLD))
+
+
+def add_verbose_arg(parser):
+    parser.add_argument('-v', action='store_true', dest='verbose',
+                        help='If set, produces verbose output.')
 
 
 def add_sh_basis_args(parser, mandatory=False):
@@ -52,12 +65,19 @@ def assert_inputs_exist(parser, required, optional=None):
     """
     Assert that all inputs exist. If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string or list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if not os.path.isfile(path):
             parser.error('Input file {} does not exist'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
 
     for required_file in required:
         check(required_file)
@@ -66,19 +86,26 @@ def assert_inputs_exist(parser, required, optional=None):
             check(optional_file)
 
 
-def assert_outputs_exists(parser, args, required, optional=None):
+def assert_outputs_exist(parser, args, required, optional=None):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
     :param parser: argparse.ArgumentParser object
     :param args: argparse namespace
-    :param required: list of paths
-    :param optional: list of paths. Each element will be ignored if None
+    :param required: string or list of paths
+    :param optional: string or list of paths.
+                     Each element will be ignored if None
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
                          'overwriting'.format(path))
+
+    if isinstance(required, str):
+        required = [required]
+
+    if isinstance(optional, str):
+        optional = [optional]
 
     for required_file in required:
         check(required_file)
@@ -139,3 +166,31 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs):
                             shutil.rmtree(file_path)
                     except Exception as e:
                         print(e)
+
+
+def read_info_from_mb_bdo(filename):
+    tree = ET.parse(filename)
+    root = tree.getroot()
+    geometry = root.attrib['type']
+    center_tag = root.find('origin')
+    flip = [-1, -1, 1]
+    center = [flip[0]*float(center_tag.attrib['x'].replace(',', '.')),
+              flip[1]*float(center_tag.attrib['y'].replace(',', '.')),
+              flip[2]*float(center_tag.attrib['z'].replace(',', '.'))]
+    row_list = tree.getiterator('Row')
+    radius = [None, None, None]
+    for i, row in enumerate(row_list):
+        for j in range(0, 3):
+            if j == i:
+                key = 'col' + str(j+1)
+                radius[i] = float(row.attrib[key].replace(',', '.'))
+            else:
+                key = 'col' + str(j+1)
+                value = float(row.attrib[key].replace(',', '.'))
+                if abs(value) > 0.01:
+                    raise ValueError('Does not support rotation, for now \n'
+                                     'only SO aligned on the X,Y,Z axis are '
+                                     'supported.')
+    radius = np.asarray(radius, dtype=np.float32)
+    center = np.asarray(center, dtype=np.float32)
+    return geometry, radius, center

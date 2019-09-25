@@ -27,53 +27,56 @@ import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
-from dipy.direction import ProbabilisticDirectionGetter, \
-    DeterministicMaximumDirectionGetter
-from dipy.tracking.local import \
-    ActTissueClassifier, CmcTissueClassifier, ParticleFilteringTracking
+from dipy.direction import (ProbabilisticDirectionGetter,
+                            DeterministicMaximumDirectionGetter)
+from dipy.tracking.local_tracking import ParticleFilteringTracking
+from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
+                                              CmcStoppingCriterion)
 from dipy.tracking import utils as track_utils
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 import nibabel as nib
-from nibabel.streamlines import Field, LazyTractogram
-from nibabel.orientations import aff2axcodes
+from nibabel.streamlines import LazyTractogram
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists)
+from scilpy.io.utils import (create_header_from_anat,
+                             add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.tracking.tools import get_theta
 
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
-        epilog="References: [1] Girard, G., Whittingstall K., Deriche, R., "
-               "and Descoteaux, M. (2014). Towards quantitative connectivity "
-               "analysis: reducing tractography biases. Neuroimage, 98, "
-               "266-278.")
-    p._optionals.title = "Generic options"
+        epilog='References: [1] Girard, G., Whittingstall K., Deriche, R., '
+               'and Descoteaux, M. (2014). Towards quantitative connectivity '
+               'analysis: reducing tractography biases. Neuroimage, 98, '
+               '266-278.')
+    p._optionals.title = 'Generic options'
 
     p.add_argument(
         'sh_file',
-        help="Spherical harmonic file. Data must be aligned with \nseed_file "
-             "(isotropic resolution, nifti, see --basis).")
+        help='Spherical harmonic file. Data must be aligned with \nseed_file '
+             '(isotropic resolution, nifti, see --basis).')
     p.add_argument(
         'seed_file',
-        help="Seeding mask (isotropic resolution, nifti).")
+        help='Seeding mask (isotropic resolution, nifti).')
     p.add_argument(
         'map_include_file',
-        help="The probability map of ending the streamline and \nincluding it "
-             "in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).")
+        help='The probability map of ending the streamline and \nincluding it '
+             'in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).')
     p.add_argument(
         'map_exclude_file',
-        help="The probability map of ending the streamline and \nexcluding it "
-             "in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).")
+        help='The probability map of ending the streamline and \nexcluding it '
+             'in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).')
     p.add_argument(
         'output_file',
-        help="Streamline output file (must be trk or tck).")
+        help='Streamline output file (must be trk or tck).')
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument(
         '--algo', default='prob', choices=['det', 'prob'],
-        help="Algorithm to use (must be 'det' or 'prob'). [%(default)s]")
+        help='Algorithm to use (must be "det" or "prob"). [%(default)s]')
     track_g.add_argument(
         '--step', dest='step_size', type=float, default=0.5,
         help='Step size in mm. [%(default)s]')
@@ -85,11 +88,11 @@ def _build_args_parser():
         help='Maximum length of a streamline in mm. [%(default)s]')
     track_g.add_argument(
         '--theta', type=float,
-        help="Maximum angle between 2 steps. ['det'=45, 'prob'=20]")
+        help='Maximum angle between 2 steps. ["det"=45, "prob"=20]')
     track_g.add_argument(
         '--act', action='store_true',
-        help="If set, uses anatomically-constrained tractography (ACT)\n"
-             "instead of continuous map criterion (CMC).")
+        help='If set, uses anatomically-constrained tractography (ACT)\n'
+             'instead of continuous map criterion (CMC).')
     track_g.add_argument(
         '--sfthres', dest='sf_threshold', type=float, default=0.1,
         help='Spherical function relative threshold. [%(default)s]')
@@ -102,12 +105,12 @@ def _build_args_parser():
     seed_group = p.add_argument_group(
         'Seeding options',
         'When no option is provided, uses --npv 1.')
-    seed_group.add_argument(
+    seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
+    seed_sub_exclusive.add_argument(
         '--npv', type=int,
         help='Number of seeds per voxel.')
-    seed_group.add_argument(
-        '--nt', type=int,
-        help='Total number of seeds to use.')
+    seed_sub_exclusive.add_argument('--nt', type=int,
+                                    help='Total number of seeds to use.')
 
     pft_g = p.add_argument_group('PFT options')
     pft_g.add_argument(
@@ -129,17 +132,16 @@ def _build_args_parser():
              'streamlines.')
     out_g.add_argument(
         '--all', dest='keep_all', action='store_true',
-        help="If set, keeps 'excluded' streamlines.\n"
-             "NOT RECOMMENDED, except for debugging.")
+        help='If set, keeps "excluded" streamlines.\n'
+             'NOT RECOMMENDED, except for debugging.')
     out_g.add_argument(
         '--seed', type=int,
-        help='Random number generator seed')
+        help='Random number generator seed.')
     add_overwrite_arg(out_g)
 
     log_g = p.add_argument_group('Logging options')
-    log_g.add_argument(
-        '-v', action='store_true', dest='isVerbose',
-        help='If set, produces verbose output.')
+    add_verbose_arg(log_g)
+
     return p
 
 
@@ -147,19 +149,17 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    if args.isVerbose:
+    if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
-
-    output_filename = args.output_file
 
     assert_inputs_exist(parser, [args.sh_file, args.seed_file,
                                  args.map_include_file,
                                  args.map_exclude_file])
-    assert_outputs_exists(parser, args, [output_filename])
+    assert_outputs_exist(parser, args, args.output_file)
 
-    if not nib.streamlines.is_supported(output_filename):
-        parser.error("Invalid output streamline file format (must be trk or " +
-                     "tck): {0}".format(output_filename))
+    if not nib.streamlines.is_supported(args.output_file):
+        parser.error('Invalid output streamline file format (must be trk or ' +
+                     'tck): {0}'.format(args.output_file))
 
     if not args.min_length > 0:
         parser.error('minL must be > 0, {}mm was provided.'
@@ -176,36 +176,27 @@ def main():
                 'tracts while 1 will higly compress/linearize the tracts'
                 .format(args.compress))
 
-    if args.theta:
-        if args.theta <= 0. or args.theta > 90.:
-            parser.error('Maximal angle ({}) should be between 0 '
-                         'and 90 degrees.'.format(args.theta))
-        max_angle = args.theta
-    else:
-        if args.algo == 'det':
-            max_angle = 45.
-        else:
-            max_angle = 20.
-
     if args.particles <= 0:
-        parser.error("--particles must be >= 1.")
+        parser.error('--particles must be >= 1.')
 
     if args.back_tracking <= 0:
-        parser.error("PFT backtracking distance must be > 0.")
+        parser.error('PFT backtracking distance must be > 0.')
 
     if args.forward_tracking <= 0:
-        parser.error("PFT forward tracking distance must be > 0.")
-
-    if args.nt and args.npv:
-        parser.error("Need to only use one of --nt or --npv.")
+        parser.error('PFT forward tracking distance must be > 0.')
 
     if args.npv and args.npv <= 0:
-        parser.error("Number of seeds per voxel must be > 0.")
+        parser.error('Number of seeds per voxel must be > 0.')
 
     if args.nt and args.nt <= 0:
-        parser.error("Total number of seeds must be > 0.")
+        parser.error('Total number of seeds must be > 0.')
 
     fodf_sh_img = nib.load(args.sh_file)
+    fodf_sh_img = nib.load(args.sh_file)
+    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
+                       fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
+        parser.error(
+            'SH file is not isotropic. Tracking cannot be ran robustly.')
 
     tracking_sphere = HemiSphere.from_sphere(get_sphere('repulsion724'))
 
@@ -220,17 +211,19 @@ def main():
     else:
         dgklass = ProbabilisticDirectionGetter
 
+    theta = get_theta(args.theta, args.algo)
+
     # Reminder for the future:
     # pmf_threshold == clip pmf under this
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-            fodf_sh_img.get_data().astype(np.double),
-            max_angle=max_angle,
-            sphere=tracking_sphere,
-            basis_type=sh_basis,
-            pmf_threshold=args.sf_threshold,
-            relative_peak_threshold=args.sf_threshold_init)
+        fodf_sh_img.get_data().astype(np.double),
+        max_angle=theta,
+        sphere=tracking_sphere,
+        basis_type=sh_basis,
+        pmf_threshold=args.sf_threshold,
+        relative_peak_threshold=args.sf_threshold_init)
 
     map_include_img = nib.load(args.map_include_file)
     map_exclude_img = nib.load(args.map_exclude_file)
@@ -238,16 +231,14 @@ def main():
 
     tissue_classifier = None
     if not args.act:
-        tissue_classifier = CmcTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data(),
-                                                step_size=args.step_size,
-                                                average_voxel_size=voxel_size)
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data(),
+                                                 step_size=args.step_size,
+                                                 average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActTissueClassifier(map_include_img.get_data(),
-                                                map_exclude_img.get_data())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_data(),
+                                                 map_exclude_img.get_data())
 
-    seed_img = nib.load(args.seed_file)
-    affine = seed_img.affine
     if args.npv:
         nb_seeds = args.npv
         seed_per_vox = True
@@ -258,11 +249,14 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
+    voxel_size = fodf_sh_img.header.get_zooms()[0]
+    vox_step_size = args.step_size / voxel_size
+    seed_img = nib.load(args.seed_file)
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_data(),
+        np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
-        affine=affine,
         random_seed=args.seed)
 
     # Note that max steps is used once for the forward pass, and
@@ -273,9 +267,9 @@ def main():
         dg,
         tissue_classifier,
         seeds,
-        affine,
+        np.eye(4),
         max_cross=1,
-        step_size=args.step_size,
+        step_size=vox_step_size,
         maxlen=max_steps,
         pft_back_tracking_dist=args.back_tracking,
         pft_front_tracking_dist=args.forward_tracking,
@@ -283,30 +277,24 @@ def main():
         return_all=args.keep_all,
         random_seed=args.seed)
 
-    min_len = args.min_length
-    max_len = args.max_length
-
+    scaled_min_length = args.min_length / voxel_size
+    scaled_max_length = args.max_length / voxel_size
     filtered_streamlines = (s for s in pft_streamlines
-                            if min_len <= length(s) <= max_len)
+                            if scaled_min_length <= length(s) <= scaled_max_length)
     if args.compress:
         filtered_streamlines = (
             compress_streamlines(s, args.compress)
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,
-                                affine_to_rasmm=np.eye(4))
+                                affine_to_rasmm=seed_img.affine)
 
-    # Header with the affine/shape from mask image
-    header = {
-        Field.VOXEL_TO_RASMM: seed_img.affine.copy(),
-        Field.VOXEL_SIZES: seed_img.header.get_zooms(),
-        Field.DIMENSIONS: seed_img.shape,
-        Field.VOXEL_ORDER: ''.join(aff2axcodes(seed_img.affine))
-    }
+    filetype = nib.streamlines.detect_format(args.output_file)
+    header = create_header_from_anat(seed_img, base_filetype=filetype)
 
     # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, output_filename, header=header)
+    nib.streamlines.save(tractogram, args.output_file, header=header)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
