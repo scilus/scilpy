@@ -143,7 +143,7 @@ def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
         raise ValueError('mrtrix file must have 4 columns')
 
     points = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
-    shells = np.array([mrtrix_b[:, 3]])
+    shells = np.array(mrtrix_b[:, 3])
 
     bvalues = np.unique(shells).tolist()
     shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]

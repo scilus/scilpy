@@ -39,8 +39,13 @@ def save_scheme_philips(points, shell_idx, bvalues, filename, verbose=1):
 def save_scheme_mrtrix(points, shell_idx, bvalues, filename, verbose=1):
     fullfilename = filename + '.b'
     f = open(fullfilename, 'w')
+
+
+    print(shell_idx.__class__)
+    print(shell_idx)
+
     for idx in range(points.shape[0]):
-        f.write('{:.8f},{:.8f},{:.8f},{:.8f}\n'.format(points[idx, 0],
+        f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
                                                        points[idx, 1],
                                                        points[idx, 2],
                                                        bvalues[shell_idx[idx]]))
