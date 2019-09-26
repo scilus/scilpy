@@ -15,7 +15,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractanalysis.robust_streamlines_metrics import compute_robust_tract_counts_map
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
@@ -95,7 +95,7 @@ def main():
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
         bundle_vox_space = sft.get_streamlines_copy()
-        binary = compute_robust_tract_counts_map(bundle_vox_space, dimensions)
+        binary = compute_tract_counts_map(bundle_vox_space, dimensions)
         volume[binary > 0] += 1
 
         if args.same_tractogram:

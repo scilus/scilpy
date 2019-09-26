@@ -28,8 +28,8 @@ opts = dict(name=NAME,
             requires=REQUIRES,
             scripts=SCRIPTS)
 
-extensions = [Extension('scilpy.tractanalysis.robust_streamlines_metrics',
-                        ['scilpy/tractanalysis/robust_streamlines_metrics.pyx'],
+extensions = [Extension('scilpy.tractanalysis.streamlines_metrics',
+                        ['scilpy/tractanalysis/streamlines_metrics.pyx'],
                         include_dirs=[numpy.get_include()])]
 
 opts['ext_modules'] = cythonize(extensions)

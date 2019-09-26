@@ -38,7 +38,7 @@ cdef inline void c_get_closest_edge(double p_x, double p_y, double p_z,
 @cython.wraparound(False)
 @cython.cdivision(True)
 # IMPORTANT: Streamlines should be in voxel space, aligned to corner.
-def compute_robust_tract_counts_map(streamlines, vol_dims):
+def compute_tract_counts_map(streamlines, vol_dims):
     flags = np.seterr(divide="ignore", under="ignore")
 
     # Inspired from Dipy track_counts
