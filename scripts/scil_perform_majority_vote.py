@@ -7,8 +7,8 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
 import nibabel as nib
-import numpy as np
 from nibabel.streamlines.array_sequence import ArraySequence
+import numpy as np
 from scipy.sparse import dok_matrix
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -42,7 +42,7 @@ def _build_args_parser():
                    '[%(default)s].')
     p.add_argument('--ratio_voxels', type=float, default=0.5,
                    help='Minimum vote to be considered for voxels'
-                   '[%(default)s].')
+                   ' [%(default)s].')
 
     p.add_argument('--same_tractogram', action='store_true',
                    help='All bundles need to be from the same tractogram,\n'
@@ -64,7 +64,7 @@ def main():
         args.output_prefix)
     output_voxels_filename = '{}voxels.nii.gz'.format(args.output_prefix)
     assert_outputs_exist(parser, args, [output_voxels_filename,
-                                         output_streamlines_filename])
+                                        output_streamlines_filename])
 
     if not 0 <= args.ratio_voxels <= 1 or not 0 <= args.ratio_streamlines <= 1:
         parser.error('Ratios must be between 0 and 1.')
@@ -75,7 +75,7 @@ def main():
             load_tractogram_with_reference(parser, args, name).streamlines)
 
     fusion_streamlines, _ = perform_streamlines_operation(union,
-                                                          [fusion_streamlines], 
+                                                          [fusion_streamlines],
                                                           0)
     fusion_streamlines = ArraySequence(fusion_streamlines)
     if args.reference:
