@@ -3,14 +3,15 @@
 from __future__ import print_function
 import argparse
 
-import nibabel as nib
-from nibabel.streamlines.tractogram import Tractogram
-import numpy as np
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
-from scilpy.tracking.tools import subsample_streamlines
+                             assert_outputs_exist,
+                             add_reference)
+from scilpy.tracking.tools import filter_streamlines_by_length
 
 
 def _build_arg_parser():
@@ -18,9 +19,12 @@ def _build_arg_parser():
         description='Keep only streamlines between [min, max] length',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('bundle',
+    p.add_argument('in_bundle',
                    help='Bundle to prune.')
-    p.add_argument('pruned_bundle',
+
+    add_reference(p)
+
+    p.add_argument('out_bundle',
                    help='Pruned bundle.')
 
     p.add_argument('--min_length',
@@ -51,20 +55,18 @@ def main():
         parser.error('--max_length {} should be greater than --min_length'
                      .format(args.max_length))
 
-    tractogram = nib.streamlines.load(args.bundle)
-    streamlines = tractogram.streamlines
-    pruned_streamlines = subsample_streamlines(
-        streamlines, args.min_length, args.max_length)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+
+    pruned_streamlines, _, _ = filter_streamlines_by_length(sft.streamlines,
+                                                      args.min_length,
+                                                      args.max_length)
 
     if not pruned_streamlines:
         print("Pruning removed all the streamlines. Please adjust "
               "--{min,max}_length")
     else:
-        pruned_tractogram = Tractogram(pruned_streamlines,
-                                       affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(pruned_tractogram,
-                             args.pruned_bundle,
-                             header=tractogram.header)
+        sft = StatefulTractogram(pruned_streamlines, sft, Space.RASMM)
+        save_tractogram(sft, args.out_bundle)
 
 
 if __name__ == '__main__':

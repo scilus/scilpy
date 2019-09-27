@@ -3,16 +3,15 @@
 import argparse
 import logging
 
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_trk_in_voxel_space
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg,
                              add_reference)
-from scilpy.tractanalysis import compute_robust_tract_counts_map
+from scilpy.tractanalysis import compute_tract_counts_map
 from scilpy.tractometry.distance_to_centroid import min_dist_to_centroid
 
 
@@ -23,13 +22,12 @@ def _build_arg_parser():
                     'nearest centroid point',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('bundle',
+    p.add_argument('in_bundle',
                    help='Fiber bundle file.')
-    p.add_argument('centroid_streamline',
+    p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
-
-    add_reference(p)
-
+    p.add_argument('reference',
+                   help='Nifti reference image.')
     p.add_argument('output_map',
                    help='Nifti image with corresponding labels.')
     p.add_argument('--upsample',
@@ -49,28 +47,33 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser,
-                        [args.bundle, args.centroid_streamline,
-                         args.reference])
+                        [args.in_bundle, args.in_centroid],
+                        optionnal=args.reference)
     assert_outputs_exist(parser, args, args.output_map)
 
-    bundle_tractogram_file = nib.streamlines.load(args.bundle)
-    centroid_tractogram_file = nib.streamlines.load(args.centroid_streamline)
-    if int(bundle_tractogram_file.header['nb_streamlines']) == 0:
-        logger.warning('Empty bundle file {}. Skipping'.format(args.bundle))
+    sft_bundle = load_tractogram_with_reference(parser, args,
+                                                args.in_bundle)
+    sft_centroid = load_tractogram_with_reference(parser, args,
+                                                args.in_centroid)
+
+    if len(sft_bundle.streamlines) == 0:
+        logging.warning('Empty bundle file {}. '
+                        'Skipping'.format(args.in_bundle))
         return
 
-    if int(centroid_tractogram_file.header['nb_streamlines']) != 1:
-        logger.warning('Centroid file {} should contain one streamline. '
-                       'Skipping'.format(args.centroid_streamline))
+    if len(sft_centroid.streamlines) == 0:
+        logging.warning('Centroid file {} should contain one streamline. '
+                        'Skipping'.format(args.in_centroid))
         return
 
     ref_img = nib.load(args.reference)
-    bundle_streamlines_vox = load_trk_in_voxel_space(
-        bundle_tractogram_file, anat=ref_img)
+
+    sft_bundle.to_vox()
+    bundle_streamlines_vox = sft.streamlines
     bundle_streamlines_vox._data *= args.upsample
 
-    centroid_streamlines_vox = load_trk_in_voxel_space(
-        centroid_tractogram_file, anat=ref_img)
+    sft_centroid.to_vox()
+    centroid_streamlines_vox = sft_centroid.streamlines
     centroid_streamlines_vox._data *= args.upsample
 
     upsampled_shape = [s * args.upsample for s in ref_img.shape]

@@ -10,11 +10,11 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import assert_same_resolution
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import assert_inputs_exist
-from scilpy.tracking.tools import subsample_streamlines
+from scilpy.tracking.tools import resample_streamlines
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_profile_over_streamlines
-from scilpy.io.streamlines import load_trk_in_voxel_space
 
 
 def norm_l2(x):
@@ -31,7 +31,7 @@ def _build_arg_parser():
                     'streamlines',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('bundle',
+    p.add_argument('in_bundle',
                    help='Fiber bundle file to compute the tract '
                         'profiles on.')
     p.add_argument('metrics', nargs='+',
@@ -53,7 +53,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle, args.metrics])
+    assert_inputs_exist(parser, [args.in_bundle, args.metrics])
 
     if args.num_points <= 1:
         parser.error('--num_points {} needs to be greater than '
@@ -62,21 +62,19 @@ def main():
     metrics = [nib.load(m) for m in args.metrics]
     assert_same_resolution(*metrics)
 
-    bundle_tractogram_file = nib.streamlines.load(args.bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
     stats = {}
-    if len(bundle_tractogram_file.streamlines) == 0:
+    if len(sft.streamlines) == 0:
         stats[bundle_name] = None
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    bundle_streamlines_vox = load_trk_in_voxel_space(
-        bundle_tractogram_file, anat=metrics[0])
-    bundle_subsampled = subsample_streamlines(
-        bundle_streamlines_vox,
-        num_points=args.num_points,
-        arc_length=True)
+    sft.to_vox()
+    bundle_subsampled = resample_streamlines(sft.streamline,
+                                             num_points=args.num_points,
+                                             arc_length=True)
 
     # Make sure all streamlines go in the same direction. We want to make
     # sure point #1 / 20 of streamline A is matched with point #1 / 20 of

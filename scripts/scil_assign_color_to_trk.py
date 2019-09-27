@@ -3,12 +3,15 @@
 
 import argparse
 
-import nibabel as nib
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_overwrite_arg,
+                             add_reference)
 
 
 def _build_arg_parser():
@@ -18,9 +21,12 @@ def _build_arg_parser():
                     'formatted as 0xRRGGBB',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_tractogram',
                    help='Tractogram.')
-    p.add_argument('output',
+
+    add_reference(p)
+
+    p.add_argument('out_tractogram',
                    help='Colored TRK tractogram.')
     p.add_argument('color',
                    help='Hexadecimal RGB color (ie. 0xRRGGBB).')
@@ -34,10 +40,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not args.output.endswith('.trk'):
+    if not args.out_tractogram.endswith('.trk'):
         parser.error('Output file needs to end with .trk.')
 
     if len(args.color) != 8:
@@ -48,14 +54,15 @@ def main():
     green = (color_int & 0x00FF00) >> 8
     blue = color_int & 0x0000FF
 
-    tractogram_file = nib.streamlines.load(args.input)
-    tractogram_file.tractogram.data_per_point["color"] = [
-            np.tile([red, green, blue],
-                    (len(i), 1)) for i in tractogram_file.streamlines
-        ]
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    nib.streamlines.save(tractogram_file.tractogram, args.output,
-                         header=tractogram_file.header)
+    sft.data_per_point["color"] = [np.tile([red, green, blue],
+                                   (len(i), 1)) for i in sft.streamlines]
+
+    sft = StatefulTractogram(sft.streamlines, sft, Space.RASMM,
+                             data_per_point=sft.data_per_point)
+
+    save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == '__main__':

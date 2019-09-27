@@ -18,17 +18,18 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description='Compute bundle volume in mm³',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('bundle',
-                        help='Fiber bundle file.')
+
+    p.add_argument('in_bundle',
+                   help='Fiber bundle file.')
 
     add_reference(p)
 
     p.add_argument('--indent',
-                        type=int, default=2,
-                        help='Indent for json pretty print. [%(default)s]')
+                   type=int, default=2,
+                   help='Indent for json pretty print. [%(default)s]')
     p.add_argument('--sort_keys',
-                        action='store_true',
-                        help='Sort keys in output json.')
+                   action='store_true',
+                   help='Sort keys in output json.')
 
     return p
 
@@ -37,13 +38,13 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle, args.reference])
+    assert_inputs_exist(parser, [args.in_bundle, args.reference])
 
-    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
     stats = {bundle_name: {}}
     if len(sft.streamlines) == 0:
         stats[bundle_name]['volume'] = None

@@ -182,3 +182,20 @@ def read_info_from_mb_bdo(filename):
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center
+
+
+def assert_outputs_dir_exists_and_empty(parser, args, *dirs):
+    """
+    Assert that all output folder exist If not, print parser's usage and exit.
+    :param parser: argparse.ArgumentParser object
+    :param args: argparse namespace
+    :param dirs: list of paths
+    """
+    for path in dirs:
+        if not os.path.isdir(path):
+            parser.error('Output directory {} doesn\'t exist.'.format(path))
+        if os.listdir(path) and not args.overwrite:
+            parser.error(
+                'Output directory {} isn\'t empty and some files could be '
+                'overwritten. Use -f option if you want to continue.'
+                .format(path))

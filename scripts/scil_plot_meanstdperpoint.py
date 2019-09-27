@@ -54,7 +54,7 @@ def main():
             num_digits_labels = len(str(args.nb_points))
             means = []
             stds = []
-            for label_int in xrange(1, args.nb_points+1):
+            for label_int in range(1, args.nb_points+1):
                 label = str(label_int).zfill(num_digits_labels)
                 mean = metric_stats.get(label, {'mean': np.nan})['mean']
                 mean = mean if mean else np.nan

@@ -11,36 +11,37 @@ from nibabel.streamlines import ArraySequence
 import numpy as np
 
 from scilpy.io.image import assert_same_resolution
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_dir_exists_and_empty)
+                             assert_outputs_dir_exists_and_empty,
+                             add_reference)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.io.streamlines import load_trk_in_voxel_space
-try:
-    from scilpy.tractanalysis.compute_tract_counts_map import\
-           compute_tract_counts_map
-    from scilpy.tractanalysis.uncompress import uncompress
-except ImportError as e:
-    e.args += ("Try running setup.py",)
-    raise e
+from scilpy.tractanalysis.compute_tract_counts_map import \
+     compute_tract_counts_map
+from scilpy.tractanalysis.uncompress import uncompress
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description='Projects metrics onto the endpoints of streamlines. The '
                     'idea is to visualize the cortical areas affected by '
                     'metrics (assuming streamlines start/end in the cortex).',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('bundle',
-                        help='Fiber bundle file.')
-    parser.add_argument('metrics', nargs='+',
-                        help='Nifti metric(s) to compute statistics on.')
-    parser.add_argument('output_folder',
-                        help='Folder where to save endpoints metric.')
+    p.add_argument('in_bundle',
+                   help='Fiber bundle file.')
 
-    add_overwrite_arg(parser)
-    return parser
+    add_reference(p)
+
+    p.add_argument('metrics',
+                   nargs='+',
+                   help='Nifti metric(s) to compute statistics on.')
+    p.add_argument('output_folder',
+                   help='Folder where to save endpoints metric.')
+
+    add_overwrite_arg(p)
+    return p
 
 
 def _compute_streamline_mean(cur_ind, cur_min, cur_max, data):
@@ -80,20 +81,20 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle, args.metrics])
+    assert_inputs_exist(parser, [args.in_bundle, args.metrics])
     assert_outputs_dir_exists_and_empty(parser, args, args.output_folder)
 
     metrics = [nib.load(metric) for metric in args.metrics]
     assert_same_resolution(*metrics)
 
-    bundle_tractogram_file = nib.streamlines.load(args.bundle)
-    if int(bundle_tractogram_file.header['nb_streamlines']) == 0:
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft.to_vox()
+
+    if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
-    bundle_streamlines_vox = load_trk_in_voxel_space(
-        bundle_tractogram_file, anat=metrics[0])
 
-    mins, maxs, indices = _process_streamlines(bundle_streamlines_vox)
+    mins, maxs, indices = _process_streamlines(sft.streamlines)
 
     for metric in metrics:
         data = metric.get_data()
@@ -101,7 +102,7 @@ def main():
         count = np.zeros(metric.shape)
         for cur_min, cur_max, cur_ind, orig_s in zip(mins, maxs,
                                                      indices,
-                                                     bundle_streamlines_vox):
+                                                     sft.streamlines):
             streamline_mean = _compute_streamline_mean(cur_ind,
                                                        cur_min,
                                                        cur_max,

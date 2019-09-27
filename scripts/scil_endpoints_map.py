@@ -10,7 +10,7 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_trk_in_voxel_space
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -29,7 +29,7 @@ def _build_arg_parser():
         description=DESCRIPTION,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('bundle',
+    p.add_argument('in_bundle',
                    help='Fiber bundle filename.')
     p.add_argument('reference',
                    help='Reference anatomic filename.')
@@ -57,14 +57,13 @@ def main():
     assert_outputs_exist(parser, args, [args.endpoints_map_head,
                                         args.endpoints_map_tail])
 
-    bundle_tractogram_file = nib.streamlines.load(args.bundle)
-    if int(bundle_tractogram_file.header['nb_streamlines']) == 0:
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft.to_vox()
+    if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
     reference = nib.load(args.reference)
-    bundle_streamlines_vox = load_trk_in_voxel_space(
-        bundle_tractogram_file, anat=reference)
 
     endpoints_map_head = np.zeros(reference.shape)
     endpoints_map_tail = np.zeros(reference.shape)
@@ -76,7 +75,7 @@ def main():
         head_name = args.endpoints_map_tail
         tail_name = args.endpoints_map_head
 
-    for streamline in bundle_streamlines_vox:
+    for streamline in sft.streamlines:
         xyz = streamline[0, :].astype(int)
         endpoints_map_head[xyz[0], xyz[1], xyz[2]] += 1
 

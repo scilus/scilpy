@@ -18,51 +18,51 @@ from scilpy.utils.filenames import split_name_with_nii
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description='Compute mean and standard deviation for all streamlines '
                     'points in the bundle for each metric combination',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('bundle',
-                        help='Fiber bundle file to compute statistics on.')
+    p.add_argument('in_bundle',
+                   help='Fiber bundle file to compute statistics on.')
 
     add_reference(p)
 
-    parser.add_argument('label_map',
-                        help='Label map (.npz) of the corresponding '
-                             'fiber bundle.')
-    parser.add_argument('distance_map',
-                        help='Distance map (.npz) of the corresponding '
-                             'bundle/centroid streamline.')
-    parser.add_argument('metrics', nargs='+',
-                        help='Nifti metric(s) to compute statistics on.')
-    parser.add_argument('--density_weighting', action='store_true',
-                        help='If set, weight statistics by the number of '
-                             'tracks passing through each voxel.')
-    parser.add_argument('--distance_weighting', action='store_true',
-                        help='If set, weight statistics by the inverse of the '
-                             'distance between a streamline and the centroid.')
-    parser.add_argument('--indent', type=int, default=2,
-                        help='Indent for json pretty print. [%(default)s]')
-    parser.add_argument('--sort_keys', action='store_true',
-                        help='Sort keys in output json.')
-    return parser
+    p.add_argument('label_map',
+                   help='Label map (.npz) of the corresponding '
+                        'fiber bundle.')
+    p.add_argument('distance_map',
+                   help='Distance map (.npz) of the corresponding '
+                        'bundle/centroid streamline.')
+    p.add_argument('metrics', nargs='+',
+                   help='Nifti metric(s) to compute statistics on.')
+    p.add_argument('--density_weighting', action='store_true',
+                   help='If set, weight statistics by the number of '
+                        'tracks passing through each voxel.')
+    p.add_argument('--distance_weighting', action='store_true',
+                   help='If set, weight statistics by the inverse of the '
+                        'distance between a streamline and the centroid.')
+    p.add_argument('--indent', type=int, default=2,
+                   help='Indent for json pretty print. [%(default)s]')
+    p.add_argument('--sort_keys', action='store_true',
+                   help='Sort keys in output json.')
+    return p
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle, args.label_map,
+    assert_inputs_exist(parser, [args.in_bundle, args.label_map,
                                  args.distance_map] + args.metrics)
 
-    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
 
     stats = {}
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
-    if len(bundle_tractogram_file.streamlines) == 0:
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
+    if len(sft.streamlines) == 0:
         stats[bundle_name] = None
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
@@ -70,11 +70,9 @@ def main():
     metrics = [nib.load(m) for m in args.metrics]
     assert_same_resolution(*metrics)
 
-
-
     if args.density_weighting:
         track_count = compute_tract_counts_map(
-            streamlines_vox, metrics[0].shape).astype(np.float64)
+            sft.streamlines, metrics[0].shape).astype(np.float64)
     else:
         track_count = np.ones(metrics[0].shape)
 
@@ -95,7 +93,7 @@ def main():
             'entries as the distance map. {} != {}'
             .format(len(labels), len(distances_to_centroid_streamline)))
 
-    bundle_data_int = streamlines_vox.data.astype(np.int)
+    bundle_data_int = sft.streamlines.data.astype(np.int)
     stats[bundle_name] = {}
     for metric in metrics:
         metric_data = metric.get_data()
@@ -119,8 +117,8 @@ def main():
             if args.distance_weighting:
                 label_weight *= distances_to_centroid_streamline[labels == i]
             if np.sum(label_weight) == 0:
-                logger.warning('Weights sum to zero, can\'t be normalized. '
-                               'Disabling weighting')
+                logging.warning('Weights sum to zero, can\'t be normalized. '
+                                'Disabling weighting')
                 label_weight = None
 
             label_mean = np.average(label_metric,

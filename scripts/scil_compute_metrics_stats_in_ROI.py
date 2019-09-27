@@ -39,7 +39,7 @@ def _build_arg_parser():
                     help='metrics files directory. name of the directory ' +
                          'containing the metrics files.')
     mg.add_argument('--metrics',
-                    dest='metrics_file_list', action='store', nargs='+',
+                    dest='metrics_file_list', nargs='+',
                     help='metrics nifti file name. list of the names of the ' +
                          'metrics file, in nifti format.')
 
@@ -56,10 +56,10 @@ def _build_arg_parser():
 
     p.add_argument('--indent',
                    type=int, default=2,
-                   help='Indent for json pretty print')
+                   help='Indent for json pretty print.')
     p.add_argument('--sort_keys',
                    action='store_true',
-                   help='Sort keys in output json')
+                   help='Sort keys in output json.')
 
     return p
 

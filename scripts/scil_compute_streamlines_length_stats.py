@@ -6,10 +6,10 @@ import argparse
 import json
 
 from dipy.tracking.streamlinespeed import length
-import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import assert_inputs_exist, add_reference
 
 
 def _build_arg_parser():
@@ -18,8 +18,11 @@ def _build_arg_parser():
                     'standard deviation of length in mm',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_bundle',
                    help='Fiber bundle file.')
+
+    add_reference(p)
+
     p.add_argument('--indent',
                    type=int, default=2,
                    help='Indent for json pretty print.')
@@ -34,10 +37,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input)
+    assert_inputs_exist(parser, args.in_bundle)
 
-    tractogram_file = nib.streamlines.load(args.input)
-    streamlines = tractogram_file.streamlines
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    streamlines = sft.streamlines
 
     lengths = list(length(streamlines))
 

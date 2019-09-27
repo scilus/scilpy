@@ -9,8 +9,8 @@ from dipy.tracking.streamline import set_number_of_points
 
 
 def filter_streamlines_by_length(streamlines,
-                                 data_per_point,
-                                 data_per_streamline,
+                                 data_per_point=[],
+                                 data_per_streamline=[],
                                  min_length=0., max_length=np.inf):
     """
     Filter streamlines using minimum and max length
@@ -51,8 +51,10 @@ def filter_streamlines_by_length(streamlines,
                                    lengths <= max_length)
 
     filtered_streamlines = list(np.asarray(streamlines)[filter_stream])
-    filtered_data_per_point = data_per_point[filter_stream]
-    filtered_data_per_streamline = data_per_streamline[filter_stream]
+    if data_per_point:
+        filtered_data_per_point = data_per_point[filter_stream]
+    if data_per_streamline:
+        filtered_data_per_streamline = data_per_streamline[filter_stream]
 
     return filtered_streamlines, filtered_data_per_point, filtered_data_per_streamline
 

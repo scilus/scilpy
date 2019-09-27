@@ -19,7 +19,8 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description='Compute mean and std along the bundle for each metric',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('bundle',
+
+    p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
 
     add_reference(p)
@@ -43,12 +44,12 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle] + args.metrics)
+    assert_inputs_exist(parser, [args.in_bundle] + args.metrics)
 
     metrics = [nib.load(metric) for metric in args.metrics]
     assert_same_resolution(*metrics)
 
-    sft = load_tractogram_with_reference(parser, args, args.bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
 
@@ -56,7 +57,7 @@ def main():
                                                       metrics,
                                                       args.density_weighting)
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
 
     stats = {bundle_name: {}}
     for metric, (mean, std) in zip(metrics, bundle_stats):
