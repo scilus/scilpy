@@ -58,8 +58,8 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
     pruned_streamlines, _, _ = filter_streamlines_by_length(sft.streamlines,
-                                                      args.min_length,
-                                                      args.max_length)
+                                                            args.min_length,
+                                                            args.max_length)
 
     if not pruned_streamlines:
         print("Pruning removed all the streamlines. Please adjust "

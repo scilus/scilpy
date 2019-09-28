@@ -3,14 +3,14 @@
 import argparse
 import logging
 
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             add_verbose_arg,
-                             add_reference)
+                             add_verbose_arg)
 from scilpy.tractanalysis import compute_tract_counts_map
 from scilpy.tractometry.distance_to_centroid import min_dist_to_centroid
 
@@ -54,7 +54,7 @@ def main():
     sft_bundle = load_tractogram_with_reference(parser, args,
                                                 args.in_bundle)
     sft_centroid = load_tractogram_with_reference(parser, args,
-                                                args.in_centroid)
+                                                  args.in_centroid)
 
     if len(sft_bundle.streamlines) == 0:
         logging.warning('Empty bundle file {}. '
@@ -69,7 +69,7 @@ def main():
     ref_img = nib.load(args.reference)
 
     sft_bundle.to_vox()
-    bundle_streamlines_vox = sft.streamlines
+    bundle_streamlines_vox = sft_bundle.streamlines
     bundle_streamlines_vox._data *= args.upsample
 
     sft_centroid.to_vox()
@@ -77,8 +77,8 @@ def main():
     centroid_streamlines_vox._data *= args.upsample
 
     upsampled_shape = [s * args.upsample for s in ref_img.shape]
-    tdi_mask = compute_robust_tract_counts_map(bundle_streamlines_vox,
-                                               upsampled_shape) > 0
+    tdi_mask = compute_tract_counts_map(bundle_streamlines_vox,
+                                        upsampled_shape) > 0
 
     tdi_mask_nzr = np.nonzero(tdi_mask)
     tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
