@@ -51,6 +51,9 @@ def filter_streamlines_by_length(streamlines,
                                    lengths <= max_length)
 
     filtered_streamlines = list(np.asarray(streamlines)[filter_stream])
+    filtered_data_per_point = []
+    filtered_data_per_streamline = []
+    
     if data_per_point:
         filtered_data_per_point = data_per_point[filter_stream]
     if data_per_streamline:
