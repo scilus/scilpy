@@ -11,10 +11,10 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose,
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exists,
-                             load_tractogram_with_reference,
+                             assert_outputs_exist,
                              read_info_from_mb_bdo)
 from scilpy.segment.streamlines import (filter_grid_roi,
                                         filter_ellipsoid,
@@ -69,8 +69,8 @@ def _buildArgsParser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include).')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
-    add_verbose(p)
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -124,8 +124,8 @@ def main():
     parser = _buildArgsParser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram])
-    assert_outputs_exists(parser, args, [args.out_tractogram])
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 

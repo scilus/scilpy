@@ -15,7 +15,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
-                             assert_inputs_exist, assert_outputs_exists)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.streamlines import warp_tractogram
 
@@ -89,7 +89,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.ref_file,
                                  args.deformation])
-    assert_outputs_exists(parser, args, [args.out_name])
+    assert_outputs_exist(parser, args, args.out_name)
 
     if not nib.streamlines.TrkFile.is_correct_format(args.in_file):
         parser.error('The input file needs to be a TRK file')

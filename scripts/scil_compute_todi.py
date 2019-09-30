@@ -7,10 +7,10 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference,
                              add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exists,
-                             load_tractogram_with_reference)
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
@@ -76,8 +76,9 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, required=[args.tract_filename],
-                        optional=[args.mask, args.reference])
+    assert_inputs_exist(parser, args.tract_filename,
+                        [args.mask, args.reference])
+
     output_file_list = []
     if args.out_mask:
         output_file_list.append(args.out_mask)
@@ -91,7 +92,7 @@ def main():
     if not output_file_list:
         parser.error('No output to be done')
     else:
-        assert_outputs_exists(parser, args, output_file_list)
+        assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.tract_filename)
     affine, data_shape, _, _ = sft.space_attribute

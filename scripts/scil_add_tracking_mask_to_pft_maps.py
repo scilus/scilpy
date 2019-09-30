@@ -5,7 +5,7 @@ import argparse
 import nibabel as nib
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exists)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -32,7 +32,7 @@ def main():
 
     assert_inputs_exist(parser, [args.map_include, args.map_exclude,
                                  args.additional_mask])
-    assert_outputs_exists(parser, args, [args.map_include_corr,
+    assert_outputs_exist(parser, args, [args.map_include_corr,
                                          args.map_exclude_corr])
 
     map_inc = nib.load(args.map_include)
