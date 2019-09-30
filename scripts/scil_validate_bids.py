@@ -25,7 +25,7 @@ def _build_args_parser():
     parser.add_argument("output_json",
                         help="Output json file.")
 
-    parser.add_argument("--readout", type=int, default=0.062,
+    parser.add_argument("--readout", type=float, default=0.062,
                         help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(parser)
