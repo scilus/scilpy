@@ -20,10 +20,10 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
 DESCRIPTION = """
-    Use multiple bundles to perform a voxel-wise vote (occurence across input).
-    If streamlines originate from the same tractogram, streamline-wise vote
-    is available.
-    Input tractograms have to have identical header (register).
+Use multiple bundles to perform a voxel-wise vote (occurence across input).
+If streamlines originate from the same tractogram, streamline-wise vote
+is available.
+Input tractograms have to have identical header (register).
 """
 
 
@@ -32,7 +32,7 @@ def _build_args_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=DESCRIPTION)
 
-    p.add_argument('bundles', nargs='+',
+    p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename.')
 
     add_reference(p)
@@ -45,8 +45,8 @@ def _build_args_parser():
                    ' [%(default)s].')
 
     p.add_argument('--same_tractogram', action='store_true',
-                   help='All bundles need to be from the same tractogram,\n'
-                   'will generate a voting for streamlines too.')
+                   help='All bundles need to come from the same tractogram,\n'
+                        'will generate a voting for streamlines too.')
     p.add_argument('--output_prefix', default='voting_',
                    help='Output prefix, [%(default)s].')
 
@@ -59,7 +59,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.bundles)
+    assert_inputs_exist(parser, args.in_bundles)
     output_streamlines_filename = '{}streamlines.trk'.format(
         args.output_prefix)
     output_voxels_filename = '{}voxels.nii.gz'.format(args.output_prefix)
@@ -70,7 +70,7 @@ def main():
         parser.error('Ratios must be between 0 and 1.')
 
     fusion_streamlines = []
-    for name in args.bundles:
+    for name in args.in_bundles:
         fusion_streamlines.extend(
             load_tractogram_with_reference(parser, args, name).streamlines)
 
@@ -81,14 +81,14 @@ def main():
     if args.reference:
         reference_file = args.reference
     else:
-        reference_file = args.bundles[0]
+        reference_file = args.in_bundles[0]
 
     transformation, dimensions, _, _ = get_reference_info(reference_file)
     volume = np.zeros(dimensions)
     streamlines_vote = dok_matrix((len(fusion_streamlines),
-                                   len(args.bundles)))
+                                   len(args.in_bundles)))
 
-    for i, name in enumerate(args.bundles):
+    for i, name in enumerate(args.in_bundles):
         if not is_header_compatible(reference_file, name):
             raise ValueError('Both headers are not the same')
         sft = load_tractogram_with_reference(parser, args, name)
@@ -107,7 +107,7 @@ def main():
     if args.same_tractogram:
         real_indices = []
         for i in range(len(fusion_streamlines)):
-            ratio_value = int(args.ratio_streamlines*len(args.bundles))
+            ratio_value = int(args.ratio_streamlines*len(args.in_bundles))
             if np.sum(streamlines_vote[i]) >= ratio_value:
                 real_indices.append(i)
 
@@ -116,8 +116,8 @@ def main():
         sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM)
         save_tractogram(sft, output_streamlines_filename)
 
-    volume[volume < int(args.ratio_streamlines*len(args.bundles))] = 0
-    volume[volume >= int(args.ratio_streamlines*len(args.bundles))] = 1
+    volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
+    volume[volume > 0] = 1
     nib.save(nib.Nifti1Image(volume.astype(np.uint8), transformation),
              output_voxels_filename)
 
