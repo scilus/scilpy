@@ -26,15 +26,15 @@ def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=DESCRIPTION,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_bundle',
+    parser.add_argument('in_bundle',
                         help='Fiber bundle file to remove outliers from.')
-    parser.add_argument('inliers',
+    parser.add_argument('out_bundle',
                         help='Fiber bundle without outliers.')
-    parser.add_argument('--outliers',
+    parser.add_argument('--remaining_bundle',
                         help='Removed outliers.')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Percent of the length of the tree that clusters '
-                        'of individual streamlines will be pruned.')
+                             'of individual streamlines will be pruned.')
     add_overwrite_arg(parser)
     return parser
 
@@ -43,19 +43,19 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input_bundle)
-    assert_outputs_exist(parser, args, args.inliers, args.outliers)
+    assert_inputs_exist(parser, args.in_bundle)
+    assert_outputs_exist(parser, args, args.out_bundle, args.remaining_bundle)
     if args.alpha <= 0 or args.alpha > 1:
         parser.error('--alpha should be ]0, 1]')
 
-    tractogram = nib.streamlines.load(args.input_bundle)
+    tractogram = nib.streamlines.load(args.in_bundle)
 
     if int(tractogram.header['nb_streamlines']) == 0:
         logging.warning("Bundle file contains no streamline")
         return
 
-    check_tracts_same_format(parser, [args.input_bundle, args.inliers,
-                                      args.outliers])
+    check_tracts_same_format(parser, [args.in_bundle, args.out_bundle,
+                                      args.remaining_bundle])
 
     streamlines = tractogram.streamlines
 
@@ -79,18 +79,18 @@ def main():
             affine_to_rasmm=np.eye(4),
             data_per_streamline=inliers_data_per_streamline,
             data_per_point=inliers_data_per_point)
-        nib.streamlines.save(inliers_tractogram, args.inliers,
+        nib.streamlines.save(inliers_tractogram, args.out_bundle,
                              header=tractogram.header)
 
     if len(outliers_streamlines) == 0:
         print("No outlier found. Please raise the --alpha parameter")
-    elif args.outliers:
+    elif args.remaining_bundle:
         outlier_tractogram = Tractogram(
             outliers_streamlines,
             affine_to_rasmm=np.eye(4),
             data_per_streamline=outliers_data_per_streamline,
             data_per_point=outliers_data_per_point)
-        nib.streamlines.save(outlier_tractogram, args.outliers,
+        nib.streamlines.save(outlier_tractogram, args.remaining_bundle,
                              header=tractogram.header)
 
 
