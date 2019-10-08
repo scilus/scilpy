@@ -194,7 +194,6 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
 
     summary = np.mean(path_lengths_per_streamline,
                       axis=1) / np.max(path_lengths_per_streamline)
-    print(summary)
     return summary
 
 
