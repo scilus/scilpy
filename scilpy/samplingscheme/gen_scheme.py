@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 import numpy as np
@@ -12,7 +14,7 @@ def gen_scheme(Ks, verbose=1):
     multiple_shell_energy.py
 
     Generate the bvecs of a multiple shell sampling scheme using generalized
-     Jones electrostatic repulsion.
+    Jones electrostatic repulsion.
 
     Parameters
     ----------
@@ -23,7 +25,6 @@ def gen_scheme(Ks, verbose=1):
     ------
     points: numpy.array, b-vectors normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-
     """
 
     S = len(Ks)
@@ -33,7 +34,7 @@ def gen_scheme(Ks, verbose=1):
     for i in range(S):
         shell_groups += ([i],)
 
-    shell_groups += (range(S),)
+    shell_groups += (list(range(S)),)
     alphas = len(shell_groups) * (1.0,)
     weights = compute_weights(S, Ks, shell_groups, alphas)
 

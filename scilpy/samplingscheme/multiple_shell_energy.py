@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 ################################################
 # Author: Emmanuel Caruyer <caruyer@gmail.com> #
 #                                              #
@@ -245,7 +247,6 @@ def compute_weights(nb_shells, nb_points_per_shell, shell_groups, alphas):
     """
     Computes the weights array from a set of shell groups to couple, and
     coupling weights.
-
     """
     weights = np.zeros((nb_shells, nb_shells))
     for shell_group, alpha in zip(shell_groups, alphas):
