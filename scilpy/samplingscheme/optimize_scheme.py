@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 import logging
@@ -23,7 +25,6 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
         repeat until convergence.
 
-
     Parameters
     ----------
     points: numpy.array, b-vectors normalized to 1.
@@ -34,7 +35,6 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
     ------
     points: numpy.array, b-vectors normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-
     """
 
     new_points = points.copy()
@@ -94,7 +94,6 @@ def compute_ks_from_shell_idx(shell_idx):
     """
     Recover number of points per shell from point-wise shell index.
 
-
     Parameters
     ----------
     shell_idx: numpy.array, Shell index of sampling scheme.
@@ -102,7 +101,6 @@ def compute_ks_from_shell_idx(shell_idx):
     Return
     ------
     Ks: list, number of samples for each shell, starting from lowest.
-
     """
     K = len(set(shell_idx))
 
@@ -129,7 +127,6 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     ------
     points: numpy.array, b-vectors normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-
     """
 
     new_points = []
@@ -175,7 +172,6 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
     ------
     points: numpy.array, b-vectors normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-
     """
 
     new_points = points.copy()
@@ -208,7 +204,6 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     3) Compute peak power needed as max(peak_x, peak_y, peak_z)
     4) Keeps the permutation yielding the lowest peak power
 
-
     Parameters
     ----------
     points: numpy.array, b-vectors normalized to 1.
@@ -224,7 +219,6 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     ------
     points: numpy.array, b-vectors normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-
     """
 
     logging.debug('Shuffling Data (N_iter = {}, \
@@ -316,7 +310,6 @@ def bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
     Return
     ------
     b_values: list, increasing b-values.
-
     """
 
     b_values = list(np.linspace(np.sqrt(bmin),
@@ -348,7 +341,6 @@ def bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
     Return
     ------
     b_values: list, increasing b-values.
-
     """
 
     b_values = list(np.linspace(bmin, bmax, nb_of_b_inside + 2))
@@ -373,7 +365,6 @@ def add_bvalue_b0(b_values, b0_value=0.0):
     Return
     ------
     b_values: list, b-values of the shells and b0s.
-
     """
 
     b_values.append(b0_value)

@@ -51,7 +51,8 @@ def _build_args_parser():
 
     p.add_argument('ks',
                    type=int, nargs='+',
-                   help='Number of samples on each shells.')
+                   help='Number of samples on each shells. If multishell, '
+                        'provide a number per shell.')
     p.add_argument('outfile',
                    type=str,
                    help='Sampling scheme output filename (don\'t '

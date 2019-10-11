@@ -23,7 +23,6 @@ def is_normalized_bvecs(bvecs):
     Returns
     -------
     True/False
-
     """
 
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
@@ -60,6 +59,17 @@ def normalize_bvecs(bvecs, filename=None):
 
 
 def check_b0_threshold(args, bvals_min):
+    """
+    Check b0 b0_threshold
+
+    Parameters
+    ----------
+    bvals_min:
+
+    Returns
+    -------
+    """
+
     if bvals_min != 0:
         if bvals_min < 0 or bvals_min > DEFAULT_B0_THRESHOLD:
             if args.force_b0_threshold:
@@ -83,6 +93,20 @@ def check_b0_threshold(args, bvals_min):
 
 
 def get_shell_indices(bvals, shell, tol=10):
+    """
+    Get shell indices
+
+    Parameters
+    ----------
+    bvals:
+    shell:
+    tol:
+
+    Returns
+    -------
+        numpy.ndarray with shells
+    """
+
     return np.where(
         np.logical_and(bvals < shell + tol, bvals > shell - tol))[0]
 
@@ -103,7 +127,6 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
 
     Returns
     -------
-
     """
 
     shells = np.loadtxt(fsl_bval_filename)
@@ -140,8 +163,8 @@ def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
 
     Returns
     -------
-
     """
+
     mrtrix_b = np.loadtxt(mrtrix_filename)
     if not len(mrtrix_b.shape) == 2 or not mrtrix_b.shape[1] == 4:
         raise ValueError('mrtrix file must have 4 columns')

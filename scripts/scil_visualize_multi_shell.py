@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
-from __future__ import print_function
 
 import argparse
 import logging
@@ -31,7 +30,8 @@ def _build_args_parser():
 
     p.add_argument(
         'scheme_file', action='store', metavar='scheme_file', type=str,
-        help=DESCRIPTION)
+        help='Sampling scheme filename. (only accepts .txt or .caru or '
+             '.bvecs or .bvals or .b or .dir or .dvs)')
     p.add_argument(
         '--no-sym', action='store_false', dest='sym',
         help='Disable antipodal symmetry.')
@@ -68,7 +68,7 @@ def main():
 
     if args.out:
         possibleOutputPaths = [args.out + '_shell_' + str(i) +
-                               '.png' for i in range(5)]
+                               '.png' for i in range(30)]
         possibleOutputPaths.append(args.out + '.png')
         assert_outputs_exist(parser, args, possibleOutputPaths)
 
@@ -77,12 +77,13 @@ def main():
 
     if not (proj or each):
         parser.error('Select at least one type of rendering (proj or each).')
-        return
 
     # In no way robust, assume the input is from generate_sampling_scheme.py
     # For bvec(s)/bval(s)/FSL format, uses bad assumption for Transpose
+
+    # Use
     scheme_file = args.scheme_file
-    ext = scheme_file.split('.')[-1]
+    basename, ext = split_name_with_nii(scheme_file)
 
     if ext == 'caru':
         # Caruyer format, X Y Z shell_idx
@@ -102,32 +103,30 @@ def main():
         points = np.genfromtxt(scheme_file)
         if points.shape[0] == 3:
             points = points.T
-        bvals = np.genfromtxt(scheme_file[:-5] + 'bvals')
+        bvals = np.genfromtxt(basename + '.bvals')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
-        print(bvals)
-        print(points)
     elif ext == 'bvec':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-        print('Should rename .bvec/.bval to .bvecs/.bvals')
+        logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
         points = np.genfromtxt(scheme_file)
         if points.shape[0] == 3:
             points = points.T
-        bvals = np.genfromtxt(scheme_file[:-4] + 'bval')
+        bvals = np.genfromtxt(basename + '.bval')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bvals':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         bvals = np.genfromtxt(scheme_file)
-        points = np.genfromtxt(scheme_file[:-5] + 'bvecs')
+        points = np.genfromtxt(basename + '.bvecs')
         if points.shape[0] == 3:
             points = points.T
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
     elif ext == 'bval':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-        print('Should rename .bvec/.bval to .bvecs/.bvals')
+        logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
         bvals = np.genfromtxt(scheme_file)
-        points = np.genfromtxt(scheme_file[:-4] + 'bvec')
+        points = np.genfromtxt(basename + '.bvec')
         if points.shape[0] == 3:
             points = points.T
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
@@ -164,7 +163,6 @@ def main():
         logging.error('Unknown format (Only supports .caru, .txt (Philips),' +
                       ' .bvecs/.bvals (FSL), .b (MRtrix), .dir or ' +
                       '.dvs (Siemens))')
-        return
 
     sym = args.sym
     sph = args.sph

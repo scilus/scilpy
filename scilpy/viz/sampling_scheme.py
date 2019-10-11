@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import division
 
 import numpy as np
@@ -21,6 +23,23 @@ vtkcolors = [window.colors.blue,
 
 def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+    """
+    Plot each shell
+
+    Parameters
+    ----------
+    ms:
+    use_sym: boolean,
+    use_sphere: boolean, rendering of the sphere
+    same_color: boolean, use same color for all shell.
+    rad: float,
+    opacity: float, opacity for the shells
+    ofile: str, output filename
+    ores: tuple, resolution of the output png
+
+    Return
+    ------
+    """
 
     if len(ms) > 10:
         vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
@@ -58,6 +77,23 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+    """
+    Plot each shell
+
+    Parameters
+    ----------
+    ms:
+    use_sym: boolean,
+    use_sphere: boolean, rendering of the sphere
+    same_color: boolean, use same color for all shell.
+    rad: float,
+    opacity: float, opacity for the shells
+    ofile: str, output filename
+    ores: tuple, resolution of the output png
+
+    Return
+    ------
+    """
 
     if len(ms) > 10:
         vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
@@ -92,6 +128,18 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
 
 def build_shell_idx_from_bval(bvals, shell_th=50):
+    """
+    Plot each shell
+
+    Parameters
+    ----------
+    bvals: numpy.ndarray, array of bvalues
+    shell_th: int, shells threshold
+
+    Return
+    ------
+    shell_idx: numpy.ndarray, index for each bvalues
+    """
     target_bvalues = _find_target_bvalues(bvals, shell_th=shell_th)
 
     # Pop b0
@@ -104,6 +152,19 @@ def build_shell_idx_from_bval(bvals, shell_th=50):
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
+    """
+    Plot each shell
+
+    Parameters
+    ----------
+    bvecs: numpy.ndarray, bvecs
+    shell_idx: numpy.ndarray, index for each bvalues
+
+    Return
+    ------
+    ms: list of numpy.ndarray (bvecs for each bvalue)
+    """
+
     S = len(set(shell_idx))
     if (-1 in set(shell_idx)):
         S -= 1
@@ -115,27 +176,63 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
     return ms
 
 
-# Attempt to find the b-values of the shells
 def _find_target_bvalues(bvals, shell_th=50):
-    # Not robust
+    """
+    Find bvalues
+
+    Parameters
+    ----------
+    bvals: numpy.ndarray,
+        array of bvalues
+    shell_th: int
+        threshold used to find bvalues
+
+    Return
+    ------
+    target_bvalues: list, unique bvalues
+    """
+
     target_bvalues = []
+    tmp_targets=[]
+    bvalues = np.unique(bvals)
+    distances = np.ediff1d(bvalues)<=shell_th
+    wasClose = False
 
-    bvalues = np.sort(np.array(list(set(bvals))))
+    for idx, distance in enumerate(distances):
+        if distance:
+            if wasClose:
+                tmp_targets[-1].append(bvalues[idx+1])
+            else:
+                tmp_targets.append([bvalues[idx],bvalues[idx+1]])
+            wasClose = True
+        else:
+            if not(wasClose):
+                target_bvalues.append(bvalues[idx])
+            wasClose = False
 
-    for bval in bvalues:
-        add_bval = True
-        for target_bval in target_bvalues:
-            if (bval <= target_bval + shell_th) & \
-               (bval >= target_bval - shell_th):
-                add_bval = False
-        if add_bval:
-            target_bvalues.append(bval)
+
 
     return target_bvalues
 
 
-# Assign bvecs to a target shell
 def _find_shells(bvals, target_bvalues, shell_th=50):
+    """
+    Assign bvecs to a target shell
+
+    Parameters
+    ----------
+    bvals: numpy.ndarray
+        bvalues
+    target_bvalues:
+
+    shell_th: int
+        Threshold used to select bvalues
+
+    Return
+    ------
+    shells:
+    """
+
     # Not robust
     # shell -1 means nbvecs not part of target_bvalues
     shells = -1 * np.ones_like(bvals)
