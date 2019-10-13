@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
 
 
 def streamlines_to_segments(streamlines):
+    """Split streamlines into its segments
+    :param streamlines: list, streamlines with short sampling
+    :return numpy.ndarray (nbr of segments, 2)
+    """
     vts_0_list = []
     vts_1_list = []
     for streamline in streamlines:
@@ -17,6 +20,10 @@ def streamlines_to_segments(streamlines):
 
 
 def streamlines_to_endpoints(streamlines):
+    """Equivalent to resampling to 2 points (first and last)
+    :param streamlines: list, streamlines with short sampling
+    :return numpy.ndarray (nbr of streamlines, 2)
+    """
     endpoints = np.zeros((2, len(streamlines), 3))
     for i, streamline in enumerate(streamlines):
         endpoints[0, i] = streamline[0]
@@ -26,6 +33,13 @@ def streamlines_to_endpoints(streamlines):
 
 
 def streamlines_to_pts_dir_norm(streamlines):
+    """Evaluate each segment attributes
+    :param streamlines: list, streamlines with short sampling
+    :return tuple, 3 numpy.ndarray
+        seg_mid, XYZ coordinates of the center of each segment
+        seg_dir, XYZ orientation of each segment
+        seg_norm, float value representing the norm of each segment
+    """
     segments = streamlines_to_segments(streamlines)
     seg_mid = get_segments_mid_pts_positions(segments)
     seg_dir, seg_norm = get_segments_dir_and_norm(segments)
@@ -66,7 +80,13 @@ def get_indices_1d(volume_shape, pts):
 
 
 def get_dir_to_sphere_id(vectors, sphere_vertices):
-    # sphere_vertices must be normed (or all with equal norm)
+    """Find the closest vector on the sphere using a cKDT tree
+        sphere_vertices must be normed (or all with equal norm)
+    :param vectors: numpy.ndarray, multiple vectors to query
+    :param sphere_vertices, numpy.ndarray typically from dipy sphere object
+    :retun dir_sphere_id, numpy.ndarray all indices of
+        the closest sphere orientation
+    """
     sphere_kdtree = cKDTree(sphere_vertices)
     _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)
     return dir_sphere_id
@@ -78,7 +98,7 @@ def compute_vectors_norm(vectors):
 
 
 def normalize_vectors(vectors):
-    return vectors / norm(vectors, ord=2, axis=-1, keepdims=True)
+    return p_normalize_vectors(vectors, 2)
 
 
 def p_normalize_vectors(vectors, p):

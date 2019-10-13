@@ -119,9 +119,9 @@ def main():
         img.to_filename(args.out_mask)
 
     if args.out_lw_todi_sh:
-        img = todi_obj.get_todi().astype(np.float32)
-        img = todi_obj.get_sh(img, args.sh_basis, args.sh_order,
-                              args.sh_normed)
+        if args.sh_normed:
+            todi_obj.normalize_todi_per_voxel()
+        img = todi_obj.get_sh(args.sh_basis, args.sh_order).astype(np.float32)
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img, affine)
         img.to_filename(args.out_lw_todi_sh)
