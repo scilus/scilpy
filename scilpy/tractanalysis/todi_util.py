@@ -84,8 +84,7 @@ def get_dir_to_sphere_id(vectors, sphere_vertices):
         sphere_vertices must be normed (or all with equal norm)
     :param vectors: numpy.ndarray, multiple vectors to query
     :param sphere_vertices, numpy.ndarray typically from dipy sphere object
-    :retun dir_sphere_id, numpy.ndarray all indices of
-        the closest sphere orientation
+    :return numpy.ndarray indices of the closest sphere id for each vector
     """
     sphere_kdtree = cKDTree(sphere_vertices)
     _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)

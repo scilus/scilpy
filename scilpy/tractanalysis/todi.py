@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
+import logging
 
 from dipy.data import get_sphere
 from dipy.reconst.shm import sf_to_sh
@@ -45,8 +46,8 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi
 
     def compute_todi(self, streamlines, length_weights=True):
-        """Compute the TODI map
-        :param streamlines: list or Array Sequence, TODI input
+        """Compute the TODI map,
+        :param streamlines: list or Array Sequence
         :param length_weights: bool, use length of each segment as weight
         """
         # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
@@ -56,8 +57,7 @@ class TrackOrientationDensityImaging(object):
         if not length_weights:
             pts_norm = None
 
-        pts_sphere_id = \
-            todi_u.get_dir_to_sphere_id(pts_dir, self.sphere.vertices)
+        sph_ids = todi_u.get_dir_to_sphere_id(pts_dir, self.sphere.vertices)
 
         # Get voxel indices for each point
         pts_unmasked_vox = todi_u.get_indices_1d(self.img_shape, pts_pos)
@@ -75,8 +75,7 @@ class TrackOrientationDensityImaging(object):
         todi_bin_len = np.prod(todi_bin_shape)
 
         todi_bin_1d = np.bincount(
-            np.ravel_multi_index(
-                np.stack((pts_vox, pts_sphere_id)), todi_bin_shape),
+            np.ravel_multi_index(np.stack((pts_vox, sph_ids)), todi_bin_shape),
             weights=pts_norm, minlength=todi_bin_len)
 
         # Bincount of sphere id for each voxel
@@ -150,9 +149,9 @@ class TrackOrientationDensityImaging(object):
                         tmp_todi, range(i, chunk_size), axis=1)
                     break
                 current_vol = self.reshape_to_3d(self.todi[:, i])
-                tmp_todi[:, i] = \
-                    gaussian_filter(current_vol, sigma,
-                                    truncate=GAUSSIAN_TRUNCATE).flatten()[new_mask]
+                tmp_todi[:, i] = gaussian_filter(
+                    current_vol, sigma,
+                    truncate=GAUSSIAN_TRUNCATE).flatten()[new_mask]
             # The first hstack cannot be with an empty array
             if new_todi.size == 0:
                 new_todi = deepcopy(tmp_todi)
@@ -165,7 +164,7 @@ class TrackOrientationDensityImaging(object):
         self.todi = new_todi
 
     def normalize_todi_per_voxel(self, p_norm=2):
-        """Normalize TODI so the: sum of (element ** p_norm) = 1
+        """Normalize TODI with order 'p_norm'
         :param p_norm: int, norm type (default L2)
         :return numpy.ndarray, TODI (SF) masked array
         """
@@ -202,8 +201,8 @@ class TrackOrientationDensityImaging(object):
 
             img_unmasked[self.mask] = img_voxelly_masked
             return np.reshape(img_unmasked, img_shape)
-        
-        print("WARNING : Volume might already be in 3d shape")
+
+        logging.warning("WARNING : Volume might already be in 3d shape")
         return img_voxelly_masked
 
     def compute_distance_to_peak(self, peak_img, normalize_count=True,
@@ -232,11 +231,11 @@ class TrackOrientationDensityImaging(object):
         else:
             error_map = np.zeros((len(peak_img)), dtype=np.float)
             for i in range(self.nb_sphere_vts):
-                count_dir_i = self.todi[:, i]
-                error_dir_i = np.dot(peak_img, self.sphere.vertices[i])
-                mask = np.isfinite(error_dir_i)
-                error_map[mask] += count_dir_i[mask] * \
-                    np.arccos(np.clip(np.abs(error_dir_i[mask]), 0.0, 1.0))
+                count_i = self.todi[:, i]
+                error_i = np.dot(peak_img, self.sphere.vertices[i])
+                mask = np.isfinite(error_i)
+                arccos_i = np.arccos(np.clip(np.abs(error_i[mask]), 0.0, 1.0))
+                error_map[mask] += count_i[mask] * arccos_i
 
             if normalize_count:
                 tdi = self.get_tdi().astype(np.float)
