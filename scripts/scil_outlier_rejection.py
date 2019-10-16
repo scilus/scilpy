@@ -71,8 +71,8 @@ def main():
     outliers_data_per_point = tractogram.tractogram.data_per_point[outliers]
 
     if len(inliers_streamlines) == 0:
-        print("All streamlines are considered outliers. Please lower the "
-              "--alpha parameter")
+        logging.warning("All streamlines are considered outliers."
+                        "Please lower the --alpha parameter")
     else:
         inliers_tractogram = Tractogram(
             inliers_streamlines,
@@ -83,7 +83,7 @@ def main():
                              header=tractogram.header)
 
     if len(outliers_streamlines) == 0:
-        print("No outlier found. Please raise the --alpha parameter")
+        logging.warning("No outlier found. Please raise the --alpha parameter")
     elif args.remaining_bundle:
         outlier_tractogram = Tractogram(
             outliers_streamlines,

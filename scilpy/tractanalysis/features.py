@@ -83,7 +83,7 @@ def get_streamlines_bounding_box(streamlines):
         The list of streamlines from which inliers and outliers are separated.
     Returns
     -------
-    tuple: Minimum and maximum corner coordinate of the streamlines 
+    tuple: Minimum and maximum corner coordinate of the streamlines
         bounding box
     """
     box_min = np.array([np.inf, np.inf, np.inf])
