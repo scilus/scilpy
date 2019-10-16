@@ -18,7 +18,7 @@ def check_tracts_same_format(parser, filename_list):
 
     for filename in filename_list[1:]:
         if isinstance(filename, six.string_types) and \
-            not os.path.splitext(filename)[1] == ref_ext:
+                not os.path.splitext(filename)[1] == ref_ext:
             parser.error('All tracts file must use the same format.')
 
 
