@@ -36,18 +36,21 @@ def hash_streamlines(streamlines, start_index=0, precision=None):
     Produces a dict from streamlines by using the points as keys and the
     indices of the streamlines as values.
 
-    Args:
-        streamlines (list of ndarray) : The list of streamlines used to
-            produce the dict.
-        start_index (int, optional) : The index of the first streamline.
-            0 by default.
-        precision (int, optional) : The number of decimals to keep when
-            hashing the points of the streamlines. Allows a soft
-            comparison of streamlines. If None, no rounding is performed.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines used to produce the dict.
+    start_index: int, optional
+        The index of the first streamline. 0 by default.
+    precision: int, optional
+        The number of decimals to keep when hashing the points of the
+        streamlines. Allows a soft comparison of streamlines. If None, no
+        rounding is performed.
 
-    Returns:
-        A dict where the keys are streamline points and the values are
-        indices starting at start_index.
+    Returns
+    -------
+    A dict where the keys are streamline points and the values are indices
+    starting at start_index.
 
     """
 
@@ -85,18 +88,24 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     and produces a new streamlines dict (see hash_streamlines). Union,
     subtraction, and intersection are valid examples of operations.
 
-    Args:
-        operation (callable) : A callable that takes two streamlines dicts as
-            inputs and preduces a new streamline dict.
-        streamlines (list of list of streamlines) : The streamlines used in
-            the operation.
-        precision (int, optional) : The number of decimals to keep when
-            hashing the points of the streamlines. Allows a soft
-            comparison of streamlines. If None, no rounding is performed.
+    Parameters
+    ----------
+    operation: callable
+        A callable that takes two streamlines dicts as inputs and preduces a
+        new streamline dict.
+    streamlines: list of list of streamlines
+        The streamlines used in the operation.
+    precision: int, optional
+        The number of decimals to keep when hashing the points of the
+        streamlines. Allows a soft comparison of streamlines. If None, no
+        rounding is performed.
 
-    Returns:
+    Returns
+    -------
+    streamlines: list of `nib.streamline.Streamlines`
         The streamlines obtained after performing the operation on all the
-            input streamlines.
+        input streamlines.
+    indices: list
         The indices of the streamlines that are used in the output.
 
     """
