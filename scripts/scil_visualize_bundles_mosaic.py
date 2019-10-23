@@ -59,6 +59,20 @@ def get_font(args):
             print('Font {} was not found. '
                   'Default font will be used.'.format(args.ttf))
             font = ImageFont.load_default()
+    elif args.ttf_size is not None:
+        # default font is not a truetype font, so size can't be changed.
+        # to allow users to change the size without having to know where fonts
+        # are in their computer, we could try to find a truetype font ourselves.
+        # They are often present in /usr/share/fonts/
+        font_path = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
+        try:
+            font = ImageFont.truetype(font_path, args.ttf_size)
+        except Exception:
+            print('You did not specify a font. It is difficult'
+                  'for us to adjust size. We tried on font {} '
+                  'but it was not found.'
+                  'Default font will be used, for which font cannot be changed.'.format(font_path))
+            font = ImageFont.load_default()
     else:
         font = ImageFont.load_default()
     return font
