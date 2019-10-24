@@ -92,7 +92,10 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     # Associate field maps
     for fmap in fmaps:
         metadata = get_metadata(fmap)
-        intended = [metadata.get('IntendedFor', '')]
+        if isinstance(metadata.get('IntendedFor', ''), list):
+            intended = metadata.get('IntendedFor', '')
+        else:
+            intended = [metadata.get('IntendedFor', '')]
         for target in intended:
             dwi_filename = os.path.basename(target)
             if dwi_filename not in associations.keys():
