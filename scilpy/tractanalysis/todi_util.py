@@ -15,7 +15,7 @@ def streamlines_to_segments(streamlines):
     Returns
     -------
     segments : numpy.ndarray (2D)
-       Segments array representation with the first and last points.
+        Segments array representation with the first and last points.
     """
     vts_0_list = []
     vts_1_list = []
@@ -38,7 +38,7 @@ def streamlines_to_endpoints(streamlines):
     Returns
     -------
     endpoints : numpy.ndarray (2D)
-       Endpoint array representation with the first and last points.
+        Endpoint array representation with the first and last points.
     """
     endpoints = np.zeros((2, len(streamlines), 3))
     for i, streamline in enumerate(streamlines):
@@ -118,7 +118,7 @@ def get_dir_to_sphere_id(vectors, sphere_vertices):
     Returns
     -------
     dir_sphere_id : numpy.ndarray (1D)
-       Sphere indices of the closest sphere direction for each vector
+        Sphere indices of the closest sphere direction for each vector
     """
     sphere_kdtree = cKDTree(sphere_vertices)
     _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)

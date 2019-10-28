@@ -108,7 +108,7 @@ class TrackOrientationDensityImaging(object):
         Returns
         -------
         tdi : numpy.ndarray (3D)
-           Tract Density Image
+            Tract Density Image
         """
         return np.sum(self.todi, axis=-1)
 
@@ -151,7 +151,7 @@ class TrackOrientationDensityImaging(object):
         Parameters
         ----------
         order : int, optional
-             Exponent blurring factor, based on the dot product
+            Exponent blurring factor, based on the dot product
             (default 2).
         """
         assert order >= 1
@@ -170,7 +170,7 @@ class TrackOrientationDensityImaging(object):
         Parameters
         ----------
         sigma : float, optional
-             Gaussian blurring factor (default 0.5).
+            Gaussian blurring factor (default 0.5).
         """
         # This operation changes the mask as well as the TODI
         mask_3d = self.reshape_to_3d(self.mask).astype(np.float)
@@ -215,12 +215,12 @@ class TrackOrientationDensityImaging(object):
         Parameters
         ----------
         p_norm : int, optional
-             Chosen Norm to normalize.
+            Chosen Norm to normalize.
 
         Returns
         -------
         todi : numpy.ndarray
-           Normalized TODI map.
+            Normalized TODI map.
         """
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
         return self.todi
@@ -248,7 +248,7 @@ class TrackOrientationDensityImaging(object):
         Returns
         -------
         todi_sh : ndarray
-           SH representation of the TODI map
+            SH representation of the TODI map
         """
         return sf_to_sh(self.todi, self.sphere, sh_order, sh_basis, smooth)
 
@@ -268,7 +268,7 @@ class TrackOrientationDensityImaging(object):
         Returns
         -------
         unraveled_img : numpy.ndarray (3D, or 4D)
-           Unravel volume in x, y, z (, c).
+            Unravel volume in x, y, z (, c).
         """
         dtype = img_voxelly_masked.dtype
         if img_voxelly_masked.ndim == 1:
@@ -303,17 +303,17 @@ class TrackOrientationDensityImaging(object):
         peak_img : numpy.ndarray (4D)
             Peaks image,  as written by most of Scilpy scripts.
         normalize_count : bool, optional
-           Normalize/weight the error map by the density map (default True).
+            Normalize/weight the error map by the density map (default True).
         deg : bool, optional
-           Error map will be return as degree instead of radian (default True).
+            Error map will be return as degree instead of radian (default True).
         with_avg_dir : bool, optional
-           Average all orientation of each voxel of the TODI map
+            Average all orientation of each voxel of the TODI map
             into a single direction, warning for crossing (default True).
 
         Returns
         -------
         error_map : numpy.ndarray (3D)
-           Average angle error map per voxel.
+            Average angle error map per voxel.
         """
         assert peak_img.shape[-1] == 3
         if peak_img.ndim == 4:
@@ -354,7 +354,7 @@ class TrackOrientationDensityImaging(object):
         Returns
         -------
         avg_dir : numpy.ndarray (4D)
-           Volume containing a single 3-vector (peak) per voxel.
+            Volume containing a single 3-vector (peak) per voxel.
         """
         avg_dir = np.zeros((len(self.todi), 3), dtype=np.float)
 
