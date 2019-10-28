@@ -305,7 +305,7 @@ class TrackOrientationDensityImaging(object):
         normalize_count : bool, optional
             Normalize/weight the error map by the density map (default True).
         deg : bool, optional
-            Error map will be return as degree instead of radian (default True).
+            Returned error map as degree instead of radian (default True).
         with_avg_dir : bool, optional
             Average all orientation of each voxel of the TODI map
             into a single direction, warning for crossing (default True).
