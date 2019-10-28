@@ -15,18 +15,24 @@ GAUSSIAN_TRUNCATE = 2.0
 
 class TrackOrientationDensityImaging(object):
     def __init__(self, img_shape, sphere_type='repulsion724'):
-        """Build the object
+        """Build the TODI object.
 
-        At each voxel an histogram distribution of
-        the local streamlines orientations (TODI) is computed.
+        Histogram distribution of streamlines' local orientations (TODI)
+        with a Spherical Function (SF) representation of directions.
 
         Parameters
         ----------
         img_shape : tuple, list, array
-            Dimensions of the reference image
+            Dimensions of the reference image.
         sphere_type : str
             The distribution of orientation is discretize on that sphere
-                [repulsion724]
+            (default  'repulsion724').
+
+        Notes
+        -----
+        Dhollander, Thijs, et al. "Track orientation density imaging (TODI) and
+            track orientation distribution (TOD) based tractography."
+            NeuroImage 94 (2014): 312-336.
         """
         assert len(img_shape) == 3
 
@@ -46,9 +52,18 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi
 
     def compute_todi(self, streamlines, length_weights=True):
-        """Compute the TODI map,
-        :param streamlines: list or Array Sequence
-        :param length_weights: bool, use length of each segment as weight
+        """Compute the TODI map.
+
+        At each voxel an histogram distribution of
+        the local streamlines orientations (TODI) is computed,
+        with a Spherical Function (SF) representation of directions.
+
+        Parameters
+        ----------
+        streamlines : list of numpy.ndarray
+            List of streamlines.
+        length_weights : bool, optional
+            Weights TODI map of each segment's length (default True).
         """
         # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
         pts_pos, pts_dir, pts_norm = \
@@ -85,6 +100,16 @@ class TrackOrientationDensityImaging(object):
         return self.todi
 
     def get_tdi(self):
+        """Compute the TDI map.
+
+        Compute the Tract Density Image (TDI) from the TODI volume
+        the local streamlines orientations (TODI) is computed.
+
+        Returns
+        -------
+        tdi : numpy.ndarray (3D)
+           Tract Density Image
+        """
         return np.sum(self.todi, axis=-1)
 
     def get_todi_shape(self):
@@ -94,9 +119,15 @@ class TrackOrientationDensityImaging(object):
         return self.mask
 
     def mask_todi(self, mask):
-        """Mask the TODI map without having to reshape the whole volume all
-        at once (big in memory)
-        :param mask: numpy.ndarray, binary mask
+        """Mask the TODI map.
+
+        Mask the TODI without having to reshape the whole volume all
+        at once (big in memory).
+
+        Parameters
+        ----------
+        mask : numpy.ndarray
+            Given volume mask for the TODI map.
         """
         # Compute intersection between current mask and given mask
         new_mask = np.logical_and(self.mask, mask.flatten())
@@ -112,9 +143,16 @@ class TrackOrientationDensityImaging(object):
         self.todi = new_todi
 
     def smooth_todi_dir(self, order=2):
-        """Smooth the orientations / distribution on the sphere.
-        Important for priors construction of BST
-        :param order: int, blurring factor (based on the dot product)
+        """Smooth orientations on the sphere.
+
+        Smooth the orientations / distribution on the sphere.
+        Important for priors construction of BST.
+
+        Parameters
+        ----------
+        order : int, optional
+             Exponent blurring factor, based on the dot product
+            (default 2).
         """
         assert order >= 1
         todi_sum = np.sum(self.todi, axis=-1, keepdims=True)
@@ -124,9 +162,15 @@ class TrackOrientationDensityImaging(object):
         self.todi *= todi_sum / np.sum(self.todi, axis=-1, keepdims=True)
 
     def smooth_todi_spatial(self, sigma=0.5):
-        """Blur the TODI map using neighborhood information.
-        Important for priors construction of BST. (RAM-friendly version)
-        :param sigma: float, blurring factor
+        """Spatial Smoothing of the TODI map.
+
+        Blur the TODI map using neighborhood information.
+        Important for priors construction of BST.
+
+        Parameters
+        ----------
+        sigma : float, optional
+             Gaussian blurring factor (default 0.5).
         """
         # This operation changes the mask as well as the TODI
         mask_3d = self.reshape_to_3d(self.mask).astype(np.float)
@@ -164,25 +208,67 @@ class TrackOrientationDensityImaging(object):
         self.todi = new_todi
 
     def normalize_todi_per_voxel(self, p_norm=2):
-        """Normalize TODI with order 'p_norm'
-        :param p_norm: int, norm type (default L2)
-        :return numpy.ndarray, TODI (SF) masked array
+        """Normalize TODI map.
+
+        Normalize TODI distribution on the sphere for each voxel independently.
+
+        Parameters
+        ----------
+        p_norm : int, optional
+             Chosen Norm to normalize.
+
+        Returns
+        -------
+        todi : numpy.ndarray
+           Normalized TODI map.
         """
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
         return self.todi
 
-    def get_sh(self, sh_basis, sh_order):
-        """Compute the SH representation of the TODI
-        :return numpy.ndarray, TODI (SH) masked array
+    def get_sh(self, sh_basis, sh_order, smooth=0.006):
+        """Spherical Harmonics (SH) coefficients of the TODI map
+
+        Compute the SH representation of the TODI map,
+        converting SF to SH with a smoothing factor.
+
+        Parameters
+        ----------
+        sh_basis : {None, 'tournier07', 'descoteaux07'}
+            ``None`` for the default DIPY basis,
+            ``tournier07`` for the Tournier 2007 [2]_ basis, and
+            ``descoteaux07`` for the Descoteaux 2007 [1]_ basis
+            (``None`` defaults to ``descoteaux07``).
+        sh_order : int
+            Maximum SH order in the SH fit.  For `sh_order`, there will be
+            ``(sh_order + 1) * (sh_order_2) / 2`` SH coefficients (default 4).
+        smooth : float, optional
+            Smoothing factor for the conversion,
+            Lambda-regularization in the SH fit (default 0.006).
+
+        Returns
+        -------
+        todi_sh : ndarray
+           SH representation of the TODI map
         """
-        return sf_to_sh(self.todi, self.sphere, sh_order, sh_basis, 0.006)
+        return sf_to_sh(self.todi, self.sphere, sh_order, sh_basis, smooth)
 
     def reshape_to_3d(self, img_voxelly_masked):
-        """Reshape a unravel binary mask to its original shape
-        :param img_voxelly_masked: numpy.ndarray, either in 1/2/3D that will be
-            reshaped to 3D (input data shape) accordingly.
-            (Necessary for future masking operation)
-        :return img_voxelly_masked, numpy.ndarray (3D)
+        """Reshape a complex ravelled image to 3D.
+
+        Unravel a given unravel mask (1D), image (1D), SH/SF (2D)
+        to its original 3D shape (with a 4D for SH/SF).
+
+
+        Parameters
+        ----------
+        img_voxelly_masked : numpy.ndarray (either in 1D, 2D or 3D)
+            That will be reshaped to 3D (input data shape) accordingly.
+            Necessary for future masking operation.
+
+        Returns
+        -------
+        unraveled_img : numpy.ndarray (3D, or 4D)
+           Unravel volume in x, y, z (, c).
         """
         dtype = img_voxelly_masked.dtype
         if img_voxelly_masked.ndim == 1:
@@ -207,16 +293,27 @@ class TrackOrientationDensityImaging(object):
 
     def compute_distance_to_peak(self, peak_img, normalize_count=True,
                                  deg=True, with_avg_dir=True):
-        """Compute the distance between "gold standard" peaks and a TODI map
-            in radian or degree
-        :param peak_img: numpy.ndarray (4D) contains peaks as written by most
-            of our scripts
-        :param normalize_count: bool, Normalize/weight the error map by the
-            density map
-        :param deg: bool, Error map will be return as degree instead of radian
-        :param with_avg_dir: Average all orientation of a voxel of the TODI map
-            into a single direction (warning for crossing)
-        :return error_map, numpy.ndarray map of the cummulative radian error
+        """Compute distance to peak map.
+
+        Compute the distance of the TODI map to peaks at each position,
+        in radian or degree.
+
+        Parameters
+        ----------
+        peak_img : numpy.ndarray (4D)
+            Peaks image,  as written by most of Scilpy scripts.
+        normalize_count : bool, optional
+           Normalize/weight the error map by the density map (default True).
+        deg : bool, optional
+           Error map will be return as degree instead of radian (default True).
+        with_avg_dir : bool, optional
+           Average all orientation of each voxel of the TODI map
+            into a single direction, warning for crossing (default True).
+
+        Returns
+        -------
+        error_map : numpy.ndarray (3D)
+           Average angle error map per voxel.
         """
         assert peak_img.shape[-1] == 3
         if peak_img.ndim == 4:
@@ -249,9 +346,15 @@ class TrackOrientationDensityImaging(object):
         return error_map
 
     def compute_average_dir(self):
-        """Average all orientation (voxel-wise) of the TODI map
-            into a single direction (warning for crossing)
-        :return avg_dir, numpy.ndarray with single 3D vector per voxel
+        """Voxel-wise average of TODI orientations.
+
+        Average all orientation of each voxel, of the TODI map,
+        into a single direction, warning for crossing.
+
+        Returns
+        -------
+        avg_dir : numpy.ndarray (4D)
+           Volume containing a single 3-vector (peak) per voxel.
         """
         avg_dir = np.zeros((len(self.todi), 3), dtype=np.float)
 

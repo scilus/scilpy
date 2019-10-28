@@ -5,9 +5,17 @@ from scipy.spatial.ckdtree import cKDTree
 
 
 def streamlines_to_segments(streamlines):
-    """Split streamlines into its segments
-    :param streamlines: list, streamlines with short sampling
-    :return numpy.ndarray (nbr of segments, 2)
+    """Split streamlines into its segments.
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+        Dimensions of the reference image.
+
+    Returns
+    -------
+    segments : numpy.ndarray (2D)
+       Segments array representation with the first and last points.
     """
     vts_0_list = []
     vts_1_list = []
@@ -20,9 +28,17 @@ def streamlines_to_segments(streamlines):
 
 
 def streamlines_to_endpoints(streamlines):
-    """Equivalent to resampling to 2 points (first and last)
-    :param streamlines: list, streamlines with short sampling
-    :return numpy.ndarray (nbr of streamlines, 2)
+    """Equivalent to streamlines resampling to 2 points (first and last).
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+        Dimensions of the reference image.
+
+    Returns
+    -------
+    endpoints : numpy.ndarray (2D)
+       Endpoint array representation with the first and last points.
     """
     endpoints = np.zeros((2, len(streamlines), 3))
     for i, streamline in enumerate(streamlines):
@@ -33,12 +49,21 @@ def streamlines_to_endpoints(streamlines):
 
 
 def streamlines_to_pts_dir_norm(streamlines):
-    """Evaluate each segment attributes
-    :param streamlines: list, streamlines with short sampling
-    :return tuple, 3 numpy.ndarray
-        seg_mid, XYZ coordinates of the center of each segment
-        seg_dir, XYZ orientation of each segment
-        seg_norm, float value representing the norm of each segment
+    """Evaluate each segment: mid position, direction, length.
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+        Dimensions of the reference image.
+
+    Returns
+    -------
+    seg_mid : numpy.ndarray (2D)
+        Mid position (x,y,z) of all streamlines' segments.
+    seg_dir : numpy.ndarray (2D)
+        Direction (x,y,z) of all streamlines' segments.
+    seg_norm : numpy.ndarray (2D)
+        Length of all streamlines' segments.
     """
     segments = streamlines_to_segments(streamlines)
     seg_mid = get_segments_mid_pts_positions(segments)
@@ -80,11 +105,20 @@ def get_indices_1d(volume_shape, pts):
 
 
 def get_dir_to_sphere_id(vectors, sphere_vertices):
-    """Find the closest vector on the sphere using a cKDT tree
-        sphere_vertices must be normed (or all with equal norm)
-    :param vectors: numpy.ndarray, multiple vectors to query
-    :param sphere_vertices, numpy.ndarray typically from dipy sphere object
-    :return numpy.ndarray indices of the closest sphere id for each vector
+    """Find the closest vector on the sphere vertices using a cKDT tree
+        sphere_vertices must be normed (or all with equal norm).
+
+    Parameters
+    ----------
+    vectors : numpy.ndarray (2D)
+        Vectors representing the direction (x,y,z) of segments.
+    sphere_vertices : numpy.ndarray (2D)
+        Vertices of a Dipy sphere object.
+
+    Returns
+    -------
+    dir_sphere_id : numpy.ndarray (1D)
+       Sphere indices of the closest sphere direction for each vector
     """
     sphere_kdtree = cKDTree(sphere_vertices)
     _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)
