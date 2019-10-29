@@ -18,7 +18,7 @@ class TrackOrientationDensityImaging(object):
         """Build the TODI object.
 
         Histogram distribution of streamlines' local orientations (TODI)
-        with a Spherical Function (SF) representation of directions.
+        with a Spherical Function (SF).
 
         Parameters
         ----------
@@ -102,8 +102,7 @@ class TrackOrientationDensityImaging(object):
     def get_tdi(self):
         """Compute the TDI map.
 
-        Compute the Tract Density Image (TDI) from the TODI volume
-        the local streamlines orientations (TODI) is computed.
+        Compute the Tract Density Image (TDI) from the TODI volume.
 
         Returns
         -------
@@ -249,6 +248,16 @@ class TrackOrientationDensityImaging(object):
         -------
         todi_sh : ndarray
             SH representation of the TODI map
+
+        References
+        ----------
+        .. [1] Descoteaux, M., Angelino, E., Fitzgibbons, S. and Deriche, R.
+               Regularized, Fast, and Robust Analytical Q-ball Imaging.
+               Magn. Reson. Med. 2007;58:497-510.
+        .. [2] Tournier J.D., Calamante F. and Connelly A.
+               Robust determination of the fibre orientation distribution in
+               diffusion MRI: Non-negativity constrained super-resolved
+               spherical deconvolution. NeuroImage. 2007;35(4):1459-1472.
         """
         return sf_to_sh(self.todi, self.sphere, sh_order, sh_basis, smooth)
 
@@ -257,7 +266,6 @@ class TrackOrientationDensityImaging(object):
 
         Unravel a given unravel mask (1D), image (1D), SH/SF (2D)
         to its original 3D shape (with a 4D for SH/SF).
-
 
         Parameters
         ----------
@@ -301,7 +309,7 @@ class TrackOrientationDensityImaging(object):
         Parameters
         ----------
         peak_img : numpy.ndarray (4D)
-            Peaks image,  as written by most of Scilpy scripts.
+            Peaks image, as written by most of Scilpy scripts.
         normalize_count : bool, optional
             Normalize/weight the error map by the density map (default True).
         deg : bool, optional

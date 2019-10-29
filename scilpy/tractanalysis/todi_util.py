@@ -10,7 +10,7 @@ def streamlines_to_segments(streamlines):
     Parameters
     ----------
     streamlines : list of numpy.ndarray
-        Dimensions of the reference image.
+        List of streamlines.
 
     Returns
     -------
@@ -33,7 +33,7 @@ def streamlines_to_endpoints(streamlines):
     Parameters
     ----------
     streamlines : list of numpy.ndarray
-        Dimensions of the reference image.
+        List of streamlines.
 
     Returns
     -------
@@ -53,8 +53,8 @@ def streamlines_to_pts_dir_norm(streamlines):
 
     Parameters
     ----------
-    streamlines : list of numpy.ndarray
-        Dimensions of the reference image.
+    streamlines :  list of numpy.ndarray
+        List of streamlines.
 
     Returns
     -------
