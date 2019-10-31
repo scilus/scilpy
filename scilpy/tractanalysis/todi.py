@@ -26,7 +26,7 @@ class TrackOrientationDensityImaging(object):
             Dimensions of the reference image.
         sphere_type : str
             The distribution of orientation is discretize on that sphere
-            (default  'repulsion724').
+            (default 'repulsion724').
 
         Notes
         -----
@@ -55,8 +55,7 @@ class TrackOrientationDensityImaging(object):
         """Compute the TODI map.
 
         At each voxel an histogram distribution of
-        the local streamlines orientations (TODI) is computed,
-        with a Spherical Function (SF) representation of directions.
+        the local streamlines orientations (TODI) is computed.
 
         Parameters
         ----------
