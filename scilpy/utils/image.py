@@ -80,7 +80,6 @@ def transform_dwi(reg_obj, static, dwi):
     return trans_dwi
 
 
-
 def register_image(static, static_grid2world, moving, moving_grid2world,
                    transformation_type='affine', dwi=None):
     if transformation_type not in ['rigid', 'affine']:
