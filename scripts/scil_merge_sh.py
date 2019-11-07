@@ -37,11 +37,11 @@ def _build_arg_parser():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('first_in',
-                        help='first input SH file')
+                        help='first input SH file.')
     parser.add_argument('second_in',
-                        help='second input SH file')
+                        help='second input SH file.')
     parser.add_argument('out_sh',
-                        help='output SH file')
+                        help='output SH file.')
 
     add_overwrite_arg(parser)
 
@@ -53,7 +53,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.first_in, args.second_in])
-    assert_outputs_exist(parser, args, [args.out_sh])
+    assert_outputs_exist(parser, args, args.out_sh)
 
     assert_same_resolution(args.first_in, args.second_in)
 
