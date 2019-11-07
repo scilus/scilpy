@@ -193,9 +193,9 @@ def _find_target_bvalues(bvals, shell_th=50):
     """
 
     target_bvalues = []
-    tmp_targets=[]
+    tmp_targets = []
     bvalues = np.unique(bvals)
-    distances = np.ediff1d(bvalues)<=shell_th
+    distances = np.ediff1d(bvalues) <= shell_th
     wasClose = False
 
     for idx, distance in enumerate(distances):
@@ -203,14 +203,12 @@ def _find_target_bvalues(bvals, shell_th=50):
             if wasClose:
                 tmp_targets[-1].append(bvalues[idx+1])
             else:
-                tmp_targets.append([bvalues[idx],bvalues[idx+1]])
+                tmp_targets.append([bvalues[idx], bvalues[idx+1]])
             wasClose = True
         else:
             if not(wasClose):
                 target_bvalues.append(bvalues[idx])
             wasClose = False
-
-
 
     return target_bvalues
 
