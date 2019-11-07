@@ -1,5 +1,6 @@
 bz2file==0.98
 cycler==0.10.0
+Cython==0.29.12
 fury==0.2.0
 dipy==1.0.0
 future==0.17.1
@@ -14,6 +15,7 @@ pyparsing==2.2.0
 python-dateutil==2.7.2
 pytz==2018.4
 scipy==1.0.1
+setuptools==39.0.1
 six==1.11.0
 vtk==8.1.0
 coloredlogs==10.0
