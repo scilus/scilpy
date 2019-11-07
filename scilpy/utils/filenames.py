@@ -16,6 +16,7 @@ def add_filename_suffix(filename, suffix):
         The full filename, including extension
     suffix: str
         The suffix to add to the filename
+
     Returns
     -------
     The completed file name.
@@ -34,6 +35,7 @@ def split_name_with_nii(filename):
     ----------
     filename: str
         The filename to clean
+
     Returns
     -------
         base, ext : tuple(str, str)

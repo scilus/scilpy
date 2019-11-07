@@ -46,6 +46,7 @@ def hash_streamlines(streamlines, start_index=0, precision=None):
         The number of decimals to keep when hashing the points of the
         streamlines. Allows a soft comparison of streamlines. If None, no
         rounding is performed.
+
     Returns
     -------
     A dict where the keys are streamline points and the values are indices
@@ -98,8 +99,10 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
         The number of decimals to keep when hashing the points of the
         streamlines. Allows a soft comparison of streamlines. If None, no
         rounding is performed.
+
     Returns
     -------
+    streamlines: list of `nib.streamline.Streamlines`
         The streamlines obtained after performing the operation on all the
         input streamlines.
     indices: list
