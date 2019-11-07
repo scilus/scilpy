@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dipy.align.imaffine import AffineMap
+from dipy.align.imaffine import (AffineMap,
+                                 AffineRegistration,
+                                 MutualInformationMetric,
+                                 transform_centers_of_mass)
+from dipy.align.transforms import (AffineTransform3D,
+                                   RigidTransform3D)
 import nibabel as nib
 import numpy as np
 
@@ -73,3 +78,48 @@ def transform_dwi(reg_obj, static, dwi):
         trans_dwi[..., i] = reg_obj.transform(dwi[..., i])
 
     return trans_dwi
+
+
+def register_image(static, static_grid2world, moving, moving_grid2world,
+                   transformation_type='affine', dwi=None):
+    if transformation_type not in ['rigid', 'affine']:
+        raise ValueError('Transformation type not available in Dipy')
+
+    # Set all parameters for registration
+    nbins = 32
+    params0 = None
+    sampling_prop = None
+    level_iters = [50, 25, 5]
+    sigmas = [8.0, 4.0, 2.0]
+    factors = [8, 4, 2]
+    metric = MutualInformationMetric(nbins, sampling_prop)
+    reg_obj = AffineRegistration(metric=metric, level_iters=level_iters,
+                                 sigmas=sigmas, factors=factors, verbosity=0)
+
+    # First, align the center of mass of both volume
+    c_of_mass = transform_centers_of_mass(static, static_grid2world,
+                                          moving, moving_grid2world)
+    # Then, rigid transformation (translation + rotation)
+    transform = RigidTransform3D()
+    rigid = reg_obj.optimize(static, moving, transform, params0,
+                             static_grid2world, moving_grid2world,
+                             starting_affine=c_of_mass.affine)
+
+    if transformation_type == 'affine':
+        # Finally, affine transformation (translation + rotation + scaling)
+        transform = AffineTransform3D()
+        affine = reg_obj.optimize(static, moving, transform, params0,
+                                  static_grid2world, moving_grid2world,
+                                  starting_affine=rigid.affine)
+
+        mapper = affine
+        transformation = affine.affine
+    else:
+        mapper = rigid
+        transformation = rigid.affine
+
+    if dwi is not None:
+        trans_dwi = transform_dwi(mapper, static, dwi)
+        return trans_dwi, transformation
+    else:
+        return mapper.transform(moving), transformation

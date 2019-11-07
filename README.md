@@ -18,6 +18,7 @@ pip install -r requirements.txt
 Following this, the library and scripts can be installed locally by using
 
 ```
+python setup.py build_ext --inplace
 python setup.py install
 python setup.py install_scripts
 ```
