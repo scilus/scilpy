@@ -62,7 +62,7 @@ def main():
     in_tractogram = nib.streamlines.load(args.in_tractogram, lazy_load=True)
     compressed_streamlines = compress_streamlines_wrapper(in_tractogram,
                                                           args.error_rate)
-    print(args.error_rate)
+
     out_tractogram = LazyTractogram(compressed_streamlines,
                                     affine_to_rasmm=np.eye(4))
     nib.streamlines.save(out_tractogram, args.out_tractogram,
