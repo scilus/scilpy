@@ -143,8 +143,7 @@ class TrackOrientationDensityImaging(object):
         if normalized:
             todi_sf = todi_u.normalize_vectors(todi_img)
 
-        return sf_to_sh(todi_sf, self.sphere,
-                        sh_order=sh_order, basis_type=sh_basis, smooth=0.006)
+        return sf_to_sh(todi_sf, self.sphere, sh_order, sh_basis, 0.006)
 
     def reshape_to_3d(self, img_voxelly_masked):
         dtype = img_voxelly_masked.dtype
