@@ -29,13 +29,19 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     Parameters
     ----------
     ms:
-    use_sym: boolean,
-    use_sphere: boolean, rendering of the sphere
-    same_color: boolean, use same color for all shell.
-    rad: float,
-    opacity: float, opacity for the shells
-    ofile: str, output filename
-    ores: tuple, resolution of the output png
+    use_sym: boolean
+    use_sphere: boolean
+        rendering of the sphere
+    same_color: boolean
+        use same color for all shell.
+    rad: float
+
+    opacity: float
+        opacity for the shells
+    ofile: str
+        output filename
+    ores: tuple
+        resolution of the output png
 
     Return
     ------
@@ -83,13 +89,20 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     Parameters
     ----------
     ms:
-    use_sym: boolean,
-    use_sphere: boolean, rendering of the sphere
-    same_color: boolean, use same color for all shell.
-    rad: float,
-    opacity: float, opacity for the shells
-    ofile: str, output filename
-    ores: tuple, resolution of the output png
+    use_sym: boolean
+
+    use_sphere: boolean
+        rendering of the sphere
+    same_color: boolean
+        use same color for all shell.
+    rad: float
+
+    opacity: float
+        opacity for the shells
+    ofile: str
+        output filename
+    ores: tuple
+        resolution of the output png
 
     Return
     ------
@@ -133,12 +146,15 @@ def build_shell_idx_from_bval(bvals, shell_th=50):
 
     Parameters
     ----------
-    bvals: numpy.ndarray, array of bvalues
-    shell_th: int, shells threshold
+    bvals: numpy.ndarray
+        array of bvalues
+    shell_th: int
+        shells threshold
 
     Return
     ------
-    shell_idx: numpy.ndarray, index for each bvalues
+    shell_idx: numpy.ndarray
+        index for each bvalues
     """
     target_bvalues = _find_target_bvalues(bvals, shell_th=shell_th)
 
@@ -157,12 +173,15 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
 
     Parameters
     ----------
-    bvecs: numpy.ndarray, bvecs
-    shell_idx: numpy.ndarray, index for each bvalues
+    bvecs: numpy.ndarray
+        bvecs
+    shell_idx: numpy.ndarray
+        index for each bvalues
 
     Return
     ------
-    ms: list of numpy.ndarray (bvecs for each bvalue)
+    ms: list of numpy.ndarray
+        bvecs for each bvalue
     """
 
     S = len(set(shell_idx))
@@ -182,7 +201,7 @@ def _find_target_bvalues(bvals, shell_th=50):
 
     Parameters
     ----------
-    bvals: numpy.ndarray,
+    bvals: numpy.ndarray
         array of bvalues
     shell_th: int
         threshold used to find bvalues
