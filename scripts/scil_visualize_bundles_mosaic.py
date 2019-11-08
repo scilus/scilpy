@@ -9,6 +9,7 @@ The script will output a mosaic (image) with screenshots,
 
 from __future__ import division, print_function
 import argparse
+import logging
 import os
 import shutil
 
@@ -57,7 +58,7 @@ def get_font(args):
             font = ImageFont.truetype(args.ttf, args.ttf_size)
         except Exception:
             logging.error('Font {} was not found. '
-                  'Default font will be used.'.format(args.ttf))
+                          'Default font will be used.'.format(args.ttf))
             font = ImageFont.load_default()
     elif args.ttf_size is not None:
         # default font is not a truetype font, so size can't be changed.
@@ -69,10 +70,10 @@ def get_font(args):
             font = ImageFont.truetype(font_path, args.ttf_size)
         except Exception:
             logging.error('You did not specify a font. It is difficult'
-                  'for us to adjust size. We tried on font {} '
-                  'but it was not found.'
-                  'Default font will be used, for which font '
-                  'cannot be changed.'.format(font_path))
+                          'for us to adjust size. We tried on font {} '
+                          'but it was not found.'
+                          'Default font will be used, for which font '
+                          'cannot be changed.'.format(font_path))
             font = ImageFont.load_default()
     else:
         font = ImageFont.load_default()
