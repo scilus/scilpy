@@ -28,14 +28,16 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
     Parameters
     ----------
-    ms:
+    ms: list of numpy.ndarray
+        bvecs for each bvalue
     use_sym: boolean
+        Plot symmetrical vectors
     use_sphere: boolean
         rendering of the sphere
     same_color: boolean
         use same color for all shell.
     rad: float
-
+        radius of each point
     opacity: float
         opacity for the shells
     ofile: str
@@ -88,15 +90,16 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
     Parameters
     ----------
-    ms:
+    ms: list of numpy.ndarray
+        bvecs for each bvalue
     use_sym: boolean
-
+        Plot symmetrical vectors
     use_sphere: boolean
         rendering of the sphere
     same_color: boolean
         use same color for all shell.
     rad: float
-
+        radius of each point
     opacity: float
         opacity for the shells
     ofile: str
@@ -208,7 +211,8 @@ def _find_target_bvalues(bvals, shell_th=50):
 
     Return
     ------
-    target_bvalues: list, unique bvalues
+    target_bvalues: list
+        unique bvalues
     """
 
     target_bvalues = []
