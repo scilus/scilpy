@@ -11,12 +11,12 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
 """
-Merge 2 Spherical Harmonics files.
+Merge a list of Spherical Harmonics files.
 
-This merges the coefficients of 2 Spherical Harmonics files
+This merges the coefficients of multiple Spherical Harmonics files
 by taking, for each coefficient, the one with the largest magnitude.
 
-Can be used to merge fODFs computed from 2 different shells into 1, while
+Can be used to merge fODFs computed from different shells into 1, while
 conserving the most relevant information.
 
 Based on [1].
@@ -36,10 +36,8 @@ def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('first_in',
-                        help='first input SH file.')
-    parser.add_argument('second_in',
-                        help='second input SH file.')
+    parser.add_argument('sh_files', nargs="+",
+                        help='List of SH files.')
     parser.add_argument('out_sh',
                         help='output SH file.')
 
@@ -52,19 +50,22 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.first_in, args.second_in])
+    assert_inputs_exist(parser, args.sh_files)
     assert_outputs_exist(parser, args, args.out_sh)
 
-    assert_same_resolution(args.first_in, args.second_in)
+    first_sh = args.sh_files[0]
+    first_im = nb.load(args.sh_files[0])
+    out_coeffs = first_im.get_data()
 
-    first_im = nb.load(args.first_in)
-    second_im = nb.load(args.second_in)
+    for sh_file in args.sh_files[1:]:
+        assert_same_resolution(first_sh, sh_file)
 
-    first_dat = first_im.get_data()
-    second_dat = second_im.get_data()
+        im = nb.load(sh_file)
+        im_dat = im.get_data()
 
-    out_coeffs = np.where(np.abs(first_dat) > np.abs(second_dat),
-                          first_dat, second_dat)
+        out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
+                              im_dat, out_coeffs)
+
     nb.save(nb.Nifti1Image(out_coeffs, first_im.affine, first_im.header),
             args.out_sh)
 

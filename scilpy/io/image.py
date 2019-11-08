@@ -34,8 +34,8 @@ def assert_same_resolution(*images):
 
     Parameters
     ----------
-    images : array of string
-        List of images.
+    images : array of string or string
+        List of images or an image.
     """
     if len(images) == 0:
         raise Exception("Can't check if images are of the same "
