@@ -28,7 +28,7 @@ def get_reference_info(reference):
     return reference_shape, reference_affine
 
 
-def assert_same_resolution(*images):
+def assert_same_resolution(images):
     """
     Check the resolution of multiple images.
 
@@ -37,6 +37,9 @@ def assert_same_resolution(*images):
     images : array of string or string
         List of images or an image.
     """
+    if isinstance(images, str):
+        images = [images]
+
     if len(images) == 0:
         raise Exception("Can't check if images are of the same "
                         "resolution/affine. No image has been given")

@@ -52,14 +52,13 @@ def main():
 
     assert_inputs_exist(parser, args.sh_files)
     assert_outputs_exist(parser, args, args.out_sh)
+    assert_same_resolution(args.sh_files)
 
     first_sh = args.sh_files[0]
     first_im = nb.load(args.sh_files[0])
     out_coeffs = first_im.get_data()
 
     for sh_file in args.sh_files[1:]:
-        assert_same_resolution(first_sh, sh_file)
-
         im = nb.load(sh_file)
         im_dat = im.get_data()
 
