@@ -77,8 +77,8 @@ def _build_arg_parser():
              'not be saved.')
 
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Use verbose output. Default: false.')
+    add_verbose_arg(p)
+
     return p
 
 
@@ -176,8 +176,8 @@ def main():
         with open(args.output_ventricles, "w") as text_file:
             text_file.write(str(vent_avg))
 
-    print("Average AD in single fiber areas: {} +- {}".format(cc_avg, cc_std))
-    print("Average MD in ventricles: {} +- {}".format(vent_avg, vent_std))
+    logging.info("Average AD in single fiber areas: {} +- {}".format(cc_avg, cc_std))
+    logging.info("Average MD in ventricles: {} +- {}".format(vent_avg, vent_std))
 
 
 if __name__ == "__main__":

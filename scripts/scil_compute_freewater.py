@@ -106,7 +106,7 @@ def main():
 
     assert_inputs_exist(parser,
                         required_in,
-                        [args.mask])
+                        args.mask)
 
     out_dir = ''
     if args.output_dir:
@@ -127,8 +127,7 @@ def main():
         import multiprocessing
         if args.processes > multiprocessing.cpu_count():
             parser.error('Max number of processes is {}. Got {}.'.format(
-                multiprocessing.cpu_count(), args.processes
-            ))
+                multiprocessing.cpu_count(), args.processes))
 
     # Load the data
     ae = amico.Evaluation('./', './')
