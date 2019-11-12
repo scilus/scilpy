@@ -54,7 +54,6 @@ def main():
     assert_outputs_exist(parser, args, args.out_sh)
     assert_same_resolution(args.sh_files)
 
-    first_sh = args.sh_files[0]
     first_im = nb.load(args.sh_files[0])
     out_coeffs = first_im.get_data()
 
