@@ -38,22 +38,18 @@ import dipy.reconst.dti as dti
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
+from scipy.ndimage.filters import gaussian_filter
+
 # Aliased to avoid clashes with images called mode.
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exists, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
-from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 
 
 logger = logging.getLogger("Compute_DKI_Metrics")
 logger.setLevel(logging.INFO)
-
-
-def _get_min_nonzero_signal(data):
-    return np.min(data[data > 0])
-
 
 def _guess_bvals_centroids(bvals, threshold):
     if not len(bvals):
@@ -113,6 +109,11 @@ def _build_args_parser():
         '\nIn theory, 10 is the max kurtosis limit for regions that consist ' +
         '\nof water confined to spherical pores (see DIPY example and documentation) [Default: %(default)s].')
     p.add_argument(
+        '--smooth', dest='smooth', type=float, default='1.25', 
+        help='Smooth input DWI with a 3D Gaussian filter with ' +
+        '\nfull-width-half-max (fwhm). Kurtosis fitting is sensitive and outliers occur easily. '+
+        '\n This smoothing is thus done by default but can be turned off with fwhm=0. [Default: %(default)s].')
+    p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
              'the other metrics flags. [Default: not set].')
@@ -152,10 +153,10 @@ def main():
     args = parser.parse_args()
 
     if not args.not_all:
-        args.fa = args.fa or 'fa.nii.gz'
-        args.md = args.md or 'md.nii.gz'
-        args.ad = args.ad or 'ad.nii.gz'
-        args.rd = args.rd or 'rd.nii.gz'
+        args.fa = args.fa or 'dki_fa.nii.gz'
+        args.md = args.md or 'dki_md.nii.gz'
+        args.ad = args.ad or 'dki_ad.nii.gz'
+        args.rd = args.rd or 'dki_rd.nii.gz'
         args.mk = args.mk or 'mk.nii.gz'
         args.rk = args.rk or 'rk.nii.gz'
         args.ak = args.ak or 'ak.nii.gz'
@@ -197,9 +198,18 @@ def main():
     check_b0_threshold(args, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
+    
+    fwhm = args.smooth
+    if fwhm != 0 :
+        gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+        data_smooth = np.zeros(data.shape)
+        for v in range(data.shape[-1]):
+            data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
+        data = data_smooth
+
     # Compute DKI
     dkimodel = dki.DiffusionKurtosisModel(gtab)
-    dkifit = dkimodel.fit(data, mask=mask)
+    dkifit = dkimodel.fit(data_smooth, mask=mask)
 
     FA = dkifit.fa
     FA[np.isnan(FA)] = 0
@@ -251,10 +261,14 @@ def main():
         data_p = dkifit.predict(gtab, S0)
         R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
                            data[..., ~gtab.b0s_mask]), axis=-1)
+
+        norm = np.linalg.norm(R)
+        if norm != 0: 
+            R = R / norm
         
         if args.mask is not None:
             R *= mask
-
+        
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 
