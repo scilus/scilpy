@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the Diffusion Kurtosis Imaging (DKI) metrics.
+Script to compute the Diffusion Kurtosis Imaging (DKI) metrics. DKI is a multi-shell
+diffusion model. The input DWI needs to be multi-shell, i.e. multi-bvalued.
 
 Since the diffusion kurtosis model involves the estimation of a large number of parameters 
 and since the non-Gaussian components of the diffusion signal are more sensitive to artefacts, 
@@ -34,6 +35,8 @@ import numpy as np
 
 import dipy.reconst.dki as dki
 import dipy.reconst.dti as dti
+from dipy.io.gradients import read_bvals_bvecs
+from dipy.core.gradients import gradient_table
 
 # Aliased to avoid clashes with images called mode.
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -41,6 +44,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
+from scilpy.utils.bvec_bval_tools import get_shell_indices
 
 
 logger = logging.getLogger("Compute_DKI_Metrics")
@@ -51,12 +55,38 @@ def _get_min_nonzero_signal(data):
     return np.min(data[data > 0])
 
 
+def _guess_bvals_centroids(bvals, threshold):
+    if not len(bvals):
+        raise ValueError('Empty b-values.')
+
+    bval_centroids = [bvals[0]]
+
+    for bval in bvals[1:]:
+        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        if not len(np.where(diffs < threshold)[0]):
+            # Found no bval in bval centroids close enough to the current one.
+            bval_centroids.append(bval)
+
+    return np.array(bval_centroids)
+
+
+def identify_shells(bvals, threshold=40.0):
+    centroids = _guess_bvals_centroids(bvals, threshold)
+
+    bvals_for_diffs = np.tile(bvals.reshape(bvals.shape[0], 1),
+                              (1, centroids.shape[0]))
+
+    shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
+
+    return centroids, shell_indices
+
+
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('input',
-                   help='Path of the input diffusion volume.')
+                   help='Path of the input multi-shell (multi-bvalue) diffusion dataset.')
     p.add_argument('bvals',
                    help='Path of the bvals file, in FSL format.')
     p.add_argument('bvecs',
@@ -67,20 +97,25 @@ def _build_args_parser():
         '--mask',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
              'for computations and reconstruction. (Default: None)')
+
+    p.add_argument('--tolerance', '-t',
+                   metavar='INT', type=int, default=20,
+                   help='The tolerated distance between the b-values to '
+                   'extract\nand the actual b-values [Default: %(default)s].')
     p.add_argument(
         '--min_k', dest='min_k', type=float, default='0',
         help='Minium kurtosis value in the output maps (ak, mk, rk). ' +
         '\nIn theory, -3/7 is the min kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation) [%(default)s].')
+        '\nof water confined to spherical pores (see DIPY example and documentation) [Default: %(default)s].')
     p.add_argument(
         '--max_k', dest='max_k', type=float, default='3',
         help='Maximum kurtosis value in the output maps (ak, mk, rk). ' +
         '\nIn theory, 10 is the max kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation) [%(default)s].')
+        '\nof water confined to spherical pores (see DIPY example and documentation) [Default: %(default)s].')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
-             'the other metrics flags. (Default: not set).')
+             'the other metrics flags. [Default: not set].')
 
     g = p.add_argument_group(title='Metrics files flags')
     g.add_argument('--ad', dest='ad', metavar='file', default='',
@@ -146,9 +181,15 @@ def main():
         mask = nib.load(args.mask).get_data().astype(np.bool)
 
     # Validate bvals and bvecs
-    logging.info('DKI estimation with the %s method...', args.method)
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
+    # Find the volume indices that correspond to the shells to extract.
+    tol = args.tolerance
+    shells, _ = identify_shells(bvals, tol)
+    #print(shells, len(shells))
+    if not len(shells) > 3 :
+        parser.error('Data is not multi-shell. You need at least 2 non-zero b-values')
+    
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
@@ -181,17 +222,14 @@ def main():
         nib.save(fa_img, args.fa)
 
     if args.md:
-        MD = mean_diffusivity(tenfit.evals)
         md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
         nib.save(md_img, args.md)
         
     if args.ad:
-        AD = axial_diffusivity(tenfit.evals)
         ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
         nib.save(ad_img, args.ad)
 
     if args.rd:
-        RD = radial_diffusivity(tenfit.evals)
         rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
         nib.save(rd_img, args.rd)
 
