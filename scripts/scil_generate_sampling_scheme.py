@@ -49,7 +49,7 @@ def _build_args_parser():
         epilog=EPILOG)
     p._optionals.title = "Options and Parameters"
 
-    p.add_argument('ks',
+    p.add_argument('nb_samples',
                    type=int, nargs='+',
                    help='Number of samples on each shells. If multishell, '
                         'provide a number per shell.')
@@ -134,7 +134,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    Ks = args.ks
+    Ks = args.nb_samples
     eddy = args.eddy
     duty = args.duty
 

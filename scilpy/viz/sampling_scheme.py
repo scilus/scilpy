@@ -35,7 +35,7 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     use_sphere: boolean
         rendering of the sphere
     same_color: boolean
-        use same color for all shell.
+        use same color for all shell
     rad: float
         radius of each point
     opacity: float
@@ -97,7 +97,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     use_sphere: boolean
         rendering of the sphere
     same_color: boolean
-        use same color for all shell.
+        use same color for all shell
     rad: float
         radius of each point
     opacity: float
@@ -244,14 +244,15 @@ def _find_shells(bvals, target_bvalues, shell_th=50):
     ----------
     bvals: numpy.ndarray
         bvalues
-    target_bvalues:
-
+    target_bvalues: list
+        list of targeted bvalues
     shell_th: int
         Threshold used to select bvalues
 
     Return
     ------
-    shells:
+    shells: numpy.ndarray
+        Selected shells
     """
 
     # Not robust
