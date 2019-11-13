@@ -33,9 +33,9 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
         List of filtered streamlines by length.
 
     filtered_data_per_point: dict
-        dict of data per point for filtered streamlines
+        dict of data per point for filtered streamlines.
     filtered_data_per_streamline: dict
-        dict of data per streamline for filtered streamlines
+        dict of data per streamline for filtered streamlines.
     """
 
     lengths = []

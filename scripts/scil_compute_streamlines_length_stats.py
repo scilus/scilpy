@@ -14,7 +14,7 @@ from scilpy.io.utils import assert_inputs_exist, add_reference
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description='Compute streamlines min, mean and max length, as well as '
-                    'standard deviation of length in mm',
+                    'standard deviation of length in mm.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',
