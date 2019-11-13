@@ -4,14 +4,12 @@
 import argparse
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
+from dipy.io.streamline import load_tractogram, save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg,
-                             add_reference)
+                             add_overwrite_arg)
 
 
 def _build_arg_parser():
@@ -23,8 +21,6 @@ def _build_arg_parser():
 
     p.add_argument('in_tractogram',
                    help='Tractogram.')
-
-    add_reference(p)
 
     p.add_argument('out_tractogram',
                    help='Colored TRK tractogram.')
@@ -54,7 +50,8 @@ def main():
     green = (color_int & 0x00FF00) >> 8
     blue = color_int & 0x0000FF
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft = load_tractogram(args.in_tractogram, 'same',
+                          bbox_valid_check=True)
 
     sft.data_per_point["color"] = [np.tile([red, green, blue],
                                    (len(i), 1)) for i in sft.streamlines]
