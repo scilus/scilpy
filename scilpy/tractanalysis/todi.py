@@ -258,7 +258,8 @@ class TrackOrientationDensityImaging(object):
                diffusion MRI: Non-negativity constrained super-resolved
                spherical deconvolution. NeuroImage. 2007;35(4):1459-1472.
         """
-        return sf_to_sh(self.todi, self.sphere, sh_order, sh_basis, smooth)
+        return sf_to_sh(self.todi, self.sphere, sh_order=sh_order,
+                        basis_type=sh_basis, smooth=smooth)
 
     def reshape_to_3d(self, img_voxelly_masked):
         """Reshape a complex ravelled image to 3D.
