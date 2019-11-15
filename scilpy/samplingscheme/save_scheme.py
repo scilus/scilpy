@@ -14,8 +14,10 @@ def save_scheme_caru(points, shell_idx, filename):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     filename: output file name
     ------
     """
@@ -41,10 +43,14 @@ def save_scheme_philips(points, shell_idx, bvalues, filename):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    bvalues: numpy.array, b-values
-    filename: output file name
+    points: numpy.array
+        b-vectors normalized to 1
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    bvalues: numpy.array
+        b-values
+    filename: str
+        output file name
     ------
     """
     fullfilename, ext = split_name_with_nii(filename)
@@ -68,10 +74,14 @@ def save_scheme_mrtrix(points, shell_idx, bvalues, filename):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    bvalues: numpy.array, b-values
-    filename: output file name
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    bvalues: numpy.array
+        b-values
+    filename: str
+        output file name
     ------
     """
     fullfilename, ext = split_name_with_nii(filename)
@@ -94,10 +104,14 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    bvalues: numpy.array, b-values
-    filename: output file name
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    bvalues: numpy.array
+        b-values
+    filename: str
+        output file name
     ------
     """
 
@@ -115,10 +129,14 @@ def save_scheme_siemens(points, shell_idx, bvalues, filename):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    bvalues: numpy.array, b-values
-    filename: output file name
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    bvalues: numpy.array
+        b-values
+    filename: str
+        output file name
     ------
     """
 

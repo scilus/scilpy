@@ -96,11 +96,13 @@ def compute_ks_from_shell_idx(shell_idx):
 
     Parameters
     ----------
-    shell_idx: numpy.array, Shell index of sampling scheme.
+    shell_idx: numpy.array
+        Shell index of sampling scheme.
 
     Return
     ------
-    Ks: list, number of samples for each shell, starting from lowest.
+    Ks: list
+        number of samples for each shell, starting from lowest.
     """
     K = len(set(shell_idx))
 
@@ -125,8 +127,10 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
 
     Return
     ------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     """
 
     new_points = []
@@ -164,14 +168,18 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1
+    shell_idx: numpy.array
+        Shell index for bvecs in points
     """
 
     new_points = points.copy()
@@ -206,19 +214,28 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    b_values: list, increasing b-values, b0 last.
-    ker_size: integer, kernel size for the sliding window.
-    Niter: integer, number of bruteforce iterations.
+    points: numpy.array
+        b-vectors normalized to 1
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    b_values: list
+        increasing b-values, b0 last.
+    ker_size: int
+        kernel size for the sliding window.
+    Niter: int
+        number of bruteforce iterations.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
-    plotting: boolean, plot the energy at each iteration.
-    rand_seed: integer, seed for the random permutations.
+    plotting: bool
+        plot the energy at each iteration.
+    rand_seed: int
+        seed for the random permutations.
 
     Return
     ------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     """
 
     logging.debug('Shuffling Data (N_iter = {}, \
@@ -300,16 +317,20 @@ def bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
 
     Parameters
     ----------
-    bmin: float, Minimum b-value, lower b-value bounds.
-    bmax: float, Maximum b-value, upper b-value bounds.
-    nb_of_b_inside: integer, number of b-value excluding bmin and bmax.
-    exclude_bmin: boolean, exclude bmin from the interval, useful
-                  if bmin = 0.0.
+    bmin: float
+        Minimum b-value, lower b-value bounds.
+    bmax: float
+        Maximum b-value, upper b-value bounds.
+    nb_of_b_inside: int
+        number of b-value excluding bmin and bmax.
+    exclude_bmin: bool
+        exclude bmin from the interval, useful if bmin = 0.0.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    b_values: list, increasing b-values.
+    b_values: list
+        increasing b-values.
     """
 
     b_values = list(np.linspace(np.sqrt(bmin),
@@ -331,16 +352,20 @@ def bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
 
     Parameters
     ----------
-    bmin: float, Minimum b-value, lower b-value bounds.
-    bmax: float, Maximum b-value, upper b-value bounds.
-    nb_of_b_inside: integer, number of b-value excluding bmin and bmax.
-    exclude_bmin: boolean, exclude bmin from the interval, useful
-                  if bmin = 0.0.
+    bmin: float
+        Minimum b-value, lower b-value bounds.
+    bmax: float
+        Maximum b-value, upper b-value bounds.
+    nb_of_b_inside: int
+        number of b-value excluding bmin and bmax.
+    exclude_bmin: boolean
+        exclude bmin from the interval, useful if bmin = 0.0.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    b_values: list, increasing b-values.
+    b_values: list
+        increasing b-values.
     """
 
     b_values = list(np.linspace(bmin, bmax, nb_of_b_inside + 2))
@@ -358,13 +383,16 @@ def add_bvalue_b0(b_values, b0_value=0.0):
 
     Parameters
     ----------
-    bvalues: list, b-values of the non-b0 shells.
-    b0_value: float, b-values of the b0s
+    bvalues: list
+        b-values of the non-b0 shells.
+    b0_value: float
+        b-values of the b0s
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    b_values: list, b-values of the shells and b0s.
+    b_values: list
+        b-values of the shells and b0s.
     """
 
     b_values.append(b0_value)

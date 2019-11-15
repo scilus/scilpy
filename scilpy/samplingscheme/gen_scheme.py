@@ -18,13 +18,16 @@ def gen_scheme(Ks, verbose=1):
 
     Parameters
     ----------
-    Ks: list, number of samples for each shell, starting from lowest.
+    Ks: list
+        number of samples for each shell, starting from lowest.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations
 
     Return
     ------
-    points: numpy.array, b-vectors normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    points: numpy.array
+        b-vectors normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     """
 
     S = len(Ks)
