@@ -20,12 +20,9 @@ def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Filter streamlines by length.')
-    p.add_argument('in_tractogram', type=str,
+    p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
-
-    add_reference(p)
-
-    p.add_argument('out_tractogram', type=str,
+    p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
     p.add_argument('--minL', default=0., type=float,
                    help='Minimum length of streamlines. [%(default)s]')
@@ -34,6 +31,7 @@ def _build_args_parser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
 
+    add_reference(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
