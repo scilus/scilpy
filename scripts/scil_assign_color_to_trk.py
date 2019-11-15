@@ -25,7 +25,7 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Colored TRK tractogram.')
     p.add_argument('color',
-                   help='Hexadecimal RGB color (ie. 0xRRGGBB).')
+                   help='Can be either hexadecimal (ie. #RRGGBB or 0xRRGGBB).')
 
     add_overwrite_arg(p)
 
@@ -42,16 +42,19 @@ def main():
     if not args.out_tractogram.endswith('.trk'):
         parser.error('Output file needs to end with .trk.')
 
-    if len(args.color) != 8:
-        parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB.')
+    if len(args.color) == 7:
+        args.color = '0x' + args.color.lstrip('#')
 
-    color_int = int(args.color, 0)
-    red = color_int >> 16
-    green = (color_int & 0x00FF00) >> 8
-    blue = color_int & 0x0000FF
+    if len(args.color) == 8:
+        color_int = int(args.color, 0)
+        red = color_int >> 16
+        green = (color_int & 0x00FF00) >> 8
+        blue = color_int & 0x0000FF
+    else:
+        parser.error('Hexadecimal RGB color should be formatted as #RRGGBB'
+                     ' or 0xRRGGBB.')
 
-    sft = load_tractogram(args.in_tractogram, 'same',
-                          bbox_valid_check=True)
+    sft = load_tractogram(args.in_tractogram, 'same', bbox_valid_check=True)
 
     sft.data_per_point["color"] = [np.tile([red, green, blue],
                                    (len(i), 1)) for i in sft.streamlines]
