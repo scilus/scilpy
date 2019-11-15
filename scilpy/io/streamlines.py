@@ -28,7 +28,22 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
 
 
 def ichunk(sequence, n):
-    """ Yield successive n-sized chunks from sequence. """
+    """ Yield successive n-sized chunks from sequence.
+
+    Parameters
+    ----------
+    sequence: numpy.ndarray
+        streamlines
+    n: int
+        amount of streamlines to load
+
+    Return
+    ------
+
+    chunck: list
+        subset of streamlines
+    """
+
     sequence = iter(sequence)
     chunk = list(islice(sequence, n))
     while len(chunk) > 0:

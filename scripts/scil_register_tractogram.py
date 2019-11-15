@@ -5,6 +5,7 @@ import argparse
 import os
 
 from dipy.align.streamlinear import whole_brain_slr
+from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -36,11 +37,15 @@ def register_tractogram(moving_filename, static_filename,
                         verbose):
 
     amount_to_load = max(250000, amount_to_load)
-    moving_tractogram = nib.streamlines.load(moving_filename, lazy_load=True)
+
+    moving_tractogram = load_tractogram(moving_filename, 'same',
+                                        bbox_valid_check=True)
+
     moving_streamlines = next(ichunk(moving_tractogram.streamlines,
                                      amount_to_load))
 
-    static_tractogram = nib.streamlines.load(static_filename, lazy_load=True)
+    static_tractogram = load_tractogram(static_filename, 'same',
+                                        bbox_valid_check=True)
     static_streamlines = next(ichunk(static_tractogram.streamlines,
                                      amount_to_load))
 
