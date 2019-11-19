@@ -2,12 +2,26 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the Diffusion Kurtosis Imaging (DKI) metrics. DKI is a multi-shell
-diffusion model. The input DWI needs to be multi-shell, i.e. multi-bvalued.
+Script to compute the Diffusion Kurtosis Imaging (DKI) and Mean Signal DKI (MSDKI) metrics. 
+DKI is a multi-shell diffusion model. The input DWI needs to be multi-shell, i.e. multi-bvalued.
 
 Since the diffusion kurtosis model involves the estimation of a large number of parameters 
 and since the non-Gaussian components of the diffusion signal are more sensitive to artefacts, 
 you should really denoise your DWI volume before using this DKI script (e.g. scil_run_nlmeans.py). 
+Moreover, to remove biases due to fiber dispersion, fiber crossings and other mesoscopic properties
+of the underlying tissue, MSDKI does a powder-average of DWI for all directions, thus removing the 
+orientational dependencies and creating an alternative mean kurtosis map.  
+
+DKI is also known to be vulnerable to artefacted voxels induced by the low radial diffusivities 
+of aligned white matter (CC, CST voxels). Since it is very hard to capture non-Gaussian information 
+due to the low decays in radial direction, its kurtosis estimates have very low robustness. 
+Noisy kurtosis estimates tend to be negative and its absolute values can have order of magnitudes higher 
+than the typical kurtosis values. Consequently, these negative kurtosis values will heavily propagate 
+to the mean and radial kurtosis metrics. This is well-reported in:
+https://repositorio.ul.pt/bitstream/10451/8511/1/ulfc104137_tm_Rafael_Henriques.pdf, see chapter 3). 
+One way that I've come up to overcome this issue is to compute the kurtosis values from powder-averaged 
+MSDKI. On powder-averaged signal decays, you don't have this low diffusivity issue and your kurtosis 
+estimates have much higher precision (additionally they are independent to the fODF). 
 
 By default, will output all available metrics, using default names. Specific
 names can be specified using the metrics flags that are listed in the "Metrics
@@ -21,7 +35,8 @@ radial diffusivity (RD), and mean diffusivity (MD), as well as axial kurtosis (A
 mean kurtosis (MK), and radial kurtosis (RK). 
 
 This script directly comes from the DIPY example gallery and references therein.
-[https://dipy.org/documentation/1.0.0./examples_built/reconst_dki/#example-reconst-dki].
+[1] https://dipy.org/documentation/1.0.0./examples_built/reconst_dki/#example-reconst-dki
+[2] https://dipy.org/documentation/1.0.0./examples_built/reconst_msdki/#example-reconst-msdki
 """
 
 from __future__ import division, print_function
@@ -35,6 +50,8 @@ import numpy as np
 
 import dipy.reconst.dki as dki
 import dipy.reconst.dti as dti
+import dipy.reconst.msdki as msdki
+
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
@@ -102,46 +119,53 @@ def _build_args_parser():
         '--min_k', dest='min_k', type=float, default='0',
         help='Minium kurtosis value in the output maps (ak, mk, rk). ' +
         '\nIn theory, -3/7 is the min kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation) [Default: %(default)s].')
+        '\nof water confined to spherical pores (see DIPY example and documentation)' + 
+        '\n[Default: %(default)s].')
     p.add_argument(
         '--max_k', dest='max_k', type=float, default='3',
         help='Maximum kurtosis value in the output maps (ak, mk, rk). ' +
         '\nIn theory, 10 is the max kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation) [Default: %(default)s].')
+        '\nof water confined to spherical pores (see DIPY example and documentation)' +
+        '\n[Default: %(default)s].')
     p.add_argument(
-        '--smooth', dest='smooth', type=float, default='1.25', 
+        '--smooth', dest='smooth', type=float, default='0.0', 
         help='Smooth input DWI with a 3D Gaussian filter with ' +
-        '\nfull-width-half-max (fwhm). Kurtosis fitting is sensitive and outliers occur easily. '+
-        '\n This smoothing is thus done by default but can be turned off with fwhm=0. [Default: %(default)s].')
+        '\nfull-width-half-max (fwhm). A good value is 1.25 if needed. ' +
+        '\nKurtosis fitting is sensitive and outliers occur easily. '+
+        '\n This smoothing is turned off by default with fwhm=0. [Default: %(default)s].')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
              'the other metrics flags. [Default: not set].')
 
     g = p.add_argument_group(title='Metrics files flags')
-    g.add_argument('--ad', dest='ad', metavar='file', default='',
-                   help='Output filename for the axial diffusivity from DKI.')
     g.add_argument('--ak', dest='ak', metavar='file', default='',
                    help='Output filename for the axial kurtosis.')
     g.add_argument(
-        '--fa', dest='fa', metavar='file', default='',
-        help='Output filename for the fractional anisotropy from DKI.')
-    g.add_argument(
-        '--md', dest='md', metavar='file', default='',
-        help='Output filename for the mean diffusivity from DKI.')
-    g.add_argument(
         '--mk', dest='mk', metavar='file', default='',
         help='Output filename for the mean kurtosis.')
-    g.add_argument(
-        '--rd', dest='rd', metavar='file', default='',
-        help='Output filename for the radial diffusivity from DKI.')
     g.add_argument('--rk', dest='rk', metavar='file', default='',
                    help='Output filename for the radial kurtosis.')
+    g.add_argument('--msk', dest='msk', metavar='file', default='',
+                   help='Output filename for the mean signal kurtosis.')
+    g.add_argument(
+        '--dki_fa', dest='dki_fa', metavar='file', default='',
+        help='Output filename for the fractional anisotropy from DKI.')
+    g.add_argument(
+        '--dki_md', dest='dki_md', metavar='file', default='',
+        help='Output filename for the mean diffusivity from DKI.')
+    g.add_argument('--dki_ad', dest='dki_ad', metavar='file', default='',
+                   help='Output filename for the axial diffusivity from DKI.')
+    g.add_argument(
+        '--dki_rd', dest='dki_rd', metavar='file', default='',
+        help='Output filename for the radial diffusivity from DKI.')
     
     g = p.add_argument_group(title='Quality control files flags')
     g.add_argument(
-        '--residual', dest='residual', metavar='file', default='',
+        '--dki_residual', dest='dki_residual', metavar='file', default='',
         help='Output filename for the map of the residual of the tensor fit.')
+    g.add_argument('--msd', dest='msd', metavar='file', default='',
+                   help='Output filename for the mean signal diffusion (powder-average).')
 
     add_force_b0_arg(p)
 
@@ -153,17 +177,20 @@ def main():
     args = parser.parse_args()
 
     if not args.not_all:
-        args.fa = args.fa or 'dki_fa.nii.gz'
-        args.md = args.md or 'dki_md.nii.gz'
-        args.ad = args.ad or 'dki_ad.nii.gz'
-        args.rd = args.rd or 'dki_rd.nii.gz'
+        args.dki_fa = args.dki_fa or 'dki_fa.nii.gz'
+        args.dki_md = args.dki_md or 'dki_md.nii.gz'
+        args.dki_ad = args.dki_ad or 'dki_ad.nii.gz'
+        args.dki_rd = args.dki_rd or 'dki_rd.nii.gz'
         args.mk = args.mk or 'mk.nii.gz'
         args.rk = args.rk or 'rk.nii.gz'
         args.ak = args.ak or 'ak.nii.gz'
-        args.residual = args.residual or 'dki_residual.nii.gz'
+        args.dki_residual = args.dki_residual or 'dki_residual.nii.gz'
+        args.msk = args.msk or 'msk.nii.gz'
+        args.msd = args.msd or 'msd.nii.gz'
         
-    outputs = [args.fa, args.md, args.ad, args.rd,
-               args.mk, args.rk, args.ak, args.residual]
+    outputs = [args.dki_fa, args.dki_md, args.dki_ad, args.dki_rd,
+               args.mk, args.rk, args.ak, args.dki_residual,
+               args.msk, args.msd]
 
     if args.not_all and not any(outputs):
         parser.error('When using --not_all, you need to specify at least ' +
@@ -175,7 +202,7 @@ def main():
 
     img = nib.load(args.input)
     data = img.get_data()
-    affine = img.get_affine()
+    affine = img.affine
     if args.mask is None:
         mask = None
     else:
@@ -183,21 +210,21 @@ def main():
 
     # Validate bvals and bvecs
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
-
-    # Find the volume indices that correspond to the shells to extract.
-    tol = args.tolerance
-    shells, _ = identify_shells(bvals, tol)
-    #print(shells, len(shells))
-    if not len(shells) > 3 :
-        parser.error('Data is not multi-shell. You need at least 2 non-zero b-values')
-    
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
+    # Find the volume indices that correspond to the shells to extract.
+    tol = args.tolerance
+    shells, _ = identify_shells(bvals, tol)
+    if not len(shells) >= 3 :
+        parser.error('Data is not multi-shell. You need at least 2 non-zero b-values')
+
+    if (shells > 2500).any() :
+        logging.warning('You seem to be using b > 2500 s/mm2 DWI data. In theory, this is beyond the optimal range for DKI')
+        
     check_b0_threshold(args, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
-
     
     fwhm = args.smooth
     if fwhm != 0 :
@@ -209,54 +236,68 @@ def main():
 
     # Compute DKI
     dkimodel = dki.DiffusionKurtosisModel(gtab)
-    dkifit = dkimodel.fit(data_smooth, mask=mask)
-
-    FA = dkifit.fa
-    FA[np.isnan(FA)] = 0
-    FA = np.clip(FA, 0, 1)
-
-    MD = dkifit.md
-    AD = dkifit.ad
-    RD = dkifit.rd
+    dkifit = dkimodel.fit(data, mask=mask)
 
     min_k = args.min_k
     max_k = args.max_k
 
-    MK = dkifit.mk(min_k, max_k)
-    AK = dkifit.ak(min_k, max_k)
-    RK = dkifit.rk(min_k, max_k)
-        
+    if args.dki_fa :
+        FA = dkifit.fa
+        FA[np.isnan(FA)] = 0
+        FA = np.clip(FA, 0, 1)
 
-    if args.fa:
         fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-        nib.save(fa_img, args.fa)
+        nib.save(fa_img, args.dki_fa)
 
-    if args.md:
+    if args.dki_md:
+        MD = dkifit.md
         md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
-        nib.save(md_img, args.md)
+        nib.save(md_img, args.dki_md)
         
-    if args.ad:
+    if args.dki_ad:
+        AD = dkifit.ad
         ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
-        nib.save(ad_img, args.ad)
+        nib.save(ad_img, args.dki_ad)
 
-    if args.rd:
+    if args.dki_rd:
+        RD = dkifit.rd
         rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
-        nib.save(rd_img, args.rd)
+        nib.save(rd_img, args.dki_rd)
 
     if args.mk:
+        MK = dkifit.mk(min_k, max_k)
         mk_img = nib.Nifti1Image(MK.astype(np.float32), affine)
         nib.save(mk_img, args.mk)
 
     if args.ak:
+        AK = dkifit.ak(min_k, max_k)
         ak_img = nib.Nifti1Image(AK.astype(np.float32), affine)
         nib.save(ak_img, args.ak)
 
     if args.rk:
+        RK = dkifit.rk(min_k, max_k)
         rk_img = nib.Nifti1Image(RK.astype(np.float32), affine)
         nib.save(rk_img, args.rk)
 
+    if args.msk or args.msd :
+        # Compute MSDKI
+        msdki_model = msdki.MeanDiffusionKurtosisModel(gtab)
+        msdki_fit = msdki_model.fit(data, mask=mask)
 
-    if args.residual:
+        if args.msk :
+            MSK = msdki_fit.msk 
+            MSK[np.isnan(MSK)] = 0
+            MSK = np.clip(MSK, min_k, max_k)
+
+            msk_img = nib.Nifti1Image(MSK.astype(np.float32), affine)
+            nib.save(msk_img, args.msk)
+
+        if args.msd:
+            MSD = msdki_fit.msd            
+            msd_img = nib.Nifti1Image(MSD.astype(np.float32), affine)
+            nib.save(msd_img, args.msd)
+
+    if args.dki_residual:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
         data_p = dkifit.predict(gtab, S0)
         R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
@@ -270,7 +311,7 @@ def main():
             R *= mask
         
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
-        nib.save(R_img, args.residual)
+        nib.save(R_img, args.dki_residual)
 
 
 if __name__ == "__main__":
