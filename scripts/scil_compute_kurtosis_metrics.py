@@ -19,20 +19,15 @@ Noisy kurtosis estimates tend to be negative and its absolute values can have or
 than the typical kurtosis values. Consequently, these negative kurtosis values will heavily propagate 
 to the mean and radial kurtosis metrics. This is well-reported in:
 https://repositorio.ul.pt/bitstream/10451/8511/1/ulfc104137_tm_Rafael_Henriques.pdf, see chapter 3). 
-One way that I've come up to overcome this issue is to compute the kurtosis values from powder-averaged 
-MSDKI. On powder-averaged signal decays, you don't have this low diffusivity issue and your kurtosis 
+Two ways to overcome this issue: i) compute the kurtosis values from powder-averaged 
+MSDKI, and ii) perform 3D Gaussian smoothing. On powder-averaged signal decays, 
+you don't have this low diffusivity issue and your kurtosis 
 estimates have much higher precision (additionally they are independent to the fODF). 
 
 By default, will output all available metrics, using default names. Specific
 names can be specified using the metrics flags that are listed in the "Metrics
-files flags" section.
-
-If --not_all is set, only the metrics specified explicitly by the flags
-will be output. The available metrics are:
-
-DKI version of fractional anisotropy (FA), axial diffusivisty (AD),
-radial diffusivity (RD), and mean diffusivity (MD), as well as axial kurtosis (AK), 
-mean kurtosis (MK), and radial kurtosis (RK). 
+files flags" section. If --not_all is set, only the metrics specified explicitly by the flags
+will be output. 
 
 This script directly comes from the DIPY example gallery and references therein.
 [1] https://dipy.org/documentation/1.0.0./examples_built/reconst_dki/#example-reconst-dki
@@ -105,11 +100,11 @@ def _build_args_parser():
     p.add_argument('bvecs',
                    help='Path of the bvecs file, in FSL format.')
 
-    add_overwrite_arg(p)
     p.add_argument(
         '--mask',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
-             'for computations and reconstruction. (Default: None)')
+        'for computations and reconstruction. '+
+        '\n(Default: None)')
 
     p.add_argument('--tolerance', '-t',
                    metavar='INT', type=int, default=20,
@@ -128,15 +123,15 @@ def _build_args_parser():
         '\nof water confined to spherical pores (see DIPY example and documentation)' +
         '\n[Default: %(default)s].')
     p.add_argument(
-        '--smooth', dest='smooth', type=float, default='0.0', 
+        '--smooth', dest='smooth', type=float, default='2.5', 
         help='Smooth input DWI with a 3D Gaussian filter with ' +
-        '\nfull-width-half-max (fwhm). A good value is 1.25 if needed. ' +
-        '\nKurtosis fitting is sensitive and outliers occur easily. '+
-        '\n This smoothing is turned off by default with fwhm=0. [Default: %(default)s].')
+        '\nfull-width-half-max (fwhm). Kurtosis fitting is sensitive and outliers occur easily. '+
+        '\nAccording to tests on HCP, CB_Brain, Penthera3T, this smoothing is thus turned ON by '+
+        '\ndefault with fwhm=2.5. [Default: %(default)s].')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
-             'the other metrics flags. [Default: not set].')
+        '\nthe other metrics flags. [Default: not set].')
 
     g = p.add_argument_group(title='Metrics files flags')
     g.add_argument('--ak', dest='ak', metavar='file', default='',
@@ -168,6 +163,7 @@ def _build_args_parser():
                    help='Output filename for the mean signal diffusion (powder-average).')
 
     add_force_b0_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
