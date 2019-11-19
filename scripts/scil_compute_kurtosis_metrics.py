@@ -2,36 +2,41 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the Diffusion Kurtosis Imaging (DKI) and Mean Signal DKI (MSDKI) metrics. 
-DKI is a multi-shell diffusion model. The input DWI needs to be multi-shell, i.e. multi-bvalued.
+Script to compute the Diffusion Kurtosis Imaging (DKI) and Mean Signal DKI 
+(MSDKI) metrics. DKI is a multi-shell diffusion model. The input DWI needs 
+to be multi-shell, i.e. multi-bvalued.
 
-Since the diffusion kurtosis model involves the estimation of a large number of parameters 
-and since the non-Gaussian components of the diffusion signal are more sensitive to artefacts, 
-you should really denoise your DWI volume before using this DKI script (e.g. scil_run_nlmeans.py). 
-Moreover, to remove biases due to fiber dispersion, fiber crossings and other mesoscopic properties
-of the underlying tissue, MSDKI does a powder-average of DWI for all directions, thus removing the 
-orientational dependencies and creating an alternative mean kurtosis map.  
+Since the diffusion kurtosis model involves the estimation of a large number 
+of parameters and since the non-Gaussian components of the diffusion signal 
+are more sensitive to artefacts, you should really denoise your DWI volume 
+before using this DKI script (e.g. scil_run_nlmeans.py). Moreover, to remove 
+biases due to fiber dispersion, fiber crossings and other mesoscopic properties
+of the underlying tissue, MSDKI does a powder-average of DWI for all 
+directions, thus removing the orientational dependencies and creating an 
+alternative mean kurtosis map.  
 
-DKI is also known to be vulnerable to artefacted voxels induced by the low radial diffusivities 
-of aligned white matter (CC, CST voxels). Since it is very hard to capture non-Gaussian information 
-due to the low decays in radial direction, its kurtosis estimates have very low robustness. 
-Noisy kurtosis estimates tend to be negative and its absolute values can have order of magnitudes higher 
-than the typical kurtosis values. Consequently, these negative kurtosis values will heavily propagate 
-to the mean and radial kurtosis metrics. This is well-reported in:
-https://repositorio.ul.pt/bitstream/10451/8511/1/ulfc104137_tm_Rafael_Henriques.pdf, see chapter 3). 
-Two ways to overcome this issue: i) compute the kurtosis values from powder-averaged 
-MSDKI, and ii) perform 3D Gaussian smoothing. On powder-averaged signal decays, 
-you don't have this low diffusivity issue and your kurtosis 
-estimates have much higher precision (additionally they are independent to the fODF). 
+DKI is also known to be vulnerable to artefacted voxels induced by the 
+low radial diffusivities of aligned white matter (CC, CST voxels). Since it is 
+very hard to capture non-Gaussian information due to the low decays in radial 
+direction, its kurtosis estimates have very low robustness. 
+Noisy kurtosis estimates tend to be negative and its absolute values can have 
+order of magnitudes higher than the typical kurtosis values. Consequently, 
+these negative kurtosis values will heavily propagate to the mean and radial 
+kurtosis metrics. This is well-reported in [Rafael Henriques MSc thesis 2012, 
+chapter 3]. Two ways to overcome this issue: i) compute the kurtosis values
+from powder-averaged MSDKI, and ii) perform 3D Gaussian smoothing. On 
+powder-averaged signal decays, you don't have this low diffusivity issue and 
+your kurtosis estimates have much higher precision (additionally they are 
+independent to the fODF). 
 
 By default, will output all available metrics, using default names. Specific
 names can be specified using the metrics flags that are listed in the "Metrics
-files flags" section. If --not_all is set, only the metrics specified explicitly by the flags
-will be output. 
+files flags" section. If --not_all is set, only the metrics specified 
+explicitly by the flags will be output. 
 
 This script directly comes from the DIPY example gallery and references therein.
-[1] https://dipy.org/documentation/1.0.0./examples_built/reconst_dki/#example-reconst-dki
-[2] https://dipy.org/documentation/1.0.0./examples_built/reconst_msdki/#example-reconst-msdki
+[1] examples_built/reconst_dki/#example-reconst-dki
+[2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
 from __future__ import division, print_function
@@ -94,7 +99,7 @@ def _build_args_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('input',
-                   help='Path of the input multi-shell (multi-bvalue) diffusion dataset.')
+                   help='Path of the input multi-shell DWI dataset.')
     p.add_argument('bvals',
                    help='Path of the bvals file, in FSL format.')
     p.add_argument('bvecs',
@@ -113,20 +118,21 @@ def _build_args_parser():
     p.add_argument(
         '--min_k', dest='min_k', type=float, default='0',
         help='Minium kurtosis value in the output maps (ak, mk, rk). ' +
-        '\nIn theory, -3/7 is the min kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation)' + 
-        '\n[Default: %(default)s].')
+        '\nIn theory, -3/7 is the min kurtosis limit for regions that consist'+
+        '\nof water confined to spherical pores (see DIPY example and '+
+        '\ndocumentation) [Default: %(default)s].')
     p.add_argument(
         '--max_k', dest='max_k', type=float, default='3',
         help='Maximum kurtosis value in the output maps (ak, mk, rk). ' +
         '\nIn theory, 10 is the max kurtosis limit for regions that consist ' +
-        '\nof water confined to spherical pores (see DIPY example and documentation)' +
-        '\n[Default: %(default)s].')
+        '\nof water confined to spherical pores (see DIPY example and '+
+        '\ndocumentation) [Default: %(default)s].')
     p.add_argument(
         '--smooth', dest='smooth', type=float, default='2.5', 
         help='Smooth input DWI with a 3D Gaussian filter with ' +
-        '\nfull-width-half-max (fwhm). Kurtosis fitting is sensitive and outliers occur easily. '+
-        '\nAccording to tests on HCP, CB_Brain, Penthera3T, this smoothing is thus turned ON by '+
+        '\nfull-width-half-max (fwhm). Kurtosis fitting is sensitive and '+
+        '\noutliers occur easily. According to tests on HCP, CB_Brain, '+
+        '\nPenthera3T, this smoothing is thus turned ON by '+
         '\ndefault with fwhm=2.5. [Default: %(default)s].')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
@@ -160,7 +166,8 @@ def _build_args_parser():
         '--dki_residual', dest='dki_residual', metavar='file', default='',
         help='Output filename for the map of the residual of the tensor fit.')
     g.add_argument('--msd', dest='msd', metavar='file', default='',
-                   help='Output filename for the mean signal diffusion (powder-average).')
+                   help='Output filename for the mean signal diffusion '+
+                   '\n(powder-average).')
 
     add_force_b0_arg(p)
     add_overwrite_arg(p)
@@ -214,17 +221,20 @@ def main():
     tol = args.tolerance
     shells, _ = identify_shells(bvals, tol)
     if not len(shells) >= 3 :
-        parser.error('Data is not multi-shell. You need at least 2 non-zero b-values')
+        parser.error('Data is not multi-shell. You need at least 2 non-zero'+
+                     ' b-values')
 
     if (shells > 2500).any() :
-        logging.warning('You seem to be using b > 2500 s/mm2 DWI data. In theory, this is beyond the optimal range for DKI')
+        logging.warning('You seem to be using b > 2500 s/mm2 DWI data. '+
+                        'In theory, this is beyond the optimal range for DKI')
         
     check_b0_threshold(args, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
     
     fwhm = args.smooth
     if fwhm != 0 :
-        gauss_std = fwhm / np.sqrt(8 * np.log(2))  # converting fwhm to Gaussian std
+        # converting fwhm to Gaussian std
+        gauss_std = fwhm / np.sqrt(8 * np.log(2))  
         data_smooth = np.zeros(data.shape)
         for v in range(data.shape[-1]):
             data_smooth[..., v] = gaussian_filter(data[..., v], sigma=gauss_std)
