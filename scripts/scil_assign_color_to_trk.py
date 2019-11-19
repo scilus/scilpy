@@ -4,19 +4,21 @@
 import argparse
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_overwrite_arg,
+                             add_reference)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description='Assign an hexadecimal RGB color to a Trackvis TRK '
                     'tractogram. The hexadecimal RGB color should be '
-                    'formatted as 0xRRGGBB',
+                    'formatted as 0xRRGGBB or "#RRGGBB"',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_tractogram',
@@ -25,8 +27,10 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Colored TRK tractogram.')
     p.add_argument('color',
-                   help='Can be either hexadecimal (ie. #RRGGBB or 0xRRGGBB).')
+                   help='Can be either hexadecimal (ie. "#RRGGBB" '
+                        'or 0xRRGGBB).')
 
+    add_reference(p)
     add_overwrite_arg(p)
 
     return p
@@ -51,10 +55,10 @@ def main():
         green = (color_int & 0x00FF00) >> 8
         blue = color_int & 0x0000FF
     else:
-        parser.error('Hexadecimal RGB color should be formatted as #RRGGBB'
+        parser.error('Hexadecimal RGB color should be formatted as "#RRGGBB"'
                      ' or 0xRRGGBB.')
 
-    sft = load_tractogram(args.in_tractogram, 'same', bbox_valid_check=True)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     sft.data_per_point["color"] = [np.tile([red, green, blue],
                                    (len(i), 1)) for i in sft.streamlines]
