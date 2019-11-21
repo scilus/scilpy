@@ -9,7 +9,6 @@
 # et al., MRM 69(6), pp. 1534-1540, 2013.      #
 # This software comes with no warranty, etc.   #
 ################################################
-from __future__ import division
 from scipy import optimize
 import numpy as np
 
@@ -56,10 +55,10 @@ def grad_equality_constraints(vects, *args):
 
 def f(vects, weight_matrix, alpha=1.0):
     """
-    Electrostatic-repulsion objective function. The alpha paramter controls
+    Electrostatic-repulsion objective function. The alpha parameter controls
     the power repulsion (energy varies as $1 / ralpha$).
 
-    Paramters
+    Parameters
     ---------
     vects : array-like shape (N * 3,)
     weight_matrix: array-like, shape (N, N)
@@ -68,7 +67,8 @@ def f(vects, weight_matrix, alpha=1.0):
 
     Returns
     -------
-    energy : sum of all interactions between any two vectors.
+    energy : float
+        sum of all interactions between any two vectors.
     """
     epsilon = 1e-9
     N = vects.shape[0] // 3
@@ -96,7 +96,8 @@ def grad_f(vects, weight_matrix, alpha=1.0):
 
     Returns
     -------
-    grad : gradient of the objective function
+    grad : numpy.ndarray
+        gradient of the objective function
     """
     N = vects.shape[0] // 3
     vects = vects.reshape((N, 3))
@@ -120,11 +121,16 @@ def cost(vects, S, Ks, weights):
     Parameters
     ----------
     vects : array-like shape (N * 3,)
-    S : number of shells
+    S: int
+        number of shells
     Ks : list of ints, len(Ks) = S. Number of points per shell.
     weights : array-like, shep (S, S)
         weighting parameter, control coupling between shells and how this
         balances.
+
+    Returns
+    -------
+
     """
     K = np.sum(Ks)
     indices = np.cumsum(Ks).tolist()
@@ -144,8 +150,10 @@ def grad_cost(vects, S, Ks, weights):
     Parameters
     ----------
     vects : array-like shape (N * 3,)
-    S : number of shells
-    Ks : list of ints, len(Ks) = S. Number of points per shell.
+    S : int
+        number of shells
+    Ks : list of ints
+        len(Ks) = S. Number of points per shell.
     weights : array-like, shep (S, S)
         weighting parameter, control coupling between shells and how this
         balances.
@@ -172,7 +180,7 @@ def multiple_shell(nb_shells, nb_points_per_shell, weights, max_iter=100,
     nb_shells : the number of shells
     nb_points_per_shell : list, shape (nb_shells,)
         A list of integers containing the number of points on each shell.
-    weights : array-like, shep (S, S)
+    weights : array-like, shape (S, S)
         weighting parameter, control coupling between shells and how this
         balances.
 
@@ -229,6 +237,11 @@ def random_uniform_on_sphere(K):
     """
     Creates a set of K pseudo-random unit vectors, following a uniform
     distribution on the sphere.
+
+    Parameters
+    ----------
+    K:
+    
     """
     phi = 2 * np.pi * np.random.rand(K)
 

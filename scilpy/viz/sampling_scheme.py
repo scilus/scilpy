@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 import numpy as np
 from tempfile import mkstemp
 
@@ -21,7 +19,7 @@ vtkcolors = [window.colors.blue,
              window.colors.grey]
 
 
-def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
+def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
     """
     Plot each shell
@@ -30,7 +28,7 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     ----------
     ms: list of numpy.ndarray
         bvecs for each bvalue
-    use_sym: boolean
+    plot_sym_vecs: boolean
         Plot symmetrical vectors
     use_sphere: boolean
         rendering of the sphere
@@ -73,7 +71,7 @@ def plot_each_shell(ms, use_sym=True, use_sphere=True, same_color=False,
             ren.add(sphere_actor)
         pts_actor = actor.point(shell, vtkcolors[i], point_radius=rad)
         ren.add(pts_actor)
-        if use_sym:
+        if plot_sym_vecs:
             pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
             ren.add(pts_actor)
         window.show(ren)
@@ -145,7 +143,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
 def build_shell_idx_from_bval(bvals, shell_th=50):
     """
-    Plot each shell
+    build_shell_idx_from_bval
 
     Parameters
     ----------
@@ -172,7 +170,7 @@ def build_shell_idx_from_bval(bvals, shell_th=50):
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
     """
-    Plot each shell
+    build_ms_from_shell_idx
 
     Parameters
     ----------

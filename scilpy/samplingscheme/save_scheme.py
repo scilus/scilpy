@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 import logging
 import numpy as np
 
@@ -10,7 +8,7 @@ from scilpy.utils.filenames import split_name_with_nii
 
 def save_scheme_caru(points, shell_idx, filename):
     """
-    Save table gradient (Caruyer format)
+    Save gradient table (Caruyer format)
 
     Parameters
     ----------

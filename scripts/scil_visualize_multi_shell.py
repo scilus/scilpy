@@ -30,27 +30,13 @@ def _build_args_parser():
         description=DESCRIPTION)
 
     p.add_argument(
-        'scheme_file', action='store', metavar='scheme_file', type=str,
+        'scheme_file', action='store', metavar='scheme_file',
         help='Sampling scheme filename. (only accepts .txt or .caru or '
-             '.bvecs or .bvals or .b or .dir or .dvs)')
+             '.bvecs and .bvals or .b or .dir or .dvs)')
+
     p.add_argument(
-        '--no-sym', action='store_false', dest='sym',
+        '--dis-sym', action='store_false', dest='enable_sym',
         help='Disable antipodal symmetry.')
-    p.add_argument(
-        '--no-sphere', action='store_false', dest='sph',
-        help='Disable the rendering of the sphere.')
-    p.add_argument(
-        '--same', action='store_true',
-        help='Use same color for all shell.')
-    p.add_argument(
-        '--no-proj', action='store_false', dest='proj',
-        help='Disable rendering of the projection supershell.')
-    p.add_argument(
-        '--each', action='store_true',
-        help='Enable rendering each shell individually.')
-    p.add_argument(
-        '--opacity', type=float, default=1.0,
-        help='Opacity for the shells.')
     p.add_argument(
         '--out',
         help='Output file name picture without extension ' +
@@ -58,6 +44,26 @@ def _build_args_parser():
     p.add_argument(
         '--res', type=int, default=(300, 300), nargs='+',
         help='Resolution of the output picture(s)')
+
+    g1 = p.add_argument_group(title='Enable/Disable renderings')
+    g1.add_argument(
+        '--dis-sphere', action='store_false', dest='enable_sph',
+        help='Disable the rendering of the sphere.')
+    g1.add_argument(
+        '--dis-proj', action='store_false', dest='enable_proj',
+        help='Disable rendering of the projection supershell.')
+    g1.add_argument(
+        '--plot-shells', action='store_true', dest='plot_shells',
+        help='Enable rendering each shell individually.')
+
+    g2 = p.add_argument_group(title='Rendering options')
+    g2.add_argument(
+        '--same-color', action='store_true', dest='same_color',
+        help='Use same color for all shell.')
+    g2.add_argument(
+        '--opacity', type=float, default=1.0,
+        help='Opacity for the shells.')
+
     add_overwrite_arg(p)
     return p
 
@@ -73,16 +79,14 @@ def main():
         possibleOutputPaths.append(args.out + '.png')
         assert_outputs_exist(parser, args, possibleOutputPaths)
 
-    proj = args.proj
-    each = args.each
+    proj = args.enable_proj
+    each = args.plot_shells
 
     if not (proj or each):
         parser.error('Select at least one type of rendering (proj or each).')
 
     # In no way robust, assume the input is from generate_sampling_scheme.py
     # For bvec(s)/bval(s)/FSL format, uses bad assumption for Transpose
-
-    # Use
     scheme_file = args.scheme_file
     basename, ext = split_name_with_nii(scheme_file)
 
@@ -165,9 +169,9 @@ def main():
                       ' .bvecs/.bvals (FSL), .b (MRtrix), .dir or ' +
                       '.dvs (Siemens))')
 
-    sym = args.sym
-    sph = args.sph
-    same = args.same
+    sym = args.enable_sym
+    sph = args.enable_sph
+    same = args.same_color
 
     ms = build_ms_from_shell_idx(points, shell_idx)
 

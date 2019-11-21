@@ -54,7 +54,6 @@ def _build_args_parser():
                    help='Number of samples on each shells. If multishell, '
                         'provide a number per shell.')
     p.add_argument('outfile',
-                   type=str,
                    help='Sampling scheme output filename (don\'t '
                         'include extension).')
 
@@ -92,19 +91,20 @@ def _build_args_parser():
                                help='b-max for linear b-value distribution '
                                     'in *q*. [replaces -bvalues]')
 
-    p.add_argument('--caru',
+    g1 = p.add_argument_group(title='Save as')
+    g1.add_argument('--caru',
                    action='store_true',
                    help='Save in caruyer format (.caru). [%(default)s]')
-    p.add_argument('--phil',
+    g1.add_argument('--phil',
                    action='store_true',
                    help='Save in Philips format (.txt). [%(default)s]')
-    p.add_argument('--fsl',
+    g1.add_argument('--fsl',
                    action='store_true',
                    help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
-    p.add_argument('--siemens',
+    g1.add_argument('--siemens',
                    action='store_true',
                    help='Save in Siemens format (.dvs). [%(default)s]')
-    p.add_argument('--mrtrix',
+    g1.add_argument('--mrtrix',
                    action='store_true',
                    help='Save in MRtrix format (.b). [%(default)s]')
 

@@ -14,10 +14,10 @@ def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
-    p.add_argument('mrtrix_enc', type=str,
+    p.add_argument('mrtrix_enc',
                    help='Gradient directions encoding file. (.b)')
 
-    p.add_argument('fsl_basename', type=str,
+    p.add_argument('fsl_basename',
                    help='Output basename gradient directions encoding file. '
                    '(without extension)')
 

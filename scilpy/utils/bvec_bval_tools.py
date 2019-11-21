@@ -60,11 +60,12 @@ def normalize_bvecs(bvecs, filename=None):
 
 def check_b0_threshold(args, bvals_min):
     """
-    Check b0 b0_threshold
+    Check b0_threshold
 
     Parameters
     ----------
-    bvals_min:
+    bvals_min: float
+        minimal bvalue to be considered as b0
 
     Returns
     -------
@@ -99,8 +100,11 @@ def get_shell_indices(bvals, shell, tol=10):
     Parameters
     ----------
     bvals:
+    
     shell:
-    tol:
+
+    tol: int
+        tolerance to accept a bval
 
     Returns
     -------
