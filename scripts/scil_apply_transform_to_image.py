@@ -3,7 +3,6 @@
 
 """
     Transform *.nii or *.nii.gz using an affine/rigid transformation.
-
     For more information on how to use the various registration scripts
     see the doc/tractogram_registration.md readme file
 """
