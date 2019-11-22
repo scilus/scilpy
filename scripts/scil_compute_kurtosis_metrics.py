@@ -59,7 +59,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 # Aliased to avoid clashes with images called mode.
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists, add_force_b0_arg)
+                             assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
 
