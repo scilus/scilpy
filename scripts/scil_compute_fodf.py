@@ -24,13 +24,13 @@ from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
-from dipy.reconst.peaks import (peaks_from_model,
+from dipy.direction.peaks import (peaks_from_model,
                                 reshape_peaks_for_visualization)
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists, add_force_b0_arg,
+                             assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args)
 from scilpy.utils.bvec_bval_tools import check_b0_threshold
 from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
@@ -102,7 +102,7 @@ def main():
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
                                  args.frf_file])
-    assert_outputs_exists(parser, args, arglist)
+    assert_outputs_exist(parser, args, arglist)
 
     nbr_processes = args.nbr_processes
     parallel = True

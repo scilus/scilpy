@@ -10,7 +10,7 @@ import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exists,
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 
@@ -107,7 +107,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
-    assert_outputs_exists(parser, args, [args.output_dwi, args.output_bvals,
+    assert_outputs_exist(parser, args, [args.output_dwi, args.output_bvals,
                                          args.output_bvecs])
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
@@ -116,7 +116,7 @@ def main():
     tol = args.tolerance
     indices = [get_shell_indices(bvals, shell, tol=tol)
                for shell in args.bvals_to_extract]
-    indices = np.sort(np.hstack(indices))
+    indices = np.unique(np.sort(np.hstack(indices)))
 
     if len(indices) == 0:
         parser.error('There are no volumes that have the supplied b-values.')

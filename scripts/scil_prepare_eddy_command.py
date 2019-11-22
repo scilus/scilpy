@@ -55,8 +55,8 @@ def _build_arg_parser():
     p.add_argument('--encoding_direction', default='y', choices=['x', 'y', 'z'],
                    help='acquisition direction, default is AP-PA [%(default)s].')
 
-    p.add_argument('--dwell_time', type=float, default=0.062,
-                   help='dwell time from the DICOM metadata [%(default)s].')
+    p.add_argument('--readout', type=float, default=0.062,
+                   help='total readout time from the DICOM metadata [%(default)s].')
 
     p.add_argument('--slice_drop_correction', action='store_true',
                    help="if set, will activate eddy's outlier correction,\n"
@@ -116,7 +116,7 @@ def main():
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
-    acqparams = create_acqparams(gtab, args.dwell_time, args.encoding_direction)
+    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction)
     index = create_index(bvals)
     bvecs = create_non_zero_norm_bvecs(bvecs)
 

@@ -11,7 +11,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exists
+    assert_inputs_exist, assert_outputs_exist
 from scilpy.preprocessing.distortion_correction import create_acqparams
 
 DESCRIPTION = """
@@ -47,8 +47,8 @@ def _build_arg_parser():
     p.add_argument('--encoding_direction', default='y', choices=['x', 'y', 'z'],
                    help='acquisition direction, default is AP-PA [%(default)s].')
 
-    p.add_argument('--dwell_time', type=float, default=0.062,
-                   help='dwell time from the DICOM metadata [%(default)s].')
+    p.add_argument('--readout', type=float, default=0.062,
+                   help='total readout time from the DICOM metadata [%(default)s].')
 
     p.add_argument('--output_b0s', default='fused_b0s.nii.gz',
                    help='output fused b0 file [%(default)s].')
@@ -81,10 +81,8 @@ def main():
 
     required_args = [args.input_dwi, args.bvals, args.bvecs, args.reverse_b0]
 
-    optional_args = [args.output_b0s]
-
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exists(parser, args, [], optional_args)
+    assert_outputs_exist(parser, args, [], args.output_b0s)
 
     if os.path.splitext(args.output_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
@@ -102,7 +100,7 @@ def main():
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
-    acqparams = create_acqparams(gtab, args.dwell_time, args.encoding_direction)
+    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction)
 
     if not os.path.exists(args.output_directory):
         os.makedirs(args.output_directory)
