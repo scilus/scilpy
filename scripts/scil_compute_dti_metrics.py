@@ -46,7 +46,6 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
-from scilpy.image.utils import count_non_zero_voxels
 
 logger = logging.getLogger("Compute_DTI_Metrics")
 logger.setLevel(logging.INFO)
