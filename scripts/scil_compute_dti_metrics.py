@@ -332,8 +332,10 @@ def main():
         data_p = tenfit.predict(gtab, S0)
         R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
                            data[..., ~gtab.b0s_mask]), axis=-1)
+
         if args.mask is not None:
             R *= mask
+
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 
@@ -378,8 +380,9 @@ def main():
                 # Maybe mean(all_means)+-3SD?
                 # Or we let people choose based on the figure.
                 # if percent_outliers[k] > ???? :
-                #    logger.warning('   Careful! Diffusion-Weighted Image i=%s has %s %% '
-                #                   'outlier voxels', k, percent_outliers[k])
+                #    logger.warning('   Careful! Diffusion-Weighted Image'
+                #                   ' i=%s has %s %% outlier voxels',
+                #                   k, percent_outliers[k])
 
         # Saving all statistics as npy values
         residual_basename, _ = split_name_with_nii(args.residual)
@@ -395,12 +398,14 @@ def main():
         if args.mask is None:
             fig, axe = plt.subplots(nrows=1, ncols=1, squeeze=False)
         else:
-            fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False, #Outliers subplot added
-                                    figsize=[10, 4.8])  # Default is [6.4, 4.8]. Increasing width
+            fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False,
+                                    figsize=[10, 4.8])
+            # Default is [6.4, 4.8]. Increasing width to see better.
 
         medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
         meanprops = dict(linestyle='-', linewidth=2.5, color='green')
-        axe[0,0].bxp(stats,showmeans=True, meanline=True,showfliers=False, medianprops=medianprops, meanprops=meanprops)
+        axe[0,0].bxp(stats,showmeans=True, meanline=True,showfliers=False,
+                     medianprops=medianprops, meanprops=meanprops)
         axe[0,0].set_xlabel('DW image')
         axe[0,0].set_ylabel('Residuals per DWI volume. Red is median,\n'
                             'green is mean. Whiskers are 1.5*interquartile')
