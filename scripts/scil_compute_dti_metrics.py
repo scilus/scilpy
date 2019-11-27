@@ -404,18 +404,18 @@ def main():
 
         medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
         meanprops = dict(linestyle='-', linewidth=2.5, color='green')
-        axe[0,0].bxp(stats,showmeans=True, meanline=True,showfliers=False,
+        axe[0, 0].bxp(stats, showmeans=True, meanline=True, showfliers=False,
                      medianprops=medianprops, meanprops=meanprops)
-        axe[0,0].set_xlabel('DW image')
-        axe[0,0].set_ylabel('Residuals per DWI volume. Red is median,\n'
+        axe[0, 0].set_xlabel('DW image')
+        axe[0, 0].set_ylabel('Residuals per DWI volume. Red is median,\n'
                             'green is mean. Whiskers are 1.5*interquartile')
-        axe[0,0].set_title('Residuals')
-        axe[0,0].set_xticks(range(0,q1.shape[0],5))
-        axe[0,0].set_xticklabels(range(0,q1.shape[0],5))
+        axe[0, 0].set_title('Residuals')
+        axe[0, 0].set_xticks(range(0, q1.shape[0],5))
+        axe[0, 0].set_xticklabels(range(0, q1.shape[0],5))
 
         if args.mask is not None:
-            axe[0, 1].plot(range(data.shape[-1]),percent_outliers)
-            axe[0, 1].set_xticks(range(0,q1.shape[0],5))
+            axe[0, 1].plot(range(data.shape[-1]), percent_outliers)
+            axe[0, 1].set_xticks(range(0, q1.shape[0],5))
             axe[0, 1].set_xticklabels(range(0, q1.shape[0], 5))
             axe[0, 1].set_xlabel('DW image')
             axe[0, 1].set_ylabel('Percentage of outlier voxels')
