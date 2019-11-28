@@ -12,10 +12,10 @@ from scilpy.io.utils import (assert_outputs_exist,
 from scilpy.samplingscheme.gen_scheme import gen_scheme
 from scilpy.samplingscheme.optimize_scheme import (add_b0s,
                                                    add_bvalue_b0,
-                                                   bvalue_lin_b,
-                                                   bvalue_lin_q,
+                                                   compute_bvalue_lin_b,
+                                                   compute_bvalue_lin_q,
                                                    correct_b0s_philips,
-                                                   min_duty_cycle_bruteforce,
+                                                   compute_min_duty_cycle_bruteforce,
                                                    swap_sampling_eddy)
 from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
                                                save_scheme_caru,
@@ -93,20 +93,20 @@ def _build_args_parser():
 
     g1 = p.add_argument_group(title='Save as')
     g1.add_argument('--caru',
-                   action='store_true',
-                   help='Save in caruyer format (.caru). [%(default)s]')
+                    action='store_true',
+                    help='Save in caruyer format (.caru). [%(default)s]')
     g1.add_argument('--phil',
-                   action='store_true',
-                   help='Save in Philips format (.txt). [%(default)s]')
+                    action='store_true',
+                    help='Save in Philips format (.txt). [%(default)s]')
     g1.add_argument('--fsl',
-                   action='store_true',
-                   help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
+                    action='store_true',
+                    help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
     g1.add_argument('--siemens',
-                   action='store_true',
-                   help='Save in Siemens format (.dvs). [%(default)s]')
+                    action='store_true',
+                    help='Save in Siemens format (.dvs). [%(default)s]')
     g1.add_argument('--mrtrix',
-                   action='store_true',
-                   help='Save in MRtrix format (.b). [%(default)s]')
+                    action='store_true',
+                    help='Save in MRtrix format (.b). [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -155,11 +155,11 @@ def main():
     if args.bvalues is not None:
         bvalues = args.bvalues
     elif args.b_lin_max is not None:
-        bvalues = bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
-                               nb_of_b_inside=S - 1, exclude_bmin=True)
+        bvalues = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
+                                       nb_of_b_inside=S - 1, exclude_bmin=True)
     elif args.q_lin_max is not None:
-        bvalues = bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
-                               nb_of_b_inside=S - 1, exclude_bmin=True)
+        bvalues = compute_bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
+                                       nb_of_b_inside=S - 1, exclude_bmin=True)
     # Add b0 b-value
     if b0_every != 0:
         bvalues = add_bvalue_b0(bvalues, b0_value=b0_value)
@@ -181,7 +181,7 @@ def main():
 
     # duty cycle optimization
     if duty:
-        points, shell_idx = min_duty_cycle_bruteforce(
+        points, shell_idx = compute_min_duty_cycle_bruteforce(
             points, shell_idx, bvalues)
 
     # Save the sampling scheme

@@ -61,9 +61,11 @@ def f(vects, weight_matrix, alpha=1.0):
     Parameters
     ---------
     vects : array-like shape (N * 3,)
+        Vectors.
     weight_matrix: array-like, shape (N, N)
         The contribution weight of each pair of points.
-    alpha : floating-point. controls the power of the repulsion. Default is 1.0
+    alpha : float
+        Controls the power of the repulsion. Default is 1.0
 
     Returns
     -------
@@ -90,6 +92,7 @@ def grad_f(vects, weight_matrix, alpha=1.0):
     Parameters
     ----------
     vects : array-like shape (N * 3,)
+        Vectors.
     weight_matrix: array-like, shape (N, N)
         The contribution weight of each pair of points.
     alpha : floating-point. controls the power of the repulsion. Default is 1.0
@@ -121,16 +124,18 @@ def cost(vects, S, Ks, weights):
     Parameters
     ----------
     vects : array-like shape (N * 3,)
+
     S: int
-        number of shells
-    Ks : list of ints, len(Ks) = S. Number of points per shell.
-    weights : array-like, shep (S, S)
-        weighting parameter, control coupling between shells and how this
+        Number of shells.
+    Ks: list of ints, len(Ks) = S. Number of points per shell.
+    weights : array-like, shape (S, S)
+        Weighting parameter, control coupling between shells and how this
         balances.
 
     Returns
     -------
-
+    f: function
+        sum of all interactions between any two vectors.
     """
     K = np.sum(Ks)
     indices = np.cumsum(Ks).tolist()
@@ -154,9 +159,14 @@ def grad_cost(vects, S, Ks, weights):
         number of shells
     Ks : list of ints
         len(Ks) = S. Number of points per shell.
-    weights : array-like, shep (S, S)
+    weights : array-like, shape (S, S)
         weighting parameter, control coupling between shells and how this
         balances.
+
+    Returns
+    -------
+    grad_f: function
+        gradient of the objective function
     """
     K = int(vects.shape[0] / 3)
     indices = np.cumsum(Ks).tolist()
@@ -217,10 +227,13 @@ def write_multiple_shells(vects, nb_shells, nb_points_per_shell, filename):
     Parameters
     ----------
     vects : array-like shape (K, 3)
-    nb_shells : the number of shells
-    nb_points_per_shell : array-like shape (nb_shells, )
+        vectors
+    nb_shells: int
+        Number of shells
+    nb_points_per_shell: array-like shape (nb_shells, )
         A list of integers containing the number of points on each shell.
-    filename : string
+    filename : str
+        output filename
     """
     datafile = open(filename, 'w')
     datafile.write('#shell-id\tx\ty\tz\n')
@@ -240,8 +253,13 @@ def random_uniform_on_sphere(K):
 
     Parameters
     ----------
-    K:
-    
+    K: int
+        Number of vectors
+
+    Returns
+    -------
+    vects: nd.array
+        pseudo-random unit vector
     """
     phi = 2 * np.pi * np.random.rand(K)
 
@@ -260,6 +278,21 @@ def compute_weights(nb_shells, nb_points_per_shell, shell_groups, alphas):
     """
     Computes the weights array from a set of shell groups to couple, and
     coupling weights.
+
+    Parameters
+    ----------
+    nb_shells: int
+        Number of shells
+    nb_points_per_shell: int
+        Number of points per shell
+    shell_groups: list
+        list of group of shells
+    alphas: list
+        list of weights per group of shells
+    Returns
+    -------
+    weights: nd.ndarray
+        weigths for each group of shells
     """
     weights = np.zeros((nb_shells, nb_shells))
     for shell_group, alpha in zip(shell_groups, alphas):

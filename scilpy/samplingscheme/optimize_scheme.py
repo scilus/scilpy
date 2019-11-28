@@ -184,20 +184,17 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
     non_b0_pts = points[np.where(shell_idx != -1)]
 
-    it = 0
     # Assume non-collinearity of non-b0s b-vectors (i.e. Caruyer sampler type)
-    for idx in np.where(shell_idx == -1)[0]:
-        new_points[idx] = non_b0_pts[it]
-        it += 1
+    new_points[np.where(shell_idx == -1)[0]] = non_b0_pts
 
     logging.info('Done adapting b0s for Philips scanner.')
 
     return new_points, shell_idx
 
 
-def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
-                              Niter=100000, verbose=1, plotting=False,
-                              rand_seed=0):
+def compute_min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
+                                      Niter=100000, verbose=1, plotting=False,
+                                      rand_seed=0):
     """
     Optimize the ordering of non-b0s sample to optimize gradient duty-cycle.
 
@@ -250,7 +247,7 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     q_scheme_current = q_scheme.copy()
 
     ordering_best = np.arange(N_dir)
-    power_best = _peak_power(q_scheme_current, ker_size=ker_size)
+    power_best = compute_peak_power(q_scheme_current, ker_size=ker_size)
 
     if plotting:
         store_best_value.append((0, power_best))
@@ -264,7 +261,7 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
         ordering_current = np.random.permutation(N_dir)
         q_scheme_current[non_b0s_mask] = q_scheme[non_b0s_mask][ordering_current]
 
-        power_current = _peak_power(q_scheme_current, ker_size=ker_size)
+        power_current = compute_peak_power(q_scheme_current, ker_size=ker_size)
 
         if power_current < power_best:
             ordering_best = ordering_current.copy()
@@ -292,7 +289,21 @@ def min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     return new_points, new_shell_idx
 
 
-def _peak_power(q_scheme, ker_size=10):
+def compute_peak_power(q_scheme, ker_size=10):
+    """
+
+    Parameters
+    ------
+    q_scheme: nd.array
+        Scheme of acquisition.
+    ker_size: int
+        Kernel size (default=10).
+
+    Return
+    ------
+        Max peak power from q_scheme.
+    """
+
     # Note: np.convolve inverses the filter
     ker = np.ones(ker_size)
 
@@ -307,8 +318,8 @@ def _peak_power(q_scheme, ker_size=10):
     return np.max([max_pow_x, max_pow_y, max_pow_z])
 
 
-def bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
-                 verbose=1):
+def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
+                         exclude_bmin=True, verbose=1):
     """
     Compute b-values linearly distributed in q-value in the
     interval [bmin, bmax].
@@ -342,8 +353,8 @@ def bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
     return b_values
 
 
-def bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2, exclude_bmin=True,
-                 verbose=1):
+def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
+                         exclude_bmin=True, verbose=1):
     """
     Compute b-values linearly distributed in b-value in the
     interval [bmin, bmax].

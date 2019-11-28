@@ -99,16 +99,16 @@ def get_shell_indices(bvals, shell, tol=10):
 
     Parameters
     ----------
-    bvals:
-    
-    shell:
-
+    bvals: array (N,)
+        array of bvals
+    shell: list
+        list of bvals
     tol: int
         tolerance to accept a bval
 
     Returns
     -------
-        numpy.ndarray with shells
+        numpy.ndarray where shells are found
     """
 
     return np.where(
