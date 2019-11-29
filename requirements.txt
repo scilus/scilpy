@@ -17,6 +17,5 @@ pytz==2018.4
 scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
-scikit-learn==0.21.3
 vtk==8.1.0
 coloredlogs==10.0

@@ -7,7 +7,6 @@ from dipy.tracking.streamline import set_number_of_points
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
-from sklearn.metrics import cohen_kappa_score
 
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
@@ -30,7 +29,7 @@ def get_endpoints_map(streamlines, dimensions, point_to_select=3):
 
 def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
                                          centroids_1=None, centroids_2=None):
-    if len(bundle_1) < 1 or len(bundle_2) < 1:
+    if not bundle_1 or not bundle_2:
         return -1
     thresholds = [32, 24, 12, 6]
     # Intialize the clusters
