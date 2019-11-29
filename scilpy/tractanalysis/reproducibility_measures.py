@@ -3,7 +3,7 @@ import copy
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
-from dipy.tracking.streamline import set_number_of_points
+from dipy.tracking.streamline import set_number_of_points, length
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
@@ -13,9 +13,28 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
 
 
 def get_endpoints_map(streamlines, dimensions, point_to_select=3):
+    """
+    Compute an endpoints density map, supports selecting more than one points
+    at each end.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines to compute endpoints density from.
+    dimensions: tuple
+        The shape of the reference volume for the streamlines.
+    point_to_select: int
+        Instead of computing the density based on the first and last points,
+        select more than one at each end. To support compressed streamlines,
+        a resampling to 0.5mm per segment is performed.
+    Returns
+    -------
+    ndarray
+        A ndarray where voxel values represent the density of endpoints.
+    """
     endpoints_map = np.zeros(dimensions)
     for streamline in streamlines:
-        streamline = set_number_of_points(streamline, 99)
+        streamline = set_number_of_points(streamline,
+                                          int(length(streamline))*2)
         points_list = list(streamline[0:point_to_select, :].astype(int))
         points_list.extend(streamline[-(point_to_select+1):-1, :].astype(int))
         for xyz in points_list:
@@ -29,6 +48,33 @@ def get_endpoints_map(streamlines, dimensions, point_to_select=3):
 
 def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
                                          centroids_1=None, centroids_2=None):
+    """
+    Compute the distance in millimeters between two bundles. Uses centroids
+    to limit computation time. Each centroid of the first bundle is match
+    to the nearest centroid of the second bundle and vice-versa. 
+    Distance between matched paired is average for the final results.
+    References
+    ----------
+    .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear 
+        registration of white-matter fascicles in the space of streamlines, 
+        Neuroimage, 2015.
+    Parameters
+    ----------
+    bundle_1: list of ndarray
+        First set of streamlines.
+    bundle_2: list of ndarray
+        Second set of streamlines.
+    non_overlap: bool
+        Exclude overlapping streamlines from the computation.
+    centroids_1: list of ndarray
+        Pre-computed centroids for the first bundle.
+    centroids_2: list of ndarray
+        Pre-computed centroids for the second bundle.
+    Returns
+    -------
+    int
+        Distance in millimeters between both bundles.
+    """
     if not bundle_1 or not bundle_2:
         return -1
     thresholds = [32, 24, 12, 6]
@@ -80,6 +126,25 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
 
 
 def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
+    """
+    Compute the distance in millimeters between two bundles in the voxel
+    representation. Convert the bundles to binary masks. Each voxel of the 
+    first bundle is match to the the nearest voxel of the second bundle and 
+    vice-versa. 
+    Distance between matched paired is average for the final results.
+    Parameters
+    ----------
+    bundle_1: list of ndarray
+        First set of streamlines.
+    bundle_2: list of ndarray
+        Second set of streamlines.
+    non_overlap: bool
+        Exclude overlapping streamlines from the computation.
+    Returns
+    -------
+    int
+        Distance in millimeters between both bundles.
+    """
     b1_ind = np.argwhere(binary_1 > 0)
     b2_ind = np.argwhere(binary_2 > 0)
     b1_tree = cKDTree(b1_ind)
@@ -106,6 +171,20 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
 
 
 def compute_dice_voxel(density_1, density_2):
+    """
+    Compute the overlap (dice coefficient) between two density maps (or binary).
+    Parameters
+    ----------
+    density_1: ndarray
+        Density (or binary) map computed from the first bundle
+    density_1: ndarray of ndarray
+        Density (or binary) map computed from the second bundle
+    Returns
+    -------
+    float
+        Value between 0 and 1 that represent the spatial aggrement between 
+        both map.
+    """
     binary_1 = copy.copy(density_1)
     binary_1[binary_1 > 0] = 1
     binary_2 = copy.copy(density_2)
@@ -132,6 +211,20 @@ def compute_dice_voxel(density_1, density_2):
 
 
 def compute_dice_streamlines(bundle_1, bundle_2):
+    """
+    Compute the overlap (dice coefficient) between two bundles.
+    Both bundles need to come from the exact same tractogram.
+    Parameters
+    ----------
+    bundle_1: list of ndarray
+        First set of streamlines.
+    bundle_2: list of ndarray
+        Second set of streamlines.
+    Returns
+    -------
+    float
+        Value between 0 and 1 that represent the aggrement between both bundles.
+    """
     streamlines_intersect, _ = perform_streamlines_operation(intersection,
                                                              [bundle_1, bundle_2],
                                                              precision=0)
