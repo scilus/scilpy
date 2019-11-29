@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
 
 
 def streamlines_to_segments(streamlines):
+    """Split streamlines into its segments.
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+        List of streamlines.
+
+    Returns
+    -------
+    segments : numpy.ndarray (2D)
+        Segments array representation with the first and last points.
+    """
     vts_0_list = []
     vts_1_list = []
     for streamline in streamlines:
@@ -17,6 +28,18 @@ def streamlines_to_segments(streamlines):
 
 
 def streamlines_to_endpoints(streamlines):
+    """Equivalent to streamlines resampling to 2 points (first and last).
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+        List of streamlines.
+
+    Returns
+    -------
+    endpoints : numpy.ndarray (2D)
+        Endpoint array representation with the first and last points.
+    """
     endpoints = np.zeros((2, len(streamlines), 3))
     for i, streamline in enumerate(streamlines):
         endpoints[0, i] = streamline[0]
@@ -26,6 +49,22 @@ def streamlines_to_endpoints(streamlines):
 
 
 def streamlines_to_pts_dir_norm(streamlines):
+    """Evaluate each segment: mid position, direction, length.
+
+    Parameters
+    ----------
+    streamlines :  list of numpy.ndarray
+        List of streamlines.
+
+    Returns
+    -------
+    seg_mid : numpy.ndarray (2D)
+        Mid position (x,y,z) of all streamlines' segments.
+    seg_dir : numpy.ndarray (2D)
+        Direction (x,y,z) of all streamlines' segments.
+    seg_norm : numpy.ndarray (2D)
+        Length of all streamlines' segments.
+    """
     segments = streamlines_to_segments(streamlines)
     seg_mid = get_segments_mid_pts_positions(segments)
     seg_dir, seg_norm = get_segments_dir_and_norm(segments)
@@ -66,7 +105,21 @@ def get_indices_1d(volume_shape, pts):
 
 
 def get_dir_to_sphere_id(vectors, sphere_vertices):
-    # sphere_vertices must be normed (or all with equal norm)
+    """Find the closest vector on the sphere vertices using a cKDT tree
+        sphere_vertices must be normed (or all with equal norm).
+
+    Parameters
+    ----------
+    vectors : numpy.ndarray (2D)
+        Vectors representing the direction (x,y,z) of segments.
+    sphere_vertices : numpy.ndarray (2D)
+        Vertices of a Dipy sphere object.
+
+    Returns
+    -------
+    dir_sphere_id : numpy.ndarray (1D)
+        Sphere indices of the closest sphere direction for each vector
+    """
     sphere_kdtree = cKDTree(sphere_vertices)
     _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)
     return dir_sphere_id
@@ -78,7 +131,7 @@ def compute_vectors_norm(vectors):
 
 
 def normalize_vectors(vectors):
-    return vectors / norm(vectors, ord=2, axis=-1, keepdims=True)
+    return p_normalize_vectors(vectors, 2)
 
 
 def p_normalize_vectors(vectors, p):

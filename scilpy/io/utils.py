@@ -13,6 +13,15 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
+def check_tracts_same_format(parser, filename_list):
+    _, ref_ext = os.path.splitext(filename_list[0])
+
+    for filename in filename_list[1:]:
+        if isinstance(filename, six.string_types) and \
+                not os.path.splitext(filename)[1] == ref_ext:
+            parser.error('All tracts file must use the same format.')
+
+
 def add_reference(parser):
     parser.add_argument('--reference',
                         help='Reference anatomy for tck/vtk/fib/dpy file\n'

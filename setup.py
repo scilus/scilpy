@@ -10,7 +10,6 @@ PACKAGES = find_packages()
 ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
-
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
@@ -34,6 +33,8 @@ extensions = [Extension('scilpy.tractanalysis.uncompress',
                         include_dirs=[numpy.get_include()]),
               Extension('scilpy.tractanalysis.quick_tools',
                         ['scilpy/tractanalysis/quick_tools.pyx'],
+              Extension('scilpy.tractanalysis.streamlines_metrics',
+                        ['scilpy/tractanalysis/streamlines_metrics.pyx'],
                         include_dirs=[numpy.get_include()])]
 
 opts['ext_modules'] = cythonize(extensions)

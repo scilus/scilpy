@@ -9,9 +9,17 @@ def add_filename_suffix(filename, suffix):
     This function adds a suffix to the filename, keeping the extension.
     For example, if filename is test.nii.gz and suffix is "new",
     the returned name will be test_new.nii.gz
-    :param filename: The full filename, including extension
-    :param suffix: The suffix to add to the filename
-    :return: The completed file name.
+
+    Parameters
+    ----------
+    filename: str
+        The full filename, including extension
+    suffix: str
+        The suffix to add to the filename
+
+    Returns
+    -------
+    The completed file name.
     """
     base, ext = split_name_with_nii(filename)
 
@@ -22,8 +30,16 @@ def split_name_with_nii(filename):
     """
     Returns the clean basename and extension of a file.
     Means that this correctly manages the ".nii.gz" extensions.
-    :param filename: The filename to clean
-    :return: A tuple of the clean basename and the full extension
+
+    Parameters
+    ----------
+    filename: str
+        The filename to clean
+
+    Returns
+    -------
+        base, ext : tuple(str, str)
+        Clean basename and the full extension
     """
     base, ext = os.path.splitext(filename)
 

@@ -1,12 +1,11 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
-from __future__ import division
 
 from builtins import range
 from itertools import count, takewhile
 import logging
 
-from dipy.segment.clustering import Cluster, QuickBundles
+from dipy.segment.clustering import qbx_and_merge, QuickBundles, Cluster
 from dipy.tracking import metrics as tm
 import numpy as np
 
@@ -14,10 +13,10 @@ import numpy as np
 def remove_loops_and_sharp_turns(streamlines,
                                  max_angle,
                                  use_qb=False,
-                                 qb_threshold=15.):
+                                 qb_threshold=15.,
+                                 qb_seed=0):
     """
     Remove loops and sharp turns from a list of streamlines.
-
     Parameters
     ----------
     streamlines: list of ndarray
@@ -47,15 +46,15 @@ def remove_loops_and_sharp_turns(streamlines,
         else:
             streamlines_clean.append(s)
 
-    # TODO can we use QBx instead?
     if use_qb:
         if len(streamlines_clean) > 1:
             streamlines = streamlines_clean
             curvature = []
             streamlines_clean = []
 
-            qb = QuickBundles(threshold=qb_threshold)
-            clusters = qb.cluster(streamlines)
+            rng = np.random.RandomState(qb_seed)
+            clusters = qbx_and_merge(streamlines, [40, 30, 20, qb_threshold],
+                                     rng=rng, verbose=False)
 
             for cc in clusters.centroids:
                 curvature.append(tm.mean_curvature(cc))
@@ -76,7 +75,18 @@ def remove_loops_and_sharp_turns(streamlines,
     return streamlines_clean, loops
 
 
-def _get_streamlines_bounding_box(streamlines):
+def get_streamlines_bounding_box(streamlines):
+    """
+    Classify inliers and outliers from a list of streamlines.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which inliers and outliers are separated.
+    Returns
+    -------
+    tuple: Minimum and maximum corner coordinate of the streamlines
+        bounding box
+    """
     box_min = np.array([np.inf, np.inf, np.inf])
     box_max = -np.array([np.inf, np.inf, np.inf])
 
@@ -87,7 +97,24 @@ def _get_streamlines_bounding_box(streamlines):
     return box_min, box_max
 
 
-def _prune(streamlines, threshold, features):
+def prune(streamlines, threshold, features):
+    """
+    Discriminate streamlines based on a metrics, usually summary from function
+    outliers_removal_using_hierarchical_quickbundles.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which inliers and outliers are separated.
+    threshold: float
+        Threshold use to discriminate streamlines using the feature.
+    features: ndarray
+        Values that represent a relevant metric to disciminate streamlines.
+    Returns
+    -------
+    tuple:
+        Indices for outliers (below threshold),
+        indices for inliers (above threshold).
+    """
     indices = np.arange(len(streamlines))
 
     outlier_indices = indices[features < threshold]
@@ -96,18 +123,34 @@ def _prune(streamlines, threshold, features):
     return outlier_indices, rest_indices
 
 
-# TODO could replace QB by QBx. Would need to adjust thresholds.
-def _outliers_removal_using_hierarchical_quickbundles(streamlines,
-                                                      min_threshold=0.5,
-                                                      nb_samplings_max=30,
-                                                      sampling_seed=1234):
+def outliers_removal_using_hierarchical_quickbundles(streamlines,
+                                                     min_threshold=0.5,
+                                                     nb_samplings_max=30,
+                                                     sampling_seed=1234):
+    """
+    Classify inliers and outliers from a list of streamlines.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which inliers and outliers are separated.
+    min_threshold: float
+        Quickbundles distance threshold for the last threshold.
+    nb_samplings_max: int
+        Number of run executed to explore the search space.
+        A different sampling is used each time.
+    sampling_seed: int
+        Random number generation initialization seed.
+    Returns
+    -------
+    ndarray: Float value representing the 0-1 score for each streamline
+    """
     if nb_samplings_max < 2:
         raise ValueError("'nb_samplings_max' must be >= 2")
 
     rng = np.random.RandomState(sampling_seed)
     metric = "MDF_12points"
 
-    box_min, box_max = _get_streamlines_bounding_box(streamlines)
+    box_min, box_max = get_streamlines_bounding_box(streamlines)
 
     # Half of the bounding box's halved diagonal length.
     initial_threshold = np.min(np.abs(box_max - box_min)) / 2.
@@ -156,9 +199,22 @@ def _outliers_removal_using_hierarchical_quickbundles(streamlines,
 
 
 def remove_outliers(streamlines, threshold):
-    summary = _outliers_removal_using_hierarchical_quickbundles(streamlines)
-    outliers, outliers_removed = _prune(streamlines,
-                                        threshold, summary)
+    """
+    Wrapper to classify inliers and outliers from a list of streamlines.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which inliers and outliers are separated.
+    threshold: float
+        Quickbundles distance threshold for the last threshold.
+    -------
+    A tuple containing
+        list: streamlines considered inliers
+        list: streamlines considered outliers
+    """
+    summary = outliers_removal_using_hierarchical_quickbundles(streamlines)
+    outliers, outliers_removed = prune(streamlines,
+                                       threshold, summary)
     outliers_strl = Cluster(indices=outliers, refdata=streamlines)
     no_outliers_strl = Cluster(indices=outliers_removed,
                                refdata=streamlines)
