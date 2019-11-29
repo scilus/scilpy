@@ -83,7 +83,7 @@ def _create_required_output_dirs(out_paths, args):
 def _save_if_needed(streamlines, args, saving_options, out_paths,
                     save_type, step_type, in_label, out_label):
     if saving_options[save_type] and len(streamlines):
-        save_from_voxel_space(streamlines, args.labels, args.tracts,
+        save_from_voxel_space(streamlines, args.labels, args.tracks,
                               os.path.join(out_paths[step_type],
                                            '{}_{}.trk'.format(in_label,
                                                               out_label)))
