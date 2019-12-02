@@ -21,7 +21,8 @@ from numpy.random import RandomState
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             link_bundles_and_references)
 
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
@@ -113,7 +114,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                                         shifted_origin=True)
         centroids = sft_centroids.get_streamlines_copy()
     else:
-        transformation, dimensions, _, _ = sft.space_attributes
+        transformation, dimensions, _, _ = sft.space_attribute
         density = compute_tract_counts_map(streamlines, dimensions)
         endpoints_density = get_endpoints_map(streamlines, dimensions)
         thresholds = [32, 24, 12, 6]
@@ -252,33 +253,6 @@ def compute_all_measures(args):
 
     return dict(zip(measures_name, measures))
 
-
-def link_bundles_and_references(parser, args, single_compare=None):
-    if single_compare is not None:
-        bundles_list = args.in_bundles + [single_compare]
-    else:
-        bundles_list = args.in_bundles
-
-    bundles_references_tuple = []
-    for bundle_filename in bundles_list:
-        _, ext = os.path.splitext(bundle_filename)
-        if ext == '.trk':
-            if args.reference is None:
-                bundles_references_tuple.append(
-                    (bundle_filename, bundle_filename))
-            else:
-                bundles_references_tuple.append(
-                    (bundle_filename, args.reference))
-        elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-            if args.reference is None:
-                parser.error('--reference is required for this file format '
-                             '{}.'.format(bundle_filename))
-            else:
-                bundles_references_tuple.append(
-                    (bundle_filename, args.reference))
-    return bundles_references_tuple
-
-
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
@@ -297,20 +271,24 @@ def main():
         os.mkdir('tmp_measures/')
 
     pool = multiprocessing.Pool(nbr_cpu)
-    if args.single_compare:
-        if args.single_compare in args.in_bundles:
-            args.in_bundles.remove(args.single_compare)
 
+    if args.single_compare:
+        # Move the single_compare only once, at the end.
+        args.in_bundles.remove(args.single_compare)
+        bundles_list = args.in_bundles + [args.single_compare]
         bundles_references_tuple_extended = link_bundles_and_references(
-            parser, args, single_compare=args.single_compare)
+            bundles_list, parser, args)
+
         single_compare_reference_tuple = bundles_references_tuple_extended.pop()
         comb_dict_keys = list(itertools.product(bundles_references_tuple_extended,
                                                 [single_compare_reference_tuple]))
-
     else:
+        bundles_list = args.in_bundles
         # Pre-compute the needed files, to avoid conflict when the number
         # of cpu is higher than the number of bundle
-        bundles_references_tuple = link_bundles_and_references(parser, args)
+        bundles_references_tuple = link_bundles_and_references(bundles_list,
+                                                               parser,
+                                                               args)
         pool.map(load_data_tmp_saving_wrapper,
                  zip(bundles_references_tuple,
                      itertools.repeat(True),

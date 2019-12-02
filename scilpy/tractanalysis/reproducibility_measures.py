@@ -7,7 +7,6 @@ from dipy.tracking.streamline import set_number_of_points, length
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
-
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
 
@@ -28,8 +27,7 @@ def get_endpoints_map(streamlines, dimensions, point_to_select=3):
         a resampling to 0.5mm per segment is performed.
     Returns
     -------
-    ndarray
-        A ndarray where voxel values represent the density of endpoints.
+    ndarray: A ndarray where voxel values represent the density of endpoints.
     """
     endpoints_map = np.zeros(dimensions)
     for streamline in streamlines:
@@ -51,12 +49,12 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
     """
     Compute the distance in millimeters between two bundles. Uses centroids
     to limit computation time. Each centroid of the first bundle is match
-    to the nearest centroid of the second bundle and vice-versa. 
+    to the nearest centroid of the second bundle and vice-versa.
     Distance between matched paired is average for the final results.
     References
     ----------
-    .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear 
-        registration of white-matter fascicles in the space of streamlines, 
+    .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear
+        registration of white-matter fascicles in the space of streamlines,
         Neuroimage, 2015.
     Parameters
     ----------
@@ -72,8 +70,7 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
         Pre-computed centroids for the second bundle.
     Returns
     -------
-    int
-        Distance in millimeters between both bundles.
+    float: Distance in millimeters between both bundles.
     """
     if not bundle_1 or not bundle_2:
         return -1
@@ -128,9 +125,9 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
 def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     """
     Compute the distance in millimeters between two bundles in the voxel
-    representation. Convert the bundles to binary masks. Each voxel of the 
-    first bundle is match to the the nearest voxel of the second bundle and 
-    vice-versa. 
+    representation. Convert the bundles to binary masks. Each voxel of the
+    first bundle is match to the the nearest voxel of the second bundle and
+    vice-versa.
     Distance between matched paired is average for the final results.
     Parameters
     ----------
@@ -142,8 +139,7 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
         Exclude overlapping streamlines from the computation.
     Returns
     -------
-    int
-        Distance in millimeters between both bundles.
+    float: Distance in millimeters between both bundles.
     """
     b1_ind = np.argwhere(binary_1 > 0)
     b2_ind = np.argwhere(binary_2 > 0)
@@ -181,9 +177,11 @@ def compute_dice_voxel(density_1, density_2):
         Density (or binary) map computed from the second bundle
     Returns
     -------
-    float
-        Value between 0 and 1 that represent the spatial aggrement between 
-        both map.
+    A tuple containing
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles.
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles, weighted by streamlines density.
     """
     binary_1 = copy.copy(density_1)
     binary_1[binary_1 > 0] = 1
@@ -222,8 +220,11 @@ def compute_dice_streamlines(bundle_1, bundle_2):
         Second set of streamlines.
     Returns
     -------
-    float
-        Value between 0 and 1 that represent the aggrement between both bundles.
+    A tuple containing
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles.
+        list of ndarray: Intersection of streamlines in both bundle
+        list of ndarray: Union of streamlines in both bundle
     """
     streamlines_intersect, _ = perform_streamlines_operation(intersection,
                                                              [bundle_1, bundle_2],
