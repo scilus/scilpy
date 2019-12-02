@@ -24,11 +24,11 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Json options')
 
     g1.add_argument('--indent',
-                   type=int, default=2,
-                   help='Indent for json pretty print.')
+                    type=int, default=2,
+                    help='Indent for json pretty print.')
     g1.add_argument('--sort_keys',
-                   action='store_true',
-                   help='Sort keys in output json.')
+                    action='store_true',
+                    help='Sort keys in output json.')
     return p
 
 
