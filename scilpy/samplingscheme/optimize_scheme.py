@@ -343,8 +343,8 @@ def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
     """
 
     bvals = list(np.linspace(np.sqrt(bmin),
-                                np.sqrt(bmax),
-                                nb_of_b_inside + 2)**2)
+                             np.sqrt(bmax),
+                             nb_of_b_inside + 2)**2)
     if exclude_bmin:
         bvals = bvals[1:]
 

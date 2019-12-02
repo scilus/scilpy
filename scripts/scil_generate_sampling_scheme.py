@@ -80,16 +80,16 @@ def _build_args_parser():
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
     bvals_group.add_argument('--bvals',
-                               type=float, nargs='+', metavar='bvals',
-                               help='b-value of each non-b0 shell.')
+                             type=float, nargs='+', metavar='bvals',
+                             help='bval of each non-b0 shell.')
     bvals_group.add_argument('--blinmax',
-                               dest='b_lin_max', type=float,
-                               help='b-max for linear b-value distribution '
-                               'in *b*. [replaces -bvals]')
+                             dest='b_lin_max', type=float,
+                             help='b-max for linear bval distribution '
+                                  'in *b*. [replaces -bvals]')
     bvals_group.add_argument('--qlinmax',
-                               dest='q_lin_max', type=float,
-                               help='b-max for linear b-value distribution '
-                                    'in *q*. [replaces -bvals]')
+                             dest='q_lin_max', type=float,
+                             help='b-max for linear bval distribution '
+                                  'in *q*. [replaces -bvals]')
 
     g1 = p.add_argument_group(title='Save as')
     g1.add_argument('--caru',
@@ -151,15 +151,15 @@ def main():
     if (b0_every > K) or (b0_every < 0):
         b0_every = K + 1
 
-    # Compute b-value list
+    # Compute bval list
     if args.bvals is not None:
         bvals = args.bvals
     elif args.b_lin_max is not None:
         bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
-                                       nb_of_b_inside=S - 1, exclude_bmin=True)
+                                     nb_of_b_inside=S - 1, exclude_bmin=True)
     elif args.q_lin_max is not None:
         bvals = compute_bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
-                                       nb_of_b_inside=S - 1, exclude_bmin=True)
+                                     nb_of_b_inside=S - 1, exclude_bmin=True)
     # Add b0 b-value
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)

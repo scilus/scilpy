@@ -8,7 +8,7 @@ from scilpy.samplingscheme.multiple_shell_energy import (compute_weights,
                                                          multiple_shell)
 
 
-def generate_scheme(Ks, verbose=1):
+def generate_scheme(nb_samples, verbose=1):
     """
     Wrapper code to generate sampling scheme from Caruyer's
     multiple_shell_energy.py
