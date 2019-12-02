@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 import argparse
 import json
 
@@ -22,10 +21,12 @@ def _build_arg_parser():
 
     add_reference(p)
 
-    p.add_argument('--indent',
+    g1 = p.add_argument_group(title='Json options')
+
+    g1.add_argument('--indent',
                    type=int, default=2,
                    help='Indent for json pretty print.')
-    p.add_argument('--sort_keys',
+    g1.add_argument('--sort_keys',
                    action='store_true',
                    help='Sort keys in output json.')
     return p
