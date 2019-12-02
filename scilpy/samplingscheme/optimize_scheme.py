@@ -9,10 +9,10 @@ from scipy.spatial.distance import cdist, pdist, squareform
 # TODO: make this robust to having b0s
 def swap_sampling_eddy(points, shell_idx, verbose=1):
     """
-    Optimize the b-vectors of fixed multi-shell scheme for eddy
+    Optimize the bvecs of fixed multi-shell scheme for eddy
     currents correction (fsl EDDY).
 
-    Bruteforce approach to maximally spread the b-vector,
+    Bruteforce approach to maximally spread the bvec,
     shell per shell.
 
     For each shell:
@@ -25,13 +25,13 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
+    points: numpy.array, bvecs normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    points: numpy.array, b-vectors normalized to 1.
+    points: numpy.array, bvecs normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
     """
 
@@ -56,7 +56,7 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
         while (it < maxIter) and not converged:
             converged = True
-            # For each b-vector on the shell
+            # For each bvec on the shell
             for pts_idx in range(len(shell_pts)):
                 # Find closest neighbor w.r.t. metric of dist
                 toMove = np.argmin(dist[pts_idx])
@@ -117,7 +117,7 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
 
     Parameters
     ----------
-    points: numpy.array, b-vectors normalized to 1.
+    points: numpy.array, bvecs normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
     b0_every: integer, final scheme will have a b0 every b0_every samples
     finish_b0: boolean, Option to add a b0 as last sample.
@@ -126,7 +126,7 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     Return
     ------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
     """
@@ -156,18 +156,18 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
 
 def correct_b0s_philips(points, shell_idx, verbose=1):
     """
-    Replace the [0.0, 0.0, 0.0] value of b0s b-vectors
-    by existing b-vectors in the sampling scheme.
+    Replace the [0.0, 0.0, 0.0] value of b0s bvecs
+    by existing bvecs in the sampling scheme.
 
     This is useful because Recon 1.0 of Philips allocates memory
-    proportional to (total nb. of diff. b-values) x (total nb. diff. b-vectors)
+    proportional to (total nb. of diff. bvals) x (total nb. diff. bvecs)
     and we can't leave multiple b0s with b-vector [0.0, 0.0, 0.0] and b-value 0
     because (b-vector, b-value) pairs have to be unique.
 
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1
+        bvecs normalized to 1
     shell_idx: numpy.array
         Shell index for bvecs in points.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
@@ -175,7 +175,7 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
     Return
     ------
     points: numpy.array
-        b-vectors normalized to 1
+        bvecs normalized to 1
     shell_idx: numpy.array
         Shell index for bvecs in points
     """
@@ -184,7 +184,7 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
     non_b0_pts = points[np.where(shell_idx != -1)]
 
-    # Assume non-collinearity of non-b0s b-vectors (i.e. Caruyer sampler type)
+    # Assume non-collinearity of non-b0s bvecs (i.e. Caruyer sampler type)
     new_points[np.where(shell_idx == -1)[0]] = non_b0_pts
 
     logging.info('Done adapting b0s for Philips scanner.')
@@ -192,7 +192,7 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
     return new_points, shell_idx
 
 
-def compute_min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
+def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
                                       Niter=100000, verbose=1, plotting=False,
                                       rand_seed=0):
     """
@@ -210,11 +210,11 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1
+        bvecs normalized to 1
     shell_idx: numpy.array
         Shell index for bvecs in points.
-    b_values: list
-        increasing b-values, b0 last.
+    bvals: list
+        increasing bvals, b0 last.
     ker_size: int
         kernel size for the sliding window.
     Niter: int
@@ -228,7 +228,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     Return
     ------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
     """
@@ -242,7 +242,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvalues, ker_size=10,
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
 
-    q_scheme = np.abs(points * np.sqrt(np.array([bvalues[idx] for idx in shell_idx]))[:, None])
+    q_scheme = np.abs(points * np.sqrt(np.array([bvals[idx] for idx in shell_idx]))[:, None])
 
     q_scheme_current = q_scheme.copy()
 
@@ -321,7 +321,7 @@ def compute_peak_power(q_scheme, ker_size=10):
 def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
                          exclude_bmin=True, verbose=1):
     """
-    Compute b-values linearly distributed in q-value in the
+    Compute bvals linearly distributed in q-value in the
     interval [bmin, bmax].
 
     Parameters
@@ -338,25 +338,25 @@ def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
 
     Return
     ------
-    b_values: list
-        increasing b-values.
+    bvals: list
+        increasing bvals.
     """
 
-    b_values = list(np.linspace(np.sqrt(bmin),
+    bvals = list(np.linspace(np.sqrt(bmin),
                                 np.sqrt(bmax),
                                 nb_of_b_inside + 2)**2)
     if exclude_bmin:
-        b_values = b_values[1:]
+        bvals = bvals[1:]
 
-    logging.info('b-values linear in q: {}'.format(b_values))
+    logging.info('bvals linear in q: {}'.format(bvals))
 
-    return b_values
+    return bvals
 
 
 def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
                          exclude_bmin=True, verbose=1):
     """
-    Compute b-values linearly distributed in b-value in the
+    Compute bvals linearly distributed in b-value in the
     interval [bmin, bmax].
 
     Parameters
@@ -373,36 +373,36 @@ def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
 
     Return
     ------
-    b_values: list
-        increasing b-values.
+    bvals: list
+        increasing bvals.
     """
 
-    b_values = list(np.linspace(bmin, bmax, nb_of_b_inside + 2))
+    bvals = list(np.linspace(bmin, bmax, nb_of_b_inside + 2))
     if exclude_bmin:
-        b_values = b_values[1:]
+        bvals = bvals[1:]
 
-    logging.info('b-values linear in b: {}'.format(b_values))
+    logging.info('bvals linear in b: {}'.format(bvals))
 
-    return b_values
+    return bvals
 
 
-def add_bvalue_b0(b_values, b0_value=0.0):
+def add_bvalue_b0(bvals, b0_value=0.0):
     """
-    Add the b0 value to the b-values list.
+    Add the b0 value to the bvals list.
 
     Parameters
     ----------
-    bvalues: list
-        b-values of the non-b0 shells.
+    bvals: list
+        bvals of the non-b0 shells.
     b0_value: float
-        b-values of the b0s
+        bvals of the b0s
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
-    b_values: list
-        b-values of the shells and b0s.
+    bvals: list
+        bvals of the shells and b0s.
     """
 
-    b_values.append(b0_value)
-    return b_values
+    bvals.append(b0_value)
+    return bvals

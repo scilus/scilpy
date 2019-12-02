@@ -13,7 +13,7 @@ def save_scheme_caru(points, shell_idx, filename):
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
     filename: output file name
@@ -35,18 +35,17 @@ def save_scheme_caru(points, shell_idx, filename):
     logging.info('Scheme saved in Caruyer format as {}'.format(fullfilename))
 
 
-def save_scheme_philips(points, shell_idx, bvalues, filename):
+def save_scheme_philips(points, shell_idx, bvals, filename):
     """
     Save table gradient (Philips format)
 
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1
+        bvecs normalized to 1
     shell_idx: numpy.array
         Shell index for bvecs in points.
-    bvalues: numpy.array
-        b-values
+    bvals: numpy.array
     filename: str
         output file name
     ------
@@ -60,24 +59,23 @@ def save_scheme_philips(points, shell_idx, bvalues, filename):
         f.write('{:.3f} {:.3f} {:.3f} {:.2f}\n'.format(points[idx, 0],
                                                        points[idx, 1],
                                                        points[idx, 2],
-                                                       bvalues[shell_idx[idx]]))
+                                                       bvals[shell_idx[idx]]))
     f.close()
 
     logging.info('Scheme saved in Philips format as {}'.format(fullfilename))
 
 
-def save_scheme_mrtrix(points, shell_idx, bvalues, filename):
+def save_scheme_mrtrix(points, shell_idx, bvals, filename):
     """
     Save table gradient (MRtrix format)
 
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
-    bvalues: numpy.array
-        b-values
+    bvals: numpy.array
     filename: str
         output file name
     ------
@@ -90,49 +88,47 @@ def save_scheme_mrtrix(points, shell_idx, bvalues, filename):
         f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
                                                        points[idx, 1],
                                                        points[idx, 2],
-                                                       bvalues[shell_idx[idx]]))
+                                                       bvals[shell_idx[idx]]))
     f.close()
 
     logging.info('Scheme saved in MRtrix format as {}'.format(fullfilename))
 
 
-def save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename):
+def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename):
     """
     Save table gradient (FSL format)
 
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
-    bvalues: numpy.array
-        b-values
+    bvals: numpy.array
     filename: str
         output file name
     ------
     """
 
     fullfilename, ext = split_name_with_nii(filename)
-    np.savetxt(fullfilename + '.bvecs', points.T, fmt='%.8f')
-    np.savetxt(fullfilename + '.bvals', np.array([bvalues[idx] for idx in shell_idx])[None, :], fmt='%.3f')
+    np.savetxt(fullfilename + '.bvec', points.T, fmt='%.8f')
+    np.savetxt(fullfilename + '.bval', np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
     logging.info('Scheme saved in FSL format as {}'.format(fullfilename +
-                                                           '{.bvecs/.bvals}'))
+                                                           '{.bvec/.bval}'))
 
 
-def save_scheme_siemens(points, shell_idx, bvalues, filename):
+def save_scheme_siemens(points, shell_idx, bvals, filename):
     """
     Save table gradient (Siemens format)
 
     Parameters
     ----------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
-    bvalues: numpy.array
-        b-values
+    bvals: numpy.array
     filename: str
         output file name
     ------
@@ -144,8 +140,8 @@ def save_scheme_siemens(points, shell_idx, bvalues, filename):
     str_save.append('Normalisation = None')
 
     # Scale bvecs with q-value
-    bvals = np.array([bvalues[idx] for idx in shell_idx])
-    bmax = np.array(bvalues).max()
+    bvals = np.array([bvals[idx] for idx in shell_idx])
+    bmax = np.array(bvals).max()
     bvecs_norm = (bvals / float(bmax))**(0.5)
 
     # ugly work around for the division by b0 / replacing NaNs with 0.0

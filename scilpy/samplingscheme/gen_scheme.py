@@ -25,7 +25,7 @@ def generate_scheme(Ks, verbose=1):
     Return
     ------
     points: numpy.array
-        b-vectors normalized to 1.
+        bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
     """

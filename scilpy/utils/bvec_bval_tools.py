@@ -65,7 +65,7 @@ def check_b0_threshold(args, bvals_min):
     Parameters
     ----------
     bvals_min: float
-        minimal bvalue to be considered as b0
+        minimal bval to be considered as b0
 
     Returns
     -------
@@ -75,11 +75,11 @@ def check_b0_threshold(args, bvals_min):
         if bvals_min < 0 or bvals_min > DEFAULT_B0_THRESHOLD:
             if args.force_b0_threshold:
                 logging.warning(
-                    'Warning: Your minimal bvalue is {}. This is highly '
+                    'Warning: Your minimal bval is {}. This is highly '
                     'suspicious. The script will nonetheless proceed since '
                     '--force_b0_threshold was specified.'.format(bvals_min))
             else:
-                raise ValueError('The minimal bvalue is lesser than 0 or '
+                raise ValueError('The minimal bval is lesser than 0 or '
                                  'greater than {}. This is highly ' +
                                  'suspicious.\n'
                                  'Please check your data to ensure everything '
@@ -90,7 +90,7 @@ def check_b0_threshold(args, bvals_min):
                                  .format(DEFAULT_B0_THRESHOLD, bvals_min))
         else:
             logging.warning('Warning: No b=0 image. Setting b0_threshold to '
-                            'the minimum bvalue: {}'.format(bvals_min))
+                            'the minimum bval: {}'.format(bvals_min))
 
 
 def get_shell_indices(bvals, shell, tol=10):
@@ -135,20 +135,20 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
 
     shells = np.loadtxt(fsl_bval_filename)
     points = np.loadtxt(fsl_bvec_filename)
-    bvalues = np.unique(shells).tolist()
+    bvals = np.unique(shells).tolist()
 
     if not points.shape[0] == 3:
         points = points.transpose()
         logging.warning('WARNING: Your bvecs seem transposed. ' +
                         'Transposing them.')
 
-    shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]
+    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
     basefilename, ext = split_name_with_nii(mrtrix_filename)
 
     save_scheme_mrtrix(points,
                        shell_idx,
-                       bvalues,
+                       bvals,
                        basefilename,
                        verbose=1)
 
@@ -176,14 +176,14 @@ def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
     points = np.array([mrtrix_b[:, 0], mrtrix_b[:, 1], mrtrix_b[:, 2]])
     shells = np.array(mrtrix_b[:, 3])
 
-    bvalues = np.unique(shells).tolist()
-    shell_idx = [int(np.where(bvalue == bvalues)[0]) for bvalue in shells]
+    bvals = np.unique(shells).tolist()
+    shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
     if fsl_base_filename is None:
         fsl_bvec_filename, ext = split_name_with_nii(mrtrix_filename)
 
     save_scheme_bvecs_bvals(points,
                             shell_idx,
-                            bvalues,
+                            bvals,
                             fsl_base_filename,
                             verbose=1)

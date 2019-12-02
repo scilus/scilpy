@@ -27,7 +27,7 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
     Parameters
     ----------
     ms: list of numpy.ndarray
-        bvecs for each bvalue
+        bvecs for each bval
     plot_sym_vecs: boolean
         Plot symmetrical vectors
     use_sphere: boolean
@@ -143,7 +143,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
 def build_shell_idx_from_bval(bvals, shell_th=50):
     """
-    build_shell_idx_from_bval
+    Get index of each bvals
 
     Parameters
     ----------
@@ -155,34 +155,34 @@ def build_shell_idx_from_bval(bvals, shell_th=50):
     Return
     ------
     shell_idx: numpy.ndarray
-        index for each bvalues
+        index for each bval
     """
-    target_bvalues = _find_target_bvalues(bvals, shell_th=shell_th)
+    target_bvals = _find_target_bvals(bvals, shell_th=shell_th)
 
     # Pop b0
-    if target_bvalues[0] < shell_th:
-        target_bvalues.pop(0)
+    if target_bvals[0] < shell_th:
+        target_bvals.pop(0)
 
-    shell_idx = _find_shells(bvals, target_bvalues, shell_th=shell_th)
+    shell_idx = _find_shells(bvals, target_bvals, shell_th=shell_th)
 
     return shell_idx
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
     """
-    build_ms_from_shell_idx
+    Get bvecs from indexes
 
     Parameters
     ----------
     bvecs: numpy.ndarray
         bvecs
     shell_idx: numpy.ndarray
-        index for each bvalues
+        index for each bval
 
     Return
     ------
     ms: list of numpy.ndarray
-        bvecs for each bvalue
+        bvecs for each bval
     """
 
     S = len(set(shell_idx))
@@ -196,24 +196,24 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
     return ms
 
 
-def _find_target_bvalues(bvals, shell_th=50):
+def _find_target_bvals(bvals, shell_th=50):
     """
-    Find bvalues
+    Find bvals
 
     Parameters
     ----------
     bvals: numpy.ndarray
-        array of bvalues
+        array of bvals
     shell_th: int
-        threshold used to find bvalues
+        threshold used to find bvals
 
     Return
     ------
-    target_bvalues: list
-        unique bvalues
+    target_bvals: list
+        unique bvals
     """
 
-    target_bvalues = []
+    target_bvals = []
     tmp_targets = []
     bvalues = np.unique(bvals)
     distances = np.ediff1d(bvalues) <= shell_th
@@ -228,24 +228,24 @@ def _find_target_bvalues(bvals, shell_th=50):
             wasClose = True
         else:
             if not(wasClose):
-                target_bvalues.append(bvalues[idx])
+                target_bvals.append(bvalues[idx])
             wasClose = False
 
-    return target_bvalues
+    return target_bvals
 
 
-def _find_shells(bvals, target_bvalues, shell_th=50):
+def _find_shells(bvals, target_bvals, shell_th=50):
     """
     Assign bvecs to a target shell
 
     Parameters
     ----------
     bvals: numpy.ndarray
-        bvalues
-    target_bvalues: list
-        list of targeted bvalues
+        bvals
+    target_bvals: list
+        list of targeted bvals
     shell_th: int
-        Threshold used to select bvalues
+        Threshold used to select bvals
 
     Return
     ------
@@ -254,10 +254,10 @@ def _find_shells(bvals, target_bvalues, shell_th=50):
     """
 
     # Not robust
-    # shell -1 means nbvecs not part of target_bvalues
+    # shell -1 means nbvecs not part of target_bvals
     shells = -1 * np.ones_like(bvals)
 
-    for shell_id, bval in enumerate(target_bvalues):
+    for shell_id, bval in enumerate(target_bvals):
         shells[(bvals <= bval + shell_th) &
                (bvals >= bval - shell_th)] = shell_id
 

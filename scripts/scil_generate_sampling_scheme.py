@@ -78,18 +78,18 @@ def _build_args_parser():
                    dest='b0_value', type=float, default=0.01,
                    help='b-value of the b0s. [%(default)s]')
 
-    bvalues_group = p.add_mutually_exclusive_group(required=True)
-    bvalues_group.add_argument('--bvalues',
-                               type=float, nargs='+', metavar='bvalues',
+    bvals_group = p.add_mutually_exclusive_group(required=True)
+    bvals_group.add_argument('--bvals',
+                               type=float, nargs='+', metavar='bvals',
                                help='b-value of each non-b0 shell.')
-    bvalues_group.add_argument('--blinmax',
+    bvals_group.add_argument('--blinmax',
                                dest='b_lin_max', type=float,
                                help='b-max for linear b-value distribution '
-                               'in *b*. [replaces -bvalues]')
-    bvalues_group.add_argument('--qlinmax',
+                               'in *b*. [replaces -bvals]')
+    bvals_group.add_argument('--qlinmax',
                                dest='q_lin_max', type=float,
                                help='b-max for linear b-value distribution '
-                                    'in *q*. [replaces -bvalues]')
+                                    'in *q*. [replaces -bvals]')
 
     g1 = p.add_argument_group(title='Save as')
     g1.add_argument('--caru',
@@ -152,17 +152,17 @@ def main():
         b0_every = K + 1
 
     # Compute b-value list
-    if args.bvalues is not None:
-        bvalues = args.bvalues
+    if args.bvals is not None:
+        bvals = args.bvals
     elif args.b_lin_max is not None:
-        bvalues = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
+        bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
                                        nb_of_b_inside=S - 1, exclude_bmin=True)
     elif args.q_lin_max is not None:
-        bvalues = compute_bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
+        bvals = compute_bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
                                        nb_of_b_inside=S - 1, exclude_bmin=True)
     # Add b0 b-value
     if b0_every != 0:
-        bvalues = add_bvalue_b0(bvalues, b0_value=b0_value)
+        bvals = add_bvalue_b0(bvals, b0_value=b0_value)
 
     outfile = args.outfile
 
@@ -182,7 +182,7 @@ def main():
     # duty cycle optimization
     if duty:
         points, shell_idx = compute_min_duty_cycle_bruteforce(
-            points, shell_idx, bvalues)
+            points, shell_idx, bvals)
 
     # Save the sampling scheme
     if caru:
@@ -192,15 +192,15 @@ def main():
     if fsl:
         assert_outputs_exist(parser, args, [outfile + '.bvecs',
                                             outfile + '.bvals'])
-        save_scheme_bvecs_bvals(points, shell_idx, bvalues, filename=outfile)
+        save_scheme_bvecs_bvals(points, shell_idx, bvals, filename=outfile)
 
     if siemens:
         assert_outputs_exist(parser, args, outfile + '.dvs')
-        save_scheme_siemens(points, shell_idx, bvalues, filename=outfile)
+        save_scheme_siemens(points, shell_idx, bvals, filename=outfile)
 
     if mrtrix:
         assert_outputs_exist(parser, args, outfile + '.b')
-        save_scheme_mrtrix(points, shell_idx, bvalues, filename=outfile)
+        save_scheme_mrtrix(points, shell_idx, bvals, filename=outfile)
 
     if phil:
         # Correcting bvecs for b0s
@@ -208,7 +208,7 @@ def main():
             points, shell_idx = correct_b0s_philips(points, shell_idx)
 
         assert_outputs_exist(parser, args, outfile + '.txt')
-        save_scheme_philips(points, shell_idx, bvalues, filename=outfile)
+        save_scheme_philips(points, shell_idx, bvals, filename=outfile)
 
 
 if __name__ == "__main__":
