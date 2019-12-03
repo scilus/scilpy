@@ -13,6 +13,7 @@ The library's structure is mostly aligned on that of [DIPY].
 We highly recommend working in a [Python Virtual Environment]. Dependencies can be installed by running
 ```
 pip install -r requirements.txt
+pip install -r requirements-git.txt
 ```
 
 Following this, the library and scripts can be installed locally by using
