@@ -12,6 +12,9 @@ longest.
 This is robust to compressed streamlines.
 
 NOTE: this script can take a while to run. Please be patient.
+      Example: on a tractogram with 1.8M streamlines, running on a SSD:
+               - N minutes with full post-processing, only saving final bundles.
+               - 30 minutes with full post-processing, saving all possible files.
 """
 
 from __future__ import division
@@ -247,12 +250,10 @@ def main():
                  (time2 - time1) * 1000.0)
 
     # Compute the connectivity mapping
-    # TODO self connection?
     logging.info('*** Computing connectivity information ***')
     time1 = time.time()
     con_info = compute_connectivity(indices, img_labels.get_data(),
-                                    extract_longest_segments_from_profile,
-                                    False, True)
+                                    extract_longest_segments_from_profile)
     time2 = time.time()
     logging.info('    Connectivity computation took %0.3f ms',
                  (time2 - time1) * 1000.0)
@@ -347,10 +348,10 @@ def main():
 
             if not args.no_remove_loops_again:
                 no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-                                                    no_outliers,
-                                                    args.loop_max_angle,
-                                                    True,
-                                                    args.loop_qb_distance)
+                    no_outliers,
+                    args.loop_max_angle,
+                    True,
+                    args.loop_qb_distance)
                 _save_if_needed(loops2, args, saving_opts, out_paths,
                                 'discarded', 'qb_loops', in_label, out_label)
             else:
@@ -373,9 +374,6 @@ def main():
     # post-processing to avoid unnecessary -1 on labels for each access.
     con_mat = con_mat[1:, 1:]
     np.save(os.path.join(args.output, 'final_matrix.npy'), con_mat)
-
-    # In the future, could also be saved as a .json file, using pandas.
-    # Contact JC Houde for example.
 
 
 if __name__ == "__main__":

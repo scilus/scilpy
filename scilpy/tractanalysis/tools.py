@@ -138,7 +138,6 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
             end_idx = el_idx
         el_idx -= 1
 
-    # TODO check self connections
     if end_label is None or end_idx <= start_idx + 1:
         return []
 
@@ -148,11 +147,8 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
              'end_index': end_idx}]
 
 
-# TODO self connect
 def compute_connectivity(indices, atlas_data,
-                         segmenting_func,
-                         allow_self_connection,
-                         minimize_self_connection):
+                         segmenting_func):
     atlas_data = atlas_data.astype(np.int32)
     real_labels = np.unique(atlas_data)
 
