@@ -57,41 +57,11 @@ from dipy.core.gradients import gradient_table
 
 from scipy.ndimage.filters import gaussian_filter
 
-# Aliased to avoid clashes with images called mode.
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold)
-
-logger = logging.getLogger("Compute_DKI_Metrics")
-logger.setLevel(logging.INFO)
-
-
-def _guess_bvals_centroids(bvals, threshold):
-    if not len(bvals):
-        raise ValueError('Empty b-values.')
-
-    bval_centroids = [bvals[0]]
-
-    for bval in bvals[1:]:
-        diffs = np.abs(np.asarray(bval_centroids) - bval)
-        # Found no bval in bval centroids close enough to the current one.
-        if not len(np.where(diffs < threshold)[0]):
-            bval_centroids.append(bval)
-
-    return np.array(bval_centroids)
-
-
-def identify_shells(bvals, threshold=40.0):
-    centroids = _guess_bvals_centroids(bvals, threshold)
-
-    bvals_for_diffs = np.tile(bvals.reshape(bvals.shape[0], 1),
-                              (1, centroids.shape[0]))
-
-    shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
-
-    return centroids, shell_indices
-
+                                          check_b0_threshold,
+                                          identify_shells)
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
@@ -114,19 +84,19 @@ def _build_args_parser():
                    metavar='INT', type=int, default=20,
                    help='The tolerated distance between the b-values to '
                    'extract\nand the actual b-values [Default: %(default)s].')
-    p.add_argument('--min_k', dest='min_k', type=float, default='0',
+    p.add_argument('--min_k', type=float, default=0.0,
                    help='Minium kurtosis value in the output maps ' +
                    '\n(ak, mk, rk). In theory, -3/7 is the min kurtosis ' +
                    '\n limit for regions that consist of water confined ' +
                    '\nto spherical pores (see DIPY example and ' +
                    '\n documentation) [Default: %(default)s].')
-    p.add_argument('--max_k', dest='max_k', type=float, default='3',
+    p.add_argument('--max_k', type=float, default=3.0,
                    help='Maximum kurtosis value in the output maps ' +
                    '\n(ak, mk, rk). In theory, 10 is the max kurtosis' +
                    '\nlimit for regions that consist of water confined' +
                    '\nto spherical pores (see DIPY example and ' +
                    '\ndocumentation) [Default: %(default)s].')
-    p.add_argument('--smooth', dest='smooth', type=float, default='2.5',
+    p.add_argument('--smooth', type=float, default=2.5,
                    help='Smooth input DWI with a 3D Gaussian filter with ' +
                    '\nfull-width-half-max (fwhm). Kurtosis fitting is ' +
                    '\nsensitive and outliers occur easily. According to' +
@@ -139,30 +109,29 @@ def _build_args_parser():
                    '\n[Default: not set].')
 
     g = p.add_argument_group(title='Metrics files flags')
-    g.add_argument('--ak', dest='ak', metavar='file', default='',
+    g.add_argument('--ak', metavar='file', default='',
                    help='Output filename for the axial kurtosis.')
-    g.add_argument('--mk', dest='mk', metavar='file', default='',
+    g.add_argument('--mk', metavar='file', default='',
                    help='Output filename for the mean kurtosis.')
-    g.add_argument('--rk', dest='rk', metavar='file', default='',
+    g.add_argument('--rk', metavar='file', default='',
                    help='Output filename for the radial kurtosis.')
-    g.add_argument('--msk', dest='msk', metavar='file', default='',
+    g.add_argument('--msk', metavar='file', default='',
                    help='Output filename for the mean signal kurtosis.')
-    g.add_argument('--dki_fa', dest='dki_fa', metavar='file', default='',
+    g.add_argument('--dki_fa', metavar='file', default='',
                    help='Output filename for the fractional anisotropy ' +
                    'from DKI.')
-    g.add_argument('--dki_md', dest='dki_md', metavar='file', default='',
+    g.add_argument('--dki_md', metavar='file', default='',
                    help='Output filename for the mean diffusivity from DKI.')
-    g.add_argument('--dki_ad', dest='dki_ad', metavar='file', default='',
+    g.add_argument('--dki_ad', metavar='file', default='',
                    help='Output filename for the axial diffusivity from DKI.')
-    g.add_argument('--dki_rd', dest='dki_rd', metavar='file', default='',
+    g.add_argument('--dki_rd', metavar='file', default='',
                    help='Output filename for the radial diffusivity from DKI.')
 
     g = p.add_argument_group(title='Quality control files flags')
-    g.add_argument('--dki_residual', dest='dki_residual',
-                   metavar='file', default='',
+    g.add_argument('--dki_residual', metavar='file', default='',
                    help='Output filename for the map of the residual ' +
                    'of the tensor fit.')
-    g.add_argument('--msd', dest='msd', metavar='file', default='',
+    g.add_argument('--msd', metavar='file', default='',
                    help='Output filename for the mean signal diffusion ' +
                    '(powder-average).')
 
@@ -173,6 +142,9 @@ def _build_args_parser():
 
 
 def main():
+    logger = logging.getLogger("Compute_DKI_Metrics")
+    logger.setLevel(logging.INFO)
+
     parser = _build_args_parser()
     args = parser.parse_args()
 
@@ -320,3 +292,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
