@@ -23,7 +23,8 @@ def is_normalized_bvecs(bvecs):
     """
 
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
-    return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3, bvecs_norm == 0))
+    return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3,
+                                bvecs_norm == 0))
 
 
 def normalize_bvecs(bvecs, filename=None):
@@ -64,7 +65,7 @@ def check_b0_threshold(args, bvals_min):
                     '--force_b0_threshold was specified.'.format(bvals_min))
             else:
                 raise ValueError('The minimal bvalue is lesser than 0 or '
-                                 'greater than {}. This is highly suspicious.\n'
+                                 'greater than {}. It is highly suspicious.\n'
                                  'Please check your data to ensure everything '
                                  'is correct.\n'
                                  'Value found: {}\n'

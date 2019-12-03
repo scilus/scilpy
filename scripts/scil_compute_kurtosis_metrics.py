@@ -58,10 +58,11 @@ from dipy.core.gradients import gradient_table
 from scipy.ndimage.filters import gaussian_filter
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
+                             assert_outputs_exists, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold,
                                           identify_shells)
+
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
@@ -103,7 +104,7 @@ def _build_args_parser():
                    '\ntests on HCP, CB_Brain, Penthera3T, this smoothing' +
                    '\nis thus turned ON by default with fwhm=2.5. ' +
                    '\n[Default: %(default)s].')
-    p.add_argument('--not_all', action='store_true', dest='not_all',
+    p.add_argument('--not_all', action='store_true',
                    help='If set, will only save the metrics explicitly ' +
                    '\nspecified using the other metrics flags. ' +
                    '\n[Default: not set].')
@@ -292,4 +293,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
