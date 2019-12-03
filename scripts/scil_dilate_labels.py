@@ -1,0 +1,155 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import logging
+
+import nibabel as nib
+import numpy as np
+from scipy.spatial.ckdtree import cKDTree
+
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
+
+
+DESCRIPTION = """
+    Dilate regions (with or without masking) from a labeled volume:
+    - "label_to_dilate" regions will dilate over 
+       "label_to_fill" if close enough to it ("distance").
+    - "label_to_dilate" are all non-"label_to_fill" by default.
+    - "label_not_to_dilate" will not be changed, but will not dilate.
+    - "mask" is where the dilation is allowed (constrained)
+        in addition to "background_label" (logical AND)
+    - "label_to_remove" will be set to the first "background_label"
+    """
+
+EPILOG = """
+    References:
+        [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
+            Evans A.C. and Descoteaux M. OHBM 2019.
+            Surface integration for connectome analysis in age prediction.
+    """
+
+
+def _build_args_parser():
+    p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
+                                formatter_class=argparse.RawTextHelpFormatter)
+
+    p.add_argument('in_file',
+                   help='Path of the volume (nii or nii.gz)')
+
+    p.add_argument('out_file',
+                   help='Output filename of the dilated labels.')
+
+    p.add_argument('--distance', type=float, default=2.0,
+                   help='Maximal distance to dilated (in mm)')
+
+    p.add_argument('--label_to_dilate', type=int, nargs='+', default=None,
+                   help='Label list to dilate, [%(default)s],\n'
+                        ' by default "None"  dilate all non-background')
+
+    p.add_argument('--label_not_to_dilate', type=int, nargs='+', default=[],
+                   help='Label list not to dilate')
+
+    p.add_argument('--label_to_fill', type=int,  nargs='+', default=[0.],
+                   help='Background id / labels to be filled [%(default)s],\n'
+                        ' the first one is given as output background value')
+
+    p.add_argument('--mask',
+                   help='Only dilate values inside the mask')
+
+    p.add_argument('--label_to_remove', type=int, nargs='+', default=None,
+                   help='Label to remove from the volume,'
+                        ' by default "None" remove all background')
+
+    p.add_argument('--processes', type=int, default=-1,
+                   help='Number of sub processes to start. [cpu count]')
+
+    add_overwrite_arg(p)
+    return p
+
+
+def main():
+    parser = _build_args_parser()
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
+
+    assert_inputs_exist(parser, [args.in_file], optional=[args.mask])
+    assert_outputs_exist(parser, args, args.out_file)
+
+    # load volume
+    volume_nib = nib.load(args.in_file)
+    data = np.round(volume_nib.get_data()).astype(np.int)
+    vox_size = np.reshape(volume_nib.header.get_zooms(), (1, 3))
+    img_shape = data.shape
+
+    # Create background mask
+    is_background_mask = np.zeros(img_shape, dtype=np.bool)
+    for i in args.label_to_fill:
+        is_background_mask = np.logical_or(is_background_mask,  data == i)
+
+    # Create not_to_dilate mask (initialized to background)
+    not_to_dilate = np.copy(is_background_mask)
+    for i in args.label_not_to_dilate:
+        not_to_dilate = np.logical_or(not_to_dilate, data == i)
+
+    # Add mask
+    if args.mask:
+        mask_nib = nib.load(args.mask)
+        mask_data = mask_nib.get_data().astype(np.bool)
+        to_dilate_mask = np.logical_and(is_background_mask, mask_data)
+    else:
+        to_dilate_mask = is_background_mask
+
+    # Create label mask
+    is_label_mask = ~not_to_dilate
+
+    if args.label_to_dilate is not None:
+        # Check if in both: to_dilate & not_to_dilate
+        dilate_and_not = np.in1d(args.label_to_dilate,
+                                 args.label_not_to_dilate)
+
+        if np.any(dilate_and_not):
+            logging.error("Error, both in dilate and Not to dilate: %s",
+                          np.asarray(args.label_to_dilate)[dilate_and_not])
+
+        # Create new label to dilate list
+        new_label_mask = np.zeros_like(data, dtype=np.bool)
+        for i in args.label_to_dilate:
+            new_label_mask = np.logical_or(new_label_mask,  data == i)
+
+        # Combine both new_label_mask and not_to_dilate
+        is_label_mask = np.logical_and(new_label_mask, ~not_to_dilate)
+
+    # Get the list of indices
+    background_pos = np.argwhere(to_dilate_mask) * vox_size
+    label_pos = np.argwhere(is_label_mask) * vox_size
+    ckd_tree = cKDTree(label_pos)
+
+    # Compute the nearest labels for each voxel of the background
+    dist, indices = ckd_tree.query(
+        background_pos, k=1, distance_upper_bound=args.distance,
+        n_jobs=args.processes)
+
+    # Associate indices to the nearest label (in distance)
+    valid_nearest = np.squeeze(np.isfinite(dist))
+    id_background = np.flatnonzero(to_dilate_mask)[valid_nearest]
+    id_label = np.flatnonzero(is_label_mask)[indices[valid_nearest]]
+
+    # Change values of those background
+    data = data.flatten()
+    data[id_background.T] = data[id_label.T]
+    data = data.reshape(img_shape)
+
+    # Remove unwanted labels
+    if args.label_to_remove is not None:
+        for i in args.label_to_remove:
+            data[data == i] = args.label_to_fill[0]
+
+    # Save image
+    nib.save(nib.Nifti1Image(data, volume_nib.affine, volume_nib.header),
+             args.out_file)
+
+
+if __name__ == "__main__":
+    main()
