@@ -12,8 +12,10 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_overwrite_arg,
+                             add_verbose_arg)
 
 EPILOG = """
 Reference:
