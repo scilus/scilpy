@@ -60,7 +60,6 @@ def _build_args_parser():
 def prepare_data_for_actors(bundle_filename, reference_filename,
                             target_template_filename):
     sft = load_tractogram(bundle_filename, reference_filename)
-    # sft.to_vox()
     streamlines = sft.streamlines
 
     # Load and prepare the data
@@ -71,7 +70,6 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
     target_template_img = nib.load(target_template_filename)
     target_template_data = target_template_img.get_data()
     target_template_affine = target_template_img.affine
-    zooms = 1 / float(target_template_img.header.get_zooms()[0])
 
     # Register the DWI data to the template
     transformed_reference, transformation = register_image(target_template_data,
@@ -81,7 +79,6 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
     # transformation = np.eye(4)
     streamlines = transform_streamlines(streamlines,
                                         np.linalg.inv(transformation))
-    # streamlines = transform_streamlines(streamlines, zooms * np.eye(4))
 
     return streamlines, transformed_reference
 
@@ -118,7 +115,6 @@ def main():
 
     # Get the relevant slices from the template
     target_template_img = nib.load(args.target_template)
-    zooms = 1
 
     x_slice = int(target_template_img.shape[0] / 2)
     y_slice = int(target_template_img.shape[1] / 2)
@@ -140,7 +136,7 @@ def main():
                   args.uniform_coloring[1] / 255.0,
                   args.uniform_coloring[2] / 255.0)
     elif args.reference_coloring:
-        colors = reference
+        colors = reference_data
     else:
         colors = None
 
