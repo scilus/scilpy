@@ -14,7 +14,8 @@ from scilpy.io.image import get_reference_info
 from scilpy.utils.nibabel_tools import get_data
 
 
-def transform_anatomy(transfo, reference, moving, filename_to_save, interp='linear'):
+def transform_anatomy(transfo, reference, moving, filename_to_save,
+                      interp='linear'):
     """
     Apply transformation to an image using Dipy's tool
 
@@ -44,7 +45,8 @@ def transform_anatomy(transfo, reference, moving, filename_to_save, interp='line
         affine_map = AffineMap(np.linalg.inv(transfo),
                                dim, grid2world,
                                moving_data.shape, moving_affine)
-        resampled = affine_map.transform(moving_data.astype(np.float64), interp=interp)
+        resampled = affine_map.transform(moving_data.astype(np.float64),
+                                         interp=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     elif len(moving_data[0, 0, 0]) > 1:
@@ -56,7 +58,8 @@ def transform_anatomy(transfo, reference, moving, filename_to_save, interp='line
                                moving_data.shape[0:3], moving_affine)
 
         orig_type = moving_data.dtype
-        resampled = transform_dwi(affine_map, static_data, moving_data, interp=interp)
+        resampled = transform_dwi(affine_map, static_data, moving_data,
+                                  interp=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     else:
