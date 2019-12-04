@@ -3,11 +3,14 @@
 import argparse
 import os
 
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamline import transform_streamlines
 from fury import actor
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
+from scipy.ndimage import map_coordinates
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -36,10 +39,13 @@ def _build_args_parser():
                         'Any choice of modality works')
 
     sub_color = p.add_mutually_exclusive_group()
+    sub_color.add_argument('--local_coloring', action='store_true',
+                           help='Color streamlines local segments orientation')
     sub_color.add_argument('--uniform_coloring', nargs=3, metavar=('R', 'G', 'B'),
                            type=int,
                            help='Color streamlines with uniform coloring')
-    sub_color.add_argument('--reference_coloring', action='store_true',
+    sub_color.add_argument('--reference_coloring',
+                           metavar='COLORBAR',
                            help='Color streamlines with reference coloring (0-255)')
 
     p.add_argument('--right', action='store_true',
@@ -80,7 +86,10 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
     streamlines = transform_streamlines(streamlines,
                                         np.linalg.inv(transformation))
 
-    return streamlines, transformed_reference
+    new_sft = StatefulTractogram(streamlines, target_template_filename,
+                                 Space.RASMM)
+
+    return new_sft, transformed_reference
 
 
 def main():
@@ -125,18 +134,35 @@ def main():
                                            args.target_template)
 
     # Create actors from each dataset for Dipy
-    streamlines, reference_data = subject_data
+    sft, reference_data = subject_data
+    streamlines = sft.streamlines
+
     volume_actor = actor.slicer(reference_data,
                                 affine=nib.load(args.target_template).affine,
                                 opacity=args.anat_opacity,
                                 interpolation='nearest')
-
-    if args.uniform_coloring:
+    if args.local_coloring:
+        colors = []
+        for i in streamlines:
+            local_color = np.gradient(i, axis=0)
+            local_color = np.abs(local_color)
+            local_color = (local_color.T / np.max(local_color, axis=1)).T
+            colors.append(local_color)
+    elif args.uniform_coloring:
         colors = (args.uniform_coloring[0] / 255.0,
                   args.uniform_coloring[1] / 255.0,
                   args.uniform_coloring[2] / 255.0)
     elif args.reference_coloring:
-        colors = reference_data
+        sft.to_vox()
+        streamlines_vox = sft.get_streamlines_copy()
+        sft.to_rasmm()
+        colors = []
+        normalized_data = reference_data / np.max(reference_data)
+        cmap = plt.get_cmap(args.reference_coloring)
+        for points in streamlines_vox:
+            values = map_coordinates(normalized_data, points.T,
+                                     order=1, mode='nearest')
+            colors.append(cmap(values)[:, 0:3])
     else:
         colors = None
 
