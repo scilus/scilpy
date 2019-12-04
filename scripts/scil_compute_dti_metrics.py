@@ -70,14 +70,14 @@ def _build_args_parser():
     p.add_argument(
         '--mask',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
-             'for computations and reconstruction. (Default: None)')
+             'for computations and reconstruction. (Default: %(default)s)')
     p.add_argument(
         '--method', dest='method', metavar='method_name', default='WLS',
         choices=['WLS', 'LS', 'NLLS', 'restore'],
         help='Tensor fit method.\nWLS for weighted least squares' +
              '\nLS for ordinary least squares' +
              '\nNLLS for non-linear least-squares' +
-             '\nrestore for RESTORE robust tensor fitting. (Default: WLS)')
+             '\nrestore for RESTORE robust tensor fitting. (Default: %(default)s)')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
