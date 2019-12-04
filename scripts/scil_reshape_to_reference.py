@@ -13,7 +13,7 @@ from scilpy.utils.image import transform_anatomy
 DESCRIPTION = """
     Reshape / reslice / resample *.nii or *.nii.gz using a reference.
     For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+    see the doc/tractogram_registration.md readme file.
 """
 
 
@@ -22,17 +22,17 @@ def _build_args_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_file',
-                   help='Path of the volume file to be reshaped')
+                   help='Path of the volume file to be reshaped.')
 
     p.add_argument('ref_file',
-                   help='Path of the reference volume')
+                   help='Path of the reference volume.')
 
     p.add_argument('out_file',
-                   help='Output filename of the reshaped data')
+                   help='Output filename of the reshaped data.')
 
     p.add_argument('--interpolation', default='linear',
                    choices=['linear', 'nearest'],
-                   help='Interpolation: "linear" or "nearest",  [%(default)s]')
+                   help='Interpolation: "linear" or "nearest". [%(default)s]')
 
     add_overwrite_arg(p)
     return p

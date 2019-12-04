@@ -11,9 +11,9 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 
 DESCRIPTION = """
     Script to combine labels from multiple volumes,
-        if there's overlap, it will overwritten based on the input order
-        
-    >>> se_combine_labels.py animal_labels.nii 20  DKT_labels.nii.gz 44 53\\
+        if there's overlap, it will overwritten based on the input order.
+
+    >>> se_combine_labels.py animal_labels.nii 20 DKT_labels.nii.gz 44 53\\
             -o labels.nii.gz --out_labels_indices 20 44 53
     """
 
@@ -31,27 +31,27 @@ def buildArgsParser():
 
     p.add_argument('volumes_ids', nargs='+', default=[],
                    help='List of volumes directly followed by their labels:\n'
-                        '  Image1 id11 id12   Image2 id21 id22 id23 ... \n'
-                        '  "all" can be used instead of id numbers')
+                        '  Image1 id11 id12  Image2 id21 id22 id23 ... \n'
+                        '  "all" can be used instead of id numbers.')
 
     p.add_argument('-o', '--out_file', required=True,
-                   help='Labels volume output')
+                   help='Labels volume output.')
 
     o_ids = p.add_mutually_exclusive_group()
     o_ids.add_argument('--out_labels_ids', type=float, nargs='+', default=[],
-                       help='Give a list of labels indices for output images')
+                       help='Give a list of labels indices for output images.')
 
     o_ids.add_argument('--unique', action='store_true',
                        help='Output id with unique labels,'
-                            ' excluding first background value')
+                            ' excluding first background value.')
 
     o_ids.add_argument('--group_in_m', action='store_true',
                        help='Add (x*1000000) to each volume labels,'
-                            ' where x is the input volume order number')
+                            ' where x is the input volume order number.')
 
     p.add_argument('--background', type=float, default=0.,
                    help='Background id, excluded from output [%(default)s],\n'
-                        ' the first one is given as output background value')
+                        ' the first one is given as output background value.')
     add_overwrite_arg(p)
     return p
 
