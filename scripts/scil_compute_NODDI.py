@@ -51,6 +51,8 @@ def _build_arg_parser():
     g.add_argument('--scheme_file',
                    help='If a scheme file already exists, '
                         'can replace --bval/--bvec.')
+    g.add_argument('--bstep', type=int, nargs='+',
+                   help='List of bvals in your data')
 
     p.add_argument('--para_diff', type=float, default=1.7e-3,
                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
@@ -131,7 +133,8 @@ def main():
                                            text=True,
                                            dir='././')
         scheme_filename = scheme_filename[1]
-        amico.util.fsl2scheme(args.bval, args.bvec, scheme_filename)
+        bstep = args.bstep
+        amico.util.fsl2scheme(args.bval, args.bvec, scheme_filename, bstep)
 
     # Load the data
     ae.load_data(dwi_filename=args.dwi,

@@ -17,3 +17,4 @@ scipy==1.0.1
 six==1.11.0
 vtk==8.1.0
 coloredlogs==10.0
+spams --index-url https://test.pypi.org/simple/
