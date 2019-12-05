@@ -3,17 +3,19 @@
 
 import argparse
 import logging
-import numpy as np
-import nibabel as nib
+
 from dipy.io.utils import is_header_compatible
+import nibabel as nib
+import numpy as np
+
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
 DESCRIPTION = """
     Script to combine labels from multiple volumes,
-        if there's overlap, it will overwritten based on the input order.
+        if there is overlap, it will overwritten based on the input order.
 
-    >>> se_combine_labels.py animal_labels.nii 20 DKT_labels.nii.gz 44 53\\
+    >>> scil_combine_labels.py animal_labels.nii 20 DKT_labels.nii.gz 44 53\\
             -o labels.nii.gz --out_labels_indices 20 44 53
     """
 
@@ -25,7 +27,7 @@ EPILOG = """
     """
 
 
-def buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
@@ -38,7 +40,7 @@ def buildArgsParser():
                    help='Labels volume output.')
 
     o_ids = p.add_mutually_exclusive_group()
-    o_ids.add_argument('--out_labels_ids', type=float, nargs='+', default=[],
+    o_ids.add_argument('--out_labels_ids', type=int, nargs='+', default=[],
                        help='Give a list of labels indices for output images.')
 
     o_ids.add_argument('--unique', action='store_true',
@@ -49,7 +51,7 @@ def buildArgsParser():
                        help='Add (x*1000000) to each volume labels,'
                             ' where x is the input volume order number.')
 
-    p.add_argument('--background', type=float, default=0.,
+    p.add_argument('--background', type=int, default=0,
                    help='Background id, excluded from output [%(default)s],\n'
                         ' the first one is given as output background value.')
     add_overwrite_arg(p)
@@ -57,7 +59,7 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     image_files = []
@@ -67,9 +69,8 @@ def main():
     current_indices = None
     used_indices_all = False
     for argument in args.volumes_ids:
-
         if argument.isdigit():
-            current_indices.append(float(argument))
+            current_indices.append(int(argument))
         elif argument.lower() == "all":
             current_indices.append("all")
             used_indices_all = True
@@ -98,7 +99,7 @@ def main():
     for i in range(len(image_files)):
         # Load images
         volume_nib = nib.load(image_files[i])
-        data = volume_nib.get_fdata()
+        data = np.round(volume_nib.get_data()).astype(np.int)
         data_list.append(data)
         assert (is_header_compatible(first_img, image_files[i]))
 
@@ -136,12 +137,12 @@ def main():
 
     # Create the resulting volume
     current_id = 0
-    resulting_labels = (np.ones_like(data_list[0], dtype=np.float64)
+    resulting_labels = (np.ones_like(data_list[0], dtype=np.int)
                         * args.background)
     for i in range(len(image_files)):
         # Add Given labels for each volume
         for index in filtered_ids_per_vol[i]:
-            mask = np.isclose(data_list[i], index)
+            mask = data_list[i] == index
             resulting_labels[mask] = out_labels[current_id]
             current_id += 1
 
