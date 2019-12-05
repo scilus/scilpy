@@ -23,7 +23,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_references)
-
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
             compute_bundle_adjacency_streamlines,
