@@ -57,7 +57,7 @@ def _build_args_parser():
     p.add_argument('--output_suffix',
                    help='Add a suffix to the output, else the axis name is used')
     p.add_argument('--output_dir', default='',
-                   help='Put all images in a specific directory, will overwrite')
+                   help='Put all images in a specific directory')
     add_overwrite_arg(p)
 
     return p
@@ -114,8 +114,8 @@ def main():
     if args.output_dir and not os.path.isdir(args.output_dir):
         os.mkdir(args.output_dir)
 
-        if args.anat_opacity < 0.0 or args.anat_opacity > 1.0:
-            parser.error('Opacity must be between 0 and 1')
+    if args.anat_opacity < 0.0 or args.anat_opacity > 1.0:
+        parser.error('Opacity must be between 0 and 1')
 
     if args.uniform_coloring:
         for val in args.uniform_coloring:
