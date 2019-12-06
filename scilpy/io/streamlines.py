@@ -35,6 +35,7 @@ def load_trk_in_voxel_space(trk_file, anat=None, grid_res=None,
                             raise_on_empty=True):
     """
     Load streamlines in voxel space, corner aligned
+
     :param trk_file: path or nibabel object
     :param anat: path or nibabel image (optional)
     :param grid_res: specify the grid resolution (3,) (optional)
@@ -68,7 +69,7 @@ def load_trk_in_voxel_space(trk_file, anat=None, grid_res=None,
     if trk_file.header[Field.NB_STREAMLINES] > 0:
         streamlines._data /= spacing
     return streamlines
-    
+
 
 def save_from_voxel_space(streamlines, anat, ref_tracts, out_name):
     if isinstance(ref_tracts, six.string_types):
