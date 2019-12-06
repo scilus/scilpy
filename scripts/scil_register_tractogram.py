@@ -111,13 +111,13 @@ def main():
                                                 args,
                                                 args.moving_tractogram,
                                                 bbox_check=True,
-                                                argsName='moving_tractogram')
+                                                argName='moving_tractogram')
 
     sft_static = load_tractogram_with_reference(parser,
                                                 args,
                                                 args.static_tractogram,
                                                 bbox_check=True,
-                                                argsName='static_tractogram')
+                                                argName='static_tractogram')
 
     register_tractogram(sft_moving, sft_static,
                         args.only_rigid, args.amount_to_load, matrix_filename,
