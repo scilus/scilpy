@@ -5,7 +5,7 @@
     Warp *.trk using a non linear deformation.
     Can be used with Ants or Dipy deformation map.
 
-    For more informations on how to use the various registration scripts
+    For more information on how to use the various registration scripts
     see the doc/tractogram_registration.md readme file
 """
 

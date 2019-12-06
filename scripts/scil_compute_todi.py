@@ -91,8 +91,8 @@ def main():
 
     if not output_file_list:
         parser.error('No output to be done')
-    else:
-        assert_outputs_exist(parser, args, output_file_list)
+
+    assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.tract_filename)
     affine, data_shape, _, _ = sft.space_attribute
@@ -113,29 +113,29 @@ def main():
 
     logging.info('Saving Outputs ...')
     if args.out_mask:
-        data = todi_obj.get_mask().astype(np.int16)
+        data = todi_obj.get_mask()
         img = todi_obj.reshape_to_3d(data)
-        img = nib.Nifti1Image(img, affine)
+        img = nib.Nifti1Image(img.astype(np.int16), affine)
         img.to_filename(args.out_mask)
 
     if args.out_lw_todi_sh:
-        img = todi_obj.get_todi().astype(np.float32)
-        img = todi_obj.get_sh(img, args.sh_basis, args.sh_order,
-                              args.sh_normed)
+        if args.sh_normed:
+            todi_obj.normalize_todi_per_voxel()
+        img = todi_obj.get_sh(args.sh_basis, args.sh_order)
         img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img, affine)
+        img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_lw_todi_sh)
 
     if args.out_lw_tdi:
-        img = todi_obj.get_tdi().astype(np.float32)
+        img = todi_obj.get_tdi()
         img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img, affine)
+        img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_lw_tdi)
 
     if args.out_lw_todi:
-        img = todi_obj.get_todi().astype(np.float32)
+        img = todi_obj.get_todi()
         img = todi_obj.reshape_to_3d(img)
-        img = nib.Nifti1Image(img, affine)
+        img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_lw_todi)
 
 

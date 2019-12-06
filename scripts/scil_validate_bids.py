@@ -25,7 +25,7 @@ def _build_args_parser():
     parser.add_argument("output_json",
                         help="Output json file.")
 
-    parser.add_argument("--readout", type=int, default=0.062,
+    parser.add_argument("--readout", type=float, default=0.062,
                         help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(parser)
@@ -92,7 +92,10 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     # Associate field maps
     for fmap in fmaps:
         metadata = get_metadata(fmap)
-        intended = [metadata.get('IntendedFor', '')]
+        if isinstance(metadata.get('IntendedFor', ''), list):
+            intended = metadata.get('IntendedFor', '')
+        else:
+            intended = [metadata.get('IntendedFor', '')]
         for target in intended:
             dwi_filename = os.path.basename(target)
             if dwi_filename not in associations.keys():
@@ -170,8 +173,8 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
                         dwi_RT = dwi_metadata['TotalReadoutTime']
                         fmap_RT = nfmap_metadata['TotalReadoutTime']
                         if dwi_RT != fmap_RT and totalreadout == '':
-                            totalreadout = 'error'
-                            revb0_path = 'error'
+                            totalreadout = 'error_readout'
+                            revb0_path = 'error_readout'
                         elif dwi_RT == fmap_RT:
                             revb0_path = nfmap.path
                             totalreadout = dwi_RT
