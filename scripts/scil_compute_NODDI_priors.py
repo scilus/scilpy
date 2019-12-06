@@ -5,7 +5,6 @@
 Compute the axial and mean diffusivity priors for NODDI.
 """
 
-from __future__ import division, print_function
 import argparse
 import logging
 
@@ -37,43 +36,47 @@ def _build_arg_parser():
     p.add_argument('md',
                    help='Path to the mean diffusivity (MD) volume.')
 
-    p.add_argument(
+    g1 = p.add_argument_group('Metrics options')
+    g1.add_argument(
         '--fa_max', type=float, default='0.1',
         help='Maximal threshold of FA (voxels under that threshold are '
              'considered in the ventricles). [%(default)s]')
-    p.add_argument(
-        '--md_min', dest='md_t',  type=float, default='0.003',
-        help='Minimal threshold of MD in mm2/s (voxels above that threshold '
-             'are considered for in the ventricles). [%(default)s]')
-    p.add_argument(
+    g1.add_argument(
         '--fa_min', type=float, default='0.7',
         help='Minimal threshold of FA (voxels above that threshold are '
              'considered in the single fiber mask). [%(default)s]')
+    g1.add_argument(
+        '--md_min', dest='md_t',  type=float, default='0.003',
+        help='Minimal threshold of MD in mm2/s (voxels above that threshold '
+             'are considered for in the ventricles). [%(default)s]')
 
-    p.add_argument(
+
+    g2 = p.add_argument_group('Regions options')
+    g2.add_argument(
         '--roi_radius', default=20, type=int,
         help='Radius of the region used to estimate the priors. The roi will '
              'be a cube spanning from ROI_CENTER in each direction. '
              '[%(default)s]')
-    p.add_argument(
+    g2.add_argument(
         '--roi_center', metavar='tuple(3)', nargs="+", type=int,
         help='Center of the roi of size roi_radius used to estimate the '
              'priors. [center of the 3D volume]')
 
-    p.add_argument(
+    g3 = p.add_argument_group('Outputs')
+    g3.add_argument(
         '--output_1fiber', metavar='file',
         help='Output path for the text file containing the single '
              'fiber average value of AD. If not set, the file will not be '
              'saved.')
-    p.add_argument(
+    g3.add_argument(
         '--mask_output_1fiber', metavar='file',
         help='Output path for single fiber mask. If not set, the mask will '
              'not be saved.')
-    p.add_argument(
+    g3.add_argument(
         '--output_ventricles', metavar='file',
         help='Output path for the text file containing the ventricles average '
              'value of MD. If not set, the file will not be saved.')
-    p.add_argument(
+    g3.add_argument(
         '--mask_output_ventricles', metavar='file',
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
@@ -86,7 +89,7 @@ def _build_arg_parser():
 
 def load(path):
     img = nib.load(path)
-    return img.get_data(), img.affine, img.header.get_zooms()[:3]
+    return img.get_fdata(), img.affine, img.header.get_zooms()[:3]
 
 
 def save(data, affine, output):
@@ -125,15 +128,13 @@ def main():
             ci, cj, ck = args.roi_center
 
     w = args.roi_radius
-    roi_ad = ad[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
-    roi_md = md[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
-    roi_fa = fa[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
+    square = (np.arange(int(ci - w),int(ci + w)),
+              np.arange(int(cj - w),int(cj + w)),
+              np.arange(int(ck - w),int(ck + w)))
+
+    roi_ad = ad[square]
+    roi_md = md[square]
+    roi_fa = fa[square]
 
     logging.debug('fa_min, fa_max, md_t: {}, {}, {}'.format(
         args.fa_min, args.fa_max, args.md_t))
@@ -178,8 +179,10 @@ def main():
         with open(args.output_ventricles, "w") as text_file:
             text_file.write(str(vent_avg))
 
-    logging.info("Average AD in single fiber areas: {} +- {}".format(cc_avg, cc_std))
-    logging.info("Average MD in ventricles: {} +- {}".format(vent_avg, vent_std))
+    logging.info("Average AD in single fiber areas: {} +- {}".format(cc_avg,
+                                                                     cc_std))
+    logging.info("Average MD in ventricles: {} +- {}".format(vent_avg,
+                                                             vent_std))
 
 
 if __name__ == "__main__":

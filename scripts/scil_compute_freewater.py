@@ -43,16 +43,16 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Mask filename')
 
-    g = p.add_argument_group('Gradients / scheme')
-    g.add_argument('--bval',
-                   help='Bval filename, in FSL format')
-    g.add_argument('--bvec',
-                   help='Bvec filename, in FSL format')
-    g.add_argument('--scheme_file',
-                   help='If a scheme file already exists, '
-                        'can replace --bval/--bvec.')
-    g.add_argument('--bstep', type=int, nargs='+',
-                   help='List of bvals in your data')
+    g1 = p.add_argument_group('Gradients / scheme')
+    g1.add_argument('--bval',
+                    help='Bval filename, in FSL format')
+    g1.add_argument('--bvec',
+                    help='Bvec filename, in FSL format')
+    g1.add_argument('--scheme_file',
+                    help='If a scheme file already exists, '
+                         'can replace --bval/--bvec.')
+    g1.add_argument('--bstep', type=int, nargs='+',
+                    help='List of bvals in your data')
 
     p.add_argument('--para_diff', type=float, default=1.5e-3,
                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
@@ -90,10 +90,6 @@ def main():
 
     required_in = [args.dwi]
 
-    if not any([args.bval, args.bvec, args.scheme_file]):
-        parser.error('Need to provide either [--bval, --bvec] or '
-                     '--scheme_file.')
-
     if (args.bval or args.bvec) and args.scheme_file:
         parser.error('Can only provide [--bval, --bvec] or --scheme_file.')
 
@@ -101,6 +97,8 @@ def main():
     if not args.scheme_file:
         if (args.bval and not args.bvec) or (args.bvec and not args.bval):
             parser.error('Need to specify both bvec and bval.')
+        if not arg.bstep:
+            parser.error('Need to specify bstep.')
         required_in.extend([args.bval, args.bvec])
     else:
         required_in.append(args.scheme_file)

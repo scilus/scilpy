@@ -82,10 +82,6 @@ def main():
 
     required_in = [args.dwi]
 
-    if not any([args.bval, args.bvec, args.scheme_file]):
-        parser.error('Need to provide either [--bval, --bvec] or '
-                     '--scheme_file.')
-
     if (args.bval or args.bvec) and args.scheme_file:
         parser.error('Can only provide [--bval, --bvec] or --scheme_file.')
 
