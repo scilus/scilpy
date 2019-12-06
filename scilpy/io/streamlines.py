@@ -48,6 +48,27 @@ def load_trk_in_voxel_space(trk_file, anat=None, grid_res=None,
     if trk_file.header[Field.NB_STREAMLINES] == 0 and raise_on_empty:
         raise Exception("The file contains no streamline")
 
+    if anat and grid_res:
+        raise Exception("Parameters anat and grid_res cannot be used together")
+
+    if anat:
+        if isinstance(anat, six.string_types):
+            anat = nib.load(anat)
+        spacing = anat.header['pixdim'][1:4]
+    elif grid_res:
+        spacing = grid_res
+    else:
+        spacing = trk_file.header[Field.VOXEL_SIZES]
+
+    affine_to_voxmm = get_affine_rasmm_to_trackvis(trk_file.header)
+    tracto = trk_file.tractogram
+    tracto.apply_affine(affine_to_voxmm)
+    streamlines = tracto.streamlines
+
+    if trk_file.header[Field.NB_STREAMLINES] > 0:
+        streamlines._data /= spacing
+    return streamlines
+    
 
 def save_from_voxel_space(streamlines, anat, ref_tracts, out_name):
     if isinstance(ref_tracts, six.string_types):
