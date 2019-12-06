@@ -5,13 +5,12 @@ import argparse
 import os
 
 from dipy.align.streamlinear import whole_brain_slr
-from dipy.io.streamline import load_tractogram
-import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import ichunk
-from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+
+from scilpy.io.streamlines import ichunk, load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
@@ -32,20 +31,15 @@ space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
 """
 
 
-def register_tractogram(moving_filename, static_filename,
+def register_tractogram(moving_tractogram, static_tractogram,
                         only_rigid, amount_to_load, matrix_filename,
                         verbose):
 
     amount_to_load = max(250000, amount_to_load)
 
-    moving_tractogram = load_tractogram(moving_filename, 'same',
-                                        bbox_valid_check=True)
-
     moving_streamlines = next(ichunk(moving_tractogram.streamlines,
                                      amount_to_load))
 
-    static_tractogram = load_tractogram(static_filename, 'same',
-                                        bbox_valid_check=True)
     static_streamlines = next(ichunk(static_tractogram.streamlines,
                                      amount_to_load))
 
@@ -67,17 +61,21 @@ def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION, epilog=EPILOG)
 
-    p.add_argument('moving_file',
+    p.add_argument('moving_tractogram',
                    help='Path of the moving tractogram (*.trk).')
 
-    p.add_argument('static_file',
+    add_reference(p, 'moving_tractogram')
+
+    p.add_argument('static_tractogram',
                    help='Path of the target tractogram (*.trk).')
+
+    add_reference(p, 'static_tractogram')
 
     p.add_argument('--out_name',
                    default='transformation.npy',
                    help='Filename of the transformation matrix, \n'
                         'the registration type will be appended as a suffix,\n'
-                        '[transformation_affine/rigid.npy]')
+                        '[<out_name>_<affine/rigid>.npy]')
 
     p.add_argument('--only_rigid', action='store_true',
                    help='Will only use a rigid transformation, '
@@ -99,7 +97,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.moving_file, args.static_file])
+    assert_inputs_exist(parser, [args.moving_tractogram,
+                                 args.static_tractogram])
 
     if args.only_rigid:
         matrix_filename = os.path.splitext(args.out_name)[0] + '_rigid.npy'
@@ -108,13 +107,19 @@ def main():
 
     assert_outputs_exist(parser, args, matrix_filename, args.out_name)
 
-    if not nib.streamlines.TrkFile.is_correct_format(args.moving_file):
-        parser.error('The moving file needs to be a TRK file')
+    sft_moving = load_tractogram_with_reference(parser,
+                                                args,
+                                                args.moving_tractogram,
+                                                bbox_check=True,
+                                                argsName='moving_tractogram')
 
-    if not nib.streamlines.TrkFile.is_correct_format(args.static_file):
-        parser.error('The static file needs to be a TRK file')
+    sft_static = load_tractogram_with_reference(parser,
+                                                args,
+                                                args.static_tractogram,
+                                                bbox_check=True,
+                                                argsName='static_tractogram')
 
-    register_tractogram(args.moving_file, args.static_file,
+    register_tractogram(sft_moving, sft_static,
                         args.only_rigid, args.amount_to_load, matrix_filename,
                         args.verbose)
 

@@ -12,10 +12,15 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
-def add_reference(parser):
-    parser.add_argument('--reference',
-                        help='Reference anatomy for tck/vtk/fib/dpy file\n'
-                        'support (.nii or .nii.gz).')
+def add_reference(parser, argName=None):
+    if argName:
+        parser.add_argument('--'+argName+'_ref',
+                            help='Reference anatomy for {} file\n'
+                                 'support (.nii or .nii.gz).'.format(argName))
+    else:
+        parser.add_argument('--reference',
+                            help='Reference anatomy for tck/vtk/fib/dpy file\n'
+                                 'support (.nii or .nii.gz).')
 
 
 def add_overwrite_arg(parser):
