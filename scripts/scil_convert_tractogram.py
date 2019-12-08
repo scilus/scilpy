@@ -7,7 +7,7 @@ import os
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
@@ -29,8 +29,7 @@ def _build_args_parser():
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy')
 
-    add_reference(p)
-
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p

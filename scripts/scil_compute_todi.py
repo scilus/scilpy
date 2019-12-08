@@ -8,7 +8,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg_arg,
                              add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
@@ -36,7 +36,7 @@ def _build_arg_parser():
     p.add_argument('tract_filename',
                    help='Input streamlines file.')
 
-    add_reference(p)
+    add_reference_arg_arg(p)
 
     p.add_argument('--sphere', default='repulsion724',
                    help='sphere used for the angular discretization.')
