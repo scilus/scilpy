@@ -147,7 +147,7 @@ def create_header_from_anat(reference, base_filetype=TrkFile):
     return new_header
 
 
-def assert_output_dirs_exist_and_empty(parser, args, *dirs):
+def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     """
     Assert that all output directories exist.
     If not, print parser's usage and exit.
@@ -158,7 +158,10 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs):
     """
     for path in dirs:
         if not os.path.isdir(path):
-            parser.error('Output directory {} doesn\'t exist.'.format(path))
+            if not create_dir:
+                parser.error('Output directory {} doesn\'t exist.'.format(path))
+            else:
+                os.mkdir(path)
         if os.listdir(path):
             if not args.overwrite:
                 parser.error(

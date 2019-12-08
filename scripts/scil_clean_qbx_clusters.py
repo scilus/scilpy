@@ -4,11 +4,8 @@
 import argparse
 import os
 import logging
-import shutil
 
 from fury import window, actor, interactor
-import nibabel as nib
-import numpy as np
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
@@ -22,6 +19,17 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 
 DESCRIPTION = """
+    Render clusters sequentially to either accept or reject them based on
+    visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
+    The VTK window does not handle well opacity of streamlines, this is a normal
+    rendering behavior.
+
+    Key mapping:
+    - a/A: accept displayed clusters
+    - r/R: reject displayed clusters
+    - z/Z: Rewing one element
+    - c/C: Stop rendering of the background concatenation of streamlines
+    - q/Q: Early window exist, everything remaining will be rejected
 """
 
 
@@ -30,23 +38,23 @@ def _build_args_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundles', nargs='+',
-                   help='Tractogram filename. Format must be readable'
-                   ' by the Nibabel.')
+                   help='List of the clusters filename.')
     p.add_argument('out_accepted',
-                   help='')
+                   help='Filename of the concatenated accepted clusters.')
     p.add_argument('out_rejected',
-                   help='')
+                   help='Filename of the concatenated rejected clusters.')
 
     p.add_argument('--out_accepted_dir',
-                   help='')
+                   help='Directory to save all accepted clusters separately.')
     p.add_argument('--out_rejected_dir',
-                   help='')
+                   help='Directory to save all rejected clusters separately.')
 
     p.add_argument('--min_cluster_size', type=int, default=1,
                    help='Minimum cluster size for consideration [%(default)s].'
                    'Must be at least 1.')
-    p.add_argument('--show_all_opacity', type=float, default=0.01,
-                   help='Opacity, keep low [%(default)s].')
+    p.add_argument('--show_all_opacity', type=float, default=0.02,
+                   help='Opacity of the background streamlines.'
+                   'Keep low between 0 and 0.5 [%(default)s].')
 
     add_overwrite_arg(p)
     add_reference(p)
@@ -61,12 +69,28 @@ def get_length_tuple(elem):
 
 def main():
     # Callback required for FURY
-    def keypress_callback(obj, ev):
+    def keypress_callback(obj, _):
         key = obj.GetKeySym()
-        nonlocal curr_streamlines_actor
+        key = key.lower()
+        nonlocal curr_streamlines_actor, streamlines_actor, show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
+
+        if key == 'c':
+            if show_curr_actor:
+                renderer.rm(streamlines_actor)
+                renwin.Render()
+                show_curr_actor = False
+                logging.info('Streamlines rendering OFF')
+            else:
+                renderer.add(streamlines_actor)
+                renderer.rm(curr_streamlines_actor)
+                renderer.add(curr_streamlines_actor)
+                renwin.Render()
+                show_curr_actor = True
+                logging.info('Streamlines rendering ON')
+            return
 
         if key == 'q':
             show_manager.exit()
@@ -74,7 +98,8 @@ def main():
                 logging.warning(
                     'Early exit, everything remaining to be rejected.')
             return
-        elif key in ['a', 'r']:
+
+        if key in ['a', 'r']:
             if iterator == len(sft_accepted_on_size):
                 logging.info('No more cluster, press q to exit')
                 return
@@ -82,13 +107,13 @@ def main():
             if key == 'a':
                 accepted_streamlines.append(iterator)
                 choices.append('a')
-                logging.info('Accepted file {}.'.format(
-                    filename_accepted_on_size[iterator]))
+                logging.info('Accepted file %s',
+                             filename_accepted_on_size[iterator])
             elif key == 'r':
                 rejected_streamlines.append(iterator)
                 choices.append('r')
-                logging.info('Rejected file {}.'.format(
-                    filename_accepted_on_size[iterator]))
+                logging.info('Rejected file %s',
+                             filename_accepted_on_size[iterator])
             iterator += 1
 
         if key == 'z':
@@ -107,7 +132,8 @@ def main():
 
         if key in ['a', 'r', 'z'] and iterator < len(sft_accepted_on_size):
             renderer.rm(curr_streamlines_actor)
-            curr_streamlines_actor = actor.line(sft_accepted_on_size[iterator].streamlines,
+            curr_streamlines = sft_accepted_on_size[iterator].streamlines
+            curr_streamlines_actor = actor.line(curr_streamlines,
                                                 opacity=0.8,
                                                 linewidth=0.2)
             renderer.add(curr_streamlines_actor)
@@ -124,9 +150,13 @@ def main():
     assert_outputs_exist(parser, args, [args.out_accepted, args.out_rejected])
 
     if args.out_accepted_dir:
-        assert_output_dirs_exist_and_empty(parser, args, args.out_accepted_dir)
+        assert_output_dirs_exist_and_empty(parser, args,
+                                           args.out_accepted_dir,
+                                           create_dir=True)
     if args.out_rejected_dir:
-        assert_output_dirs_exist_and_empty(parser, args, args.out_rejected_dir)
+        assert_output_dirs_exist_and_empty(parser, args,
+                                           args.out_rejected_dir,
+                                           create_dir=True)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -150,14 +180,12 @@ def main():
             filename_accepted_on_size.append(basename)
             concat_streamlines.extend(sft.streamlines)
         else:
-            logging.info(
-                'File {} has {} streamlines, automatically rejected.'.format(
-                    filename, len(sft)))
+            logging.info('File %s has %s streamlines, automatically rejected.',
+                         filename, len(sft))
             sft_rejected_on_size.append(sft)
             filename_rejected_on_size.append(basename)
 
-    logging.info('{} clusters to be classified.'.format(
-        len(sft_accepted_on_size)))
+    logging.info('%s clusters to be classified.', len(sft_accepted_on_size))
     # The clusters are sorted by size for simplicity/efficiency
     tuple_accepted = zip(*sorted(zip(sft_accepted_on_size,
                                      filename_accepted_on_size),
@@ -182,6 +210,7 @@ def main():
 
     # Lauch rendering and selection procedure
     choices, accepted_streamlines, rejected_streamlines = [], [], []
+    show_curr_actor = True
     show_manager.start()
 
     # Early exit means everything else is rejected
@@ -190,6 +219,9 @@ def main():
     len_accepted = len(sft_accepted_on_size)
     rejected_streamlines.extend(range(len_accepted - missing,
                                       len_accepted))
+    if missing > 0:
+        logging.info('%s clusters automatically rejected from early exit',
+                     missing)
 
     # Save accepted clusters (by GUI)
     for idx in accepted_streamlines:

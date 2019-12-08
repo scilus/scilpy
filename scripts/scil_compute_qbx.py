@@ -4,13 +4,10 @@
 import argparse
 from operator import itemgetter
 import os
-import shutil
 
-from dipy.segment.clustering import qbx_and_merge
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-import nibabel as nib
-import numpy as np
+from dipy.segment.clustering import qbx_and_merge
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -20,12 +17,12 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 
 DESCRIPTION = """
-    Compute clusters using QuickBundlesX.
+    Compute clusters using QuickBundlesX and save them separately.
     We cannot know the number of clusters in advance.
 """
 
 
-def buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(description=DESCRIPTION,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
@@ -52,14 +49,15 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, [], optional=args.output_centroids)
     if args.output_clusters_dir:
-        assert_output_dirs_exist_and_empty(
-            parser, args, args.output_clusters_dir)
+        assert_output_dirs_exist_and_empty(parser, args,
+                                           args.output_clusters_dir,
+                                           create_dir=True)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
@@ -78,10 +76,8 @@ def main():
                                               'cluster_{}.trk'.format(i)))
 
     if args.output_centroids:
-        new_tractogram = nib.streamlines.Tractogram(clusters.centroids,
-                                                    affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(new_tractogram, args.output_centroids,
-                             header=tractogram.header)
+        new_sft = StatefulTractogram(clusters.centroids, sft, Space.RASMM)
+        save_tractogram(new_sft, args.output_centroids)
 
 
 if __name__ == "__main__":
