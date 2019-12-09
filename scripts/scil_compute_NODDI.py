@@ -82,15 +82,20 @@ def main():
 
     required_in = [args.dwi]
 
-    if (args.bval or args.bvec) and args.scheme_file:
-        parser.error('Can only provide [--bval, --bvec] or --scheme_file.')
-
     use_scheme_file = False
+
+    if not any([args.bval, args.bvec, args.scheme_file]):
+        parser.error('Need to provide either [--bval, --bvec] or '
+                     '--scheme_file.')
+
     if not args.scheme_file:
-        if (args.bval and not args.bvec) or (args.bvec and not args.bval):
-            parser.error('Need to specify both bvec and bval.')
+        if not all([args.bval, args.bvec, args.bstep]):
+            parser.error('Need to specify both bvec, bval and bstep.')
         required_in.extend([args.bval, args.bvec])
-    else:
+    elif any([args.bval, args.bvec, args.bstep]):
+        parser.error('Can only provide [--bval, --bvec, --bstep] or '
+                     '--scheme_file.')
+    else
         required_in.append(args.scheme_file)
         use_scheme_file = True
 
