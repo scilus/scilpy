@@ -53,7 +53,7 @@ def grad_equality_constraints(bvecs, *args):
     return grad
 
 
-def erof(bvecs, weight_matrix, alpha=1.0):
+def electrostatic_repulsion(bvecs, weight_matrix, alpha=1.0):
     """
     Electrostatic-repulsion objective function. The alpha parameter controls
     the power repulsion (energy varies as $1 / ralpha$).
@@ -85,7 +85,7 @@ def erof(bvecs, weight_matrix, alpha=1.0):
     return energy
 
 
-def grad_f(bvecs, weight_matrix, alpha=1.0):
+def grad_electrostatic_repulsion(bvecs, weight_matrix, alpha=1.0):
     """
     1st-order derivative of electrostatic-like repulsion energy.
 
@@ -134,7 +134,7 @@ def cost(bvecs, S, Ks, weights):
 
     Returns
     -------
-    f: float
+    electrostatic_repulsion: float
         sum of all interactions between any two vectors.
     """
     K = np.sum(Ks)
@@ -145,7 +145,7 @@ def cost(bvecs, S, Ks, weights):
         for s2 in range(S):
             weight_matrix[indices[s1]:indices[s1 + 1],
                           indices[s2]:indices[s2 + 1]] = weights[s1, s2]
-    return f(bvecs, weight_matrix)
+    return electrostatic_repulsion(bvecs, weight_matrix)
 
 
 def grad_cost(bvecs, S, Ks, weights):
@@ -165,7 +165,7 @@ def grad_cost(bvecs, S, Ks, weights):
 
     Returns
     -------
-    grad_f: float
+    grad_electrostatic_repulsion: float
         gradient of the objective function
     """
     K = int(bvecs.shape[0] / 3)
@@ -177,7 +177,7 @@ def grad_cost(bvecs, S, Ks, weights):
             weight_matrix[indices[s1]:indices[s1 + 1],
                           indices[s2]:indices[s2 + 1]] = weights[s1, s2]
 
-    return grad_f(bvecs, weight_matrix)
+    return grad_electrostatic_repulsion(bvecs, weight_matrix)
 
 
 def multiple_shell(nb_shells, nb_points_per_shell, weights, max_iter=100,
