@@ -22,11 +22,11 @@ def check_tracts_same_format(parser, filename_list):
             parser.error('All tracts file must use the same format.')
 
 
-def add_reference(parser, argName=None):
-    if argName:
-        parser.add_argument('--'+argName+'_ref',
+def add_reference(parser, arg_name=None):
+    if arg_name:
+        parser.add_argument('--'+arg_name+'_ref',
                             help='Reference anatomy for {} file\n'
-                                 'support (.nii or .nii.gz).'.format(argName))
+                                 'support (.nii or .nii.gz).'.format(arg_name))
     else:
         parser.add_argument('--reference',
                             help='Reference anatomy for tck/vtk/fib/dpy file\n'

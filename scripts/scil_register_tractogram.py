@@ -62,12 +62,12 @@ def _build_args_parser():
                                 description=DESCRIPTION, epilog=EPILOG)
 
     p.add_argument('moving_tractogram',
-                   help='Path of the moving tractogram (*.trk).')
-
-    add_reference(p, 'moving_tractogram')
+                   help='Path of the moving tractogram.')
 
     p.add_argument('static_tractogram',
-                   help='Path of the target tractogram (*.trk).')
+                   help='Path of the target tractogram.')
+
+    add_reference(p, 'moving_tractogram')
 
     add_reference(p, 'static_tractogram')
 

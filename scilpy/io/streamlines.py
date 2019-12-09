@@ -116,21 +116,22 @@ def ichunk(sequence, n):
 
 
 def load_tractogram_with_reference(parser, args, filepath,
-                                   bbox_check=True, argName=None):
+                                   bbox_check=True, arg_name=None):
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-        if argName:
-            if args.__getattribute__(argName + '_ref'):
+        if arg_name:
+            arg_ref = arg_name + '_ref'
+            if args.__getattribute__(arg_ref):
                 sft = load_tractogram(filepath,
-                                      args.__getattribute__(argName + '_ref'),
+                                      args.__getattribute__(arg_ref),
                                       bbox_valid_check=bbox_check)
             else:
                 parser.error('--{} is required for this file format '
-                             '{}.'.format(argName + '_ref', filepath))
+                             '{}.'.format(arg_ref, filepath))
         elif args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
