@@ -124,13 +124,15 @@ def main():
     else:
         if len(args.roi_center) != 3:
             parser.error("roi_center needs to receive 3 values")
+        elif not np.all(np.asarray(args.roi_center)>0):
+            parser.error("roi_center needs to be positive")
         else:
             ci, cj, ck = args.roi_center
 
     w = args.roi_radius
-    square = (np.arange(int(ci - w),int(ci + w)),
-              np.arange(int(cj - w),int(cj + w)),
-              np.arange(int(ck - w),int(ck + w)))
+    square = (np.arange(max(int(ci - w),0), max(int(ci + w),0),
+              np.arange(max(int(cj - w),0), max(int(cj + w),0),
+              np.arange(max(int(ck - w),0), max(int(ck + w),0))
 
     roi_ad = ad[square]
     roi_md = md[square]
