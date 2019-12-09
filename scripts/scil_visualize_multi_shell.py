@@ -69,12 +69,13 @@ def _build_args_parser():
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
-    assert_inputs_exist(parser, [args.scheme_file])
+    assert_inputs_exist(parser, args.scheme_file)
 
     if args.out:
-        possibleOutputPaths = [args.out + '_shell_' + str(i) +
+        out_basename, ext = split_name_with_nii(args.out)
+        possibleOutputPaths = [out_basename + '_shell_' + str(i) +
                                '.png' for i in range(30)]
-        possibleOutputPaths.append(args.out + '.png')
+        possibleOutputPaths.append(out_basename + '.png')
         assert_outputs_exist(parser, args, possibleOutputPaths)
 
     proj = args.enable_proj
@@ -108,6 +109,7 @@ def main():
             points = points.T
         bvals = np.genfromtxt(basename + '.bvals')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
+
     elif ext == 'bvec':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
@@ -176,11 +178,11 @@ def main():
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=args.out, ores=tuple(args.res))
+                        ofile=out_basename, ores=tuple(args.res))
     if each:
         plot_each_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=args.out, ores=tuple(args.res))
+                        ofile=out_basename, ores=tuple(args.res))
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ def grad_equality_constraints(bvecs, *args):
     return grad
 
 
-def f(bvecs, weight_matrix, alpha=1.0):
+def erof(bvecs, weight_matrix, alpha=1.0):
     """
     Electrostatic-repulsion objective function. The alpha parameter controls
     the power repulsion (energy varies as $1 / ralpha$).
@@ -134,7 +134,7 @@ def cost(bvecs, S, Ks, weights):
 
     Returns
     -------
-    f: function
+    f: float
         sum of all interactions between any two vectors.
     """
     K = np.sum(Ks)
@@ -165,7 +165,7 @@ def grad_cost(bvecs, S, Ks, weights):
 
     Returns
     -------
-    grad_f: function
+    grad_f: float
         gradient of the objective function
     """
     K = int(bvecs.shape[0] / 3)
@@ -193,6 +193,8 @@ def multiple_shell(nb_shells, nb_points_per_shell, weights, max_iter=100,
     weights : array-like, shape (S, S)
         weighting parameter, control coupling between shells and how this
         balances.
+    max_iter: int
+        Maximum number of interations
 
     Returns
     -------

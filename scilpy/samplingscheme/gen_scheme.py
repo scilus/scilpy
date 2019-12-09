@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 import numpy as np
 
 from scilpy.samplingscheme.multiple_shell_energy import (compute_weights,
