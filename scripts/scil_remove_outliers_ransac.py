@@ -25,9 +25,9 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_image',
                    help='Nifti image.')
-    p.add_argument('output',
+    p.add_argument('out_image',
                    help='Corrected Nifti image.')
 
     p.add_argument('--min_fit', type=int, default=50,
@@ -51,8 +51,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_image)
+    assert_outputs_exist(parser, args, args.out_image)
 
     if args.min_fit < 2:
         parser.error('--min_fit should be at least 2. Current value: {}'
@@ -66,7 +66,7 @@ def main():
 
     logging.basicConfig(level=getattr(logging, args.log))
 
-    in_img = nib.load(args.input)
+    in_img = nib.load(args.in_image)
     in_data = in_img.get_data()
 
     in_data_flat = in_data.flatten()
@@ -90,7 +90,7 @@ def main():
 
     out_data = np.reshape(in_data_flat, in_img.shape)
     nib.save(nib.Nifti1Image(out_data, in_img.affine, in_img.header),
-             args.output)
+             args.out_image)
 
 
 if __name__ == '__main__':
