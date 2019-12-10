@@ -14,7 +14,7 @@ import numpy as np
 import nibabel as nib
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
@@ -34,7 +34,7 @@ def _build_args_parser():
                    ' voxels, creating a binary map.\n'
                    'When set without a value, 1 is used.\n'
                    'If a value is given, will be used as the stored value.')
-    add_reference(p)
+    add_reference_arg(p)
     add_overwrite_arg(p)
     return p
 
