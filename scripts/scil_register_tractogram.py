@@ -10,7 +10,7 @@ import numpy as np
 
 
 from scilpy.io.streamlines import ichunk, load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
@@ -67,9 +67,9 @@ def _build_args_parser():
     p.add_argument('static_tractogram',
                    help='Path of the target tractogram.')
 
-    add_reference(p, 'moving_tractogram')
+    add_reference_arg(p, 'moving_tractogram')
 
-    add_reference(p, 'static_tractogram')
+    add_reference_arg(p, 'static_tractogram')
 
     p.add_argument('--out_name',
                    default='transformation.npy',

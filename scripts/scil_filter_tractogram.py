@@ -12,7 +12,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg, add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              read_info_from_mb_bdo)
@@ -43,7 +43,7 @@ def _buildArgsParser():
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
 
-    add_reference(p)
+    add_reference_arg(p)
 
     p.add_argument('--drawn_roi', nargs=3, action='append',
                    metavar=('ROI_NAME', 'MODE', 'CRITERIA'),
