@@ -23,7 +23,8 @@ def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
-                   help='Bundle file name.')
+                   help='Tractogram filename. Format must be one of \n'
+                        'trk, tck, vtk, fib, dpy.')
     p.add_argument('out_img',
                    help='path of the output image file.')
 
