@@ -46,6 +46,11 @@ def _build_args_parser():
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
+<<<<<<< HEAD
+    add_reference_arg(p)
+
+=======
+>>>>>>> master
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
                    '[%(default)smm].')

@@ -36,6 +36,11 @@ def _build_args_parser():
     p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename.')
 
+<<<<<<< HEAD
+    add_reference_arg(p)
+
+=======
+>>>>>>> master
     p.add_argument('--ratio_streamlines', type=float, default=0.5,
                    help='Minimum vote to be considered for streamlines '
                    '[%(default)s].')
