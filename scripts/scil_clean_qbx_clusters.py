@@ -23,6 +23,7 @@ DESCRIPTION = """
     visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
     The VTK window does not handle well opacity of streamlines, this is a normal
     rendering behavior.
+    Often use in pair with scil_compute_qbx.py.
 
     Key mapping:
     - a/A: accept displayed clusters

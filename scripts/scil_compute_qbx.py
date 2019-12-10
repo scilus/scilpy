@@ -28,7 +28,7 @@ def _build_args_parser():
 
     p.add_argument('in_tractogram',
                    help='Tractogram filename.\n'
-                   'Format must be readable by Nibabel.')
+                   'Path of the input tractogram or bundle.')
     p.add_argument('dist_thresh', type=float,
                    help='Last QuickBundlesX threshold in mm. Typically \n'
                    'the value are between 10-20mm')
