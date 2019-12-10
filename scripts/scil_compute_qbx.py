@@ -11,7 +11,7 @@ from dipy.segment.clustering import qbx_and_merge
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -42,7 +42,7 @@ def _build_args_parser():
                    help='Output tractogram filename.\n'
                    'Format must be readable by the Nibabel API.')
 
-    add_reference(p)
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p

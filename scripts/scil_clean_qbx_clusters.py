@@ -12,7 +12,7 @@ from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference,
+                             add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -58,7 +58,7 @@ def _build_args_parser():
                    'Keep low between 0 and 0.5 [%(default)s].')
 
     add_overwrite_arg(p)
-    add_reference(p)
+    add_reference_arg(p)
     add_verbose_arg(p)
 
     return p
