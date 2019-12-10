@@ -12,7 +12,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
-                             add_reference,
+                             add_reference_arg,
                              add_verbose_arg)
 
 
@@ -31,7 +31,7 @@ def _build_args_parser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
 
-    add_reference(p)
+    add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
