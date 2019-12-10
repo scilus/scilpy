@@ -12,7 +12,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              read_info_from_mb_bdo)
@@ -43,8 +45,11 @@ def _buildArgsParser():
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
 
+<<<<<<< HEAD
     add_reference_arg(p)
 
+=======
+>>>>>>> master
     p.add_argument('--drawn_roi', nargs=3, action='append',
                    metavar=('ROI_NAME', 'MODE', 'CRITERIA'),
                    help='Filename of a hand drawn ROI (.nii or .nii.gz).')
@@ -70,6 +75,7 @@ def _buildArgsParser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 

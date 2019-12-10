@@ -30,7 +30,6 @@ def _build_args_parser():
                         'trk, tck, vtk, fib, dpy')
 
     add_reference_arg(p)
-
     add_overwrite_arg(p)
 
     return p

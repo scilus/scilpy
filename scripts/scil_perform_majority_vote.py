@@ -12,7 +12,8 @@ import numpy as np
 from scipy.sparse import dok_matrix
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -35,8 +36,11 @@ def _build_args_parser():
     p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename.')
 
+<<<<<<< HEAD
     add_reference_arg(p)
 
+=======
+>>>>>>> master
     p.add_argument('--ratio_streamlines', type=float, default=0.5,
                    help='Minimum vote to be considered for streamlines '
                    '[%(default)s].')
@@ -50,6 +54,7 @@ def _build_args_parser():
     p.add_argument('--output_prefix', default='voting_',
                    help='Output prefix, [%(default)s].')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
