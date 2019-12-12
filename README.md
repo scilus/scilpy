@@ -15,7 +15,9 @@ We highly recommend working in a [Python Virtual Environment]. Dependencies can 
 pip install -r requirements.txt
 ```
 
-Following this, the library and scripts can be installed locally by using
+Following this, the library and scripts can be installed locally as follows:
+
+**Users**: 
 
 ```
 python setup.py build_ext --inplace
@@ -23,6 +25,20 @@ python setup.py install
 python setup.py install_scripts
 ```
 Note that using this technique will make it harder to remove the scripts when changing versions.
+
+**Developpers**: The code above must be ran again everytime you change the code. Developpers who modify regularly their code should instead follow these instructions:
+
+```
+pip install -e .
+```
+
+Or, if it doesn't work, try:
+
+```
+python setup.py build
+python setup.py develop
+```
+
 
 [SCIL]:http://scil.dinf.usherbrooke.ca/
 [DIPY]:http://dipy.org
