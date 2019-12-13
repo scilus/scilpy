@@ -20,7 +20,9 @@ from scilpy.viz.screenshot import display_slices
 
 DESCRIPTION = """
    Register bundle to a template for screenshots using a reference.
-   The template are in /mnt/braindata/Other/simple_template_viz/
+   The template can be any MNI152 (any resolution, cropped or not)
+   If your in_anat has a skull, select a MNI152 template with a skull and
+   vice-versa.
    Axial, coronal and sagittal slices are captured.
    Sagittal can be capture from the left (default) or the right.
    """
@@ -35,8 +37,9 @@ def _build_args_parser():
     p.add_argument('in_anat',
                    help='Path of the reference file (.nii or nii.gz)')
     p.add_argument('target_template',
-                   help='Path to the target MNI152template for registration, '
-                        'Any choice of modality works')
+                   help='Path to the target MNI152template for registration. \n'
+                        'If in_anat has a skull, select a MNI152 template \n'
+                        'with a skull and vice-versa.')
 
     sub_color = p.add_mutually_exclusive_group()
     sub_color.add_argument('--local_coloring', action='store_true',
