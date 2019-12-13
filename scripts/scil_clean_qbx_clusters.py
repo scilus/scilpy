@@ -53,9 +53,13 @@ def _build_args_parser():
     p.add_argument('--min_cluster_size', type=int, default=1,
                    help='Minimum cluster size for consideration [%(default)s].'
                    'Must be at least 1.')
-    p.add_argument('--show_all_opacity', type=float, default=0.02,
+    p.add_argument('--background_opacity', type=float, default=0.02,
                    help='Opacity of the background streamlines.'
                    'Keep low between 0 and 0.5 [%(default)s].')
+    p.add_argument('--background_linewidth', type=float, default=1,
+                   help='linewidth of the background streamlines [%(default)s].')
+    p.add_argument('--clusters_linewidth', type=float, default=1,
+                   help='linewidth of the background streamlines [%(default)s].')
 
     add_overwrite_arg(p)
     add_reference_arg(p)
@@ -73,19 +77,20 @@ def main():
     def keypress_callback(obj, _):
         key = obj.GetKeySym()
         key = key.lower()
-        nonlocal curr_streamlines_actor, streamlines_actor, show_curr_actor
+        nonlocal clusters_linewidth, background_linewidth
+        nonlocal curr_streamlines_actor, concat_streamlines_actor, show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
 
         if key == 'c':
             if show_curr_actor:
-                renderer.rm(streamlines_actor)
+                renderer.rm(concat_streamlines_actor)
                 renwin.Render()
                 show_curr_actor = False
                 logging.info('Streamlines rendering OFF')
             else:
-                renderer.add(streamlines_actor)
+                renderer.add(concat_streamlines_actor)
                 renderer.rm(curr_streamlines_actor)
                 renderer.add(curr_streamlines_actor)
                 renwin.Render()
@@ -102,7 +107,7 @@ def main():
 
         if key in ['a', 'r']:
             if iterator == len(sft_accepted_on_size):
-                logging.info('No more cluster, press q to exit')
+                print('No more cluster, press q to exit')
                 return
 
             if key == 'a':
@@ -136,7 +141,7 @@ def main():
             curr_streamlines = sft_accepted_on_size[iterator].streamlines
             curr_streamlines_actor = actor.line(curr_streamlines,
                                                 opacity=0.8,
-                                                linewidth=0.2)
+                                                linewidth=clusters_linewidth)
             renderer.add(curr_streamlines_actor)
 
         if iterator == len(sft_accepted_on_size):
@@ -164,6 +169,9 @@ def main():
 
     if args.min_cluster_size < 1:
         parser.error('Minimum cluster size must be at least 1.')
+
+    clusters_linewidth = args.clusters_linewidth
+    background_linewidth = args.background_linewidth
 
     # To accelerate procedure, clusters can be discarded based on size
     # Concatenation is to give spatial context
@@ -194,18 +202,20 @@ def main():
     sft_accepted_on_size, filename_accepted_on_size = tuple_accepted
 
     # Initialize the actors, scene, window, observer
-    streamlines_actor = actor.line(concat_streamlines,
-                                   colors=(1, 1, 1),
-                                   opacity=args.show_all_opacity)
+    concat_streamlines_actor = actor.line(concat_streamlines,
+                                          colors=(1, 1, 1),
+                                          opacity=args.background_opacity,
+                                          linewidth=background_linewidth)
     curr_streamlines_actor = actor.line(sft_accepted_on_size[0].streamlines,
-                                        opacity=0.8)
+                                        opacity=0.8,
+                                        linewidth=clusters_linewidth)
 
     scene = window.Scene()
     interactor_style = interactor.CustomInteractorStyle()
     show_manager = window.ShowManager(scene, size=(800, 800),
                                       reset_camera=False,
                                       interactor_style=interactor_style)
-    scene.add(streamlines_actor)
+    scene.add(concat_streamlines_actor)
     scene.add(curr_streamlines_actor)
     interactor_style.AddObserver('KeyPressEvent', keypress_callback)
 
