@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             link_bundles_and_references)
+                             link_bundles_and_reference)
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
             compute_bundle_adjacency_streamlines,
@@ -55,8 +55,6 @@ def _build_args_parser():
                         '[%(default)s]')
     p.add_argument('--single_compare',
                    help='Compare inputs to this single file')
-    p.add_argument('--files_exist', action='store_false',
-                   help='Disable the verification of input files')
     p.add_argument('--processes', type=int,
                    help='Number of processes to use [ALL]')
     p.add_argument('--keep_tmp', action='store_true',
@@ -145,16 +143,18 @@ def compute_all_measures(args):
     same_tractogram = args[1]
     disable_streamline_distance = args[2]
 
-    data_tuple_1 = load_data_tmp_saving(filename_1, reference_1,
-                                        disable_centroids=disable_streamline_distance)
+    data_tuple_1 = load_data_tmp_saving(
+        filename_1, reference_1,
+        disable_centroids=disable_streamline_distance)
     if data_tuple_1 is None:
         return None
 
     density_1, endpoints_density_1, bundle_1, \
         centroids_1 = data_tuple_1
 
-    data_tuple_2 = load_data_tmp_saving(filename_2, reference_2,
-                                        disable_centroids=disable_streamline_distance)
+    data_tuple_2 = load_data_tmp_saving(
+        filename_2, reference_2,
+        disable_centroids=disable_streamline_distance)
     if data_tuple_2 is None:
         return None
 
@@ -252,11 +252,12 @@ def compute_all_measures(args):
 
     return dict(zip(measures_name, measures))
 
+
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
-    if args.files_exist:
-        assert_inputs_exist(parser, args.in_bundles)
+
+    assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [args.out_json])
 
     nbr_cpu = args.processes if args.processes else multiprocessing.cpu_count()
@@ -275,8 +276,8 @@ def main():
         # Move the single_compare only once, at the end.
         args.in_bundles.remove(args.single_compare)
         bundles_list = args.in_bundles + [args.single_compare]
-        bundles_references_tuple_extended = link_bundles_and_references(
-            bundles_list, parser, args)
+        bundles_references_tuple_extended = link_bundles_and_reference(
+            parser, args, bundles_list)
 
         single_compare_reference_tuple = bundles_references_tuple_extended.pop()
         comb_dict_keys = list(itertools.product(bundles_references_tuple_extended,
@@ -285,9 +286,9 @@ def main():
         bundles_list = args.in_bundles
         # Pre-compute the needed files, to avoid conflict when the number
         # of cpu is higher than the number of bundle
-        bundles_references_tuple = link_bundles_and_references(bundles_list,
-                                                               parser,
-                                                               args)
+        bundles_references_tuple = link_bundles_and_reference(parser,
+                                                              args,
+                                                              bundles_list)
         pool.map(load_data_tmp_saving_wrapper,
                  zip(bundles_references_tuple,
                      itertools.repeat(True),

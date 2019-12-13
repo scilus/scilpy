@@ -12,7 +12,13 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
-def link_bundles_and_references(input_tractogram_list, parser, args):
+def link_bundles_and_reference(parser, args, input_tractogram_list):
+    """
+    Associate the bundle to their reference (if they require a reference)
+    :param parser: argparse.ArgumentParser object
+    :param args: argparse namespace
+    :param input_tractogram_list: list of tractogram pathpaths
+    """
     bundles_references_tuple = []
     for bundle_filename in input_tractogram_list:
         _, ext = os.path.splitext(bundle_filename)
