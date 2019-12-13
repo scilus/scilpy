@@ -61,8 +61,8 @@ def _build_args_parser():
     p.add_argument('--clusters_linewidth', type=float, default=1,
                    help='linewidth of the background streamlines [%(default)s].')
 
-    add_overwrite_arg(p)
     add_reference_arg(p)
+    add_overwrite_arg(p)
     add_verbose_arg(p)
 
     return p
@@ -106,10 +106,6 @@ def main():
             return
 
         if key in ['a', 'r']:
-            if iterator == len(sft_accepted_on_size):
-                print('No more cluster, press q to exit')
-                return
-
             if key == 'a':
                 accepted_streamlines.append(iterator)
                 choices.append('a')
@@ -145,6 +141,7 @@ def main():
             renderer.add(curr_streamlines_actor)
 
         if iterator == len(sft_accepted_on_size):
+            print('No more cluster, press q to exit')
             renderer.rm(curr_streamlines_actor)
 
         renwin.Render()
