@@ -28,7 +28,12 @@ opts = dict(name=NAME,
             requires=REQUIRES,
             scripts=SCRIPTS)
 
-extensions = [Extension('scilpy.tractanalysis.streamlines_metrics',
+extensions = [Extension('scilpy.tractanalysis.uncompress',
+                        ['scilpy/tractanalysis/uncompress.pyx'],
+                        include_dirs=[numpy.get_include()]),
+              Extension('scilpy.tractanalysis.quick_tools',
+                        ['scilpy/tractanalysis/quick_tools.pyx']),
+              Extension('scilpy.tractanalysis.streamlines_metrics',
                         ['scilpy/tractanalysis/streamlines_metrics.pyx'],
                         include_dirs=[numpy.get_include()])]
 

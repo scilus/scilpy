@@ -39,7 +39,9 @@ from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
@@ -73,8 +75,11 @@ def build_args_p():
                    help='The file where the remaining streamlines '
                    'are saved.')
 
-    add_reference(p)
+<<<<<<< HEAD
+    add_reference_arg(p)
 
+=======
+>>>>>>> master
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
 
@@ -90,6 +95,7 @@ def build_args_p():
                    help='Save the streamline indices to the supplied '
                    'json file.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 

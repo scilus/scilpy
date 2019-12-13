@@ -20,7 +20,9 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -44,8 +46,11 @@ def _build_args_parser():
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
-    add_reference(p)
+<<<<<<< HEAD
+    add_reference_arg(p)
 
+=======
+>>>>>>> master
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
                    '[%(default)smm].')
@@ -72,8 +77,8 @@ def _build_args_parser():
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
-
     add_overwrite_arg(p)
 
     return p
