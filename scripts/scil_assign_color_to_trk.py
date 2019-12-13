@@ -11,7 +11,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
-                             add_reference)
+                             add_reference_arg)
 
 
 def _build_arg_parser():
@@ -30,7 +30,7 @@ def _build_arg_parser():
                    help='Can be either hexadecimal (ie. "#RRGGBB" '
                         'or 0xRRGGBB).')
 
-    add_reference(p)
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
