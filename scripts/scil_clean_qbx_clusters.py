@@ -53,7 +53,7 @@ def _build_args_parser():
     p.add_argument('--min_cluster_size', type=int, default=1,
                    help='Minimum cluster size for consideration [%(default)s].'
                    'Must be at least 1.')
-    p.add_argument('--background_opacity', type=float, default=0.02,
+    p.add_argument('--background_opacity', type=float, default=0.1,
                    help='Opacity of the background streamlines.'
                    'Keep low between 0 and 0.5 [%(default)s].')
     p.add_argument('--background_linewidth', type=float, default=1,
@@ -83,7 +83,7 @@ def main():
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
 
-        if key == 'c':
+        if key == 'c' and iterator < len(sft_accepted_on_size):
             if show_curr_actor:
                 renderer.rm(concat_streamlines_actor)
                 renwin.Render()
@@ -105,7 +105,7 @@ def main():
                     'Early exit, everything remaining to be rejected.')
             return
 
-        if key in ['a', 'r']:
+        if key in ['a', 'r'] and iterator < len(sft_accepted_on_size):
             if key == 'a':
                 accepted_streamlines.append(iterator)
                 choices.append('a')
