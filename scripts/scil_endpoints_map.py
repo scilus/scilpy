@@ -10,6 +10,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -29,11 +30,10 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle filename.')
-    p.add_argument('reference',
-                   help='Reference anatomic filename.')
-    p.add_argument('endpoints_map_head',
+    g1 = p.add_argument_group('Output files')
+    g1.add_argument('endpoints_map_head',
                    help='Endpoints map head filename.')
-    p.add_argument('endpoints_map_tail',
+    g1.add_argument('endpoints_map_tail',
                    help='Endpoints map tail filename.')
     p.add_argument('--indent', type=int, default=2,
                    help='Indent for json pretty print.')
@@ -41,6 +41,7 @@ def _build_arg_parser():
                    help='Swap head<->tail convention. '
                         'Can be useful when the reference is not in RAS.')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -61,10 +62,10 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    reference = nib.load(args.reference)
+    transfo, dim, _, _ = sft.space_attribute
 
-    endpoints_map_head = np.zeros(reference.shape)
-    endpoints_map_tail = np.zeros(reference.shape)
+    endpoints_map_head = np.zeros(dim)
+    endpoints_map_tail = np.zeros(dim)
 
     head_name = args.endpoints_map_head
     tail_name = args.endpoints_map_tail
@@ -80,12 +81,8 @@ def main():
         xyz = streamline[-1, :].astype(int)
         endpoints_map_tail[xyz[0], xyz[1], xyz[2]] += 1
 
-    nib.save(nib.Nifti1Image(endpoints_map_head, reference.affine,
-                             reference.header),
-             head_name)
-    nib.save(nib.Nifti1Image(endpoints_map_tail, reference.affine,
-                             reference.header),
-             tail_name)
+    nib.save(nib.Nifti1Image(endpoints_map_head, transfo), head_name)
+    nib.save(nib.Nifti1Image(endpoints_map_tail, transfo), tail_name)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
     bundle_name_head = bundle_name + '_head'
