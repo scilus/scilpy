@@ -127,10 +127,9 @@ def main():
         parser.error('Select at least one save format.')
         return
 
+    logging.basicConfig(level=logging.INFO)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
 
     Ks = args.nb_samples
     eddy = args.eddy

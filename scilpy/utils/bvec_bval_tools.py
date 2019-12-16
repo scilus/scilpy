@@ -153,7 +153,8 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
                        verbose=1)
 
 
-def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
+def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
+               fsl_bvec_filename=None):
     """
     Convert a mrtrix encoding.b file to fsl dir_grad.bvec/.bval files.
 
@@ -161,10 +162,12 @@ def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
     ----------
     mrtrix_filename : str
         path to mrtrix encoding.b file.
-    fsl_base_filename: str, optional
-        path to the output fsl bvec/.bval files. Default is
-        mrtrix_filename.bval/.bvec.
-
+    fsl_bval_filename: str, optional
+        path to the output fsl bval file. Default is
+        mrtrix_filename.bval.
+    fsl_bvec_filename: str, optional
+        path to the output fsl bvec file. Default is
+        mrtrix_filename.bvec.
     Returns
     -------
     """
@@ -179,11 +182,15 @@ def mrtrix2fsl(mrtrix_filename, fsl_base_filename=None):
     bvals = np.unique(shells).tolist()
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
-    if fsl_base_filename is None:
-        fsl_bvec_filename, ext = split_name_with_nii(mrtrix_filename)
+    if fsl_bval_filename is None:
+        fsl_bval_filename = mrtrix_filename + str(".bval")
+
+    if fsl_bvec_filename is None:
+        fsl_bvec_filename = mrtrix_filename + str(".bvec")
 
     save_scheme_bvecs_bvals(points,
                             shell_idx,
                             bvals,
-                            fsl_base_filename,
+                            filename_bval=fsl_bval_filename,
+                            filename_bvec=fsl_bvec_filename,
                             verbose=1)

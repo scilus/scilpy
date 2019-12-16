@@ -22,15 +22,15 @@ def save_scheme_caru(points, shell_idx, filename):
 
     fullfilename, ext = split_name_with_nii(filename)
     fullfilename = fullfilename + '.caru'
-    f = open(fullfilename, 'w')
-    f.write('# Caruyer format sampling scheme\n')
-    f.write('# X Y Z shell_idx\n')
-    for idx in range(points.shape[0]):
-        f.write('{:.8f} {:.8f} {:.8f} {:.0f}\n'.format(points[idx, 0],
-                                                       points[idx, 1],
-                                                       points[idx, 2],
-                                                       shell_idx[idx]))
-    f.close()
+
+    with open(fullfilename) as f:
+        f.write('# Caruyer format sampling scheme\n')
+        f.write('# X Y Z shell_idx\n')
+        for idx in range(points.shape[0]):
+            f.write('{:.8f} {:.8f} {:.8f} {:.0f}\n'.format(points[idx, 0],
+                                                           points[idx, 1],
+                                                           points[idx, 2],
+                                                           shell_idx[idx]))
 
     logging.info('Scheme saved in Caruyer format as {}'.format(fullfilename))
 
@@ -52,15 +52,15 @@ def save_scheme_philips(points, shell_idx, bvals, filename):
     """
     fullfilename, ext = split_name_with_nii(filename)
     fullfilename = fullfilename + '.txt'
-    f = open(fullfilename, 'w')
-    f.write('# Philips format sampling scheme\n')
-    f.write('# X Y Z bval\n')
-    for idx in range(points.shape[0]):
-        f.write('{:.3f} {:.3f} {:.3f} {:.2f}\n'.format(points[idx, 0],
-                                                       points[idx, 1],
-                                                       points[idx, 2],
-                                                       bvals[shell_idx[idx]]))
-    f.close()
+
+    with open(fullfilename) as f:
+        f.write('# Philips format sampling scheme\n')
+        f.write('# X Y Z bval\n')
+        for idx in range(points.shape[0]):
+            f.write('{:.3f} {:.3f} {:.3f} {:.2f}\n'.format(points[idx, 0],
+                                                           points[idx, 1],
+                                                           points[idx, 2],
+                                                           bvals[shell_idx[idx]]))
 
     logging.info('Scheme saved in Philips format as {}'.format(fullfilename))
 
@@ -82,19 +82,19 @@ def save_scheme_mrtrix(points, shell_idx, bvals, filename):
     """
     fullfilename, ext = split_name_with_nii(filename)
     fullfilename = fullfilename + '.b'
-    f = open(fullfilename, 'w')
 
-    for idx in range(points.shape[0]):
-        f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
-                                                       points[idx, 1],
-                                                       points[idx, 2],
-                                                       bvals[shell_idx[idx]]))
-    f.close()
+    with open(fullfilename) as f:
+        for idx in range(points.shape[0]):
+            f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
+                                                           points[idx, 1],
+                                                           points[idx, 2],
+                                                           bvals[shell_idx[idx]]))
 
     logging.info('Scheme saved in MRtrix format as {}'.format(fullfilename))
 
 
-def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename):
+def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename=None,
+                            filename_bval=None, filename_bvec=None):
     """
     Save table gradient (FSL format)
 
@@ -109,10 +109,13 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename):
         output file name
     ------
     """
+    if filename:
+        fullfilename, ext = split_name_with_nii(filename)
+        filename_bval = fullfilename + '.bval'
+        filename_bvec = fullfilename + '.bvec'
 
-    fullfilename, ext = split_name_with_nii(filename)
-    np.savetxt(fullfilename + '.bvec', points.T, fmt='%.8f')
-    np.savetxt(fullfilename + '.bval', np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
+    np.savetxt(filename_bvec, points.T, fmt='%.8f')
+    np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
     logging.info('Scheme saved in FSL format as {}'.format(fullfilename +
                                                            '{.bvec/.bval}'))
@@ -159,9 +162,8 @@ def save_scheme_siemens(points, shell_idx, bvals, filename):
 
     fullfilename, ext = split_name_with_nii(filename)
     fullfilename = fullfilename + '.dvs'
-    f = open(fullfilename, 'w')
-    for idx in range(len(str_save)):
-        f.write(str_save[idx] + '\n')
-    f.close()
+    with open(fullfilename) as f:
+        for idx in range(len(str_save)):
+            f.write(str_save[idx] + '\n')
 
     logging.info('Scheme saved in Siemens format as {}'.format(fullfilename))
