@@ -29,7 +29,6 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
-
     p.add_argument('metrics',
                    nargs='+',
                    help='Nifti metric(s) to compute statistics on.')
