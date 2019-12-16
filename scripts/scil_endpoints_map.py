@@ -30,11 +30,10 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle filename.')
-    g1 = p.add_argument_group('Output files')
-    g1.add_argument('endpoints_map_head',
-                    help='Endpoints map head filename.')
-    g1.add_argument('endpoints_map_tail',
-                    help='Endpoints map tail filename.')
+    p.add_argument('endpoints_map_head',
+                   help='Output endpoints map head filename.')
+    p.add_argument('endpoints_map_tail',
+                   help='Output endpoints map tail filename.')
     p.add_argument('--indent', type=int, default=2,
                    help='Indent for json pretty print.')
     p.add_argument('--swap', action='store_true',

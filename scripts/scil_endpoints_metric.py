@@ -12,7 +12,7 @@ from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_dir_exists_and_empty,
+                             assert_output_dirs_exist_and_empty,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.tractanalysis.compute_tract_counts_map import \
