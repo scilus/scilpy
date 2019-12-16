@@ -67,6 +67,13 @@ def add_json_args(parser):
                     help='Sort keys in output json.')
 
 
+def add_processes_args(parser):
+    parser.add_argument('--processes', dest='nbr_processes',
+                        metavar='NBR', type=int,
+                        help='Number of sub-processes to start. \n'
+                        'Default: CPU count')
+
+
 def add_reference_arg(parser, arg_name=None):
     if arg_name:
         parser.add_argument('--'+arg_name+'_ref',
