@@ -45,11 +45,6 @@ def _buildArgsParser():
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
 
-<<<<<<< HEAD
-    add_reference_arg(p)
-
-=======
->>>>>>> master
     p.add_argument('--drawn_roi', nargs=3, action='append',
                    metavar=('ROI_NAME', 'MODE', 'CRITERIA'),
                    help='Filename of a hand drawn ROI (.nii or .nii.gz).')
