@@ -8,7 +8,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 
 DESCRIPTION = """
     Split a tractogram into multiple files, 2 options available :
@@ -46,7 +46,7 @@ def main():
     out_basename, out_extension = os.path.splitext(args.output_name)
 
     # Check only the first potential output filename
-    assert_outputs_exists(parser, args, [out_basename + '_0' + out_extension])
+    assert_outputs_exist(parser, args, [out_basename + '_0' + out_extension])
     if not in_extension == out_extension:
         parser.error('The input and output files must have the same extension')
 
