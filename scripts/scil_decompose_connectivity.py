@@ -18,6 +18,8 @@ NOTE: this script can take a while to run. Please be patient.
                - 30 minutes with full post-processing, saving all possible files.
 """
 
+from __future__ import division
+
 from builtins import zip
 import argparse
 import logging
@@ -32,7 +34,7 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import nibabel as nb
 import numpy as np
-# from nibabel.streamlines.array_sequence import ArraySequence
+from nibabel.streamlines.array_sequence import ArraySequence
 
 from scilpy.io.streamlines import (load_trk_in_voxel_space,
                                    save_from_voxel_space)
@@ -47,8 +49,7 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
                                         extract_longest_segments_from_profile)
 from scilpy.tractanalysis.uncompress import uncompress
 from scilpy.segment.streamlines import filter_grid_roi
-from scilpy.io.streamlines import load_tractogram_with_reference, ichunk
-
+from scilpy.io.streamlines import load_tractogram_with_reference
 
 
 def _get_output_paths(args):
@@ -99,11 +100,32 @@ def _save_if_needed(streamlines, args, save_type, step_type, in_label, out_label
     out_paths = _get_output_paths(args)
 
     if saving_options[save_type] and len(streamlines):
-        out_filename = os.path.join(out_paths[step_type],
-                                           '{}_{}.trk'.format(in_label,
-                                                              out_label)))
+        out_name = os.path.join(out_paths[step_type],
+                                '{}_{}.trk'.format(in_label,
+                                                   out_label))
         sft = StatefulTractogram(streamlines, args.in_tractogram, Space.RASMM)
-        save_tractogram(sft, out_filename)
+        save_tractogram(sft, out_name, bbox_valid_check=False)
+
+
+def _symmetrize_con_info(con_info):
+    final_con_info = {}
+    for in_label in list(con_info.keys()):
+        for out_label in list(con_info[in_label].keys()):
+
+            pair_info = con_info[in_label][out_label]
+
+            final_in_label = min(in_label, out_label)
+            final_out_label = max(in_label, out_label)
+
+            if final_con_info.get(final_in_label) is None:
+                final_con_info[final_in_label] = {}
+
+            if final_con_info[final_in_label].get(final_out_label) is None:
+                final_con_info[final_in_label][final_out_label] = []
+
+            final_con_info[final_in_label][final_out_label].extend(pair_info)
+
+    return final_con_info
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
@@ -196,7 +218,6 @@ def main():
         parser.error('Do not use the current path as output directory.')
 
     assert_output_dirs_exist_and_empty(parser, args, args.output_dir)
-    global sft, indices, points_to_idx
 
     log_level = logging.WARNING
     if args.verbose:
@@ -218,7 +239,7 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     time2 = time.time()
-    logging.info('    Loading %s streamlines took %0.2f sec.',
+    logging.info('    Loading %s streamlines took %0.2f ms',
                  len(sft), (time2 - time1))
 
     logging.info('*** Filtering streamlines ***')
@@ -227,11 +248,12 @@ def main():
 
     original_len = len(sft)
     time1 = time.time()
+
     sft.to_vox()
     sft.to_corner()
     sft.remove_invalid_streamlines()
     time2 = time.time()
-    logging.info('    Discarded %s streamlines from filtering in %0.2f sec.',
+    logging.info('    Discarded %s streamlines from filtering in %0.2f ms',
                  original_len - len(sft), (time2 - time1))
     logging.info('    Number of streamlines to process: %s', len(sft))
 
@@ -242,18 +264,16 @@ def main():
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
 
     time2 = time.time()
-    logging.info('    Streamlines intersection took %0.2f sec.',
+    logging.info('    Streamlines intersection took %0.2f ms',
                  (time2 - time1))
 
     # Compute the connectivity mapping
     logging.info('*** Computing connectivity information ***')
     time1 = time.time()
-
-    con_info = compute_connectivity(indices,
-                                    data_labels,
+    con_info = compute_connectivity(indices, img_labels.get_data(),
                                     extract_longest_segments_from_profile)
     time2 = time.time()
-    logging.info('    Connectivity computation took %0.2f sec.',
+    logging.info('    Connectivity computation took %0.2f ms',
                  (time2 - time1))
 
     # Prepare directories and information needed to save.
@@ -264,11 +284,10 @@ def main():
     logging.info('*** Starting connection post-processing and saving. ***')
     logging.info('    This can be long, be patient.')
     time1 = time.time()
-    real_labels = np.unique(data_labels)[1:]
-    comb_list = list(itertools.combinations(real_labels, r=2))
+
+    # Saving will be done from streamlines already in the right space
     sft.to_rasmm()
     sft.to_center()
-
     for in_label in list(con_info.keys()):
         for out_label in list(con_info[in_label].keys()):
             pair_info = con_info[in_label][out_label]
@@ -276,40 +295,41 @@ def main():
             if not len(pair_info):
                 continue
 
-            final_strl = []
-
+            connecting_streamlines = []
             for connection in pair_info:
                 strl_idx = connection['strl_idx']
-                final_strl.append(compute_streamline_segment(sft.streamlines[strl_idx],
-                                                             indices[strl_idx],
-                                                             connection['in_idx'],
-                                                             connection['out_idx'],
-                                                             points_to_idx[strl_idx]))
+                curr_streamlines = compute_streamline_segment(
+                    sft.streamlines[strl_idx],
+                    indices[strl_idx],
+                    connection['in_idx'],
+                    connection['out_idx'],
+                    points_to_idx[strl_idx])
+                connecting_streamlines.append(curr_streamlines)
 
-            _save_if_needed(final_strl, args, 'raw',
+            _save_if_needed(connecting_streamlines, args, 'raw',
                             'raw', in_label, out_label)
 
             # Doing all post-processing
             if not args.no_pruning:
-                pruned_strl, invalid_strl = _prune_segments(final_strl,
+                valid_length, invalid_length = _prune_segments(connecting_streamlines,
                                                             args.min_length,
                                                             args.max_length,
                                                             vox_sizes[0])
 
-                _save_if_needed(invalid_strl, args,
-                                'discarded', 'removed_length',
+                _save_if_needed(invalid_length, args,
+                                'discarded', 'invalid_length',
                                 in_label, out_label)
             else:
-                pruned_strl = final_strl
+                valid_length = connecting_streamlines
 
-            if not len(pruned_strl):
+            if not len(valid_length):
                 continue
 
-            _save_if_needed(pruned_strl, args,
-                            'intermediate', 'pruned', in_label, out_label)
+            _save_if_needed(valid_length, args,
+                            'intermediate', 'valid_length', in_label, out_label)
 
             if not args.no_remove_loops:
-                no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
+                no_loops, loops = remove_loops_and_sharp_turns(valid_length,
                                                                args.loop_max_angle)
                 _save_if_needed(loops, args,
                                 'discarded', 'loops', in_label, out_label)
@@ -323,35 +343,35 @@ def main():
                             'intermediate', 'no_loops', in_label, out_label)
 
             if not args.no_remove_outliers:
-                no_outliers, outliers = remove_outliers(no_loops,
+                inliers, outliers = remove_outliers(no_loops,
                                                         args.outlier_threshold)
                 _save_if_needed(outliers, args,
                                 'discarded', 'outliers', in_label, out_label)
             else:
-                no_outliers = no_loops
+                inliers = no_loops
 
-            if not len(no_outliers):
+            if not len(inliers):
                 continue
 
-            _save_if_needed(no_outliers, args,
-                            'intermediate', 'no_outliers', in_label, out_label)
+            _save_if_needed(inliers, args,
+                            'intermediate', 'inliers', in_label, out_label)
 
-            if not args.curv_qb_distance:
-                no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-                    no_outliers,
+            if not args.no_remove_curv_dev:
+                no_qb_curv, qb_curv = remove_loops_and_sharp_turns(
+                    inliers,
                     args.loop_max_angle,
                     True,
-                    args.loop_qb_distance)
-                _save_if_needed(loops2, args,
-                                'discarded', 'qb_loops', in_label, out_label)
+                    args.curv_qb_distance)
+                _save_if_needed(qb_curv, args,
+                                'discarded', 'qb_curv', in_label, out_label)
             else:
                 no_qb_loops_strl = no_outliers
 
-            _save_if_needed(no_qb_loops_strl, args,
+            _save_if_needed(no_qb_curv, args,
                             'final', 'final', in_label, out_label)
 
     time2 = time.time()
-    logging.info('    Connections post-processing and saving took %0.2f sec.',
+    logging.info('    Connections post-processing and saving took %0.2f ms',
                  (time2 - time1))
 
 
