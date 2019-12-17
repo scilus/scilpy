@@ -147,19 +147,13 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
              'end_index': end_idx}]
 
 
-def compute_connectivity(args):
-    indices = args[0]
-    chunk_start = args[1]
-    atlas_data = args[2]
-    segmenting_func = args[3]
-
+def compute_connectivity(indices, atlas_data, segmenting_func):
     atlas_data = atlas_data.astype(np.int32)
     real_labels = np.unique(atlas_data)
 
     connectivity = {k: {lab: [] for lab in real_labels} for k in real_labels}
 
     for strl_idx, strl_indices in enumerate(indices):
-        strl_idx += chunk_start
         segments_info = segmenting_func(strl_indices, atlas_data)
 
         for si in segments_info:

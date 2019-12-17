@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
+import os
 
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
@@ -132,28 +133,176 @@ from scilpy.tracking.tools import resample_streamlines
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+
+from builtins import zip
+import argparse
+import logging
+import os
+import time
+import multiprocessing
+import itertools
+
+import coloredlogs
+from dipy.tracking.streamlinespeed import length
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import load_tractogram
+import nibabel as nb
+import numpy as np
+from scilpy.tractanalys
+
+from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
+                             add_verbose_arg, add_reference_arg,
+                             assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty)
+
+
+def compute_dice_voxel(density_1, density_2):
+    """
+    Compute the overlap (dice coefficient) between two density maps (or binary).
+    Parameters
+    ----------
+    density_1: ndarray
+        Density (or binary) map computed from the first bundle
+    density_1: ndarray of ndarray
+        Density (or binary) map computed from the second bundle
+    Returns
+    -------
+    A tuple containing
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles.
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles, weighted by streamlines density.
+    """
+    binary_1 = copy.copy(density_1)
+    binary_1[binary_1 > 0] = 1
+    binary_2 = copy.copy(density_2)
+    binary_2[binary_2 > 0] = 1
+
+    numerator = 2 * np.count_nonzero(binary_1 * binary_2)
+    denominator = np.count_nonzero(binary_1) + np.count_nonzero(binary_2)
+    if denominator > 0:
+        dice = numerator / float(denominator)
+    else:
+        dice = np.nan
+
+    indices = np.nonzero(binary_1 * binary_2)
+    overlap_1 = density_1[indices]
+    overlap_2 = density_2[indices]
+    w_dice = (np.sum(overlap_1) + np.sum(overlap_2))
+    denominator = float(np.sum(density_1) + np.sum(density_2))
+    if denominator > 0:
+        w_dice /= denominator
+    else:
+        w_dice = np.nan
+
+    return dice, w_dice
+
+
+def _processing_wrapper(args):
+    bundles_dir = args[0]
+    in_label, out_label = args[1]
+    measures_to_compute = args[2]
+    dict_map = args[3]
+    similarity_directory = args[4]
+
+    in_filename_1 = os.path.join(bundles_dir,
+                                 '{}_{}.trk'.format(in_label, out_label))
+    in_filename_2 = os.path.join(bundles_dir,
+                                 '{}_{}.trk'.format(out_label, in_label))
+    if os.path.isfile(in_filename_1):
+        in_filename = in_filename_1
+    elif os.path.isfile(in_filename_2):
+        in_filename = in_filename_2
+    else:
+        return
+
+    sft = load_tractogram(in_filename, 'same')
+    _, dimensions, voxel_sizes, _ = sft.space_attribute
+    measures_to_return = {}
+
+    # Precompute to save one transformation, insert later
+    if 'length' in measures_to_compute:
+        mean_length = np.average(length(sft.streamlines))
+
+    sft.to_vox()
+    sft.to_corner()
+    density = compute_tract_counts_map(sft.streamlines,
+                                       dimensions)
+
+    if 'volume' in measures_to_compute:
+        measures_to_return['volume'] = np.count_nonzero(density) * \
+            np.prod(voxel_sizes)
+        measures_to_compute.remove('volume')
+    if 'streamlines_count' in measures_to_compute:
+        measures_to_return['streamlines_count'] = len(sft)
+        measures_to_compute.remove('streamlines_count')
+    if 'length' in measures_to_compute:
+        measures_to_return['length'] = mean_length
+        measures_to_compute.remove('length')
+    if 'similarity' in measures_to_compute and similarity_directory:
+        in_filename_1 = os.path.join(similarity_directory,
+                                     '{}_{}.trk'.format(in_label, out_label))
+        in_filename_2 = os.path.join(similarity_directory,
+                                     '{}_{}.trk'.format(out_label, in_label))
+        if os.path.isfile(in_filename_1):
+            in_filename_sim = in_filename_1
+        elif os.path.isfile(in_filename_2):
+            in_filename_sim = in_filename_2
+        else:
+            break
+
+        if is_header_compatible(in_filename_sim, in_filename):
+            sft_sim = load_tractogram(in_filename_sim, 'same')
+            _, dimensions, _, _ = sft.space_attribute
+
+            sft.to_vox()
+            sft.to_corner()
+            density_sim = compute_tract_counts_map(sft_sim.streamlines,
+                                                   dimensions)
+            _, w_dice = compute_dice_voxel(density, density_sim)
+            print(w_dice)
+            measures_to_return['similarity'] = w_dice
+            measures_to_compute.remove('similarity')
+
+    for map_base_name in measures_to_compute:
+        if weigthed:
+            voxels_value = dict_map[map_base_name][density > 0]
+        else:
+            voxels_value = dict_map[map_base_name] * density
+            voxels_value = voxels_value[voxels_value > 0]
+
+        measures_to_return[map_base_name] = np.average(voxels_value)
+        measures_to_compute.remove(map_base_name)
+
+        print(in_label, out_label)
+        print(measures_to_return)
+        return {(in_label, out_label): measures_to_return}
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='')
-    p.add_argument('in_bundles', nargs='+'
+    p.add_argument('in_bundles_dir',
                    help='Support tractography file')
-    p.add_argument('json',
+    p.add_argument('labels_list',
                    help='ordering')
-    p.add_argument('--map',
-                   help='For weigthed')
     p.add_argument('--volume', action="store_true",
                    help='')
     p.add_argument('--streamlines_count', action="store_true",
                    help='')
     p.add_argument('--length', action="store_true",
                    help='')
-    p.add_argument('--similarity', action="store_true",
+    p.add_argument('--similarity',
                    help='Support tractography file')
+    p.add_argument('--maps', nargs='+',
+                   help='For weigthed')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_processes_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -225,6 +374,39 @@ def main():
                      itertools.repeat(points_to_idx),
                      itertools.repeat(vox_sizes)))
 
+    assert_inputs_exist(parser, args.labels_list)
+
+    labels_list = np.loadtxt(args.labels_list, dtype=int)
+
+    measures_to_compute = []
+
+    if args.volume:
+        measures_to_compute.append('volume')
+    if args.streamlines_count:
+        measures_to_compute.append('streamlines_count')
+    if args.length:
+        measures_to_compute.append('length')
+    if args.similarity:
+        measures_to_compute.append('similarity')
+
+    dict_map = {}
+    for filepath in args.maps:
+        if not is_header_compatible(args.maps[0], filepath):
+            continue
+        base_name = os.path.basename(filepath)
+        measures_to_compute.append(base_name)
+        map_data = nib.load(filepath).get_data()
+        dict_map[base_name] = map_data
+
+    comb_list = list(itertools.combinations(labels_list, r=2))
+
+    pool = multiprocessing.Pool(args.nbr_processes)
+    _ = pool.map(_processing_wrapper,
+                 zip(itertools.repeat(args.in_bundles_dir),
+                     comb_list,
+                     itertools.repeat(measures_to_compute),
+                     itertools.repeat(dict_map),
+                     itertools.repeat(args.similarity)))
 
 
 if __name__ == "__main__":

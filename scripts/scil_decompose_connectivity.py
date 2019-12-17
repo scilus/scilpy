@@ -18,8 +18,6 @@ NOTE: this script can take a while to run. Please be patient.
                - 30 minutes with full post-processing, saving all possible files.
 """
 
-from __future__ import division
-
 from builtins import zip
 import argparse
 import logging
@@ -34,10 +32,10 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import nibabel as nb
 import numpy as np
-from nibabel.streamlines.array_sequence import ArraySequence
+# from nibabel.streamlines.array_sequence import ArraySequence
 
-from scilpy.io.streamlines import (load_trk_in_voxel_space,
-                                   save_from_voxel_space)
+# from scilpy.io.streamlines import (load_trk_in_voxel_space,
+#                                    save_from_voxel_space)
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
                              assert_inputs_exist,
@@ -50,10 +48,6 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
 from scilpy.tractanalysis.uncompress import uncompress
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.io.streamlines import load_tractogram_with_reference, ichunk
-
-
-global con_info, sft, indices, points_to_idx
-from multiprocessing.managers import SharedMemoryManager
 
 
 def _get_output_paths(args):
@@ -99,7 +93,7 @@ def _create_required_output_dirs(args):
         os.mkdir(out_paths['no_outliers'])
 
 
-def _generated_saving_scheme(sft, args, save_type, step_type, in_label, out_label):
+def _save_if_needed(sft, args, save_type, step_type, in_label, out_label):
     saving_options = _get_saving_options(args)
     out_paths = _get_output_paths(args)
 
@@ -107,7 +101,7 @@ def _generated_saving_scheme(sft, args, save_type, step_type, in_label, out_labe
         out_name = os.path.join(out_paths[step_type],
                                 '{}_{}.trk'.format(in_label,
                                                    out_label))
-        return sft, out_name
+        save_tractogram(sft, out_name, bbox_valid_check=False)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
@@ -123,23 +117,21 @@ def _prune_segments(segments, min_length, max_length, vox_size):
     return valid, invalid
 
 
-def _processing_wrapper(args):
-    args_from_parser = args[0]
-    in_label, out_label = args[1]
-    streamlines = args[2]
-    final_con_info = args[3]
-    vox_sizes = args[4]
-
+def _processing_wrapper(args_from_parser, sft,
+                        indices, points_to_idx,
+                        final_con_info, vox_sizes, 
+                        comb):
+    in_label, out_label = comb
     saving_options = _get_saving_options(args_from_parser)
     out_paths = _get_output_paths(args_from_parser)
     pair_info = final_con_info[in_label][out_label]
-    # streamlines = sft.streamlines
+    streamlines = sft.streamlines
 
     if not len(pair_info):
         return
 
     final_strl = []
-    to_save_list = []
+
     for connection in pair_info:
         strl_idx = connection['strl_idx']
         final_strl.append(compute_streamline_segment(streamlines[strl_idx],
@@ -149,9 +141,8 @@ def _processing_wrapper(args):
                                                      points_to_idx[strl_idx]))
 
     tmp_sft = StatefulTractogram(final_strl, sft, Space.RASMM)
-    to_save = _generated_saving_scheme(tmp_sft, args_from_parser, 'raw',
+    _save_if_needed(tmp_sft, args_from_parser, 'raw',
                     'raw', in_label, out_label)
-    to_save_list.append(to_save)
 
     # Doing all post-processing
     if not args_from_parser.no_pruning:
@@ -161,10 +152,9 @@ def _processing_wrapper(args):
                                                     vox_sizes[0])
 
         tmp_sft = StatefulTractogram(invalid_strl, sft, Space.RASMM)
-        to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+        _save_if_needed(tmp_sft, args_from_parser,
                         'discarded', 'removed_length',
                         in_label, out_label)
-        to_save_list.append(to_save)
     else:
         pruned_strl = final_strl
 
@@ -172,18 +162,16 @@ def _processing_wrapper(args):
         return
 
     tmp_sft = StatefulTractogram(pruned_strl, sft, Space.RASMM)
-    to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+    _save_if_needed(tmp_sft, args_from_parser,
                     'intermediate', 'pruned', in_label, out_label)
-    to_save_list.append(to_save)
 
     if not args_from_parser.no_remove_loops:
         no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
                                                        args_from_parser.loop_max_angle)
 
         tmp_sft = StatefulTractogram(loops, sft, Space.RASMM)
-        to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+        _save_if_needed(tmp_sft, args_from_parser,
                         'discarded', 'loops', in_label, out_label)
-        to_save_list.append(to_save)
     else:
         no_loops = pruned_strl
 
@@ -191,18 +179,16 @@ def _processing_wrapper(args):
         return
 
     tmp_sft = StatefulTractogram(no_loops, sft, Space.RASMM)
-    to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+    _save_if_needed(tmp_sft, args_from_parser,
                     'intermediate', 'no_loops', in_label, out_label)
-    to_save_list.append(to_save)
 
     if not args_from_parser.no_remove_outliers:
         no_outliers, outliers = remove_outliers(no_loops,
                                                 args_from_parser.outlier_threshold)
 
         tmp_sft = StatefulTractogram(outliers, sft, Space.RASMM)
-        to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+        _save_if_needed(tmp_sft, args_from_parser,
                         'discarded', 'outliers', in_label, out_label)
-        to_save_list.append(to_save)
     else:
         no_outliers = no_loops
 
@@ -210,9 +196,8 @@ def _processing_wrapper(args):
         return
 
     tmp_sft = StatefulTractogram(no_outliers, sft, Space.RASMM)
-    to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+    _save_if_needed(tmp_sft, args_from_parser,
                     'intermediate', 'no_outliers', in_label, out_label)
-    to_save_list.append(to_save)
 
     if not args_from_parser.no_remove_curv_dev:
         no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
@@ -222,18 +207,14 @@ def _processing_wrapper(args):
             args_from_parser.curv_qb_distance)
 
         tmp_sft = StatefulTractogram(loops2, sft, Space.RASMM)
-        to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+        _save_if_needed(tmp_sft, args_from_parser,
                         'discarded', 'qb_loops', in_label, out_label)
-        to_save_list.append(to_save)
     else:
         no_qb_loops_strl = no_outliers
 
     tmp_sft = StatefulTractogram(no_qb_loops_strl, sft, Space.RASMM)
-    to_save =_generated_saving_scheme(tmp_sft, args_from_parser,
+    _save_if_needed(tmp_sft, args_from_parser,
                     'final', 'final', in_label, out_label)
-    to_save_list.append(to_save)
-
-    return to_save_list
 
 
 def build_args_parser():
@@ -297,7 +278,6 @@ def build_args_parser():
                         'Includes loops, outliers and qb_loops')
 
     add_overwrite_arg(p)
-    add_processes_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
 
@@ -367,24 +347,9 @@ def main():
     logging.info('*** Computing connectivity information ***')
     time1 = time.time()
 
-    step = int(len(sft) / args.nbr_processes + 0.5) + \
-        len(sft) % args.nbr_processes
-    chunks = ichunk(indices, step)
-    chunks_size = range(0, len(sft), step)
-    pool = multiprocessing.Pool(args.nbr_processes)
-
-    con_info_list = pool.map(compute_connectivity,
-                             zip(chunks,
-                                 chunks_size,
-                                 itertools.repeat(data_labels),
-                                 itertools.repeat(extract_longest_segments_from_profile)))
-
-    # Re-assemble the dictionary
-    con_info = dict(con_info_list[0])
-    for dix in con_info_list[1:]:
-        for key_1 in dix.keys():
-            for key_2 in dix[key_1].keys():
-                con_info[key_1][key_2].extend(dix[key_1][key_2])
+    con_info = compute_connectivity(indices,
+                                    data_labels,
+                                    extract_longest_segments_from_profile)
     time2 = time.time()
     logging.info('    Connectivity computation took %0.2f sec.',
                  (time2 - time1))
@@ -402,22 +367,8 @@ def main():
     sft.to_rasmm()
     sft.to_center()
 
-    smm = SharedMemoryManager()
-    smm.start()
-    sl = smm.ShareableList(sft.streamlines)
-
-    to_save_lists = pool.map(_processing_wrapper,
-                 zip(itertools.repeat(args),
-                     comb_list,
-                     itertools.repeat(sl),
-                     itertools.repeat(con_info),
-                     itertools.repeat(vox_sizes)))
-    
-    for to_save_list in to_save_lists:
-        for to_save in to_save_list:
-            if not None:
-                save_tractogram(to_save[0], to_save[1])
-
+    for comb in comb_list:
+        _processing_wrapper(args, sft, indices, points_to_idx, con_info, vox_sizes, comb)
 
     time2 = time.time()
     logging.info('    Connections post-processing and saving took %0.2f sec.',
