@@ -34,8 +34,8 @@ import nibabel as nb
 import numpy as np
 # from nibabel.streamlines.array_sequence import ArraySequence
 
-# from scilpy.io.streamlines import (load_trk_in_voxel_space,
-#                                    save_from_voxel_space)
+from scilpy.io.streamlines import (load_trk_in_voxel_space,
+                                   save_from_voxel_space)
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
                              assert_inputs_exist,
@@ -48,6 +48,7 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
 from scilpy.tractanalysis.uncompress import uncompress
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.io.streamlines import load_tractogram_with_reference, ichunk
+
 
 
 def _get_output_paths(args):
@@ -93,15 +94,16 @@ def _create_required_output_dirs(args):
         os.mkdir(out_paths['no_outliers'])
 
 
-def _save_if_needed(sft, args, save_type, step_type, in_label, out_label):
+def _save_if_needed(streamlines, args, save_type, step_type, in_label, out_label):
     saving_options = _get_saving_options(args)
     out_paths = _get_output_paths(args)
 
-    if saving_options[save_type] and len(sft):
-        out_name = os.path.join(out_paths[step_type],
-                                '{}_{}.trk'.format(in_label,
-                                                   out_label))
-        save_tractogram(sft, out_name, bbox_valid_check=False)
+    if saving_options[save_type] and len(streamlines):
+        out_filename = os.path.join(out_paths[step_type],
+                                           '{}_{}.trk'.format(in_label,
+                                                              out_label)))
+        sft = StatefulTractogram(streamlines, args.in_tractogram, Space.RASMM)
+        save_tractogram(sft, out_filename)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
@@ -115,106 +117,6 @@ def _prune_segments(segments, min_length, max_length, vox_size):
         else:
             invalid.append(s)
     return valid, invalid
-
-
-def _processing_wrapper(args_from_parser, sft,
-                        indices, points_to_idx,
-                        final_con_info, vox_sizes, 
-                        comb):
-    in_label, out_label = comb
-    saving_options = _get_saving_options(args_from_parser)
-    out_paths = _get_output_paths(args_from_parser)
-    pair_info = final_con_info[in_label][out_label]
-    streamlines = sft.streamlines
-
-    if not len(pair_info):
-        return
-
-    final_strl = []
-
-    for connection in pair_info:
-        strl_idx = connection['strl_idx']
-        final_strl.append(compute_streamline_segment(streamlines[strl_idx],
-                                                     indices[strl_idx],
-                                                     connection['in_idx'],
-                                                     connection['out_idx'],
-                                                     points_to_idx[strl_idx]))
-
-    tmp_sft = StatefulTractogram(final_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser, 'raw',
-                    'raw', in_label, out_label)
-
-    # Doing all post-processing
-    if not args_from_parser.no_pruning:
-        pruned_strl, invalid_strl = _prune_segments(final_strl,
-                                                    args_from_parser.min_length,
-                                                    args_from_parser.max_length,
-                                                    vox_sizes[0])
-
-        tmp_sft = StatefulTractogram(invalid_strl, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'removed_length',
-                        in_label, out_label)
-    else:
-        pruned_strl = final_strl
-
-    if not len(pruned_strl):
-        return
-
-    tmp_sft = StatefulTractogram(pruned_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'pruned', in_label, out_label)
-
-    if not args_from_parser.no_remove_loops:
-        no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
-                                                       args_from_parser.loop_max_angle)
-
-        tmp_sft = StatefulTractogram(loops, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'loops', in_label, out_label)
-    else:
-        no_loops = pruned_strl
-
-    if not len(no_loops):
-        return
-
-    tmp_sft = StatefulTractogram(no_loops, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'no_loops', in_label, out_label)
-
-    if not args_from_parser.no_remove_outliers:
-        no_outliers, outliers = remove_outliers(no_loops,
-                                                args_from_parser.outlier_threshold)
-
-        tmp_sft = StatefulTractogram(outliers, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'outliers', in_label, out_label)
-    else:
-        no_outliers = no_loops
-
-    if not len(no_outliers):
-        return
-
-    tmp_sft = StatefulTractogram(no_outliers, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'no_outliers', in_label, out_label)
-
-    if not args_from_parser.no_remove_curv_dev:
-        no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-            no_outliers,
-            args_from_parser.loop_max_angle,
-            True,
-            args_from_parser.curv_qb_distance)
-
-        tmp_sft = StatefulTractogram(loops2, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'qb_loops', in_label, out_label)
-    else:
-        no_qb_loops_strl = no_outliers
-
-    tmp_sft = StatefulTractogram(no_qb_loops_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'final', 'final', in_label, out_label)
 
 
 def build_args_parser():
@@ -367,8 +269,86 @@ def main():
     sft.to_rasmm()
     sft.to_center()
 
-    for comb in comb_list:
-        _processing_wrapper(args, sft, indices, points_to_idx, con_info, vox_sizes, comb)
+    for in_label in list(con_info.keys()):
+        for out_label in list(con_info[in_label].keys()):
+            pair_info = con_info[in_label][out_label]
+
+            if not len(pair_info):
+                continue
+
+            final_strl = []
+
+            for connection in pair_info:
+                strl_idx = connection['strl_idx']
+                final_strl.append(compute_streamline_segment(sft.streamlines[strl_idx],
+                                                             indices[strl_idx],
+                                                             connection['in_idx'],
+                                                             connection['out_idx'],
+                                                             points_to_idx[strl_idx]))
+
+            _save_if_needed(final_strl, args, 'raw',
+                            'raw', in_label, out_label)
+
+            # Doing all post-processing
+            if not args.no_pruning:
+                pruned_strl, invalid_strl = _prune_segments(final_strl,
+                                                            args.min_length,
+                                                            args.max_length,
+                                                            vox_sizes[0])
+
+                _save_if_needed(invalid_strl, args,
+                                'discarded', 'removed_length',
+                                in_label, out_label)
+            else:
+                pruned_strl = final_strl
+
+            if not len(pruned_strl):
+                continue
+
+            _save_if_needed(pruned_strl, args,
+                            'intermediate', 'pruned', in_label, out_label)
+
+            if not args.no_remove_loops:
+                no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
+                                                               args.loop_max_angle)
+                _save_if_needed(loops, args,
+                                'discarded', 'loops', in_label, out_label)
+            else:
+                no_loops = pruned_strl
+
+            if not len(no_loops):
+                continue
+
+            _save_if_needed(no_loops, args,
+                            'intermediate', 'no_loops', in_label, out_label)
+
+            if not args.no_remove_outliers:
+                no_outliers, outliers = remove_outliers(no_loops,
+                                                        args.outlier_threshold)
+                _save_if_needed(outliers, args,
+                                'discarded', 'outliers', in_label, out_label)
+            else:
+                no_outliers = no_loops
+
+            if not len(no_outliers):
+                continue
+
+            _save_if_needed(no_outliers, args,
+                            'intermediate', 'no_outliers', in_label, out_label)
+
+            if not args.curv_qb_distance:
+                no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
+                    no_outliers,
+                    args.loop_max_angle,
+                    True,
+                    args.loop_qb_distance)
+                _save_if_needed(loops2, args,
+                                'discarded', 'qb_loops', in_label, out_label)
+            else:
+                no_qb_loops_strl = no_outliers
+
+            _save_if_needed(no_qb_loops_strl, args,
+                            'final', 'final', in_label, out_label)
 
     time2 = time.time()
     logging.info('    Connections post-processing and saving took %0.2f sec.',
