@@ -73,7 +73,7 @@ def _build_args_parser():
                    action='store_true', dest='b0_end',
                    help='Add a b0 as last sample. [%(default)s]')
     p.add_argument('--b0value',
-                   dest='b0_value', type=float, default=0.01,
+                   dest='b0_value', type=float, default=0.0,
                    help='b-value of the b0s. [%(default)s]')
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
