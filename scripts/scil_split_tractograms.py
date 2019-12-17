@@ -16,7 +16,7 @@ DESCRIPTION = """
 """
 
 
-def buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=DESCRIPTION)
@@ -38,7 +38,7 @@ def buildArgsParser():
 
 
 def main():
-    parser = buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.input_tractogram])
