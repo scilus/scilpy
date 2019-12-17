@@ -1,38 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-"""
-Compute a connectivity matrix from a tractogram and a parcellation.
-
-Current strategy is to keep the longest streamline segment connecting
-2 regions. If the streamline crosses other gray matter regions before
-reaching its final connected region, the kept connection is still the
-longest.
-
-This is robust to compressed streamlines.
-
-NOTE: this script can take a while to run. Please be patient.
-      Example: on a tractogram with 1.8M streamlines, running on a SSD:
-               - 4 minutes without post-processing, only saving final bundles.
-               - 29 minutes with full post-processing, only saving final bundles.
-               - 30 minutes with full post-processing, saving all possible files.
-"""
-
-from __future__ import division
-
-from builtins import zip
 import argparse
-import logging
-import os
-import time
-import multiprocessing
-import itertools
 
-import coloredlogs
-from dipy.tracking.streamlinespeed import length
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
-import nibabel as nb
+from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 from nibabel.streamlines.array_sequence import ArraySequence
 
@@ -158,187 +128,40 @@ def processing_wrapper(args):
 
     final_strl = []
 
-    for connection in pair_info:
-        strl_idx = connection['strl_idx']
-        final_strl.append(compute_streamline_segment(streamlines[strl_idx],
-                                                     indices[strl_idx],
-                                                     connection['in_idx'],
-                                                     connection['out_idx'],
-                                                     points_to_idx[strl_idx]))
-
-    tmp_sft = StatefulTractogram(final_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser, 'raw',
-                    'raw', in_label, out_label)
-
-    # Doing all post-processing
-    if not args_from_parser.no_pruning:
-        pruned_strl, invalid_strl = _prune_segments(final_strl,
-                                                    args_from_parser.min_length,
-                                                    args_from_parser.max_length,
-                                                    vox_sizes[0])
-
-        tmp_sft = StatefulTractogram(invalid_strl, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'removed_length',
-                        in_label, out_label)
-    else:
-        pruned_strl = final_strl
-
-    if not len(pruned_strl):
-        return
-
-    tmp_sft = StatefulTractogram(pruned_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'pruned', in_label, out_label)
-
-    if not args_from_parser.no_remove_loops:
-        no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
-                                                       args_from_parser.loop_max_angle)
-
-        tmp_sft = StatefulTractogram(loops, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'loops', in_label, out_label)
-    else:
-        no_loops = pruned_strl
-
-    if not len(no_loops):
-        return
-
-    tmp_sft = StatefulTractogram(no_loops, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'no_loops', in_label, out_label)
-
-    if not args_from_parser.no_remove_outliers:
-        no_outliers, outliers = remove_outliers(no_loops,
-                                                args_from_parser.outlier_threshold)
-
-        tmp_sft = StatefulTractogram(outliers, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'outliers', in_label, out_label)
-    else:
-        no_outliers = no_loops
-
-    if not len(no_outliers):
-        return
-
-    tmp_sft = StatefulTractogram(no_outliers, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'intermediate', 'no_outliers', in_label, out_label)
-
-    if not args_from_parser.no_remove_curv_dev:
-        no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
-            no_outliers,
-            args_from_parser.loop_max_angle,
-            True,
-            args_from_parser.curv_qb_distance)
-
-        tmp_sft = StatefulTractogram(loops2, sft, Space.RASMM)
-        _save_if_needed(tmp_sft, args_from_parser,
-                        'discarded', 'qb_loops', in_label, out_label)
-    else:
-        no_qb_loops_strl = no_outliers
-
-    tmp_sft = StatefulTractogram(no_qb_loops_strl, sft, Space.RASMM)
-    _save_if_needed(tmp_sft, args_from_parser,
-                    'final', 'final', in_label, out_label)
+from scilpy.tracking.tools import resample_streamlines
+from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
+                             add_overwrite_arg)
 
 
-def build_args_parser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
-    p.add_argument('in_tractogram',
-                   help='Tractogram filename. Format must be one of \n'
-                        'trk, tck, vtk, fib, dpy.')
-    p.add_argument('labels',
-                   help='Labels file name (nifti). Labels must be consecutive '
-                        'from 0 to N, with 0 the background. '
-                        'This generates a NxN connectivity matrix.')
-    p.add_argument('output_dir',
-                   help='Output directory path.')
-
-    post_proc = p.add_argument_group('Post-processing options')
-    post_proc.add_argument('--no_pruning', action='store_true',
-                           help='If set, will NOT prune on length.\n'
-                                'Length criteria in --min_length, '
-                                '--max_length')
-    post_proc.add_argument('--no_remove_loops', action='store_true',
-                           help='If set, will NOT remove streamlines making '
-                                'loops.\nAngle criteria based on '
-                                '--loop_max_angle')
-    post_proc.add_argument('--no_remove_outliers', action='store_true',
-                           help='If set, will NOT remove outliers using QB.\n'
-                                'Criteria based on --outlier_threshold.')
-    post_proc.add_argument('--no_remove_curv_dev', action='store_true',
-                           help='If set, will NOT remove streamlines that '
-                                'deviate from the mean curvature.\n'
-                                'Threshold based on --curv_qb_distance.')
-
-    pr = p.add_argument_group('Pruning options')
-    pr.add_argument('--min_length', type=float, default=20.,
-                    help='Pruning minimal segment length. [%(default)s]')
-    pr.add_argument('--max_length', type=float, default=200.,
-                    help='Pruning maximal segment length. [%(default)s]')
-
-    og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.3,
-                    help='Outlier removal threshold when using hierarchical '
-                         'QB. [%(default)s]')
-    og.add_argument('--loop_max_angle', type=float, default=360.,
-                    help='Maximal winding angle over which a streamline is '
-                         'considered as looping. [%(default)s]')
-    og.add_argument('--curv_qb_distance', type=float, default=10.,
-                    help='Maximal distance to a centroid for loop / turn '
-                         'filtering with QB. [%(default)s]')
-
-    s = p.add_argument_group('Saving options')
-    s.add_argument('--save_raw_connections', action='store_true',
-                   help='If set, will save all raw cut connections in a '
-                        'subdirectory')
-    s.add_argument('--save_intermediate', action='store_true',
-                   help='If set, will save the intermediate results of '
-                        'filtering')
-    s.add_argument('--save_discarded', action='store_true',
-                   help='If set, will save discarded streamlines in '
-                        'subdirectories.\n'
-                        'Includes loops, outliers and qb_loops')
+        description='')
+    p.add_argument('in_bundles', nargs='+'
+                   help='Support tractography file')
+    p.add_argument('json',
+                   help='ordering')
+    p.add_argument('--map',
+                   help='For weigthed')
+    p.add_argument('--volume', action="store_true",
+                   help='')
+    p.add_argument('--streamlines_count', action="store_true",
+                   help='')
+    p.add_argument('--length', action="store_true",
+                   help='')
+    p.add_argument('--similarity', action="store_true",
+                   help='Support tractography file')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
-    add_processes_args(p)
-    add_reference_arg(p)
-    add_verbose_arg(p)
 
     return p
 
 
 def main():
-    parser = build_args_parser()
+    parser = _build_args_parser()
     args = parser.parse_args()
-
-    assert_inputs_exist(parser, [args.in_tractogram, args.labels])
-
-    if os.path.abspath(args.output_dir) == os.getcwd():
-        parser.error('Do not use the current path as output directory.')
-
-    assert_output_dirs_exist_and_empty(parser, args, args.output_dir)
-
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.INFO
-    logging.basicConfig(level=log_level)
-    coloredlogs.install(level=log_level)
-
-    img_labels = nb.load(args.labels)
-    data_labels = img_labels.get_data()
-    if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
-        parser.error("Label image should contain integers for labels.")
-
-    # Voxel size must be isotropic, for speed/performance considerations
-    vox_sizes = img_labels.header.get_zooms()
-    if not np.mean(vox_sizes) == vox_sizes[0]:
-        parser.error('Labels must be isotropic')
-
+    
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
@@ -402,9 +225,6 @@ def main():
                      itertools.repeat(points_to_idx),
                      itertools.repeat(vox_sizes)))
 
-    time2 = time.time()
-    logging.info('    Connections post-processing and saving took %0.2f ms',
-                 (time2 - time1))
 
 
 if __name__ == "__main__":
