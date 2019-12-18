@@ -103,29 +103,9 @@ def _save_if_needed(streamlines, args, save_type, step_type, in_label, out_label
         out_name = os.path.join(out_paths[step_type],
                                 '{}_{}.trk'.format(in_label,
                                                    out_label))
-        sft = StatefulTractogram(streamlines, args.in_tractogram, Space.RASMM)
-        save_tractogram(sft, out_name, bbox_valid_check=False)
-
-
-def _symmetrize_con_info(con_info):
-    final_con_info = {}
-    for in_label in list(con_info.keys()):
-        for out_label in list(con_info[in_label].keys()):
-
-            pair_info = con_info[in_label][out_label]
-
-            final_in_label = min(in_label, out_label)
-            final_out_label = max(in_label, out_label)
-
-            if final_con_info.get(final_in_label) is None:
-                final_con_info[final_in_label] = {}
-
-            if final_con_info[final_in_label].get(final_out_label) is None:
-                final_con_info[final_in_label][final_out_label] = []
-
-            final_con_info[final_in_label][final_out_label].extend(pair_info)
-
-    return final_con_info
+        sft = StatefulTractogram(streamlines, args.in_tractogram,
+                                 Space.VOX, shifted_origin=True)
+        save_tractogram(sft, out_name)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
@@ -286,90 +266,96 @@ def main():
     time1 = time.time()
 
     # Saving will be done from streamlines already in the right space
-    sft.to_rasmm()
-    sft.to_center()
-    for in_label in list(con_info.keys()):
-        for out_label in list(con_info[in_label].keys()):
-            pair_info = con_info[in_label][out_label]
+    logging.basicConfig(level=logging.WARNING)
+    coloredlogs.install(level=logging.WARNING)
+    comb_list = list(itertools.combinations(labels_list, r=2))
+    for in_label, out_label in comb_list:
+        if not in_label in con_info:
+            continue
+        elif not out_label in con_info[in_label]:
+            continue
+        pair_info = con_info[in_label][out_label]
 
-            if not len(pair_info):
-                continue
+        if not len(pair_info):
+            continue
 
-            connecting_streamlines = []
-            for connection in pair_info:
-                strl_idx = connection['strl_idx']
-                curr_streamlines = compute_streamline_segment(
-                    sft.streamlines[strl_idx],
-                    indices[strl_idx],
-                    connection['in_idx'],
-                    connection['out_idx'],
-                    points_to_idx[strl_idx])
-                connecting_streamlines.append(curr_streamlines)
+        connecting_streamlines = []
+        for connection in pair_info:
+            strl_idx = connection['strl_idx']
+            curr_streamlines = compute_streamline_segment(
+                sft.streamlines[strl_idx],
+                indices[strl_idx],
+                connection['in_idx'],
+                connection['out_idx'],
+                points_to_idx[strl_idx])
+            connecting_streamlines.append(curr_streamlines)
 
-            _save_if_needed(connecting_streamlines, args, 'raw',
-                            'raw', in_label, out_label)
+        _save_if_needed(connecting_streamlines, args, 'raw',
+                        'raw', in_label, out_label)
 
-            # Doing all post-processing
-            if not args.no_pruning:
-                valid_length, invalid_length = _prune_segments(connecting_streamlines,
+        # Doing all post-processing
+        if not args.no_pruning:
+            valid_length, invalid_length = _prune_segments(connecting_streamlines,
                                                             args.min_length,
                                                             args.max_length,
                                                             vox_sizes[0])
 
-                _save_if_needed(invalid_length, args,
-                                'discarded', 'invalid_length',
-                                in_label, out_label)
-            else:
-                valid_length = connecting_streamlines
+            _save_if_needed(invalid_length, args,
+                            'discarded', 'invalid_length',
+                            in_label, out_label)
+        else:
+            valid_length = connecting_streamlines
 
-            if not len(valid_length):
-                continue
+        if not len(valid_length):
+            continue
 
-            _save_if_needed(valid_length, args,
-                            'intermediate', 'valid_length', in_label, out_label)
+        _save_if_needed(valid_length, args,
+                        'intermediate', 'valid_length', in_label, out_label)
 
-            if not args.no_remove_loops:
-                no_loops, loops = remove_loops_and_sharp_turns(valid_length,
-                                                               args.loop_max_angle)
-                _save_if_needed(loops, args,
-                                'discarded', 'loops', in_label, out_label)
-            else:
-                no_loops = pruned_strl
+        if not args.no_remove_loops:
+            no_loops, loops = remove_loops_and_sharp_turns(valid_length,
+                                                            args.loop_max_angle)
+            _save_if_needed(loops, args,
+                            'discarded', 'loops', in_label, out_label)
+        else:
+            no_loops = pruned_strl
 
-            if not len(no_loops):
-                continue
+        if not len(no_loops):
+            continue
 
-            _save_if_needed(no_loops, args,
-                            'intermediate', 'no_loops', in_label, out_label)
+        _save_if_needed(no_loops, args,
+                        'intermediate', 'no_loops', in_label, out_label)
 
-            if not args.no_remove_outliers:
-                inliers, outliers = remove_outliers(no_loops,
-                                                        args.outlier_threshold)
-                _save_if_needed(outliers, args,
-                                'discarded', 'outliers', in_label, out_label)
-            else:
-                inliers = no_loops
+        if not args.no_remove_outliers:
+            inliers, outliers = remove_outliers(no_loops,
+                                                args.outlier_threshold)
+            _save_if_needed(outliers, args,
+                            'discarded', 'outliers', in_label, out_label)
+        else:
+            inliers = no_loops
 
-            if not len(inliers):
-                continue
+        if not len(inliers):
+            continue
 
-            _save_if_needed(inliers, args,
-                            'intermediate', 'inliers', in_label, out_label)
+        _save_if_needed(inliers, args,
+                        'intermediate', 'inliers', in_label, out_label)
 
-            if not args.no_remove_curv_dev:
-                no_qb_curv, qb_curv = remove_loops_and_sharp_turns(
-                    inliers,
-                    args.loop_max_angle,
-                    True,
-                    args.curv_qb_distance)
-                _save_if_needed(qb_curv, args,
-                                'discarded', 'qb_curv', in_label, out_label)
-            else:
-                no_qb_loops_strl = no_outliers
+        if not args.no_remove_curv_dev:
+            no_qb_curv, qb_curv = remove_loops_and_sharp_turns(
+                inliers,
+                args.loop_max_angle,
+                True,
+                args.curv_qb_distance)
+            _save_if_needed(qb_curv, args,
+                            'discarded', 'qb_curv', in_label, out_label)
+        else:
+            no_qb_loops_strl = no_outliers
 
-            _save_if_needed(no_qb_curv, args,
-                            'final', 'final', in_label, out_label)
+        _save_if_needed(no_qb_curv, args,
+                        'final', 'final', in_label, out_label)
 
+    logging.basicConfig(level=log_level)
+    coloredlogs.install(level=log_level)
     time2 = time.time()
     logging.info('    Connections post-processing and saving took %0.2f ms',
                  (time2 - time1))

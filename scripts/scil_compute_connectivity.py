@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import argparse
 import os
+import copy
 
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
@@ -134,7 +135,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-
+from scilpy.utils.filenames import split_name_with_nii
 from builtins import zip
 import argparse
 import logging
@@ -149,7 +150,7 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import load_tractogram
 import nibabel as nb
 import numpy as np
-from scilpy.tractanalys
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
@@ -204,7 +205,8 @@ def _processing_wrapper(args):
     in_label, out_label = args[1]
     measures_to_compute = args[2]
     dict_map = args[3]
-    similarity_directory = args[4]
+    weighted = args[4]
+    similarity_directory = args[5]
 
     in_filename_1 = os.path.join(bundles_dir,
                                  '{}_{}.trk'.format(in_label, out_label))
@@ -218,7 +220,7 @@ def _processing_wrapper(args):
         return
 
     sft = load_tractogram(in_filename, 'same')
-    _, dimensions, voxel_sizes, _ = sft.space_attribute
+    affine, dimensions, voxel_sizes, _ = sft.space_attribute
     measures_to_return = {}
 
     # Precompute to save one transformation, insert later
@@ -245,38 +247,38 @@ def _processing_wrapper(args):
                                      '{}_{}.trk'.format(in_label, out_label))
         in_filename_2 = os.path.join(similarity_directory,
                                      '{}_{}.trk'.format(out_label, in_label))
+        in_filename_sim = None
         if os.path.isfile(in_filename_1):
             in_filename_sim = in_filename_1
         elif os.path.isfile(in_filename_2):
             in_filename_sim = in_filename_2
-        else:
-            break
 
-        if is_header_compatible(in_filename_sim, in_filename):
+
+        if not in_filename_sim is None and is_header_compatible(in_filename_sim, in_filename):
             sft_sim = load_tractogram(in_filename_sim, 'same')
             _, dimensions, _, _ = sft.space_attribute
 
-            sft.to_vox()
-            sft.to_corner()
+            sft_sim.to_vox()
+            sft_sim.to_corner()
             density_sim = compute_tract_counts_map(sft_sim.streamlines,
                                                    dimensions)
+
             _, w_dice = compute_dice_voxel(density, density_sim)
-            print(w_dice)
             measures_to_return['similarity'] = w_dice
             measures_to_compute.remove('similarity')
 
     for map_base_name in measures_to_compute:
-        if weigthed:
-            voxels_value = dict_map[map_base_name][density > 0]
-        else:
+        if weighted:
+            density = density / np.max(density)
             voxels_value = dict_map[map_base_name] * density
             voxels_value = voxels_value[voxels_value > 0]
+        else:
+            voxels_value = dict_map[map_base_name][density > 0]
+            
 
         measures_to_return[map_base_name] = np.average(voxels_value)
         measures_to_compute.remove(map_base_name)
 
-        print(in_label, out_label)
-        print(measures_to_return)
         return {(in_label, out_label): measures_to_return}
 
 def _build_args_parser():
@@ -296,6 +298,8 @@ def _build_args_parser():
     p.add_argument('--similarity',
                    help='Support tractography file')
     p.add_argument('--maps', nargs='+',
+                   help='For weigthed')
+    p.add_argument('--density_weigth', action="store_true",
                    help='For weigthed')
 
     add_reference_arg(p)
@@ -394,6 +398,7 @@ def main():
         if not is_header_compatible(args.maps[0], filepath):
             continue
         base_name = os.path.basename(filepath)
+        basename, _ = split_name_with_nii(base_name)
         measures_to_compute.append(base_name)
         map_data = nib.load(filepath).get_data()
         dict_map[base_name] = map_data
@@ -406,6 +411,7 @@ def main():
                      comb_list,
                      itertools.repeat(measures_to_compute),
                      itertools.repeat(dict_map),
+                     itertools.repeat(args.density_weigth),
                      itertools.repeat(args.similarity)))
 
 
