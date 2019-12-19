@@ -30,6 +30,7 @@ def remove_loops_and_sharp_turns(streamlines,
         being classified as a loop.
     qb_threshold: float
         Quickbundles distance threshold, only used if use_qb is True.
+
     Returns
     -------
     A tuple containing
