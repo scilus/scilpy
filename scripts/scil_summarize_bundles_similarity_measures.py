@@ -275,7 +275,8 @@ def main():
 
     if args.single_compare:
         # Move the single_compare only once, at the end.
-        args.in_bundles.remove(args.single_compare)
+        if args.single_compare in args.in_bundles:
+            args.in_bundles.remove(args.single_compare)
         bundles_list = args.in_bundles + [args.single_compare]
         bundles_references_tuple_extended = link_bundles_and_reference(
             parser, args, bundles_list)
