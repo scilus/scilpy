@@ -146,67 +146,25 @@ import multiprocessing
 import os
 
 
-import coloredlog
+import coloredlogs
 from dipy.io.utils import is_header_compatible
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 import numpy as np
 
+from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
-
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
-                             assert_inputs_exist)
-
-
-def compute_dice_voxel(density_1, density_2):
-    """
-    Compute the overlap (dice coefficient) between two density maps (or binary).
-    Parameters
-    ----------
-    density_1: ndarray
-        Density (or binary) map computed from the first bundle
-    density_1: ndarray of ndarray
-        Density (or binary) map computed from the second bundle
-    Returns
-    -------
-    A tuple containing
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles.
-        float: Value between 0 and 1 that represent the spatial aggrement
-            between both bundles, weighted by streamlines density.
-    """
-    binary_1 = copy.copy(density_1)
-    binary_1[binary_1 > 0] = 1
-    binary_2 = copy.copy(density_2)
-    binary_2[binary_2 > 0] = 1
-
-    numerator = 2 * np.count_nonzero(binary_1 * binary_2)
-    denominator = np.count_nonzero(binary_1) + np.count_nonzero(binary_2)
-    if denominator > 0:
-        dice = numerator / float(denominator)
-    else:
-        dice = np.nan
-
-    indices = np.nonzero(binary_1 * binary_2)
-    overlap_1 = density_1[indices]
-    overlap_2 = density_2[indices]
-    w_dice = (np.sum(overlap_1) + np.sum(overlap_2))
-    denominator = float(np.sum(density_1) + np.sum(density_2))
-    if denominator > 0:
-        w_dice /= denominator
-    else:
-        w_dice = np.nan
-
-    return dice, w_dice
+                             assert_inputs_exist, assert_outputs_exist)
 
 
 def _processing_wrapper(args):
     bundles_dir = args[0]
     in_label, out_label = args[1]
-    measures_to_compute = args[2]
+    measures_to_compute = copy.copy(args[2])
     dict_map = args[3]
     weighted = args[4]
     similarity_directory = args[5]
@@ -235,6 +193,7 @@ def _processing_wrapper(args):
     density = compute_tract_counts_map(sft.streamlines,
                                        dimensions)
 
+    # print(measures_to_compute)
     if 'volume' in measures_to_compute:
         measures_to_return['volume'] = np.count_nonzero(density) * \
             np.prod(voxel_sizes)
@@ -281,7 +240,7 @@ def _processing_wrapper(args):
         measures_to_return[map_base_name] = np.average(voxels_value)
         measures_to_compute.remove(map_base_name)
 
-        return {(in_label, out_label): measures_to_return}
+    return {(in_label, out_label): measures_to_return}
 
 
 def _build_args_parser():
@@ -302,7 +261,12 @@ def _build_args_parser():
                    help='Support tractography file')
     p.add_argument('--maps', nargs='+',
                    help='For weigthed')
+
     p.add_argument('--density_weigth', action="store_true",
+                   help='For weigthed')
+    p.add_argument('--no_identity', action="store_true",
+                   help='For weigthed')
+    p.add_argument('--output_prefix', default='matrix',
                    help='For weigthed')
 
     add_reference_arg(p)
@@ -382,11 +346,11 @@ def main():
                      itertools.repeat(vox_sizes)))
 
     assert_inputs_exist(parser, args.labels_list)
-
-    labels_list = np.loadtxt(args.labels_list, dtype=int)
+    if not os.path.isdir(args.in_bundles_dir):
+        parser.error('The directory {} does not exist.'.format(
+            args.in_bundles_dir))
 
     measures_to_compute = []
-
     if args.volume:
         measures_to_compute.append('volume')
     if args.streamlines_count:
@@ -400,22 +364,53 @@ def main():
     for filepath in args.maps:
         if not is_header_compatible(args.maps[0], filepath):
             continue
-        base_name = os.path.basename(filepath)
-        basename, _ = split_name_with_nii(base_name)
+        base_name, _ = split_name_with_nii(os.path.basename(filepath))
         measures_to_compute.append(base_name)
         map_data = nib.load(filepath).get_data()
         dict_map[base_name] = map_data
 
-    comb_list = list(itertools.combinations(labels_list, r=2))
+    output_names = []
+    for name in measures_to_compute:
+        output_names.append('{}_{}.npy'.format(args.output_prefix, name))
+    assert_outputs_exist(parser, args, output_names)
+
+    labels_list = np.loadtxt(args.labels_list, dtype=int).tolist()
+    if args.no_identity:
+        comb_list = list(itertools.combinations(labels_list, r=2))
+    else:
+        comb_list = list(set(itertools.product(labels_list, labels_list)))
 
     pool = multiprocessing.Pool(args.nbr_processes)
-    _ = pool.map(_processing_wrapper,
-                 zip(itertools.repeat(args.in_bundles_dir),
-                     comb_list,
-                     itertools.repeat(measures_to_compute),
-                     itertools.repeat(dict_map),
-                     itertools.repeat(args.density_weigth),
-                     itertools.repeat(args.similarity)))
+    metrics_dict_list = pool.map(_processing_wrapper,
+                                 zip(itertools.repeat(args.in_bundles_dir),
+                                     comb_list,
+                                     itertools.repeat(measures_to_compute),
+                                     itertools.repeat(dict_map),
+                                     itertools.repeat(args.density_weigth),
+                                     itertools.repeat(args.similarity)))
+
+    # Removing None entries (combinaisons that do not exist)
+    # Fusing the multiprocessing output into a single dictionary
+    metrics_dict_list = [it for it in metrics_dict_list if it is not None]
+    metrics_dict = metrics_dict_list[0]
+    for dix in metrics_dict_list[1:]:
+        metrics_dict.update(dix)
+
+    # Filling out all the matrices (symmetric) in the order of labels_list
+    nbr_of_metrics = len(measures_to_compute)
+    matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_metrics))
+    for in_label, out_label in metrics_dict:
+        curr_node_dict = metrics_dict[(in_label, out_label)]
+        for i, metric in enumerate(curr_node_dict):
+            in_pos = labels_list.index(in_label)
+            out_pos = labels_list.index(out_label)
+            matrix[in_pos, out_pos, i] = curr_node_dict[metric]
+            matrix[out_pos, in_pos, i] = curr_node_dict[metric]
+
+    # Saving the matrices separatly with the name
+    for i, name in enumerate(measures_to_compute):
+        np.savetxt('{}_{}.npy'.format(
+            args.output_prefix, name), matrix[:, :, i])
 
 
 if __name__ == "__main__":
