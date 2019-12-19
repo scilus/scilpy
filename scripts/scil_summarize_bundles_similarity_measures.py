@@ -19,7 +19,7 @@ import numpy as np
 from numpy.random import RandomState
 
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_reference)
@@ -28,13 +28,13 @@ from scilpy.tractanalysis.reproducibility_measures \
             compute_bundle_adjacency_streamlines,
             compute_bundle_adjacency_voxel,
             compute_dice_streamlines,
-            get_endpoints_map)
+            get_endpoints_density_map)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
 DESCRIPTION = """
 Compute pair-wise similarity measures of bundles.
-All tractograms must be trk files and headers must be identical.
+All tractograms must be in the same space (aligned to one reference)
 """
 
 
@@ -47,9 +47,9 @@ def _build_args_parser():
     p.add_argument('out_json',
                    help='Path of the output json file')
 
-    p.add_argument('--same_tractogram', action='store_true',
+    p.add_argument('--streamline_dice', action='store_true',
                    help='Streamlines-wise Dice coefficient will be computed \n'
-                        '[%(default)s]')
+                        'Tractograms must be identical [%(default)s].')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
                         '[%(default)s]')
@@ -60,7 +60,7 @@ def _build_args_parser():
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end')
 
-    add_reference(p)
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -113,7 +113,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     else:
         transformation, dimensions, _, _ = sft.space_attribute
         density = compute_tract_counts_map(streamlines, dimensions)
-        endpoints_density = get_endpoints_map(streamlines, dimensions)
+        endpoints_density = get_endpoints_density_map(streamlines, dimensions,
+                                                      point_to_select=3)
         thresholds = [32, 24, 12, 6]
         if disable_centroids:
             centroids = []
@@ -133,15 +134,19 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                                            shifted_origin=True)
         save_tractogram(centroids_sft, tmp_centroids_filename)
 
-    return (density, endpoints_density, streamlines, centroids)
+    return density, endpoints_density, streamlines, centroids
 
 
 def compute_all_measures(args):
     tuple_1, tuple_2 = args[0]
     filename_1, reference_1 = tuple_1
     filename_2, reference_2 = tuple_2
-    same_tractogram = args[1]
+    streamline_dice = args[1]
     disable_streamline_distance = args[2]
+
+    if not is_header_compatible(reference_1, reference_2):
+        raise ValueError('{0} and {1} have incompatible headers'.format(
+            filename_1, filename_2))
 
     data_tuple_1 = load_data_tmp_saving(
         filename_1, reference_1,
@@ -160,10 +165,6 @@ def compute_all_measures(args):
 
     density_2, endpoints_density_2, bundle_2, \
         centroids_2 = data_tuple_2
-
-    if not is_header_compatible(reference_1, reference_2):
-        raise ValueError('{0} and {1} have incompatible headers'.format(
-            filename_1, filename_2))
 
     _, _, voxel_size, _ = get_reference_info(reference_1)
     voxel_size = np.product(voxel_size)
@@ -185,7 +186,7 @@ def compute_all_measures(args):
     bundle_adjacency_voxel = compute_bundle_adjacency_voxel(density_1,
                                                             density_2,
                                                             non_overlap=True)
-    if same_tractogram and not disable_streamline_distance:
+    if streamline_dice and not disable_streamline_distance:
         bundle_adjacency_streamlines = \
             compute_bundle_adjacency_streamlines(bundle_1,
                                                  bundle_2,
@@ -237,7 +238,7 @@ def compute_all_measures(args):
         measures += [bundle_adjacency_streamlines]
 
     # Only when the tractograms are exactly the same
-    if same_tractogram:
+    if streamline_dice:
         dice_streamlines, streamlines_intersect, streamlines_union = \
             compute_dice_streamlines(bundle_1, bundle_2)
         streamlines_count_overlap = len(streamlines_intersect)
@@ -299,10 +300,9 @@ def main():
 
     all_measures_dict = pool.map(compute_all_measures,
                                  zip(comb_dict_keys,
-                                     itertools.repeat(args.same_tractogram),
+                                     itertools.repeat(args.streamline_dice),
                                      itertools.repeat(
-                                         args.disable_streamline_distance),
-                                     itertools.repeat(False)))
+                                         args.disable_streamline_distance)))
     pool.close()
     pool.join()
 

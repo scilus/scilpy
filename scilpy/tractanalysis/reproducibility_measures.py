@@ -11,7 +11,7 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
 
 
-def get_endpoints_map(streamlines, dimensions, point_to_select=3):
+def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
     """
     Compute an endpoints density map, supports selecting more than one points
     at each end.
@@ -48,9 +48,9 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
                                          centroids_1=None, centroids_2=None):
     """
     Compute the distance in millimeters between two bundles. Uses centroids
-    to limit computation time. Each centroid of the first bundle is match
+    to limit computation time. Each centroid of the first bundle is matched
     to the nearest centroid of the second bundle and vice-versa.
-    Distance between matched paired is average for the final results.
+    Distance between matched paired is averaged for the final results.
     References
     ----------
     .. [Garyfallidis15] Garyfallidis et al. Robust and efficient linear
@@ -126,9 +126,9 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     """
     Compute the distance in millimeters between two bundles in the voxel
     representation. Convert the bundles to binary masks. Each voxel of the
-    first bundle is match to the the nearest voxel of the second bundle and
+    first bundle is matched to the the nearest voxel of the second bundle and
     vice-versa.
-    Distance between matched paired is average for the final results.
+    Distance between matched paired is averaged for the final results.
     Parameters
     ----------
     bundle_1: list of ndarray
@@ -150,13 +150,15 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     distance_2, _ = b2_tree.query(b1_ind)
 
     if non_overlap:
-        if not np.nonzero(distance_1)[0].size == 0:
-            distance_b1 = np.mean(distance_1[np.nonzero(distance_1)])
+        non_zeros_1 = np.nonzero(distance_1)
+        non_zeros_2 = np.nonzero(distance_2)
+        if not non_zeros_1[0].size == 0:
+            distance_b1 = np.mean(distance_1[non_zeros_1])
         else:
             distance_b1 = 0
 
-        if not np.nonzero(distance_2)[0].size == 0:
-            distance_b2 = np.mean(distance_2[np.nonzero(distance_2)])
+        if not non_zeros_2[0].size == 0:
+            distance_b2 = np.mean(distance_2[non_zeros_2])
         else:
             distance_b2 = 0
     else:
