@@ -13,33 +13,27 @@ This is robust to compressed streamlines.
 
 NOTE: this script can take a while to run. Please be patient.
       Example: on a tractogram with 1.8M streamlines, running on a SSD:
-               - 4 minutes without post-processing, only saving final bundles.
-               - 29 minutes with full post-processing, only saving final bundles.
-               - 30 minutes with full post-processing, saving all possible files.
+            - 5 minutes without post-processing, only saving final bundles.
+            - 25 minutes with full post-processing, only saving final bundles.
+            - 30 minutes with full post-processing, saving all possible files.
 """
 
-from __future__ import division
-
-from builtins import zip
 import argparse
+import itertools
 import logging
 import os
 import time
-import multiprocessing
-import itertools
 
 import coloredlogs
-from dipy.tracking.streamlinespeed import length
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from dipy.tracking.streamlinespeed import length
 import nibabel as nb
 import numpy as np
-from nibabel.streamlines.array_sequence import ArraySequence
 
-from scilpy.io.streamlines import (load_trk_in_voxel_space,
-                                   save_from_voxel_space)
-from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
-                             add_verbose_arg, add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.features import (remove_outliers,
@@ -48,7 +42,6 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
                                         compute_streamline_segment,
                                         extract_longest_segments_from_profile)
 from scilpy.tractanalysis.uncompress import uncompress
-from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.io.streamlines import load_tractogram_with_reference
 
 
@@ -95,7 +88,9 @@ def _create_required_output_dirs(args):
         os.mkdir(out_paths['no_outliers'])
 
 
-def _save_if_needed(streamlines, args, save_type, step_type, in_label, out_label):
+def _save_if_needed(streamlines, args,
+                    save_type, step_type,
+                    in_label, out_label):
     saving_options = _get_saving_options(args)
     out_paths = _get_output_paths(args)
 
@@ -113,11 +108,11 @@ def _prune_segments(segments, min_length, max_length, vox_size):
     valid = []
     invalid = []
 
-    for s, l in zip(segments, lengths):
-        if min_length <= l <= max_length:
-            valid.append(s)
+    for se, le in zip(segments, lengths):
+        if min_length <= le <= max_length:
+            valid.append(se)
         else:
-            invalid.append(s)
+            invalid.append(se)
     return valid, invalid
 
 
@@ -207,6 +202,7 @@ def main():
 
     img_labels = nb.load(args.labels)
     data_labels = img_labels.get_data()
+    real_labels = np.unique(data_labels)[1:]
     if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
         parser.error("Label image should contain integers for labels.")
 
@@ -250,15 +246,14 @@ def main():
     # Compute the connectivity mapping
     logging.info('*** Computing connectivity information ***')
     time1 = time.time()
-    con_info = compute_connectivity(indices, img_labels.get_data(),
+    con_info = compute_connectivity(indices,
+                                    img_labels.get_data(), real_labels,
                                     extract_longest_segments_from_profile)
     time2 = time.time()
     logging.info('    Connectivity computation took %0.2f ms',
                  (time2 - time1))
 
     # Prepare directories and information needed to save.
-    saving_opts = _get_saving_options(args)
-    out_paths = _get_output_paths(args)
     _create_required_output_dirs(args)
 
     logging.info('*** Starting connection post-processing and saving. ***')
@@ -268,13 +263,19 @@ def main():
     # Saving will be done from streamlines already in the right space
     logging.basicConfig(level=logging.WARNING)
     coloredlogs.install(level=logging.WARNING)
-    comb_list = list(itertools.combinations(labels_list, r=2))
+    comb_list = list(itertools.combinations(real_labels, r=2))
+
     for in_label, out_label in comb_list:
-        if not in_label in con_info:
+        pair_info = []
+        if in_label not in con_info:
             continue
-        elif not out_label in con_info[in_label]:
+        elif out_label in con_info[in_label]:
+            pair_info.extend(con_info[in_label][out_label])
+
+        if out_label not in con_info:
             continue
-        pair_info = con_info[in_label][out_label]
+        elif in_label in con_info[out_label]:
+            pair_info.extend(con_info[out_label][in_label])
 
         if not len(pair_info):
             continue
@@ -296,9 +297,9 @@ def main():
         # Doing all post-processing
         if not args.no_pruning:
             valid_length, invalid_length = _prune_segments(connecting_streamlines,
-                                                            args.min_length,
-                                                            args.max_length,
-                                                            vox_sizes[0])
+                                                           args.min_length,
+                                                           args.max_length,
+                                                           vox_sizes[0])
 
             _save_if_needed(invalid_length, args,
                             'discarded', 'invalid_length',
@@ -314,11 +315,11 @@ def main():
 
         if not args.no_remove_loops:
             no_loops, loops = remove_loops_and_sharp_turns(valid_length,
-                                                            args.loop_max_angle)
+                                                           args.loop_max_angle)
             _save_if_needed(loops, args,
                             'discarded', 'loops', in_label, out_label)
         else:
-            no_loops = pruned_strl
+            no_loops = valid_length
 
         if not len(no_loops):
             continue
@@ -349,7 +350,7 @@ def main():
             _save_if_needed(qb_curv, args,
                             'discarded', 'qb_curv', in_label, out_label)
         else:
-            no_qb_loops_strl = no_outliers
+            no_qb_curv = inliers
 
         _save_if_needed(no_qb_curv, args,
                         'final', 'final', in_label, out_label)

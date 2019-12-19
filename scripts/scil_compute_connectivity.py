@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
-import os
 import copy
 
 from nibabel.streamlines import load, save, Tractogram
@@ -143,19 +142,23 @@ import os
 import time
 import multiprocessing
 import itertools
+import multiprocessing
+import os
 
-import coloredlogs
-from dipy.tracking.streamlinespeed import length
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+
+import coloredlog
+from dipy.io.utils import is_header_compatible
 from dipy.io.streamline import load_tractogram
-import nibabel as nb
+from dipy.tracking.streamlinespeed import length
+import nibabel as nib
 import numpy as np
+
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.utils.filenames import split_name_with_nii
 
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
-                             assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_inputs_exist)
 
 
 def compute_dice_voxel(density_1, density_2):
@@ -253,8 +256,8 @@ def _processing_wrapper(args):
         elif os.path.isfile(in_filename_2):
             in_filename_sim = in_filename_2
 
-
-        if not in_filename_sim is None and is_header_compatible(in_filename_sim, in_filename):
+        if in_filename_sim is not None and \
+                is_header_compatible(in_filename_sim, in_filename):
             sft_sim = load_tractogram(in_filename_sim, 'same')
             _, dimensions, _, _ = sft.space_attribute
 
@@ -274,12 +277,12 @@ def _processing_wrapper(args):
             voxels_value = voxels_value[voxels_value > 0]
         else:
             voxels_value = dict_map[map_base_name][density > 0]
-            
 
         measures_to_return[map_base_name] = np.average(voxels_value)
         measures_to_compute.remove(map_base_name)
 
         return {(in_label, out_label): measures_to_return}
+
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
