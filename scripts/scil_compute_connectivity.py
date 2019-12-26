@@ -165,9 +165,9 @@ def _processing_wrapper(args):
     bundles_dir = args[0]
     in_label, out_label = args[1]
     measures_to_compute = copy.copy(args[2])
-    dict_map = args[3]
-    weighted = args[4]
-    similarity_directory = args[5]
+    dict_map_img = args[3]
+    if args[4] is not None:
+        similarity_directory = args[4][0]
 
     in_filename_1 = os.path.join(bundles_dir,
                                  '{}_{}.trk'.format(in_label, out_label))
@@ -188,55 +188,56 @@ def _processing_wrapper(args):
     if 'length' in measures_to_compute:
         mean_length = np.average(length(sft.streamlines))
 
-    sft.to_vox()
-    sft.to_corner()
-    density = compute_tract_counts_map(sft.streamlines,
-                                       dimensions)
+    # If density is not required, do not compute it
+    # Only required for volume, similarity and any maps
+    if not ((len(measures_to_compute) == 1 and
+             ('length' in measures_to_compute or
+              'streamline_count' in measures_to_compute)) or
+            (len(measures_to_compute) == 2 and
+             ('length' in measures_to_compute and
+              'streamline_count' in measures_to_compute))):
+        sft.to_vox()
+        sft.to_corner()
+        density = compute_tract_counts_map(sft.streamlines,
+                                           dimensions)
 
-    # print(measures_to_compute)
     if 'volume' in measures_to_compute:
         measures_to_return['volume'] = np.count_nonzero(density) * \
             np.prod(voxel_sizes)
         measures_to_compute.remove('volume')
-    if 'streamlines_count' in measures_to_compute:
-        measures_to_return['streamlines_count'] = len(sft)
-        measures_to_compute.remove('streamlines_count')
+    if 'streamline_count' in measures_to_compute:
+        measures_to_return['streamline_count'] = len(sft)
+        measures_to_compute.remove('streamline_count')
     if 'length' in measures_to_compute:
         measures_to_return['length'] = mean_length
         measures_to_compute.remove('length')
     if 'similarity' in measures_to_compute and similarity_directory:
         in_filename_1 = os.path.join(similarity_directory,
-                                     '{}_{}.trk'.format(in_label, out_label))
+                                     '{}_{}.nii.gz'.format(in_label, out_label))
         in_filename_2 = os.path.join(similarity_directory,
-                                     '{}_{}.trk'.format(out_label, in_label))
+                                     '{}_{}.nii.gz'.format(out_label, in_label))
         in_filename_sim = None
         if os.path.isfile(in_filename_1):
             in_filename_sim = in_filename_1
         elif os.path.isfile(in_filename_2):
             in_filename_sim = in_filename_2
 
-        if in_filename_sim is not None and \
-                is_header_compatible(in_filename_sim, in_filename):
-            sft_sim = load_tractogram(in_filename_sim, 'same')
-            _, dimensions, _, _ = sft.space_attribute
-
-            sft_sim.to_vox()
-            sft_sim.to_corner()
-            density_sim = compute_tract_counts_map(sft_sim.streamlines,
-                                                   dimensions)
-
+        if in_filename_sim is not None:
+            if not is_header_compatible(in_filename_sim, in_filename):
+                print('MISTAKE')
+                return
+            density_sim = nib.load(in_filename_sim).get_data()
             _, w_dice = compute_dice_voxel(density, density_sim)
+
             measures_to_return['similarity'] = w_dice
             measures_to_compute.remove('similarity')
 
     for map_base_name in measures_to_compute:
-        if weighted:
-            density = density / np.max(density)
-            voxels_value = dict_map[map_base_name] * density
-            voxels_value = voxels_value[voxels_value > 0]
-        else:
-            voxels_value = dict_map[map_base_name][density > 0]
+        if not is_header_compatible(dict_map_img[map_base_name], sft):
+            print("MISTAKE")
+            return
 
+        voxels_value = dict_map_img[map_base_name].get_data()[density > 0]
         measures_to_return[map_base_name] = np.average(voxels_value)
         measures_to_compute.remove(map_base_name)
 
@@ -251,22 +252,20 @@ def _build_args_parser():
                    help='Support tractography file')
     p.add_argument('labels_list',
                    help='ordering')
-    p.add_argument('--volume', action="store_true",
+    p.add_argument('--volume', metavar='OUT_FILE',
                    help='')
-    p.add_argument('--streamlines_count', action="store_true",
+    p.add_argument('--streamline_count', metavar='OUT_FILE',
                    help='')
-    p.add_argument('--length', action="store_true",
+    p.add_argument('--length', metavar='OUT_FILE',
                    help='')
-    p.add_argument('--similarity',
+    p.add_argument('--maps', nargs=2, action='append',
+                   metavar=('IN_FILE', 'OUT_FILE'),
+                   help='For weigthed')
+    p.add_argument('--similarity', nargs=2,
+                   metavar=('IN_FOLDER', 'OUT_FILE'),
                    help='Support tractography file')
-    p.add_argument('--maps', nargs='+',
-                   help='For weigthed')
 
-    p.add_argument('--density_weigth', action="store_true",
-                   help='For weigthed')
     p.add_argument('--no_identity', action="store_true",
-                   help='For weigthed')
-    p.add_argument('--output_prefix', default='matrix',
                    help='For weigthed')
 
     add_reference_arg(p)
@@ -351,66 +350,88 @@ def main():
             args.in_bundles_dir))
 
     measures_to_compute = []
+    measures_output_filename = []
     if args.volume:
         measures_to_compute.append('volume')
-    if args.streamlines_count:
-        measures_to_compute.append('streamlines_count')
+        measures_output_filename.append(args.volume)
+    if args.streamline_count:
+        measures_to_compute.append('streamline_count')
+        measures_output_filename.append(args.streamline_count)
     if args.length:
         measures_to_compute.append('length')
+        measures_output_filename.append(args.length)
     if args.similarity:
         measures_to_compute.append('similarity')
+        measures_output_filename.append(args.similarity[1])
 
-    dict_map = {}
-    for filepath in args.maps:
-        if not is_header_compatible(args.maps[0], filepath):
-            continue
-        base_name, _ = split_name_with_nii(os.path.basename(filepath))
-        measures_to_compute.append(base_name)
-        map_data = nib.load(filepath).get_data()
-        dict_map[base_name] = map_data
+    dict_map_img = {}
+    dict_map_out_name = {}
+    if args.maps is not None:
+        for in_name, out_name in args.maps:
+            # Verify that all maps are compatible with each other
+            if not is_header_compatible(args.maps[0][0], in_name):
+                continue
+            base_name, _ = split_name_with_nii(os.path.basename(in_name))
+            measures_to_compute.append(base_name)
+            measures_output_filename.append(out_name)
+            
+            # This is necessary to support more than one map for weighting
+            dict_map_img[base_name] = nib.load(in_name)
+            dict_map_out_name[base_name] = out_name
+            measures_output_filename.append(out_name)
 
-    output_names = []
-    for name in measures_to_compute:
-        output_names.append('{}_{}.npy'.format(args.output_prefix, name))
-    assert_outputs_exist(parser, args, output_names)
+    if not measures_to_compute:
+        parser.error('No connectivity measures were selected, nothing'
+                     'to compute.')
+    assert_outputs_exist(parser, args, measures_output_filename)
 
     labels_list = np.loadtxt(args.labels_list, dtype=int).tolist()
     if args.no_identity:
         comb_list = list(itertools.combinations(labels_list, r=2))
     else:
         comb_list = list(set(itertools.product(labels_list, labels_list)))
-
+    print(comb_list)
     pool = multiprocessing.Pool(args.nbr_processes)
-    metrics_dict_list = pool.map(_processing_wrapper,
+    measures_dict_list = pool.map(_processing_wrapper,
                                  zip(itertools.repeat(args.in_bundles_dir),
                                      comb_list,
                                      itertools.repeat(measures_to_compute),
-                                     itertools.repeat(dict_map),
-                                     itertools.repeat(args.density_weigth),
+                                     itertools.repeat(dict_map_img),
                                      itertools.repeat(args.similarity)))
 
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
-    metrics_dict_list = [it for it in metrics_dict_list if it is not None]
-    metrics_dict = metrics_dict_list[0]
-    for dix in metrics_dict_list[1:]:
-        metrics_dict.update(dix)
+    measures_dict_list = [it for it in measures_dict_list if it is not None]
+    measures_dict = measures_dict_list[0]
+    for dix in measures_dict_list[1:]:
+        measures_dict.update(dix)
 
-    # Filling out all the matrices (symmetric) in the order of labels_list
-    nbr_of_metrics = len(measures_to_compute)
-    matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_metrics))
-    for in_label, out_label in metrics_dict:
-        curr_node_dict = metrics_dict[(in_label, out_label)]
-        for i, metric in enumerate(curr_node_dict):
+    # Filling out all the matrices (symmeasure) in the order of labels_list
+    nbr_of_measures = len(measures_to_compute)
+    matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
+    for in_label, out_label in measures_dict:
+        curr_node_dict = measures_dict[(in_label, out_label)]
+        measures_ordering = list(curr_node_dict.keys())
+        for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
-            matrix[in_pos, out_pos, i] = curr_node_dict[metric]
-            matrix[out_pos, in_pos, i] = curr_node_dict[metric]
+            matrix[in_pos, out_pos, i] = curr_node_dict[measure]
+            matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
     # Saving the matrices separatly with the name
-    for i, name in enumerate(measures_to_compute):
-        np.savetxt('{}_{}.npy'.format(
-            args.output_prefix, name), matrix[:, :, i])
+    for i, measure in enumerate(measures_ordering):
+        if measure == 'volume':
+            matrix_basename = args.volume
+        elif measure == 'streamline_count':
+            matrix_basename = args.streamline_count
+        elif measure == 'length':
+            matrix_basename = args.length
+        elif measure == 'similarity':
+            matrix_basename = args.similarity[1]
+        elif measure in dict_map_out_name:
+            matrix_basename = dict_map_out_name[measure]
+
+        np.savetxt(matrix_basename, matrix[:, :, i])
 
 
 if __name__ == "__main__":
