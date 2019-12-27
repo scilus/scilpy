@@ -166,8 +166,9 @@ def _processing_wrapper(args):
     in_label, out_label = args[1]
     measures_to_compute = copy.copy(args[2])
     dict_map_img = args[3]
-    if args[4] is not None:
-        similarity_directory = args[4][0]
+    weighted = args[4]
+    if args[5] is not None:
+        similarity_directory = args[5][0]
 
     in_filename_1 = os.path.join(bundles_dir,
                                  '{}_{}.trk'.format(in_label, out_label))
@@ -237,7 +238,13 @@ def _processing_wrapper(args):
             print("MISTAKE")
             return
 
-        voxels_value = dict_map_img[map_base_name].get_data()[density > 0]
+        if weighted:
+            density = density / np.max(density)
+            voxels_value = dict_map_img[map_base_name].get_data() * density
+            voxels_value = voxels_value[voxels_value > 0]
+        else:
+            voxels_value = dict_map_img[map_base_name].get_data()[density > 0]
+
         measures_to_return[map_base_name] = np.average(voxels_value)
         measures_to_compute.remove(map_base_name)
 
@@ -247,7 +254,7 @@ def _processing_wrapper(args):
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='')
+        description=__doc__)
     p.add_argument('in_bundles_dir',
                    help='Support tractography file')
     p.add_argument('labels_list',
@@ -265,7 +272,9 @@ def _build_args_parser():
                    metavar=('IN_FOLDER', 'OUT_FILE'),
                    help='Support tractography file')
 
-    p.add_argument('--no_identity', action="store_true",
+    p.add_argument('--density_weigth', action="store_true",
+                   help='For weigthed')
+    p.add_argument('--no_self_connection', action="store_true",
                    help='For weigthed')
 
     add_reference_arg(p)
@@ -374,7 +383,7 @@ def main():
             base_name, _ = split_name_with_nii(os.path.basename(in_name))
             measures_to_compute.append(base_name)
             measures_output_filename.append(out_name)
-            
+
             # This is necessary to support more than one map for weighting
             dict_map_img[base_name] = nib.load(in_name)
             dict_map_out_name[base_name] = out_name
@@ -386,18 +395,19 @@ def main():
     assert_outputs_exist(parser, args, measures_output_filename)
 
     labels_list = np.loadtxt(args.labels_list, dtype=int).tolist()
-    if args.no_identity:
+    if args.no_self_connection:
         comb_list = list(itertools.combinations(labels_list, r=2))
     else:
         comb_list = list(set(itertools.product(labels_list, labels_list)))
-    print(comb_list)
+
     pool = multiprocessing.Pool(args.nbr_processes)
     measures_dict_list = pool.map(_processing_wrapper,
-                                 zip(itertools.repeat(args.in_bundles_dir),
-                                     comb_list,
-                                     itertools.repeat(measures_to_compute),
-                                     itertools.repeat(dict_map_img),
-                                     itertools.repeat(args.similarity)))
+                                  zip(itertools.repeat(args.in_bundles_dir),
+                                      comb_list,
+                                      itertools.repeat(measures_to_compute),
+                                      itertools.repeat(dict_map_img),
+                                      itertools.repeat(args.density_weigth),
+                                      itertools.repeat(args.similarity)))
 
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
