@@ -1,5 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+This script computes a variety of mesures in the form of connectivity
+matrices. This script is made to follow scil_decompose_connectivity and the
+use the same labels list as input.
+
+Expect a folder containing all relevants bundles following the naming
+convention label1_label2.trk and a text file containing the list of labels
+that should be part of the matrices. The ordering of labels in the matrices
+will follow the same order as the list.
+
+This script only generates matrices in the form of array, does not visualize
+or reorder the labels (node).
+
+The parameter --similarity expect a folder with the same bundle naming
+convention as the input directory. They should the bundles average version:
+models, concatenation of multiple subjects, etc. in the same space. This will
+compute the weigthed-dice between each node and their homologuous average
+bundles.
+
+The parameters --maps can be used more than once and expect a map (t1, fa, etc.)
+in the same space and each will generate a matrix. The average value in the
+volume occupied by the bundle will be reported in the matrices nodes.
+"""
+
 import argparse
 import copy
 
@@ -232,7 +257,7 @@ def _processing_wrapper(args):
 
             measures_to_return['similarity'] = w_dice
             measures_to_compute.remove('similarity')
-
+    print(measures_to_compute)
     for map_base_name in measures_to_compute:
         if not is_header_compatible(dict_map_img[map_base_name], sft):
             print("MISTAKE")
@@ -256,26 +281,28 @@ def _build_args_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
     p.add_argument('in_bundles_dir',
-                   help='Support tractography file')
+                   help='Folder containing all the bundle files (trk).')
     p.add_argument('labels_list',
-                   help='ordering')
+                   help='Text file containing the list of labels from the '
+                   'atlas.')
     p.add_argument('--volume', metavar='OUT_FILE',
-                   help='')
+                   help='Output file for the volume weighted matrix')
     p.add_argument('--streamline_count', metavar='OUT_FILE',
-                   help='')
+                   help='Output file for the streamline count weighted matrix.')
     p.add_argument('--length', metavar='OUT_FILE',
-                   help='')
-    p.add_argument('--maps', nargs=2, action='append',
-                   metavar=('IN_FILE', 'OUT_FILE'),
-                   help='For weigthed')
+                   help='Output file for the length weighted matrix.')
     p.add_argument('--similarity', nargs=2,
                    metavar=('IN_FOLDER', 'OUT_FILE'),
-                   help='Support tractography file')
+                   help='Input folder containing the average bundles. \n'
+                   'and output file for the similarity weigthed matrix.')
+    p.add_argument('--maps', nargs=2, action='append',
+                   metavar=('IN_FILE', 'OUT_FILE'),
+                   help='Input map output file for the map weigthed matrix.')
 
     p.add_argument('--density_weigth', action="store_true",
-                   help='For weigthed')
+                   help='Use density-weighting for the map weigthed matrix.')
     p.add_argument('--no_self_connection', action="store_true",
-                   help='For weigthed')
+                   help='Eliminate the diagonal from the matrices.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -416,7 +443,7 @@ def main():
     for dix in measures_dict_list[1:]:
         measures_dict.update(dix)
 
-    # Filling out all the matrices (symmeasure) in the order of labels_list
+    # Filling out all the matrices (symmetric) in the order of labels_list
     nbr_of_measures = len(measures_to_compute)
     matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
     for in_label, out_label in measures_dict:
