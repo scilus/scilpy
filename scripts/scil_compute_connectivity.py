@@ -14,11 +14,11 @@ will follow the same order as the list.
 This script only generates matrices in the form of array, does not visualize
 or reorder the labels (node).
 
-The parameter --similarity expect a folder with the same bundle naming
-convention as the input directory. They should the bundles average version:
-models, concatenation of multiple subjects, etc. in the same space. This will
+The parameter --similarity expect a folder with density map (nii.gz) following
+the same naming convention as the input directory.
+They should the bundles average version in the same space. This will
 compute the weigthed-dice between each node and their homologuous average
-bundles.
+version.
 
 The parameters --maps can be used more than once and expect a map (t1, fa, etc.)
 in the same space and each will generate a matrix. The average value in the
@@ -168,8 +168,8 @@ import time
 import multiprocessing
 import itertools
 import multiprocessing
+import logging
 import os
-
 
 import coloredlogs
 from dipy.io.utils import is_header_compatible
@@ -250,17 +250,19 @@ def _processing_wrapper(args):
 
         if in_filename_sim is not None:
             if not is_header_compatible(in_filename_sim, in_filename):
-                print('MISTAKE')
+                logging.error('%s and %s do not have a compatible header',
+                              in_filename, in_filename_sim)
                 return
             density_sim = nib.load(in_filename_sim).get_data()
             _, w_dice = compute_dice_voxel(density, density_sim)
 
             measures_to_return['similarity'] = w_dice
             measures_to_compute.remove('similarity')
-    print(measures_to_compute)
+
     for map_base_name in measures_to_compute:
         if not is_header_compatible(dict_map_img[map_base_name], sft):
-            print("MISTAKE")
+            logging.error('%s and %s do not have a compatible header',
+                          in_filename, map_base_name)
             return
 
         if weighted:
@@ -299,7 +301,7 @@ def _build_args_parser():
                    metavar=('IN_FILE', 'OUT_FILE'),
                    help='Input map output file for the map weigthed matrix.')
 
-    p.add_argument('--density_weigth', action="store_true",
+    p.add_argument('--density_weigthing', action="store_true",
                    help='Use density-weighting for the map weigthed matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
@@ -385,6 +387,12 @@ def main():
         parser.error('The directory {} does not exist.'.format(
             args.in_bundles_dir))
 
+    log_level = logging.WARNING
+    if args.verbose:
+        log_level = logging.INFO
+    logging.basicConfig(level=log_level)
+    coloredlogs.install(level=log_level)
+
     measures_to_compute = []
     measures_output_filename = []
     if args.volume:
@@ -416,16 +424,18 @@ def main():
             dict_map_out_name[base_name] = out_name
             measures_output_filename.append(out_name)
 
+    assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing'
                      'to compute.')
-    assert_outputs_exist(parser, args, measures_output_filename)
+    logging.info('The following measures will be computed and save: %s',
+                 measures_to_compute)
 
     labels_list = np.loadtxt(args.labels_list, dtype=int).tolist()
-    if args.no_self_connection:
-        comb_list = list(itertools.combinations(labels_list, r=2))
-    else:
-        comb_list = list(set(itertools.product(labels_list, labels_list)))
+
+    comb_list = list(itertools.combinations(labels_list, r=2))
+    if not args.no_self_connection:
+        comb_list.extend(zip(labels_list, labels_list))
 
     pool = multiprocessing.Pool(args.nbr_processes)
     measures_dict_list = pool.map(_processing_wrapper,
@@ -433,7 +443,7 @@ def main():
                                       comb_list,
                                       itertools.repeat(measures_to_compute),
                                       itertools.repeat(dict_map_img),
-                                      itertools.repeat(args.density_weigth),
+                                      itertools.repeat(args.density_weigthing),
                                       itertools.repeat(args.similarity)))
 
     # Removing None entries (combinaisons that do not exist)
@@ -442,6 +452,14 @@ def main():
     measures_dict = measures_dict_list[0]
     for dix in measures_dict_list[1:]:
         measures_dict.update(dix)
+
+    if args.no_self_connection:
+        total_elem = len(measures_dict.keys())*2
+    else:
+        total_elem = len(measures_dict.keys())*2 - len(labels_list)
+
+    logging.info('Out of %s node, only %s contain values',
+                 len(labels_list)**2, len(measures_dict.keys())*2)
 
     # Filling out all the matrices (symmetric) in the order of labels_list
     nbr_of_measures = len(measures_to_compute)
