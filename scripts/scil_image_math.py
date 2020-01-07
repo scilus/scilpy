@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from copy import copy
 import logging
 from numbers import Number
 import os
@@ -56,14 +57,22 @@ def build_args_parser():
     return p
 
 
+def is_float(value):
+  try:
+    float(value)
+    return True
+  except ValueError:
+    return False
+
+
 def load_data(arg):
-    if arg.isnumeric():
+    if is_float(arg):
         mask = float(arg)
     else:
         mask = nib.load(arg).get_data()
 
-    if mask.ndmi > 3:
-        logging.warning('%s has %s dimensions, be careful')
+        if mask.ndim > 3:
+            logging.warning('%s has %s dimensions, be careful')
 
     return mask
 
@@ -96,7 +105,7 @@ def main():
     if args.operation not in single_img_op_with_params + \
             single_img_op_no_params + \
             multi_img_op:
-        parser.error('Operation not implement')
+        parser.error('Operation %s not implement', args.operation)
 
     at_least_one_img = False
     for input_arg in args.inputs:
@@ -120,20 +129,18 @@ def main():
                 not len(args.inputs) == 2:
             parser.error('Operation %s only support two inputs',
                          args.operation)
-    else:
-        parser.error('Operation not implement')
 
     # Load all input masks.
     input_data = []
     for input_arg in args.inputs:
-        if not isinstance(input_arg, Number) and \
+        if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Input do not have a compatible header')
         data = load_data(input_arg)
-        if data.dtype != ref_img.dtype:
+        if isinstance(data, np.ndarray) and data.dtype != ref_img.get_data_dtype():
             parser.error('Input do not have a compatible data type.'
                          'Use --data_type to specified output datatype.')
-        if args.operation in binary_op:
+        if args.operation in binary_op and isinstance(data, np.ndarray):
             if not len(np.unique(data)) == 2:
                 parser.error('Binary operations can only be performed with '
                              'binary masks')
@@ -147,11 +154,11 @@ def main():
 
     # output_data = np.zeros(ref_img.get_shape())
     if args.operation == 'lower_threshold':
-        output_data = input_data[0]
+        output_data = copy(input_data[0])
         output_data[input_data[0] < input_data[1]] = 0
-        output_data[input_data[0]= > input_data[1]] = 1
+        output_data[input_data[0] >= input_data[1]] = 1
     elif args.operation == 'upper_threshold':
-        output_data = input_data[0]
+        output_data = copy(input_data[0])
         output_data[input_data[0] <= input_data[1]] = 1
         output_data[input_data[0] > input_data[1]] = 0
     elif args.operation == 'lower_clip':
@@ -167,11 +174,11 @@ def main():
     elif args.operation == 'floor':
         output_data = np.floor(input_data[0])
     elif args.operation == 'normalize_sum':
-        output_data = input_data[0] / np.sum(input_data[0])
+        output_data = copy(input_data[0]) / np.sum(input_data[0])
     elif args.operation == 'normalize_max':
-        output_data = input_data[0] / np.max(input_data[0])
+        output_data = copy(input_data[0]) / np.max(input_data[0])
     elif args.operation == 'convert':
-        output_data = input_data[0]
+        output_data = copy(input_data[0])
     elif args.operation == 'addition':
         output_data = np.zeros(ref_img.get_shape())
         for data in input_data:
@@ -179,8 +186,8 @@ def main():
     elif args.operation == 'subtraction':
         output_data = np.zeros(ref_img.get_shape())
         for data in input_data:
-            output_data -= datasafety dance tyrion
-        output_data = input_data[0] / input_data[1]
+            output_data -= data
+        output_data = copy(input_data[0]) / input_data[1]
     elif args.operation == 'mean':
         output_data = np.average(input_data)
     elif args.operation == 'std':
@@ -196,7 +203,7 @@ def main():
             output_data *= data
         output_data[output_data != 0] = 1
     elif args.operation == 'difference':
-        output_data = input_data[0].astype(np.bool)
+        output_data = copy(input_data[0]).astype(np.bool)
         output_data[input_data[1] != 0] = 0
     elif args.operation == 'inverse':
         output_data = np.zeros(ref_img.get_shape())
@@ -205,10 +212,12 @@ def main():
 
     if args.data_type:
         output_data = output_data.astype(args.data_type)
+        ref_img.header.set_data_dtype(args.data_type)
     else:
-        output_data = output_data.astype(ref_img.dtype)
-    new_img = nib.Nifti1Image(output_data, ref_img.affine)
-    nib.save(new_img, args.output, header=ref_img.header)
+        output_data = output_data.astype(ref_img.get_data_dtype())
+    new_img = nib.Nifti1Image(output_data, ref_img.affine,
+                              header=ref_img.header)
+    nib.save(new_img, args.output)
 
 
 if __name__ == "__main__":
