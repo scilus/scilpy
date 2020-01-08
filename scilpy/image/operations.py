@@ -48,7 +48,7 @@ def get_operation_doc():
         If a single 4D image is provided, average along the last dimension.
     std: IMGs
         Compute the standard deviation average of multiple images.
-        If a single 4D image is provided, compute the STD along the last 
+        If a single 4D image is provided, compute the STD along the last
         dimension.
     union: IMGs
         Binary operation to keep voxels that are in any file.
@@ -307,7 +307,7 @@ def mean(input_list):
 
     if len(input_list) == 1 and not ref_array.ndim > 3:
         logging.error('This operation with only one operand requires 4D data.')
-        raise ValueError 
+        raise ValueError
 
     in_data = np.squeeze(np.rollaxis(np.array(input_list), 0,
                                      input_list[0].ndim+1))
@@ -332,7 +332,7 @@ def std(input_list):
 
     if len(input_list) == 1 and not ref_array.ndim > 3:
         logging.error('This operation with only one operand requires 4D data.')
-        raise ValueError 
+        raise ValueError
 
     in_data = np.squeeze(np.rollaxis(np.array(input_list), 0,
                                      input_list[0].ndim+1))

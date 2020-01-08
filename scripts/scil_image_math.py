@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from copy import copy
 import logging
-from numbers import Number
 import os
-from functools import reduce
 
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -15,8 +12,8 @@ import numpy as np
 from scilpy.image.operations import (is_float, absolute_value, around,
                                      addition, ceil, closing, convert,
                                      difference, dilation, division, erosion,
-                                     floor, gaussian_blur, intersection, invert,
-                                     lower_clip, lower_threshold, mean,
+                                     floor, gaussian_blur, intersection,
+                                     invert, lower_clip, lower_threshold, mean,
                                      multiplication, normalize_max,
                                      normalize_sum, opening, std, subtraction,
                                      union, upper_threshold, upper_clip,
@@ -95,9 +92,11 @@ def load_data(arg):
         data = float(arg)
     else:
         if not os.path.isfile(arg):
-            logging.error('Input file %s does not exist', path)
+            logging.error('Input file %s does not exist', arg)
             raise ValueError
         data = nib.load(arg).get_data()
+        logging.info('Loaded %s of shape %s and data_type %s',
+                     arg, data.shape, data.dtype)
 
         if data.ndim > 3:
             logging.warning('%s has %s dimensions, be careful', arg, data.ndim)
@@ -154,7 +153,7 @@ def main():
                                 'binary array, will be converted. '
                                 'Non-zeros will be set to ones.')
                 data[data != 0] = 1
-                
+
         if isinstance(data, np.ndarray):
             data = data.astype(np.float64)
         input_data.append(data)
