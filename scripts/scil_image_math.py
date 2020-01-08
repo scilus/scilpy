@@ -101,6 +101,9 @@ def load_data(arg):
 
         if data.ndim > 3:
             logging.warning('%s has %s dimensions, be careful', arg, data.ndim)
+        elif data.ndim < 3:
+            logging.warning('%s has %s dimensions, not valid ', arg, data.ndim)
+            raise ValueError
 
     return data
 
@@ -134,6 +137,7 @@ def main():
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Input do not have a compatible header')
         data = load_data(input_arg)
+
         if isinstance(data, np.ndarray) and \
             data.dtype != ref_img.get_data_dtype() and \
                 not args.data_type:
@@ -141,17 +145,19 @@ def main():
                          'Use --data_type to specified output datatype.')
         if args.operation in binary_op and isinstance(data, np.ndarray):
             unique = np.unique(data)
-            if not len(unique)  == 2:
+            if not len(unique) <= 2:
                 parser.error('Binary operations can only be performed with '
                              'binary masks')
 
-            if not (unique == [0, 1]).all():
+            if len(unique) == 2 and not (unique == [0, 1]).all():
                 logging.warning('Input data for binary operation are not '
                                 'binary array, will be converted. '
                                 'Non-zeros will be set to ones.')
                 data[data != 0] = 1
-
-        input_data.append(data.astype(np.float64))
+                
+        if isinstance(data, np.ndarray):
+            data = data.astype(np.float64)
+        input_data.append(data)
 
     if args.operation == 'convert' and not args.data_type:
         parser.error('Convert operation must be used with --data_type')

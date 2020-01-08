@@ -9,6 +9,7 @@ from scipy.ndimage.morphology import (binary_dilation, binary_erosion,
                                       binary_opening, binary_closing)
 from scipy.ndimage.filters import gaussian_filter
 
+
 def get_operation_doc():
     return """
     lower_threshold: IMG THRESHOLD
@@ -71,6 +72,7 @@ def get_operation_doc():
     blur: IMG
         Apply a gaussian blur to a single image.
     """
+
 
 def is_float(value):
     try:
@@ -280,9 +282,12 @@ def division(input_list):
         logging.error('This operation only support two operands.')
         raise ValueError
 
-    _ = find_array(input_list)
+    ref_array = find_array(input_list)
 
-    return input_list[0] / input_list[1]
+    output_data = np.zeros(ref_array.shape)
+    output_data[input_list[1] > 0] = input_list[0][input_list[1] > 0] \
+        / input_list[1][input_list[1] > 0]
+    return output_data
 
 
 def mean(input_list):
@@ -290,15 +295,19 @@ def mean(input_list):
         logging.error('This operations required either one operand (4D) or'
                       'or multiple operands (3D/4D).')
         raise ValueError
-    ref_array = find_array(input_list)
 
+    ref_array = find_array(input_list)
     for i in input_list:
         if not isinstance(i, np.ndarray):
-            logging.error('.')
+            logging.error('All inputs must be array.')
             raise ValueError
         if not i.shape == ref_array.shape:
-            logging.error('.')
+            logging.error('All shapes must match.')
             raise ValueError
+
+    if len(input_list) == 1 and not ref_array.ndim > 3:
+        logging.error('This operation with only one operand requires 4D data.')
+        raise ValueError 
 
     in_data = np.squeeze(np.rollaxis(np.array(input_list), 0,
                                      input_list[0].ndim+1))
@@ -313,14 +322,17 @@ def std(input_list):
         raise ValueError
 
     ref_array = find_array(input_list)
-
     for i in input_list:
         if not isinstance(i, np.ndarray):
-            logging.error('.')
+            logging.error('All inputs must be array.')
             raise ValueError
         if not i.shape == ref_array.shape:
-            logging.error('.')
+            logging.error('All shapes must match.')
             raise ValueError
+
+    if len(input_list) == 1 and not ref_array.ndim > 3:
+        logging.error('This operation with only one operand requires 4D data.')
+        raise ValueError 
 
     in_data = np.squeeze(np.rollaxis(np.array(input_list), 0,
                                      input_list[0].ndim+1))
