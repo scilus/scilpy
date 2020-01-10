@@ -64,7 +64,8 @@ def main():
         parser.error('--fit_thr should be greater than 0. Current value: {}'
                      .format(args.fit_thr))
 
-    logging.basicConfig(level=getattr(logging, args.log))
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     in_img = nib.load(args.in_image)
     in_data = in_img.get_data()
