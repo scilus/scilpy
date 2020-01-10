@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import shutil
 import six
 import xml.etree.ElementTree as ET
 
@@ -21,10 +22,16 @@ def check_tracts_same_format(parser, filename_list):
             parser.error('All tracts file must use the same format.')
 
 
-def add_reference(parser):
-    parser.add_argument('--reference',
-                        help='Reference anatomy for tck/vtk/fib/dpy file\n'
-                        'support (.nii or .nii.gz).')
+def add_reference_arg(parser, arg_name=None):
+    if arg_name:
+        parser.add_argument('--'+arg_name+'_ref',
+                            help='Reference anatomy for {} (if tck/vtk/fib/dpy)'
+                                 ' file\n'
+                                 'support (.nii or .nii.gz).'.format(arg_name))
+    else:
+        parser.add_argument('--reference',
+                            help='Reference anatomy for tck/vtk/fib/dpy file\n'
+                                 'support (.nii or .nii.gz).')
 
 
 def add_overwrite_arg(parser):
@@ -144,6 +151,36 @@ def create_header_from_anat(reference, base_filetype=TrkFile):
         nib.aff2axcodes(affine))
 
     return new_header
+
+
+def assert_output_dirs_exist_and_empty(parser, args, *dirs):
+    """
+    Assert that all output directories exist.
+    If not, print parser's usage and exit.
+    If exists and not empty, and -f used, delete dirs.
+    :param parser: argparse.ArgumentParser object
+    :param args: argparse namespace
+    :param dirs: list of paths
+    """
+    for path in dirs:
+        if not os.path.isdir(path):
+            parser.error('Output directory {} doesn\'t exist.'.format(path))
+        if os.listdir(path):
+            if not args.overwrite:
+                parser.error(
+                    'Output directory {} isn\'t empty and some files could be '
+                    'overwritten. Use -f option if you want to continue.'
+                    .format(path))
+            else:
+                for the_file in os.listdir(args.output):
+                    file_path = os.path.join(args.output, the_file)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(e)
 
 
 def read_info_from_mb_bdo(filename):
