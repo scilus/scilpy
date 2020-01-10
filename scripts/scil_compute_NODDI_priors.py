@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -49,7 +49,6 @@ def _build_arg_parser():
         '--md_min', dest='md_t',  type=float, default='0.003',
         help='Minimal threshold of MD in mm2/s (voxels above that threshold '
              'are considered for in the ventricles). [%(default)s]')
-
 
     g2 = p.add_argument_group('Regions options')
     g2.add_argument(
@@ -124,15 +123,15 @@ def main():
     else:
         if len(args.roi_center) != 3:
             parser.error("roi_center needs to receive 3 values")
-        elif not np.all(np.asarray(args.roi_center)>0):
+        elif not np.all(np.asarray(args.roi_center) > 0):
             parser.error("roi_center needs to be positive")
         else:
             ci, cj, ck = args.roi_center
 
     w = args.roi_radius
-    square = (np.arange(max(int(ci - w),0), max(int(ci + w),0),
-              np.arange(max(int(cj - w),0), max(int(cj + w),0),
-              np.arange(max(int(ck - w),0), max(int(ck + w),0))
+    square = (np.arange(max(int(ci - w), 0), max(int(ci + w), 0)),
+              np.arange(max(int(cj - w), 0), max(int(cj + w), 0)),
+              np.arange(max(int(ck - w), 0), max(int(ck + w), 0)))
 
     roi_ad = ad[square]
     roi_md = md[square]

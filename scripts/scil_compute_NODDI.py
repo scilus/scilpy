@@ -95,7 +95,7 @@ def main():
     elif any([args.bval, args.bvec, args.bstep]):
         parser.error('Can only provide [--bval, --bvec, --bstep] or '
                      '--scheme_file.')
-    else
+    else:
         required_in.append(args.scheme_file)
         use_scheme_file = True
 
