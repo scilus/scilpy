@@ -109,7 +109,8 @@ def main():
     filtered_ids_per_vol = []
     # Remove background labels
     for id_list in indices_per_volume:
-        new_ids = np.setdiff1d(id_list, args.background)
+        id_list = np.asarray(id_list)
+        new_ids = id_list[~np.in1d(id_list, args.background)]
         filtered_ids_per_vol.append(new_ids)
 
     # Prepare output indices
