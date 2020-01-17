@@ -3,6 +3,7 @@
 
 import pytest
 
+
 def test_help_option(script_runner):
     ret = script_runner.run('scil_resample_volume.py', '--help')
     assert ret.success
