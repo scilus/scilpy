@@ -72,5 +72,5 @@ REQUIRES = ["bz2file (>=0.98)", "cycler (>=0.10.0)", "bz2file (>=0.10.0)",
             "Pillow (>=6.2.0)", "pybids (>=0.9.1)", "pyparsing (>=2.2.0)",
             "python_dateutil (>=2.7.2)", "pytz (>=2018.4)", "scipy (>=1.0.1)",
             "setuptools (>=39.0.1)", "six (>=1.11.0)", "coloredlogs (>=10.0)",
-            "pytest-console-scripts (>=0.2.0)"]
+            "pytest_console_scripts (>=0.2.0)"]
 SCRIPTS = glob.glob("scripts/*.py")
