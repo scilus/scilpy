@@ -20,8 +20,6 @@ import numpy as np
 from scilpy.io.utils import assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
-logger = logging.getLogger(__file__)
-
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
@@ -116,15 +114,15 @@ def main():
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
-    logger.info('Number of b0 images in the data: %s', len(b0_idx))
+    logging.info('Number of b0 images in the data: %s', len(b0_idx))
 
     if args.mean:
-        logger.info('Using mean of indices %s for b0', b0_idx)
+        logging.info('Using mean of indices %s for b0', b0_idx)
         _mean_in_time(args.dwi, b0_idx, args.output)
     else:
         if not args.all:
             b0_idx = [b0_idx[0]]
-        logger.info("Keeping %s for b0", b0_idx)
+        logging.info("Keeping %s for b0", b0_idx)
         _keep_time_step(args.dwi, b0_idx, args.output)
 
 

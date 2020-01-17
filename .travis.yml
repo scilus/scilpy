@@ -6,6 +6,7 @@ python:
 
 before_install:
   - sudo apt-get install libblas-dev liblapack-dev
+  - pip install .
 
 script:
-  - pip install .
+  - pytest -v
