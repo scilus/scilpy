@@ -65,5 +65,11 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-REQUIRES = ["numpy"]
+REQUIRES = ["bz2file (>=0.98)", "cycler (>=0.10.0)", "bz2file (>=0.10.0)",
+            "cython (>=0.29.12)", "dipy (>=1.0.0)", "fury (>=0.2.0)",
+            "future (>=0.17.1)", "h5py (>=2.9.0)", "kiwisolver (>=1.0.1)",
+            "matplotlib (>=2.2.2)", "nibabel (>=2.2.2)", "numpy (>=1.16.2)",
+            "Pillow (>=6.2.0)", "pybids (>=0.9.1)", "pyparsing (>=2.2.0)",
+            "python_dateutil (>=2.7.2)", "pytz (>=2018.4)", "scipy (>=1.0.1)",
+            "setuptools (>=39.0.1)", "six (>=1.11.0)", "coloredlogs (>=10.0)"]
 SCRIPTS = glob.glob("scripts/*.py")
