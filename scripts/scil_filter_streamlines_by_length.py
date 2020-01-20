@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
+import json
 import logging
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
@@ -30,6 +31,13 @@ def _build_args_parser():
                    help='Maximum length of streamlines. [%(default)s]')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
+
+    g1 = p.add_argument_group(title='Json options')
+    g1.add_argument('--json', action='store_true',
+                    help='Print streamline count before and after filtering')
+    g1.add_argument('--indent',
+                        type=int, default=2,
+                        help='Indent for json pretty print.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -72,6 +80,12 @@ def main():
 
     save_tractogram(new_sft, args.out_tractogram)
 
+    if args.json:
+        tc_bf = len(sft.streamlines)
+        tc_af = len(new_streamlines)
+        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
+                          'tract_count_after_filtering': int(tc_af)},
+                          indent=args.indent))
 
 if __name__ == "__main__":
     main()
