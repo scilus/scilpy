@@ -22,8 +22,8 @@ This script can be used to remove loops in two types of streamline datasets:
     this angle with the -a option. Warning: Don't use --qb option for a
     whole brain tractography.
 
-  - Bundle dataset: For this type, it is possible to remove loops and fibers
-    outsides of bundle. For the sharp angle turn, use --qb option.
+  - Bundle dataset: For this type, it is possible to remove loops and
+    streamlines outside of the bundle. For the sharp angle turn, use --qb option.
 
 ----------------------------------------------------------------------------
 Reference:
@@ -35,12 +35,12 @@ QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
-    p.add_argument('input',
+    p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
-    p.add_argument('output_clean',
+    p.add_argument('out_tractogram',
                    help='Output tractogram without loops.')
-    p.add_argument('--output_loops',
-                   help='If set, saves detected looping streamlines')
+    p.add_argument('--remaining_tractogram',
+                   help='If set, saves detected looping streamlines.')
     p.add_argument('--qb', action='store_true',
                    help='If set, uses QuickBundles to detect\n' +
                         'outliers (loops, sharp angle turns).\n' +
@@ -63,19 +63,21 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input])
-    assert_outputs_exist(parser, args, [args.output_clean],
-                         optional=[args.output_loops])
-    check_tracts_same_format(parser, [args.input, args.output_clean,
-                                      args.output_loops])
+    assert_inputs_exist(parser, args.in_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.remaining_tractogram)
+    check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
+                                      args.remaining_tractogram])
 
     if args.threshold <= 0:
-        parser.error('"{0}"'.format(args.threshold) + 'must be greater than 0')
+        parser.error('Threshold "{}" '.format(args.threshold) +
+                     'must be greater than 0')
 
     if args.angle <= 0:
-        parser.error('"{0}"'.format(args.angle) + 'must be greater than 0')
+        parser.error('Angle "{}" '.format(args.angle) +
+                     'must be greater than 0')
 
-    tractogram = nib.streamlines.load(args.input)
+    tractogram = nib.streamlines.load(args.in_tractogram)
     streamlines = tractogram.streamlines
 
     streamlines_c = []
@@ -86,23 +88,24 @@ def main():
                                                             args.qb,
                                                             args.threshold)
     else:
-        parser.error('Zero or one streamline in ' + '{0}'.format(args.input) +
+        parser.error('Zero or one streamline in {}'.format(args.in_tractogram) +
                      '. The file must have more than one streamline.')
 
     if len(streamlines_c) > 0:
         tractogram_c = nib.streamlines.Tractogram(streamlines_c,
                                                   affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(tractogram_c, args.output_clean,
+        nib.streamlines.save(tractogram_c, args.out_tractogram,
                              header=tractogram.header)
     else:
-        logging.warning("No clean streamlines in {0}".format(args.input))
+        logging.warning(
+            'No clean streamlines in {}'.format(args.in_tractogram))
 
     if len(loops) == 0:
-        logging.warning("No loops in {0}".format(args.input))
-    elif args.output_loops:
+        logging.warning('No loops in {}'.format(args.in_tractogram))
+    elif args.remaining_tractogram:
         tractogram_l = nib.streamlines.Tractogram(loops,
                                                   affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(tractogram_l, args.output_loops,
+        nib.streamlines.save(tractogram_l, args.remaining_tractogram,
                              header=tractogram.header)
 
 

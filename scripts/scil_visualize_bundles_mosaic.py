@@ -9,6 +9,7 @@ The script will output a mosaic (image) with screenshots,
 
 from __future__ import division, print_function
 import argparse
+import logging
 import os
 import shutil
 
@@ -56,8 +57,23 @@ def get_font(args):
         try:
             font = ImageFont.truetype(args.ttf, args.ttf_size)
         except Exception:
-            print('Font {} was not found. '
-                  'Default font will be used.'.format(args.ttf))
+            logging.error('Font {} was not found. '
+                          'Default font will be used.'.format(args.ttf))
+            font = ImageFont.load_default()
+    elif args.ttf_size is not None:
+        # default font is not a truetype font, so size can't be changed.
+        # to allow users to change the size without having to know where fonts
+        # are in their computer, we could try to find a truetype font
+        # ourselves. They are often present in /usr/share/fonts/
+        font_path = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
+        try:
+            font = ImageFont.truetype(font_path, args.ttf_size)
+        except Exception:
+            logging.error('You did not specify a font. It is difficult'
+                          'for us to adjust size. We tried on font {} '
+                          'but it was not found.'
+                          'Default font will be used, for which font '
+                          'cannot be changed.'.format(font_path))
             font = ImageFont.load_default()
     else:
         font = ImageFont.load_default()

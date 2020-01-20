@@ -19,10 +19,12 @@ from dipy.tracking.streamline import transform_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
-                             load_tractogram_with_reference)
+                             assert_outputs_exist)
 
 
 def _build_args_parser():
@@ -43,8 +45,6 @@ def _build_args_parser():
                    'the input tractogram')
     p.add_argument('output_name',
                    help='Output tractogram filename.')
-
-    add_reference(p)
 
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
@@ -72,8 +72,8 @@ def _build_args_parser():
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
-
     add_overwrite_arg(p)
 
     return p

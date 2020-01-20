@@ -52,16 +52,17 @@ def main():
     check_tracts_same_format(parser, args.in_tractogram, args.out_tractogram)
 
     if args.error_rate < 0.001 or args.error_rate > 1:
-        logging.warn(
+        logging.warning(
             'You are using an error rate of {}.\n'
             'We recommend setting it between 0.001 and 1.\n'
             '0.001 will do almost nothing to the streamlines\n'
-            'while 1 will higly compress/linearize the streamlines'
+            'while 1 will highly compress/linearize the streamlines'
             .format(args.error_rate))
 
     in_tractogram = nib.streamlines.load(args.in_tractogram, lazy_load=True)
     compressed_streamlines = compress_streamlines_wrapper(in_tractogram,
                                                           args.error_rate)
+
     out_tractogram = LazyTractogram(compressed_streamlines,
                                     affine_to_rasmm=np.eye(4))
     nib.streamlines.save(out_tractogram, args.out_tractogram,
