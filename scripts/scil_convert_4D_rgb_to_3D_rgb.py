@@ -11,11 +11,11 @@ the former, while Trackvis uses the latter.
 
 import argparse
 
-from dipy.io.utils import decfa
+from dipy.io.utils import decfa, decfa_to_float
 import nibabel as nb
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exists)
+                             assert_outputs_exist)
 
 
 def build_args_parser():
@@ -41,16 +41,30 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_image])
-    assert_outputs_exists(parser, args, [args.out_image])
+    assert_outputs_exist(parser, args, [args.out_image])
 
     original_im = nb.load(args.in_image)
 
-    if len(original_im.get_shape()) < 4:
-        parser.error("Input image is not in 4D RGB format. Stopping.")
+    if len(original_im.get_shape()) == 4:
+        if "float" in original_im.header.get_data_shape():
+            scale = True
+        else:
+            scale = False
 
-    converted_im = decfa(original_im)
+        converted_im = decfa(original_im, scale=scale)
 
-    nb.save(converted_im, args.out_image)
+        nb.save(converted_im, args.out_image)
+
+    elif len(original_im.get_shape()) == 3:
+        converted_im_float = decfa_to_float(original_im)
+
+        converted_data = converted_im_float.get_fdata()
+        converted_data_int = converted_data.astype("uint8")
+
+        converted_im = nb.Nifti1Image(converted_data_int,
+                                      converted_im_float.affine)
+
+        nb.save(converted_im, args.out_image)
 
 
 if __name__ == "__main__":
