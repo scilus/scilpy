@@ -4,11 +4,13 @@
 import argparse
 import os
 
-import nibabel as nib
+from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_reference_arg,)
 
 DESCRIPTION = """
     Split a tractogram into multiple files, 2 options available :
@@ -33,7 +35,9 @@ def _build_args_parser():
     group.add_argument('--nb_chunk', type=int,
                        help='Divide the file in equal parts')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 
@@ -41,21 +45,15 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input_tractogram])
-    _, in_extension = os.path.splitext(args.input_tractogram)
+    assert_inputs_exist(parser, args.input_tractogram)
     out_basename, out_extension = os.path.splitext(args.output_name)
 
     # Check only the first potential output filename
     assert_outputs_exist(parser, args, [out_basename + '_0' + out_extension])
-    if not in_extension == out_extension:
-        parser.error('The input and output files must have the same extension')
 
-    input_tractogram = nib.streamlines.load(args.input_tractogram,
-                                            lazy_load=True)
-    if in_extension == '.trk':
-        streamlines_count = input_tractogram.header['nb_streamlines']
-    elif in_extension == '.tck':
-        streamlines_count = int(input_tractogram.header['count'])
+    sft = load_tractogram_with_reference(parser, args, args.input_tractogram)
+
+    streamlines_count = len(sft.streamlines)
 
     if args.nb_chunk:
         chunk_size = int(streamlines_count/args.nb_chunk)
@@ -66,28 +64,15 @@ def main():
 
     # All chunks will be equal except the last one
     chunk_size_array = np.ones((nb_chunk,), dtype=np.int16) * chunk_size
-    chunk_size_array[-1] += (streamlines_count - chunk_size*nb_chunk)
-    iterator = iter(input_tractogram.streamlines)
+    chunk_size_array[-1] += (streamlines_count - chunk_size * nb_chunk)
+    k = 0
     for i in range(nb_chunk):
-        streamlines = read_next(iterator, chunk_size_array[i])
-        new_tractogram = nib.streamlines.Tractogram(streamlines,
-                                                    affine_to_rasmm=np.eye(4))
+        streamlines = sft.streamlines[k:(k + chunk_size_array[i])]
+        k += chunk_size_array[i]
+        new_sft = StatefulTractogram.from_sft(streamlines, sft)
 
         out_name = '{0}_{1}{2}'.format(out_basename, i, out_extension)
-        nib.streamlines.save(new_tractogram, out_name,
-                             header=input_tractogram.header)
-
-
-def read_next(iterator, n):
-    """Reads and returns 'n' next streamlines (or less if not enough left
-    to read) from the current iterator's position."""
-    streamlines = []
-    for _ in range(n):
-        try:
-            streamlines.append(next(iterator))
-        except StopIteration:
-            break
-    return streamlines
+        save_tractogram(new_sft, out_name)
 
 
 if __name__ == "__main__":
