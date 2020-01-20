@@ -5,7 +5,7 @@ import argparse
 
 from dipy.io.streamline import save_tractogram
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              load_tractogram_with_reference)
 
@@ -38,15 +38,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-<<<<<<< HEAD
-    assert_inputs_exist(parser, [args.in_tractogram], [args.reference])
-
-    in_extension = os.path.splitext(args.in_tractogram)[1]
-    out_extension = os.path.splitext(args.output_name)[1]
-
-=======
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
->>>>>>> 4754d39baac853c2293d932ded654c1d8c589732
     assert_outputs_exist(parser, args, args.output_name)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
