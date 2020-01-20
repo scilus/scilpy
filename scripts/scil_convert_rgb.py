@@ -3,7 +3,7 @@
 
 """
 Converts a RGB image encoded as a 4D image to a RGB image encoded as
-a 3D image.
+a 3D image, or vice versa.
 
 Typically, most software tools used in the SCIL (including MI-Brain) use
 the former, while Trackvis uses the latter.
@@ -24,13 +24,17 @@ def build_args_parser():
         description=__doc__)
 
     p.add_argument('in_image',
-                   help='name of input 4D RGB image.\n' +
+                   help='name of input RGB image.\n' +
                         'This is a 4D image where the 4th dimension contains '
-                        '3 values.')
+                        '3 values or a 3D image, in Trackvis format '
+                        'where each voxel contains a tuple of 3 elements, '
+                        'one for each value.')
     p.add_argument('out_image',
-                   help='name of output 3D RGB image, in Trackvis format.\n'
-                        'This is a 3D image where each voxel contains a ' +
-                        'tuple of 3 elements, one for each value.')
+                   help='name of output RGB image.\n' +
+                        'This is a 3D image, in Trackvis format where each '
+                        'voxel contains a tuple of 3 elements, one for each '
+                        'value, or a 4D image where the 4th dimension contains '
+                        '3 values.')
     add_overwrite_arg(p)
 
     return p
