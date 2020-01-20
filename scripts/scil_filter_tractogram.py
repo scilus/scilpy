@@ -75,9 +75,8 @@ def _buildArgsParser():
     g1.add_argument('--json', action='store_true',
                     help='Print streamline count before and after filtering')
     g1.add_argument('--indent',
-                        type=int, default=2,
-                        help='Indent for json pretty print.')
-
+                    type=int, default=2,
+                    help='Indent for json pretty print.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -240,7 +239,7 @@ def main():
         data_per_streamline = sft.data_per_streamline[indexes]
         data_per_point = sft.data_per_point[indexes]
 
-        #TractCount before filtering
+        # TractCount before filtering
         tc_bf = len(sft.streamlines)
 
         sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
@@ -260,11 +259,12 @@ def main():
     save_tractogram(sft, args.out_tractogram)
 
     if args.json:
-        #TractCount after filtering
+        # TractCount after filtering
         tc_af = len(sft.streamlines)
         print(json.dumps({'tract_count_before_filtering': int(tc_bf),
                           'tract_count_after_filtering': int(tc_af)},
-                          indent=args.indent))
+                         indent=args.indent))
+
 
 if __name__ == "__main__":
     main()

@@ -36,8 +36,8 @@ def _build_args_parser():
     g1.add_argument('--json', action='store_true',
                     help='Print streamline count before and after filtering')
     g1.add_argument('--indent',
-                        type=int, default=2,
-                        help='Indent for json pretty print.')
+                    type=int, default=2,
+                    help='Indent for json pretty print.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -84,8 +84,9 @@ def main():
         tc_bf = len(sft.streamlines)
         tc_af = len(new_streamlines)
         print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
-                          indent=args.indent))
+                         'tract_count_after_filtering': int(tc_af)},
+                         indent=args.indent))
+
 
 if __name__ == "__main__":
     main()
