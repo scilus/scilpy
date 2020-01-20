@@ -231,9 +231,9 @@ def main():
         data_per_streamline = sft.data_per_streamline[indexes]
         data_per_point = sft.data_per_point[indexes]
 
-        sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-                                 data_per_streamline=data_per_streamline,
-                                 data_per_point=data_per_point)
+        sft = StatefulTractogram.from_sft(filtered_streamlines, sft,
+                                          data_per_streamline=data_per_streamline,
+                                          data_per_point=data_per_point)
 
     if not filtered_streamlines:
         if args.no_empty:
