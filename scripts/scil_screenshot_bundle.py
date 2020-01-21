@@ -33,9 +33,9 @@ def _build_args_parser():
         description=DESCRIPTION,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
-                   help='Path of the input bundle')
+                   help='Path of the input bundle.')
     p.add_argument('in_anat',
-                   help='Path of the reference file (.nii or nii.gz)')
+                   help='Path of the reference file (.nii or nii.gz).')
     p.add_argument('target_template',
                    help='Path to the target MNI152template for registration. \n'
                         'If in_anat has a skull, select a MNI152 template \n'
@@ -43,24 +43,24 @@ def _build_args_parser():
 
     sub_color = p.add_mutually_exclusive_group()
     sub_color.add_argument('--local_coloring', action='store_true',
-                           help='Color streamlines local segments orientation')
+                           help='Color streamlines local segments orientation.')
     sub_color.add_argument('--uniform_coloring', nargs=3, metavar=('R', 'G', 'B'),
                            type=int,
-                           help='Color streamlines with uniform coloring')
+                           help='Color streamlines with uniform coloring.')
     sub_color.add_argument('--reference_coloring',
                            metavar='COLORBAR',
-                           help='Color streamlines with reference coloring (0-255)')
+                           help='Color streamlines with reference coloring (0-255).')
 
     p.add_argument('--right', action='store_true',
                    help='Take screenshot from the right instead of the left \n'
-                        'for the sagittal plane')
+                        'for the sagittal plane.')
     p.add_argument('--anat_opacity', type=float, default=0.3,
-                   help='Set the opacity for the anatomy, use 0 for complete '
-                   'transparency, 1 for opaque')
+                   help='Set the opacity for the anatomy, use 0 for complete \n'
+                   'transparency, 1 for opaque.')
     p.add_argument('--output_suffix',
-                   help='Add a suffix to the output, else the axis name is used')
+                   help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--output_dir', default='',
-                   help='Put all images in a specific directory')
+                   help='Put all images in a specific directory.')
     add_overwrite_arg(p)
 
     return p
