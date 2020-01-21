@@ -22,6 +22,16 @@ def check_tracts_same_format(parser, filename_list):
             parser.error('All tracts file must use the same format.')
 
 
+def add_json_arg(parser):
+    g1 = parser.add_argument_group(title='Json options')
+    g1.add_argument('--indent',
+                    type=int, default=2,
+                    help='Indent for json pretty print.')
+    g1.add_argument('--sort_keys',
+                    action='store_true',
+                    help='Sort keys in output json.')
+
+
 def add_reference_arg(parser, arg_name=None):
     if arg_name:
         parser.add_argument('--'+arg_name+'_ref',

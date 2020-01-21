@@ -7,7 +7,9 @@ from dipy.tracking.streamlinespeed import length
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import assert_inputs_exist, add_reference_arg
+from scilpy.io.utils import (add_json_arg,
+                             add_reference_arg,
+                             assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -20,15 +22,8 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
 
     add_reference_arg(p)
+    add_json_arg(p)
 
-    g1 = p.add_argument_group(title='Json options')
-
-    g1.add_argument('--indent',
-                    type=int, default=2,
-                    help='Indent for json pretty print.')
-    g1.add_argument('--sort_keys',
-                    action='store_true',
-                    help='Sort keys in output json.')
     return p
 
 

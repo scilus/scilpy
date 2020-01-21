@@ -13,7 +13,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_arg,
+                             add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -71,16 +72,14 @@ def _buildArgsParser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
 
-    g1 = p.add_argument_group(title='Json options')
-    g1.add_argument('--json', action='store_true',
-                    help='Print streamline count before and after filtering')
-    g1.add_argument('--indent',
-                    type=int, default=2,
-                    help='Indent for json pretty print.')
-
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_json_arg(p)
+    p._action_groups[-1].add_argument('--json',
+                                      action='store_true',
+                                      help='Print streamline count before '
+                                           'and after filtering')
 
     return p
 
@@ -258,9 +257,9 @@ def main():
 
     save_tractogram(sft, args.out_tractogram)
 
+    # TractCount after filtering
+    tc_af = len(sft.streamlines)
     if args.json:
-        # TractCount after filtering
-        tc_af = len(sft.streamlines)
         print(json.dumps({'tract_count_before_filtering': int(tc_bf),
                           'tract_count_after_filtering': int(tc_af)},
                          indent=args.indent))
