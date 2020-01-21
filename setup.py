@@ -1,6 +1,7 @@
 import os
 
-from setuptools import setup, find_packages, Command
+from setuptools import setup, find_packages
+from setuptools.command.build_ext import build_ext
 from setuptools.extension import Extension
 PACKAGES = find_packages()
 
@@ -9,7 +10,6 @@ ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
 
-from setuptools.command.build_ext import build_ext
 
 class build_inplace_all_ext(build_ext):
 
@@ -25,7 +25,6 @@ class build_inplace_all_ext(build_ext):
         self.include_dirs.append(numpy.get_include())
 
 
-from os.path import join as pjoin, dirname, exists
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
@@ -52,7 +51,6 @@ opts = dict(name=NAME,
                 Extension('scilpy.tractanalysis.streamlines_metrics',
                           ['scilpy/tractanalysis/streamlines_metrics.pyx'])],
             cmdclass={'build_ext': build_inplace_all_ext})
-
 
 
 if __name__ == '__main__':
