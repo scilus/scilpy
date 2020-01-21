@@ -10,7 +10,7 @@ import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_json_arg,
+from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -32,15 +32,13 @@ def _build_args_parser():
                    help='Maximum length of streamlines. [%(default)s]')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
+    p.add_argument('--display_counts', action='store_true',
+                   help='Print streamline count before and after filtering')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
-    add_json_arg(p)
-    p._action_groups[-1].add_argument('--json',
-                                      action='store_true',
-                                      help='Print streamline count before '
-                                           'and after filtering')
+    add_json_args(p)
 
     return p
 
@@ -79,11 +77,12 @@ def main():
 
     save_tractogram(new_sft, args.out_tractogram)
 
-    tc_bf = len(sft.streamlines)
-    tc_af = len(new_streamlines)
-    print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                      'tract_count_after_filtering': int(tc_af)},
-                     indent=args.indent))
+    if args.display_counts:
+        tc_bf = len(sft.streamlines)
+        tc_af = len(new_streamlines)
+        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
+                          'tract_count_after_filtering': int(tc_af)},
+                         indent=args.indent))
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from dipy.tracking.streamlinespeed import length
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_json_arg,
+from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
 
@@ -22,7 +22,7 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
 
     add_reference_arg(p)
-    add_json_arg(p)
+    add_json_args(p)
 
     return p
 

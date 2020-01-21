@@ -8,7 +8,7 @@ import os
 
 import nibabel as nib
 
-from scilpy.io.utils import add_json_arg, assert_inputs_exist
+from scilpy.io.utils import add_json_args, assert_inputs_exist
 
 
 def _build_arg_parser():
@@ -19,7 +19,7 @@ def _build_arg_parser():
                         metavar='TRACTOGRAM',
                         help='path of the tracts file, in a format supported' +
                         ' by nibabel')
-    add_json_arg(parser)
+    add_json_args(parser)
     return parser
 
 
