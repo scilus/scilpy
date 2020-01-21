@@ -43,22 +43,22 @@ def _build_args_parser():
         description=DESCRIPTION,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
-                   help='Path of the input bundles')
+                   help='Path of the input bundles.')
     p.add_argument('out_json',
-                   help='Path of the output json file')
+                   help='Path of the output json file.')
 
     p.add_argument('--streamline_dice', action='store_true',
                    help='Streamlines-wise Dice coefficient will be computed \n'
                         'Tractograms must be identical [%(default)s].')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
-                        '[%(default)s]')
+                        '[%(default)s].')
     p.add_argument('--single_compare',
-                   help='Compare inputs to this single file')
+                   help='Compare inputs to this single file.')
     p.add_argument('--processes', type=int,
-                   help='Number of processes to use [ALL]')
+                   help='Number of processes to use [ALL].')
     p.add_argument('--keep_tmp', action='store_true',
-                   help='Will not delete the tmp folder at the end')
+                   help='Will not delete the tmp folder at the end.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
