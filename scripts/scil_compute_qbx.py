@@ -31,13 +31,13 @@ def _build_args_parser():
                    'Path of the input tractogram or bundle.')
     p.add_argument('dist_thresh', type=float,
                    help='Last QuickBundlesX threshold in mm. Typically \n'
-                   'the value are between 10-20mm')
+                   'the value are between 10-20mm.')
     p.add_argument('output_clusters_dir',
-                   help='Path to the clusters directory')
+                   help='Path to the clusters directory.')
 
     p.add_argument('--nb_points', type=int, default='20',
                    help='Streamlines will be resampled to have this '
-                        'number of points. [%(default)s]')
+                        'number of points [%(default)s].')
     p.add_argument('--output_centroids',
                    help='Output tractogram filename.\n'
                    'Format must be readable by the Nibabel API.')
