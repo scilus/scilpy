@@ -10,18 +10,15 @@ The library's structure is mostly aligned on that of [DIPY].
 
 ### Dependencies and installation
 
-We highly recommend working in a [Python Virtual Environment]. Dependencies can be installed by running
+We highly recommend working in a [Python Virtual Environment]. **Scilpy** can be installed by running
 ```
-pip install -r requirements.txt
+# If Scilpy already cloned
+pip install .
+
+# Or without cloning Scilpy
+pip install git+https://github.com/scilus/scilpy.git
 ```
 
-Following this, the library and scripts can be installed locally by using
-
-```
-python setup.py build_ext --inplace
-python setup.py install
-python setup.py install_scripts
-```
 Note that using this technique will make it harder to remove the scripts when changing versions.
 
 [SCIL]:http://scil.dinf.usherbrooke.ca/
