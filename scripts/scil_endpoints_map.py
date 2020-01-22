@@ -9,7 +9,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -34,12 +35,11 @@ def _build_arg_parser():
                    help='Output endpoints map head filename.')
     p.add_argument('endpoints_map_tail',
                    help='Output endpoints map tail filename.')
-    p.add_argument('--indent', type=int, default=2,
-                   help='Indent for json pretty print.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head<->tail convention. '
                         'Can be useful when the reference is not in RAS.')
 
+    add_json_args(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 
