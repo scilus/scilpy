@@ -23,17 +23,18 @@ def _build_args_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=DESCRIPTION)
 
-    p.add_argument('input_tractogram',
-                   help='Input filename to split (trk or tck)')
-    p.add_argument('output_name',
-                   help='Output filename, index will be appended automatically')
+    p.add_argument('in_tractogram',
+                   help='Tractogram input file name.')
+    p.add_argument('out_tractogram',
+                   help='Output filename, with extension needed,'
+                   'index will be appended automatically.')
 
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--chunk_size', type=int,
-                       help='The maximum number of streamlines per file')
+                       help='The maximum number of streamlines per file.')
 
     group.add_argument('--nb_chunk', type=int,
-                       help='Divide the file in equal parts')
+                       help='Divide the file in equal parts.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -51,7 +52,7 @@ def main():
     # Check only the first potential output filename
     assert_outputs_exist(parser, args, [out_basename + '_0' + out_extension])
 
-    sft = load_tractogram_with_reference(parser, args, args.input_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     streamlines_count = len(sft.streamlines)
 
@@ -63,12 +64,12 @@ def main():
         nb_chunk = int(streamlines_count/chunk_size)+1
 
     # All chunks will be equal except the last one
-    chunk_size_array = np.ones((nb_chunk,), dtype=np.int16) * chunk_size
-    chunk_size_array[-1] += (streamlines_count - chunk_size * nb_chunk)
-    k = 0
+    chunk_sizes = np.ones((nb_chunk,), dtype=np.int16) * chunk_size
+    chunk_sizes[-1] += (streamlines_count - chunk_size * nb_chunk)
+    curr_count = 0
     for i in range(nb_chunk):
-        streamlines = sft.streamlines[k:(k + chunk_size_array[i])]
-        k += chunk_size_array[i]
+        streamlines = sft.streamlines[curr_count:curr_count + chunk_sizes[i]]
+        curr_count += chunk_sizes[i]
         new_sft = StatefulTractogram.from_sft(streamlines, sft)
 
         out_name = '{0}_{1}{2}'.format(out_basename, i, out_extension)
