@@ -3,7 +3,6 @@
 
 import argparse
 
-import numpy as np
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import QuickBundles
@@ -15,6 +14,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_reference_arg)
+import numpy as np
 
 
 def _build_arg_parser():
