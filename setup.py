@@ -39,7 +39,7 @@ extensions = [Extension('scilpy.tractanalysis.uncompress',
                         include_dirs=[numpy.get_include()]),
               Extension('scilpy.tractanalysis.compute_tract_counts_map',
                         ['scilpy/tractanalysis/compute_tract_counts_map.pyx'],
-                        include_dirs=[numpy.get_include()]),]
+                        include_dirs=[numpy.get_include()])]
 
 opts['ext_modules'] = cythonize(extensions)
 
