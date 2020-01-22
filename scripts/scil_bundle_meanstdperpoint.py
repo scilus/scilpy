@@ -12,7 +12,7 @@ import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import assert_inputs_exist, add_reference
+from scilpy.io.utils import add_json_args, assert_inputs_exist, add_reference
 from scilpy.tractanalysis import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -42,10 +42,8 @@ def _build_arg_parser():
     p.add_argument('--distance_weighting', action='store_true',
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
-    p.add_argument('--indent', type=int, default=2,
-                   help='Indent for json pretty print. [%(default)s]')
-    p.add_argument('--sort_keys', action='store_true',
-                   help='Sort keys in output json.')
+
+    add_json_args(p)
     return p
 
 

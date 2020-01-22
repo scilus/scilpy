@@ -11,7 +11,9 @@ import nibabel as nib
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import assert_inputs_exist, add_reference
+from scilpy.io.utils import (add_json_args,
+                             add_reference_arg,
+                             assert_inputs_exist)
 from scilpy.utils.metrics_tools import get_metrics_stats_over_streamlines
 
 
@@ -23,19 +25,16 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
 
-    add_reference(p)
+    add_reference_arg(p)
 
     p.add_argument('metrics', nargs='+',
-                   help='Nifti metric(s) to compute statistics on')
+                   help='Nifti metric(s) to compute statistics on.')
     p.add_argument('--density_weighting',
                    action='store_true',
                    help='If set, weight statistics by the number of '
                         'fibers passing through each voxel.')
-    p.add_argument('--indent',
-                   type=int, default=2,
-                   help='Indent for json pretty print.')
-    p.add_argument('--sort_keys', action='store_true',
-                   help='Sort keys in output json.')
+
+    add_json_args(p)
 
     return p
 

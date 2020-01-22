@@ -8,7 +8,9 @@ import json
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
+                             assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -20,12 +22,8 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('bundle_name',
                    help='Bundle name.')
-    p.add_argument('--indent',
-                   type=int, default=2,
-                   help='Indent for json pretty print. [%(default)s]')
-    p.add_argument('--sort_keys',
-                   action='store_true',
-                   help='Sort keys in output json.')
+
+    add_json_args(p)
 
     add_overwrite_arg(p)
 

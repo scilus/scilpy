@@ -10,7 +10,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import assert_inputs_exist, add_reference
+from scilpy.io.utils import (add_json_args,
+                             add_reference_arg,
+                             assert_inputs_exist)
 from scilpy.tractanalysis import compute_tract_counts_map
 
 
@@ -22,14 +24,8 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
 
-    add_reference(p)
-
-    p.add_argument('--indent',
-                   type=int, default=2,
-                   help='Indent for json pretty print. [%(default)s]')
-    p.add_argument('--sort_keys',
-                   action='store_true',
-                   help='Sort keys in output json.')
+    add_reference_arg(p)
+    add_json_args(p)
 
     return p
 
