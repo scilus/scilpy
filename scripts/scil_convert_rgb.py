@@ -53,7 +53,7 @@ def main():
 
     original_im = nib.load(args.in_image)
 
-    if len(original_im.get_shape()) == 4:
+    if original_im.ndim == 4:
         if "float" in original_im.header.get_data_shape():
             scale = True
         else:
@@ -63,7 +63,7 @@ def main():
 
         nib.save(converted_im, args.out_image)
 
-    elif len(original_im.get_shape()) == 3:
+    elif original_im.ndim == 3:
         converted_im_float = decfa_to_float(original_im)
 
         converted_data = converted_im_float.get_fdata()
