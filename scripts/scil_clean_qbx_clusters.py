@@ -52,14 +52,14 @@ def _build_args_parser():
 
     p.add_argument('--min_cluster_size', type=int, default=1,
                    help='Minimum cluster size for consideration [%(default)s].'
-                   'Must be at least 1.')
+                        'Must be at least 1.')
     p.add_argument('--background_opacity', type=float, default=0.1,
                    help='Opacity of the background streamlines.'
-                   'Keep low between 0 and 0.5 [%(default)s].')
+                        'Keep low between 0 and 0.5 [%(default)s].')
     p.add_argument('--background_linewidth', type=float, default=1,
-                   help='linewidth of the background streamlines [%(default)s].')
+                   help='Linewidth of the background streamlines [%(default)s].')
     p.add_argument('--clusters_linewidth', type=float, default=1,
-                   help='linewidth of the background streamlines [%(default)s].')
+                   help='Linewidth of the current cluster [%(default)s].')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -75,8 +75,7 @@ def get_length_tuple(elem):
 def main():
     # Callback required for FURY
     def keypress_callback(obj, _):
-        key = obj.GetKeySym()
-        key = key.lower()
+        key = obj.GetKeySym().lower()
         nonlocal clusters_linewidth, background_linewidth
         nonlocal curr_streamlines_actor, concat_streamlines_actor, show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
@@ -128,7 +127,6 @@ def main():
                 logging.info('Rewind on step.')
 
                 iterator -= 1
-                renderer.rm(curr_streamlines_actor)
             else:
                 logging.warning('Cannot rewind, first element.')
 

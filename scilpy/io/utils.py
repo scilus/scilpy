@@ -167,7 +167,7 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
             if not create_dir:
                 parser.error('Output directory {} doesn\'t exist.'.format(path))
             else:
-                os.mkdir(path)
+                os.makedirs(path, exist_ok=True)
         if os.listdir(path):
             if not args.overwrite:
                 parser.error(
