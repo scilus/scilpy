@@ -7,12 +7,22 @@ a 3D image, or vice versa.
 
 Typically, most software tools used in the SCIL (including MI-Brain) use
 the former, while Trackvis uses the latter.
+
+Input
+-Case 1: 4D image where the 4th dimension contains 3 values.
+-Case 2: 3D image, in Trackvis format where each voxel contains a
+         tuple of 3 elements, one for each value.
+
+Output
+-Case 1: 3D image, in Trackvis format where each voxel contains a
+         tuple of 3 elements, one for each value (uint8).
+-Case 2: 4D image where the 4th dimension contains 3 values (uint8).
 """
 
 import argparse
 
 from dipy.io.utils import decfa, decfa_to_float
-import nibabel as nb
+import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -25,16 +35,10 @@ def build_args_parser():
 
     p.add_argument('in_image',
                    help='name of input RGB image.\n' +
-                        'This is a 4D image where the 4th dimension contains '
-                        '3 values or a 3D image, in Trackvis format '
-                        'where each voxel contains a tuple of 3 elements, '
-                        'one for each value.')
+                        'Either 4D or 3D image.')
     p.add_argument('out_image',
                    help='name of output RGB image.\n' +
-                        'This is a 3D image, in Trackvis format where each '
-                        'voxel contains a tuple of 3 elements, one for each '
-                        'value, or a 4D image where the 4th dimension contains '
-                        '3 values.')
+                        'Either 3D or 4D image.')
     add_overwrite_arg(p)
 
     return p
@@ -47,7 +51,7 @@ def main():
     assert_inputs_exist(parser, [args.in_image])
     assert_outputs_exist(parser, args, [args.out_image])
 
-    original_im = nb.load(args.in_image)
+    original_im = nib.load(args.in_image)
 
     if len(original_im.get_shape()) == 4:
         if "float" in original_im.header.get_data_shape():
@@ -57,7 +61,7 @@ def main():
 
         converted_im = decfa(original_im, scale=scale)
 
-        nb.save(converted_im, args.out_image)
+        nib.save(converted_im, args.out_image)
 
     elif len(original_im.get_shape()) == 3:
         converted_im_float = decfa_to_float(original_im)
@@ -65,10 +69,10 @@ def main():
         converted_data = converted_im_float.get_fdata()
         converted_data_int = converted_data.astype("uint8")
 
-        converted_im = nb.Nifti1Image(converted_data_int,
-                                      converted_im_float.affine)
+        converted_im = nib.Nifti1Image(converted_data_int,
+                                       converted_im_float.affine)
 
-        nb.save(converted_im, args.out_image)
+        nib.save(converted_im, args.out_image)
 
 
 if __name__ == "__main__":
