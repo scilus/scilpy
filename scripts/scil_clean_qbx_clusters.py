@@ -68,10 +68,6 @@ def _build_args_parser():
     return p
 
 
-def get_length_tuple(elem):
-    return len(elem[0])
-
-
 def main():
     # Callback required for FURY
     def keypress_callback(obj, _):
@@ -189,11 +185,14 @@ def main():
             sft_rejected_on_size.append(sft)
             filename_rejected_on_size.append(basename)
 
+    if not filename_accepted_on_size:
+        parser.error('No cluster survived the cluster_size threshold.')
+
     logging.info('%s clusters to be classified.', len(sft_accepted_on_size))
     # The clusters are sorted by size for simplicity/efficiency
     tuple_accepted = zip(*sorted(zip(sft_accepted_on_size,
                                      filename_accepted_on_size),
-                                 key=get_length_tuple, reverse=True))
+                                 key=lambda x: len(x[0]), reverse=True))
     sft_accepted_on_size, filename_accepted_on_size = tuple_accepted
 
     # Initialize the actors, scene, window, observer
@@ -220,7 +219,6 @@ def main():
     show_manager.start()
 
     # Early exit means everything else is rejected
-    output_accepted_streamlines, output_rejected_streamlines = [], []
     missing = len(args.in_bundles) - len(choices) - len(sft_rejected_on_size)
     len_accepted = len(sft_accepted_on_size)
     rejected_streamlines.extend(range(len_accepted - missing,
@@ -230,53 +228,49 @@ def main():
                      missing)
 
     # Save accepted clusters (by GUI)
-    for idx in accepted_streamlines:
-        streamlines = sft_accepted_on_size[idx].streamlines
-        output_accepted_streamlines.extend(streamlines)
+    accepted_streamlines = save_clusters(sft_accepted_on_size,
+                                         accepted_streamlines,
+                                         args.out_accepted_dir,
+                                         filename_accepted_on_size)
 
-        if args.out_accepted_dir:
-            tmp_sft = StatefulTractogram(streamlines,
-                                         sft_accepted_on_size[0],
-                                         Space.RASMM)
-            tmp_filename = os.path.join(args.out_accepted_dir,
-                                        filename_accepted_on_size[idx])
-            save_tractogram(tmp_sft, tmp_filename, bbox_valid_check=False)
-
-    accepted_sft = StatefulTractogram(output_accepted_streamlines,
+    accepted_sft = StatefulTractogram(accepted_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
     save_tractogram(accepted_sft, args.out_accepted, bbox_valid_check=False)
 
     # Save rejected clusters (by GUI)
-    for idx in rejected_streamlines:
-        streamlines = sft_accepted_on_size[idx].streamlines
-        output_rejected_streamlines.extend(streamlines)
-
-        if args.out_rejected_dir:
-            tmp_sft = StatefulTractogram(streamlines,
-                                         sft_accepted_on_size[0],
-                                         Space.RASMM)
-            tmp_filename = os.path.join(args.out_rejected_dir,
-                                        filename_accepted_on_size[idx])
-            save_tractogram(tmp_sft, tmp_filename, bbox_valid_check=False)
+    rejected_streamlines = save_clusters(sft_accepted_on_size,
+                                         rejected_streamlines,
+                                         args.out_rejected_dir,
+                                         filename_accepted_on_size)
 
     # Save rejected clusters (by size)
-    for idx in range(len(sft_rejected_on_size)):
-        streamlines = sft_rejected_on_size[idx].streamlines
-        output_rejected_streamlines.extend(streamlines)
+    rejected_streamlines.extend(save_clusters(sft_rejected_on_size,
+                                              range(len(sft_rejected_on_size)),
+                                              args.out_rejected_dir,
+                                              filename_rejected_on_size))
 
-        if args.out_rejected_dir:
-            tmp_sft = StatefulTractogram(streamlines,
-                                         sft_accepted_on_size[0],
-                                         Space.RASMM)
-            tmp_filename = os.path.join(args.out_rejected_dir,
-                                        filename_rejected_on_size[idx])
-            save_tractogram(tmp_sft, tmp_filename, bbox_valid_check=False)
-
-    rejected_sft = StatefulTractogram(output_rejected_streamlines,
+    rejected_sft = StatefulTractogram(rejected_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
     save_tractogram(rejected_sft, args.out_rejected, bbox_valid_check=False)
+
+
+def save_clusters(cluster_lists, indexes_list, directory, basenames_list):
+    output_streamlines = []
+    for idx in indexes_list:
+        streamlines = cluster_lists[idx].streamlines
+        output_streamlines.extend(streamlines)
+
+        if directory:
+            tmp_sft = StatefulTractogram(streamlines,
+                                         cluster_lists[0],
+                                         Space.RASMM)
+            tmp_filename = os.path.join(directory,
+                                        basenames_list[idx])
+            save_tractogram(tmp_sft, tmp_filename, bbox_valid_check=False)
+
+    return output_streamlines
 
 
 if __name__ == "__main__":
