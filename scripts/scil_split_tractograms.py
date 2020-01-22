@@ -46,8 +46,8 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input_tractogram)
-    out_basename, out_extension = os.path.splitext(args.output_name)
+    assert_inputs_exist(parser, args.in_tractogram)
+    out_basename, out_extension = os.path.splitext(args.out_tractogram)
 
     # Check only the first potential output filename
     assert_outputs_exist(parser, args, [out_basename + '_0' + out_extension])
