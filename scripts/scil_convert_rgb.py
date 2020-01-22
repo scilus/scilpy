@@ -28,7 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
 
-def build_args_parser():
+def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -45,11 +45,11 @@ def build_args_parser():
 
 
 def main():
-    parser = build_args_parser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_image])
-    assert_outputs_exist(parser, args, [args.out_image])
+    assert_inputs_exist(parser, args.in_image)
+    assert_outputs_exist(parser, args, args.out_image)
 
     original_im = nib.load(args.in_image)
 
