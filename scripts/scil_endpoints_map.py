@@ -21,6 +21,9 @@ is simply a count of the number of streamlines that
 start or end in each voxel. The idea is to estimate the
 cortical areas affected by the bundle (assuming
 streamlines start/end in the cortex)
+
+Note: If the streamlines are not aligned in X, Y or Z directions
+the head/tail are random and not really two coherent groups.
 '''
 
 
