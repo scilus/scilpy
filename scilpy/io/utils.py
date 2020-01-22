@@ -16,9 +16,17 @@ from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 def link_bundles_and_reference(parser, args, input_tractogram_list):
     """
     Associate the bundle to their reference (if they require a reference)
-    :param parser: argparse.ArgumentParser object
-    :param args: argparse namespace
-    :param input_tractogram_list: list of tractogram pathpaths
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse
+    args: argparse namespace
+        Args as created by argparse
+    input_tractogram_list: list
+        List of tractogram paths.
+    Returns
+    -------
+    list: List of tuples, each matching one tractogram to a reference file.
     """
     bundles_references_tuple = []
     for bundle_filename in input_tractogram_list:

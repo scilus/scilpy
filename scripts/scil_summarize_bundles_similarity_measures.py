@@ -6,6 +6,7 @@ import copy
 import hashlib
 import itertools
 import json
+import logging
 import multiprocessing
 import os
 import shutil
@@ -78,7 +79,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     # that can be computed once is saved temporarily and simply loaded on demand
     if not os.path.isfile(filename):
         if init_only:
-            print('{0} does not exist'.format(filename))
+            logging.warning('%s does not exist', filename)
         return None
 
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
@@ -95,7 +96,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     streamlines = sft.get_streamlines_copy()
     if not streamlines:
         if init_only:
-            print('{0} is empty'.format(filename))
+            logging.warning('%s is empty', filename)
         return None
 
     if os.path.isfile(tmp_density_filename) \
@@ -302,8 +303,7 @@ def main():
     all_measures_dict = pool.map(compute_all_measures,
                                  zip(comb_dict_keys,
                                      itertools.repeat(args.streamline_dice),
-                                     itertools.repeat(
-                                         args.disable_streamline_distance)))
+                                     itertools.repeat(args.disable_streamline_distance)))
     pool.close()
     pool.join()
 
