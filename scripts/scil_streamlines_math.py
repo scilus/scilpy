@@ -75,11 +75,6 @@ def build_args_p():
                    help='The file where the remaining streamlines '
                    'are saved.')
 
-<<<<<<< HEAD
-    add_reference_arg(p)
-
-=======
->>>>>>> master
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
 
