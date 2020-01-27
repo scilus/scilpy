@@ -38,23 +38,22 @@ def _build_args_parser():
         help='path of the output tracts file, in a format supported by the '
              'TractConverter.')
 
-    p.add_argument('-x', action='store_true', dest='x',
-                   help='If supplied, flip the x axis.')
-    p.add_argument('-y', action='store_true', dest='y',
-                   help='If supplied, flip the y axis.')
-    p.add_argument('-z', action='store_true', dest='z',
-                   help='If supplied, flip the z axis.')
+    p.add_argument('axes', metavar='dimension',
+                   choices=['x', 'y', 'z'], nargs='+',
+                   help='The axes you want to flip. eg: to flip the x '
+                        'and y axes use: x y.')
+
     add_overwrite_arg(p)
     return p
 
 
-def get_axis_flip_vector(flip_x, flip_y, flip_z):
+def get_axis_flip_vector(flip_axes):
     flip_vector = np.ones(3)
-    if flip_x:
+    if 'x' in flip_axes:
         flip_vector[0] = -1.0
-    if flip_y:
+    if 'y' in flip_axes:
         flip_vector[1] = -1.0
-    if flip_z:
+    if 'z' in flip_axes:
         flip_vector[2] = -1.0
 
     return flip_vector
@@ -83,15 +82,14 @@ def get_shift_vector(ref_anat, tracts):
     return shift_vector
 
 
-def flip_streamlines(tract_filename, ref_anat, out_filename, flip_x, flip_y,
-                     flip_z):
+def flip_streamlines(tract_filename, ref_anat, out_filename, flip_axes):
     # Detect the format of the tracts file.
     tracts_format = tc.detect_format(tract_filename)
     tracts_file = tracts_format(tract_filename, anatFile=ref_anat)
 
     tracts = np.array([s for s in tracts_file])
 
-    flip_vector = get_axis_flip_vector(flip_x, flip_y, flip_z)
+    flip_vector = get_axis_flip_vector(flip_axes)
     shift_vector = get_shift_vector(ref_anat, tracts)
 
     flipped_tracts = []
@@ -123,11 +121,11 @@ def main():
     if not tc.is_supported(args.out):
         parser.error('Format of "{0}" not supported.'.format(args.out))
 
-    if not args.x and not args.y and not args.z:
+    if len(args.axes) < 1:
         parser.error('No flipping axis specified.')
 
     flip_streamlines(args.tracts, args.ref_anat, args.out,
-                     args.x, args.y, args.z)
+                     args.axes)
 
 
 if __name__ == "__main__":
