@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Flip tracts around specific axes, according to a flipping mode (or reference)
-specified with the FLIPPING_MODE argument.
+Flip tracts around specific axes.
 
 IMPORTANT: this script should only be used in case of absolute necessity. It's
 better to fix the real tools than to force flipping tracts to have them fit in
@@ -14,7 +13,6 @@ import argparse
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
