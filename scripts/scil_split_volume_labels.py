@@ -46,7 +46,7 @@ right-thalamus.nii.gz, ...). Only the labels included in the lookup table
 are extracted.
 
 New lookup tables can be added by adding new files to the
-scilpy/freesurfer_lut/ directory.
+scilpy/data/LUT/ directory.
 """
 
 
@@ -155,8 +155,8 @@ def main():
         os.mkdir(args.output_dir)
 
     # Extract the voxels that match the label and save them to a file.
-    i = 0
-    for label, name in zip(label_indices, label_names):
+    cnt_filename = 0
+    for label in label_indices:
         if int(label) is not 0:
             split_label = np.zeros(label_image.get_header().get_data_shape(),
                                    dtype=label_image.get_data_dtype())
@@ -164,9 +164,8 @@ def main():
 
             split_image = nib.Nifti1Image(split_label, label_image.get_affine(),
                                           label_image.get_header())
-            nib.save(split_image, output_filenames[i])
-            i += 1
-
+            nib.save(split_image, output_filenames[cnt_filename])
+            cnt_filename += 1
 
 
 if __name__ == "__main__":
