@@ -113,7 +113,7 @@ def main():
     parser = _build_args_parser(luts)
     args = parser.parse_args()
 
-    required = [args.label_image]
+    required = args.label_image
     assert_inputs_exist(parser, required)
 
     label_image = nib.load(args.label_image)
