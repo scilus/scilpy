@@ -77,24 +77,28 @@ def _build_args_parser(luts):
     p = argparse.ArgumentParser(
         description=DESCRIPTION,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('label_image', 
-        help='Path of the input label file, in a format supported by Nibabel.')
+    p.add_argument('label_image',
+                   help='Path of the input label file, '
+                        'in a format supported by Nibabel.')
     p.add_argument('--output_dir', default='',
-        help='Put all ouptput images in a specific directory.')
+                   help='Put all ouptput images in a specific directory.')
     p.add_argument('--output_prefix', default='',
-        help='Prefix to be used for each output image.')
+                   help='Prefix to be used for each output image.')
 
-    mode_subparsers = p.add_subparsers(dest='mode', help='Output naming schemes.')
+    mode_subparsers = p.add_subparsers(dest='mode',
+                                       help='Output naming schemes.')
 
     ids_subparser = mode_subparsers.add_parser(
         'ids', description=IDS_DESCRIPTION,
         help='Names files using their label id.')
     ids_subparser.add_argument('-r', '--range', type=parseNumList, nargs='*',
-        help='Specifies a subset of labels to split, formatted as 1-3 or 3 4.')
+                               help='Specifies a subset of labels to split, '
+                                    'formatted as 1-3 or 3 4.')
 
-    labels_subparser = mode_subparsers.add_parser('labels',
-        help='Names the files using a lookup table.')
-    labels_subparser.add_argument('lut', choices=luts,
+    labels_subparser = mode_subparsers.add_parser(
+        'labels', help='Names the files using a lookup table.')
+    labels_subparser.add_argument(
+        'lut', choices=luts,
         help='Lookup table, in the file ../data/LUT, '
              'used to name the output files.')
 
@@ -139,15 +143,16 @@ def main():
 
     output_filenames = []
     for label, name in zip(label_indices, label_names):
-        if int(label) is not 0:
+        if int(label) != 0:
             if args.output_prefix:
                 output_filenames.append(os.path.join(args.output_dir,
-                                                    '{0}_{1}.nii.gz'.format(
-                                                        args.output_prefix,
-                                                        name)))
+                                                     '{0}_{1}.nii.gz'.format(
+                                                         args.output_prefix,
+                                                         name)))
             else:
                 output_filenames.append(os.path.join(args.output_dir,
-                                                    '{0}.nii.gz'.format(name)))
+                                                     '{0}.nii.gz'.format(
+                                                        name)))
 
     assert_outputs_exist(parser, args, output_filenames)
 
@@ -157,12 +162,13 @@ def main():
     # Extract the voxels that match the label and save them to a file.
     cnt_filename = 0
     for label in label_indices:
-        if int(label) is not 0:
+        if int(label) != 0:
             split_label = np.zeros(label_image.get_header().get_data_shape(),
                                    dtype=label_image.get_data_dtype())
             split_label[np.where(label_image_data == int(label))] = label
 
-            split_image = nib.Nifti1Image(split_label, label_image.get_affine(),
+            split_image = nib.Nifti1Image(split_label,
+                                          label_image.get_affine(),
                                           label_image.get_header())
             nib.save(split_image, output_filenames[cnt_filename])
             cnt_filename += 1
