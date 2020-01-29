@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import numpy as np
 from dipy.core.gradients import gradient_table
