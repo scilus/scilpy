@@ -1,3 +1,6 @@
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import warnings
 import logging
 
@@ -57,9 +60,9 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
 
     Returns
     -------
-
-    Raises
-    ------
+    peaks_csd: PeaksAndMetrics
+        An object with ``gfa``, ``peak_directions``, ``peak_values``,
+        ``peak_indices``, ``odf``, ``shm_coeffs`` as attributes
     """
 
     # Checking data and sh_order
