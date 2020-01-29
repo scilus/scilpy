@@ -38,7 +38,7 @@ def main():
         }
     }
 
-    print(json.dumps(stats, args.indent))
+    print(json.dumps(stats, indent=args.indent))
 
 
 if __name__ == '__main__':
