@@ -121,7 +121,7 @@ def resample_streamlines(streamlines, num_points=0, step_size=0,
         List of resampled streamlines.
     """
     resampled_streamlines = []
-    if step_size>0 and num_points>0:
+    if step_size > 0 and num_points > 0:
         raise ValueError("Please choose only one method. num_points OR "
                          "step_size")
     elif num_points > 0:
