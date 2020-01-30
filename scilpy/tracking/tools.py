@@ -111,7 +111,7 @@ def resample_streamlines(streamlines, num_points=0, step_size=0,
         Number of points per streamline in the output.
     OR
     step_size: float
-        Step size that all streamlines should have.
+        Step size that all streamlines should have (in voxel space).
     arc_length: bool
         Whether to downsample using arc length parametrization.
 
