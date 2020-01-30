@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
-import numpy as np
+
 from dipy.core.gradients import gradient_table
 from dipy.reconst.csdeconv import auto_response
 from dipy.segment.mask import applymask
+import numpy as np
 
-from scilpy.utils.bvec_bval_tools import (is_normalized_bvecs, normalize_bvecs,
-                                          check_b0_threshold)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+                                          is_normalized_bvecs, normalize_bvecs)
 
 
 def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
