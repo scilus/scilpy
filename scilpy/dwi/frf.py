@@ -107,13 +107,13 @@ def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "to estimate the FRF!".format(min_nvox))
 
     logging.debug(
-        "Found {:d] voxels with FA threshold {:.2f} for "
+        "Found {:d} voxels with FA threshold {:.2f} for "
         "FRF estimation".format(nvox, fa_thresh + 0.05))
     logging.debug("FRF eigenvalues: {}".format(str(response[0])))
     logging.debug("Ratio for smallest to largest eigen value "
                   "is {:.3f}".format(ratio))
     logging.debug("Mean of the b=0 signal for voxels used "
-                  "for FRF: {.3f]".format(response[1]))
+                  "for FRF: {}".format(response[1]))
 
     full_response = np.array([response[0][0], response[0][1],
                               response[0][2], response[1]])
