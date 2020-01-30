@@ -10,7 +10,7 @@ from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.direction.peaks import peaks_from_model
 
 from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
-from scilpy.io.utils import check_sh_basis_args
+from scilpy.io.utils import check_sh_basis_choice
 from scilpy.utils.bvec_bval_tools import check_b0_threshold
 
 
@@ -99,7 +99,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
             parallel = False
 
     # Checking sh basis
-    check_sh_basis_args(sh_basis)
+    check_sh_basis_choice(sh_basis)
 
     # Loading the spheres
     reg_sphere = get_sphere('symmetric362')
