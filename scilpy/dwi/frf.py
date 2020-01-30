@@ -72,10 +72,10 @@ def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
-    if mask:
+    if mask is not None:
         data = applymask(data, mask)
 
-    if mask_wm:
+    if mask_wm is not None:
         data = applymask(data, mask_wm)
     else:
         logging.warning(
