@@ -103,11 +103,11 @@ def main():
 
     mask = None
     if args.mask:
-        mask = nib.load(args.mask).get_fdata(dtype=np.bool)
+        mask = np.asanyarray(nib.load(args.mask).dataobj)
 
     mask_wm = None
     if args.mask_wm:
-        mask_wm = nib.load(args.mask_wm).get_fdata(dtype=np.bool)
+        mask_wm = np.asanyarray(nib.load(args.mask_wm).dataobj)
 
     full_response = compute_ssft_frf(data, bvals, bvecs, mask=mask,
                                      mask_wm=mask_wm, fa_thresh=args.fa_thresh,
