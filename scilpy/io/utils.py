@@ -13,6 +13,41 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
+def link_bundles_and_reference(parser, args, input_tractogram_list):
+    """
+    Associate the bundle to their reference (if they require a reference)
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse
+    args: argparse namespace
+        Args as created by argparse
+    input_tractogram_list: list
+        List of tractogram paths.
+    Returns
+    -------
+    list: List of tuples, each matching one tractogram to a reference file.
+    """
+    bundles_references_tuple = []
+    for bundle_filename in input_tractogram_list:
+        _, ext = os.path.splitext(bundle_filename)
+        if ext == '.trk':
+            if args.reference is None:
+                bundles_references_tuple.append(
+                    (bundle_filename, bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+        elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
+            if args.reference is None:
+                parser.error('--reference is required for this file format '
+                             '{}.'.format(bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+    return bundles_references_tuple
+
+
 def check_tracts_same_format(parser, filename_list):
     _, ref_ext = os.path.splitext(filename_list[0])
 
