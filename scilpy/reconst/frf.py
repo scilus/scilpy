@@ -72,7 +72,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "Make sure it makes sense for this dataset.".format(min_fa_thresh))
 
     if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
+        logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
 
     check_b0_threshold(force_b0_threshold, bvals.min())
@@ -86,10 +86,10 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         data = applymask(data, mask_wm)
     else:
         logging.warning(
-            'No white matter mask specified! Only mask will be used '
-            '(if it has been supplied). \nBe *VERY* careful about the '
-            'estimation of the fiber response function to ensure no invalid '
-            'voxel was used.')
+            "No white matter mask specified! Only mask will be used "
+            "(if it has been supplied). \nBe *VERY* careful about the "
+            "estimation of the fiber response function to ensure no invalid "
+            "voxel was used.")
 
     # Iteratively trying to fit at least min_nvox voxels. Lower the FA threshold
     # when it doesn't work. Fail if the fa threshold is smaller than
