@@ -27,8 +27,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args)
-from scilpy.utils.bvec_bval_tools import check_b0_threshold
-from scilpy.dwi.compute_fodf import compute_fodf
+from scilpy.reconst.fodf import compute_fodf
 
 
 def _build_arg_parser():
@@ -85,6 +84,7 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
+    # Checking args
     if not args.not_all:
         args.fodf = args.fodf or 'fodf.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
@@ -100,25 +100,24 @@ def main():
     assert_outputs_exist(parser, args, arglist)
 
     full_frf = np.loadtxt(args.frf_file)
-
     vol = nib.load(args.input)
     data = vol.get_data()
-
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
-
-    check_b0_threshold(args, bvals.min())
 
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
+        mask = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
 
+    # Computing fODF
     peaks_csd = compute_fodf(data, bvals, bvecs, full_frf,
                              sh_order=args.sh_order,
                              nbr_processes=args.nbr_processes,
                              mask=mask, sh_basis=args.sh_basis,
-                             return_sh=True)
+                             return_sh=True,
+                             force_b0_threshold=args.force_b0_threshold)
 
+    # Saving results
     if args.fodf:
         nib.save(nib.Nifti1Image(peaks_csd.shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)

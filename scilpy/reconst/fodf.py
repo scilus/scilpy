@@ -11,11 +11,12 @@ from dipy.direction.peaks import peaks_from_model
 
 from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
 from scilpy.io.utils import check_sh_basis_args
+from scilpy.utils.bvec_bval_tools import check_b0_threshold
 
 
 def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
                  mask=None, sh_basis='descoteaux07', return_sh=True,
-                 n_peaks=5):
+                 n_peaks=5, force_b0_threshold=False):
     """
      Script to compute Constrained Spherical Deconvolution (CSD) fiber ODFs.
 
@@ -57,6 +58,8 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
         If true, returns the sh.
     n_peaks: int, optional
         Nb of peaks for the fodf. Default: copied dipy's default, i.e. 5.
+    force_b0_threshold: bool, optional
+        If True, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -66,6 +69,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     """
 
     # Checking data and sh_order
+    check_b0_threshold(force_b0_threshold, bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         warnings.warn(
             'We recommend having at least {} unique DWI volumes, but you '
@@ -90,7 +94,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     parallel = True
     if nbr_processes is not None:
         if nbr_processes <= 0:
-            nbr_processes = None        # C'est ok ça?? parallel reste true si nbr_processes <0?
+            nbr_processes = None        # C'est ok ça?? parallel reste true si nbr_processes <0? Je laisse comme c'était.
         elif nbr_processes == 1:
             parallel = False
 
