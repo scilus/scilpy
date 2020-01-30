@@ -17,7 +17,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.dwi.frf import compute_ssft_frf
+from scilpy.reconst.frf import compute_ssft_frf
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import check_b0_threshold
