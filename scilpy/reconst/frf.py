@@ -91,10 +91,10 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             'estimation of the fiber response function to ensure no invalid '
             'voxel was used.')
 
-    # Iteratively trying to fit at least 300 voxels. Lower the FA threshold
+    # Iteratively trying to fit at least min_nvox voxels. Lower the FA threshold
     # when it doesn't work. Fail if the fa threshold is smaller than
     # the min_threshold.
-    # We use an epsilon since the -= 0.05 might incurs numerical imprecision.
+    # We use an epsilon since the -= 0.05 might incur numerical imprecision.
     nvox = 0
     while nvox < min_nvox and fa_thresh >= min_fa_thresh - 0.00001:
         response, ratio, nvox = auto_response(gtab, data,
