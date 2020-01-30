@@ -16,9 +16,10 @@ import logging
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
+
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.reconst.frf import compute_ssft_frf
+from scilpy.reconst.frf import compute_ssst_frf
 
 
 def _build_arg_parser():
@@ -105,7 +106,7 @@ def main():
     if args.mask_wm:
         mask_wm = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
 
-    full_response = compute_ssft_frf(data, bvals, bvecs, mask=mask,
+    full_response = compute_ssst_frf(data, bvals, bvecs, mask=mask,
                                      mask_wm=mask_wm, fa_thresh=args.fa_thresh,
                                      min_fa_thresh=args.min_fa_thresh,
                                      min_nvox=args.min_nvox,

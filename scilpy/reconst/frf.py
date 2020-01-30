@@ -10,10 +10,11 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
                                           is_normalized_bvecs, normalize_bvecs)
 
 
-def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
+def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
                      fa_thresh=0.7, min_fa_thresh=0.5, min_nvox=300,
                      roi_radius=10, roi_center=None, force_b0_threshold=False):
-    """Compute a single Fiber Response Function from a DWI.
+    """Compute a single-shell (under b=1500), single-tissue single Fiber
+    Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
     found using a threshold on the FA.
 
