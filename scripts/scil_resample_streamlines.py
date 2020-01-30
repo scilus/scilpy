@@ -42,8 +42,8 @@ def main():
     streamlines = list(tractogram_file.streamlines)
 
     new_streamlines = resample_streamlines(streamlines,
-                                           args.nb_pts_per_streamline,
-                                           args.arclength)
+                                           num_points=args.nb_pts_per_streamline,
+                                           arc_length=args.arclength)
 
     new_tractogram = Tractogram(
         new_streamlines,
