@@ -54,6 +54,7 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
+    # Checking args
     assert_inputs_exist(parser, args.input, args.ref)
     assert_outputs_exist(parser, args, args.output)
     if args.enforce_dimensions and not args.ref:
@@ -66,6 +67,7 @@ def main():
 
     img = nib.load(args.input)
 
+    # Resampling volume
     if args.ref:
         resampled_image = resample_volume(img, ref=args.ref,
                                           interp=args.interp,
@@ -77,6 +79,7 @@ def main():
         resampled_image = resample_volume(img, iso_min=args.iso_min,
                                           interp=args.interp)
 
+    # Saving results
     logging.debug('Saving resampled data to %s', args.output)
     nib.save(resampled_image, args.output)
 
