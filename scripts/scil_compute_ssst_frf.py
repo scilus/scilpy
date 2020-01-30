@@ -16,11 +16,9 @@ import logging
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
-
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_ssft_frf
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import check_b0_threshold
 
 
 def _build_arg_parser():
@@ -99,8 +97,6 @@ def main():
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
-    check_b0_threshold(args, bvals.min())
-
     mask = None
     if args.mask:
         mask = np.asanyarray(nib.load(args.mask).dataobj)
@@ -114,7 +110,8 @@ def main():
                                      min_fa_thresh=args.min_fa_thresh,
                                      min_nvox=args.min_nvox,
                                      roi_radius=args.roi_radius,
-                                     roi_center=args.roi_center)
+                                     roi_center=args.roi_center,
+                                     force_b0_threshold=args.force_b0_threshold)
 
     np.savetxt(args.frf_file, full_response)
 

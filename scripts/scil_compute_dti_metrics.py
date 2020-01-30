@@ -185,7 +185,7 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args, bvals.min())
+    check_b0_threshold(args.force_b0_threshold, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     # Get tensors

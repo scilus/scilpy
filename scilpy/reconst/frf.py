@@ -5,12 +5,13 @@ from dipy.core.gradients import gradient_table
 from dipy.reconst.csdeconv import auto_response
 from dipy.segment.mask import applymask
 
-from scilpy.utils.bvec_bval_tools import is_normalized_bvecs, normalize_bvecs
+from scilpy.utils.bvec_bval_tools import (is_normalized_bvecs, normalize_bvecs,
+                                          check_b0_threshold)
 
 
 def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
                      fa_thresh=0.7, min_fa_thresh=0.5, min_nvox=300,
-                     roi_radius=10, roi_center=None):
+                     roi_radius=10, roi_center=None, force_b0_threshold=False):
     """Compute a single Fiber Response Function from a DWI.
     A DTI fit is made, and voxels containing a single fiber population are
     found using a threshold on the FA.
@@ -49,6 +50,8 @@ def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
+    force_b0_threshold : bool, optional
+        If set, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -69,6 +72,8 @@ def compute_ssft_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
+
+    check_b0_threshold(force_b0_threshold, bvals.min())
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
