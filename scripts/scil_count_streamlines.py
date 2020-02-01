@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Return the number of streamlines in a tractogram. Only support trk and tck in
+order to support the lazy loading from nibabel.
+"""
+
 import argparse
 import json
 import os
@@ -11,7 +17,7 @@ from scilpy.io.utils import add_json_args, assert_inputs_exist
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Return the number of streamlines in a tractogram.',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
