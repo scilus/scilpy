@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Will compare all input files against the first one for the compatibility
+of their spatial attributes.
+
+Spatial attributes are: affine, dimensions, voxel sizes and voxel order.
+"""
+
 import argparse
 
 from dipy.io.utils import is_header_compatible
@@ -8,16 +15,13 @@ from dipy.io.utils import is_header_compatible
 from scilpy.io.utils import assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
-DESCRIPTION = """
-"""
-
 
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_files', nargs='+',
-                   help='')
+                   help='List of file to compare (trk and nii).')
 
     return p
 
