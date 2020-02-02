@@ -9,9 +9,11 @@ from dipy.tracking.streamline import transform_streamlines
 from fury import actor
 import matplotlib.pyplot as plt
 import nibabel as nib
+from nilearn import plotting
 import numpy as np
 from scipy.ndimage import map_coordinates
 
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -36,7 +38,7 @@ def _build_args_parser():
                    help='Path of the input bundle.')
     p.add_argument('in_anat',
                    help='Path of the reference file (.nii or nii.gz).')
-    p.add_argument('target_template',
+    p.add_argument('--target_template',
                    help='Path to the target MNI152template for registration. \n'
                         'If in_anat has a skull, select a MNI152 template \n'
                         'with a skull and vice-versa.')
@@ -76,43 +78,79 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
     reference_data = reference_img.get_data()
     reference_affine = reference_img.get_affine()
 
-    target_template_img = nib.load(target_template_filename)
-    target_template_data = target_template_img.get_data()
-    target_template_affine = target_template_img.affine
+    if target_template_filename:
+        target_template_img = nib.load(target_template_filename)
+        target_template_data = target_template_img.get_data()
+        target_template_affine = target_template_img.affine
 
-    # Register the DWI data to the template
-    transformed_reference, transformation = register_image(target_template_data,
-                                                           target_template_affine,
-                                                           reference_data,
-                                                           reference_affine)
-    # transformation = np.eye(4)
-    streamlines = transform_streamlines(streamlines,
-                                        np.linalg.inv(transformation))
+        # Register the DWI data to the template
+        transformed_reference, transformation = register_image(target_template_data,
+                                                               target_template_affine,
+                                                               reference_data,
+                                                               reference_affine)
 
-    new_sft = StatefulTractogram(streamlines, target_template_filename,
-                                 Space.RASMM)
+        streamlines = transform_streamlines(streamlines,
+                                            np.linalg.inv(transformation))
 
-    return new_sft, transformed_reference
+        new_sft = StatefulTractogram(streamlines, target_template_filename,
+                                     Space.RASMM)
+
+        return new_sft, transformed_reference
+
+    return sft, reference_data
+
+
+def plot_glass_brain(args, sft, img, output_filenames):
+    sft.to_vox()
+    sft.to_corner()
+    _, dimensions, _, _ = sft.space_attribute
+    data = compute_tract_counts_map(sft.streamlines, dimensions)
+    data[data > 100] = 100
+    img = nib.Nifti1Image(data, img.affine)
+
+    axes = 'yz'
+    if args.right:
+        axes = 'r' + axes
+    else:
+        axes = 'l' + axes
+
+    for i, axe in enumerate(axes):
+        display = plotting.plot_glass_brain(img,
+                                            black_bg=True,
+                                            display_mode=axe,
+                                            alpha=0.5)
+        display.savefig(output_filenames[i], dpi=300)
 
 
 def main():
     parser = _build_args_parser()
     args = parser.parse_args()
-    required = [args.in_bundle, args.in_anat, args.target_template]
-    assert_inputs_exist(parser, required)
+    required = [args.in_bundle, args.in_anat]
+    assert_inputs_exist(parser, required, args.target_template)
 
-    output_filenames = []
+    output_filenames_3d = []
+    output_filenames_glass = []
     for axis_name in ['sagittal', 'coronal', 'axial']:
         if args.output_suffix:
-            output_filenames.append(os.path.join(args.output_dir,
-                                                 '{0}_{1}.png'.format(
-                                                     axis_name,
-                                                     args.output_suffix)))
-        else:
-            output_filenames.append(os.path.join(args.output_dir,
-                                                 '{0}.png'.format(axis_name)))
+            output_filenames_3d.append(os.path.join(args.output_dir,
+                                                    '{0}_{1}_3d.png'.format(
+                                                        axis_name,
+                                                        args.output_suffix)))
 
-    assert_outputs_exist(parser, args, output_filenames)
+            output_filenames_glass.append(os.path.join(args.output_dir,
+                                                       '{0}_{1}_glass.png'.format(
+                                                           axis_name,
+                                                           args.output_suffix)))
+        else:
+            output_filenames_3d.append(os.path.join(args.output_dir,
+                                                    '{0}_3d.png'.format(
+                                                        axis_name)))
+            output_filenames_glass.append(os.path.join(args.output_dir,
+                                                       '{0}_glass.png'.format(
+                                                           axis_name)))
+
+    assert_outputs_exist(parser, args,
+                         output_filenames_3d+output_filenames_glass)
 
     if args.output_dir and not os.path.isdir(args.output_dir):
         os.mkdir(args.output_dir)
@@ -126,22 +164,30 @@ def main():
                 parser.error('{0} is not a valid RGB value'.format(val))
 
     # Get the relevant slices from the template
-    target_template_img = nib.load(args.target_template)
+    if args.target_template:
+        mni_space_img = nib.load(args.target_template)
+    else:
+        mni_space_img = nib.load(args.in_anat)
 
-    x_slice = int(target_template_img.shape[0] / 2)
-    y_slice = int(target_template_img.shape[1] / 2)
-    z_slice = int(target_template_img.shape[2] / 2)
+    x_slice = int(mni_space_img.shape[0] / 2)
+    y_slice = int(mni_space_img.shape[1] / 2)
+    z_slice = int(mni_space_img.shape[2] / 2)
     slices_choice = (x_slice, y_slice, z_slice)
 
     subject_data = prepare_data_for_actors(args.in_bundle, args.in_anat,
                                            args.target_template)
+
+    if args.target_template:
+        affine = nib.load(args.target_template).affine
+    else:
+        affine = nib.load(args.in_anat).affine
 
     # Create actors from each dataset for Dipy
     sft, reference_data = subject_data
     streamlines = sft.streamlines
 
     volume_actor = actor.slicer(reference_data,
-                                affine=nib.load(args.target_template).affine,
+                                affine=affine,
                                 opacity=args.anat_opacity,
                                 interpolation='nearest')
     if args.local_coloring:
@@ -178,20 +224,22 @@ def main():
     else:
         side_pos = (-300, 10, 10)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[0], 'sagittal',
+                   output_filenames_3d[0], 'sagittal',
                    view_position=tuple([x for x in side_pos]),
                    focal_point=tuple([x for x in (0, -10, 10)]),
                    streamlines_actor=streamlines_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[1], 'coronal',
-                   view_position=tuple([x for x in (0, 250, 15)]),
+                   output_filenames_3d[1], 'coronal',
+                   view_position=tuple([x for x in (0, -300, 15)]),
                    focal_point=tuple([x for x in (0, 0, 15)]),
                    streamlines_actor=streamlines_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[2], 'axial',
+                   output_filenames_3d[2], 'axial',
                    view_position=tuple([x for x in (0, -15, 350)]),
                    focal_point=tuple([x for x in (0, -15, 0)]),
                    streamlines_actor=streamlines_actor)
+
+    plot_glass_brain(args, sft, mni_space_img, output_filenames_glass)
 
 
 if __name__ == "__main__":
