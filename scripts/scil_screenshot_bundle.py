@@ -25,6 +25,9 @@ DESCRIPTION = """
    The template can be any MNI152 (any resolution, cropped or not)
    If your in_anat has a skull, select a MNI152 template with a skull and
    vice-versa.
+
+    If the bundle is already in MNI152 space, do not use --target_template.
+
    Axial, coronal and sagittal slices are captured.
    Sagittal can be capture from the left (default) or the right.
    """
