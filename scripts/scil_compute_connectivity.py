@@ -20,9 +20,14 @@ They should the bundles average version in the same space. This will
 compute the weigthed-dice between each node and their homologuous average
 version.
 
-The parameters --maps can be used more than once and expect a map (t1, fa, etc.)
-in the same space and each will generate a matrix. The average value in the
-volume occupied by the bundle will be reported in the matrices nodes.
+The parameters --metrics can be used more than once and expect a map (t1, fa,
+etc.) in the same space and each will generate a matrix. The average value in
+the volume occupied by the bundle will be reported in the matrices nodes.
+
+The parameters --maps can be used more than once and expect a folder with
+pre-computed maps (nii.gz) following the same naming convention as the
+input directory. Each will generate a matrix. The average non-zeros value in
+the map will be reported in the matrices nodes.
 """
 
 import argparse
@@ -180,20 +185,37 @@ import numpy as np
 
 from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
                              add_verbose_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
+
+
+def load_node_nifti(directory, in_label, out_label, ref_filename):
+    in_filename_1 = os.path.join(directory,
+                                 '{}_{}.nii.gz'.format(in_label, out_label))
+    in_filename_2 = os.path.join(directory,
+                                 '{}_{}.nii.gz'.format(out_label, in_label))
+    in_filename = None
+    if os.path.isfile(in_filename_1):
+        in_filename = in_filename_1
+    elif os.path.isfile(in_filename_2):
+        in_filename = in_filename_2
+
+    if in_filename is not None:
+        if not is_header_compatible(in_filename, ref_filename):
+            logging.error('%s and %s do not have a compatible header',
+                          in_filename, ref_filename)
+            raise IOError
+        return nib.load(in_filename).get_data()
 
 
 def _processing_wrapper(args):
     bundles_dir = args[0]
     in_label, out_label = args[1]
     measures_to_compute = copy.copy(args[2])
-    dict_map_img = args[3]
-    weighted = args[4]
-    if args[5] is not None:
-        similarity_directory = args[5][0]
+    weighted = args[3]
+    if args[4] is not None:
+        similarity_directory = args[4][0]
 
     in_filename_1 = os.path.join(bundles_dir,
                                  '{}_{}.trk'.format(in_label, out_label))
@@ -212,10 +234,11 @@ def _processing_wrapper(args):
 
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:
-        mean_length = np.average(length(sft.streamlines))
+        streamlines_copy = list(sft.get_streamlines_copy())
+        mean_length = np.average(length(streamlines_copy))
 
     # If density is not required, do not compute it
-    # Only required for volume, similarity and any maps
+    # Only required for volume, similarity and any metrics
     if not ((len(measures_to_compute) == 1 and
              ('length' in measures_to_compute or
               'streamline_count' in measures_to_compute)) or
@@ -238,42 +261,36 @@ def _processing_wrapper(args):
         measures_to_return['length'] = mean_length
         measures_to_compute.remove('length')
     if 'similarity' in measures_to_compute and similarity_directory:
-        in_filename_1 = os.path.join(similarity_directory,
-                                     '{}_{}.nii.gz'.format(in_label, out_label))
-        in_filename_2 = os.path.join(similarity_directory,
-                                     '{}_{}.nii.gz'.format(out_label, in_label))
-        in_filename_sim = None
-        if os.path.isfile(in_filename_1):
-            in_filename_sim = in_filename_1
-        elif os.path.isfile(in_filename_2):
-            in_filename_sim = in_filename_2
+        density_sim = load_node_nifti(
+            similarity_directory, in_label, out_label, in_filename)
+        _, w_dice = compute_dice_voxel(density, density_sim)
 
-        if in_filename_sim is not None:
-            if not is_header_compatible(in_filename_sim, in_filename):
+        measures_to_return['similarity'] = w_dice
+        measures_to_compute.remove('similarity')
+
+    for measure in measures_to_compute:
+        if os.path.isdir(measure):
+            map_dirname = measure
+            map_data = load_node_nifti(
+                map_dirname, in_label, out_label, in_filename)
+            measures_to_return[map_dirname] = np.average(
+                map_data[map_data > 0])
+        elif os.path.isfile(measure):
+            metric_filename = measure
+            if not is_header_compatible(metric_filename, sft):
                 logging.error('%s and %s do not have a compatible header',
-                              in_filename, in_filename_sim)
-                return
-            density_sim = nib.load(in_filename_sim).get_data()
-            _, w_dice = compute_dice_voxel(density, density_sim)
+                              in_filename, metric_filename)
+                raise IOError
 
-            measures_to_return['similarity'] = w_dice
-            measures_to_compute.remove('similarity')
+            metric_data = nib.load(metric_filename).get_data()
+            if weighted:
+                density = density / np.max(density)
+                voxels_value = metric_data * density
+                voxels_value = voxels_value[voxels_value > 0]
+            else:
+                voxels_value = metric_data[density > 0]
 
-    for map_base_name in measures_to_compute:
-        if not is_header_compatible(dict_map_img[map_base_name], sft):
-            logging.error('%s and %s do not have a compatible header',
-                          in_filename, map_base_name)
-            return
-
-        if weighted:
-            density = density / np.max(density)
-            voxels_value = dict_map_img[map_base_name].get_data() * density
-            voxels_value = voxels_value[voxels_value > 0]
-        else:
-            voxels_value = dict_map_img[map_base_name].get_data()[density > 0]
-
-        measures_to_return[map_base_name] = np.average(voxels_value)
-        measures_to_compute.remove(map_base_name)
+            measures_to_return[metric_filename] = np.average(voxels_value)
 
     return {(in_label, out_label): measures_to_return}
 
@@ -297,12 +314,16 @@ def _build_args_parser():
                    metavar=('IN_FOLDER', 'OUT_FILE'),
                    help='Input folder containing the average bundles. \n'
                    'and output file for the similarity weigthed matrix.')
-    p.add_argument('--maps', nargs=2, action='append',
+    p.add_argument('--maps', nargs=2,  action='append',
+                   metavar=('IN_FOLDER', 'OUT_FILE'),
+                   help='Input folder containing pre-computed maps. \n'
+                   'and output file for that weigthed matrix.')
+    p.add_argument('--metrics', nargs=2, action='append',
                    metavar=('IN_FILE', 'OUT_FILE'),
-                   help='Input map output file for the map weigthed matrix.')
+                   help='Input and output file for the metric weigthed matrix.')
 
     p.add_argument('--density_weigthing', action="store_true",
-                   help='Use density-weighting for the map weigthed matrix.')
+                   help='Use density-weighting for the metric weigthed matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
 
@@ -408,20 +429,22 @@ def main():
         measures_to_compute.append('similarity')
         measures_output_filename.append(args.similarity[1])
 
-    dict_map_img = {}
-    dict_map_out_name = {}
+    dict_maps_out_name = {}
     if args.maps is not None:
-        for in_name, out_name in args.maps:
-            # Verify that all maps are compatible with each other
-            if not is_header_compatible(args.maps[0][0], in_name):
-                continue
-            base_name, _ = split_name_with_nii(os.path.basename(in_name))
-            measures_to_compute.append(base_name)
+        for in_folder, out_name in args.maps:
+            measures_to_compute.append(in_folder)
+            dict_maps_out_name[in_folder] = out_name
             measures_output_filename.append(out_name)
 
+    dict_metrics_out_name = {}
+    if args.metrics is not None:
+        for in_name, out_name in args.metrics:
+            # Verify that all metrics are compatible with each other
+            if not is_header_compatible(args.metrics[0][0], in_name):
+                continue
+
             # This is necessary to support more than one map for weighting
-            dict_map_img[base_name] = nib.load(in_name)
-            dict_map_out_name[base_name] = out_name
+            dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
     assert_outputs_exist(parser, args, measures_output_filename)
@@ -442,7 +465,6 @@ def main():
                                   zip(itertools.repeat(args.in_bundles_dir),
                                       comb_list,
                                       itertools.repeat(measures_to_compute),
-                                      itertools.repeat(dict_map_img),
                                       itertools.repeat(args.density_weigthing),
                                       itertools.repeat(args.similarity)))
 
@@ -459,7 +481,7 @@ def main():
         total_elem = len(measures_dict.keys())*2 - len(labels_list)
 
     logging.info('Out of %s node, only %s contain values',
-                 len(labels_list)**2, len(measures_dict.keys())*2)
+                 total_elem, len(measures_dict.keys())*2)
 
     # Filling out all the matrices (symmetric) in the order of labels_list
     nbr_of_measures = len(measures_to_compute)
@@ -473,7 +495,7 @@ def main():
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
-    # Saving the matrices separatly with the name
+    # Saving the matrices separatly with the specified name
     for i, measure in enumerate(measures_ordering):
         if measure == 'volume':
             matrix_basename = args.volume
@@ -483,10 +505,12 @@ def main():
             matrix_basename = args.length
         elif measure == 'similarity':
             matrix_basename = args.similarity[1]
-        elif measure in dict_map_out_name:
-            matrix_basename = dict_map_out_name[measure]
+        elif measure in dict_metrics_out_name:
+            matrix_basename = dict_metrics_out_name[measure]
+        elif measure in dict_maps_out_name:
+            matrix_basename = dict_maps_out_name[measure]
 
-        np.savetxt(matrix_basename, matrix[:, :, i])
+        np.save(matrix_basename, matrix[:, :, i])
 
 
 if __name__ == "__main__":
