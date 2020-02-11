@@ -58,22 +58,27 @@ def normalize_bvecs(bvecs, filename=None):
     return bvecs
 
 
-def check_b0_threshold(args, bvals_min):
-    """
-    Check b0_threshold
+def check_b0_threshold(force_b0_threshold, bvals_min):
+    """Check if the minimal bvalue is under zero or over the default threshold.
+    If `force_b0_threshold` is true, don't raise an error even if the minimum
+    bvalue is suspiciously high.
 
     Parameters
     ----------
-    bvals_min: float
-        minimal bval to be considered as b0
+    force_b0_threshold : bool
+        If True, don't raise an error.
+    bvals_min : float
+        Minimum bvalue.
 
-    Returns
-    -------
+    Raises
+    ------
+    ValueError
+        If the minimal bvalue is under zero or over the default threshold, and
+        `force_b0_threshold` is False.
     """
-
     if bvals_min != 0:
         if bvals_min < 0 or bvals_min > DEFAULT_B0_THRESHOLD:
-            if args.force_b0_threshold:
+            if force_b0_threshold:
                 logging.warning(
                     'Warning: Your minimal bval is {}. This is highly '
                     'suspicious. The script will nonetheless proceed since '
@@ -85,7 +90,7 @@ def check_b0_threshold(args, bvals_min):
                                  'Please check your data to ensure everything '
                                  'is correct.\n'
                                  'Value found: {}\n'
-                                 'Use --force_b0_threshold to run the script '
+                                 'Use --force_b0_threshold to execute '
                                  'regardless.'
                                  .format(DEFAULT_B0_THRESHOLD, bvals_min))
         else:

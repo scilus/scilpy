@@ -126,7 +126,7 @@ def main():
         'Performing operation \'{}\'.'.format(args.operation))
     mask = reduce(OPERATIONS[args.operation], masks)
 
-    if args.threshold:
+    if args.threshold is not None:
         mask = (mask > args.threshold).astype(np.uint8)
 
     affine = next(nibabel.load(f).affine for f in args.inputs if os.path.isfile(f))
