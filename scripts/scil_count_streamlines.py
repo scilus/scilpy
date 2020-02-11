@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+
+"""
+Return the number of streamlines in a tractogram. Only support trk and tck in
+order to support the lazy loading from nibabel.
+"""
 
 import argparse
 import json
@@ -12,29 +16,36 @@ from scilpy.io.utils import add_json_args, assert_inputs_exist
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description='Return the number of streamlines in a tractogram',
+    p = argparse.ArgumentParser(
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('tractogram',
-                        metavar='TRACTOGRAM',
-                        help='path of the tracts file, in a format supported' +
-                        ' by nibabel')
-    add_json_args(parser)
-    return parser
+    p.add_argument('in_tractogram',
+                   help='Path of the input tractogram file.')
+    add_json_args(p)
+    return p
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.tractogram)
+    assert_inputs_exist(parser, args.in_tractogram)
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.tractogram))
-    bundle_tractogram_file = nib.streamlines.load(args.tractogram,
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_tractogram))
+    bundle_tractogram_file = nib.streamlines.load(args.in_tractogram,
                                                   lazy_load=True)
+
+    _, ext = os.path.splitext(args.in_tractogram)
+    if ext == '.trk':
+        key = 'nb_streamlines'
+    elif ext == '.tck':
+        key = 'count'
+    else:
+        parser.error('{} is not a supported extension for lazy loading'.format(ext))
+
     stats = {
         bundle_name: {
-            'tract_count': int(bundle_tractogram_file.header['nb_streamlines'])
+            'tract_count': int(bundle_tractogram_file.header[key])
         }
     }
 
