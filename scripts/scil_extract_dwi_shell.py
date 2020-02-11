@@ -10,8 +10,9 @@ import numpy as np
 import nibabel as nib
 from dipy.io import read_bvals_bvecs
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.image.utils import volume_iterator
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 
 DESCRIPTION = """
@@ -79,25 +80,6 @@ def build_args_parser():
     return parser
 
 
-def volumes(img, size):
-    """Generator that iterates on gradient volumes of data"""
-
-    nb_volumes = img.shape[-1]
-
-    if size == nb_volumes:
-        yield list(range(nb_volumes)), img.get_data()
-    else:
-        for i in range(0, nb_volumes - size, size):
-            logging.info('Loading volumes {} to {}.'.format(i, i + size - 1))
-            yield list(range(i, i + size)), img.dataobj[..., i:i + size]
-        if i + size < nb_volumes:
-            logging.info(
-                'Loading volumes {} to {}.'
-                .format(i + size, nb_volumes - 1))
-            yield list(range(i + size, nb_volumes)), \
-                img.dataobj[..., i + size:]
-
-
 def main():
 
     parser = build_args_parser()
@@ -139,7 +121,7 @@ def main():
     # is slower for small files, but allows very big files to be split
     # with less memory usage.
     shell_data = np.zeros((img.shape[:-1] + (len(indices),)))
-    for vi, data in volumes(img, args.block_size):
+    for vi, data in volume_iterator(img, args.block_size):
         in_volume = np.array([i in vi for i in indices])
         in_data = np.array([i in indices for i in vi])
         shell_data[..., in_volume] = data[..., in_data]
