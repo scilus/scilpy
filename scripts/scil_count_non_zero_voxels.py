@@ -26,7 +26,7 @@ def _build_arg_parser():
                    help='input file name, in nifti format.')
 
     p.add_argument(
-        '-o', metavar='OUT_FILE', dest='out_filename',
+        '--out', metavar='OUT_FILE', dest='out_filename',
         help='name of the output file, which will be saved as a text file.')
     p.add_argument(
         '--stats', action='store_true', dest='stats_format',

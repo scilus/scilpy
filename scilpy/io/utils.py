@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+import shutil
 import six
 import xml.etree.ElementTree as ET
 
-from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
@@ -13,27 +13,70 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
-def add_reference(parser):
-    parser.add_argument('--reference',
-                        help='Reference anatomy for tck/vtk/fib/dpy file\n'
-                        'support (.nii or .nii.gz).')
+def link_bundles_and_reference(parser, args, input_tractogram_list):
+    """
+    Associate the bundle to their reference (if they require a reference)
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse
+    args: argparse namespace
+        Args as created by argparse
+    input_tractogram_list: list
+        List of tractogram paths.
+    Returns
+    -------
+    list: List of tuples, each matching one tractogram to a reference file.
+    """
+    bundles_references_tuple = []
+    for bundle_filename in input_tractogram_list:
+        _, ext = os.path.splitext(bundle_filename)
+        if ext == '.trk':
+            if args.reference is None:
+                bundles_references_tuple.append(
+                    (bundle_filename, bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+        elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
+            if args.reference is None:
+                parser.error('--reference is required for this file format '
+                             '{}.'.format(bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+    return bundles_references_tuple
 
 
-def load_tractogram_with_reference(parser, args, filepath,
-                                   bbox_check=True):
-    _, ext = os.path.splitext(filepath)
-    if ext == '.trk':
-        sft = load_tractogram(filepath, 'same')
-    elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
-        if args.reference is None:
-            parser.error('--reference is required for this file format '
-                         '{}.'.format(filepath))
-        sft = load_tractogram(filepath, args.reference,
-                              bbox_valid_check=bbox_check)
+def check_tracts_same_format(parser, filename_list):
+    _, ref_ext = os.path.splitext(filename_list[0])
+
+    for filename in filename_list[1:]:
+        if isinstance(filename, six.string_types) and \
+                not os.path.splitext(filename)[1] == ref_ext:
+            parser.error('All tracts file must use the same format.')
+
+
+def add_json_args(parser):
+    g1 = parser.add_argument_group(title='Json options')
+    g1.add_argument('--indent',
+                    type=int, default=2,
+                    help='Indent for json pretty print.')
+    g1.add_argument('--sort_keys',
+                    action='store_true',
+                    help='Sort keys in output json.')
+
+
+def add_reference_arg(parser, arg_name=None):
+    if arg_name:
+        parser.add_argument('--'+arg_name+'_ref',
+                            help='Reference anatomy for {} (if tck/vtk/fib/dpy'
+                                 ') file\n'
+                                 'support (.nii or .nii.gz).'.format(arg_name))
     else:
-        parser.error('{} is an unsupported file format'.format(filepath))
-
-    return sft
+        parser.add_argument('--reference',
+                            help='Reference anatomy for tck/vtk/fib/dpy file\n'
+                                 'support (.nii or .nii.gz).')
 
 
 def add_overwrite_arg(parser):
@@ -153,6 +196,36 @@ def create_header_from_anat(reference, base_filetype=TrkFile):
         nib.aff2axcodes(affine))
 
     return new_header
+
+
+def assert_output_dirs_exist_and_empty(parser, args, *dirs):
+    """
+    Assert that all output directories exist.
+    If not, print parser's usage and exit.
+    If exists and not empty, and -f used, delete dirs.
+    :param parser: argparse.ArgumentParser object
+    :param args: argparse namespace
+    :param dirs: list of paths
+    """
+    for path in dirs:
+        if not os.path.isdir(path):
+            parser.error('Output directory {} doesn\'t exist.'.format(path))
+        if os.listdir(path):
+            if not args.overwrite:
+                parser.error(
+                    'Output directory {} isn\'t empty and some files could be '
+                    'overwritten. Use -f option if you want to continue.'
+                    .format(path))
+            else:
+                for the_file in os.listdir(args.output):
+                    file_path = os.path.join(args.output, the_file)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(e)
 
 
 def read_info_from_mb_bdo(filename):
