@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from builtins import str
-from builtins import range
 import argparse
+from builtins import str
 import logging
 
-import numpy as np
-import nibabel as nib
 from dipy.io import read_bvals_bvecs
+import nibabel as nib
+import numpy as np
 
 from scilpy.image.utils import volume_iterator
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
