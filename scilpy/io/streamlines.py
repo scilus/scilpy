@@ -144,3 +144,33 @@ def load_tractogram_with_reference(parser, args, filepath,
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
+
+
+def filter_tractogram_data(tractogram, streamline_ids):
+    """ Filter tractogram data (data_per_streamline, data_per_point)
+    according to streamline ids
+
+    Parameters:
+    -----------
+    tractogram: Tractogram or StatefulTractogram
+        Tractogram containing the data to be filtered
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to
+
+    Returns:
+    --------
+    A tuple containing
+        Dict of filtered data_per_streamline
+        Dict of filtered data_per_point
+    """
+
+    new_data_per_streamline = {}
+    new_data_per_point = {}
+    for key in tractogram.data_per_streamline.keys():
+        new_data_per_streamline[key] = \
+            [tractogram.data_per_streamline[key][i] for i in streamline_ids]
+    for key in tractogram.data_per_point.keys():
+        new_data_per_point[key] = \
+            [tractogram.data_per_point[key][i] for i in streamline_ids]
+
+    return new_data_per_streamline, new_data_per_point
