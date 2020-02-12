@@ -1,4 +1,4 @@
-#!/home/thea1603/workspace/scilpy/.env/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
