@@ -38,21 +38,21 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group('Metrics options')
     g1.add_argument(
-        '--fa_max', type=float, default='0.1',
-        help='Maximal threshold of FA (voxels under that threshold are '
-             'considered in the ventricles). [%(default)s]')
-    g1.add_argument(
         '--fa_min', type=float, default='0.7',
         help='Minimal threshold of FA (voxels above that threshold are '
              'considered in the single fiber mask). [%(default)s]')
     g1.add_argument(
-        '--md_min', dest='md_t',  type=float, default='0.003',
+        '--fa_max', type=float, default='0.1',
+        help='Maximal threshold of FA (voxels under that threshold are '
+             'considered in the ventricles). [%(default)s]')
+    g1.add_argument(
+        '--md_min', dest='md_min',  type=float, default='0.003',
         help='Minimal threshold of MD in mm2/s (voxels above that threshold '
              'are considered for in the ventricles). [%(default)s]')
 
     g2 = p.add_argument_group('Regions options')
     g2.add_argument(
-        '--roi_radius', default=20, type=int,
+        '--roi_radius', type=int, default=20,
         help='Radius of the region used to estimate the priors. The roi will '
              'be a cube spanning from ROI_CENTER in each direction. '
              '[%(default)s]')
@@ -137,8 +137,8 @@ def main():
     roi_md = md[square]
     roi_fa = fa[square]
 
-    logging.debug('fa_min, fa_max, md_t: {}, {}, {}'.format(
-        args.fa_min, args.fa_max, args.md_t))
+    logging.debug('fa_min, fa_max, md_min: {}, {}, {}'.format(
+        args.fa_min, args.fa_max, args.md_min))
 
     indices = np.where((roi_fa > args.fa_min) & (roi_fa < 0.95))
     N = roi_ad[indices].shape[0]
@@ -153,7 +153,7 @@ def main():
     indices[2][:] += ck - w
     mask_cc[indices] = 1
 
-    indices = np.where((roi_md > args.md_t) & (roi_fa < args.fa_max))
+    indices = np.where((roi_md > args.md_min) & (roi_fa < args.fa_max))
     N = roi_md[indices].shape[0]
 
     logging.debug('Number of voxels found in ventricles: {}'.format(N))

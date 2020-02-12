@@ -49,18 +49,19 @@ def _build_arg_parser():
     g.add_argument('--bvec',
                    help='Bvec filename, in FSL format')
     g.add_argument('--scheme_file',
-                   help='If a scheme file already exists, '
+                   help='AMICO scheme file '
                         'can replace --bval/--bvec.')
     g.add_argument('--bstep', type=int, nargs='+',
-                   help='List of bvals in your data')
+                   help='List of unique bvals in your data. It prevents errors'
+                        ' when each bval is around the actual bval')
 
     p.add_argument('--para_diff', type=float, default=1.7e-3,
                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
     p.add_argument('--iso_diff', type=float, default=3e-3,
                    help='Mean diffusivity (MD) in ventricles. [%(default)s]')
-    p.add_argument('--lambda1', default=2, type=float,
+    p.add_argument('--lambda1', type=float, default=2,
                    help='First regularization parameter. [%(default)s]')
-    p.add_argument('--lambda2', default=1e-3, type=float,
+    p.add_argument('--lambda2', type=float, default=1e-3,
                    help='Second regularization parameter. [%(default)s]')
 
     p.add_argument('--output_dir',
