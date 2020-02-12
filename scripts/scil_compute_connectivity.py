@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/thea1603/workspace/scilpy/.env/bin/python
 # -*- coding: utf-8 -*-
 
 """
@@ -320,8 +320,11 @@ def main():
                             'intermediate', 'pruned', in_label, out_label)
 
             if not args.no_remove_loops:
-                no_loops, loops = remove_loops_and_sharp_turns(pruned_strl,
-                                                               args.loop_max_angle)
+                no_loops, no_loops_ids = remove_loops_and_sharp_turns(pruned_strl,
+                                                                      args.loop_max_angle)
+                loops_ids = np.setdiff1d(
+                    np.arange(len(pruned_strl)), no_loops_ids)
+                loops = pruned_strl[loops_ids]
                 _save_if_needed(loops, args, saving_opts, out_paths,
                                 'discarded', 'loops', in_label, out_label)
             else:
@@ -348,11 +351,14 @@ def main():
                             'intermediate', 'no_outliers', in_label, out_label)
 
             if not args.no_remove_loops_again:
-                no_qb_loops_strl, loops2 = remove_loops_and_sharp_turns(
+                no_qb_loops_strl, no_loops_ids2 = remove_loops_and_sharp_turns(
                     no_outliers,
                     args.loop_max_angle,
                     True,
                     args.loop_qb_distance)
+                loops_ids2 = np.setdiff1d(
+                    np.arange(len(no_outliers)), no_loops_ids2)
+                loops2 = pruned_strl[loops_ids2]
                 _save_if_needed(loops2, args, saving_opts, out_paths,
                                 'discarded', 'qb_loops', in_label, out_label)
             else:
