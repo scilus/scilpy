@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from builtins import str
 import logging
 
 from dipy.io import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.utils import volume_iterator
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import get_shell_indices
+from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 DESCRIPTION = """
 Extracts the DWI volumes that are on specific b-value shells. Many shells
@@ -32,7 +30,6 @@ are loaded at a time for processing.
 
 
 def build_args_parser():
-
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=DESCRIPTION)
@@ -80,7 +77,6 @@ def build_args_parser():
 
 
 def main():
-
     parser = build_args_parser()
     args = parser.parse_args()
 
@@ -89,46 +85,23 @@ def main():
 
     assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
     assert_outputs_exist(parser, args, [args.output_dwi, args.output_bvals,
-                                         args.output_bvecs])
+                                        args.output_bvecs])
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
-    indices = [get_shell_indices(bvals, shell, tol=tol)
-               for shell in args.bvals_to_extract]
-    indices = np.unique(np.sort(np.hstack(indices)))
-
-    if len(indices) == 0:
-        parser.error('There are no volumes that have the supplied b-values.')
-
-    logging.info(
-        'Extracting shells [{}], with number of images per shell [{}], '
-        'from {} images from {}.'
-        .format(' '.join([str(b) for b in args.bvals_to_extract]),
-                ' '.join([str(len(get_shell_indices(bvals, shell)))
-                          for shell in args.bvals_to_extract]),
-                len(bvals),
-                args.dwi))
 
     img = nib.load(args.dwi)
 
-    if args.block_size is None:
-        args.block_size = img.shape[-1]
+    outputs = extract_dwi_shell(img, bvals, bvecs, args.bvals_to_extract, tol,
+                                args.block_size)
+    indices, shell_data, new_bvals, new_bvecs = outputs
 
-    # Load the shells by iterating through blocks of volumes. This approach
-    # is slower for small files, but allows very big files to be split
-    # with less memory usage.
-    shell_data = np.zeros((img.shape[:-1] + (len(indices),)))
-    for vi, data in volume_iterator(img, args.block_size):
-        in_volume = np.array([i in vi for i in indices])
-        in_data = np.array([i in indices for i in vi])
-        shell_data[..., in_volume] = data[..., in_data]
+    logging.info("Selected indices: {}".format(indices))
 
-    bvals = bvals[indices].astype(int)
-    bvals.shape = (1, len(bvals))
-    np.savetxt(args.output_bvals, bvals, '%d')
-    np.savetxt(args.output_bvecs, bvecs[indices, :].T, '%0.15f')
+    np.savetxt(args.output_bvals, new_bvals, '%d')
+    np.savetxt(args.output_bvecs, new_bvecs.T, '%0.15f')
     nib.save(nib.Nifti1Image(shell_data, img.affine, img.header),
              args.output_dwi)
 
