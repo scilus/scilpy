@@ -253,10 +253,11 @@ def identify_shells(bvals, threshold=40.0):
     return centroids, shell_indices
 
 
-def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20, block_size=None):
-    """Extracts the DWI volumes that are on specific b-value shells. Many shells
-    can be extracted at once by specifying multiple b-values. The extracted
-    volumes are in the same order as in the original file.
+def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
+                      block_size=None):
+    """Extracts the DWI volumes that are on specific b-value shells. Many
+    shells can be extracted at once by specifying multiple b-values. The
+    extracted volumes are in the same order as in the original file.
 
     If the b-values of a shell are not all identical, use the --tolerance
     argument to adjust the accepted interval. For example, a b-value of 2000
@@ -264,8 +265,8 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20, block_size=No
     2020.
 
     Files that are too large to be loaded in memory can still be processed by
-    setting the --block-size argument. A block size of X means that X DWI volumes
-    are loaded at a time for processing.
+    setting the --block-size argument. A block size of X means that X DWI
+    volumes are loaded at a time for processing.
 
     Parameters
     ----------
@@ -301,16 +302,16 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20, block_size=No
     indices = np.unique(np.sort(np.hstack(indices)))
 
     if len(indices) == 0:
-        raise ValueError("There are no volumes that have the supplied b-values "
+        raise ValueError("There are no volumes that have the supplied b-values"
                          ": {}".format(bvals_to_extract))
 
     logging.info(
         "Extracting shells [{}], with number of images per shell [{}], "
         "from {} images from {}."
-            .format(" ".join([str(b) for b in bvals_to_extract]),
-                    " ".join([str(len(get_shell_indices(bvals, shell)))
-                              for shell in bvals_to_extract]),
-                    len(bvals), dwi.get_filename()))
+        .format(" ".join([str(b) for b in bvals_to_extract]),
+                " ".join([str(len(get_shell_indices(bvals, shell)))
+                          for shell in bvals_to_extract]),
+                len(bvals), dwi.get_filename()))
 
     if block_size is None:
         block_size = dwi.shape[-1]
