@@ -26,7 +26,8 @@ This script can be used to remove loops in two types of streamline datasets:
     whole brain tractography.
 
   - Bundle dataset: For this type, it is possible to remove loops and
-    streamlines outside of the bundle. For the sharp angle turn, use --qb option.
+    streamlines outside of the bundle. For the sharp angle turn,
+    use --qb option.
 
 ----------------------------------------------------------------------------
 Reference:
@@ -99,11 +100,13 @@ def main():
         ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
         streamlines_l = streamlines[ids_l]
     else:
-        parser.error('Zero or one streamline in {}'.format(args.in_tractogram) +
-                     '. The file must have more than one streamline.')
+        parser.error(
+            'Zero or one streamline in {}'.format(args.in_tractogram) +
+            '. The file must have more than one streamline.')
 
     if len(streamlines_c) > 0:
-        data_per_streamline_c, data_per_point_c = filter_tractogram_data(tractogram, ids_c)
+        data_per_streamline_c, data_per_point_c = \
+            filter_tractogram_data(tractogram, ids_c)
 
         tractogram_c = StatefulTractogram(
             streamlines_c,
@@ -119,7 +122,8 @@ def main():
     if len(streamlines_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
     elif args.remaining_tractogram:
-        data_per_streamline_l, data_per_point_l = filter_tractogram_data(tractogram, ids_l)
+        data_per_streamline_l, data_per_point_l = \
+            filter_tractogram_data(tractogram, ids_l)
 
         tractogram_l = StatefulTractogram(
             streamlines_l,

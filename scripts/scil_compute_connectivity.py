@@ -320,8 +320,8 @@ def main():
                             'intermediate', 'pruned', in_label, out_label)
 
             if not args.no_remove_loops:
-                no_loops, no_loops_ids = remove_loops_and_sharp_turns(pruned_strl,
-                                                                      args.loop_max_angle)
+                no_loops, no_loops_ids = remove_loops_and_sharp_turns(
+                    pruned_strl, args.loop_max_angle)
                 loops_ids = np.setdiff1d(
                     np.arange(len(pruned_strl)), no_loops_ids)
                 loops = pruned_strl[loops_ids]
