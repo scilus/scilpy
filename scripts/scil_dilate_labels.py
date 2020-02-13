@@ -21,7 +21,6 @@ DESCRIPTION = """
     - "label_not_to_dilate" will not be changed, but will not dilate.
     - "mask" is where the dilation is allowed (constrained)
         in addition to "background_label" (logical AND)
-    - "label_to_remove" will be set to "label_when_removed".
     """
 
 EPILOG = """
@@ -58,12 +57,6 @@ def _build_args_parser():
 
     p.add_argument('--mask',
                    help='Only dilate values inside the mask.')
-
-    p.add_argument('--label_to_remove', type=int, nargs='+', default=None,
-                   help='Label to remove from the volume.')
-
-    p.add_argument('--label_when_removed', type=int, default=0,
-                   help='Label value for "label_to_remove". [%(default)s]')
 
     p.add_argument('--processes', type=int, default=-1,
                    help='Number of sub processes to start. [cpu count]')
@@ -154,11 +147,6 @@ def main():
     data = data.flatten()
     data[id_background.T] = data[id_label.T]
     data = data.reshape(img_shape)
-
-    # Remove unwanted labels
-    if args.label_to_remove is not None:
-        for i in args.label_to_remove:
-            data[data == i] = args.label_when_removed
 
     # Save image
     nib.save(nib.Nifti1Image(data, volume_nib.affine, volume_nib.header),
