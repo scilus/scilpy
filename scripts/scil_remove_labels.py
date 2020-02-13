@@ -38,8 +38,7 @@ def _build_args_parser():
                    help='List of labels indices to remove.')
 
     p.add_argument('--background', type=int, default=0,
-                   help='Background id, excluded from output [%(default)s],\n'
-                        ' the value is used as output background value.')
+                   help='Integer used for removed labels [%(default)s].')
     add_overwrite_arg(p)
     return p
 
