@@ -15,8 +15,10 @@ DESCRIPTION = """
     Script to combine labels from multiple volumes,
         if there is overlap, it will overwritten based on the input order.
 
-    >>> scil_combine_labels.py animal_labels.nii 20 DKT_labels.nii.gz 44 53\\
-            -o labels.nii.gz --out_labels_indices 20 44 53
+    >>> scil_combine_labels.py out_labels.nii.gz  -v animal_labels.nii 20\\
+            DKT_labels.nii.gz 44 53  --out_labels_indices 20 44 53
+    >>> scil_combine_labels.py slf_labels.nii.gz  -v a2009s_aseg.nii.gz all\\
+            -v clean/s1__DKT.nii.gz 1028 2028
     """
 
 EPILOG = """
@@ -31,13 +33,14 @@ def _build_args_parser():
     p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('volumes_ids', nargs='+', default=[],
-                   help='List of volumes directly followed by their labels:\n'
-                        '  Image1 id11 id12  Image2 id21 id22 id23 ... \n'
-                        '  "all" can be used instead of id numbers.')
+    p.add_argument('output',
+                   help='Combined labels volume output.')
 
-    p.add_argument('-o', '--out_file', required=True,
-                   help='Labels volume output.')
+    p.add_argument('-v', '--volume_ids', nargs='+', default=[],
+                   action='append', required=True,
+                   help='List of volumes directly followed by their labels:\n'
+                        '  -v atlasA  id1a id2a   -v  atlasB  id1b id2b ... \n'
+                        '  "all" can be used instead of id numbers.')
 
     o_ids = p.add_mutually_exclusive_group()
     o_ids.add_argument('--out_labels_ids', type=int, nargs='+', default=[],
@@ -53,7 +56,7 @@ def _build_args_parser():
 
     p.add_argument('--background', type=int, default=0,
                    help='Background id, excluded from output [%(default)s],\n'
-                        ' the first one is given as output background value.')
+                        ' the value is used as output background value.')
     add_overwrite_arg(p)
     return p
 
@@ -64,34 +67,25 @@ def main():
 
     image_files = []
     indices_per_volume = []
-
     # Separate argument per volume
-    current_indices = None
     used_indices_all = False
-    for argument in args.volumes_ids:
-        if argument.isdigit():
-            current_indices.append(int(argument))
-        elif argument.lower() == "all":
-            current_indices.append("all")
+    for v_args in args.volume_ids:
+        if len(v_args) < 2:
+            logging.error("No indices was given for a given volume")
+
+        image_files.append(v_args[0])
+        if "all" in v_args:
             used_indices_all = True
+            indices_per_volume.append("all")
         else:
-            image_files.append(argument)
-            if current_indices is not None:
-                indices_per_volume.append(current_indices)
-            current_indices = []
-
-    if current_indices is not None:
-        indices_per_volume.append(current_indices)
-
-    if len(image_files) != len(indices_per_volume):
-        logging.error("No indices was given for a given volume")
+            indices_per_volume.append(np.asarray(v_args[1:], dtype=np.int))
 
     if used_indices_all and args.out_labels_ids:
-        logging.error("'All' indices was used with 'out_labels_ids'")
+        logging.error("'all' indices cannot be used with 'out_labels_ids'")
 
     # Check inputs / output
     assert_inputs_exist(parser, image_files)
-    assert_outputs_exist(parser, args, args.out_file)
+    assert_outputs_exist(parser, args, args.output)
 
     # Load volume and do checks
     data_list = []
@@ -103,7 +97,8 @@ def main():
         data_list.append(data)
         assert (is_header_compatible(first_img, image_files[i]))
 
-        if "all" in indices_per_volume[i]:
+        if (isinstance(indices_per_volume[i], str)
+                and indices_per_volume[i] == "all"):
             indices_per_volume[i] = np.unique(data)
 
     filtered_ids_per_vol = []
@@ -112,7 +107,6 @@ def main():
         id_list = np.asarray(id_list)
         new_ids = id_list[~np.in1d(id_list, args.background)]
         filtered_ids_per_vol.append(new_ids)
-
     # Prepare output indices
     if args.out_labels_ids:
         out_labels = args.out_labels_ids
@@ -152,7 +146,7 @@ def main():
 
     # Save final combined volume
     nii = nib.Nifti1Image(resulting_labels, first_img.affine, first_img.header)
-    nib.save(nii, args.out_file)
+    nib.save(nii, args.output)
 
 
 if __name__ == "__main__":
