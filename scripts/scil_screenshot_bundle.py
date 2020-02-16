@@ -21,16 +21,16 @@ from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
 DESCRIPTION = """
-   Register bundle to a template for screenshots using a reference.
-   The template can be any MNI152 (any resolution, cropped or not)
-   If your in_anat has a skull, select a MNI152 template with a skull and
-   vice-versa.
+    Register bundle to a template for screenshots using a reference.
+    The template can be any MNI152 (any resolution, cropped or not)
+    If your in_anat has a skull, select a MNI152 template with a skull and
+    vice-versa.
 
     If the bundle is already in MNI152 space, do not use --target_template.
 
-   Axial, coronal and sagittal slices are captured.
-   Sagittal can be capture from the left (default) or the right.
-   """
+    Axial, coronal and sagittal slices are captured.
+    Sagittal can be capture from the left (default) or the right.
+    """
 
 
 def _build_args_parser():
@@ -42,7 +42,7 @@ def _build_args_parser():
     p.add_argument('in_anat',
                    help='Path of the reference file (.nii or nii.gz).')
     p.add_argument('--target_template',
-                   help='Path to the target MNI152template for registration. \n'
+                   help='Path to the target MNI152 template for registration. \n'
                         'If in_anat has a skull, select a MNI152 template \n'
                         'with a skull and vice-versa.')
 
@@ -93,7 +93,8 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
                                                                reference_affine)
 
         streamlines = transform_streamlines(streamlines,
-                                            np.linalg.inv(transformation))
+                                            np.linalg.inv(transformation),
+                                            in_place=True)
 
         new_sft = StatefulTractogram(streamlines, target_template_filename,
                                      Space.RASMM)
@@ -169,8 +170,10 @@ def main():
     # Get the relevant slices from the template
     if args.target_template:
         mni_space_img = nib.load(args.target_template)
+        affine = nib.load(args.target_template).affine
     else:
         mni_space_img = nib.load(args.in_anat)
+        affine = nib.load(args.in_anat).affine
 
     x_slice = int(mni_space_img.shape[0] / 2)
     y_slice = int(mni_space_img.shape[1] / 2)
@@ -179,11 +182,6 @@ def main():
 
     subject_data = prepare_data_for_actors(args.in_bundle, args.in_anat,
                                            args.target_template)
-
-    if args.target_template:
-        affine = nib.load(args.target_template).affine
-    else:
-        affine = nib.load(args.in_anat).affine
 
     # Create actors from each dataset for Dipy
     sft, reference_data = subject_data
