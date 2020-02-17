@@ -11,7 +11,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg)
-from scilpy.tractanalysis import compute_tract_counts_map
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractometry.distance_to_centroid import min_dist_to_centroid
 
 
