@@ -43,7 +43,7 @@ def main():
 
     # Load files and data. TRKs can have 'same' as reference
     tractogram = load_tractogram(args.tractogram, 'same')
-    # Seeds are always saved in VOX (?)
+    # Streamlines are saved in RASMM but seeds are saved in VOX (?)
     tractogram.to_vox()
 
     streamlines = tractogram.streamlines
