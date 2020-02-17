@@ -172,26 +172,32 @@ def main():
                                                shells=args.shells)
 
     # Create actors from each dataset for Dipy
-    volume_actor = actor.slicer(FA, opacity=0.3, interpolation='nearest')
-    peaks_actor = actor.peak_slicer(evecs, peaks_values=evals,
+    volume_actor = actor.slicer(FA,
+                                affine=nib.load(args.target_template).affine,
+                                opacity=0.3,
+                                interpolation='nearest')
+    peaks_actor = actor.peak_slicer(evecs,
+                                    affine=nib.load(
+                                        args.target_template).affine,
+                                    peaks_values=evals,
                                     colors=None, linewidth=1)
 
     # Take a snapshot of each dataset, camera setting are fixed for the
     # known template, won't work with another.
     display_slices(volume_actor, slices_choice,
                    output_filenames[0], 'sagittal',
-                   view_position=tuple([zooms*x for x in (-50, 120, 100)]),
-                   focal_point=tuple([zooms*x for x in (80, 120, 100)]),
+                   view_position=tuple([x for x in (-125, 10, 10)]),
+                   focal_point=tuple([x for x in (0, -10, 10)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
                    output_filenames[1], 'coronal',
-                   view_position=tuple([zooms*x for x in (95, 200, 100)]),
-                   focal_point=tuple([zooms*x for x in (95, 100, 100)]),
+                   view_position=tuple([x for x in (0, 150, 30)]),
+                   focal_point=tuple([x for x in (0, 0, 30)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
                    output_filenames[2], 'axial',
-                   view_position=tuple([zooms*x for x in (100, 100, -75)]),
-                   focal_point=tuple([zooms*x for x in (100, 100, 90)]),
+                   view_position=tuple([x for x in (0, 25, 150)]),
+                   focal_point=tuple([x for x in (0, 25, 0)]),
                    peaks_actor=peaks_actor)
 
 
