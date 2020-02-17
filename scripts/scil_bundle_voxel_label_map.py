@@ -26,8 +26,6 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
-    p.add_argument('reference',
-                   help='Nifti reference image.')
     p.add_argument('output_map',
                    help='Nifti image with corresponding labels.')
     p.add_argument('--upsample',
@@ -35,8 +33,8 @@ def _build_arg_parser():
                    help='Upsample reference grid by this factor. '
                         '[%(default)s]')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
-
     add_verbose_arg(p)
 
     return p
@@ -51,8 +49,7 @@ def main():
                         optionnal=args.reference)
     assert_outputs_exist(parser, args, args.output_map)
 
-    sft_bundle = load_tractogram_with_reference(parser, args,
-                                                args.in_bundle)
+    sft_bundle = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
 
@@ -66,8 +63,6 @@ def main():
                         'Skipping'.format(args.in_centroid))
         return
 
-    ref_img = nib.load(args.reference)
-
     sft_bundle.to_vox()
     bundle_streamlines_vox = sft_bundle.streamlines
     bundle_streamlines_vox._data *= args.upsample
@@ -76,7 +71,7 @@ def main():
     centroid_streamlines_vox = sft_centroid.streamlines
     centroid_streamlines_vox._data *= args.upsample
 
-    upsampled_shape = [s * args.upsample for s in ref_img.shape]
+    upsampled_shape = [s * args.upsample for s in sft.space_attribute[1]]
     tdi_mask = compute_tract_counts_map(bundle_streamlines_vox,
                                         upsampled_shape) > 0
 
@@ -89,10 +84,10 @@ def main():
     # Save the (upscaled) labels mask
     labels_mask = np.zeros(tdi_mask.shape)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
-    rescaled_affine = ref_img.affine
+    rescaled_affine = sft.space_attribute[0]
     rescaled_affine[:3, :3] /= args.upsample
     labels_img = nib.Nifti1Image(labels_mask, rescaled_affine)
-    upsampled_spacing = ref_img.header['pixdim'][1:4] / args.upsample
+    upsampled_spacing = sft.space_attribute[2] / args.upsample
     labels_img.header.set_zooms(upsampled_spacing)
     nib.save(labels_img, args.output_map)
 

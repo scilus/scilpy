@@ -34,7 +34,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.reference])
+    assert_inputs_exist(parser, args.in_bundle, optionnal=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
@@ -47,10 +47,8 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    ref_img = nib.load(args.reference)
-
     tdi = compute_tract_counts_map(sft, ref_img.shape)
-    voxel_volume = np.prod(ref_img.header['pixdim'][1:4])
+    voxel_volume = np.prod(np.prod(sft.space_attribute[2]))
     stats[bundle_name]['volume'] = np.count_nonzero(tdi) * voxel_volume
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))

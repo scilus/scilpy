@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 import argparse
 import json
@@ -24,16 +23,15 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
-
-    add_reference_arg(p)
-
     p.add_argument('metrics', nargs='+',
                    help='Nifti metric(s) to compute statistics on.')
+
     p.add_argument('--density_weighting',
                    action='store_true',
                    help='If set, weight statistics by the number of '
                         'fibers passing through each voxel.')
 
+    add_reference_arg(p)
     add_json_args(p)
 
     return p

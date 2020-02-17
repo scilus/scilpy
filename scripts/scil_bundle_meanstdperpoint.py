@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 import argparse
 import json
@@ -26,8 +25,6 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
 
-    add_reference(p)
-
     p.add_argument('label_map',
                    help='Label map (.npz) of the corresponding '
                         'fiber bundle.')
@@ -36,13 +33,15 @@ def _build_arg_parser():
                         'bundle/centroid streamline.')
     p.add_argument('metrics', nargs='+',
                    help='Nifti metric(s) to compute statistics on.')
+
     p.add_argument('--density_weighting', action='store_true',
                    help='If set, weight statistics by the number of '
-                        'tracks passing through each voxel.')
+                        'streamlines passing through each voxel.')
     p.add_argument('--distance_weighting', action='store_true',
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
 
+    add_reference(p)
     add_json_args(p)
     return p
 
@@ -60,7 +59,7 @@ def main():
 
     stats = {}
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
-    if len(sft.streamlines) == 0:
+    if len(sft) == 0:
         stats[bundle_name] = None
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
@@ -94,7 +93,7 @@ def main():
     bundle_data_int = sft.streamlines.data.astype(np.int)
     stats[bundle_name] = {}
     for metric in metrics:
-        metric_data = metric.get_data()
+        metric_data = metric.get_fdata()
         current_metric_fname, _ = split_name_with_nii(
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}

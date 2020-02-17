@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 import argparse
 import json
@@ -24,7 +23,6 @@ def _build_arg_parser():
                    help='Bundle name.')
 
     add_json_args(p)
-
     add_overwrite_arg(p)
 
     return p
