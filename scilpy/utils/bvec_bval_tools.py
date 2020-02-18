@@ -120,6 +120,66 @@ def get_shell_indices(bvals, shell, tol=10):
         np.logical_and(bvals < shell + tol, bvals > shell - tol))[0]
 
 
+def volumes_iterator(img, size, dtype=None):
+    """Generator that iterates on gradient volumes of data"""
+
+    nb_volumes = img.shape[-1]
+
+    if size == nb_volumes:
+        yield list(range(nb_volumes)), img.get_data(dtype=dtype)
+    else:
+        for i in range(0, nb_volumes - size, size):
+            logging.info(
+                'Loading volumes {} to {}.'.format(i, i + size - 1))
+            yield list(range(i, i + size)), img.dataobj[..., i:i + size]
+        if i + size < nb_volumes:
+            logging.info(
+                'Loading volumes {} to {}.'.format(i + size, nb_volumes - 1))
+            yield list(range(i + size, nb_volumes)), img.dataobj[..., i + size:]
+
+
+def extract_dwi_shell(dwi_img, bvals, bvecs, bvals_to_extract, tol=10,
+                      block_size=None, dtype=None):
+    """
+    Parameters
+    ----------
+    dwi_img: nib.Nifti1image of the DWI image.
+    bvals: loaded bvals
+    bvecs: loaded bvecs
+    tol:
+    block_size:
+        Note. Was previously always set to img.shape[-1] if None.
+    """
+    # Finding the volume indices that correspond to the shells to extract.
+    indices = [get_shell_indices(bvals, shell, tol=tol)
+               for shell in bvals_to_extract]
+    indices = np.unique(np.sort(np.hstack(indices)))
+    if len(indices) == 0:
+        raise ValueError('There are no volumes that have the supplied '
+                         'b-values.')
+
+    if block_size is None:
+        # Using the easy way. Faster.
+        shell_data = dwi_img.get_fdata(dtype=dtype)[..., indices]
+    else:
+        # Loading the shells by iterating through blocks of volumes.
+        # This approach is slower for small files, but allows very big files to
+        # be split with less memory usage.
+
+        shell_data = np.zeros((dwi_img.shape[:-1] + (len(indices),)))
+        for vi, data in volumes_iterator(dwi_img, block_size, dtype):
+            in_volume = np.array([i in vi for i in indices])
+            in_data = np.array([i in indices for i in vi])
+            shell_data[..., in_volume] = data[..., in_data]
+
+    bvals = bvals[indices].astype(int)
+    bvals.shape = (1, len(bvals))
+
+    bvecs = bvecs[indices, :]
+
+    return shell_data, bvals, bvecs, indices
+
+
 def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     """
     Convert a fsl dir_grad.bvec/.bval files to mrtrix encoding.b file.
