@@ -105,6 +105,9 @@ def main():
                                                           args.tolerance,
                                                           args.block_size)
 
+    bvals = bvals.astype(int)
+    bvals.shape = (1, len(bvals))
+
     np.savetxt(args.output_bvals, bvals, '%d')
     np.savetxt(args.output_bvecs, bvecs.T, '%0.15f')
     nib.save(nib.Nifti1Image(shell_data, img.affine, img.header),

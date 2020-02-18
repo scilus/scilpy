@@ -155,7 +155,7 @@ def extract_dwi_shell(dwi_img, bvals, bvecs, bvals_to_extract, tol=10,
         Loads the data using this block size. Useful when the data is too large
         to be loaded in memory.
     """
-    
+
     # Finding the volume indices that correspond to the shells to extract.
     indices = [get_shell_indices(bvals, shell, tol=tol)
                for shell in bvals_to_extract]
@@ -178,9 +178,7 @@ def extract_dwi_shell(dwi_img, bvals, bvecs, bvals_to_extract, tol=10,
             in_data = np.array([i in indices for i in vi])
             shell_data[..., in_volume] = data[..., in_data]
 
-    bvals = bvals[indices].astype(int)
-    bvals.shape = (1, len(bvals))
-
+    bvals = bvals[indices]
     bvecs = bvecs[indices, :]
 
     return shell_data, bvals, bvecs, indices
