@@ -143,13 +143,19 @@ def extract_dwi_shell(dwi_img, bvals, bvecs, bvals_to_extract, tol=10,
     """
     Parameters
     ----------
-    dwi_img: nib.Nifti1image of the DWI image.
-    bvals: loaded bvals
-    bvecs: loaded bvecs
-    tol:
-    block_size:
-        Note. Was previously always set to img.shape[-1] if None.
+    dwi_img: nib.Nifti1image
+        Loaded DWI image.
+    bvals: array (N,)
+        loaded bvals
+    bvecs: array (N,D)
+        loaded bvecs
+    tol: int
+        Tolerance to accept a bval
+    block_size: int
+        Loads the data using this block size. Useful when the data is too large
+        to be loaded in memory.
     """
+    
     # Finding the volume indices that correspond to the shells to extract.
     indices = [get_shell_indices(bvals, shell, tol=tol)
                for shell in bvals_to_extract]
