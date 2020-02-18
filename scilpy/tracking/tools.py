@@ -14,14 +14,8 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
 
     Parameters
     ----------
-    streamlines: list
-        List of list of 3D points.
-
-    data_per_point: dict
-        dict of data with one value per point per streamline
-    data_per_streamline: dict
-        dict of data with one value per streamline
-
+    sft: StatefulTractogram (dipy.io.stateful_tractogram)
+        SFT containing the streamlines to filter.
     min_length: float
         Minimum length of streamlines.
     max_length: float
@@ -31,7 +25,6 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     ------
     filtered_streamlines: list
         List of filtered streamlines by length.
-
     filtered_data_per_point: dict
         dict of data per point for filtered streamlines.
     filtered_data_per_streamline: dict
