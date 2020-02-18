@@ -4,7 +4,6 @@ import argparse
 import json
 import logging
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -56,15 +55,8 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_streamlines, \
-        new_per_point, \
-        new_per_streamline = filter_streamlines_by_length(sft,
-                                                          args.minL,
-                                                          args.maxL)
-
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
-                                          data_per_streamline=new_per_streamline,
-                                          data_per_point=new_per_point)
+    new_sft, new_streamlines, new_per_point, new_per_streamline = \
+        filter_streamlines_by_length(sft, args.minL, args.maxL)
 
     if not new_streamlines:
         if args.no_empty:

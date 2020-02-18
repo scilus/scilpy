@@ -6,28 +6,36 @@ import numpy as np
 
 from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 
 
-def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
+def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
+                                 return_details=True):
     """
     Filter streamlines using minimum and max length
 
     Parameters
     ----------
-    sft: StatefulTractogram (dipy.io.stateful_tractogram)
+    sft: StatefulTractogram
         SFT containing the streamlines to filter.
     min_length: float
-        Minimum length of streamlines.
+        Minimum length of streamlines, in the same space as the sft.
     max_length: float
-        Maximum length of streamlines.
+        Maximum length of streamlines, in the same space as the sft.
+    return_details: bool
+        If true, returns the filtered streamline, data_per_point and
+        data_per_streamlines together with the sft.
 
     Return
     ------
-    filtered_streamlines: list
+    good_sft : StatefulTractogram
+        A tractogram without short streamlines.
+    (optionally:)
+    good_streamlines: list
         List of filtered streamlines by length.
-    filtered_data_per_point: dict
+    good_data_per_point: dict
         dict of data per point for filtered streamlines.
-    filtered_data_per_streamline: dict
+    good_data_per_streamline: dict
         dict of data per streamline for filtered streamlines.
     """
 
@@ -40,11 +48,19 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     filter_stream = np.logical_and(lengths >= min_length,
                                    lengths <= max_length)
 
-    filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
-    filtered_data_per_point = sft.data_per_point[filter_stream]
-    filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
+    good_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
+    good_data_per_point = sft.data_per_point[filter_stream]
+    good_data_per_streamline = sft.data_per_streamline[filter_stream]
 
-    return filtered_streamlines, filtered_data_per_point, filtered_data_per_streamline
+    good_sft = StatefulTractogram(good_streamlines, sft, Space.RASMM,
+                                  data_per_streamline=good_data_per_streamline,
+                                  data_per_point=good_data_per_point)
+
+    if return_details:
+        return good_sft, good_streamlines, good_data_per_point, \
+               good_data_per_streamline
+    else:
+        return good_sft
 
 
 def get_subset_streamlines(streamlines,
