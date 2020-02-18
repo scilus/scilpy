@@ -8,59 +8,53 @@ from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 
+                                                                #from dipy.tracking.streamlinespeed import length # Philippe utilisait ce length. Différent?
 
-def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf,
-                                 return_details=True):
+
+def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
-    Filter streamlines using minimum and max length
+    Filter streamlines using minimum and max length.
 
     Parameters
     ----------
     sft: StatefulTractogram
         SFT containing the streamlines to filter.
     min_length: float
-        Minimum length of streamlines, in the same space as the sft.
+        Minimum length of streamlines, in mm.
     max_length: float
-        Maximum length of streamlines, in the same space as the sft.
-    return_details: bool
-        If true, returns the filtered streamline, data_per_point and
-        data_per_streamlines together with the sft.
+        Maximum length of streamlines, in mm.
 
     Return
     ------
-    good_sft : StatefulTractogram
+    filtered_sft : StatefulTractogram
         A tractogram without short streamlines.
-    (optionally:)
-    good_streamlines: list
+    filtered_streamlines: list
         List of filtered streamlines by length.
-    good_data_per_point: dict
-        dict of data per point for filtered streamlines.
-    good_data_per_streamline: dict
-        dict of data per streamline for filtered streamlines.
     """
 
-    lengths = []
-    for streamline in sft.streamlines:
-        lengths.append(length(streamline))
+    # Make sure we are in world space
+    orig_space = sft.space
+    sft.to_rasmm()
 
-    lengths = np.asarray(lengths)
+    # Compute streamlines lengths
+    lengths = length(sft.streamlines)
 
+    # Filter lengths
     filter_stream = np.logical_and(lengths >= min_length,
                                    lengths <= max_length)
+    filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
 
-    good_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
-    good_data_per_point = sft.data_per_point[filter_stream]
-    good_data_per_streamline = sft.data_per_streamline[filter_stream]
+    # Create final sft
+    filtered_sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
+                                  origin=sft.origin)                             # ??? Philippe utilisait shifterd_origin. A pas l'air d'exister...
 
-    good_sft = StatefulTractogram(good_streamlines, sft, Space.RASMM,
-                                  data_per_streamline=good_data_per_streamline,
-                                  data_per_point=good_data_per_point)
+    # Return to original space
+    if orig_space == Space.VOX:
+        filtered_sft.to_vox()
+    elif orig_space == Space.VOXMM:
+        filtered_sft.to_voxmm()
 
-    if return_details:
-        return good_sft, good_streamlines, good_data_per_point, \
-               good_data_per_streamline
-    else:
-        return good_sft
+    return filtered_sft, filtered_streamlines
 
 
 def get_subset_streamlines(streamlines,

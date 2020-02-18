@@ -26,9 +26,9 @@ def _build_args_parser():
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
     p.add_argument('--minL', default=0., type=float,
-                   help='Minimum length of streamlines. [%(default)s]')
+                   help='Minimum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--maxL', default=np.inf, type=float,
-                   help='Maximum length of streamlines. [%(default)s]')
+                   help='Maximum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -55,7 +55,7 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_sft, new_streamlines, new_per_point, new_per_streamline = \
+    new_sft, new_streamlines = \
         filter_streamlines_by_length(sft, args.minL, args.maxL)
 
     if not new_streamlines:
