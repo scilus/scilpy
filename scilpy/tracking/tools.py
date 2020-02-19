@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import division
+import warnings
 
 import numpy as np
 
 from dipy.tracking.metrics import downsample
-from dipy.tracking.streamline import set_number_of_points
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.tracking.streamlinespeed import length
+from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
@@ -50,17 +50,14 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
                                       origin=sft.origin)
 
     # Return to original space
-    if orig_space == Space.VOX:
-        filtered_sft.to_vox()
-    elif orig_space == Space.VOXMM:
-        filtered_sft.to_voxmm()
+    filtered_sft.to_space(orig_space)
 
     return filtered_sft
 
 
 def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     """
-    Extract a specific number of streamlines
+    Extract a specific number of streamlines.
 
     Parameters
     ----------
@@ -78,20 +75,22 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     """
 
     rng = np.random.RandomState(rng_seed)
-    ind = np.arange(sft._get_streamline_count)
+    ind = np.arange(len(sft.streamlines))
     rng.shuffle(ind)
 
     subset_streamlines = list(np.asarray(sft.streamlines)[ind[:max_streamlines]])
-                                                                                        # Calculated data_per_point and data_per_streamline
-                                                                                        # Not needed to create a tractogram. But do we want to
-                                                                                        # compute it manually?
+    subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
+    subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
+
     subset_sft = StatefulTractogram(subset_streamlines, sft, Space.RASMM,
+                                    data_per_point=subset_data_per_point,
+                                    data_per_streamline=subset_data_per_streamline,
                                     origin=sft.origin)
 
     return subset_sft
 
 
-def resample_streamlines_num_points(streamlines, num_points=0, arc_length=False):
+def resample_streamlines_num_points(streamlines, num_points, arc_length=False):
     """
     Resample streamlines using number of points per streamline
 
@@ -121,34 +120,42 @@ def resample_streamlines_num_points(streamlines, num_points=0, arc_length=False)
     return resampled_streamlines
 
 
-def resample_streamlines_step_size(streamlines, step_size=0, arc_length=False):
+def resample_streamlines_step_size(sft, step_size):
     """
     Resample streamlines using a fixed step size.
 
     Parameters
     ----------
-    streamlines: list
-        List of list of 3D points. Ex, if working with StatefulTractograms:
-        sft.streamlines.
-    num_points: int
-        Number of points per streamline in the output.
-    arc_length: bool
-        Whether to downsample using arc length parametrization.
+    sft: StatefulTractogram
+        SFT containing the streamlines to subsample.
+    step_size: int
+        Size of the new steps, in mm.
 
     Return
     ------
-    resampled_streamlines: list
-        List of resampled streamlines.
+    resampled_sft: StatefulTractogram
+        The resampled streamlines as a sft.
     """
-    resampled_streamlines = []
-    for streamline in streamlines:
-        if arc_length:
-            line = set_number_of_points(streamline, num_points)
-        else:
-            line = downsample(streamline, num_points)
-        resampled_streamlines.append(line)
+    # Make sure we are in world space
+    orig_space = sft.space
+    sft.to_rasmm()
 
-    return resampled_streamlines
+    # Resample streamlines
+    lengths = length(sft.streamlines)
+    nb_points = np.ceil(lengths / step_size).astype(int)
+    if np.any(nb_points == 1):
+        warnings.warn("Some streamlines are shorter than the provided "
+                      "step size...")
+        nb_points[nb_points == 1] = 2
+    resampled_streamlines = [set_number_of_points(s, n) for s, n in
+                             zip(sft.streamlines, nb_points)]
+    resampled_sft = StatefulTractogram(resampled_streamlines, sft,
+                                       Space.RASMM, origin=sft.origin)
+
+    # Return to original space
+    resampled_sft.to_space(orig_space)
+
+    return resampled_sft
 
 
 def get_theta(requested_theta, tracking_type):

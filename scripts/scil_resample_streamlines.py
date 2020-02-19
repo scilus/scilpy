@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 import argparse
 
-from nibabel.streamlines import load, save, Tractogram
-import numpy as np
+from dipy.io.streamline import save_tractogram
 
 from scilpy.tracking.tools import resample_streamlines_num_points
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.io.utils import (assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_overwrite_arg,
+                             add_reference_arg)
+from scilpy.io.streamlines import load_tractogram_with_reference
 
 
 def _build_args_parser():
@@ -25,6 +27,7 @@ def _build_args_parser():
                    help='Whether to downsample using arc length ' +
                    'parametrization. [%(default)s]')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -38,19 +41,13 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    tractogram_file = load(args.in_tractogram)
-    streamlines = list(tractogram_file.streamlines)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_streamlines = resample_streamlines_num_points(streamlines,
+    sft.streamlines = resample_streamlines_num_points(sft.streamlines,
                                                       args.nb_pts_per_streamline,
                                                       args.arclength)
 
-    new_tractogram = Tractogram(
-        new_streamlines,
-        data_per_streamline=tractogram_file.tractogram.data_per_streamline,
-        affine_to_rasmm=np.eye(4))
-
-    save(new_tractogram, args.out_tractogram, header=tractogram_file.header)
+    save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

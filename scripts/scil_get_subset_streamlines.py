@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 import argparse
 
-from nibabel.streamlines import load, save, Tractogram
-import numpy as np
 from dipy.io.streamline import save_tractogram
+from scilpy.io.streamlines import load_tractogram_with_reference
 
 from scilpy.tracking.tools import get_subset_streamlines
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_overwrite_arg,
+                             add_reference_arg)
 
 
 def _build_args_parser():
@@ -25,6 +25,7 @@ def _build_args_parser():
     p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the resampling.')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
