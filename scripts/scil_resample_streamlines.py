@@ -5,7 +5,7 @@ import argparse
 from nibabel.streamlines import load, save, Tractogram
 import numpy as np
 
-from scilpy.tracking.tools import resample_streamlines
+from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 
@@ -41,9 +41,9 @@ def main():
     tractogram_file = load(args.in_tractogram)
     streamlines = list(tractogram_file.streamlines)
 
-    new_streamlines = resample_streamlines(streamlines,
-                                           args.nb_pts_per_streamline,
-                                           args.arclength)
+    new_streamlines = resample_streamlines_num_points(streamlines,
+                                                      args.nb_pts_per_streamline,
+                                                      args.arclength)
 
     new_tractogram = Tractogram(
         new_streamlines,
