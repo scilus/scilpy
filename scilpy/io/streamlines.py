@@ -6,6 +6,8 @@ import os
 import six
 
 from dipy.io.streamline import load_tractogram
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
 from nibabel.streamlines import Field, Tractogram
 from nibabel.streamlines.trk import (get_affine_rasmm_to_trackvis,
@@ -144,3 +146,40 @@ def load_tractogram_with_reference(parser, args, filepath,
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
+
+
+def compress_sft(sft, tol_error=0.01, max_segment_length=10):
+    """ Compress a stateful tractogram. Not included in Dipy yet.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to compress.
+    tol_error: float (optional)
+        Tolerance error in mm (default: 0.01). A rule of thumb is to set it
+        to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
+        streamlines.
+    max_segment_length : float (optional)
+        Maximum length in mm of any given segment produced by the compression.
+        The default is 10mm. (In [Presseau15]_, they used a value of `np.inf`).
+
+    Returns
+    -------
+    compressed_sft : StatefulTractogram
+    """
+    # Go to world space
+    orig_space = sft.space
+    sft.to_rasmm()
+
+    # Compress streamlines
+    compressed_streamlines = compress_streamlines(sft.streamlines,
+                                                  tol_error=tol_error,
+                                                  max_segment_length=max_segment_length)
+
+    compressed_sft = StatefulTractogram(compressed_streamlines, sft,
+                                    Space.RASMM, sft.origin)
+
+    # Return to original space
+    compressed_sft.to_space(orig_space)
+
+    return compressed_sft
