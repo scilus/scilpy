@@ -190,25 +190,3 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
             = final_streamline.T
         current_position = max_position
         nb_iteration -= 1
-
-
-def transform_sft(sft, affine):
-    """ Apply an affine to a SFT.
-
-    Note.
-    1. To apply transform to a tractogram, use:
-    tractogram.tractogram.apply_affine(transfo)
-    See scil_apply_transform_to_tractogram for an example.
-    2. To apply transform to streamlines, create tractogram from
-    streamlines and do as in 1.
-    tractogram = nib.streamlines.Tractogram(streamlines)
-    3. To apply transform to SFT, tractogram is already available but
-    private. We will still use this.
-
-    Parameters
-    ----------
-    sft: StatefulTractogram
-    affine: array
-        Transform to apply.
-    """
-    sft._tractogram.apply_affine(affine)
