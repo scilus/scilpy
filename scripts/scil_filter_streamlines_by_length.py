@@ -53,11 +53,15 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
+    if args.minL == 0 and np.isinf(args.maxL):
+        logging.debug("You have not specified minL nor maxL. Output will "
+                      "simply be a copy of your input!")
+
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
-    if not new_sft.streamlines:
+    if len(new_sft.streamlines) == 0:
         if args.no_empty:
             logging.debug("The file {} won't be written "
                           "(0 streamline).".format(args.out_tractogram))

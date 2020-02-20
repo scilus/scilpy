@@ -44,10 +44,10 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
 
     # Create final sft
-    filtered_sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-                                      data_per_point=filtered_data_per_point,
-                                      data_per_streamline=filtered_data_per_streamline,
-                                      origin=sft.origin)
+    filtered_sft = StatefulTractogram.from_sft(
+        filtered_streamlines, sft,
+        data_per_point=filtered_data_per_point,
+        data_per_streamline=filtered_data_per_streamline)
 
     # Return to original space
     filtered_sft.to_space(orig_space)
@@ -82,10 +82,10 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
     subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
 
-    subset_sft = StatefulTractogram(subset_streamlines, sft, Space.RASMM,
-                                    data_per_point=subset_data_per_point,
-                                    data_per_streamline=subset_data_per_streamline,
-                                    origin=sft.origin)
+    subset_sft = StatefulTractogram.from_sft(
+        subset_streamlines, sft,
+        data_per_point=subset_data_per_point,
+        data_per_streamline=subset_data_per_streamline)
 
     return subset_sft
 
@@ -149,8 +149,7 @@ def resample_streamlines_step_size(sft, step_size):
         nb_points[nb_points == 1] = 2
     resampled_streamlines = [set_number_of_points(s, n) for s, n in
                              zip(sft.streamlines, nb_points)]
-    resampled_sft = StatefulTractogram(resampled_streamlines, sft,
-                                       Space.RASMM, origin=sft.origin)
+    resampled_sft = StatefulTractogram.from_sft(resampled_streamlines, sft)
 
     # Return to original space
     resampled_sft.to_space(orig_space)

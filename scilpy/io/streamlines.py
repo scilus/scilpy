@@ -148,7 +148,7 @@ def load_tractogram_with_reference(parser, args, filepath,
     return sft
 
 
-def compress_sft(sft, tol_error=0.01, max_segment_length=10):
+def compress_sft(sft, tol_error=0.01):
     """ Compress a stateful tractogram. Not included in Dipy yet.
 
     Parameters
@@ -173,11 +173,9 @@ def compress_sft(sft, tol_error=0.01, max_segment_length=10):
 
     # Compress streamlines
     compressed_streamlines = compress_streamlines(sft.streamlines,
-                                                  tol_error=tol_error,
-                                                  max_segment_length=max_segment_length)
+                                                  tol_error=tol_error)
 
-    compressed_sft = StatefulTractogram(compressed_streamlines, sft,
-                                    Space.RASMM, sft.origin)
+    compressed_sft = StatefulTractogram.from_sft(compressed_streamlines, sft)
 
     # Return to original space
     compressed_sft.to_space(orig_space)
