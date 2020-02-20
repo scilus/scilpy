@@ -19,30 +19,41 @@ def _build_arg_parser():
                                             'encoding scheme matrix.')
 
     p.add_argument('in_matrix',
-                   help='')
+                   help='Connectivity matrix in numpy format.')
     p.add_argument('out_png',
-                   help='')
+                   help='Output filename for the figure.')
 
-    p.add_argument('--labels_list',
-                   help='')
-    p.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
-                   help='')
-    p.add_argument('--lookup_table',
-                   help='')
+    g1 = p.add_argument_group(title='Naming options')
+    g1.add_argument('--labels_list',
+                   help='List provided to the decomposition script,\n'
+                        'the json must contain labels rather than coordinates')
+    g1.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
+                   help='Json file with the sub-network as keys and x/y '
+                        'lists as value AND the key to use.')
+    g1.add_argument('--lookup_table',
+                   help='Lookup table with the label number as keys and the '
+                        'name as values.')
 
-    p.add_argument('--name_axis', action='store_true',
-                   help='')
-    p.add_argument('--font_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'), default=(10, 10),
-                   help='')
-    p.add_argument('--font_angle', nargs=2, metavar=('X_ANGLE', 'Y_ANGLE'), default=(90, 0),
-                   help='')
+    g2 = p.add_argument_group(title='Matplotlib options')
+    g2.add_argument('--name_axis', action='store_true',
+                   help='Use the provided info/files to name axis')
+    g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
+                   default=(10, 10),
+                   help='Font size of the X and Y axis labels. [%(default)s]')
+    g2.add_argument('--axis_text_angle', nargs=2, metavar=('X_ANGLE', 'Y_ANGLE'),
+                   default=(90, 0),
+                   help='Text angle of the X and Y axis labels. [%(default)s]')
+    g2.add_argument('--colormap', default='viridis',
+                   help='Colormap to use for the matrix. [%(default)s]')
+    g2.add_argument('--display_legend', action='store_true',
+                   help='Display the colorbar next to the matrix.')
+    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
+                   default=None, type=int,
+                   help='Write the values at the center of each node.\n'
+                   'The font size and the rouding parameters can be adjusted.')
 
-    p.add_argument('--colormap', default='viridis',
-                   help='')
-    p.add_argument('--show_legend', action='store_true',
-                   help='')
-    p.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'), default=None, type=int,
-                   help='')
+    p.add_argument('--show_only', action='store_true',
+                   help='Do not save the figure, simply display it.')
 
     add_overwrite_arg(p)
 
@@ -65,8 +76,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    # assert_inputs_exist(parser, args.encoding_file)
-    # assert_outputs_exist(parser, args, args.flipped_encoding)
+    assert_inputs_exist(parser, args.in_matrix)
+    assert_outputs_exist(parser, args, args.out_png)
 
     matrix = np.load(args.in_matrix)
 
@@ -77,8 +88,12 @@ def main():
                    vmin=0.0, vmax=np.max(matrix))
 
     if args.write_values:
+        if np.prod(matrix.shape) > 1000:
+            logging.warning('Large matrix, please consider not using '
+                            '--write_values.')
         ax = write_values(ax, matrix, args.write_values)
-    if args.show_legend:
+
+    if args.display_legend:
         fig.colorbar(im, ax=ax)
 
     if args.name_axis:
@@ -86,12 +101,13 @@ def main():
         y_ticks = np.arange(matrix.shape[1])
 
         if args.labels_list:
-            labels_list = np.loadtxt(args.labels_list).astype(np.int16)
+            labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
 
             if not args.reorder_json and not args.lookup_table:
                 if len(labels_list) != matrix.shape[0] \
                         or len(labels_list) != matrix.shape[1]:
-                    logging.warning('Matrix not the same size as the label list.')
+                    logging.warning('The provided matrix not the same size as '
+                                    'the labels list.')
                 x_legend = labels_list[0:matrix.shape[0]]
                 y_legend = labels_list[0:matrix.shape[1]]
 
@@ -100,18 +116,20 @@ def main():
                 with open(filename) as json_data:
                     config = json.load(json_data)
 
-                    x_legend = labels_list[config[key][0]]
-                    y_legend = labels_list[config[key][1]]
+                    x_legend = config[key][0]
+                    y_legend = config[key][1]
 
             if args.lookup_table:
+                logging.warning('Using a lookup table, make sure the reordering '
+                                'json contain labels, not coordinates')
                 with open(args.lookup_table) as json_data:
                     lut = json.load(json_data)
 
                 x_legend = []
                 y_legend = []
                 if args.reorder_json:
-                    x_list = labels_list[config[key][0]]
-                    y_list = labels_list[config[key][1]]
+                    x_list = config[key][0]
+                    y_list = config[key][1]
                 else:
                     x_list = labels_list[0:matrix.shape[0]]
                     y_list = labels_list[0:matrix.shape[1]]
@@ -130,10 +148,14 @@ def main():
             logging.warning('Legend is not the same size as the data.'
                             'Make sure you are using the same reordering json.')
         plt.xticks(x_ticks, x_legend,
-                   rotation=args.font_angle[0], fontsize=args.font_size[0])
+                   rotation=args.axis_text_angle[0], fontsize=args.axis_text_size[0])
         plt.yticks(y_ticks, y_legend,
-                   rotation=args.font_angle[1], fontsize=args.font_size[1])
-    plt.show()
+                   rotation=args.axis_text_angle[1], fontsize=args.axis_text_size[1])
+
+    if args.show_only:
+        plt.show()
+    else:
+        plt.savefig(args.out_png, dpi=300, bbox_inches='tight')
 
 
 if __name__ == "__main__":

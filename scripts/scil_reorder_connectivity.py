@@ -1,6 +1,21 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Re-order a connectivity matrix using a json file in a format such as:
+    {"temporal": [[1,3,5,7], [0,2,4,6]]}.
+The key is to identify the sub-network, the first list is for the
+column (x) and the second is for the row (y).
+
+The values refers to the coordinates in the matrix, but if the --labels_list 
+parameter is used, the values will refers to the label which will be converted
+to the appropriate coordinates. This file must be the same as the one provided
+to the scil_decompose_connectivity.py
+
+To subsequently use scil_visualize_connectivity.py with a lookup table, you
+must use a label-based reording json and use --labels_list.
+"""
+
 import argparse
 import json
 
@@ -12,20 +27,21 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Flip one or more axes of the '
-                                            'encoding scheme matrix.')
+                                description=__doc__)
 
     p.add_argument('in_matrix',
-                   help='')
+                   help='Connectivity matrix in numpy format.')
     p.add_argument('in_json',
-                   help='')
+                   help='Json file with the sub-network as keys and x/y '
+                        'lists as value.')
     p.add_argument('out_prefix',
-                   help='')
+                   help='Prefix for the output filename.')
 
     p.add_argument('--keys', nargs='+',
-                   help='')
+                   help='Only generate the specified sub-network.')
     p.add_argument('--labels_list',
-                   help='')
+                   help='List provided to the decomposition script,\n'
+                        'the json must contain labels rather than coordinates')
 
     add_overwrite_arg(p)
 
@@ -36,22 +52,28 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    # assert_inputs_exist(parser, args.encoding_file)
-    # assert_outputs_exist(parser, args, args.flipped_encoding)
+    assert_inputs_exist(parser, [args.in_matrix, args.in_json],
+                        optional=args.labels_list)
 
     with open(args.in_json) as json_data:
         config = json.load(json_data)
-
     if args.keys:
         keys = args.keys
     else:
         keys = config.keys()
-
+    out_filenames = []
     for key in keys:
+        out_filenames.append("{}_{}.npy".format(args.out_prefix, key))
+    assert_outputs_exist(parser, args, out_filenames)
+
+    for i, key in enumerate(keys):
         if args.labels_list:
-            labels_list = np.loadtxt(args.labels_list).astype(np.int16)
-            indices_1 = labels_list[config[key][0]]
-            indices_2 = labels_list[config[key][1]]
+            labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
+            indices_1, indices_2 = [], []
+            for j in config[key][0]:
+                indices_1.append(labels_list.index(j))
+            for j in config[key][1]:
+                indices_2.append(labels_list.index(j))
         else:
             indices_1 = config[key][0]
             indices_2 = config[key][1]
@@ -59,7 +81,7 @@ def main():
         matrix = np.load(args.in_matrix)
         tmp_matrix = matrix[tuple(indices_1), :]
         tmp_matrix = tmp_matrix[:, tuple(indices_2)]
-        np.save("{}_{}".format(args.out_prefix, key), tmp_matrix)
+        np.save(out_filenames[i], tmp_matrix)
 
 
 if __name__ == "__main__":
