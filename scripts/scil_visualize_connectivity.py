@@ -1,6 +1,20 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Script to display a connectivity matrix and adjust the desired visualization.
+Made to work with scil_decompose_connectivity.py and
+scil_visualize_connectivity.py.
+
+This scripts can either display the axis labels as:
+- Coordinates (0..N)
+- Labels (using --labels_list)
+- Names (using --labels_list and --lookup_table)
+
+If the matrix was made from a bigger matrix using scil_reorder_connectivity.py
+provide the json and specified the key (using --reorder_json)
+"""
+
 import argparse
 import json
 import logging
@@ -25,32 +39,33 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='Naming options')
     g1.add_argument('--labels_list',
-                   help='List provided to the decomposition script,\n'
-                        'the json must contain labels rather than coordinates')
+                    help='List provided to the decomposition script,\n'
+                         'the json must contain labels rather than coordinates')
     g1.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
-                   help='Json file with the sub-network as keys and x/y '
-                        'lists as value AND the key to use.')
+                    help='Json file with the sub-network as keys and x/y '
+                         'lists as value AND the key to use.')
     g1.add_argument('--lookup_table',
-                   help='Lookup table with the label number as keys and the '
-                        'name as values.')
+                    help='Lookup table with the label number as keys and the '
+                         'name as values.')
 
     g2 = p.add_argument_group(title='Matplotlib options')
     g2.add_argument('--name_axis', action='store_true',
-                   help='Use the provided info/files to name axis')
+                    help='Use the provided info/files to name axis')
     g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
-                   default=(10, 10),
-                   help='Font size of the X and Y axis labels. [%(default)s]')
+                    default=(10, 10),
+                    help='Font size of the X and Y axis labels. [%(default)s]')
     g2.add_argument('--axis_text_angle', nargs=2, metavar=('X_ANGLE', 'Y_ANGLE'),
-                   default=(90, 0),
-                   help='Text angle of the X and Y axis labels. [%(default)s]')
+                    default=(90, 0),
+                    help='Text angle of the X and Y axis labels. [%(default)s]')
     g2.add_argument('--colormap', default='viridis',
-                   help='Colormap to use for the matrix. [%(default)s]')
+                    help='Colormap to use for the matrix. [%(default)s]')
     g2.add_argument('--display_legend', action='store_true',
-                   help='Display the colorbar next to the matrix.')
+                    help='Display the colorbar next to the matrix.')
     g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
-                   default=None, type=int,
-                   help='Write the values at the center of each node.\n'
-                   'The font size and the rouding parameters can be adjusted.')
+                    default=None, type=int,
+                    help='Write the values at the center of each node.\n'
+                         'The font size and the rouding parameters can be '
+                         'adjusted.')
 
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
@@ -148,9 +163,11 @@ def main():
             logging.warning('Legend is not the same size as the data.'
                             'Make sure you are using the same reordering json.')
         plt.xticks(x_ticks, x_legend,
-                   rotation=args.axis_text_angle[0], fontsize=args.axis_text_size[0])
+                   rotation=args.axis_text_angle[0],
+                   fontsize=args.axis_text_size[0])
         plt.yticks(y_ticks, y_legend,
-                   rotation=args.axis_text_angle[1], fontsize=args.axis_text_size[1])
+                   rotation=args.axis_text_angle[1],
+                   fontsize=args.axis_text_size[1])
 
     if args.show_only:
         plt.show()

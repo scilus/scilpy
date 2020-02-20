@@ -7,7 +7,7 @@ Re-order a connectivity matrix using a json file in a format such as:
 The key is to identify the sub-network, the first list is for the
 column (x) and the second is for the row (y).
 
-The values refers to the coordinates in the matrix, but if the --labels_list 
+The values refers to the coordinates in the matrix, but if the --labels_list
 parameter is used, the values will refers to the label which will be converted
 to the appropriate coordinates. This file must be the same as the one provided
 to the scil_decompose_connectivity.py
