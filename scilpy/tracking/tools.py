@@ -128,7 +128,7 @@ def resample_streamlines_step_size(sft, step_size):
     ----------
     sft: StatefulTractogram
         SFT containing the streamlines to subsample.
-    step_size: int
+    step_size: float
         Size of the new steps, in mm.
 
     Return
@@ -136,6 +136,16 @@ def resample_streamlines_step_size(sft, step_size):
     resampled_sft: StatefulTractogram
         The resampled streamlines as a sft.
     """
+    # Check that step_size makes sense
+    if step_size == 0:
+        raise ValueError("Step size can't be 0!")
+    elif step_size < 0.1:
+        warnings.warn("The value of your step size seems suspiciously low. "
+                      "Please check.")
+    elif step_size > np.max(sft.voxel_sizes):
+        warnings.warn("The value of your step size seems suspiciously high. "
+                      "Please check.")
+
     # Make sure we are in world space
     orig_space = sft.space
     sft.to_rasmm()
