@@ -10,12 +10,11 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.operations import (is_float, absolute_value, around,
-                                     addition, ceil, closing, convert,
-                                     difference, dilation, division, erosion,
-                                     floor, gaussian_blur, intersection,
+                                     addition, ceil, convert,
+                                     difference, division, floor, intersection,
                                      invert, lower_clip, lower_threshold, mean,
                                      multiplication, normalize_max,
-                                     normalize_sum, opening, std, subtraction,
+                                     normalize_sum, std, subtraction,
                                      union, upper_threshold, upper_clip,
                                      get_array_operation_doc, 
                                      get_image_operation_doc)
@@ -45,23 +44,21 @@ OPERATIONS = {
     'union': union,
     'intersection': intersection,
     'difference': difference,
-    'dilation': dilation,
-    'erosion': erosion,
-    'closing': closing,
-    'opening': opening,
-    'blur': gaussian_blur
 }
 
 DESCRIPTION = """
-Performs an operation on a list of images. The supported operations are 
+Performs an operation on a list of matrices. The supported operations are 
 listed below.
 
 Some operations such as multiplication or addition accept float value as
-parameters instead of images.
-> scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
+parameters instead of matrices.
+> scil_connectivity_math.py multiplication mat.npy 10 mat mult_10.npy
 """
 
-DESCRIPTION += get_array_operation_doc() + get_image_operation_doc()
+ADDED_DOC = get_array_operation_doc().replace('images', 'matrices')
+ADDED_DOC = ADDED_DOC.replace('image', 'matrix')
+ADDED_DOC = ADDED_DOC.replace('IMG', 'MAT')
+DESCRIPTION += ADDED_DOC
 
 
 def build_args_parser():
@@ -71,16 +68,16 @@ def build_args_parser():
 
     p.add_argument('operation',
                    help='The type of operation to be performed on the '
-                   'images.')
+                   'matrices.')
 
     p.add_argument('inputs', nargs='+',
-                   help='The list of image files or parameters.')
+                   help='The list of matrices files or parameters.')
 
     p.add_argument('--data_type',
-                   help='Data type of the output image.')
+                   help='Data type of the output matrix.')
 
     p.add_argument('output',
-                   help='Output image path.')
+                   help='Output matrix path.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -95,13 +92,21 @@ def load_data(arg):
         if not os.path.isfile(arg):
             logging.error('Input file %s does not exist', arg)
             raise ValueError
-        data = nib.load(arg).get_data()
+
+        _, ext = os.path.splitext(arg)
+        if ext == '.txt':
+            data = np.loadtxt(arg)
+        elif ext == '.npy':
+            data = np.load(arg)
+        else:
+            logging.error('Extension {} is not supported'.format(ext))
+            raise ValueError
         logging.info('Loaded %s of shape %s and data_type %s',
                      arg, data.shape, data.dtype)
 
-        if data.ndim > 3:
+        if data.ndim > 2:
             logging.warning('%s has %s dimensions, be careful', arg, data.ndim)
-        elif data.ndim < 3:
+        elif data.ndim < 2:
             logging.warning('%s has %s dimensions, not valid ', arg, data.ndim)
             raise ValueError
 
@@ -118,31 +123,16 @@ def main():
     assert_outputs_exist(parser, args, args.output)
 
     # Binary operations require specific verifications
-    binary_op = ['union', 'intersection', 'difference', 'invert',
-                 'dilation', 'erosion', 'closing', 'opening']
+    binary_op = ['union', 'intersection', 'difference', 'invert']
 
     if args.operation not in OPERATIONS.keys():
         parser.error('Operation {} not implement'.format(args.operation))
 
-    # Find at least one image for reference
-    for input_arg in args.inputs:
-        if not is_float(input_arg):
-            ref_img = nib.load(input_arg)
-            break
-
     # Load all input masks.
     input_data = []
     for input_arg in args.inputs:
-        if not is_float(input_arg) and \
-                not is_header_compatible(ref_img, input_arg):
-            parser.error('Input do not have a compatible header')
         data = load_data(input_arg)
 
-        if isinstance(data, np.ndarray) and \
-            data.dtype != ref_img.get_data_dtype() and \
-                not args.data_type:
-            parser.error('Input do not have a compatible data type.'
-                         'Use --data_type to specified output datatype.')
         if args.operation in binary_op and isinstance(data, np.ndarray):
             unique = np.unique(data)
             if not len(unique) <= 2:
@@ -166,12 +156,16 @@ def main():
 
     if args.data_type:
         output_data = output_data.astype(args.data_type)
-        ref_img.header.set_data_dtype(args.data_type)
     else:
-        output_data = output_data.astype(ref_img.get_data_dtype())
-    new_img = nib.Nifti1Image(output_data, ref_img.affine,
-                              header=ref_img.header)
-    nib.save(new_img, args.output)
+        output_data = output_data.astype(np.float64)
+    
+    _, ext = os.path.splitext(args.output)
+    if ext == '.txt':
+        np.savetxt(args.output, output_data)
+    elif ext == '.npy':
+        np.save(args.output, output_data)
+    else:
+        parser.error('Extension {} is not supported'.format(ext))
 
 
 if __name__ == "__main__":

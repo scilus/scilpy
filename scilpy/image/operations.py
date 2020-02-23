@@ -10,7 +10,7 @@ from scipy.ndimage.morphology import (binary_dilation, binary_erosion,
 from scipy.ndimage.filters import gaussian_filter
 
 
-def get_operation_doc():
+def get_array_operation_doc():
     return """
     lower_threshold: IMG THRESHOLD
         All values below the threshold will be set to zero.
@@ -59,7 +59,10 @@ def get_operation_doc():
         the second file.
     invert: IMG
         Binary operation to interchange 0 and 1 in a binary mask.
-    dilation: IMG
+    """
+
+def get_image_operation_doc():
+    return """dilation: IMG
         Binary morphological operation to spatially expand the values of an
         image to their neighbors.
     erosion: IMG
@@ -72,7 +75,6 @@ def get_operation_doc():
     blur: IMG
         Apply a gaussian blur to a single image.
     """
-
 
 def is_float(value):
     try:
