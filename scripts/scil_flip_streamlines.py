@@ -53,20 +53,6 @@ def get_axis_flip_vector(flip_axes):
     return flip_vector
 
 
-def get_streamlines_bounding_box(streamlines):
-    mins = np.zeros([streamlines.shape[0], 3])
-    maxs = np.zeros([streamlines.shape[0], 3])
-
-    for id, tract in enumerate(streamlines):
-        mins[id] = np.min(tract, axis=0)
-        maxs[id] = np.max(tract, axis=0)
-
-    global_min = np.min(mins, axis=0)
-    global_max = np.max(maxs, axis=0)
-
-    return global_min, global_max
-
-
 def get_shift_vector(sft):
     dims = sft.dimensions
     shift_vector = -1.0 * (np.array(dims) / 2.0)
