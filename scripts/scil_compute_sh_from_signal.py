@@ -14,7 +14,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             add_force_b0_arg)
 from scilpy.reconst.raw_signal import compute_sh_coefficients
 
 
@@ -39,6 +40,10 @@ def _build_arg_parser():
     p.add_argument('--use_attenuation', action='store_true',
                    help='If set, will use signal attenuation before fitting '
                         'the SH (i.e. divide by the b0).')
+    add_force_b0_arg(p)
+    p.add_argument('--mask',
+                   help='Path to a binary mask.\nOnly data inside the mask ' 
+                        'will be used for computations and reconstruction ')
     add_overwrite_arg(p)
 
     return p
@@ -52,10 +57,15 @@ def main():
     assert_outputs_exist(parser, args, args.output)
 
     vol = nib.load(args.dwi)
-    dwi = vol.get_data()
+    dwi = vol.get_fdata()
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
     gtab = gradient_table(args.bvals, args.bvecs, b0_threshold=bvals.min())
+
+    if args.mask is not None:
+        mask = nib.load(args.mask).get_fdata().astype(np.bool)
+    else:
+        mask = None
 
     sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
                                  args.smooth, args.use_attenuation)

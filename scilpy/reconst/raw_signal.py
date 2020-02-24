@@ -7,10 +7,14 @@ import numpy as np
 from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sf_to_sh
 
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+                                          is_normalized_bvecs, normalize_bvecs)
+
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
                             basis_type='descoteaux07', smooth=0.006,
-                            use_attenuation=False):
+                            use_attenuation=False, force_b0_threshold=False,
+                            mask=None):
     """Fit a diffusion signal with spherical harmonics coefficients.
 
     Parameters
@@ -27,6 +31,11 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
         Either 'tournier07' or 'descoteaux07'
     use_attenuation: bool, optional
         If true, we will use DWI attenuation. [False]
+    force_b0_threshold : bool, optional
+        If set, will continue even if the minimum bvalue is suspiciously high.
+    mask: nib.Nifti1Image object
+        Binary mask. Only data inside the mask will be used for computations
+        and reconstruction.
 
     Returns
     -------
@@ -39,12 +48,21 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
     b0_mask = gradient_table.b0s_mask
     bvecs = gradient_table.bvecs
 
+    # Checks
+    if not is_normalized_bvecs(bvecs):
+        logging.warning("Your b-vectors do not seem normalized...")
+        bvecs = normalize_bvecs(bvecs)
+    check_b0_threshold(force_b0_threshold, gradient_table.min())
+
+    # Ensure that this is on a single shell.
+    #??? See bitbucket: scilpy.utils.bvec_bval_tools.identify_shells
+
     # Keeping b0-based infos
     bvecs = bvecs[np.logical_not(b0_mask)]
     weights = dwi[..., np.logical_not(b0_mask)]
 
+    # Compute attenuation using the b0.
     if use_attenuation:
-        # Compute attenuation using the b0.
         b0 = dwi[..., b0_mask].mean(axis=3)
         weights = compute_dwi_attenuation(weights, b0)
 
@@ -53,6 +71,10 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
 
     # Fit SH
     sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth)
+
+    # Apply mask
+    if mask is not None:
+        sh *= mask[..., None]
 
     return sh
 
