@@ -4,6 +4,7 @@
 from itertools import islice
 import os
 import six
+import warnings
 
 from dipy.io.streamline import load_tractogram
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
@@ -159,9 +160,6 @@ def compress_sft(sft, tol_error=0.01):
         Tolerance error in mm (default: 0.01). A rule of thumb is to set it
         to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
         streamlines.
-    max_segment_length : float (optional)
-        Maximum length in mm of any given segment produced by the compression.
-        The default is 10mm. (In [Presseau15]_, they used a value of `np.inf`).
 
     Returns
     -------
@@ -174,8 +172,14 @@ def compress_sft(sft, tol_error=0.01):
     # Compress streamlines
     compressed_streamlines = compress_streamlines(sft.streamlines,
                                                   tol_error=tol_error)
+    if sft.data_per_point is not None:
+        warnings.warn("Initial stateful tractogram contained data_per_point. "
+                      "This information will not be carried in the final"
+                      "tractogram.")
 
-    compressed_sft = StatefulTractogram.from_sft(compressed_streamlines, sft)
+    compressed_sft = StatefulTractogram.from_sft(
+        compressed_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
 
     # Return to original space
     compressed_sft.to_space(orig_space)

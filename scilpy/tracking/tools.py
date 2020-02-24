@@ -159,7 +159,13 @@ def resample_streamlines_step_size(sft, step_size):
         nb_points[nb_points == 1] = 2
     resampled_streamlines = [set_number_of_points(s, n) for s, n in
                              zip(sft.streamlines, nb_points)]
-    resampled_sft = StatefulTractogram.from_sft(resampled_streamlines, sft)
+    if sft.data_per_point is not None:
+        warnings.warn("Initial stateful tractogram contained data_per_point. "
+                      "This information will not be carried in the final"
+                      "tractogram.")
+    resampled_sft = StatefulTractogram.from_sft(
+        resampled_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
 
     # Return to original space
     resampled_sft.to_space(orig_space)
