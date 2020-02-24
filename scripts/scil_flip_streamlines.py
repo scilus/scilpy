@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Flip tracts around specific axes.
+Flip streamlines around specific axes.
 
 IMPORTANT: this script should only be used in case of absolute necessity. It's
-better to fix the real tools than to force flipping tracts to have them fit in
+better to fix the real tools than to force flipping streamlines to have them fit in
 the tools.
 """
 
@@ -31,7 +31,7 @@ def _build_args_parser():
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
 
-    p.add_argument('axes', metavar='dimension',
+    p.add_argument('axes',
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to flip. eg: to flip the x '
                         'and y axes use: x y.')
@@ -53,11 +53,11 @@ def get_axis_flip_vector(flip_axes):
     return flip_vector
 
 
-def get_tracts_bounding_box(tracts):
-    mins = np.zeros([tracts.shape[0], 3])
-    maxs = np.zeros([tracts.shape[0], 3])
+def get_streamlines_bounding_box(streamlines):
+    mins = np.zeros([streamlines.shape[0], 3])
+    maxs = np.zeros([streamlines.shape[0], 3])
 
-    for id, tract in enumerate(tracts):
+    for id, tract in enumerate(streamlines):
         mins[id] = np.min(tract, axis=0)
         maxs[id] = np.max(tract, axis=0)
 
@@ -69,8 +69,7 @@ def get_tracts_bounding_box(tracts):
 
 def get_shift_vector(sft):
     dims = sft.dimensions
-    voxel_dim = sft.voxel_sizes
-    shift_vector = -1.0 * (np.array(dims) * voxel_dim / 2.0)
+    shift_vector = -1.0 * (np.array(dims) / 2.0)
 
     return shift_vector
 
@@ -103,8 +102,6 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     sft.to_vox()
     sft.to_corner()
-    if len(args.axes) < 1:
-        parser.error('No flipping axis specified.')
 
     flip_streamlines(sft, args.out_tractogram, args.axes)
 
