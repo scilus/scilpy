@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import division
-import warnings
+import logging
 
 import numpy as np
 
@@ -90,34 +90,37 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     return subset_sft
 
 
-def resample_streamlines_num_points(streamlines, num_points, arc_length=False):
+def resample_streamlines_num_points(sft, num_points):
     """
     Resample streamlines using number of points per streamline
 
     Parameters
     ----------
-    streamlines: list
-        List of list of 3D points. Ex, if working with StatefulTractograms:
-        sft.streamlines.
+    sft: StatefulTractogram
+        SFT containing the streamlines to subsample.
     num_points: int
         Number of points per streamline in the output.
-    arc_length: bool
-        Whether to downsample using arc length parametrization.
 
     Return
     ------
-    resampled_streamlines: list
-        List of resampled streamlines.
+    resampled_sft: StatefulTractogram
+        The resampled streamlines as a sft.
     """
+
+    # Checks
+    if num_points <= 1:
+        raise ValueError("The value of num_points should be greater than 1!")
+
+    # Resampling
     resampled_streamlines = []
-    for streamline in streamlines:
-        if arc_length:
-            line = set_number_of_points(streamline, num_points)
-        else:
-            line = downsample(streamline, num_points)
+    for streamline in sft.streamlines:
+        line = set_number_of_points(streamline, num_points)
         resampled_streamlines.append(line)
 
-    return resampled_streamlines
+    # Creating sft
+    resampled_sft = _warn_and_save(resampled_streamlines, sft)
+
+    return resampled_sft
 
 
 def resample_streamlines_step_size(sft, step_size):
@@ -136,41 +139,52 @@ def resample_streamlines_step_size(sft, step_size):
     resampled_sft: StatefulTractogram
         The resampled streamlines as a sft.
     """
-    # Check that step_size makes sense
+
+    # Checks
     if step_size == 0:
         raise ValueError("Step size can't be 0!")
     elif step_size < 0.1:
-        warnings.warn("The value of your step size seems suspiciously low. "
+        logging.debug("The value of your step size seems suspiciously low. "
                       "Please check.")
     elif step_size > np.max(sft.voxel_sizes):
-        warnings.warn("The value of your step size seems suspiciously high. "
+        logging.debug("The value of your step size seems suspiciously high. "
                       "Please check.")
 
     # Make sure we are in world space
     orig_space = sft.space
     sft.to_rasmm()
 
-    # Resample streamlines
+    # Resampling
     lengths = length(sft.streamlines)
     nb_points = np.ceil(lengths / step_size).astype(int)
     if np.any(nb_points == 1):
-        warnings.warn("Some streamlines are shorter than the provided "
-                      "step size...")
+        logging.warning("Some streamlines are shorter than the provided "
+                        "step size...")
         nb_points[nb_points == 1] = 2
     resampled_streamlines = [set_number_of_points(s, n) for s, n in
                              zip(sft.streamlines, nb_points)]
-    if sft.data_per_point is not None:
-        warnings.warn("Initial stateful tractogram contained data_per_point. "
-                      "This information will not be carried in the final"
-                      "tractogram.")
-    resampled_sft = StatefulTractogram.from_sft(
-        resampled_streamlines, sft,
-        data_per_streamline=sft.data_per_streamline)
+
+    # Creating sft
+    resampled_sft = _warn_and_save(resampled_streamlines, sft)
 
     # Return to original space
     resampled_sft.to_space(orig_space)
 
     return resampled_sft
+
+
+def _warn_and_save(new_streamlines, sft):
+    """Last step of the two resample functions:
+    Warn that we loose data_per_point, then create resampled SFT."""
+
+    if sft.data_per_point is not None:
+        logging.debug("Initial stateful tractogram contained data_per_point. "
+                      "This information will not be carried in the final"
+                      "tractogram.")
+    new_sft = StatefulTractogram.from_sft(
+        new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
+
+    return new_sft
 
 
 def get_theta(requested_theta, tracking_type):
