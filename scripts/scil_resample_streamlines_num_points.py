@@ -15,7 +15,8 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Resample a set of streamlines.\n'
+        description='Resample a set of streamlines to a new number of points '
+                    'per streamline.\n'
                     'WARNING: data_per_point is not carried')
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
