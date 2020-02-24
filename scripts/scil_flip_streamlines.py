@@ -4,9 +4,9 @@
 """
 Flip streamlines around specific axes.
 
-IMPORTANT: this script should only be used in case of absolute necessity. It's
-better to fix the real tools than to force flipping streamlines to have them fit in
-the tools.
+IMPORTANT: this script should only be used in case of absolute necessity.
+It's better to fix the real tools than to force flipping streamlines to
+have them fit in the tools.
 """
 
 import argparse
