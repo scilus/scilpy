@@ -137,10 +137,12 @@ def main():
 
     roi_opt_list = prepare_filtering_list(parser, args)
 
+    o_dict = {}
+
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # TractCount before filtering
-    tc_bf = len(sft.streamlines)
+    o_dict['tc_bf'] = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
@@ -243,6 +245,10 @@ def main():
                                  data_per_streamline=data_per_streamline,
                                  data_per_point=data_per_point)
 
+        if i<len(roi_opt_list):
+            filtering_Name = 'tc_after_filtering_with_' + filter_type
+            o_dict[filtering_Name] = len(sft.streamlines)
+
     if not filtered_streamlines:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
@@ -256,11 +262,9 @@ def main():
     save_tractogram(sft, args.out_tractogram)
 
     # TractCount after filtering
-    tc_af = len(sft.streamlines)
+    o_dict['tc_af'] = len(sft.streamlines)
     if args.display_counts:
-        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
-                         indent=args.indent))
+        print(json.dumps(o_dict, indent=args.indent))
 
 
 if __name__ == "__main__":
