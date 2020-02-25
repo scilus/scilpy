@@ -8,7 +8,8 @@ from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sf_to_sh
 
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
-                                          is_normalized_bvecs, normalize_bvecs)
+                                          is_normalized_bvecs, normalize_bvecs,
+                                          identify_shells)
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
@@ -47,15 +48,19 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
     # Extracting infos
     b0_mask = gradient_table.b0s_mask
     bvecs = gradient_table.bvecs
+    bvals = gradient_table.bvals
 
     # Checks
     if not is_normalized_bvecs(bvecs):
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
-    check_b0_threshold(force_b0_threshold, gradient_table.min())
+    check_b0_threshold(force_b0_threshold, bvals.min())
 
     # Ensure that this is on a single shell.
-    #??? See bitbucket: scilpy.utils.bvec_bval_tools.identify_shells
+    shell_values, _ = identify_shells(bvals)
+    shell_values.sort()
+    if shell_values.shape[0] != 2 or shell_values[0] > 20.:
+        raise ValueError("Can only work on single shell signals.")
 
     # Keeping b0-based infos
     bvecs = bvecs[np.logical_not(b0_mask)]

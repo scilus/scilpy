@@ -68,7 +68,9 @@ def main():
         mask = None
 
     sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
-                                 args.smooth, args.use_attenuation)
+                                 args.smooth,
+                                 use_attenuation=args.use_attenuation,
+                                 mask=mask)
 
     nib.save(nib.Nifti1Image(sh.astype(np.float32), vol.affine), args.output)
 

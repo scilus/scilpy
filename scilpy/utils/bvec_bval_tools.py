@@ -199,3 +199,26 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
                             filename_bval=fsl_bval_filename,
                             filename_bvec=fsl_bvec_filename,
                             verbose=1)
+
+
+def identify_shells(bvals, threshold=40.0):
+    """See DIPY's PR, will be added."""
+    if not len(bvals):
+        raise ValueError('Empty b-values.')
+
+    # Finding centroids
+    bval_centroids = [bvals[0]]
+    for bval in bvals[1:]:
+        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        if not len(np.where(diffs < threshold)[0]):
+            # Found no bval in bval centroids close enough to the current one.
+            bval_centroids.append(bval)
+    centroids = np.array(bval_centroids)
+
+    # Identifying shells
+    bvals_for_diffs = np.tile(bvals.reshape(bvals.shape[0], 1),
+                              (1, centroids.shape[0]))
+
+    shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
+
+    return centroids, shell_indices
