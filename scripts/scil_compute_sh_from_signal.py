@@ -42,7 +42,7 @@ def _build_arg_parser():
                         'the SH (i.e. divide by the b0).')
     add_force_b0_arg(p)
     p.add_argument('--mask',
-                   help='Path to a binary mask.\nOnly data inside the mask ' 
+                   help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computations and reconstruction ')
     add_overwrite_arg(p)
 
