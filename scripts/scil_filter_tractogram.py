@@ -145,12 +145,20 @@ def main():
     o_dict['tc_bf'] = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
+        curr_dict = {}
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
             filter_type, filter_arg_1, filter_arg_2, \
                 filter_mode, filter_criteria = roi_opt
+            curr_dict = {'id': filter_arg_2, 'Filename': filter_arg_1}
         else:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
+            curr_dict['Filename'] = filter_arg
+
+        curr_dict['Type'] = filter_type
+        curr_dict['Mode'] = filter_mode
+        curr_dict['Criteria'] = filter_criteria
+
         is_not = False if filter_criteria == 'include' else True
 
         if filter_type == 'drawn_roi':
@@ -219,6 +227,9 @@ def main():
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
+            curr_dict['geometry'] = geometry
+            curr_dict['radius'] = radius.tolist()
+            curr_dict['center'] = center.tolist()
             if geometry == 'Ellipsoid':
                 filtered_streamlines, indexes = filter_ellipsoid(
                     sft,
@@ -246,8 +257,9 @@ def main():
                                  data_per_point=data_per_point)
 
         if i<len(roi_opt_list):
-            filtering_Name = 'tc_after_filtering_with_' + filter_type
-            o_dict[filtering_Name] = len(sft.streamlines)
+            filtering_Name = 'Filter_' + str(i)
+            curr_dict['tract_count_after_filtering'] = len(sft.streamlines)
+            o_dict[filtering_Name] = curr_dict
 
     if not filtered_streamlines:
         if args.no_empty:
