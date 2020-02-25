@@ -9,7 +9,7 @@ from dipy.reconst.shm import sf_to_sh
 
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
                                           is_normalized_bvecs, normalize_bvecs,
-                                          identify_shells)
+                                          identify_shells, DEFAULT_B0_THRESHOLD)
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
@@ -61,7 +61,11 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
     # Ensure that this is on a single shell.
     shell_values, _ = identify_shells(bvals)
     shell_values.sort()
-    if shell_values.shape[0] != 2 or shell_values[0] > 20.:
+    if force_b0_threshold:
+        b0_threshold = DEFAULT_B0_THRESHOLD
+    else:
+        b0_threshold = bvals.min()
+    if shell_values.shape[0] != 2 or shell_values[0] > b0_threshold:
         raise ValueError("Can only work on single shell signals.")
 
     # Keeping b0-based infos
@@ -115,6 +119,8 @@ def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
 
     # Compute attenuation
     dwi_attenuation = dwi_weights / b0
+
+    # Make sure we didn't divide by 0.
     dwi_attenuation[np.logical_not(np.isfinite(dwi_attenuation))] = 0.
 
     return dwi_attenuation

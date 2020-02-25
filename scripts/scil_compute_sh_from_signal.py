@@ -5,7 +5,6 @@
 Script to compute the SH coefficient directly on the raw DWI signal.
 """
 
-from __future__ import division, print_function
 import argparse
 
 from dipy.core.gradients import gradient_table
@@ -13,22 +12,22 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             assert_inputs_exist, assert_outputs_exist,
-                             add_force_b0_arg)
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+                             add_sh_basis_args, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.reconst.raw_signal import compute_sh_coefficients
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('dwi', metavar='dwi',
+    p.add_argument('dwi',
                    help='Path of the dwi volume.')
     p.add_argument('bvals',
                    help='Path of the bvals file, in FSL format.')
     p.add_argument('bvecs',
                    help='Path of the bvecs file, in FSL format.')
-    p.add_argument('output', metavar='output',
+    p.add_argument('output',
                    help='Name of the output SH file to save.')
 
     p.add_argument('--sh_order', type=int, default=8,
