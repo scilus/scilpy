@@ -7,6 +7,8 @@ from dipy.tracking.streamline import set_number_of_points, length
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
+from sklearn.metrics import cohen_kappa_score
+
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       subtraction, intersection, union)
 
@@ -243,3 +245,75 @@ def compute_dice_streamlines(bundle_1, bundle_2):
         dice = np.nan
 
     return dice, streamlines_intersect, streamlines_union
+
+
+def binary_classification(segmentation_indices,
+                          gold_standard_indices,
+                          original_count,
+                          mask_count=0):
+    """
+    Compute all the binary classification measures using only indices from
+    a dataset and its ground truth in any representation (voxels
+    or streamlines).
+    ----------
+    segmentation_indices: list of int
+        Indices of the data that are part of the segmentation.
+    gold_standard_indices: list of int
+        Indices of the ground truth.
+    original_count: int
+        Total size of the original dataset (before segmentation),
+        e.g len(streamlines) or np.prod(mask.shape).
+    mask_count: int
+        Number of non-zeros voxels in the original dataset.
+        Needed in order to get a valid true positive count for the voxel
+        representation.
+    Returns
+    -------
+    A tuple containing
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles.
+        list of ndarray: Intersection of streamlines in both bundle
+        list of ndarray: Union of streamlines in both bundle
+    """
+    tp = len(np.intersect1d(segmentation_indices, gold_standard_indices))
+    fp = len(np.setdiff1d(segmentation_indices, gold_standard_indices))
+    fn = len(np.setdiff1d(gold_standard_indices, segmentation_indices))
+    tn = len(np.setdiff1d(range(original_count),
+                          np.union1d(segmentation_indices,
+                                     gold_standard_indices)))
+    if mask_count > 0:
+        tn = tn - original_count + mask_count
+    # Extreme that is not covered, all indices are in the gold standard
+    # and the segmentation indices got them 100% right
+    if tp == 0:
+        sensitivity = np.nan
+        specificity = np.nan
+        precision = np.nan
+        accuracy = np.nan
+        dice = np.nan
+        kappa = np.nan
+        youden = np.nan
+    else:
+        sensitivity = tp / float(tp + fn)
+        specificity = tn / float(tn + fp)
+        precision = tp / float(tp + fp)
+        accuracy = (tp + tn) / float(tp + fp + fn + tn)
+        dice = 2 * tp / float(2 * tp + fp + fn)
+
+        seg_arr = np.zeros((original_count,))
+        gs_arr = np.zeros((original_count,))
+
+        seg_arr[segmentation_indices] = 1
+        gs_arr[gold_standard_indices] = 1
+
+        # To make sure the amount of indices within the WM mask is consistent
+        if mask_count > 0:
+            empty_indices = np.where(seg_arr + gs_arr < 1)[0]
+            indices_to_removes = original_count - mask_count
+            seg_arr = np.delete(seg_arr, empty_indices[0:indices_to_removes])
+            gs_arr = np.delete(gs_arr, empty_indices[0:indices_to_removes])
+
+        kappa = cohen_kappa_score(seg_arr, gs_arr)
+        youden = sensitivity + specificity - 1
+
+    return sensitivity, specificity, precision, accuracy, dice, kappa, youden
