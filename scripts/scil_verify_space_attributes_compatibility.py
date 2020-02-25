@@ -32,6 +32,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_files)
 
+    all_valid = True
     for filepath in args.in_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension not in ['.trk', '.nii', '.nii.gz']:
@@ -40,6 +41,9 @@ def main():
         if not is_header_compatible(args.in_files[0], filepath):
             print('{} and {} do not have compatible header.'.format(
                 args.in_files[0], filepath))
+            all_valid = False
+    if all_valid:
+        print('All input files had compatible headers.')
 
 
 if __name__ == "__main__":
