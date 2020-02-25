@@ -69,8 +69,14 @@ def main():
     curr_count = 0
     for i in range(nb_chunk):
         streamlines = sft.streamlines[curr_count:curr_count + chunk_sizes[i]]
+        data_per_streamline = sft.data_per_streamline[curr_count:curr_count
+                                                      + chunk_sizes[i]]
+        data_per_point = sft.data_per_point[curr_count:curr_count
+                                            + chunk_sizes[i]]
         curr_count += chunk_sizes[i]
-        new_sft = StatefulTractogram(streamlines, sft, sft.space)
+        new_sft = StatefulTractogram(streamlines, sft, sft.space,
+                                     data_per_point=data_per_point,
+                                     data_per_streamline=data_per_streamline)
 
         out_name = '{0}_{1}{2}'.format(out_basename, i, out_extension)
         save_tractogram(new_sft, out_name)
