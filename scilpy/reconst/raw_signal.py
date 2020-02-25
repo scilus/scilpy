@@ -15,7 +15,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
 def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
                             basis_type='descoteaux07', smooth=0.006,
                             use_attenuation=False, force_b0_threshold=False,
-                            mask=None):
+                            mask=None, sphere=None):
     """Fit a diffusion signal with spherical harmonics coefficients.
 
     Parameters
@@ -34,9 +34,11 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
         If true, we will use DWI attenuation. [False]
     force_b0_threshold : bool, optional
         If set, will continue even if the minimum bvalue is suspiciously high.
-    mask: nib.Nifti1Image object
+    mask: nib.Nifti1Image object, optional
         Binary mask. Only data inside the mask will be used for computations
         and reconstruction.
+    sphere: Sphere
+        Dipy object. If not provided, will use Sphere(xyz=bvecs).
 
     Returns
     -------
@@ -72,7 +74,8 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
         weights = compute_dwi_attenuation(weights, b0)
 
     # Get cartesian coords from bvecs
-    sphere = Sphere(xyz=bvecs)
+    if sphere is None:
+        sphere = Sphere(xyz=bvecs)
 
     # Fit SH
     sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth)
