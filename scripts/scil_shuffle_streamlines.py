@@ -42,8 +42,8 @@ def main():
     streamlines = list(sft.get_streamlines_copy())
     random.shuffle(streamlines, random=args.seed)
 
-    smoothed_sft = StatefulTractogram(streamlines, sft, Space.RASMM)
-    save_tractogram(smoothed_sft, args.out_tractogram)
+    shuffled_sft = StatefulTractogram(streamlines, sft, Space.RASMM)
+    save_tractogram(shuffled_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
