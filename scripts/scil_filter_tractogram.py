@@ -139,6 +139,9 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
+    # TractCount before filtering
+    tc_bf = len(sft.streamlines)
+
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
@@ -235,9 +238,6 @@ def main():
 
         data_per_streamline = sft.data_per_streamline[indexes]
         data_per_point = sft.data_per_point[indexes]
-
-        # TractCount before filtering
-        tc_bf = len(sft.streamlines)
 
         sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
                                  data_per_streamline=data_per_streamline,
