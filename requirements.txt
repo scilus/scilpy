@@ -1,5 +1,4 @@
 bz2file==0.98
-coloredlogs==10.0
 cycler==0.10.0
 Cython==0.29.12
 dipy==1.0.0
@@ -18,4 +17,4 @@ pytz==2018.4
 scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
-sklearn==0.0
+coloredlogs==10.0

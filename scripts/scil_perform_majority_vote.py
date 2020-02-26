@@ -71,8 +71,8 @@ def main():
 
     fusion_streamlines = []
     for name in args.in_bundles:
-        tmp_sft = load_tractogram_with_reference(parser, args, name)
-        fusion_streamlines.extend(tmp_sft.streamlines)
+        fusion_streamlines.extend(
+            load_tractogram_with_reference(parser, args, name).streamlines)
 
     fusion_streamlines, _ = perform_streamlines_operation(union,
                                                           [fusion_streamlines],
@@ -94,7 +94,6 @@ def main():
         sft = load_tractogram_with_reference(parser, args, name)
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
-        sft.to_corner()
         bundle_vox_space = sft.get_streamlines_copy()
         binary = compute_tract_counts_map(bundle_vox_space, dimensions)
         volume[binary > 0] += 1
@@ -113,9 +112,9 @@ def main():
                 real_indices.append(i)
 
         new_streamlines = fusion_streamlines[real_indices]
-        new_sft = StatefulTractogram(list(new_streamlines), reference_file,
-                                     Space.RASMM)
-        save_tractogram(new_sft, output_streamlines_filename)
+
+        sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM)
+        save_tractogram(sft, output_streamlines_filename)
 
     volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
     volume[volume > 0] = 1
