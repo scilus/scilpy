@@ -9,7 +9,7 @@ from time import time
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-
+from nibabel.streamlines import ArraySequence
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.models import subsample_clusters
@@ -37,7 +37,10 @@ def multiprocess_subsampling(args):
 
     min_cluster_size = max(min_cluster_size, 1)
     thresholds = [40, 30, 20, cluster_thr]
-    cluster_map = qbx_and_merge(streamlines, thresholds, verbose=False)
+    cluster_map = qbx_and_merge(ArraySequence(streamlines),
+                                thresholds,
+                                nb_pts=20,
+                                verbose=False)
 
     return subsample_clusters(cluster_map, streamlines, min_distance,
                               min_cluster_size, average_streamlines)
@@ -83,12 +86,13 @@ def main():
     parser = _buildArgsParser()
     args = parser.parse_args()
 
-    # Check if the files exist
     assert_inputs_exist(parser, args.in_bundle)
     assert_outputs_exist(parser, args, args.out_bundle)
 
+    log_level = logging.WARNING
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level)
 
     nbr_cpu = args.processes
 
@@ -97,21 +101,22 @@ def main():
     original_length = len(streamlines)
     logging.debug('Loaded %s streamlines...', original_length)
 
-    pool = multiprocessing.Pool(nbr_cpu)
+    pool = multiprocessing.Pool(args.processes)
     timer = time()
 
-    logging.debug('Lauching subsampling on %s processes.', nbr_cpu)
+    logging.debug('Lauching subsampling on %s processes.', args.processes)
+    last_iteration = False
     while True:
         if len(streamlines) < 1000:
             logging.warning('Subsampling less than 1000 streamlines is risky.')
             break
         current_iteration_length = len(streamlines)
-        skip = int(len(streamlines) / nbr_cpu) + 1
+        skip = int(len(streamlines) / args.processes) + 1
 
         # Cheap trick to avoid duplication in memory, the pop remove from
         # one list to append it to the other, slower but allows bigger bundles
         split_streamlines_list = []
-        for i in range(nbr_cpu):
+        for i in range(args.processes):
             split_streamlines_list.append(streamlines[0:skip])
             del streamlines[0:skip]
 
@@ -127,20 +132,29 @@ def main():
         difference_length = current_iteration_length - len(streamlines)
         logging.debug('Difference (before - after): %s streamlines were removed',
                       difference_length)
-        print
-        if difference_length < args.convergence:
-            logging.debug('The smart-subsampling converged, below %s '
-                          'different streamlines.', args.convergence)
+
+        if last_iteration and difference_length < args.convergence:
+            logging.debug('Before (%s)-> After (%s), total runtime of %s sec.',
+                          original_length, len(streamlines), round(time() - timer, 3))
             break
+        elif difference_length < args.convergence:
+            logging.debug('The smart-subsampling converged, below %s '
+                          'different streamlines. Adding single-thread iteration.',
+                          args.convergence)
+            args.processes = 1
+            last_iteration = True
         else:
             logging.debug('Threshold of convergence was not achieved.'
                           ' Need another run...\n')
             args.min_cluster_size = 1
+
+            # Once the streamlines reached a low enough amount, switch to
+            # single thread for full comparison
+            if len(streamlines) < 10000:
+                args.processes = 1
             random.shuffle(streamlines)
 
     # After convergence, we can simply save the output
-    logging.debug('Before (%s)-> After (%s), total runtime of %s sec.',
-                  original_length, len(streamlines), round(time() - timer, 3))
     new_sft = StatefulTractogram(streamlines, sft, Space.RASMM)
     save_tractogram(new_sft, args.out_bundle)
 

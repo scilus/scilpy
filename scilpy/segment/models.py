@@ -4,27 +4,25 @@
 import logging
 
 import numpy as np
-
 from dipy.align.bundlemin import distance_matrix_mdf
 from dipy.tracking.streamline import set_number_of_points
 
 
-def add_streamline(a, b, nb_points):
-    a_sub = set_number_of_points(a, nb_points)
-    b_sub = set_number_of_points(b, nb_points)
-
-    direct_diff = a_sub - b_sub
-    flip_diff = a_sub - b_sub[::-1]
-    direct_dist = np.average(np.linalg.norm(direct_diff, axis=1))
-    flip_dist = np.average(np.linalg.norm(flip_diff, axis=1))
-
-    if direct_dist < flip_dist:
-        return (a_sub + b_sub) / 2.0
-    else:
-        return (a_sub + b_sub[::-1]) / 2.0
-
 
 def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
+    """ Remove similar streamlines, shuffle streamlines will impact the results.
+    Only provide a small set of streamlines (below 2000 if possible).
+
+    Parameters
+    ----------
+    streamlines : list of numpy.ndarray
+    threshold : float
+    streamlines : bool
+
+    Returns
+    -------
+    streamlines : list of numpy.ndarray
+    """
     if len(streamlines) == 1:
         return streamlines
 
@@ -57,7 +55,7 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
             avg_streamlines.append(avg_streamline)
         current_indice += 1
         # Once you reach the end of the remaining streamlines
-        if current_indice >= len(streamlines):
+        if current_indice >= len(distance_matrix):
             break
 
     if do_avg:
@@ -67,8 +65,21 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
 
 
 def subsample_clusters(cluster_map, streamlines, min_distance,
-                       min_cluster_size, average_streamlines=False,
-                       verbose=False):
+                       min_cluster_size, average_streamlines=False):
+    """ .
+
+    Parameters
+    ----------
+    cluster_map : cluster_map class from QBx
+    streamlines : list of numpy.ndarray
+    min_distance : float
+    min_cluster_size : int
+    average_streamlines : bool
+
+    Returns
+    -------
+    streamlines : list of numpy.ndarray
+    """
     output_streamlines = []
     logging.debug('%s streamlines in tractogram', len(streamlines))
     logging.debug('%s clusters in tractogram', len(cluster_map))
