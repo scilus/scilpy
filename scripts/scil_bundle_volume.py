@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 import argparse
 import json
 import os
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
-from scilpy.tractanalysis import compute_tract_counts_map
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
 def _build_arg_parser():
@@ -34,7 +32,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_bundle, optionnal=args.reference)
+    assert_inputs_exist(parser, args.in_bundle, optional=args.reference)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
@@ -47,7 +45,8 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    tdi = compute_tract_counts_map(sft, ref_img.shape)
+    tdi = compute_tract_counts_map(sft.streamlines,
+                                   tuple(sft.space_attribute[1]))
     voxel_volume = np.prod(np.prod(sft.space_attribute[2]))
     stats[bundle_name]['volume'] = np.count_nonzero(tdi) * voxel_volume
 

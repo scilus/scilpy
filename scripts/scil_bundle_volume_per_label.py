@@ -36,11 +36,11 @@ def main():
 
     voxel_label_map_img = nib.load(args.voxel_label_map)
     voxel_label_map_data = voxel_label_map_img.get_data()
-    spacing = voxel_label_map_img.header['pixdim'][1:4]
+    voxel_size = voxel_label_map_img.header['pixdim'][1:4]
 
     labels = np.unique(voxel_label_map_data.astype(np.uint8))[1:]
     num_digits_labels = len(str(np.max(labels)))
-    voxel_volume = np.prod(spacing)
+    voxel_volume = np.prod(voxel_size)
     stats = {
             args.bundle_name: {'volume': {}}
     }

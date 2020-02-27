@@ -8,6 +8,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg)
@@ -46,7 +47,7 @@ def main():
 
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
-                        optionnal=args.reference)
+                        optional=args.reference)
     assert_outputs_exist(parser, args, args.output_map)
 
     sft_bundle = load_tractogram_with_reference(parser, args, args.in_bundle)
@@ -71,7 +72,7 @@ def main():
     centroid_streamlines_vox = sft_centroid.streamlines
     centroid_streamlines_vox._data *= args.upsample
 
-    upsampled_shape = [s * args.upsample for s in sft.space_attribute[1]]
+    upsampled_shape = [s * args.upsample for s in sft_bundle.space_attribute[1]]
     tdi_mask = compute_tract_counts_map(bundle_streamlines_vox,
                                         upsampled_shape) > 0
 
@@ -84,10 +85,10 @@ def main():
     # Save the (upscaled) labels mask
     labels_mask = np.zeros(tdi_mask.shape)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
-    rescaled_affine = sft.space_attribute[0]
+    rescaled_affine = sft_bundle.space_attribute[0]
     rescaled_affine[:3, :3] /= args.upsample
     labels_img = nib.Nifti1Image(labels_mask, rescaled_affine)
-    upsampled_spacing = sft.space_attribute[2] / args.upsample
+    upsampled_spacing = sft_bundle.space_attribute[2] / args.upsample
     labels_img.header.set_zooms(upsampled_spacing)
     nib.save(labels_img, args.output_map)
 

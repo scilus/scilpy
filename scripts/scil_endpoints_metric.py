@@ -77,11 +77,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.metrics])
-    assert_outputs_dir_exists_and_empty(parser, args, args.output_folder)
+    assert_inputs_exist(parser, [args.in_bundle] + args.metrics)
+    assert_output_dirs_exist_and_empty(parser, args, args.output_folder)
 
-    metrics = [nib.load(metric) for metric in args.metrics]
-    assert_same_resolution(*metrics)
+    assert_same_resolution(args.metrics)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
@@ -92,6 +91,7 @@ def main():
 
     mins, maxs, indices = _process_streamlines(sft.streamlines)
 
+    metrics = [nib.load(metric) for metric in args.metrics]
     for metric in metrics:
         data = metric.get_data()
         endpoint_metric_map = np.zeros(metric.shape)

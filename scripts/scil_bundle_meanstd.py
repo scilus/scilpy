@@ -41,16 +41,17 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle] + args.metrics)
+    assert_inputs_exist(parser, [args.in_bundle] + args.metrics,
+                        optional=args.reference)
 
+    assert_same_resolution(args.metrics)
     metrics = [nib.load(metric) for metric in args.metrics]
-    assert_same_resolution(*metrics)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
 
-    bundle_stats = get_metrics_stats_over_streamlines(sft,
+    bundle_stats = get_metrics_stats_over_streamlines(sft.streamlines,
                                                       metrics,
                                                       args.density_weighting)
 

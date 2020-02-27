@@ -11,7 +11,9 @@ import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import add_json_args, assert_inputs_exist, add_reference
+from scilpy.io.utils import (add_json_args,
+                             add_reference_arg,
+                             assert_inputs_exist)
 from scilpy.tractanalysis import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -41,7 +43,7 @@ def _build_arg_parser():
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
 
-    add_reference(p)
+    add_reference_arg(p)
     add_json_args(p)
     return p
 
@@ -64,8 +66,7 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    metrics = [nib.load(m) for m in args.metrics]
-    assert_same_resolution(*metrics)
+    assert_same_resolution(metrics)
 
     if args.density_weighting:
         track_count = compute_tract_counts_map(
@@ -92,6 +93,8 @@ def main():
 
     bundle_data_int = sft.streamlines.data.astype(np.int)
     stats[bundle_name] = {}
+
+    metrics = [nib.load(m) for m in args.metrics]
     for metric in metrics:
         metric_data = metric.get_fdata()
         current_metric_fname, _ = split_name_with_nii(
