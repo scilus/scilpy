@@ -4,7 +4,6 @@
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram, save_tractogram
 import numpy as np
 
@@ -83,55 +82,34 @@ def main():
                      'must be greater than 0')
 
     tractogram = load_tractogram(args.in_tractogram, args.reference)
+
     streamlines = tractogram.streamlines
 
-    streamlines_c = []
     ids_c = []
 
-    streamlines_l = []
     ids_l = []
 
     if len(streamlines) > 1:
-        streamlines_c, ids_c = remove_loops_and_sharp_turns(streamlines,
-                                                            args.angle,
-                                                            args.qb,
-                                                            args.threshold)
-
+        _, ids_c = remove_loops_and_sharp_turns(
+            streamlines, args.angle, args.qb, args.threshold)
         ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
-        streamlines_l = streamlines[ids_l]
     else:
         parser.error(
             'Zero or one streamline in {}'.format(args.in_tractogram) +
             '. The file must have more than one streamline.')
 
-    if len(streamlines_c) > 0:
-        data_per_streamline_c, data_per_point_c = \
-            filter_tractogram_data(tractogram, ids_c)
-
-        tractogram_c = StatefulTractogram(
-            streamlines_c,
-            tractogram,
-            tractogram.space,
-            data_per_point=data_per_point_c,
-            data_per_streamline=data_per_streamline_c)
-        save_tractogram(tractogram_c, args.out_tractogram)
+    if len(ids_c) > 0:
+        sft_c = filter_tractogram_data(tractogram, ids_c)
+        save_tractogram(sft_c, args.out_tractogram)
     else:
         logging.warning(
             'No clean streamlines in {}'.format(args.in_tractogram))
 
-    if len(streamlines_l) == 0:
+    if len(ids_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
     elif args.remaining_tractogram:
-        data_per_streamline_l, data_per_point_l = \
-            filter_tractogram_data(tractogram, ids_l)
-
-        tractogram_l = StatefulTractogram(
-            streamlines_l,
-            tractogram,
-            tractogram.space,
-            data_per_point=data_per_point_l,
-            data_per_streamline=data_per_streamline_l)
-        save_tractogram(tractogram_l, args.remaining_tractogram)
+        sft_l = filter_tractogram_data(tractogram, ids_l)
+        save_tractogram(sft_l, args.remaining_tractogram)
 
 
 if __name__ == "__main__":
