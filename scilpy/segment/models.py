@@ -6,7 +6,8 @@ import logging
 import numpy as np
 from dipy.align.bundlemin import distance_matrix_mdf
 from dipy.tracking.streamline import set_number_of_points
-
+from dipy.segment.clustering import QuickBundles
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 
 
 def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
@@ -26,9 +27,9 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
     if len(streamlines) == 1:
         return streamlines
 
-    sample_15_streamlines = set_number_of_points(streamlines, 15)
-    distance_matrix = distance_matrix_mdf(sample_15_streamlines,
-                                          sample_15_streamlines)
+    sample_20_streamlines = set_number_of_points(streamlines, 20)
+    distance_matrix = distance_matrix_mdf(sample_20_streamlines,
+                                          sample_20_streamlines)
 
     current_indice = 0
     avg_streamlines = []
@@ -37,22 +38,34 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
 
         pop_count = 0
         if do_avg:
-            avg_streamline = sample_15_streamlines[current_indice]
+            avg_streamline_list = []
+
         # Every streamlines similar to yourself (excluding yourself)
         # should be deleted from the set of desired streamlines
+        # print('/n',sim_indices)
         for ind in sim_indices:
             if not current_indice == ind:
-                kicked_out = streamlines.pop(ind-pop_count)
-                if do_avg:
-                    avg_streamline = add_streamline(kicked_out,
-                                                    avg_streamline, 15)
+                streamlines.pop(ind-pop_count)
+
                 distance_matrix = np.delete(distance_matrix, ind-pop_count,
                                             axis=0)
                 distance_matrix = np.delete(distance_matrix, ind-pop_count,
                                             axis=1)
                 pop_count += 1
+
+            if do_avg:
+                kicked_out = sample_20_streamlines[ind]
+                avg_streamline_list.append(kicked_out)
+        
         if do_avg:
-            avg_streamlines.append(avg_streamline)
+            if len(avg_streamline_list) > 1:
+                metric = AveragePointwiseEuclideanMetric()
+                qb = QuickBundles(threshold=100, metric=metric)
+                clusters = qb.cluster(avg_streamline_list)
+                avg_streamlines.append(clusters.centroids[0])
+            else:
+                avg_streamlines.append(avg_streamline_list[0])
+    
         current_indice += 1
         # Once you reach the end of the remaining streamlines
         if current_indice >= len(distance_matrix):
@@ -66,12 +79,16 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
 
 def subsample_clusters(cluster_map, streamlines, min_distance,
                        min_cluster_size, average_streamlines=False):
-    """ .
+    """ Using a cluster map, remove similar streamlines from all clusters
+    independently using chunk of 1000 streamlines at the time to prevent
+    infinite computation.
 
     Parameters
     ----------
     cluster_map : cluster_map class from QBx
+        Contains the list of indices per cluster.
     streamlines : list of numpy.ndarray
+
     min_distance : float
     min_cluster_size : int
     average_streamlines : bool
