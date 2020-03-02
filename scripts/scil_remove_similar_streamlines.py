@@ -141,7 +141,6 @@ def main():
                           'different streamlines. Adding single-thread iteration.',
                           args.convergence)
             args.processes = 1
-            # args.min_distance = args.min_distance / 2
             last_iteration = True
         else:
             logging.debug('Threshold of convergence was not achieved.'
