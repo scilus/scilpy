@@ -94,8 +94,6 @@ def main():
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level)
 
-    nbr_cpu = args.processes
-
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     streamlines = list(sft.streamlines)
     original_length = len(streamlines)
@@ -135,7 +133,8 @@ def main():
 
         if last_iteration and difference_length < args.convergence:
             logging.debug('Before (%s)-> After (%s), total runtime of %s sec.',
-                          original_length, len(streamlines), round(time() - timer, 3))
+                          original_length, len(streamlines),
+                          round(time() - timer, 3))
             break
         elif difference_length < args.convergence:
             logging.debug('The smart-subsampling converged, below %s '

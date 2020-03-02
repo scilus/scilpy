@@ -17,8 +17,12 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
     Parameters
     ----------
     streamlines : list of numpy.ndarray
+        Input streamlines to remove duplicates from.
     threshold : float
-    streamlines : bool
+        Distance threshold to consider two streamlines similar, in mm.
+    do_avg : bool
+        Instead of removing similar streamlines, average all similar streamlines
+        as a single smoother streamline.
 
     Returns
     -------
@@ -42,7 +46,6 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
 
         # Every streamlines similar to yourself (excluding yourself)
         # should be deleted from the set of desired streamlines
-        # print('/n',sim_indices)
         for ind in sim_indices:
             if not current_indice == ind:
                 streamlines.pop(ind-pop_count)
@@ -56,7 +59,7 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
             if do_avg:
                 kicked_out = sample_20_streamlines[ind]
                 avg_streamline_list.append(kicked_out)
-        
+
         if do_avg:
             if len(avg_streamline_list) > 1:
                 metric = AveragePointwiseEuclideanMetric()
@@ -65,7 +68,7 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
                 avg_streamlines.append(clusters.centroids[0])
             else:
                 avg_streamlines.append(avg_streamline_list[0])
-    
+
         current_indice += 1
         # Once you reach the end of the remaining streamlines
         if current_indice >= len(distance_matrix):
@@ -77,7 +80,7 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
         return streamlines
 
 
-def subsample_clusters(cluster_map, streamlines, min_distance,
+def subsample_clusters(cluster_map, streamlines, threshold,
                        min_cluster_size, average_streamlines=False):
     """ Using a cluster map, remove similar streamlines from all clusters
     independently using chunk of 1000 streamlines at the time to prevent
@@ -87,11 +90,18 @@ def subsample_clusters(cluster_map, streamlines, min_distance,
     ----------
     cluster_map : cluster_map class from QBx
         Contains the list of indices per cluster.
+    Parameters
+    ----------
     streamlines : list of numpy.ndarray
-
-    min_distance : float
+        Input streamlines to remove duplicates from.
+    threshold : float
+        Distance threshold to consider two streamlines similar, in mm.
     min_cluster_size : int
+        Minimal cluster size to be considered. Clusters with less streamlines
+        that the provided value will de discarted.
     average_streamlines : bool
+        Instead of removing similar streamlines, average all similar streamlines
+        as a single smoother streamline.
 
     Returns
     -------
@@ -117,7 +127,7 @@ def subsample_clusters(cluster_map, streamlines, min_distance,
             stop_id = (chunk_count + 1) * 1000
             partial_sub_streamlines = remove_similar_streamlines(
                 cluster_streamlines[start_id:stop_id],
-                threshold=min_distance, do_avg=average_streamlines)
+                threshold=threshold, do_avg=average_streamlines)
 
             # Add up the chunk results, update the loop values
             cluster_sub_streamlines.extend(partial_sub_streamlines)
