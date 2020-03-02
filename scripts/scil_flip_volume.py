@@ -1,73 +1,53 @@
 #! /usr/bin/env python
 
-from __future__ import print_function, division
-
 import argparse
 import os.path
 
 import nibabel as nib
 import logging
 
-
-DESCRIPTION = """
-    Flip the volume according to the specified axis.
-    """
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 
-def buildArgsParser():
+def _build_arg_parser():
 
-    p = argparse.ArgumentParser(description=DESCRIPTION)
-
-    p.add_argument('input', action='store', metavar='input', type=str,
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description='Flip the volume according to the specified axis.')
+    p.add_argument('input',
                    help='Path of the input volume (nifti).')
-
-    p.add_argument('output', action='store', metavar='output', type=str,
-                   help='Path of the output volume (nifti).')
-
-    p.add_argument('-x', action='store_true', dest='x',
-                   required=False,
-                   help='If supplied, flip the x axis.')
-
-    p.add_argument('-y', action='store_true', dest='y',
-                   required=False,
-                   help='If supplied, flip the y axis.')
-
-    p.add_argument('-z', action='store_true', dest='z',
-                   required=False,
-                   help='If supplied, flip the z axis.')
-
-    p.add_argument('-f', action='store_true', dest='overwrite', required=False,
-                   help='If set, the saved file will be overwritten ' +
-                        'if it already exists.')
+    p.add_argument('output',
+                    help='Path of the output volume (nifti).')
+    p.add_argument('axes', metavar='dimension',
+                    choices=['x', 'y', 'z'], nargs='+',
+                    help='The axes you want to flip. eg: to flip the x '
+                            'and y axes use: x y.')
+    add_overwrite_arg(p)
     return p
 
 
 def main():
 
-    parser = buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if os.path.isfile(args.output):
-        if args.overwrite:
-            logging.info('Overwriting "{0}".'.format(args.output))
-        else:
-            parser.error('"{0}" already exists! Use -f to overwrite it.'
-                         .format(args.output))
+    assert_inputs_exist(parser, args.input)
+    assert_outputs_exist(parser, args, args.output)
 
     vol = nib.load(args.input)
     data = vol.get_data()
     affine = vol.get_affine()
     header = vol.get_header()
 
-    if args.x:
+    if 'x' in args.axes:
         data = data[::-1, ...]
 
-    if args.y:
+    if 'y' in args.axes:
         data = data[:, ::-1, ...]
 
-    if args.z:
+    if 'z' in args.axes:
         data = data[:, :, ::-1, ...]
-
+    
     nib.save(nib.Nifti1Image(data, affine, header), args.output)
 
 
