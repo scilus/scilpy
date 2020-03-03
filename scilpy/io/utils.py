@@ -6,7 +6,6 @@ import shutil
 import six
 import xml.etree.ElementTree as ET
 
-from dipy.io.utils import is_header_compatible
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
@@ -30,14 +29,9 @@ def link_bundles_and_reference(parser, args, input_tractogram_list):
     list: List of tuples, each matching one tractogram to a reference file.
     """
     bundles_references_tuple = []
-    ref_obj = None
     for bundle_filename in input_tractogram_list:
         _, ext = os.path.splitext(bundle_filename)
         if ext == '.trk':
-            if ref_obj is None:
-                ref_obj = bundle_filename
-            elif not is_header_compatible(ref_obj, bundle_filename):
-                parser.error('Input files do not have compatible header.')
             if args.reference is None:
                 bundles_references_tuple.append(
                     (bundle_filename, bundle_filename))
@@ -49,10 +43,6 @@ def link_bundles_and_reference(parser, args, input_tractogram_list):
                 parser.error('--reference is required for this file format '
                              '{}.'.format(bundle_filename))
             else:
-                if ref_obj is None:
-                    ref_obj = args.reference
-                elif not is_header_compatible(ref_obj, bundle_filename):
-                    parser.error('Input files do not have compatible header.')
                 bundles_references_tuple.append(
                     (bundle_filename, args.reference))
     return bundles_references_tuple
