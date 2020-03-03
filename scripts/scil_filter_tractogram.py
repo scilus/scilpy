@@ -140,7 +140,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # TractCount before filtering
-    tc_bf = len(sft.streamlines)
+    sc_bf = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
@@ -237,10 +237,10 @@ def main():
     save_tractogram(sft, args.out_tractogram)
 
     # Streamline count after filtering
-    tc_af = len(sft.streamlines)
+    sc_af = len(sft.streamlines)
     if args.display_counts:
-        print(json.dumps({'streamline_count_before_filtering': int(tc_bf),
-                          'streamline_count_after_filtering': int(tc_af)},
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
 
