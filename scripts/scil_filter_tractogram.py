@@ -158,10 +158,8 @@ def main():
                              'not compatible.')
 
             mask = img.get_data()
-            filtered_sft, indexes = filter_grid_roi(sft,
-                                                    mask,
-                                                    filter_mode,
-                                                    is_not)
+            filtered_sft, indexes = filter_grid_roi(sft, mask,
+                                                    filter_mode, is_not)
 
         elif filter_type == 'atlas_roi':
             img = nib.load(filter_arg_1)
@@ -207,29 +205,22 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
-            filtered_sft, indexes = filter_grid_roi(sft,
-                                                    mask,
-                                                    filter_mode,
-                                                    is_not)
+            filtered_sft, indexes = filter_grid_roi(sft, mask,
+                                                    filter_mode, is_not)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
             if geometry == 'Ellipsoid':
                 filtered_sft, indexes = filter_ellipsoid(sft,
-                                                         radius,
-                                                         center,
-                                                         filter_mode,
-                                                         is_not)
+                                                         radius, center,
+                                                         filter_mode, is_not)
             elif geometry == 'Cuboid':
                 filtered_sft, indexes = filter_cuboid(sft,
-                                                      radius,
-                                                      center,
-                                                      filter_mode,
-                                                      is_not)
+                                                      radius, center,
+                                                      filter_mode, is_not)
 
         logging.debug('The filtering options {0} resulted in '
-                      '{1} streamlines'.format(roi_opt,
-                                               len(filtered_sft)))
+                      '{1} streamlines'.format(roi_opt, len(filtered_sft)))
 
         sft = filtered_sft
 
@@ -245,11 +236,11 @@ def main():
 
     save_tractogram(sft, args.out_tractogram)
 
-    # TractCount after filtering
+    # Streamline count after filtering
     tc_af = len(sft.streamlines)
     if args.display_counts:
-        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
+        print(json.dumps({'streamline_count_before_filtering': int(tc_bf),
+                          'streamline_count_after_filtering': int(tc_af)},
                          indent=args.indent))
 
 
