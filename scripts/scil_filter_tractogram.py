@@ -6,7 +6,7 @@ import json
 import logging
 import os
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+# from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -158,11 +158,10 @@ def main():
                              'not compatible.')
 
             mask = img.get_data()
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
+            filtered_sft, indexes = filter_grid_roi(sft,
+                                                    mask,
+                                                    filter_mode,
+                                                    is_not)
 
         elif filter_type == 'atlas_roi':
             img = nib.load(filter_arg_1)
@@ -174,11 +173,10 @@ def main():
             mask = np.zeros(atlas.shape, dtype=np.uint16)
             mask[atlas == int(filter_arg_2)] = 1
 
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
+            filtered_sft, indexes = filter_grid_roi(sft,
+                                                    mask,
+                                                    filter_mode,
+                                                    is_not)
 
         # For every case, the input number must be greater or equal to 0 and
         # below the dimension, since this is a voxel space operation
@@ -209,41 +207,33 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
+            filtered_sft, indexes = filter_grid_roi(sft,
+                                                    mask,
+                                                    filter_mode,
+                                                    is_not)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
             if geometry == 'Ellipsoid':
-                filtered_streamlines, indexes = filter_ellipsoid(
-                    sft,
-                    radius,
-                    center,
-                    filter_mode,
-                    is_not)
+                filtered_sft, indexes = filter_ellipsoid(sft,
+                                                         radius,
+                                                         center,
+                                                         filter_mode,
+                                                         is_not)
             elif geometry == 'Cuboid':
-                filtered_streamlines, indexes = filter_cuboid(
-                    sft,
-                    radius,
-                    center,
-                    filter_mode,
-                    is_not)
+                filtered_sft, indexes = filter_cuboid(sft,
+                                                      radius,
+                                                      center,
+                                                      filter_mode,
+                                                      is_not)
 
         logging.debug('The filtering options {0} resulted in '
                       '{1} streamlines'.format(roi_opt,
-                                               len(filtered_streamlines)))
+                                               len(filtered_sft)))
 
-        data_per_streamline = sft.data_per_streamline[indexes]
-        data_per_point = sft.data_per_point[indexes]
+        sft = filtered_sft
 
-        sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-                                 data_per_streamline=data_per_streamline,
-                                 data_per_point=data_per_point)
-
-    if not filtered_streamlines:
+    if not filtered_sft:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
                 args.out_tractogram))
