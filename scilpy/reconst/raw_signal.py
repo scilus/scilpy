@@ -3,13 +3,12 @@
 import logging
 
 import numpy as np
-
 from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sf_to_sh
 
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold, identify_shells,
                                           is_normalized_bvecs, normalize_bvecs,
-                                          identify_shells, DEFAULT_B0_THRESHOLD)
+                                          DEFAULT_B0_THRESHOLD)
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
@@ -62,9 +61,9 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
     shell_values, _ = identify_shells(bvals)
     shell_values.sort()
     if force_b0_threshold:
-        b0_threshold = DEFAULT_B0_THRESHOLD
-    else:
         b0_threshold = bvals.min()
+    else:
+        b0_threshold = DEFAULT_B0_THRESHOLD
     if shell_values.shape[0] != 2 or shell_values[0] > b0_threshold:
         raise ValueError("Can only work on single shell signals.")
 

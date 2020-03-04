@@ -31,11 +31,11 @@ def _build_arg_parser():
                    help='Name of the output SH file to save.')
 
     p.add_argument('--sh_order', type=int, default=8,
-                   help='SH order to fit (int).')
+                   help='SH order to fit (int). [%(default)s]')
     add_sh_basis_args(p)
     p.add_argument('--smooth', type=float, default=0.006,
                    help='Lambda-regularization coefficient in the SH fit '
-                        '(float).')
+                        '(float). [%(default)s]')
     p.add_argument('--use_attenuation', action='store_true',
                    help='If set, will use signal attenuation before fitting '
                         'the SH (i.e. divide by the b0).')
@@ -61,10 +61,9 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
     gtab = gradient_table(args.bvals, args.bvecs, b0_threshold=bvals.min())
 
-    if args.mask is not None:
+    mask = None
+    if args.mask:
         mask = nib.load(args.mask).get_fdata().astype(np.bool)
-    else:
-        mask = None
 
     sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
                                  args.smooth,
