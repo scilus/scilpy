@@ -65,7 +65,7 @@ class VotingScheme(object):
         # Generate all input files based on the config file and model directory
         for key in self.config.keys():
             bundle_names.append(key)
-            all_atlas_models = list(product(self.atlas_dir, [key]))
+            all_atlas_models = product(self.atlas_dir, [key])
             tmp_list = [os.path.join(tag.encode('ascii', 'ignore'),
                                      bundle.encode('ascii', 'ignore'))
                         for tag, bundle in all_atlas_models]
@@ -230,7 +230,7 @@ class VotingScheme(object):
             Filepath of the whole brain tractogram to segment
         tractogram_clustering_thr : int
             Distance in mm (for QBx) to cluster the input tractogram
-        nb_points : str
+        nb_points : int
             Number of points used for all resampling of streamlines
         nbr_processes : int
             Number of processes used for the parallel bundle recognition
@@ -312,45 +312,30 @@ class VotingScheme(object):
                         processing_dict['slr_transform_type'] += [slr_transform_type]
                         processing_dict['seed'] += [seed]
 
-        # Cluster the whole tractogram only once per possible clustering threshold
+        # Clustring is now arallelize
+        pool = multiprocessing.Pool(nbr_processes)
+        comb_param_cluster = product(tractogram_clustering_thr, seeds)
+        all_clusterized_dict = pool.map(single_clusterize,
+                                        zip(repeat(wb_streamlines),
+                                            comb_param_cluster,
+                                            repeat(nb_points)))
+        pool.close()
+        pool.join()
         rbx_all = {}
-        base_thresholds = [45, 35, 25]
-        for seed in seeds:
-            rng = np.random.RandomState(seed)
-            for clustering_thr in tractogram_clustering_thr:
-                timer = time()
-                # If necessary, add an extra layer (more optimal)
-                if clustering_thr < 15:
-                    current_thr_list = base_thresholds + [15, clustering_thr]
-                else:
-                    current_thr_list = base_thresholds + [clustering_thr]
-
-                cluster_map = qbx_and_merge(wb_streamlines,
-                                            current_thr_list,
-                                            nb_pts=nb_points, rng=rng,
-                                            verbose=False)
-
-                rbx_all[(seed, clustering_thr)] = RecobundlesX(wb_streamlines,
-                                                               cluster_map,
-                                                               nb_points=nb_points,
-                                                               rng=rng)
-
-                logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
-                             '{3} centroids'.format(seed, current_thr_list,
-                                                    round(time() - timer, 2),
-                                                    len(cluster_map.centroids)))
+        for key in all_clusterized_dict:
+            rbx_all[key] = all_clusterized_dict[key]
 
         pool = multiprocessing.Pool(nbr_processes)
-        all_measures_dict = pool.map(single_recognize,
-                                     zip(repeat(rbx_all),
-                                         processing_dict['bundle_id'],
-                                         processing_dict['tag'],
-                                         processing_dict['model_bundle'],
-                                         processing_dict['tct'],
-                                         processing_dict['mct'],
-                                         processing_dict['bpt'],
-                                         processing_dict['slr_transform_type'],
-                                         processing_dict['seed']))
+        all_recognized_dict = pool.map(single_recognize,
+                                       zip(repeat(rbx_all),
+                                           processing_dict['bundle_id'],
+                                           processing_dict['tag'],
+                                           processing_dict['model_bundle'],
+                                           processing_dict['tct'],
+                                           processing_dict['mct'],
+                                           processing_dict['bpt'],
+                                           processing_dict['slr_transform_type'],
+                                           processing_dict['seed']))
         pool.close()
         pool.join()
 
@@ -361,7 +346,7 @@ class VotingScheme(object):
                                         len(wb_streamlines)),
                                        dtype=np.int16)
 
-        for bundle_id, recognized_indices in all_measures_dict:
+        for bundle_id, recognized_indices in all_recognized_dict:
             if recognized_indices is not None:
                 streamlines_wise_vote[recognized_indices.T, bundle_id] += 1
                 bundles_wise_vote[bundle_id, recognized_indices.T] += 1
@@ -391,8 +376,58 @@ class VotingScheme(object):
                                       minimum_vote, extension)
 
 
+def single_clusterize(args):
+    """
+    Function to multiprocess clustering
+    Parameters
+    ----------
+    wb_streamlines : list or ArraySequence
+        All streamlines of the tractogram to segment
+    clustering_thr : int
+        Distance in mm (for QBx) to cluster the input tractogram
+    seed : int
+        Value to initialize the RandomState of numpy
+    nb_points : int
+        Number of points used for all resampling of streamlines
+    Returns
+    -------
+    rbx : dict
+        Initialisation of the recobundles class using specific parameters
+    """
+    wb_streamlines = args[0]
+    clustering_thr = args[1][0]
+    seed = args[1][1]
+    nb_points = args[2]
+
+    rbx = {}
+    base_thresholds = [45, 35, 25]
+    rng = np.random.RandomState(seed)
+    timer = time()
+    # If necessary, add an extra layer (more optimal)
+    if clustering_thr < 15:
+        current_thr_list = base_thresholds + [15, clustering_thr]
+    else:
+        current_thr_list = base_thresholds + [clustering_thr]
+
+    cluster_map = qbx_and_merge(wb_streamlines,
+                                current_thr_list,
+                                nb_pts=nb_points, rng=rng,
+                                verbose=False)
+
+    rbx[(seed, clustering_thr)] = RecobundlesX(wb_streamlines,
+                                               cluster_map,
+                                               nb_points=nb_points,
+                                               rng=rng)
+    logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
+                 '{3} centroids'.format(seed, current_thr_list,
+                                        round(time() - timer, 2),
+                                        len(cluster_map.centroids)))
+    return rbx
+
+
 def single_recognize(args):
     """
+    Function to multiprocess recobundles
     Parameters
     ----------
     rbx_all : dict
