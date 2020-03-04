@@ -41,20 +41,19 @@ def _build_args_parser():
     p.add_argument('in_model',
                    help='Model to use for recognition (trk or tck).')
     p.add_argument('transformation',
-                   help='4x4 transformation to bring the model onto \n'
-                   'the input tractogram')
+                   help='Path for the transformation to model space.')
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
     p.add_argument('--wb_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--model_clustering_thr', type=float, default=4,
                    help='Clustering threshold used for the model '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--pruning_thr', type=float, default=6,
                    help='MDF threshold used for final streamlines selection '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
 
     p.add_argument('--slr_threads', type=int, default=None,
                    help='Number of threads for SLR [all].')
