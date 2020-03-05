@@ -7,6 +7,7 @@ import logging
 import multiprocessing
 import os
 import random
+import tempfile
 from time import time
 
 import nibabel as nib
@@ -17,6 +18,37 @@ from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 
 from scilpy.segment.recobundlesx import RecobundlesX
+
+
+def streamlines_to_memmap(input_streamlines):
+    """
+    Function to decompose on disk the array_sequence into its components
+    Parameters
+    ----------
+    input_streamlines : ArraySequence
+        All streamlines of the tractogram to segment
+    Returns
+    -------
+    rbx : tuple
+        Temporary filename for the data, offsets and lengths
+    """
+    tmp_dir = tempfile.TemporaryDirectory()
+    data_filename = os.path.join(tmp_dir.name, 'data.dat')
+    data = np.memmap(data_filename, dtype='float32', mode='w+',
+                        shape=input_streamlines._data.shape)
+    data[:] = input_streamlines._data[:]
+
+    offsets_filename = os.path.join(tmp_dir.name, 'offsets.dat')
+    offsets = np.memmap(offsets_filename, dtype='int32', mode='w+',
+                        shape=input_streamlines._offsets.shape)
+    offsets[:] = input_streamlines._offsets[:]
+
+    lengths_filename = os.path.join(tmp_dir.name, 'lengths.dat')
+    lengths = np.memmap(lengths_filename, dtype='int32', mode='w+',
+                        shape=input_streamlines._lengths.shape)
+    lengths[:] = input_streamlines._lengths[:]
+
+    return tmp_dir, (data_filename, offsets_filename, lengths_filename)
 
 
 class VotingScheme(object):
@@ -240,8 +272,16 @@ class VotingScheme(object):
 
         # Load the subject tractogram
         timer = time()
+        # manager = multiprocessing.Manager()
         tractogram = nib.streamlines.load(input_tractogram_path)
+        # nb_streamlines = tractogram.header['nb_streamlines']
         wb_streamlines = tractogram.streamlines
+
+        # wb_streamlines = manager.list([None]*nb_streamlines)
+        # streamlines_iterator = iter(tractogram.streamlines)
+        # for i in range(nb_streamlines):
+        #     wb_streamlines[i] = next(streamlines_iterator)
+
         logging.debug('Tractogram {0} with {1} streamlines '
                       'is loaded in {2} seconds'.format(input_tractogram_path,
                                                         len(wb_streamlines),
@@ -312,18 +352,21 @@ class VotingScheme(object):
                         processing_dict['slr_transform_type'] += [slr_transform_type]
                         processing_dict['seed'] += [seed]
 
-        # Clustring is now arallelize
+        # Clustring is now parallelize
         pool = multiprocessing.Pool(nbr_processes)
+        tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
         comb_param_cluster = product(tractogram_clustering_thr, seeds)
         all_clusterized_dict = pool.map(single_clusterize,
                                         zip(repeat(wb_streamlines),
+                                            repeat(tmp_memmap_filenames),
                                             comb_param_cluster,
                                             repeat(nb_points)))
         pool.close()
         pool.join()
-        rbx_all = {}
-        for key in all_clusterized_dict:
-            rbx_all[key] = all_clusterized_dict[key]
+        manager = multiprocessing.Manager()
+        rbx_all = manager.dict()
+        for elem in all_clusterized_dict:
+            rbx_all.update(elem)
 
         pool = multiprocessing.Pool(nbr_processes)
         all_recognized_dict = pool.map(single_recognize,
@@ -338,6 +381,7 @@ class VotingScheme(object):
                                            processing_dict['seed']))
         pool.close()
         pool.join()
+        tmp_dir.cleanup()
 
         streamlines_wise_vote = dok_matrix((len(wb_streamlines),
                                             len(bundle_names)),
@@ -383,21 +427,25 @@ def single_clusterize(args):
     ----------
     wb_streamlines : list or ArraySequence
         All streamlines of the tractogram to segment
+    tmp_memmap_filename: tuple
+        Temporary filename for the data, offsets and lengths
     clustering_thr : int
         Distance in mm (for QBx) to cluster the input tractogram
     seed : int
         Value to initialize the RandomState of numpy
     nb_points : int
         Number of points used for all resampling of streamlines
+
     Returns
     -------
     rbx : dict
         Initialisation of the recobundles class using specific parameters
     """
     wb_streamlines = args[0]
-    clustering_thr = args[1][0]
-    seed = args[1][1]
-    nb_points = args[2]
+    tmp_memmap_filename = args[1]
+    clustering_thr = args[2][0]
+    seed = args[2][1]
+    nb_points = args[3]
 
     rbx = {}
     base_thresholds = [45, 35, 25]
@@ -413,9 +461,13 @@ def single_clusterize(args):
                                 current_thr_list,
                                 nb_pts=nb_points, rng=rng,
                                 verbose=False)
+    clusters_indices = []
+    for cluster in cluster_map.clusters:
+        clusters_indices.append(cluster.indices)
+    centroids = list(cluster_map.centroids)
 
-    rbx[(seed, clustering_thr)] = RecobundlesX(wb_streamlines,
-                                               cluster_map,
+    rbx[(seed, clustering_thr)] = RecobundlesX(tmp_memmap_filename,
+                                               clusters_indices, centroids,
                                                nb_points=nb_points,
                                                rng=rng)
     logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '

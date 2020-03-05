@@ -13,6 +13,19 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
 import numpy as np
 
 
+def _reconstruct_streamlines(memmap_filenames, indices):
+    data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
+    offsets = np.memmap(memmap_filenames[1],  dtype='int32', mode='r')
+    lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
+
+    streamlines = []
+    for i in indices:
+        streamline = data[offsets[i]*3:offsets[i]*3 + lengths[i]*3]
+        streamlines.append(streamline.reshape((lengths[i], 3)))
+
+    return streamlines
+
+
 class RecobundlesX(object):
     """
     This class is a 'remastered' version of the Dipy Recobundles class.
@@ -29,13 +42,11 @@ class RecobundlesX(object):
         clustering, Neuroimage, 2017.
     """
 
-    def __init__(self, streamlines, cluster_map,
+    def __init__(self, memmap_filenames, wb_clusters_indices, wb_centroids,
                  nb_points=20, slr_num_thread=1, rng=None):
         """
         Parameters
         ----------
-        streamlines : list or ArraySequence
-            Whole brain tractogram as loaded by the nibabel API
         cluster_map : obj
             Contains the clusters of QuickBundlesX
         nb_points : int
@@ -46,9 +57,10 @@ class RecobundlesX(object):
         rng : RandomState
             If None then RandomState is initialized internally.
         """
-        self.streamlines = streamlines
-        self.cluster_map = cluster_map
-        self.centroids = self.cluster_map.centroids
+        # self.streamlines = streamlines
+        self.memmap_filenames = memmap_filenames
+        self.wb_clusters_indices = wb_clusters_indices
+        self.centroids = wb_centroids
         self.rng = rng
 
         # Parameters
@@ -145,32 +157,36 @@ class RecobundlesX(object):
                         neighbors_reduction_thr] = np.inf
 
         mins = np.min(centroid_matrix, axis=0)
-        close_clusters_indices = list(np.where(mins != np.inf)[0])
-        if len(close_clusters_indices) < 1:
+        close_clusters_indices = tuple(np.where(mins != np.inf)[0])
+
+        if not len(close_clusters_indices):
             return False
 
-        close_clusters_indices_tuple = []
-        # Order all cluster by size (number of streamlines in it)
+        # close_clusters_indices_tuple = []
+        # # Order all cluster by size (number of streamlines in it)
+        # for i in close_clusters_indices:
+        #     close_clusters_indices_tuple.append((
+        #         i, self.cluster_map.clusters_sizes()[i]))
+        # sorted_tuple = sorted(
+        #     close_clusters_indices_tuple, key=lambda size: size[1])[:-1]
+
+        # close_clusters_indices = []
+        # # Only keep the cluster that are big enough
+        # for j in range(len(sorted_tuple)):
+        #     if sorted_tuple[j][1] >= 10:
+        #         close_clusters_indices.append(sorted_tuple[j][0])
+
+        self.neighb_indices = []
         for i in close_clusters_indices:
-            close_clusters_indices_tuple.append((
-                i, self.cluster_map.clusters_sizes()[i]))
-        sorted_tuple = sorted(
-            close_clusters_indices_tuple, key=lambda size: size[1])[:-1]
-
-        close_clusters_indices = []
-        # Only keep the cluster that are big enough
-        for j in range(len(sorted_tuple)):
-            if sorted_tuple[j][1] >= 10:
-                close_clusters_indices.append(sorted_tuple[j][0])
-
-        close_clusters = self.cluster_map[close_clusters_indices]
-        self.neighb_streamlines = list(chain(*close_clusters))
-        if not close_clusters_indices:
-            return False
+            self.neighb_indices.extend(self.wb_clusters_indices[i])
+        self.neighb_streamlines = _reconstruct_streamlines(self.memmap_filenames,
+                                                           self.neighb_indices)
+        # if not close_clusters_indices:
+        #     return False
 
         self.neighb_centroids = [self.centroids[i]
                                  for i in close_clusters_indices]
-        self.neighb_indices = [cluster.indices for cluster in close_clusters]
+        #  = [cluster.indices for cluster in close_clusters]
 
         return True
 
@@ -282,12 +298,12 @@ class RecobundlesX(object):
         pruned_streamlines = [neighbors_to_prune[i] for i in pruned_indices]
 
         self.pruned_streamlines = pruned_streamlines
-        initial_indices = list(chain(*self.neighb_indices))
+        # initial_indices = list(chain(*self.neighb_indices))
 
         # Since the neighbors were clustered, a mapping of indices is neccesary
         final_indices = []
         for i in range(len(pruned_clusters)):
-            final_indices.extend([initial_indices[i]
+            final_indices.extend([self.neighb_indices[i]
                                   for i in pruned_clusters[i]])
 
         return final_indices
