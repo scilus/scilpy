@@ -53,7 +53,7 @@ class RecobundlesX(object):
             List of lists containing the indices of streamlines per cluster.
         wb_centroids : list of numpy.ndarray
             List contaning the average streamline per cluster as obtained
-            from qbx. 
+            from qbx.
         nb_points : int
             Number of points used for all resampling of streamlines.
         slr_num_thread : int
@@ -130,9 +130,9 @@ class RecobundlesX(object):
         """
         thresholds = [30, 20, 15, model_clust_thr]
         model_cluster_map = qbx_and_merge(model, thresholds,
-                                               nb_pts=self.nb_points,
-                                               rng=self.rng,
-                                               verbose=False)
+                                          nb_pts=self.nb_points,
+                                          rng=self.rng,
+                                          verbose=False)
         self.model_centroids = model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
@@ -276,9 +276,10 @@ class RecobundlesX(object):
         dist_matrix[dist_matrix > bundle_pruning_thr] = np.inf
         mins = np.min(dist_matrix, axis=0)
 
-        pruned_indices = np.fromiter(chain(*[neighb_cluster_map[i].indices
-                                          for i in np.where(mins != np.inf)[0]]),
-                                  dtype=np.int32)
+        pruned_indices = np.fromiter(chain(
+            *[neighb_cluster_map[i].indices
+              for i in np.where(mins != np.inf)[0]]),
+            dtype=np.int32)
 
         # Since the neighbors were clustered, a mapping of indices is neccesary
         self.final_pruned_indices = self.neighb_indices[pruned_indices]

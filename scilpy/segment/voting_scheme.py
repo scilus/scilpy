@@ -30,7 +30,7 @@ def streamlines_to_memmap(input_streamlines):
     Returns
     -------
     tmp_obj : tuple
-        Temporary directory and tuple of filenames for the data, offsets 
+        Temporary directory and tuple of filenames for the data, offsets
         and lengths.
     """
     tmp_dir = tempfile.TemporaryDirectory()
@@ -161,7 +161,7 @@ class VotingScheme(object):
         min_vote threshold. Return the indices respecting all three conditions.
         :param bundle_id, int, indices of the bundles in the lil_matrix.
         :param min_vote, int, minimum value for considering (voting).
-        :param bundles_wise_vote, lil_matrix, bundles-wise sparse matrix 
+        :param bundles_wise_vote, lil_matrix, bundles-wise sparse matrix
             use for voting.
         """
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
@@ -210,8 +210,9 @@ class VotingScheme(object):
 
             header = tractogram.header
             streamlines = tractogram.streamlines[streamlines_id.T]
-            data_per_streamline = tractogram.tractogram.data_per_streamline[streamlines_id.T]
-            data_per_point = tractogram.tractogram.data_per_point[streamlines_id.T]
+            tractogram = tractogram.tractogram
+            data_per_streamline = tractogram.data_per_streamline[streamlines_id.T]
+            data_per_point = tractogram.data_per_point[streamlines_id.T]
 
             # All models of the same bundle have the same basename
             basename = os.path.join(self.output_directory,
@@ -483,7 +484,7 @@ def single_recognize(args):
     rbx = rbx_dict[(seed, tct)]
 
     tmp_split = str(tag).split('/')
-    shorter_tag = os.path.join(tmp_split[-1], tmp_split[-2])
+    shorter_tag = os.path.join(*tmp_split[-3:])
 
     recognize_timer = time()
     recognized_indices = rbx.recognize(model_bundle,
@@ -493,7 +494,7 @@ def single_recognize(args):
                                        identifier=shorter_tag)
 
     logging.info('Model {0} recognized {1} streamlines'.format(
-                 tag, len(recognized_indices)))
+                 shorter_tag, len(recognized_indices)))
     logging.debug('Model {0} (seed {1}) with parameters '
                   'tct={2}, mct={3}, bpt={4} '
                   'took {5} sec.'.format(shorter_tag, seed,
