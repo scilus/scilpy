@@ -12,7 +12,7 @@ from time import time
 
 import nibabel as nib
 import numpy as np
-from scipy.sparse import dok_matrix
+from scipy.sparse import lil_matrix
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
@@ -35,11 +35,11 @@ def streamlines_to_memmap(input_streamlines):
     tmp_dir = tempfile.TemporaryDirectory()
     data_filename = os.path.join(tmp_dir.name, 'data.dat')
     data = np.memmap(data_filename, dtype='float32', mode='w+',
-                        shape=input_streamlines._data.shape)
+                     shape=input_streamlines._data.shape)
     data[:] = input_streamlines._data[:]
 
     offsets_filename = os.path.join(tmp_dir.name, 'offsets.dat')
-    offsets = np.memmap(offsets_filename, dtype='int32', mode='w+',
+    offsets = np.memmap(offsets_filename, dtype='int64', mode='w+',
                         shape=input_streamlines._offsets.shape)
     offsets[:] = input_streamlines._offsets[:]
 
@@ -157,39 +157,26 @@ class VotingScheme(object):
 
         return model_bundles_dict
 
-    def _find_max_in_sparse_matrix(self, bundle_id, min_vote,
-                                   streamlines_wise_vote, bundles_wise_vote):
+    def _find_max_in_sparse_matrix(self, bundle_id, min_vote, bundles_wise_vote):
         """
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
-        :param bundle_id, int, indices of the bundles in the dok_matrix
+        :param bundle_id, int, indices of the bundles in the lil_matrix
         :param min_vote, int, minimum value for considering (voting)
-        :param streamlines_wise_vote, dok_matrix, streamlines-wise
-            sparse matrix for voting
-        :param bundles_wise_vote, dok_matrix, bundles-wise
+        :param bundles_wise_vote, lil_matrix, bundles-wise
             sparse matrix for voting
         """
-        streamlines_indices_in_bundles = []
-        streamline_ids = bundles_wise_vote[bundle_id]
-        for streamline_id in streamline_ids.keys():
-            current_max_vote = -1
-            current_arg_max = -1
+        streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
+        streamlines_ids = np.asarray(streamlines_ids[:, 1], dtype=np.int32)
 
-            for vote_id in streamlines_wise_vote[streamline_id[1]].keys():
-                current_vote = streamlines_wise_vote[streamline_id[1],
-                                                     vote_id[1]]
-                if current_vote > current_max_vote:
-                    current_max_vote = current_vote
-                    current_arg_max = vote_id[1]
+        vote_score = bundles_wise_vote.T[streamlines_ids].tocsr()[:, bundle_id]
+        vote_score = np.squeeze(vote_score.toarray().astype(np.int32).T)
 
-            if current_arg_max == bundle_id and current_max_vote >= min_vote:
-                streamlines_indices_in_bundles.append(streamline_id[1])
-
-        return np.asarray(streamlines_indices_in_bundles, dtype=np.int32)
+        return streamlines_ids, vote_score
 
     def _save_recognized_bundles(self, tractogram, bundle_names,
-                                 streamlines_wise_vote, bundles_wise_vote,
+                                 bundles_wise_vote,
                                  minimum_vote, extension):
         """
         Parameters
@@ -199,9 +186,7 @@ class VotingScheme(object):
         bundle_names : list
             Bundle names as defined in the configuration file
             Will save the bundle using that filename and the extension
-        streamlines_wise_vote : dok_matrix
-            Array of zeros of shape (nbr_streamlines x nbr_bundles)
-        bundles_wise_vote : dok_matrix
+        bundles_wise_vote : lil_matrix
             Array of zeros of shape (nbr_bundles x nbr_streamlines)
         minimum_vote : float
             Value for the vote ratio for a streamline to be considered
@@ -213,10 +198,12 @@ class VotingScheme(object):
         """
         results_dict = {}
         for bundle_id in range(len(bundle_names)):
-            streamlines_id = self._find_max_in_sparse_matrix(bundle_id,
-                                                             minimum_vote,
-                                                             streamlines_wise_vote,
-                                                             bundles_wise_vote)
+            # timer = time()
+            streamlines_id, vote_score = self._find_max_in_sparse_matrix(
+                bundle_id,
+                minimum_vote,
+                bundles_wise_vote)
+            # print('****** SPARSE ******', time() - timer)
 
             if not streamlines_id.size:
                 logging.error('{0} final recognition got {1} streamlines'.format(
@@ -230,7 +217,6 @@ class VotingScheme(object):
             streamlines = tractogram.streamlines[streamlines_id.T]
             data_per_streamline = tractogram.tractogram.data_per_streamline[streamlines_id.T]
             data_per_point = tractogram.tractogram.data_per_point[streamlines_id.T]
-            vote_score = streamlines_wise_vote[streamlines_id.T, bundle_id]
 
             # All models of the same bundle have the same basename
             basename = os.path.join(self.output_directory,
@@ -244,9 +230,8 @@ class VotingScheme(object):
                                  header=header)
 
             curr_results_dict = {}
-            curr_results_dict['indices'] = np.asarray(streamlines_id).tolist()
-            curr_results_dict['votes'] = np.squeeze(
-                vote_score.toarray()).tolist()
+            curr_results_dict['indices'] = streamlines_id.tolist()
+            curr_results_dict['votes'] = vote_score.tolist()
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
@@ -363,8 +348,8 @@ class VotingScheme(object):
                                             repeat(nb_points)))
         pool.close()
         pool.join()
-        manager = multiprocessing.Manager()
-        rbx_all = manager.dict()
+        # manager = multiprocessing.Manager()
+        rbx_all = {}
         for elem in all_clusterized_dict:
             rbx_all.update(elem)
 
@@ -383,18 +368,21 @@ class VotingScheme(object):
         pool.join()
         tmp_dir.cleanup()
 
-        streamlines_wise_vote = dok_matrix((len(wb_streamlines),
-                                            len(bundle_names)),
-                                           dtype=np.int16)
-        bundles_wise_vote = dok_matrix((len(bundle_names),
+        # lil_timer = time()
+        # streamlines_wise_vote = lil_matrix((len(wb_streamlines),
+        #                                     len(bundle_names)),
+        #                                    dtype=np.int16)
+        bundles_wise_vote = lil_matrix((len(bundle_names),
                                         len(wb_streamlines)),
                                        dtype=np.int16)
 
         for bundle_id, recognized_indices in all_recognized_dict:
             if recognized_indices is not None:
-                streamlines_wise_vote[recognized_indices.T, bundle_id] += 1
-                bundles_wise_vote[bundle_id, recognized_indices.T] += 1
+                tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
+                bundles_wise_vote[bundle_id, recognized_indices.T] = tmp_values.toarray() + 1
 
+        bundles_wise_vote = bundles_wise_vote.tocsr()
+        # print('------- DOK TIMER -------', time() - lil_timer)
         nb_exec = len(self.atlas_dir) * self.multi_parameters * len(seeds) * \
             len(bundle_names)
         logging.info('RBx took {0} sec. for a total of '
@@ -415,7 +403,6 @@ class VotingScheme(object):
 
         extension = os.path.splitext(input_tractogram_path)[1]
         self._save_recognized_bundles(tractogram, bundle_names,
-                                      streamlines_wise_vote,
                                       bundles_wise_vote,
                                       minimum_vote, extension)
 
@@ -522,15 +509,15 @@ def single_recognize(args):
     rbx = rbx_all[(seed, tct)]
 
     timer = time()
-    recognized_bundle = rbx.recognize(model_bundle,
+    recognized_indices = rbx.recognize(model_bundle,
                                       model_clust_thr=mct,
                                       bundle_pruning_thr=bpt,
                                       slr_transform_type=slr_transform_type,
                                       identifier=tag)
-    recognized_indices = rbx.get_pruned_indices()
+    # recognized_indices = rbx.get_pruned_indices()
 
     logging.info('Model {0} recognized {1} streamlines'.format(
-                 tag, len(recognized_bundle)))
+                 tag, len(recognized_indices)))
     logging.debug('Model {0} (seed {1}) with parameters '
                   'tct={2}, mct={3}, bpt={4} took {5} sec.'.format(tag, seed,
                                                                    tct, mct, bpt,

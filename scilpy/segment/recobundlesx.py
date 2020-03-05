@@ -15,7 +15,7 @@ import numpy as np
 
 def _reconstruct_streamlines(memmap_filenames, indices):
     data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
-    offsets = np.memmap(memmap_filenames[1],  dtype='int32', mode='r')
+    offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
     lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
 
     streamlines = []
