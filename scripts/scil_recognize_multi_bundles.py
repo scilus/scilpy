@@ -121,6 +121,7 @@ def main():
 
     voting = VotingScheme(config, args.models_directories,
                           transfo, args.output,
+                          tractogram_clustering_thr=args.tractogram_clustering_thr,
                           minimal_vote_ratio=args.minimal_vote_ratio,
                           multi_parameters=args.multi_parameters)
 
@@ -129,8 +130,8 @@ def main():
     else:
         seeds = args.seeds
 
-    voting.multi_recognize(args.in_tractogram, args.tractogram_clustering_thr,
-                           nbr_processes=args.processes, seeds=seeds)
+    voting(args.in_tractogram,
+           nbr_processes=args.processes, seeds=seeds)
 
 
 if __name__ == '__main__':

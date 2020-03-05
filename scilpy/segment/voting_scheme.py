@@ -54,7 +54,8 @@ def streamlines_to_memmap(input_streamlines):
 
 class VotingScheme(object):
     def __init__(self, config, atlas_directory, transformation,
-                 output_directory, minimal_vote_ratio=0.5, multi_parameters=1):
+                 output_directory, tractogram_clustering_thr, nb_points=12,
+                 minimal_vote_ratio=0.5, multi_parameters=1):
         """
         Parameters
         ----------
@@ -67,6 +68,10 @@ class VotingScheme(object):
             Transformation (4x4) bringing the models into subject space.
         output_directory : str
             Directory name where all files will be saved.
+        tractogram_clustering_thr : int
+            Distance in mm (for QBx) to cluster the input tractogram.
+        nb_points : int
+            Number of points used for all resampling of streamlines.
         minimal_vote_ratio : float
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
@@ -75,6 +80,8 @@ class VotingScheme(object):
             Enough parameter choices must be provided.
         """
         self.config = config
+        self.tractogram_clustering_thr = tractogram_clustering_thr
+        self.nb_points = nb_points
         self.multi_parameters = multi_parameters
         self.minimal_vote_ratio = minimal_vote_ratio
 
@@ -234,17 +241,15 @@ class VotingScheme(object):
         with open(out_logfile, 'w') as outfile:
             json.dump(results_dict, outfile)
 
-    def multi_recognize(self, input_tractogram_path, tractogram_clustering_thr,
-                        nb_points=12, nbr_processes=1, seeds=None):
+    def __call__(self, input_tractogram_path, nbr_processes=1, seeds=None):
         """
+        Entry point function that generate the 'stack' of commands for
+        dispatching and launch them using multiprocessing.
+
         Parameters
         ----------
         input_tractogram_path : str
             Filepath of the whole brain tractogram to segment.
-        tractogram_clustering_thr : int
-            Distance in mm (for QBx) to cluster the input tractogram.
-        nb_points : int
-            Number of points used for all resampling of streamlines.
         nbr_processes : int
             Number of processes used for the parallel bundle recognition.
         seeds : list
@@ -278,7 +283,7 @@ class VotingScheme(object):
                 model_cluster_thr = bundle_parameters['model_clustering_thr']
                 bundle_pruning_thr = bundle_parameters['bundle_pruning_thr']
                 slr_transform_type = bundle_parameters['slr_transform_type']
-                potential_parameters = list(product(tractogram_clustering_thr,
+                potential_parameters = list(product(self.tractogram_clustering_thr,
                                                     model_cluster_thr,
                                                     bundle_pruning_thr))
                 random.shuffle(potential_parameters)
@@ -318,12 +323,12 @@ class VotingScheme(object):
         # Clustring is now parallelize
         pool = multiprocessing.Pool(nbr_processes)
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
-        comb_param_cluster = product(tractogram_clustering_thr, seeds)
+        comb_param_cluster = product(self.tractogram_clustering_thr, seeds)
         all_rbx_dict = pool.map(single_clusterize_and_rbx_init,
                                 zip(repeat(wb_streamlines),
                                     repeat(tmp_memmap_filenames),
                                     comb_param_cluster,
-                                    repeat(nb_points)))
+                                    repeat(self.nb_points)))
         pool.close()
         pool.join()
 
@@ -383,24 +388,28 @@ class VotingScheme(object):
 
 def single_clusterize_and_rbx_init(args):
     """
-    Function to multiprocess clustering
+    Wrapper function to multiprocess clustering executions and recobundles
+    initialisation.
+
     Parameters
     ----------
     wb_streamlines : list or ArraySequence
-        All streamlines of the tractogram to segment
-    tmp_memmap_filename: tuple
-        Temporary filename for the data, offsets and lengths
-    clustering_thr : int
-        Distance in mm (for QBx) to cluster the input tractogram
-    seed : int
-        Value to initialize the RandomState of numpy
-    nb_points : int
-        Number of points used for all resampling of streamlines
+        All streamlines of the tractogram to segment.
+    tmp_memmap_filename: tuple (3)
+        Temporary filename for the data, offsets and lengths.
+
+    parameters_list : tuple (3)
+        clustering_thr : int
+            Distance in mm (for QBx) to cluster the input tractogram.
+        seed : int
+            Value to initialize the RandomState of numpy.
+        nb_points : int
+            Number of points used for all resampling of streamlines.
 
     Returns
     -------
     rbx : dict
-        Initialisation of the recobundles class using specific parameters
+        Initialisation of the recobundles class using specific parameters.
     """
     wb_streamlines = args[0]
     tmp_memmap_filename = args[1]
@@ -440,35 +449,39 @@ def single_clusterize_and_rbx_init(args):
 
 def single_recognize(args):
     """
-    Function to multiprocess recobundles
+    Wrapper function to multiprocess recobundles execution.
+
     Parameters
     ----------
-    rbx_all : dict
+    rbx_dict : dict
         Dictionary with int as key and QBx ClusterMap as values
-    bundle_id : int
-        Unique value to each bundle to identify them
-    tag : str
-        Model bundle filepath for logging
-    model_bundle : list or Array Sequence
-        Model bundle as loaded by the nibabel API
-    tct : int
-        Tractogram clustering threshold, distance in mm (for QBx)
-    mct : int
-        Model clustering threshold, distance in mm (for QBx)
-    bpt : int
-        Bundle pruning threshold, distance in mm
-    slr_transform_type : str
-        Define the transformation for the local SLR
-        [translation, rigid, similarity, scaling]
-    seed : int
-        Value to initialize the RandomState of numpy
+
+    parameters_list : tuple (8)
+        bundle_id : int
+            Unique value to each bundle to identify them
+        tag : str
+            Model bundle filepath for logging
+        model_bundle : list or Array Sequence
+            Model bundle as loaded by the nibabel API
+        tct : int
+            Tractogram clustering threshold, distance in mm (for QBx)
+        mct : int
+            Model clustering threshold, distance in mm (for QBx)
+        bpt : int
+            Bundle pruning threshold, distance in mm
+        slr_transform_type : str
+            Define the transformation for the local SLR
+            [translation, rigid, similarity, scaling]
+        seed : int
+            Value to initialize the RandomState of numpy
+
     Returns
     -------
     transf_neighbor : tuple
-        bundle_id (int)
-            Unique value to each bundle to identify them
-        recognized_indices (numpy.ndarray)
-            Streamlines indices from the original tractogram
+        bundle_id : (int)
+            Unique value to each bundle to identify them.
+        recognized_indices : (numpy.ndarray)
+            Streamlines indices from the original tractogram.
     """
     rbx_dict = args[0]
     bundle_id = args[1][0]

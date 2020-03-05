@@ -67,7 +67,7 @@ def _build_args_parser():
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                       'Will override the wb_clustering_thr parameter.')
+                            'Will override the wb_clustering_thr parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
@@ -94,8 +94,7 @@ def main():
     if args.inverse:
         transfo = np.linalg.inv(np.loadtxt(args.transformation))
 
-    model_streamlines = ArraySequence(
-        transform_streamlines(model_file.streamlines, transfo))
+    model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
     if args.input_pickle:
@@ -114,7 +113,7 @@ def main():
     if args.output_pickle:
         with open(args.output_pickle, 'wb') as outfile:
             pickle.dump(reco_obj.cluster_map, outfile)
-    _, indices = reco_obj.recognize(model_streamlines,
+    _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
                                     slr_num_threads=args.slr_threads)
