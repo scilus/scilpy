@@ -22,15 +22,16 @@ from scilpy.segment.recobundlesx import RecobundlesX
 
 def streamlines_to_memmap(input_streamlines):
     """
-    Function to decompose on disk the array_sequence into its components
+    Function to decompose on disk the array_sequence into its components.
     Parameters
     ----------
     input_streamlines : ArraySequence
-        All streamlines of the tractogram to segment
+        All streamlines of the tractogram to segment.
     Returns
     -------
-    rbx : tuple
-        Temporary filename for the data, offsets and lengths
+    tmp_obj : tuple
+        Temporary directory and tuple of filenames for the data, offsets 
+        and lengths.
     """
     tmp_dir = tempfile.TemporaryDirectory()
     data_filename = os.path.join(tmp_dir.name, 'data.dat')
@@ -58,20 +59,20 @@ class VotingScheme(object):
         Parameters
         ----------
         config : dict
-            Dictionary containing information relative to bundle recognition
+            Dictionary containing information relative to bundle recognition.
         atlas_directory : list
-            List of all directories to be used as atlas by RBx
-            Must contain all bundles as declared in the config file
+            List of all directories to be used as atlas by RBx.
+            Must contain all bundles as declared in the config file.
         transformation : numpy.ndarray
-            Transformation (4x4) bringing the models into subject space
+            Transformation (4x4) bringing the models into subject space.
         output_directory : str
-            Directory name where all files will be saved
+            Directory name where all files will be saved.
         minimal_vote_ratio : float
-            Value for the vote ratio for a streamline to be considered
+            Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote_ratio < 1)
         multi_parameters : int
-            Number of runs RBx will performed
-            Enough parameter choices must be provided
+            Number of runs RBx will performed.
+            Enough parameter choices must be provided.
         """
         self.config = config
         self.multi_parameters = multi_parameters
@@ -88,7 +89,7 @@ class VotingScheme(object):
 
     def _init_bundles_tag(self):
         """
-        Using all bundles in the configuration file and the input models
+        Using all bundles in the configuration file and the input models.
         folders, generate all model filepaths.
         Bundles must exist across all folders.
         """
@@ -130,8 +131,6 @@ class VotingScheme(object):
                      'with {1} model bundles'.format(
                          len(self.atlas_dir),
                          len(bundle_names_exist)))
-        logging.debug('The models use for RecobundlesX '
-                      'will be {0}'.format(bundles_filepath_exist))
 
         return bundle_names_exist, bundles_filepath_exist
 
@@ -139,7 +138,7 @@ class VotingScheme(object):
         """
         Load all model bundles and store them in a dictionnary where the
         filepaths are the keys and the streamlines the values.
-        :param bundles_filepath, list, list of filepaths of model bundles
+        :param bundles_filepath, list, list of filepaths of model bundles.
         """
         filenames = [filepath for filepath in bundles_filepath]
 
@@ -149,8 +148,6 @@ class VotingScheme(object):
             bundle = transform_streamlines(streamlines, self.transformation)
             model_bundles_dict[filename] = bundle
 
-            logging.debug('Loaded {0} with {1} streamlines'.format(filename,
-                                                                   len(bundle)))
             if len(bundle) > 5000:
                 logging.warning(
                     '{0} has above 5000 streamlines'.format(filename))
@@ -162,10 +159,10 @@ class VotingScheme(object):
         Will find the maximum values of a specific row (bundle_id), make
         sure they are the maximum values across bundles (argmax) and above the
         min_vote threshold. Return the indices respecting all three conditions.
-        :param bundle_id, int, indices of the bundles in the lil_matrix
-        :param min_vote, int, minimum value for considering (voting)
-        :param bundles_wise_vote, lil_matrix, bundles-wise
-            sparse matrix for voting
+        :param bundle_id, int, indices of the bundles in the lil_matrix.
+        :param min_vote, int, minimum value for considering (voting).
+        :param bundles_wise_vote, lil_matrix, bundles-wise sparse matrix 
+            use for voting.
         """
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
         streamlines_ids = np.asarray(streamlines_ids[:, 1], dtype=np.int32)
@@ -179,31 +176,29 @@ class VotingScheme(object):
                                  bundles_wise_vote,
                                  minimum_vote, extension):
         """
+        Will save multiple TRK/TCK file and results.json (contains indices)
+
         Parameters
         ----------
         tractogram : nib.streamlines.tractogram
-            Nibabel tractogram object
+            Nibabel tractogram object.
         bundle_names : list
-            Bundle names as defined in the configuration file
-            Will save the bundle using that filename and the extension
+            Bundle names as defined in the configuration file.
+            Will save the bundle using that filename and the extension.
         bundles_wise_vote : lil_matrix
-            Array of zeros of shape (nbr_bundles x nbr_streamlines)
+            Array of zeros of shape (nbr_bundles x nbr_streamlines).
         minimum_vote : float
-            Value for the vote ratio for a streamline to be considered
+            Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote < 1)
         extension : str
-            Extension for file saving (TRK or TCK)
-
-        Will save multiple TRK/TCK file and results.json (contains indices)
+            Extension for file saving (TRK or TCK).
         """
         results_dict = {}
         for bundle_id in range(len(bundle_names)):
-            # timer = time()
             streamlines_id, vote_score = self._find_max_in_sparse_matrix(
                 bundle_id,
                 minimum_vote,
                 bundles_wise_vote)
-            # print('****** SPARSE ******', time() - timer)
 
             if not streamlines_id.size:
                 logging.error('{0} final recognition got {1} streamlines'.format(
@@ -239,57 +234,44 @@ class VotingScheme(object):
             json.dump(results_dict, outfile)
 
     def multi_recognize(self, input_tractogram_path, tractogram_clustering_thr,
-                        nb_points=20, nbr_processes=1, seeds=None):
+                        nb_points=12, nbr_processes=1, seeds=None):
         """
         Parameters
         ----------
         input_tractogram_path : str
-            Filepath of the whole brain tractogram to segment
+            Filepath of the whole brain tractogram to segment.
         tractogram_clustering_thr : int
-            Distance in mm (for QBx) to cluster the input tractogram
+            Distance in mm (for QBx) to cluster the input tractogram.
         nb_points : int
-            Number of points used for all resampling of streamlines
+            Number of points used for all resampling of streamlines.
         nbr_processes : int
-            Number of processes used for the parallel bundle recognition
+            Number of processes used for the parallel bundle recognition.
         seeds : list
-            List of seed for the RandomState
+            List of seed for the RandomState.
         """
 
         # Load the subject tractogram
-        timer = time()
-        # manager = multiprocessing.Manager()
+        load_timer = time()
         tractogram = nib.streamlines.load(input_tractogram_path)
-        # nb_streamlines = tractogram.header['nb_streamlines']
         wb_streamlines = tractogram.streamlines
-
-        # wb_streamlines = manager.list([None]*nb_streamlines)
-        # streamlines_iterator = iter(tractogram.streamlines)
-        # for i in range(nb_streamlines):
-        #     wb_streamlines[i] = next(streamlines_iterator)
 
         logging.debug('Tractogram {0} with {1} streamlines '
                       'is loaded in {2} seconds'.format(input_tractogram_path,
                                                         len(wb_streamlines),
                                                         round(time() -
-                                                              timer, 2)))
+                                                              load_timer, 2)))
 
         # Prepare all tags to read the atlas properly
         bundle_names, bundles_filepath = self._init_bundles_tag()
 
         total_timer = time()
-        processing_dict = {}
-        processing_dict['bundle_id'] = []
-        processing_dict['tag'] = []
-        processing_dict['model_bundle'] = []
-        processing_dict['tct'] = []
-        processing_dict['mct'] = []
-        processing_dict['bpt'] = []
-        processing_dict['slr_transform_type'] = []
-        processing_dict['seed'] = []
+        rbx_params_list = []
 
         # Each type of bundle is processed separately
-        for seed in seeds:
-            for bundle_id in range(len(bundle_names)):
+        for bundle_id in range(len(bundle_names)):
+            # Using multiple seeds will result in a multiplicative factor
+            # of the number of executions
+            for seed in seeds:
                 random.seed(seed)
                 bundle_parameters = self.config[bundle_names[bundle_id]]
                 model_cluster_thr = bundle_parameters['model_clustering_thr']
@@ -328,61 +310,36 @@ class VotingScheme(object):
                     # Each bundle (can) have multiple models
                     for tag in bundles_filepath[bundle_id]:
                         model_bundle = model_bundles_dict[tag]
-                        processing_dict['bundle_id'] += [bundle_id]
-                        processing_dict['tag'] += [tag]
-                        processing_dict['model_bundle'] += [model_bundle]
-                        processing_dict['tct'] += [tct]
-                        processing_dict['mct'] += [mct]
-                        processing_dict['bpt'] += [bpt]
-                        processing_dict['slr_transform_type'] += [slr_transform_type]
-                        processing_dict['seed'] += [seed]
+                        rbx_params_list.append([bundle_id, tag, model_bundle,
+                                                tct, mct, bpt,
+                                                slr_transform_type, seed])
 
         # Clustring is now parallelize
         pool = multiprocessing.Pool(nbr_processes)
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
         comb_param_cluster = product(tractogram_clustering_thr, seeds)
-        all_clusterized_dict = pool.map(single_clusterize,
-                                        zip(repeat(wb_streamlines),
-                                            repeat(tmp_memmap_filenames),
-                                            comb_param_cluster,
-                                            repeat(nb_points)))
+        all_rbx_dict = pool.map(single_clusterize_and_rbx_init,
+                                zip(repeat(wb_streamlines),
+                                    repeat(tmp_memmap_filenames),
+                                    comb_param_cluster,
+                                    repeat(nb_points)))
         pool.close()
         pool.join()
-        # manager = multiprocessing.Manager()
-        rbx_all = {}
-        for elem in all_clusterized_dict:
-            rbx_all.update(elem)
+
+        # Update all RecobundlesX initialisation into a single dictionnary
+        rbx_dict = {}
+        for elem in all_rbx_dict:
+            rbx_dict.update(elem)
+        random.shuffle(rbx_params_list)
 
         pool = multiprocessing.Pool(nbr_processes)
         all_recognized_dict = pool.map(single_recognize,
-                                       zip(repeat(rbx_all),
-                                           processing_dict['bundle_id'],
-                                           processing_dict['tag'],
-                                           processing_dict['model_bundle'],
-                                           processing_dict['tct'],
-                                           processing_dict['mct'],
-                                           processing_dict['bpt'],
-                                           processing_dict['slr_transform_type'],
-                                           processing_dict['seed']))
+                                       zip(repeat(rbx_dict),
+                                           rbx_params_list))
         pool.close()
         pool.join()
         tmp_dir.cleanup()
 
-        # lil_timer = time()
-        # streamlines_wise_vote = lil_matrix((len(wb_streamlines),
-        #                                     len(bundle_names)),
-        #                                    dtype=np.int16)
-        bundles_wise_vote = lil_matrix((len(bundle_names),
-                                        len(wb_streamlines)),
-                                       dtype=np.int16)
-
-        for bundle_id, recognized_indices in all_recognized_dict:
-            if recognized_indices is not None:
-                tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
-                bundles_wise_vote[bundle_id, recognized_indices.T] = tmp_values.toarray() + 1
-
-        bundles_wise_vote = bundles_wise_vote.tocsr()
-        # print('------- DOK TIMER -------', time() - lil_timer)
         nb_exec = len(self.atlas_dir) * self.multi_parameters * len(seeds) * \
             len(bundle_names)
         logging.info('RBx took {0} sec. for a total of '
@@ -396,6 +353,18 @@ class VotingScheme(object):
                           len(self.atlas_dir),
                           len(bundle_names)))
 
+        save_timer = time()
+        bundles_wise_vote = lil_matrix((len(bundle_names),
+                                        len(wb_streamlines)),
+                                       dtype=np.int16)
+
+        for bundle_id, recognized_indices in all_recognized_dict:
+            if recognized_indices is not None:
+                tmp_values = bundles_wise_vote[bundle_id, recognized_indices.T]
+                bundles_wise_vote[bundle_id,
+                                  recognized_indices.T] = tmp_values.toarray() + 1
+        bundles_wise_vote = bundles_wise_vote.tocsr()
+
         # Once everything was run, save the results using a voting system
         minimum_vote = round(len(self.atlas_dir) * self.multi_parameters *
                              len(seeds) * self.minimal_vote_ratio)
@@ -405,9 +374,13 @@ class VotingScheme(object):
         self._save_recognized_bundles(tractogram, bundle_names,
                                       bundles_wise_vote,
                                       minimum_vote, extension)
+        logging.info('Saving of {0} files in {1} took {0} sec.'.format(
+            len(bundle_names),
+            self.output_directory,
+            round(time() - save_timer, 2)))
 
 
-def single_clusterize(args):
+def single_clusterize_and_rbx_init(args):
     """
     Function to multiprocess clustering
     Parameters
@@ -437,7 +410,7 @@ def single_clusterize(args):
     rbx = {}
     base_thresholds = [45, 35, 25]
     rng = np.random.RandomState(seed)
-    timer = time()
+    cluster_timer = time()
     # If necessary, add an extra layer (more optimal)
     if clustering_thr < 15:
         current_thr_list = base_thresholds + [15, clustering_thr]
@@ -459,7 +432,7 @@ def single_clusterize(args):
                                                rng=rng)
     logging.info('QBx with seed {0} at {1}mm took {2}sec. gave '
                  '{3} centroids'.format(seed, current_thr_list,
-                                        round(time() - timer, 2),
+                                        round(time() - cluster_timer, 2),
                                         len(cluster_map.centroids)))
     return rbx
 
@@ -496,33 +469,36 @@ def single_recognize(args):
         recognized_indices (numpy.ndarray)
             Streamlines indices from the original tractogram
     """
-    rbx_all = args[0]
-    bundle_id = args[1]
-    tag = args[2]
-    model_bundle = args[3]
-    tct = args[4]
-    mct = args[5]
-    bpt = args[6]
-    slr_transform_type = args[7]
-    seed = args[8]
+    rbx_dict = args[0]
+    bundle_id = args[1][0]
+    tag = args[1][1]
+    model_bundle = args[1][2]
+    tct = args[1][3]
+    mct = args[1][4]
+    bpt = args[1][5]
+    slr_transform_type = args[1][6]
+    seed = args[1][7]
 
-    rbx = rbx_all[(seed, tct)]
+    # Use the appropriate initialisation of RBx from the provided parameters
+    rbx = rbx_dict[(seed, tct)]
 
-    timer = time()
+    tmp_split = str(tag).split('/')
+    shorter_tag = os.path.join(tmp_split[-1], tmp_split[-2])
+
+    recognize_timer = time()
     recognized_indices = rbx.recognize(model_bundle,
-                                      model_clust_thr=mct,
-                                      bundle_pruning_thr=bpt,
-                                      slr_transform_type=slr_transform_type,
-                                      identifier=tag)
-    # recognized_indices = rbx.get_pruned_indices()
+                                       model_clust_thr=mct,
+                                       bundle_pruning_thr=bpt,
+                                       slr_transform_type=slr_transform_type,
+                                       identifier=shorter_tag)
 
     logging.info('Model {0} recognized {1} streamlines'.format(
                  tag, len(recognized_indices)))
     logging.debug('Model {0} (seed {1}) with parameters '
-                  'tct={2}, mct={3}, bpt={4} took {5} sec.'.format(tag, seed,
-                                                                   tct, mct, bpt,
-                                                                   round(time() -
-                                                                         timer, 2)))
+                  'tct={2}, mct={3}, bpt={4} '
+                  'took {5} sec.'.format(shorter_tag, seed,
+                                         tct, mct, bpt,
+                                         round(time() - recognize_timer, 2)))
     if recognized_indices is None:
         recognized_indices = []
     return bundle_id, np.asarray(recognized_indices, dtype=np.int)
