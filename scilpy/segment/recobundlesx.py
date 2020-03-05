@@ -12,6 +12,8 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 import numpy as np
 
+from time import time
+
 
 def _reconstruct_streamlines(memmap_filenames, indices):
     data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
@@ -72,11 +74,11 @@ class RecobundlesX(object):
         self.neighb_centroids = None
         self.neighb_streamlines = None
         self.neighb_indices = None
-        self.rtransf_cluster_map = None
+        # self.rtransf_cluster_map = None
         self.model_cluster_map = None
         self.model_centroids = None
-        self.pruned_streamlines = None
-        self.pruned_indices_per_clusters = None
+        self.final_pruned_indices = None
+        # self.pruned_indices_per_clusters = None
 
     def recognize(self, model_bundle,
                   model_clust_thr=8, bundle_pruning_thr=8,
@@ -102,27 +104,29 @@ class RecobundlesX(object):
             Streamlines that were recognized by Recobundles and these
             parameters
         """
+        timer1 = time()
         self._cluster_model_bundle(model_bundle, model_clust_thr,
                                    identifier=identifier)
-
+        print('**** _cluster_model_bundle ****', round(time() - timer1,3))
+        timer2 = time()
         if not self._reduce_search_space():
             if identifier:
                 logging.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
             return []
-
+        print('**** _reduce_search_space ****', round(time() - timer2,3))
+        timer3 = time()
         if self.slr_num_thread > 0:
-            transf_streamlines = self._register_neighb_to_model(
+            self._register_model_to_neighb(
                 slr_num_thread=self.slr_num_thread,
                 slr_transform_type=slr_transform_type)
-        else:
-            transf_streamlines = self.neighb_streamlines
-
-        self.pruned_indices_per_clusters = self._prune_what_not_in_model(
-            transf_streamlines,
+        print('**** _register_model_to_neighb ****', round(time() - timer3,3))
+        timer4 = time()
+        self.pruned_indices = self._prune_what_not_in_model(
             bundle_pruning_thr=bundle_pruning_thr)
+        print('**** _prune_what_not_in_model ****', round(time() - timer4,3))
 
-        return self.pruned_streamlines
+        return self.pruned_indices
 
     def _cluster_model_bundle(self, model, model_clust_thr, identifier=None):
         """
@@ -157,7 +161,8 @@ class RecobundlesX(object):
                         neighbors_reduction_thr] = np.inf
 
         mins = np.min(centroid_matrix, axis=0)
-        close_clusters_indices = tuple(np.where(mins != np.inf)[0])
+        close_clusters_indices = np.array(np.where(mins != np.inf)[0],
+                                          dtype=np.int32)
 
         if not len(close_clusters_indices):
             return False
@@ -179,6 +184,7 @@ class RecobundlesX(object):
         self.neighb_indices = []
         for i in close_clusters_indices:
             self.neighb_indices.extend(self.wb_clusters_indices[i])
+        self.neighb_indices = np.array(self.neighb_indices, dtype=np.int32)
         self.neighb_streamlines = _reconstruct_streamlines(self.memmap_filenames,
                                                            self.neighb_indices)
         # if not close_clusters_indices:
@@ -190,7 +196,7 @@ class RecobundlesX(object):
 
         return True
 
-    def _register_neighb_to_model(self, slr_num_thread=1,
+    def _register_model_to_neighb(self, slr_num_thread=1,
                                   select_model=1000, select_target=1000,
                                   slr_transform_type='scaling'):
         """
@@ -230,7 +236,7 @@ class RecobundlesX(object):
         slr_transform_type_id = possible_slr_transform_type[slr_transform_type]
         if slr_transform_type_id >= 0:
             init_transfo_dof = np.zeros(3)
-            slr = StreamlineLinearRegistration(metric=metric,
+            slr = StreamlineLinearRegistration(metric=metric, method="Powell",
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:3],
                                                num_threads=slr_num_thread)
@@ -247,30 +253,36 @@ class RecobundlesX(object):
             slm = slr.optimize(static, moving)
 
         if slr_transform_type_id >= 2:
-            init_transfo_dof = np.zeros(7)
-            init_transfo_dof[:6] = slm.xopt
-            init_transfo_dof[6] = 1.
+            if slr_transform_type_id == 2:
+                init_transfo_dof = np.zeros(7)
+                init_transfo_dof[:6] = slm.xopt
+                init_transfo_dof[6] = 1.
 
-            slr = StreamlineLinearRegistration(metric=metric,
-                                               x0=init_transfo_dof,
-                                               bounds=bounds_dof[:7],
-                                               num_threads=slr_num_thread)
-            slm = slr.optimize(static, moving)
+                slr = StreamlineLinearRegistration(metric=metric,
+                                                   x0=init_transfo_dof,
+                                                   bounds=bounds_dof[:7],
+                                                   num_threads=slr_num_thread)
+                slm = slr.optimize(static, moving)
 
-        if slr_transform_type_id >= 3:
-            init_transfo_dof = np.zeros(9)
-            init_transfo_dof[:6] = slm.xopt[:6]
-            init_transfo_dof[6:] = np.array((slm.xopt[6],) * 3)
+            else:
+                init_transfo_dof = np.zeros(9)
+                init_transfo_dof[:6] = slm.xopt[:6]
+                init_transfo_dof[6:] = np.array((slm.xopt[6],) * 3)
 
-            slr = StreamlineLinearRegistration(metric=metric,
-                                               x0=init_transfo_dof,
-                                               bounds=bounds_dof[:9],
-                                               num_threads=slr_num_thread)
-            slm = slr.optimize(static, moving)
+                slr = StreamlineLinearRegistration(metric=metric,
+                                                   x0=init_transfo_dof,
+                                                   bounds=bounds_dof[:9],
+                                                   num_threads=slr_num_thread)
+                slm = slr.optimize(static, moving)
+        self.model_centroids = transform_streamlines(self.model_centroids,
+                                                     np.linalg.inv(slm.matrix))
+        # return self.neighb_streamlines
+        # timer1 = time()
+        # transform_streamlines(self.neighb_streamlines, slm.matrix)
+        # print('*********', time() - timer1)
+        # return transform_streamlines(self.neighb_streamlines, slm.matrix)
 
-        return transform_streamlines(self.neighb_streamlines, slm.matrix)
-
-    def _prune_what_not_in_model(self, neighbors_to_prune,
+    def _prune_what_not_in_model(self,
                                  bundle_pruning_thr=10,
                                  neighbors_cluster_thr=8):
         """
@@ -282,34 +294,35 @@ class RecobundlesX(object):
         """
         # Neighbors can be refined since the search space is smaller
         thresholds = [40, 30, 20, neighbors_cluster_thr]
-        self.rtransf_cluster_map = qbx_and_merge(neighbors_to_prune, thresholds,
-                                                 nb_pts=self.nb_points,
-                                                 rng=self.rng, verbose=False)
+        neighb_cluster_map = qbx_and_merge(self.neighb_streamlines, thresholds,
+                                           nb_pts=self.nb_points,
+                                           rng=self.rng, verbose=False)
 
         dist_matrix = bundles_distances_mdf(self.model_centroids,
-                                            self.rtransf_cluster_map.centroids)
+                                            neighb_cluster_map.centroids)
         dist_matrix[np.isnan(dist_matrix)] = np.inf
         dist_matrix[dist_matrix > bundle_pruning_thr] = np.inf
         mins = np.min(dist_matrix, axis=0)
 
-        pruned_clusters = [self.rtransf_cluster_map[i].indices
-                           for i in np.where(mins != np.inf)[0]]
-        pruned_indices = list(chain(*pruned_clusters))
-        pruned_streamlines = [neighbors_to_prune[i] for i in pruned_indices]
+        pruned_indices = np.fromiter(chain(*[neighb_cluster_map[i].indices
+                                          for i in np.where(mins != np.inf)[0]]),
+                                  dtype=np.int32)
+        # pruned_indices = list(chain(*pruned_clusters))
+        # pruned_streamlines = [neighbors_to_prune[i] for i in pruned_indices]
 
-        self.pruned_streamlines = pruned_streamlines
+        # self.pruned_streamlines = pruned_streamlines
         # initial_indices = list(chain(*self.neighb_indices))
 
         # Since the neighbors were clustered, a mapping of indices is neccesary
-        final_indices = []
-        for i in range(len(pruned_clusters)):
-            final_indices.extend([self.neighb_indices[i]
-                                  for i in pruned_clusters[i]])
+        self.final_pruned_indices = self.neighb_indices[pruned_indices]
+        # for i in range(len(pruned_clusters)):
+        #     final_indices.extend([self.neighb_indices[i]
+        #                           for i in pruned_clusters[i]])
 
-        return final_indices
+        return self.final_pruned_indices
 
-    def get_pruned_indices(self):
+    def get_final_pruned_indices(self):
         """
         Public getter for the final indices recognize by the algorithm
         """
-        return self.pruned_indices_per_clusters
+        return self.final_pruned_indices
