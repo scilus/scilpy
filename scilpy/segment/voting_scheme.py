@@ -349,7 +349,7 @@ class VotingScheme(object):
         nb_exec = len(self.atlas_dir) * self.multi_parameters * len(seeds) * \
             len(bundle_names)
         logging.info('RBx took {0} sec. for a total of '
-                     '{1} exectutions'.format(round(time() - total_timer, 2),
+                     '{1} executions'.format(round(time() - total_timer, 2),
                                               nb_exec))
         logging.debug('{0} tractogram clustering, {1} seeds, '
                       '{2} multi-parameters, {3} sub-model directory, '
