@@ -23,8 +23,10 @@ from dipy.segment.clustering import qbx_and_merge
 DESCRIPTION = """
 Using clusters to speed it up, remove very similar streamlines within the
 same clusters using a MDF threshold. Can be used with big bundle thanks to
-QBx, but if clusters (even some of them have 5000+ streamlines the time
-needed to create a n**2 will grow out of control ...
+QBx, but the algorithm still use a system of chunks to ensure the amount
+of comparison (n**2) does not grow out of control. To overcome limitations
+relation to this use of chunks, multiple iterations must be done until a
+convergence threshold is acheived.
 """
 
 
