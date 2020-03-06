@@ -87,7 +87,7 @@ def main():
         os.mkdir(args.output_dir)
 
     img_sh = nib.load(args.fod_filename)
-    sh_shape = img_sh.get_shape()
+    sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
     img_mask = nib.load(args.mask_filename)
 
