@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Remove very similar streamlines from a bundle.
+Uses clustering to speed up the process. Streamlines are considered as similar
+based on a MDF threshold within each cluster. Can be used with large bundles,
+but the clustering parameters will need to be adjusted.
+
+The algorithm still use a system of chunks to ensure the amount of comparison
+(n**2) does not grow out of control. To overcome limitations related to this
+use of chunks, multiple iterations must be done until a convergence threshold
+is acheived.
+"""
+
 
 import argparse
 from itertools import repeat, chain
@@ -19,15 +33,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from dipy.segment.clustering import qbx_and_merge
-
-DESCRIPTION = """
-Using clusters to speed it up, remove very similar streamlines within the
-same clusters using a MDF threshold. Can be used with big bundle thanks to
-QBx, but the algorithm still use a system of chunks to ensure the amount
-of comparison (n**2) does not grow out of control. To overcome limitations
-relation to this use of chunks, multiple iterations must be done until a
-convergence threshold is acheived.
-"""
 
 
 def multiprocess_subsampling(args):
@@ -50,7 +55,7 @@ def multiprocess_subsampling(args):
 
 def _buildArgsParser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('in_bundle',
                    help='Path of the input bundle.')
@@ -68,7 +73,7 @@ def _buildArgsParser():
     p.add_argument('--min_cluster_size', type=int, default=5,
                    help='Minimum cluster size for the first iteration '
                         '[%(default)s].')
-    p.add_argument('--convergence', action='store', type=int, default=100,
+    p.add_argument('--convergence', type=int, default=100,
                    help='Streamlines count difference threshold to stop '
                         're-running the algorithm [%(default)s].')
     p.add_argument('--avg_similar', action='store_true',
@@ -113,7 +118,7 @@ def main():
         current_iteration_length = len(streamlines)
         skip = int(len(streamlines) / args.processes) + 1
 
-        # Cheap trick to avoid duplication in memory, the pop remove from
+        # Cheap trick to avoid duplication in memory, the pop removes from
         # one list to append it to the other, slower but allows bigger bundles
         split_streamlines_list = []
         for i in range(args.processes):

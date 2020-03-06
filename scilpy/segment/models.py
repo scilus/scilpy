@@ -11,7 +11,8 @@ from dipy.segment.metric import AveragePointwiseEuclideanMetric
 
 
 def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
-    """ Remove similar streamlines, shuffle streamlines will impact the results.
+    """ Remove similar streamlines, shuffling streamlines will impact the 
+    results.
     Only provide a small set of streamlines (below 2000 if possible).
 
     Parameters
@@ -83,7 +84,7 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
 def subsample_clusters(cluster_map, streamlines, threshold,
                        min_cluster_size, average_streamlines=False):
     """ Using a cluster map, remove similar streamlines from all clusters
-    independently using chunk of 1000 streamlines at the time to prevent
+    independently using chunks of 1000 streamlines at the time to prevent
     infinite computation.
 
     Parameters
@@ -98,7 +99,7 @@ def subsample_clusters(cluster_map, streamlines, threshold,
         Distance threshold to consider two streamlines similar, in mm.
     min_cluster_size : int
         Minimal cluster size to be considered. Clusters with less streamlines
-        that the provided value will de discarted.
+        that the provided value will de discarded.
     average_streamlines : bool
         Instead of removing similar streamlines, average all similar streamlines
         as a single smoother streamline.
