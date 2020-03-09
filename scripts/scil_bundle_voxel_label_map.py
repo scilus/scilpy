@@ -60,12 +60,12 @@ def main():
 
     if not len(sft_bundle.streamlines):
         logging.error('Empty bundle file {}. '
-                        'Skipping'.format(args.in_bundle))
+                      'Skipping'.format(args.in_bundle))
         raise ValueError
 
     if not len(sft_centroid.streamlines):
         logging.error('Centroid file {} should contain one streamline. '
-                        'Skipping'.format(args.in_centroid))
+                      'Skipping'.format(args.in_centroid))
         raise ValueError
 
 

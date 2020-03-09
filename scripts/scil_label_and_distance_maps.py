@@ -56,15 +56,15 @@ def main():
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
 
-    if len(sft_bundle.streamlines) == 0:
-        logging.warning('Empty bundle file {}. Skipping'
-                        .format(args.in_bundle))
-        return
+    if not len(sft_bundle.streamlines):
+        logging.error('Empty bundle file {}. Skipping'
+                      .format(args.in_bundle))
+        raise ValueError
 
-    if len(sft_centroid.streamlines) == 0:
-        logging.warning('Empty centroid streamline file {}. Skipping'
-                        .format(args.centroid_streamline))
-        return
+    if not len(sft_centroid.streamlines):
+        logging.error('Empty centroid streamline file {}. Skipping'
+                      .format(args.centroid_streamline))
+        raise ValueError
 
     min_dist_label, min_dist = min_dist_to_centroid(sft_bundle.streamlines.data,
                                                     sft_centroid.streamlines.data)
