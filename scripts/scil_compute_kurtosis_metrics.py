@@ -174,12 +174,12 @@ def main():
     assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
-    data = img.get_data()
+    data = img.get_fdata()
     affine = img.affine
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
+        mask = nib.load(args.mask).get_fdata().astype(np.bool)
 
     # Validate bvals and bvecs
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
