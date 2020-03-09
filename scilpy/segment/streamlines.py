@@ -30,7 +30,7 @@ def target_line_based(streamlines, target_mask, affine=None, include=True):
 
 def filter_grid_roi(sft, mask, filter_type, is_not):
     streamlines = list(sft.streamlines)
-    transfo, _, _, _ = sft.space_attribute
+    transfo, _, _, _ = sft.space_attributes
 
     line_based_indices = []
     if filter_type == 'any':
@@ -84,7 +84,7 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
 def pre_filtering_for_geometrical_shape(sft, size,
                                         center, filter_type,
                                         is_in_vox):
-    transfo, dim, _, _ = sft.space_attribute
+    transfo, dim, _, _ = sft.space_attributes
     inv_transfo = np.linalg.inv(transfo)
 
     # Create relevant info about the ellipsoid in vox/world space
@@ -119,7 +119,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
                                             ellipsoid_center, filter_type,
                                             is_in_vox)
 
-    transfo, _, res, _ = sft.space_attribute
+    transfo, _, res, _ = sft.space_attributes
     if is_in_vox:
         ellipsoid_center = np.asarray(apply_affine(transfo,
                                                    ellipsoid_center))
@@ -187,7 +187,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
                                             cuboid_center, filter_type,
                                             False)
 
-    _, _, res, _ = sft.space_attribute
+    _, _, res, _ = sft.space_attributes
 
     selected_by_cuboid = []
     line_based_indices_1 = []
