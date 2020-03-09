@@ -187,7 +187,7 @@ class VotingScheme(object):
 
         Parameters
         ----------
-        tractogram : nib.streamlines.tractogram
+        tractogram : nib.streamlines.tck.TckFile or nib.streamlines.trk.TrkFile
             Nibabel tractogram object.
         bundle_names : list
             Bundle names as defined in the configuration file.
@@ -217,9 +217,8 @@ class VotingScheme(object):
 
             header = tractogram.header
             streamlines = tractogram.streamlines[streamlines_id.T]
-            tractogram = tractogram.tractogram
-            data_per_streamline = tractogram.data_per_streamline[streamlines_id.T]
-            data_per_point = tractogram.data_per_point[streamlines_id.T]
+            data_per_streamline = tractogram.tractogram.data_per_streamline[streamlines_id.T]
+            data_per_point = tractogram.tractogram.data_per_point[streamlines_id.T]
 
             # All models of the same bundle have the same basename
             basename = os.path.join(self.output_directory,
@@ -354,7 +353,7 @@ class VotingScheme(object):
         logging.debug('{0} tractogram clustering, {1} seeds, '
                       '{2} multi-parameters, {3} sub-model directory, '
                       '{4} bundles'.format(
-                          len(tractogram_clustering_thr), len(seeds),
+                          len(self.tractogram_clustering_thr), len(seeds),
                           self.multi_parameters,
                           len(self.atlas_dir),
                           len(bundle_names)))
