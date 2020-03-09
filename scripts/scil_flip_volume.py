@@ -1,20 +1,20 @@
 #! /usr/bin/env python
 
 import argparse
-import os.path
 
 import nibabel as nib
-import logging
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
+"""
+Flip the volume according to the specified axis.
+"""
 
 def _build_arg_parser():
 
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Flip the volume according to the'
-                                ' specified axis.')
+                                description=__doc__)
     p.add_argument('input',
                    help='Path of the input volume (nifti).')
     p.add_argument('output',
