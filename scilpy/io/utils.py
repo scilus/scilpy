@@ -207,21 +207,21 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     :param args: argparse namespace
     :param dirs: list of paths
     """
-    for path in dirs:
-        if not os.path.isdir(path):
+    for cur_dir in dirs:
+        if not os.path.isdir(cur_dir):
             if not create_dir:
-                parser.error('Output directory {} doesn\'t exist.'.format(path))
+                parser.error('Output directory {} doesn\'t exist.'.format(cur_dir))
             else:
-                os.makedirs(path, exist_ok=True)
-        if os.listdir(path):
+                os.makedirs(cur_dir, exist_ok=True)
+        if os.listdir(cur_dir):
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
                     'overwritten. Use -f option if you want to continue.'
-                    .format(path))
+                    .format(cur_dir))
             else:
-                for the_file in os.listdir(path):
-                    file_path = os.path.join(path, the_file)
+                for the_file in cur_dir:
+                    file_path = os.path.join(cur_dir, the_file)
                     try:
                         if os.path.isfile(file_path):
                             os.unlink(file_path)
