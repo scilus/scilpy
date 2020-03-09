@@ -56,7 +56,7 @@ def main():
     sft.to_vox()
     sft.to_corner()
     streamlines = sft.streamlines
-    transformation, dimensions, _, _ = sft.space_attribute
+    transformation, dimensions, _, _ = sft.space_attributes
 
     streamline_count = compute_tract_counts_map(streamlines, dimensions)
 
