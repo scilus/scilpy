@@ -4,11 +4,8 @@
 from itertools import islice
 import os
 import six
-import warnings
 
 from dipy.io.streamline import load_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
 from nibabel.streamlines import Tractogram
 from nibabel.streamlines.trk import get_affine_trackvis_to_rasmm
@@ -106,41 +103,3 @@ def load_tractogram_with_reference(parser, args, filepath,
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
-
-
-def compress_sft(sft, tol_error=0.01):
-    """ Compress a stateful tractogram. Not included in Dipy yet.
-
-    Parameters
-    ----------
-    sft: StatefulTractogram
-        The sft to compress.
-    tol_error: float (optional)
-        Tolerance error in mm (default: 0.01). A rule of thumb is to set it
-        to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
-        streamlines.
-
-    Returns
-    -------
-    compressed_sft : StatefulTractogram
-    """
-    # Go to world space
-    orig_space = sft.space
-    sft.to_rasmm()
-
-    # Compress streamlines
-    compressed_streamlines = compress_streamlines(sft.streamlines,
-                                                  tol_error=tol_error)
-    if sft.data_per_point is not None:
-        warnings.warn("Initial stateful tractogram contained data_per_point. "
-                      "This information will not be carried in the final"
-                      "tractogram.")
-
-    compressed_sft = StatefulTractogram.from_sft(
-        compressed_streamlines, sft,
-        data_per_streamline=sft.data_per_streamline)
-
-    # Return to original space
-    compressed_sft.to_space(orig_space)
-
-    return compressed_sft

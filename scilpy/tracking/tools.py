@@ -117,6 +117,7 @@ def resample_streamlines_num_points(sft, num_points):
         resampled_streamlines.append(line)
 
     # Creating sft
+    # CAREFUL. Data_per_point will be lost.
     resampled_sft = _warn_and_save(resampled_streamlines, sft)
 
     return resampled_sft

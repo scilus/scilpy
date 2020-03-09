@@ -4,13 +4,13 @@ import argparse
 
 from dipy.io.streamline import save_tractogram
 
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.tracking.tools import (resample_streamlines_num_points,
                                    resample_streamlines_step_size)
-from scilpy.io.utils import (assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_overwrite_arg,
-                             add_reference_arg)
-from scilpy.io.streamlines import load_tractogram_with_reference
 
 
 def _build_args_parser():
@@ -24,7 +24,7 @@ def _build_args_parser():
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
 
-    g = p.add_mutually_exclusive_group()
+    g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--nb_pts_per_streamline', type=int,
                    help='Number of points per streamline in the output.')
     g.add_argument('--step_size', type=float,
@@ -49,11 +49,8 @@ def main():
     if args.nb_pts_per_streamline:
         new_sft = resample_streamlines_num_points(sft,
                                                   args.nb_pts_per_streamline)
-    elif args.step_size:
-        new_sft = resample_streamlines_step_size(sft, args.step_size)
     else:
-        raise ValueError("Either nb_points_per_streamline or step_size should"
-                         "be defined.")
+        new_sft = resample_streamlines_step_size(sft, args.step_size)
 
     save_tractogram(new_sft, args.out_tractogram)
 

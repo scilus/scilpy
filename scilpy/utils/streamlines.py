@@ -3,8 +3,11 @@
 
 from functools import reduce
 import itertools
+import warnings
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines
 import numpy as np
 from scipy import ndimage
 
@@ -190,3 +193,61 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
             = final_streamline.T
         current_position = max_position
         nb_iteration -= 1
+
+
+def compress_sft(sft, tol_error=0.01):
+    """ Compress a stateful tractogram. Uses Dipy's compress_streamlines, but
+    deals with space better.
+
+    Dipy's description:
+    The compression consists in merging consecutive segments that are
+    nearly collinear. The merging is achieved by removing the point the two
+    segments have in common.
+
+    The linearization process [Presseau15]_ ensures that every point being
+    removed are within a certain margin (in mm) of the resulting streamline.
+    Recommendations for setting this margin can be found in [Presseau15]_
+    (in which they called it tolerance error).
+
+    The compression also ensures that two consecutive points won't be too far
+    from each other (precisely less or equal than `max_segment_length`mm).
+    This is a tradeoff to speed up the linearization process [Rheault15]_. A low
+    value will result in a faster linearization but low compression, whereas
+    a high value will result in a slower linearization but high compression.
+
+    [Presseau C. et al., A new compression format for fiber tracking datasets,
+    NeuroImage, no 109, 73-83, 2015.]
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to compress.
+    tol_error: float (optional)
+        Tolerance error in mm (default: 0.01). A rule of thumb is to set it
+        to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
+        streamlines.
+
+    Returns
+    -------
+    compressed_sft : StatefulTractogram
+    """
+    # Go to world space
+    orig_space = sft.space
+    sft.to_rasmm()
+
+    # Compress streamlines
+    compressed_streamlines = compress_streamlines(sft.streamlines,
+                                                  tol_error=tol_error)
+    if sft.data_per_point is not None:
+        warnings.warn("Initial stateful tractogram contained data_per_point. "
+                      "This information will not be carried in the final"
+                      "tractogram.")
+
+    compressed_sft = StatefulTractogram.from_sft(
+        compressed_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
+
+    # Return to original space
+    compressed_sft.to_space(orig_space)
+
+    return compressed_sft
