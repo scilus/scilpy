@@ -15,7 +15,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.tractanalysis.compute_tract_counts_map import \
+from scilpy.tractanalysis.streamlines_metrics import \
      compute_tract_counts_map
 from scilpy.tractanalysis.uncompress import uncompress
 
@@ -84,6 +84,7 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
+    sft.to_corner()
 
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
