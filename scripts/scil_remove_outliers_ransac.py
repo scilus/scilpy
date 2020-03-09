@@ -70,6 +70,10 @@ def main():
     in_img = nib.load(args.in_image)
     in_data = in_img.get_data()
 
+    if np.average(in_data[in_data>0])>0.1:
+        logging.warning('Be carefull, your image doesn\'t seem to be an ad, '
+                        'md or rd.')
+
     in_data_flat = in_data.flatten()
     in_nzr_ind = np.nonzero(in_data_flat)
     in_nzr_val = np.array(in_data_flat[in_nzr_ind])
