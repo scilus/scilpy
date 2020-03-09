@@ -200,7 +200,7 @@ def filter_tractogram_data(tractogram, streamline_ids):
 
     Parameters:
     -----------
-    tractogram: Tractogram or StatefulTractogram
+    tractogram: StatefulTractogram
         Tractogram containing the data to be filtered
     streamline_ids: array_like
         List of streamline ids the data corresponds to
