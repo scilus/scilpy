@@ -6,7 +6,6 @@ import itertools
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines
-
 import numpy as np
 from scipy import ndimage
 
@@ -195,8 +194,7 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
 
 
 def filter_tractogram_data(tractogram, streamline_ids):
-    """ Filter tractogram according to streamline ids and keep
-    the data
+    """ Filter tractogram according to streamline ids and keep the data
 
     Parameters:
     -----------
@@ -210,9 +208,6 @@ def filter_tractogram_data(tractogram, streamline_ids):
     new_tractogram: Tractogram or StatefulTractogram
         Returns the same type as the input but only with
     """
-
-    assert isinstance(tractogram, StatefulTractogram), \
-        ("Tractogram must be StatefulTractogram")
 
     streamline_ids = np.asarray(streamline_ids, dtype=np.int)
 
