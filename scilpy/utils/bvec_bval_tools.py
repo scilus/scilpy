@@ -27,7 +27,7 @@ def is_normalized_bvecs(bvecs):
 
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3,
-                  bvecs_norm == 0))
+                                bvecs_norm == 0))
 
 
 def normalize_bvecs(bvecs, filename=None):
