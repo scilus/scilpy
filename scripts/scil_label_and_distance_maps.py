@@ -10,7 +10,6 @@ import argparse
 import logging
 
 from dipy.io.utils import is_header_compatible
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -29,11 +28,13 @@ def _build_arg_parser():
     p.add_argument('in_centroid',
                    help='Centroid streamline associated to input fiber bundle')
     p.add_argument('output_label',
-        help='Output (.npz) file containing the label of the nearest point '
-             'on the centroid streamline for each point of the bundle')
+                   help='Output (.npz) file containing the label of the '
+                        'nearest point on the centroid streamline for each'
+                        ' point of the bundle')
     p.add_argument('output_distance',
-        help='Output (.npz) file containing the distance (in mm) to the '
-             'nearest centroid streamline for each point of the bundle')
+                   help='Output (.npz) file containing the distance (in mm) '
+                        'to the nearest centroid streamline for each point of '
+                        'the bundle')
     add_overwrite_arg(p)
     add_reference_arg(p)
     return p
@@ -44,8 +45,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_bundle, args.in_centroid])
-    assert_outputs_exist(parser, args,[args.output_label,
-                                       args.output_distance])
+    assert_outputs_exist(parser, args, [args.output_label,
+                                        args.output_distance])
 
     is_header_compatible(args.in_bundle, args.in_centroid)
 
@@ -56,12 +57,13 @@ def main():
                                                   args.in_centroid)
 
     if len(sft_bundle.streamlines) == 0:
-        logger.warning('Empty bundle file {}. Skipping'.format(args.in_bundle))
+        logging.warning('Empty bundle file {}. Skipping'
+                        .format(args.in_bundle))
         return
 
     if len(sft_centroid.streamlines) == 0:
-        logger.warning('Empty centroid streamline file {}. Skipping'
-                       .format(args.centroid_streamline))
+        logging.warning('Empty centroid streamline file {}. Skipping'
+                        .format(args.centroid_streamline))
         return
 
     min_dist_label, min_dist = min_dist_to_centroid(sft_bundle.streamlines.data,

@@ -7,7 +7,7 @@ Compute bundle centroid.
 
 import argparse
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import ResampleFeature
