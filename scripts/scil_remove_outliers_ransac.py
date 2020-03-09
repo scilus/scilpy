@@ -41,9 +41,7 @@ def _build_arg_parser():
                         'point fits a model. [%(default)s]')
 
     add_verbose_arg(p)
-
     add_overwrite_arg(p)
-
     return p
 
 
