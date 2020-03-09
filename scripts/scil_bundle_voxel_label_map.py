@@ -68,7 +68,6 @@ def main():
                       'Skipping'.format(args.in_centroid))
         raise ValueError
 
-
     sft_bundle.to_vox()
     bundle_streamlines_vox = sft_bundle.streamlines
     bundle_streamlines_vox._data *= args.upsample
