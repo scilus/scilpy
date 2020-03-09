@@ -8,10 +8,7 @@ from dipy.tracking.metrics import length, downsample
 from dipy.tracking.streamline import set_number_of_points
 
 
-def filter_streamlines_by_length(streamlines,
-                                 data_per_point,
-                                 data_per_streamline,
-                                 min_length=0., max_length=np.inf):
+def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
     Filter streamlines using minimum and max length
 
@@ -36,13 +33,13 @@ def filter_streamlines_by_length(streamlines,
         List of filtered streamlines by length.
 
     filtered_data_per_point: dict
-        dict of data per point for filtered streamlines
+        dict of data per point for filtered streamlines.
     filtered_data_per_streamline: dict
-        dict of data per streamline for filtered streamlines
+        dict of data per streamline for filtered streamlines.
     """
 
     lengths = []
-    for streamline in streamlines:
+    for streamline in sft.streamlines:
         lengths.append(length(streamline))
 
     lengths = np.asarray(lengths)
@@ -50,9 +47,9 @@ def filter_streamlines_by_length(streamlines,
     filter_stream = np.logical_and(lengths >= min_length,
                                    lengths <= max_length)
 
-    filtered_streamlines = list(np.asarray(streamlines)[filter_stream])
-    filtered_data_per_point = data_per_point[filter_stream]
-    filtered_data_per_streamline = data_per_streamline[filter_stream]
+    filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
+    filtered_data_per_point = sft.data_per_point[filter_stream]
+    filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
 
     return filtered_streamlines, filtered_data_per_point, filtered_data_per_streamline
 

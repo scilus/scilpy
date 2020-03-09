@@ -2,6 +2,7 @@
 #  -*- coding: utf-8 -*-
 
 import argparse
+import json
 import logging
 import os
 
@@ -12,7 +13,10 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              read_info_from_mb_bdo)
@@ -43,8 +47,6 @@ def _buildArgsParser():
     p.add_argument('out_tractogram',
                    help='Path of the output tractogram file.')
 
-    add_reference(p)
-
     p.add_argument('--drawn_roi', nargs=3, action='append',
                    metavar=('ROI_NAME', 'MODE', 'CRITERIA'),
                    help='Filename of a hand drawn ROI (.nii or .nii.gz).')
@@ -69,9 +71,13 @@ def _buildArgsParser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include).')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
+    p.add_argument('--display_counts', action='store_true',
+                   help='Print streamline count before and after filtering')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_json_args(p)
 
     return p
 
@@ -132,6 +138,9 @@ def main():
     roi_opt_list = prepare_filtering_list(parser, args)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+
+    # TractCount before filtering
+    tc_bf = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
@@ -245,6 +254,13 @@ def main():
             args.out_tractogram))
 
     save_tractogram(sft, args.out_tractogram)
+
+    # TractCount after filtering
+    tc_af = len(sft.streamlines)
+    if args.display_counts:
+        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
+                          'tract_count_after_filtering': int(tc_af)},
+                         indent=args.indent))
 
 
 if __name__ == "__main__":

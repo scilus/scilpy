@@ -4,7 +4,7 @@
 """
     Transform tractogram using an affine/rigid transformation.
 
-    For more informations on how to use the various registration scripts
+    For more information on how to use the various registration scripts
     see the doc/tractogram_registration.md readme file
 """
 
