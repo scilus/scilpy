@@ -90,9 +90,9 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     tmp_centroids_filename = os.path.join('tmp_measures/',
                                           '{0}_centroids.trk'.format(hash_tmp))
 
-    sft = load_tractogram(filename, reference,
-                          to_space=Space.VOX,
-                          shifted_origin=True)
+    sft = load_tractogram(filename, reference)
+    sft.to_vox()
+    sft.to_corner()
     streamlines = sft.get_streamlines_copy()
     if not streamlines:
         if init_only:
@@ -107,12 +107,12 @@ def load_data_tmp_saving(filename, reference, init_only=False,
             return None
         density = nib.load(tmp_density_filename).get_data()
         endpoints_density = nib.load(tmp_endpoints_filename).get_data()
-        sft_centroids = load_tractogram(tmp_centroids_filename, reference,
-                                        to_space=Space.VOX,
-                                        shifted_origin=True)
+        sft_centroids = load_tractogram(tmp_centroids_filename, reference)
+        sft_centroids.to_vox()
+        sft_centroids.to_corner()
         centroids = sft_centroids.get_streamlines_copy()
     else:
-        transformation, dimensions, _, _ = sft.space_attribute
+        transformation, dimensions, _, _ = sft.space_attributes
         density = compute_tract_counts_map(streamlines, dimensions)
         endpoints_density = get_endpoints_density_map(streamlines, dimensions,
                                                       point_to_select=3)
@@ -131,8 +131,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                                  transformation),
                  tmp_endpoints_filename)
 
-        centroids_sft = StatefulTractogram(centroids, reference, Space.VOX,
-                                           shifted_origin=True)
+        # Saving in vox space and corner.
+        centroids_sft = StatefulTractogram.from_sft(centroids, sft)
         save_tractogram(centroids_sft, tmp_centroids_filename)
 
     return density, endpoints_density, streamlines, centroids
