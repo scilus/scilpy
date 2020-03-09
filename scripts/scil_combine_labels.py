@@ -13,7 +13,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 
 DESCRIPTION = """
     Script to combine labels from multiple volumes,
-        if there is overlap, it will overwritten based on the input order.
+        if there is overlap, it will overwrite them based on the input order.
 
     >>> scil_combine_labels.py out_labels.nii.gz  -v animal_labels.nii 20\\
             DKT_labels.nii.gz 44 53  --out_labels_indices 20 44 53

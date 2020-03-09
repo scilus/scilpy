@@ -13,7 +13,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 DESCRIPTION = """
     Script to remove specific labels from a atlas volumes.
 
-    >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz  -i  44 53
+    >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
     """
 
 EPILOG = """

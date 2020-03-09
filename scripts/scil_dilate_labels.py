@@ -21,6 +21,10 @@ DESCRIPTION = """
     - "label_not_to_dilate" will not be changed, but will not dilate.
     - "mask" is where the dilation is allowed (constrained)
         in addition to "background_label" (logical AND)
+
+    >>> scil_dilate_labels.py wmparc_t1.nii.gz wmparc_dil.nii.gz \\
+        --label_to_fill 0 5001 5002 \\
+        --label_not_to_dilate 4 43 10 11 12 49 50 51
     """
 
 EPILOG = """
@@ -45,8 +49,8 @@ def _build_args_parser():
                    help='Maximal distance to dilated (in mm).')
 
     p.add_argument('--label_to_dilate', type=int, nargs='+', default=None,
-                   help='Label list to dilate, [%(default)s],\n'
-                        ' by default "None" dilate all non-background.')
+                   help='Label list to dilate, by default it dilate all that\n'
+                        ' are not in label_to_fill nor label_not_to_dilate.')
 
     p.add_argument('--label_to_fill', type=int, nargs='+', default=[0],
                    help='Background id / labels to be filled [%(default)s],\n'

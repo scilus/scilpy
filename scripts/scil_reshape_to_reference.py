@@ -14,6 +14,9 @@ DESCRIPTION = """
     Reshape / reslice / resample *.nii or *.nii.gz using a reference.
     For more information on how to use the various registration scripts
     see the doc/tractogram_registration.md readme file.
+
+    >>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
+        --interpolation nearest
 """
 
 
