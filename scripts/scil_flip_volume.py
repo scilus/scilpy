@@ -11,6 +11,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 Flip the volume according to the specified axis.
 """
 
+
 def _build_arg_parser():
 
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
