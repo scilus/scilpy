@@ -72,10 +72,7 @@ def _buildArgsParser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
-                   help='Print streamline count before and after filtering.\n'
-                        'When using only filtering_list, streamline count '
-                        'will be printed for each filter as well as '
-                        'filtering options.')
+                   help='Print streamline count before and after filtering')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -86,31 +83,23 @@ def _buildArgsParser():
 
 
 def prepare_filtering_list(parser, args):
-
-    only_filtering_list = True
     roi_opt_list = []
     if args.drawn_roi:
-        only_filtering_list = False
         for roi_opt in args.drawn_roi:
             roi_opt_list.append(['drawn_roi'] + roi_opt)
     if args.atlas_roi:
-        only_filtering_list = False
         for roi_opt in args.atlas_roi:
             roi_opt_list.append(['atlas_roi'] + roi_opt)
     if args.bdo:
-        only_filtering_list = False
         for roi_opt in args.bdo:
             roi_opt_list.append(['bdo'] + roi_opt)
     if args.x_plane:
-        only_filtering_list = False
         for roi_opt in args.x_plane:
             roi_opt_list.append(['x_plane'] + roi_opt)
     if args.y_plane:
-        only_filtering_list = False
         for roi_opt in args.y_plane:
             roi_opt_list.append(['y_plane'] + roi_opt)
     if args.z_plane:
-        only_filtering_list = False
         for roi_opt in args.z_plane:
             roi_opt_list.append(['z_plane'] + roi_opt)
     if args.filtering_list:
@@ -134,7 +123,7 @@ def prepare_filtering_list(parser, args):
             parser.error('{} is not a valid option for filter_criteria'.format(
                 filter_criteria))
 
-    return roi_opt_list, only_filtering_list
+    return roi_opt_list
 
 
 def main():
@@ -146,29 +135,20 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
-    o_dict = {}
+    roi_opt_list = prepare_filtering_list(parser, args)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    # Streamlines count before filtering
-    o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
+    # TractCount before filtering
+    tc_bf = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
-        curr_dict = {}
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
-            filter_type, filter_arg, filter_id, \
+            filter_type, filter_arg_1, filter_arg_2, \
                 filter_mode, filter_criteria = roi_opt
-            curr_dict = {'id': filter_id}
         else:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
-
-        curr_dict['Filename'] = os.path.abspath(filter_arg)
-        curr_dict['Type'] = filter_type
-        curr_dict['Mode'] = filter_mode
-        curr_dict['Criteria'] = filter_criteria
-
         is_not = False if filter_criteria == 'include' else True
 
         if filter_type == 'drawn_roi':
@@ -185,14 +165,14 @@ def main():
                 is_not)
 
         elif filter_type == 'atlas_roi':
-            img = nib.load(filter_arg)
+            img = nib.load(filter_arg_1)
             if not is_header_compatible(img, sft):
                 parser.error('Headers from the tractogram and the mask are '
                              'not compatible.')
 
             atlas = img.get_data().astype(np.uint16)
             mask = np.zeros(atlas.shape, dtype=np.uint16)
-            mask[atlas == int(filter_id)] = 1
+            mask[atlas == int(filter_arg_2)] = 1
 
             filtered_streamlines, indexes = filter_grid_roi(
                 sft,
@@ -237,9 +217,6 @@ def main():
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
-            curr_dict['geometry'] = geometry
-            curr_dict['radius'] = radius.tolist()
-            curr_dict['center'] = center.tolist()
             if geometry == 'Ellipsoid':
                 filtered_streamlines, indexes = filter_ellipsoid(
                     sft,
@@ -266,11 +243,6 @@ def main():
                                           data_per_streamline=data_per_streamline,
                                           data_per_point=data_per_point)
 
-        if only_filtering_list:
-            filtering_Name = 'Filter_' + str(i)
-            curr_dict['tract_count_after_filtering'] = len(sft.streamlines)
-            o_dict[filtering_Name] = curr_dict
-
     if not filtered_streamlines:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
@@ -284,9 +256,11 @@ def main():
     save_tractogram(sft, args.out_tractogram)
 
     # TractCount after filtering
-    o_dict['streamline_count_final_filtering'] = len(sft.streamlines)
+    tc_af = len(sft.streamlines)
     if args.display_counts:
-        print(json.dumps(o_dict, indent=args.indent))
+        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
+                          'tract_count_after_filtering': int(tc_af)},
+                         indent=args.indent))
 
 
 if __name__ == "__main__":
