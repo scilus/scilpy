@@ -7,7 +7,7 @@ import six
 import warnings
 
 from dipy.io.streamline import load_tractogram
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
 from nibabel.streamlines import Field, Tractogram

@@ -5,8 +5,7 @@ import logging
 
 import numpy as np
 
-from dipy.tracking.metrics import downsample
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 
 
