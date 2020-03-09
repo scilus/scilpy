@@ -19,7 +19,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              add_verbose_arg)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractometry.distance_to_centroid import min_dist_to_centroid
+from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 
 
 def _build_arg_parser():
