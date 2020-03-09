@@ -199,3 +199,35 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
                             filename_bval=fsl_bval_filename,
                             filename_bvec=fsl_bvec_filename,
                             verbose=1)
+
+
+    
+# compute the centroid of the bvals given a certain tolerance threshold
+def _guess_bvals_centroids(bvals, threshold):
+    if not len(bvals):
+        raise ValueError('Empty b-values.')
+
+    bval_centroids = [bvals[0]]
+
+    for bval in bvals[1:]:
+        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        # Found no bval in bval centroids close enough to the current one.
+        if not len(np.where(diffs < threshold)[0]):
+            bval_centroids.append(bval)
+
+    return np.array(bval_centroids)
+
+
+# function to estimate the number of shells in the gradient scheme given
+# a certain tolerance threshold
+def identify_shells(bvals, threshold=40.0):
+    centroids = _guess_bvals_centroids(bvals, threshold)
+
+    bvals_for_diffs = np.tile(bvals.reshape(bvals.shape[0], 1),
+                              (1, centroids.shape[0]))
+
+    shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
+
+    return centroids, shell_indices
+
+
