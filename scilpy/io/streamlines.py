@@ -10,9 +10,8 @@ from dipy.io.streamline import load_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 import nibabel as nib
-from nibabel.streamlines import Field, Tractogram
-from nibabel.streamlines.trk import (get_affine_rasmm_to_trackvis,
-                                     get_affine_trackvis_to_rasmm)
+from nibabel.streamlines import Tractogram
+from nibabel.streamlines.trk import get_affine_trackvis_to_rasmm
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
