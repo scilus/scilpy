@@ -78,7 +78,9 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_bundle] + args.metrics)
-    assert_output_dirs_exist_and_empty(parser, args, args.output_folder)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       args.output_folder,
+                                       create_dir=True)
 
     assert_same_resolution(args.metrics)
 
