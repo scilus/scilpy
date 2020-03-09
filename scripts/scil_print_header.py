@@ -40,7 +40,7 @@ def main():
     elif in_extension in ['.nii', '.nii.gz', '.mgz']:
         header = dict(nib.load(args.in_file).header)
     else:
-        parser.error('{} is not a supported extension.', in_extension)
+        parser.error('{} is not a supported extension.'.format(in_extension))
 
     if args.keys:
         for key in args.keys:
