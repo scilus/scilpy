@@ -10,7 +10,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_reference_arg,)
+                             assert_outputs_exist, add_reference_arg)
 
 DESCRIPTION = """
     Split a tractogram into multiple files, 2 options available :
@@ -74,7 +74,7 @@ def main():
         data_per_point = sft.data_per_point[curr_count:curr_count
                                             + chunk_sizes[i]]
         curr_count += chunk_sizes[i]
-        new_sft = StatefulTractogram(streamlines, sft, sft.space,
+        new_sft = StatefulTractogram.from_sft(streamlines, sft,
                                      data_per_point=data_per_point,
                                      data_per_streamline=data_per_streamline)
 
