@@ -3,6 +3,7 @@
 
 import numpy as np
 
+
 def min_dist_to_centroid(bundle_pts, centroid_pts):
     nb_bundle_points = len(bundle_pts)
     nb_centroid_points = len(centroid_pts)
