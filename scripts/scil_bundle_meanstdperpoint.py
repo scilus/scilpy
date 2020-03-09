@@ -66,7 +66,8 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    assert_same_resolution(metrics)
+    assert_same_resolution(args.metrics)
+    metrics = [nib.load(metric) for metric in args.metrics]
 
     if args.density_weighting:
         track_count = compute_tract_counts_map(
@@ -94,7 +95,6 @@ def main():
     bundle_data_int = sft.streamlines.data.astype(np.int)
     stats[bundle_name] = {}
 
-    metrics = [nib.load(m) for m in args.metrics]
     for metric in metrics:
         metric_data = metric.get_fdata()
         current_metric_fname, _ = split_name_with_nii(
