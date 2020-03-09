@@ -7,14 +7,13 @@ import logging
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.utils.streamlines import (
-    filter_tractogram_data,
-    load_tractogram_with_reference)
+from scilpy.utils.streamlines import filter_tractogram_data
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
 
