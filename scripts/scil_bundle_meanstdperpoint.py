@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute mean and standard deviation for all streamlines points in the bundle 
+Compute mean and standard deviation for all streamlines points in the bundle
 for each metric combination.
 """
 
@@ -19,7 +19,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
-from scilpy.tractanalysis import compute_tract_counts_map
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
