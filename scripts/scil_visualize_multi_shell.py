@@ -180,7 +180,7 @@ def main():
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
     if each:
-        plot_each_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
+        plot_each_shell(ms, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
 

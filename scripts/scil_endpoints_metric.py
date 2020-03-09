@@ -15,7 +15,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.tractanalysis.compute_tract_counts_map import \
+from scilpy.tractanalysis.streamlines_metrics import \
      compute_tract_counts_map
 from scilpy.tractanalysis.uncompress import uncompress
 
@@ -78,7 +78,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_bundle, args.metrics])
-    assert_outputs_dir_exists_and_empty(parser, args, args.output_folder)
+    assert_output_dirs_exist_and_empty(parser, args, args.output_folder)
 
     metrics = [nib.load(metric) for metric in args.metrics]
     assert_same_resolution(*metrics)
