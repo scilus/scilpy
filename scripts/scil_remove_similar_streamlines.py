@@ -7,10 +7,17 @@ Uses clustering to speed up the process. Streamlines are considered as similar
 based on a MDF threshold within each cluster. Can be used with large bundles,
 but the clustering parameters will need to be adjusted.
 
-The algorithm still use a system of chunks to ensure the amount of comparison
+The algorithm still uses a system of chunks to ensure the amount of comparison
 (n**2) does not grow out of control. To overcome limitations related to this
 use of chunks, multiple iterations must be done until a convergence threshold
-is acheived.
+is achieved.
+
+The subsampling threshold should be between 2mm and 5mm, 5mm being quite
+aggressive. A CST where all fanning streamlines are important should be around
+2mm, while an AF can go around 4mm.
+
+The --processes parameters should only be use on massive bundle. For example,
+100 000 streamlines can be split among 8 processes.
 """
 
 
@@ -77,8 +84,9 @@ def _buildArgsParser():
                    help='Streamlines count difference threshold to stop '
                         're-running the algorithm [%(default)s].')
     p.add_argument('--avg_similar', action='store_true',
-                   help='Average similar streamlines rather than removing them'
-                        '[%(default)s]. Requires a small min_distance.')
+                   help='Average similar streamlines rather than removing them '
+                        '[%(default)s]. Requires a small min_distance. '
+                        'Allows for some smoothing.')
     p.add_argument('--processes', type=int, default=1,
                    help='Number of desired processes [%(default)s].')
 
