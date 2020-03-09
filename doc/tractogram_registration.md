@@ -20,7 +20,9 @@ scil_apply_transform_to_tractogram.py MOVING_FILE REFERENCE_FILE  0GenericAffine
 ```
 If a nonlinear deformation will be applied after, the REFERENCE_FILE should be the InverseWarp.nii.gz
 
-*The file outputted by this script is a tractogram*
+OUTPUT_NAME is the output tractogram
+
+**
 
 ## Non-linear deformation
 To apply a non-linear transformation from ANTS
@@ -29,6 +31,4 @@ scil_apply_warp_to_tractogram.py MOVING_FILE REFERENCE_FILE DEFORMATION_FILE OUT
 ```
 * The MOVING_FILE needs the same affine and dimensions as the DEFORMATION_FILE
 * The DEFORMATION_FILE needs to be the InverseWarp.nii.gz (very important)
-
-*The file outputted by this script is a tractogram*
-
+* The OUTPUT_NAME is the output tractogram

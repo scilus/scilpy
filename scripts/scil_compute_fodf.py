@@ -25,15 +25,15 @@ from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.direction.peaks import (peaks_from_model,
-                                reshape_peaks_for_visualization)
+                                  reshape_peaks_for_visualization)
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args)
-from scilpy.utils.bvec_bval_tools import check_b0_threshold
-from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
+                                          is_normalized_bvecs)
 
 
 def _build_arg_parser():
@@ -130,7 +130,7 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args, bvals.min())
+    check_b0_threshold(args.force_b0_threshold, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     if args.mask is None:

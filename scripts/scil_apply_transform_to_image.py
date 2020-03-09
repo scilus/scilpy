@@ -3,8 +3,7 @@
 
 """
     Transform *.nii or *.nii.gz using an affine/rigid transformation.
-
-    For more informations on how to use the various registration scripts
+    For more information on how to use the various registration scripts
     see the doc/tractogram_registration.md readme file
 """
 
@@ -59,9 +58,9 @@ def main():
     _, ref_extension = split_name_with_nii(args.ref_file)
     _, in_extension = split_name_with_nii(args.in_file)
     if ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is an unsupported format.'.format(args.in_file))
-    if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.ref_file))
+    if in_extension not in ['.nii', '.nii.gz']:
+        parser.error('{} is an unsupported format.'.format(args.in_file))
 
     transform_anatomy(transfo, args.ref_file, args.in_file,
                       args.out_name)
