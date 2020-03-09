@@ -9,7 +9,7 @@ reference dataset or to the resolution specified as in argument.
 import argparse
 import logging
 
-from dipy.align.reslice import reslice
+from scilpy.image.reslice import reslice
 import nibabel as nib
 import numpy as np
 
