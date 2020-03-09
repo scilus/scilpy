@@ -58,15 +58,16 @@ def main():
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
 
-    if len(sft_bundle.streamlines) == 0:
-        logging.warning('Empty bundle file {}. '
+    if not len(sft_bundle.streamlines):
+        logging.error('Empty bundle file {}. '
                         'Skipping'.format(args.in_bundle))
-        return
+        raise ValueError
 
-    if len(sft_centroid.streamlines) == 0:
-        logging.warning('Centroid file {} should contain one streamline. '
+    if not len(sft_centroid.streamlines):
+        logging.error('Centroid file {} should contain one streamline. '
                         'Skipping'.format(args.in_centroid))
-        return
+        raise ValueError
+
 
     sft_bundle.to_vox()
     bundle_streamlines_vox = sft_bundle.streamlines
