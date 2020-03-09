@@ -13,15 +13,16 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 def _build_arg_parser():
 
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Flip the volume according to the specified axis.')
+                                description='Flip the volume according to the'
+                                ' specified axis.')
     p.add_argument('input',
                    help='Path of the input volume (nifti).')
     p.add_argument('output',
-                    help='Path of the output volume (nifti).')
+                   help='Path of the output volume (nifti).')
     p.add_argument('axes', metavar='dimension',
-                    choices=['x', 'y', 'z'], nargs='+',
-                    help='The axes you want to flip. eg: to flip the x '
-                            'and y axes use: x y.')
+                   choices=['x', 'y', 'z'], nargs='+',
+                   help='The axes you want to flip. eg: to flip the x '
+                        'and y axes use: x y.')
     add_overwrite_arg(p)
     return p
 
@@ -47,7 +48,7 @@ def main():
 
     if 'z' in args.axes:
         data = data[:, :, ::-1, ...]
-    
+
     nib.save(nib.Nifti1Image(data, affine, header), args.output)
 
 
