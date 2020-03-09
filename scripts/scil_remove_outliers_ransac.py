@@ -69,7 +69,7 @@ def main():
     in_data = in_img.get_data()
 
     if np.average(in_data[in_data > 0]) > 0.1:
-        logging.warning('Be carefull, your image doesn\'t seem to be an ad, '
+        logging.warning('Be careful, your image doesn\'t seem to be an ad, '
                         'md or rd.')
 
     in_data_flat = in_data.flatten()
