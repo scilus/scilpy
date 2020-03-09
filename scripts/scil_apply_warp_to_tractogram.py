@@ -65,11 +65,12 @@ def main():
                      'attribute as the deformation field.')
 
     # Warning: Apply warp in-place
-    transfo = sft.affine
-    moved_streamlines = warp_streamlines(sft.streamlines, transfo,
-                                         deformation_data, args.field_source)
+    moved_streamlines = warp_streamlines(sft, deformation_data,
+                                         args.field_source)
     new_sft = StatefulTractogram(moved_streamlines, args.target_file,
-                                 Space.RASMM)
+                                 Space.RASMM, 
+                                 data_per_point=sft.data_per_point,
+                                 data_per_streamline=sft.data_per_streamline)
     save_tractogram(new_sft, args.out_tractogram)
 
 

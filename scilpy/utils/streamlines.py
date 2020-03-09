@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from scipy.ndimage import map_coordinates
-import numpy as np
 from functools import reduce
 import itertools
 
 from dipy.tracking.streamline import transform_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
-
+import numpy as np
+from scipy.ndimage import map_coordinates
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -124,7 +123,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def warp_streamlines(streamlines, transfo, deformation_data, source):
+def warp_streamlines(sft, deformation_data, source):
     """ Warp tractogram using a deformation map. Apply warp in-place.
     Support Ants and Dipy deformation map.
 
@@ -139,7 +138,10 @@ def warp_streamlines(streamlines, transfo, deformation_data, source):
     source: str
         Source of the deformation map [ants, dipy]
     """
-
+    sft.to_rasmm()
+    sft.to_center()
+    streamlines = sft.streamlines
+    transfo = sft.affine
     if source == 'ants':
         flip = [-1, -1, 1]
     elif source == 'dipy':
@@ -179,9 +181,7 @@ def warp_streamlines(streamlines, transfo, deformation_data, source):
         # Dipy transformation is relative to vox space
         elif source == 'dipy':
             final_points += cur_points_vox
-            final_points = transform_streamlines(final_points,
-                                                 transfo)
-
+            transform_streamlines(final_points, transfo, in_place=True)
         streamlines._data[cur_position:max_position] = final_points.T
         cur_position = max_position
         nb_iteration -= 1

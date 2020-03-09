@@ -17,7 +17,6 @@ from dipy.align.streamlinear import whole_brain_slr
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-
 from scilpy.io.streamlines import ichunk, load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
@@ -29,31 +28,6 @@ Robust and efficient linear registration of white-matter fascicles in the
 space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
 (http://www.sciencedirect.com/science/article/pii/S1053811915003961)
 """
-
-
-def register_tractogram(moving_tractogram, static_tractogram,
-                        only_rigid, amount_to_load,
-                        verbose):
-
-    amount_to_load = max(250000, amount_to_load)
-    moving_streamlines = next(ichunk(moving_tractogram.streamlines,
-                                     amount_to_load))
-    static_streamlines = next(ichunk(static_tractogram.streamlines,
-                                     amount_to_load))
-
-    if only_rigid:
-        transformation_type = 'rigid'
-    else:
-        transformation_type = 'affine'
-
-    ret = whole_brain_slr(ArraySequence(static_streamlines),
-                          ArraySequence(moving_streamlines),
-                          x0=transformation_type,
-                          maxiter=150,
-                          verbose=verbose)
-    _, transfo, _, _ = ret
-
-    return transfo
 
 
 def _build_args_parser():
@@ -72,9 +46,6 @@ def _build_args_parser():
     p.add_argument('--only_rigid', action='store_true',
                    help='Will only use a rigid transformation, '
                         'uses affine by default.')
-    p.add_argument('--amount_to_load', type=int, default=250000,
-                   help='Amount of streamlines to load for each tractogram \n'
-                        'using lazy load. [%(default)s]')
 
     add_reference_arg(p, 'moving_tractogram')
     add_reference_arg(p, 'static_tractogram')
@@ -100,17 +71,24 @@ def main():
 
     sft_moving = load_tractogram_with_reference(parser, args,
                                                 args.moving_tractogram,
-                                                bbox_check=True,
                                                 arg_name='moving_tractogram')
 
     sft_static = load_tractogram_with_reference(parser, args,
                                                 args.static_tractogram,
-                                                bbox_check=True,
                                                 arg_name='static_tractogram')
 
-    transfo = register_tractogram(sft_moving, sft_static,
-                                  args.only_rigid, args.amount_to_load,
-                                  args.verbose)
+    if args.only_rigid:
+        transformation_type = 'rigid'
+    else:
+        transformation_type = 'affine'
+
+    ret = whole_brain_slr(sft_moving.streamlines,
+                          sft_static.streamlines,
+                          x0=transformation_type,
+                          maxiter=150,
+                          verbose=args.verbose)
+    _, transfo, _, _ = ret
+
     np.savetxt(matrix_filename, transfo)
 
 

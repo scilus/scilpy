@@ -62,7 +62,9 @@ def main():
     moved_streamlines = transform_streamlines(moving_sft.streamlines,
                                               transfo)
     new_sft = StatefulTractogram(moved_streamlines, args.target_file,
-                                 Space.RASMM)
+                                 Space.RASMM, 
+                                 data_per_point=moving_sft.data_per_point,
+                                 data_per_streamline=moving_sft.data_per_streamline)
     save_tractogram(new_sft, args.out_tractogram)
 
 
