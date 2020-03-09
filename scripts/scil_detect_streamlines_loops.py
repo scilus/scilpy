@@ -4,7 +4,7 @@
 import argparse
 import logging
 
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -12,7 +12,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.utils.streamlines import filter_tractogram_data
+from scilpy.utils.streamlines import (
+    filter_tractogram_data,
+    load_tractogram_with_reference)
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
 
@@ -81,7 +83,8 @@ def main():
         parser.error('Angle "{}" '.format(args.angle) +
                      'must be greater than 0')
 
-    tractogram = load_tractogram(args.in_tractogram, args.reference)
+    tractogram = load_tractogram_with_reference(
+        parser, args, args.in_tractogram)
 
     streamlines = tractogram.streamlines
 
