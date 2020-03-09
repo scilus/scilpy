@@ -6,12 +6,10 @@ import os
 import six
 
 from dipy.io.streamline import load_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram
 import nibabel as nib
 from nibabel.streamlines import Field, Tractogram
 from nibabel.streamlines.trk import (get_affine_rasmm_to_trackvis,
                                      get_affine_trackvis_to_rasmm)
-import numpy as np
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -146,52 +144,3 @@ def load_tractogram_with_reference(parser, args, filepath,
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
-
-
-def filter_tractogram_data(tractogram, streamline_ids):
-    """ Filter tractogram according to streamline ids and keep
-    the data
-
-    Parameters:
-    -----------
-    tractogram: Tractogram or StatefulTractogram
-        Tractogram containing the data to be filtered
-    streamline_ids: array_like
-        List of streamline ids the data corresponds to
-
-    Returns:
-    --------
-    new_tractogram: Tractogram or StatefulTractogram
-        Returns the same type as the input but only with
-    """
-
-    assert isinstance(tractogram, Tractogram) or \
-        isinstance(tractogram, StatefulTractogram), \
-        ("Tractogram must either be Tracrogram or StatefulTractogram")
-
-    streamline_ids = np.asarray(streamline_ids, dtype=np.int)
-
-    assert np.all(
-        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
-    ), "Received ids outside of streamline range"
-
-    new_streamlines = tractogram.streamlines[streamline_ids]
-    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
-    new_data_per_point = tractogram.data_per_point[streamline_ids]
-
-    # Could have been nice to deepcopy the tractogram modify the attributes in
-    # place instead of creating a new one, but tractograms cant be subsampled
-    # if they have data
-    if isinstance(tractogram, Tractogram):
-        return Tractogram(
-            new_streamlines,
-            affine_to_rasmm=tractogram.affine_to_rasmm,
-            data_per_point=new_data_per_point,
-            data_per_streamline=new_data_per_streamline)
-
-    return StatefulTractogram(
-        new_streamlines,
-        tractogram,
-        tractogram.space,
-        data_per_point=new_data_per_point,
-        data_per_streamline=new_data_per_streamline)

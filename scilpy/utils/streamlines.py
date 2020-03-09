@@ -4,7 +4,9 @@
 from functools import reduce
 import itertools
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines
+
 import numpy as np
 from scipy import ndimage
 
@@ -190,3 +192,45 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
             = final_streamline.T
         current_position = max_position
         nb_iteration -= 1
+
+
+def filter_tractogram_data(tractogram, streamline_ids):
+    """ Filter tractogram according to streamline ids and keep
+    the data
+
+    Parameters:
+    -----------
+    tractogram: Tractogram or StatefulTractogram
+        Tractogram containing the data to be filtered
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to
+
+    Returns:
+    --------
+    new_tractogram: Tractogram or StatefulTractogram
+        Returns the same type as the input but only with
+    """
+
+    assert isinstance(tractogram, StatefulTractogram), \
+        ("Tractogram must be StatefulTractogram")
+
+    streamline_ids = np.asarray(streamline_ids, dtype=np.int)
+
+    assert np.all(
+        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
+    ), "Received ids outside of streamline range"
+
+    new_streamlines = tractogram.streamlines[streamline_ids]
+    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
+    new_data_per_point = tractogram.data_per_point[streamline_ids]
+
+    # Could have been nice to deepcopy the tractogram modify the attributes in
+    # place instead of creating a new one, but tractograms cant be subsampled
+    # if they have data
+
+    return StatefulTractogram(
+        new_streamlines,
+        tractogram,
+        tractogram.space,
+        data_per_point=new_data_per_point,
+        data_per_streamline=new_data_per_streamline)
