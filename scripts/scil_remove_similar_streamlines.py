@@ -161,7 +161,7 @@ def main():
             random.shuffle(streamlines)
 
     # After convergence, we can simply save the output
-    new_sft = StatefulTractogram(streamlines, sft, Space.RASMM)
+    new_sft = StatefulTractogram.from_sft(streamlines, sft)
     save_tractogram(new_sft, args.out_bundle)
 
 
