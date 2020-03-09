@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Compute assignment map from bundle and centroid streamline.
+This script can be very memory hungry on large fiber bundle.
+"""
+
 import argparse
 import logging
 
@@ -17,9 +23,7 @@ from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute assignment map from bundle and centroid '
-                    'streamline. This script can be very memory hungry on '
-                    'large fiber bundle.',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('in_bundle', help='Fiber bundle file')
     p.add_argument('in_centroid',

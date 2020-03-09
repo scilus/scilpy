@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Projects metrics onto the endpoints of streamlines. The idea is to visualize
+the cortical areas affected by metrics (assuming streamlines start/end in
+the cortex).
+"""
+
 import argparse
 import logging
 import os
@@ -22,9 +29,7 @@ from scilpy.tractanalysis.uncompress import uncompress
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Projects metrics onto the endpoints of streamlines. The '
-                    'idea is to visualize the cortical areas affected by '
-                    'metrics (assuming streamlines start/end in the cortex).',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',

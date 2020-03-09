@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute bundle volume per label.
+"""
+
 import argparse
 import json
 
@@ -14,7 +18,7 @@ from scilpy.io.utils import (add_json_args,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute bundle volume per label',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('voxel_label_map',

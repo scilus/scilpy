@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute bundle volume in mm³.
+"""
+
 import argparse
 import json
 import os
@@ -16,7 +20,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute bundle volume in mm³',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',

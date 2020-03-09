@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute bundle centroid.
+"""
+
 import argparse
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
@@ -19,7 +23,7 @@ import numpy as np
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute bundle centroid',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',

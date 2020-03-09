@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute mean and standard deviation for all streamlines points in the bundle 
+for each metric combination.
+"""
+
 import argparse
 import json
 import logging
@@ -20,8 +25,7 @@ from scilpy.utils.filenames import split_name_with_nii
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute mean and standard deviation for all streamlines '
-                    'points in the bundle for each metric combination',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',

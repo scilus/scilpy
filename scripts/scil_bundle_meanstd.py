@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute mean and std along the bundle for each metric.
+"""
+
 import argparse
 import json
 import os
@@ -18,7 +22,7 @@ from scilpy.utils.metrics_tools import get_metrics_stats_over_streamlines
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute mean and std along the bundle for each metric',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',
