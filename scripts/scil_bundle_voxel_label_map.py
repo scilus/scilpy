@@ -72,7 +72,7 @@ def main():
     centroid_streamlines_vox = sft_centroid.streamlines
     centroid_streamlines_vox._data *= args.upsample
 
-    upsampled_shape = [s * args.upsample for s in sft_bundle.space_attribute[1]]
+    upsampled_shape = [s * args.upsample for s in sft_bundle.dimensions]
     tdi_mask = compute_tract_counts_map(bundle_streamlines_vox,
                                         upsampled_shape) > 0
 
@@ -85,10 +85,10 @@ def main():
     # Save the (upscaled) labels mask
     labels_mask = np.zeros(tdi_mask.shape)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
-    rescaled_affine = sft_bundle.space_attribute[0]
+    rescaled_affine = sft_bundle.affine
     rescaled_affine[:3, :3] /= args.upsample
     labels_img = nib.Nifti1Image(labels_mask, rescaled_affine)
-    upsampled_spacing = sft_bundle.space_attribute[2] / args.upsample
+    upsampled_spacing = sft_bundle.voxel_sizes / args.upsample
     labels_img.header.set_zooms(upsampled_spacing)
     nib.save(labels_img, args.output_map)
 

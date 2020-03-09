@@ -62,7 +62,7 @@ def main():
     centroid_streamlines = get_centroid_streamline(sft.streamlines,
                                                    args.nb_points)
 
-    sft = StatefulTractogram(centroid_streamlines, sft, Space.RASMM)
+    sft = StatefulTractogram.from_sft(centroid_streamlines, sft)
 
     save_tractogram(sft, args.out_centroid)
 

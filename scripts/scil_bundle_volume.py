@@ -46,8 +46,8 @@ def main():
         return
 
     tdi = compute_tract_counts_map(sft.streamlines,
-                                   tuple(sft.space_attribute[1]))
-    voxel_volume = np.prod(np.prod(sft.space_attribute[2]))
+                                   tuple(sft.dimensions))
+    voxel_volume = np.prod(np.prod(sft.voxel_sizes))
     stats[bundle_name]['volume'] = np.count_nonzero(tdi) * voxel_volume
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
