@@ -192,7 +192,6 @@ def main():
         parser.error('Total number of seeds must be > 0.')
 
     fodf_sh_img = nib.load(args.sh_file)
-    fodf_sh_img = nib.load(args.sh_file)
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
                        fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
         parser.error(
@@ -229,7 +228,6 @@ def main():
     map_exclude_img = nib.load(args.map_exclude_file)
     voxel_size = np.average(map_include_img.get_header()['pixdim'][1:4])
 
-    tissue_classifier = None
     if not args.act:
         tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
                                                  map_exclude_img.get_data(),
