@@ -201,7 +201,6 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
                             verbose=1)
 
 
-    
 # compute the centroid of the bvals given a certain tolerance threshold
 def _guess_bvals_centroids(bvals, threshold):
     if not len(bvals):
@@ -229,5 +228,3 @@ def identify_shells(bvals, threshold=40.0):
     shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
 
     return centroids, shell_indices
-
-
