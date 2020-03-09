@@ -75,8 +75,8 @@ def main():
                                             + chunk_sizes[i]]
         curr_count += chunk_sizes[i]
         new_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                     data_per_point=data_per_point,
-                                     data_per_streamline=data_per_streamline)
+                                              data_per_point=data_per_point,
+                                              data_per_streamline=data_per_streamline)
 
         out_name = '{0}_{1}{2}'.format(out_basename, i, out_extension)
         save_tractogram(new_sft, out_name)
