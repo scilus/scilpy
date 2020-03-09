@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute a simple Recobundles (single-atlas & single-parameters).
-    The model need to be cleaned and lightweight.
-    Transform should come from ANTs: (using the --inverse flag)
-    AntsRegistration -m MODEL_REF -f SUBJ_REF
-    ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+Compute a simple Recobundles (single-atlas & single-parameters).
+The model need to be cleaned and lightweight.
+Transform should come from ANTs: (using the --inverse flag)
+AntsRegistration -m MODEL_REF -f SUBJ_REF
+ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
 """
 
 import argparse
@@ -45,7 +45,7 @@ def _build_args_parser():
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
-    p.add_argument('--wb_clustering_thr', type=float, default=8,
+    p.add_argument('--tractogram_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
                         '[%(default)smm].')
     p.add_argument('--model_clustering_thr', type=float, default=4,
@@ -67,7 +67,7 @@ def _build_args_parser():
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                            'Will override the wb_clustering_thr parameter.')
+                            'Will override the tractogram_clustering_thr parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
@@ -106,7 +106,7 @@ def main():
                                verbose=args.verbose)
     else:
         reco_obj = RecoBundles(wb_streamlines,
-                               clust_thr=args.wb_clustering_thr,
+                               clust_thr=args.tractogram_clustering_thr,
                                rng=rng,
                                verbose=args.verbose)
 

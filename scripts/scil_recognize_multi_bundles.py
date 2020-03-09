@@ -2,30 +2,32 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute RecobundlesX (multi-atlas & multi-parameters).
-    The model needs to be cleaned and lightweight.
-    Transform should come from ANTs: (using the --inverse flag)
-    AntsRegistration -m MODEL_REF -f SUBJ_REF
-    ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+Compute RecobundlesX (multi-atlas & multi-parameters).
+The model needs to be cleaned and lightweight.
+Transform should come from ANTs: (using the --inverse flag)
+AntsRegistration -m MODEL_REF -f SUBJ_REF
+ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
 
-    The next two arguments are multi-parameters related:
-        --multi_parameters must be lower than len(model_clustering_thr) *
-        len(bundle_pruning_thr) * len(tractogram_clustering_thr)
+The next two arguments are multi-parameters related:
+--multi_parameters must be lower than len(model_clustering_thr) *
+len(bundle_pruning_thr) * len(tractogram_clustering_thr)
 
-        --seeds can be more than one value. Multiple values will result in
-        a overall multiplicative factor of len(seeds) * '--multi_parameters'
+--seeds can be more than one value. Multiple values will result in
+a overall multiplicative factor of len(seeds) * '--multi_parameters'
 
-    The number of folder provided by 'models_directories' will further multiply
-    the total number of run. Meaning that the total number of Recobundle
-    execution will be len(seeds) * '--multi_parameters' * len(models_directories)
+The number of folder provided by 'models_directories' will further multiply
+the total number of run. Meaning that the total number of Recobundle
+execution will be len(seeds) * '--multi_parameters' * len(models_directories)
 
-    --minimal_vote_ratio is a value between 0 and 1. The actual number of vote
-    required will be '--minimal_vote_ratio' * len(seeds) * '--multi_parameters'
-    * len(models_directories).
+--minimal_vote_ratio is a value between 0 and 1. The actual number of vote
+required will be '--minimal_vote_ratio' * len(seeds) * '--multi_parameters'
+* len(models_directories).
 
-    Example: 5 atlas, 9 multi-parameters, 2 seeds with a minimal vote_ratio
-    of 0.50 will results in 90 executions (for each bundle in the config file)
-    and a minimal vote of 45 / 90.
+Example: 5 atlas, 9 multi-parameters, 2 seeds with a minimal vote_ratio
+of 0.50 will results in 90 executions (for each bundle in the config file)
+and a minimal vote of 45 / 90.
+
+Example data and usage available at: https://zenodo.org/deposit/3613688
 """
 
 import argparse
@@ -71,17 +73,17 @@ def _build_args_parser():
                         'Will multiply the number of time Recobundles is ran.\n'
                         'See the documentation [%(default)s].')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
-                   help='Streamlines will only be considered for saving if\n '
+                   help='Streamlines will only be considered for saving if\n'
                         'recognized often enough [%(default)s].')
 
     p.add_argument('--tractogram_clustering_thr',
                    type=int, default=[12], nargs='+',
-                   help='Input tractogram clustering thresholds [%(default)smm].')
+                   help='Input tractogram clustering thresholds %(default)smm.')
 
     p.add_argument('--processes', type=int, default=1,
                    help='Number of thread used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
-                   help='Random number generator seed [%(default)s]\n'
+                   help='Random number generator seed %(default)s\n'
                         'Will multiply the number of time Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')

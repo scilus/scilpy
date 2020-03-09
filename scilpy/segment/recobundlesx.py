@@ -29,7 +29,7 @@ def _reconstruct_streamlines(memmap_filenames, indices):
 class RecobundlesX(object):
     """
     This class is a 'remastered' version of the Dipy Recobundles class.
-    Made to be used in synch with the voting_scheme.
+    Made to be used in sync with the voting_scheme.
     Adapted in many way for HPC processing and increase control over
     parameters and logging.
     However, in essence they do the same thing.
@@ -94,7 +94,7 @@ class RecobundlesX(object):
             Define the transformation for the local SLR.
             [translation, rigid, similarity, scaling]
         identifier : str
-            Identify the current bundle being recognize for the logging.
+            Identify the current bundle being recognized for the logging.
 
         Returns
         -------
@@ -116,7 +116,7 @@ class RecobundlesX(object):
                 slr_num_thread=self.slr_num_thread,
                 slr_transform_type=slr_transform_type)
 
-        self.pruned_indices = self._prune_what_not_in_model(
+        self.pruned_indices = self.prune_far_from_model(
             bundle_pruning_thr=bundle_pruning_thr)
 
         return self.pruned_indices
@@ -157,9 +157,6 @@ class RecobundlesX(object):
         close_clusters_indices = np.array(np.where(mins != np.inf)[0],
                                           dtype=np.int32)
 
-        if not len(close_clusters_indices):
-            return False
-
         self.neighb_indices = []
         for i in close_clusters_indices:
             self.neighb_indices.extend(self.wb_clusters_indices[i])
@@ -170,7 +167,7 @@ class RecobundlesX(object):
         self.neighb_centroids = [self.centroids[i]
                                  for i in close_clusters_indices]
 
-        return True
+        return len(close_clusters_indices) > 0
 
     def _register_model_to_neighb(self, slr_num_thread=1,
                                   select_model=1000, select_target=1000,
@@ -253,9 +250,8 @@ class RecobundlesX(object):
         self.model_centroids = transform_streamlines(self.model_centroids,
                                                      np.linalg.inv(slm.matrix))
 
-    def _prune_what_not_in_model(self,
-                                 bundle_pruning_thr=10,
-                                 neighbors_cluster_thr=8):
+    def prune_far_from_model(self, bundle_pruning_thr=10,
+                             neighbors_cluster_thr=8):
         """
         Wrapper function to prune clusters from the tractogram too far from
         the model.

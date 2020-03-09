@@ -96,7 +96,7 @@ class VotingScheme(object):
 
     def _init_bundles_tag(self):
         """
-        Using all bundles in the configuration file and the input models.
+        Using all bundles in the configuration file and the input models
         folders, generate all model filepaths.
         Bundles must exist across all folders.
         """
