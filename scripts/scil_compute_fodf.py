@@ -18,22 +18,16 @@ from __future__ import division
 
 import argparse
 import logging
-import warnings
 
-from dipy.core.gradients import gradient_table
-from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
-from dipy.direction.peaks import (peaks_from_model,
-                                  reshape_peaks_for_visualization)
+from dipy.direction.peaks import reshape_peaks_for_visualization
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args)
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
-                                          is_normalized_bvecs)
+from scilpy.reconst.fodf import compute_fodf
 
 
 def _build_arg_parser():
@@ -90,6 +84,7 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
+    # Checking args
     if not args.not_all:
         args.fodf = args.fodf or 'fodf.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
@@ -104,69 +99,25 @@ def main():
                                  args.frf_file])
     assert_outputs_exist(parser, args, arglist)
 
-    nbr_processes = args.nbr_processes
-    parallel = True
-    if nbr_processes is not None:
-        if nbr_processes <= 0:
-            nbr_processes = None
-        elif nbr_processes == 1:
-            parallel = False
-
     full_frf = np.loadtxt(args.frf_file)
-
-    if not full_frf.shape[0] == 4:
-        raise ValueError('FRF file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-
-    frf = full_frf[0:3]
-    mean_b0_val = full_frf[3]
-
     vol = nib.load(args.input)
     data = vol.get_data()
-
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
-
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
-
-    check_b0_threshold(args.force_b0_threshold, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
+        mask = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
 
-    # Raise warning for sh order if there is not enough DWIs
-    if data.shape[-1] < (args.sh_order + 1) * (args.sh_order + 2) / 2:
-        warnings.warn(
-            'We recommend having at least {} unique DWIs volumes, but you '
-            'currently have {} volumes. Try lowering the parameter --sh_order '
-            'in case of non convergence.'.format(
-                (args.sh_order + 1) * (args.sh_order + 2) / 2, data.shape[-1]))
+    # Computing fODF
+    peaks_csd = compute_fodf(data, bvals, bvecs, full_frf,
+                             sh_order=args.sh_order,
+                             nbr_processes=args.nbr_processes,
+                             mask=mask, sh_basis=args.sh_basis,
+                             return_sh=True,
+                             force_b0_threshold=args.force_b0_threshold)
 
-    reg_sphere = get_sphere('symmetric362')
-    peaks_sphere = get_sphere('symmetric724')
-
-    csd_model = ConstrainedSphericalDeconvModel(
-        gtab, (frf, mean_b0_val),
-        reg_sphere=reg_sphere,
-        sh_order=args.sh_order)
-
-    peaks_csd = peaks_from_model(model=csd_model,
-                                 data=data,
-                                 sphere=peaks_sphere,
-                                 relative_peak_threshold=.5,
-                                 min_separation_angle=25,
-                                 mask=mask,
-                                 return_sh=True,
-                                 sh_basis_type=args.sh_basis,
-                                 sh_order=args.sh_order,
-                                 normalize_peaks=True,
-                                 parallel=parallel,
-                                 nbr_processes=nbr_processes)
-
+    # Saving results
     if args.fodf:
         nib.save(nib.Nifti1Image(peaks_csd.shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
