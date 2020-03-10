@@ -30,7 +30,7 @@ def _build_arg_parser():
     p.add_argument('output',
                    help='Name of the output SH file to save.')
 
-    p.add_argument('--sh_order', type=int, default=8,
+    p.add_argument('--sh_order', type=int, default=4,
                    help='SH order to fit (int). [%(default)s]')
     add_sh_basis_args(p)
     p.add_argument('--smooth', type=float, default=0.006,
