@@ -35,6 +35,7 @@ def _build_args_parser():
         description=DESCRIPTION)
 
     p.add_argument('operation',
+                   choices=OPERATIONS.keys(),
                    help='The type of operation to be performed on the '
                    'images.')
 
