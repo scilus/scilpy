@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Script to resample a set of streamlines to either a new number of points per
+streamline or to a fixed step size. WARNING: data_per_point is not carried.
+"""
 import argparse
 
 from dipy.io.streamline import save_tractogram
@@ -15,10 +20,7 @@ from scilpy.tracking.tools import (resample_streamlines_num_points,
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description='Resample a set of streamlines to either a new number of '
-                    'points per streamline or to a fixed step size.\n'
-                    'WARNING: data_per_point is not carried')
+        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('out_tractogram',

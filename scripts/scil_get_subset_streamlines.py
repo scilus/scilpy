@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Script to get a subset of n streamlines from a tractogram.
+"""
+
 import argparse
 
 from dipy.io.streamline import save_tractogram
@@ -14,8 +19,7 @@ from scilpy.tracking.tools import get_subset_streamlines
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description='Get a subset of streamlines.')
+        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('max_num_streamlines', type=int,
