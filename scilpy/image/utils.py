@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
 
 import nibabel as nib
 import numpy as np
@@ -31,3 +32,35 @@ def count_non_zero_voxels(image):
         nb_voxels = np.count_nonzero(data)
 
     return nb_voxels
+
+
+def volume_iterator(img, blocksize=1):
+    """Generator that iterates on volumes of data.
+
+    Parameters
+    ----------
+    img : nib.Nifti1Image
+        Image of a 4D volume with shape X,Y,Z,N
+    blocksize : int, optional
+        Number of volumes to return in a single batch
+
+    Yields
+    -------
+    tuple of (list of int, ndarray)
+        The ids of the selected volumes, and the selected data as a 4D array
+    """
+    nb_volumes = img.shape[-1]
+
+    if blocksize == nb_volumes:
+        yield list(range(nb_volumes)), img.get_fdata()
+    else:
+        start, end = 0, 0
+        for i in range(0, nb_volumes - blocksize, blocksize):
+            start, end = i, i + blocksize
+            logging.info("Loading volumes {} to {}.".format(start, end - 1))
+            yield list(range(start, end)), img.dataobj[..., start:end]
+
+        if end < nb_volumes:
+            logging.info(
+                "Loading volumes {} to {}.".format(end, nb_volumes - 1))
+            yield list(range(end, nb_volumes)), img.dataobj[..., end:]

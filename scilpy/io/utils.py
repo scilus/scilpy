@@ -13,6 +13,41 @@ import numpy as np
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 
+def link_bundles_and_reference(parser, args, input_tractogram_list):
+    """
+    Associate the bundle to their reference (if they require a reference)
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse
+    args: argparse namespace
+        Args as created by argparse
+    input_tractogram_list: list
+        List of tractogram paths.
+    Returns
+    -------
+    list: List of tuples, each matching one tractogram to a reference file.
+    """
+    bundles_references_tuple = []
+    for bundle_filename in input_tractogram_list:
+        _, ext = os.path.splitext(bundle_filename)
+        if ext == '.trk':
+            if args.reference is None:
+                bundles_references_tuple.append(
+                    (bundle_filename, bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+        elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
+            if args.reference is None:
+                parser.error('--reference is required for this file format '
+                             '{}.'.format(bundle_filename))
+            else:
+                bundles_references_tuple.append(
+                    (bundle_filename, args.reference))
+    return bundles_references_tuple
+
+
 def check_tracts_same_format(parser, filename_list):
     _, ref_ext = os.path.splitext(filename_list[0])
 
@@ -163,7 +198,7 @@ def create_header_from_anat(reference, base_filetype=TrkFile):
     return new_header
 
 
-def assert_output_dirs_exist_and_empty(parser, args, *dirs):
+def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     """
     Assert that all output directories exist.
     If not, print parser's usage and exit.
@@ -172,18 +207,21 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs):
     :param args: argparse namespace
     :param dirs: list of paths
     """
-    for path in dirs:
-        if not os.path.isdir(path):
-            parser.error('Output directory {} doesn\'t exist.'.format(path))
-        if os.listdir(path):
+    for cur_dir in dirs:
+        if not os.path.isdir(cur_dir):
+            if not create_dir:
+                parser.error('Output directory {} doesn\'t exist.'.format(cur_dir))
+            else:
+                os.makedirs(cur_dir, exist_ok=True)
+        if os.listdir(cur_dir):
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
                     'overwritten. Use -f option if you want to continue.'
-                    .format(path))
+                    .format(cur_dir))
             else:
-                for the_file in os.listdir(args.output):
-                    file_path = os.path.join(args.output, the_file)
+                for the_file in cur_dir:
+                    file_path = os.path.join(cur_dir, the_file)
                     try:
                         if os.path.isfile(file_path):
                             os.unlink(file_path)
