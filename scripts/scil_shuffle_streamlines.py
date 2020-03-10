@@ -4,8 +4,9 @@
 import argparse
 import random
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
@@ -39,10 +40,16 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    streamlines = list(sft.get_streamlines_copy())
-    random.shuffle(streamlines, random=args.seed)
+    indices = np.arange(len(sft.streamlines))
+    random.shuffle(indices, random=args.seed)
 
-    shuffled_sft = StatefulTractogram(streamlines, sft, Space.RASMM)
+    streamlines = sft.streamlines[indices]
+    data_per_streamline = sft.data_per_streamline[indices]
+    data_per_point = sft.data_per_point[indices]
+
+    shuffled_sft = StatefulTractogram.from_sft(streamlines, sft,
+                                               data_per_streamline=data_per_streamline,
+                                               data_per_point=data_per_point)
     save_tractogram(shuffled_sft, args.out_tractogram)
 
 

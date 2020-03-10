@@ -3,27 +3,27 @@
 
 """
     This script will smooth the streamlines, usually to remove the
-    'wiggles' in probabilist tracking, two choice of method are available:
+    'wiggles' in probabilistic tracking, two choices of methods are available:
         - Gaussian will use the surrounding coordinates for smoothing.
-        Streamline are resampled to 1mm step-size and the smoothing is
+        Streamlines are resampled to 1mm step-size and the smoothing is
         performed on the coordinate array. The sigma will be indicative of the
-        number of points surrounding the center points to be use for blurring.
+        number of points surrounding the center points to be used for blurring.
 
-        - Spline will fit a sline curve to every streamlines using a sigma and
-        the number of control points. The sigma represent the allowed distance
+        - Spline will fit a spline curve to every streamline using a sigma and
+        the number of control points. The sigma represents the allowed distance
         from the control points. The control points for the spline fit will be
         the resampled streamline.
+
         WARNING: Too low of a sigma (e.g: 1) with a lot of control
         points (e.g: 15) will create crazy streamlines that could end up of the
         bounding box.
-
-        This script enforce endpoints to remain the same.
+        This script enforces endpoints to remain the same.
 """
 
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
 
@@ -49,14 +49,15 @@ def _build_args_parser():
     sub_p.add_argument('--gaussian', metavar='SIGMA', type=int,
                        help='Sigma for smoothing. Use the value of surronding\n'
                             'X,Y,Z points on the streamline to blur the'
-                            ' streamlines.')
+                            ' streamlines.\nSigma value around 5.')
     sub_p.add_argument('--spline', nargs=2, metavar=('SIGMA', 'NB_CTRL_POINT'),
                        type=int,
                        help='Sigma for smoothing. Model each streamline as a'
-                            'spline.')
+                            'spline.\nSigma value around 5 and control point '
+                            ' around 10.')
 
     p.add_argument('-e', dest='error_rate', type=float, default=0.1,
-                   help='Maximum compression distance in mm after smoothing.'
+                   help='Maximum compression distance in mm after smoothing. '
                         '[%(default)s]')
 
     add_reference_arg(p)
@@ -91,7 +92,8 @@ def main():
             smoothed_streamlines.append(compress_streamlines(tmp_streamlines,
                                                              args.error_rate))
 
-    smoothed_sft = StatefulTractogram(smoothed_streamlines, sft, Space.RASMM)
+    smoothed_sft = StatefulTractogram.from_sft(smoothed_streamlines, sft,
+                                               data_per_streamline=sft.data_per_streamline)
     save_tractogram(smoothed_sft, args.out_tractogram)
 
 
