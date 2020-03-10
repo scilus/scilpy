@@ -76,20 +76,14 @@ def get_image_operations_doc():
     return "".join([f.__doc__ for f in get_image_ops().values()])
 
 
-def find_array(input_list):
-    at_least_one_arr = False
-    ref_array = None
-    for i in input_list:
-        if isinstance(i, np.ndarray):
-            at_least_one_arr = True
-            ref_array = i
-            break
-
-    if not at_least_one_arr:
-        logging.error('At least one array is required in the input list.')
-        raise ValueError
-
-    return ref_array
+def validate_arrays(*arrays):
+    """Make sure that all inputs are arrays, and that their shapes match"""
+    ref_array = arrays[0]
+    for array in arrays:
+        if not isinstance(array, np.ndarray):
+            raise ValueError("All inputs must be arrays!")
+        if not np.all(ref_array.shape == array.shape):
+            raise ValueError("Not all inputs have the same shape!")
 
 
 def lower_threshold(input_list):
@@ -288,7 +282,8 @@ def addition(input_list):
         logging.error('This operation requires at least two operands.')
         raise ValueError
 
-    ref_array = find_array(input_list)
+    validate_arrays(*input_list)
+    ref_array = input_list[0]
 
     output_data = np.zeros(ref_array.shape)
     for data in input_list:
@@ -306,7 +301,7 @@ def subtraction(input_list):
         logging.error('This operation only support two operands.')
         raise ValueError
 
-    _ = find_array(input_list)
+    validate_arrays(*input_list)
 
     return input_list[0] - input_list[1]
 
@@ -320,7 +315,7 @@ def multiplication(input_list):
         logging.error('This operation requires at least two operands.')
         raise ValueError
 
-    _ = find_array(input_list)
+    validate_arrays(*input_list)
 
     output_data = input_list[0]
     for data in input_list[1:]:
@@ -338,7 +333,7 @@ def division(input_list):
         logging.error('This operation only support two operands.')
         raise ValueError
 
-    ref_array = find_array(input_list)
+    ref_array = validate_arrays(input_list)
 
     output_data = np.zeros(ref_array.shape)
     output_data[input_list[1] > 0] = input_list[0][input_list[1] > 0] \
@@ -356,7 +351,7 @@ def mean(input_list):
                       'or multiple operands (3D/4D).')
         raise ValueError
 
-    ref_array = find_array(input_list)
+    ref_array = validate_arrays(input_list)
     for i in input_list:
         if not isinstance(i, np.ndarray):
             logging.error('All inputs must be array.')
@@ -387,7 +382,7 @@ def std(input_list):
                       'or multiple operands (3D/4D).')
         raise ValueError
 
-    ref_array = find_array(input_list)
+    ref_array = validate_arrays(input_list)
     for i in input_list:
         if not isinstance(i, np.ndarray):
             logging.error('All inputs must be array.')
