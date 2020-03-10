@@ -319,7 +319,7 @@ def main():
                     measure_dict[measure_name])
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile, indent=1)
+        json.dump(output_measures_dict, outfile)
 
     if not args.keep_tmp:
         shutil.rmtree('tmp_measures/')

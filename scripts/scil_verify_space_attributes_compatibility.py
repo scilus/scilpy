@@ -43,7 +43,7 @@ def main():
                 args.in_files[0], filepath))
             all_valid = False
     if all_valid:
-        print('All input files had compatible headers.')
+        print('All input files have compatible headers.')
 
 
 if __name__ == "__main__":
