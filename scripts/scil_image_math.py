@@ -9,16 +9,16 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.operations import (is_float, absolute_value, around,
-                                     addition, ceil, closing, convert,
-                                     difference, dilation, division, erosion,
-                                     floor, gaussian_blur, intersection,
-                                     invert, lower_clip, lower_threshold, mean,
-                                     multiplication, normalize_max,
-                                     normalize_sum, opening, std, subtraction,
-                                     union, upper_threshold, upper_clip,
-                                     get_array_operation_doc, 
-                                     get_image_operation_doc)
+from scilpy.image.operations import (absolute_value, addition, around, ceil,
+                                     closing, convert, difference, dilation,
+                                     division, erosion, floor, gaussian_blur,
+                                     get_array_operations_doc,
+                                     get_image_operations_doc, intersection,
+                                     invert, is_float, lower_clip,
+                                     lower_threshold, mean, multiplication,
+                                     normalize_max, normalize_sum, opening,
+                                     std, subtraction, union, upper_clip,
+                                     upper_threshold)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
@@ -61,7 +61,7 @@ parameters instead of images.
 > scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
 """
 
-DESCRIPTION += get_array_operation_doc() + get_image_operation_doc()
+DESCRIPTION += get_array_operations_doc() + get_image_operations_doc()
 
 
 def _build_args_parser():

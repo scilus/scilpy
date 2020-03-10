@@ -5,19 +5,16 @@ import argparse
 import logging
 import os
 
-from dipy.io.utils import is_header_compatible
-import nibabel as nib
 import numpy as np
 
-from scilpy.image.operations import (is_float, absolute_value, around,
-                                     addition, ceil, convert,
-                                     difference, division, floor, intersection,
-                                     invert, lower_clip, lower_threshold, mean,
-                                     multiplication, normalize_max,
-                                     normalize_sum, std, subtraction,
-                                     union, upper_threshold, upper_clip,
-                                     get_array_operation_doc, 
-                                     get_image_operation_doc)
+from scilpy.image.operations import (absolute_value, addition, around, ceil,
+                                     convert, difference, division, floor,
+                                     get_array_operations_doc, intersection,
+                                     invert, is_float, lower_clip,
+                                     lower_threshold, mean, multiplication,
+                                     normalize_max, normalize_sum, std,
+                                     subtraction, union, upper_clip,
+                                     upper_threshold)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
@@ -55,7 +52,7 @@ parameters instead of matrices.
 > scil_connectivity_math.py multiplication mat.npy 10 mat mult_10.npy
 """
 
-ADDED_DOC = get_array_operation_doc().replace('images', 'matrices')
+ADDED_DOC = get_array_operations_doc().replace('images', 'matrices')
 ADDED_DOC = ADDED_DOC.replace('image', 'matrix')
 ADDED_DOC = ADDED_DOC.replace('IMG', 'MAT')
 DESCRIPTION += ADDED_DOC

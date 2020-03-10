@@ -9,7 +9,7 @@ from scipy.ndimage.morphology import (binary_closing, binary_dilation,
                                       binary_erosion, binary_opening)
 
 
-def get_array_operation_doc():
+def get_array_operations_doc():
     return """
     lower_threshold: IMG THRESHOLD
         All values below the threshold will be set to zero.
@@ -60,8 +60,10 @@ def get_array_operation_doc():
         Binary operation to interchange 0 and 1 in a binary mask.
     """
 
-def get_image_operation_doc():
-    return """dilation: IMG
+
+def get_image_operations_doc():
+    return """
+    dilation: IMG
         Binary morphological operation to spatially expand the values of an
         image to their neighbors.
     erosion: IMG
