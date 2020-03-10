@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Projects metrics onto the endpoints of streamlines. The idea is to visualize
+the cortical areas affected by metrics (assuming streamlines start/end in
+the cortex).
+"""
+
 import argparse
 import logging
 import os
@@ -15,16 +22,14 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.tractanalysis.compute_tract_counts_map import \
+from scilpy.tractanalysis.streamlines_metrics import \
      compute_tract_counts_map
 from scilpy.tractanalysis.uncompress import uncompress
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Projects metrics onto the endpoints of streamlines. The '
-                    'idea is to visualize the cortical areas affected by '
-                    'metrics (assuming streamlines start/end in the cortex).',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',
@@ -77,14 +82,16 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.metrics])
-    assert_outputs_dir_exists_and_empty(parser, args, args.output_folder)
+    assert_inputs_exist(parser, [args.in_bundle] + args.metrics)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       args.output_folder,
+                                       create_dir=True)
 
-    metrics = [nib.load(metric) for metric in args.metrics]
-    assert_same_resolution(*metrics)
+    assert_same_resolution(args.metrics)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
+    sft.to_corner()
 
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
@@ -92,6 +99,7 @@ def main():
 
     mins, maxs, indices = _process_streamlines(sft.streamlines)
 
+    metrics = [nib.load(metric) for metric in args.metrics]
     for metric in metrics:
         data = metric.get_data()
         endpoint_metric_map = np.zeros(metric.shape)
