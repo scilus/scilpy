@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""
+Utility operations provided for scil_image_math.py and scil_connectiity_math.py
+They basically act as wrappers around numpy to avoid installing MRtrix/FSL
+to apply simple operations on nibabel images or numpy arrays.
+"""
+
 from copy import copy
 import logging
 
@@ -9,73 +15,64 @@ from scipy.ndimage.morphology import (binary_closing, binary_dilation,
                                       binary_erosion, binary_opening)
 
 
+def get_array_ops():
+    """Get a dictionary of all functions relating to array operations"""
+    return {
+        'lower_threshold': lower_threshold,
+        'upper_threshold': upper_threshold,
+        'lower_clip': lower_clip,
+        'upper_clip': upper_clip,
+        'absolute_value': absolute_value,
+        'round': around,
+        'ceil': ceil,
+        'floor': floor,
+        'normalize_sum': normalize_sum,
+        'normalize_max': normalize_max,
+        'convert': convert,
+        'invert': invert,
+        'addition': addition,
+        'subtraction': subtraction,
+        'multiplication': multiplication,
+        'division': division,
+        'mean': mean,
+        'std': std,
+        'union': union,
+        'intersection': intersection,
+        'difference': difference,
+    }
+
+
+def get_image_ops():
+    """Get a dictionary of all functions relating to image operations"""
+    image_ops = get_array_ops()
+    image_ops.update({
+        'dilation': dilation,
+        'erosion': erosion,
+        'closing': closing,
+        'opening': opening,
+        'blur': gaussian_blur
+    })
+    return image_ops
+
+
+def get_operations_doc(ops: dict):
+    """From a dictionary mapping operation names to functions, fetch and join
+    all documentations, using the provided names."""
+    full_doc = []
+    for _, func in ops:
+        full_doc.append(func.__doc__)
+    return "".join(full_doc)
+
+
 def get_array_operations_doc():
-    return """
-    lower_threshold: IMG THRESHOLD
-        All values below the threshold will be set to zero.
-        All values above the threshold will be set to one.
-    upper_threshold: IMG THRESHOLD
-        All values below the threshold will be set to one.
-        All values above the threshold will be set to zero.
-    lower_clip: IMG THRESHOLD
-        All values below the threshold will be set to threshold.
-    upper_clip: IMG THRESHOLD
-        All values above the threshold will be set to threshold.
-    absolute_value: IMG
-        All negative values will become positive.
-    round: IMG
-        Round all decimal values to the closest integer.
-    ceil: IMG
-        Ceil all decimal values to the next integer.
-    floor: IMG
-        Floor all decimal values to the previous integer.
-    normalize_sum: IMG
-        Normalize the image so the sum of all values is one.
-    normalize_max: IMG
-        Normalize the image so the maximum value is one.
-    convert: IMG
-        Perform no operation, but simply change the data type.
-    addition: IMGs
-        Add multiple images together.
-    subtraction: IMG_1 IMG_2
-        Subtract two images together.
-    multiplication: IMGs
-        Multiply multiple images together (danger of underflow and overflow)
-    division: IMG_1 IMG_2
-        Divide two images together (danger of underflow and overflow)
-    mean: IMGs
-        If a single 4D image is provided, average along the last dimension.
-    std: IMGs
-        Compute the standard deviation average of multiple images.
-        If a single 4D image is provided, compute the STD along the last
-        dimension.
-    union: IMGs
-        Binary operation to keep voxels that are in any file.
-    intersection: IMGs
-        Binary operation to keep the voxels that are present in all files.
-    difference: IMG_1 IMG_2
-        Binary operation to keep voxels from the first file that are not in
-        the second file.
-    invert: IMG
-        Binary operation to interchange 0 and 1 in a binary mask.
-    """
+    """Fetch documentation from all array operations."""
+    return "".join([f.__doc__ for f in get_array_ops().values()])
 
 
 def get_image_operations_doc():
-    return """
-    dilation: IMG
-        Binary morphological operation to spatially expand the values of an
-        image to their neighbors.
-    erosion: IMG
-        Binary morphological operation to spatially shrink the values of an
-        image.
-    closing: IMG
-        Binary morphological operation, dilation followed by an erosion.
-    opening: IMG
-        Binary morphological operation, erosion followed by an dilation.
-    blur: IMG
-        Apply a gaussian blur to a single image.
-    """
+    """Fetch documentation from all image operations."""
+    return "".join([f.__doc__ for f in get_image_ops().values()])
+
 
 def is_float(value):
     try:
@@ -102,6 +99,11 @@ def find_array(input_list):
 
 
 def lower_threshold(input_list):
+    """
+    lower_threshold: IMG THRESHOLD
+        All values below the threshold will be set to zero.
+        All values above the threshold will be set to one.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -120,6 +122,11 @@ def lower_threshold(input_list):
 
 
 def upper_threshold(input_list):
+    """
+    upper_threshold: IMG THRESHOLD
+        All values below the threshold will be set to one.
+        All values above the threshold will be set to zero.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -138,6 +145,10 @@ def upper_threshold(input_list):
 
 
 def lower_clip(input_list):
+    """
+    lower_clip: IMG THRESHOLD
+        All values below the threshold will be set to threshold.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -152,6 +163,10 @@ def lower_clip(input_list):
 
 
 def upper_clip(input_list):
+    """
+    upper_clip: IMG THRESHOLD
+        All values above the threshold will be set to threshold.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -166,6 +181,10 @@ def upper_clip(input_list):
 
 
 def absolute_value(input_list):
+    """
+    absolute_value: IMG
+        All negative values will become positive.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -177,6 +196,10 @@ def absolute_value(input_list):
 
 
 def around(input_list):
+    """
+    round: IMG
+        Round all decimal values to the closest integer.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -188,6 +211,10 @@ def around(input_list):
 
 
 def ceil(input_list):
+    """
+    ceil: IMG
+        Ceil all decimal values to the next integer.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -199,6 +226,10 @@ def ceil(input_list):
 
 
 def floor(input_list):
+    """
+    floor: IMG
+        Floor all decimal values to the previous integer.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -210,6 +241,10 @@ def floor(input_list):
 
 
 def normalize_sum(input_list):
+    """
+    normalize_sum: IMG
+        Normalize the image so the sum of all values is one.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -221,6 +256,10 @@ def normalize_sum(input_list):
 
 
 def normalize_max(input_list):
+    """
+    normalize_max: IMG
+        Normalize the image so the maximum value is one.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -232,6 +271,10 @@ def normalize_max(input_list):
 
 
 def convert(input_list):
+    """
+    convert: IMG
+        Perform no operation, but simply change the data type.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -243,6 +286,10 @@ def convert(input_list):
 
 
 def addition(input_list):
+    """
+    addition: IMGs
+        Add multiple images together.
+    """
     if not len(input_list) > 1:
         logging.error('This operation requires at least two operands.')
         raise ValueError
@@ -257,6 +304,10 @@ def addition(input_list):
 
 
 def subtraction(input_list):
+    """
+    subtraction: IMG_1 IMG_2
+        Subtract two images together.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -267,6 +318,10 @@ def subtraction(input_list):
 
 
 def multiplication(input_list):
+    """
+    multiplication: IMGs
+        Multiply multiple images together (danger of underflow and overflow)
+    """
     if not len(input_list) > 1:
         logging.error('This operation requires at least two operands.')
         raise ValueError
@@ -281,6 +336,10 @@ def multiplication(input_list):
 
 
 def division(input_list):
+    """
+    division: IMG_1 IMG_2
+        Divide two images together (danger of underflow and overflow)
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -294,6 +353,10 @@ def division(input_list):
 
 
 def mean(input_list):
+    """
+    mean: IMGs
+        If a single 4D image is provided, average along the last dimension.
+    """
     if not len(input_list) > 0:
         logging.error('This operations required either one operand (4D) or'
                       'or multiple operands (3D/4D).')
@@ -319,6 +382,12 @@ def mean(input_list):
 
 
 def std(input_list):
+    """
+    std: IMGs
+        Compute the standard deviation average of multiple images.
+        If a single 4D image is provided, compute the STD along the last
+        dimension.
+    """
     if not len(input_list) > 0:
         logging.error('This operations required either one operand (4D) or'
                       'or multiple operands (3D/4D).')
@@ -344,6 +413,10 @@ def std(input_list):
 
 
 def union(input_list):
+    """
+    union: IMGs
+        Binary operation to keep voxels that are in any file.
+    """
     output_data = addition(input_list)
     output_data[output_data != 0] = 1
 
@@ -351,6 +424,10 @@ def union(input_list):
 
 
 def intersection(input_list):
+    """
+    intersection: IMGs
+        Binary operation to keep the voxels that are present in all files.
+    """
     output_data = multiplication(input_list)
     output_data[output_data != 0] = 1
 
@@ -358,6 +435,11 @@ def intersection(input_list):
 
 
 def difference(input_list):
+    """
+    difference: IMG_1 IMG_2
+        Binary operation to keep voxels from the first file that are not in
+        the second file.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -377,6 +459,10 @@ def difference(input_list):
 
 
 def invert(input_list):
+    """
+    invert: IMG
+        Binary operation to interchange 0 and 1 in a binary mask.
+    """
     if not len(input_list) == 1:
         logging.error('This operation only support one operand.')
         raise ValueError
@@ -393,6 +479,11 @@ def invert(input_list):
 
 
 def dilation(input_list):
+    """
+    dilation: IMG
+        Binary morphological operation to spatially expand the values of an
+        image to their neighbors.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -409,6 +500,11 @@ def dilation(input_list):
 
 
 def erosion(input_list):
+    """
+    erosion: IMG
+        Binary morphological operation to spatially shrink the values of an
+        image.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -425,6 +521,10 @@ def erosion(input_list):
 
 
 def closing(input_list):
+    """
+    closing: IMG
+        Binary morphological operation, dilation followed by an erosion.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -441,6 +541,10 @@ def closing(input_list):
 
 
 def opening(input_list):
+    """
+    opening: IMG
+        Binary morphological operation, erosion followed by an dilation.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError
@@ -457,6 +561,10 @@ def opening(input_list):
 
 
 def gaussian_blur(input_list):
+    """
+    blur: IMG
+        Apply a gaussian blur to a single image.
+    """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
         raise ValueError

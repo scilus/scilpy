@@ -7,41 +7,13 @@ import os
 
 import numpy as np
 
-from scilpy.image.operations import (absolute_value, addition, around, ceil,
-                                     convert, difference, division, floor,
-                                     get_array_operations_doc, intersection,
-                                     invert, is_float, lower_clip,
-                                     lower_threshold, mean, multiplication,
-                                     normalize_max, normalize_sum, std,
-                                     subtraction, union, upper_clip,
-                                     upper_threshold)
+from scilpy.image.operations import (get_array_ops, get_operations_doc,
+                                     is_float)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
 
-OPERATIONS = {
-    'lower_threshold': lower_threshold,
-    'upper_threshold': upper_threshold,
-    'lower_clip': lower_clip,
-    'upper_clip': upper_clip,
-    'absolute_value': absolute_value,
-    'round': around,
-    'ceil': ceil,
-    'floor': floor,
-    'normalize_sum': normalize_sum,
-    'normalize_max': normalize_max,
-    'convert': convert,
-    'invert': invert,
-    'addition': addition,
-    'subtraction': subtraction,
-    'multiplication': multiplication,
-    'division': division,
-    'mean': mean,
-    'std': std,
-    'union': union,
-    'intersection': intersection,
-    'difference': difference,
-}
+OPERATIONS = get_array_ops()
 
 DESCRIPTION = """
 Performs an operation on a list of matrices. The supported operations are 
@@ -52,7 +24,7 @@ parameters instead of matrices.
 > scil_connectivity_math.py multiplication mat.npy 10 mat mult_10.npy
 """
 
-ADDED_DOC = get_array_operations_doc().replace('images', 'matrices')
+ADDED_DOC = get_operations_doc(OPERATIONS).replace('images', 'matrices')
 ADDED_DOC = ADDED_DOC.replace('image', 'matrix')
 ADDED_DOC = ADDED_DOC.replace('IMG', 'MAT')
 DESCRIPTION += ADDED_DOC

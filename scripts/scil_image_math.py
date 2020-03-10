@@ -9,48 +9,13 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.operations import (absolute_value, addition, around, ceil,
-                                     closing, convert, difference, dilation,
-                                     division, erosion, floor, gaussian_blur,
-                                     get_array_operations_doc,
-                                     get_image_operations_doc, intersection,
-                                     invert, is_float, lower_clip,
-                                     lower_threshold, mean, multiplication,
-                                     normalize_max, normalize_sum, opening,
-                                     std, subtraction, union, upper_clip,
-                                     upper_threshold)
+from scilpy.image.operations import (get_image_ops, get_operations_doc,
+                                     is_float)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
 
-OPERATIONS = {
-    'lower_threshold': lower_threshold,
-    'upper_threshold': upper_threshold,
-    'lower_clip': lower_clip,
-    'upper_clip': upper_clip,
-    'absolute_value': absolute_value,
-    'round': around,
-    'ceil': ceil,
-    'floor': floor,
-    'normalize_sum': normalize_sum,
-    'normalize_max': normalize_max,
-    'convert': convert,
-    'invert': invert,
-    'addition': addition,
-    'subtraction': subtraction,
-    'multiplication': multiplication,
-    'division': division,
-    'mean': mean,
-    'std': std,
-    'union': union,
-    'intersection': intersection,
-    'difference': difference,
-    'dilation': dilation,
-    'erosion': erosion,
-    'closing': closing,
-    'opening': opening,
-    'blur': gaussian_blur
-}
+OPERATIONS = get_image_ops()
 
 DESCRIPTION = """
 Performs an operation on a list of images. The supported operations are 
@@ -61,7 +26,7 @@ parameters instead of images.
 > scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
 """
 
-DESCRIPTION += get_array_operations_doc() + get_image_operations_doc()
+DESCRIPTION += get_operations_doc(OPERATIONS)
 
 
 def _build_args_parser():
