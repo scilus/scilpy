@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
 from copy import copy
+import logging
 
 import numpy as np
-from scipy.ndimage.morphology import (binary_dilation, binary_erosion,
-                                      binary_opening, binary_closing)
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.morphology import (binary_closing, binary_dilation,
+                                      binary_erosion, binary_opening)
 
 
 def get_array_operation_doc():
