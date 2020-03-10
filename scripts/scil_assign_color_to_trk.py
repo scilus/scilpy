@@ -61,10 +61,10 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     sft.data_per_point["color"] = [np.tile([red, green, blue],
-                                   (len(i), 1)) for i in sft.streamlines]
+                                           (len(i), 1)) for i in sft.streamlines]
 
-    sft = StatefulTractogram(sft.streamlines, sft, Space.RASMM,
-                             data_per_point=sft.data_per_point)
+    sft = StatefulTractogram.from_sft(sft.streamlines, sft,
+                                      data_per_point=sft.data_per_point)
 
     save_tractogram(sft, args.out_tractogram)
 

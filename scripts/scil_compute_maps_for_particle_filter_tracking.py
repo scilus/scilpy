@@ -68,7 +68,7 @@ def main():
 
     assert_inputs_exist(parser, [args.wm, args.gm, args.csf])
     assert_outputs_exist(parser, args,
-                          [args.include, args.exclude, args.interface])
+                         [args.include, args.exclude, args.interface])
 
     wm_pve = nib.load(args.wm)
     logging.info('"{0}" loaded as WM PVE map.'.format(args.wm))
