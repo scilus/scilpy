@@ -139,6 +139,11 @@ def _build_args_parser():
         help='Random number generator seed.')
     add_overwrite_arg(out_g)
 
+    out_g.add_argument(
+        '--save_seeds', action='store_true',
+        help='If set, save the seeds used for the tracking in the '
+             'data_per_streamline property of the tractogram.')
+
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
 
@@ -218,7 +223,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_img.get_data().astype(np.double),
+        fodf_sh_img.get_fdata(dtype=np.double),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -231,13 +236,13 @@ def main():
 
     tissue_classifier = None
     if not args.act:
-        tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
-                                                 map_exclude_img.get_data(),
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(),
+                                                 map_exclude_img.get_fdata(),
                                                  step_size=args.step_size,
                                                  average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActStoppingCriterion(map_include_img.get_data(),
-                                                 map_exclude_img.get_data())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(),
+                                                 map_exclude_img.get_fdata())
 
     if args.npv:
         nb_seeds = args.npv
@@ -253,7 +258,7 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.seed_file)
     seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_data(),
+        seed_img.get_fdata(),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
@@ -275,18 +280,30 @@ def main():
         pft_front_tracking_dist=args.forward_tracking,
         particle_count=args.particles,
         return_all=args.keep_all,
-        random_seed=args.seed)
+        random_seed=args.seed,
+        save_seeds=args.save_seeds)
 
     scaled_min_length = args.min_length / voxel_size
     scaled_max_length = args.max_length / voxel_size
-    filtered_streamlines = (s for s in pft_streamlines
-                            if scaled_min_length <= length(s) <= scaled_max_length)
+
+    if args.save_seeds:
+        filtered_streamlines, seeds = \
+            zip(*((s, p) for s, p in pft_streamlines
+                  if scaled_min_length <= length(s) <= scaled_max_length))
+        data_per_streamlines = {'seeds': lambda: seeds}
+    else:
+        filtered_streamlines = \
+            (s for s in pft_streamlines
+             if scaled_min_length <= length(s) <= scaled_max_length)
+        data_per_streamlines = {}
+
     if args.compress:
         filtered_streamlines = (
             compress_streamlines(s, args.compress)
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,
+                                data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
     filetype = nib.streamlines.detect_format(args.output_file)
