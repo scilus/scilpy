@@ -61,7 +61,7 @@ def get_operations_doc(ops: dict):
     """From a dictionary mapping operation names to functions, fetch and join
     all documentations, using the provided names."""
     full_doc = []
-    for _, func in ops:
+    for func in ops.values():
         full_doc.append(func.__doc__)
     return "".join(full_doc)
 
