@@ -92,7 +92,7 @@ def main():
     ids_l = []
 
     if len(streamlines) > 1:
-        _, ids_c = remove_loops_and_sharp_turns(
+        ids_c = remove_loops_and_sharp_turns(
             streamlines, args.angle, args.qb, args.threshold)
         ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
     else:

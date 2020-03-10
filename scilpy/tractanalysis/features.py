@@ -34,8 +34,8 @@ def remove_loops_and_sharp_turns(streamlines,
     Returns
     -------
     A tuple containing
-        list of ndarray: the clean streamlines
         list of ndarray: the ids of clean streamlines
+        Only the ids are returned so proper filtering can be done afterwards
     """
 
     streamlines_clean = []
@@ -61,15 +61,12 @@ def remove_loops_and_sharp_turns(streamlines,
 
             for i in range(len(clusters.centroids)):
                 if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
-                    for indice in clusters[i].indices:
-                        ids.append(indice)
-                        streamlines_clean.append(streamlines[indice])
+                    ids.extend(clusters[i].indices)
         else:
             logging.debug("Impossible to use the use_qb option because " +
                           "not more than one streamline left from the\n" +
                           "input file.")
-
-    return streamlines_clean, ids
+    return ids
 
 
 def get_streamlines_bounding_box(streamlines):
