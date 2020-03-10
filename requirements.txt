@@ -14,8 +14,9 @@ pybids==0.9.1
 pyparsing==2.2.0
 python-dateutil==2.7.2
 pytz==2018.4
-scikit-learn==0.19.0
+scikit-learn==0.22.1
 scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
 coloredlogs==10.0
+nilearn==0.6.1
