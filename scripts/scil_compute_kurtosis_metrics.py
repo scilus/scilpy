@@ -190,7 +190,6 @@ def main():
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
     shells, _ = identify_shells(bvals, tol)
-    print(shells)
     if not len(shells) >= 3:
         parser.error('Data is not multi-shell. You need at least 2 non-zero' +
                      ' b-values')
