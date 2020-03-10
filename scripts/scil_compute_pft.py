@@ -141,8 +141,8 @@ def _build_args_parser():
 
     out_g.add_argument(
         '--save_seeds', action='store_true',
-        help='If set, save the seeds of the streamlines alongside the '
-             'streamlines themselves')
+        help='If set, save the seeds used for the tracking in the '
+             'data_per_streamline property of the tractogram.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
@@ -197,7 +197,6 @@ def main():
         parser.error('Total number of seeds must be > 0.')
 
     fodf_sh_img = nib.load(args.sh_file)
-    fodf_sh_img = nib.load(args.sh_file)
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
                        fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
         parser.error(
@@ -223,7 +222,7 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_img.get_data().astype(np.double),
+        fodf_sh_img.get_fdata(dtype=np.double),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
@@ -234,15 +233,14 @@ def main():
     map_exclude_img = nib.load(args.map_exclude_file)
     voxel_size = np.average(map_include_img.get_header()['pixdim'][1:4])
 
-    tissue_classifier = None
     if not args.act:
-        tissue_classifier = CmcStoppingCriterion(map_include_img.get_data(),
-                                                 map_exclude_img.get_data(),
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(),
+                                                 map_exclude_img.get_fdata(),
                                                  step_size=args.step_size,
                                                  average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActStoppingCriterion(map_include_img.get_data(),
-                                                 map_exclude_img.get_data())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(),
+                                                 map_exclude_img.get_fdata())
 
     if args.npv:
         nb_seeds = args.npv
@@ -258,7 +256,7 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.seed_file)
     seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_data(),
+        seed_img.get_fdata(),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,

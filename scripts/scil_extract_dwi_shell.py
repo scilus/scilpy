@@ -1,18 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import argparse
-import logging
-
-from dipy.io import read_bvals_bvecs
-import nibabel as nib
-import numpy as np
-
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import extract_dwi_shell
-
-DESCRIPTION = """
+"""
 Extracts the DWI volumes that are on specific b-value shells. Many shells
 can be extracted at once by specifying multiple b-values. The extracted
 volumes are in the same order as in the original file.
@@ -28,11 +17,22 @@ are loaded at a time for processing.
 
 """
 
+import argparse
+import logging
+
+from dipy.io import read_bvals_bvecs
+import nibabel as nib
+import numpy as np
+
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.utils.bvec_bval_tools import extract_dwi_shell
+
 
 def build_args_parser():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('dwi',
                         help='The DW image file to split.')
