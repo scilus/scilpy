@@ -54,7 +54,7 @@ def get_axis_flip_vector(flip_axes):
 
 
 def get_shift_vector(sft):
-    dims = sft.space_attribute[1]
+    dims = sft.space_attributes[1]
     shift_vector = -1.0 * (np.array(dims) / 2.0)
 
     return shift_vector
@@ -74,9 +74,9 @@ def flip_sft(sft, flip_axes):
         mod_streamline -= shift_vector
         flipped_streamlines.append(mod_streamline)
 
-    new_sft = StatefulTractogram(flipped_streamlines, sft, sft.space,
-                                 data_per_point=sft.data_per_point,
-                                 data_per_streamline=sft.data_per_streamline)
+    new_sft = StatefulTractogram.from_sft(flipped_streamlines, sft,
+                                          data_per_point=sft.data_per_point,
+                                          data_per_streamline=sft.data_per_streamline)
     return new_sft
 
 
