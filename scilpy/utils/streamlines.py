@@ -206,7 +206,8 @@ def filter_tractogram_data(tractogram, streamline_ids):
     Returns:
     --------
     new_tractogram: Tractogram or StatefulTractogram
-        Returns the same type as the input but only with
+        Returns a new tractogram with only the selected streamlines
+        and data
     """
 
     streamline_ids = np.asarray(streamline_ids, dtype=np.int)
