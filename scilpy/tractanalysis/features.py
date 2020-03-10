@@ -33,8 +33,7 @@ def remove_loops_and_sharp_turns(streamlines,
 
     Returns
     -------
-    A tuple containing
-        list of ndarray: the ids of clean streamlines
+    list: the ids of clean streamlines
         Only the ids are returned so proper filtering can be done afterwards
     """
 
@@ -47,12 +46,11 @@ def remove_loops_and_sharp_turns(streamlines,
 
     if use_qb:
         if len(streamlines_clean) > 1:
-            streamlines = streamlines_clean
             curvature = []
-            streamlines_clean = []
 
             rng = np.random.RandomState(qb_seed)
-            clusters = qbx_and_merge(streamlines, [40, 30, 20, qb_threshold],
+            clusters = qbx_and_merge(streamlines_clean,
+                                     [40, 30, 20, qb_threshold],
                                      rng=rng, verbose=False)
 
             for cc in clusters.centroids:
