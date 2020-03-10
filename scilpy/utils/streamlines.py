@@ -224,9 +224,8 @@ def filter_tractogram_data(tractogram, streamline_ids):
     # place instead of creating a new one, but tractograms cant be subsampled
     # if they have data
 
-    return StatefulTractogram(
+    return StatefulTractogram.from_sft(
         new_streamlines,
         tractogram,
-        tractogram.space,
         data_per_point=new_data_per_point,
         data_per_streamline=new_data_per_streamline)

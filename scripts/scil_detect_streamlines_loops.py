@@ -43,7 +43,7 @@ def _build_arg_parser():
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
                    help='Output tractogram without loops.')
-    p.add_argument('--remaining_tractogram',
+    p.add_argument('--looping_tractogram',
                    help='If set, saves detected looping streamlines.')
     p.add_argument('--qb', action='store_true',
                    help='If set, uses QuickBundles to detect\n' +
@@ -70,9 +70,9 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,
-                         optional=args.remaining_tractogram)
+                         optional=args.looping_tractogram)
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
-                                      args.remaining_tractogram])
+                                      args.looping_tractogram])
 
     if args.threshold <= 0:
         parser.error('Threshold "{}" '.format(args.threshold) +
@@ -109,9 +109,9 @@ def main():
 
     if len(ids_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
-    elif args.remaining_tractogram:
+    elif args.looping_tractogram:
         sft_l = filter_tractogram_data(tractogram, ids_l)
-        save_tractogram(sft_l, args.remaining_tractogram)
+        save_tractogram(sft_l, args.looping_tractogram)
 
 
 if __name__ == "__main__":
