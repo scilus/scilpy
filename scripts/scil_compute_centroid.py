@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute bundle centroid.
+"""
+
 import argparse
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import ResampleFeature
@@ -19,7 +23,7 @@ import numpy as np
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute bundle centroid',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',
@@ -62,7 +66,7 @@ def main():
     centroid_streamlines = get_centroid_streamline(sft.streamlines,
                                                    args.nb_points)
 
-    sft = StatefulTractogram(centroid_streamlines, sft, Space.RASMM)
+    sft = StatefulTractogram.from_sft(centroid_streamlines, sft)
 
     save_tractogram(sft, args.out_centroid)
 

@@ -30,9 +30,10 @@ from dipy.tracking.streamlinespeed import length
 import nibabel as nb
 import numpy as np
 
-from scilpy.io.streamlines import (load_trk_in_voxel_space,
+from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_from_voxel_space)
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.features import (remove_outliers,
@@ -191,6 +192,7 @@ def build_args_parser():
                         'subdirectories.\nIncludes loops, outliers and '
                         'qb_loops')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     p.add_argument('--verbose', '-v', dest='verbose',
@@ -232,11 +234,13 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    streamlines = load_trk_in_voxel_space(args.tracks, args.labels)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft.to_vox()
+    sft.to_corner()
     time2 = time.time()
 
     logging.info('    Number of streamlines to process: {}'.format(
-        len(streamlines)))
+        len(sft.streamlines)))
     logging.info('    Loading streamlines took %0.3f ms',
                  (time2 - time1) * 1000.0)
 
@@ -244,7 +248,7 @@ def main():
     logging.info('*** Computing streamlines intersection ***')
     time1 = time.time()
 
-    indices, points_to_idx = uncompress(streamlines, return_mapping=True)
+    indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
 
     time2 = time.time()
     logging.info('    Streamlines intersection took %0.3f ms',
@@ -291,7 +295,7 @@ def main():
 
             for connection in pair_info:
                 strl_idx = connection['strl_idx']
-                final_strl.append(compute_streamline_segment(streamlines[strl_idx],
+                final_strl.append(compute_streamline_segment(sft.streamlines[strl_idx],
                                                              indices[strl_idx],
                                                              connection['in_idx'],
                                                              connection['out_idx'],
