@@ -1,6 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Register bundle to a template for screenshots using a reference.
+The template can be any MNI152 (any resolution, cropped or not)
+If your in_anat has a skull, select a MNI152 template with a skull and
+vice-versa.
+
+If the bundle is already in MNI152 space, do not use --target_template.
+
+Axial, coronal and sagittal slices are captured.
+Sagittal can be capture from the left (default) or the right.
+"""
+
 import argparse
+import logging
 import os
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
@@ -15,27 +29,16 @@ from scipy.ndimage import map_coordinates
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
-DESCRIPTION = """
-    Register bundle to a template for screenshots using a reference.
-    The template can be any MNI152 (any resolution, cropped or not)
-    If your in_anat has a skull, select a MNI152 template with a skull and
-    vice-versa.
-
-    If the bundle is already in MNI152 space, do not use --target_template.
-
-    Axial, coronal and sagittal slices are captured.
-    Sagittal can be capture from the left (default) or the right.
-    """
-
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Path of the input bundle.')
@@ -49,23 +52,26 @@ def _build_args_parser():
     sub_color = p.add_mutually_exclusive_group()
     sub_color.add_argument('--local_coloring', action='store_true',
                            help='Color streamlines local segments orientation.')
-    sub_color.add_argument('--uniform_coloring', nargs=3, metavar=('R', 'G', 'B'),
-                           type=int,
+    sub_color.add_argument('--uniform_coloring', nargs=3,
+                           metavar=('R', 'G', 'B'), type=int,
                            help='Color streamlines with uniform coloring.')
     sub_color.add_argument('--reference_coloring',
                            metavar='COLORBAR',
-                           help='Color streamlines with reference coloring (0-255).')
+                           help='Color streamlines with reference coloring '
+                                '(0-255).')
 
     p.add_argument('--right', action='store_true',
                    help='Take screenshot from the right instead of the left \n'
                         'for the sagittal plane.')
     p.add_argument('--anat_opacity', type=float, default=0.3,
                    help='Set the opacity for the anatomy, use 0 for complete \n'
-                   'transparency, 1 for opaque.')
+                        'transparency, 1 for opaque.')
     p.add_argument('--output_suffix',
                    help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--output_dir', default='',
                    help='Put all images in a specific directory.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -78,20 +84,21 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
     # Load and prepare the data
     reference_img = nib.load(reference_filename)
-    reference_data = reference_img.get_data()
-    reference_affine = reference_img.get_affine()
+    reference_data = reference_img.get_fdata()
+    reference_affine = reference_img.affine
 
     if target_template_filename:
         target_template_img = nib.load(target_template_filename)
-        target_template_data = target_template_img.get_data()
+        target_template_data = target_template_img.get_fdata()
         target_template_affine = target_template_img.affine
 
         # Register the DWI data to the template
+        logging.debug('Starting registration...')
         transformed_reference, transformation = register_image(target_template_data,
                                                                target_template_affine,
                                                                reference_data,
                                                                reference_affine)
-
+        logging.debug('Transforming streamlines...')
         streamlines = transform_streamlines(streamlines,
                                             np.linalg.inv(transformation),
                                             in_place=True)
@@ -107,7 +114,7 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 def plot_glass_brain(args, sft, img, output_filenames):
     sft.to_vox()
     sft.to_corner()
-    _, dimensions, _, _ = sft.space_attribute
+    _, dimensions, _, _ = sft.space_attributes
     data = compute_tract_counts_map(sft.streamlines, dimensions)
     data[data > 100] = 100
     img = nib.Nifti1Image(data, img.affine)
@@ -131,6 +138,9 @@ def main():
     args = parser.parse_args()
     required = [args.in_bundle, args.in_anat]
     assert_inputs_exist(parser, required, args.target_template)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     output_filenames_3d = []
     output_filenames_glass = []
