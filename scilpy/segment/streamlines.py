@@ -10,29 +10,52 @@ from nibabel.affines import apply_affine
 import numpy as np
 
 
-def target_line_based(sft, target_mask):
+def streamlines_in_mask(sft, target_mask):
+    """
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    target_mask : numpy.ndarray
+        Binary mask in which the streamlines should pass.
+    Returns
+    -------
+    ids : list
+        Ids of the streamlines passing through the mask.
+    """
     sft.to_vox()
     sft.to_corner()
     # Copy-Paste from Dipy to get indices
-    # Should always be in vox/center space
     target_mask = np.array(target_mask, dtype=np.uint8, copy=True)
 
-    streamline_index = _streamlines_in_mask(list(sft.streamlines), target_mask,
-                                            np.eye(3), [-0.5, -0.5, -0.5])
+    streamlines_case = _streamlines_in_mask(list(sft.streamlines),
+                                                   target_mask, np.eye(3), 
+                                                   [-0.5, -0.5, -0.5])
 
-    target_indices = []
-    target_streamlines = []
-    for idx in np.where(streamline_index == [0, 1][True])[0]:
-        target_indices.append(idx)
-        target_streamlines.append(sft.streamlines[idx])
-
-    return target_streamlines, target_indices
+    return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
 
 def filter_grid_roi(sft, mask, filter_type, is_not):
+    """
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    target_mask : numpy.ndarray
+        Binary mask in which the streamlines should pass.
+    filter_type: str
+        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+    is_not: bool
+        Value to indicate if the ROI is an AND (false) or a NOT (true).
+    Returns
+    -------
+    ids : tuple
+        Filtered sft.
+        Ids of the streamlines passing through the mask.
+    """
     line_based_indices = []
     if filter_type == 'any':
-        _, line_based_indices = target_line_based(sft, mask)
+        line_based_indices = streamlines_in_mask(sft, mask)
     else:
         sft.to_vox()
         sft.to_corner()
@@ -79,6 +102,25 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
 def pre_filtering_for_geometrical_shape(sft, size,
                                         center, filter_type,
                                         is_in_vox):
+    """
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    size : numpy.ndarray (3)
+        Size in mm, x/y/z of the ROI.
+    center: numpy.ndarray (3)
+        Center x/y/z of the ROI.
+    filter_type: str
+        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+    is_in_vox: bool
+        Value to indicate if the ROI is in voxel space.
+    Returns
+    -------
+    ids : tuple
+        Filtered sft.
+        Ids of the streamlines passing through the mask.
+    """
     transfo, dim, _, _ = sft.space_attributes
     inv_transfo = np.linalg.inv(transfo)
 
@@ -109,6 +151,27 @@ def pre_filtering_for_geometrical_shape(sft, size,
 
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
                      filter_type, is_not, is_in_vox=False):
+    """
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    ellipsoid_radius : numpy.ndarray (3)
+        Size in mm, x/y/z of the ellipsoid.
+    ellipsoid_center: numpy.ndarray (3)
+        Center x/y/z of the ellipsoid.
+    filter_type: str
+        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+    is_not: bool
+        Value to indicate if the ROI is an AND (false) or a NOT (true).
+    is_in_vox: bool
+        Value to indicate if the ROI is in voxel space.
+    Returns
+    -------
+    ids : tuple
+        Filtered sft.
+        Ids of the streamlines passing through the mask.
+    """
     pre_filtered_sft, pre_filtered_indices = \
         pre_filtering_for_geometrical_shape(sft, ellipsoid_radius,
                                             ellipsoid_center, filter_type,
@@ -185,7 +248,27 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
 
 def filter_cuboid(sft, cuboid_radius, cuboid_center,
                   filter_type, is_not):
-
+    """
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    cuboid_radius : numpy.ndarray (3)
+        Size in mm, x/y/z of the cuboid.
+    cuboid_center: numpy.ndarray (3)
+        Center x/y/z of the cuboid.
+    filter_type: str
+        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+    is_not: bool
+        Value to indicate if the ROI is an AND (false) or a NOT (true).
+    is_in_vox: bool
+        Value to indicate if the ROI is in voxel space.
+    Returns
+    -------
+    ids : tuple
+        Filtered sft.
+        Ids of the streamlines passing through the mask.
+    """
     pre_filtered_sft, pre_filtered_indices = \
         pre_filtering_for_geometrical_shape(sft, cuboid_radius,
                                             cuboid_center, filter_type,
