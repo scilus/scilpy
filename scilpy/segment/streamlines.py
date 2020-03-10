@@ -35,7 +35,7 @@ def streamlines_in_mask(sft, target_mask):
     return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
 
-def filter_grid_roi(sft, mask, filter_type, is_not):
+def filter_grid_roi(sft, mask, filter_type, is_exclude):
     """
     Parameters
     ----------
@@ -45,7 +45,7 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
         Binary mask in which the streamlines should pass.
     filter_type: str
         One of the 3 following choices, 'any', 'either_end', 'both_ends'.
-    is_not: bool
+    is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     Returns
     -------
@@ -82,7 +82,7 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
                                             line_based_indices_2)
 
     # If the 'exclude' option is used, the selection is inverted
-    if is_not:
+    if is_exclude:
         line_based_indices = np.setdiff1d(range(len(sft)),
                                           np.unique(line_based_indices))
     line_based_indices = np.asarray(line_based_indices).astype(np.int32)
@@ -150,7 +150,7 @@ def pre_filtering_for_geometrical_shape(sft, size,
 
 
 def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
-                     filter_type, is_not, is_in_vox=False):
+                     filter_type, is_exclude, is_in_vox=False):
     """
     Parameters
     ----------
@@ -162,7 +162,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
         Center x/y/z of the ellipsoid.
     filter_type: str
         One of the 3 following choices, 'any', 'either_end', 'both_ends'.
-    is_not: bool
+    is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
@@ -229,7 +229,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
                                            line_based_indices_2)
 
     # If the 'exclude' option is used, the selection is inverted
-    if is_not:
+    if is_exclude:
         selected_by_ellipsoid = np.setdiff1d(range(len(sft)),
                                              np.unique(selected_by_ellipsoid))
     line_based_indices = np.asarray(selected_by_ellipsoid).astype(np.int32)
@@ -247,7 +247,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
 
 
 def filter_cuboid(sft, cuboid_radius, cuboid_center,
-                  filter_type, is_not):
+                  filter_type, is_exclude):
     """
     Parameters
     ----------
@@ -259,7 +259,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
         Center x/y/z of the cuboid.
     filter_type: str
         One of the 3 following choices, 'any', 'either_end', 'both_ends'.
-    is_not: bool
+    is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
@@ -322,7 +322,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
                                         line_based_indices_2)
 
     # If the 'exclude' option is used, the selection is inverted
-    if is_not:
+    if is_exclude:
         selected_by_cuboid = np.setdiff1d(range(len(sft)),
                                           np.unique(selected_by_cuboid))
     line_based_indices = np.asarray(selected_by_cuboid).astype(np.int32)
