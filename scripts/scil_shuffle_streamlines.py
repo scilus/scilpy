@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Shuffle the ordering of streamlines.
+"""
+
 import argparse
 import random
 
@@ -18,7 +22,7 @@ def _build_args_parser():
 
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Shuffle the ordering of streamlines.')
+        description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Input tractography file.')
