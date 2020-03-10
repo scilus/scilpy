@@ -11,7 +11,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold, identify_shells,
                                           DEFAULT_B0_THRESHOLD)
 
 
-def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
+def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
                             use_attenuation=False, force_b0_threshold=False,
                             mask=None, sphere=None):
@@ -24,7 +24,7 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=8,
     gradient_table : GradientTable
         Dipy object that contains all bvals and bvecs.
     sh_order : int, optional
-        SH order to fit, by default 8.
+        SH order to fit, by default 4.
     smooth : float, optional
         Lambda-regularization coefficient in the SH fit, by default 0.006.
     basis_type: str
