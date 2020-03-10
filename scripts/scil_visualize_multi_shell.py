@@ -89,20 +89,20 @@ def main():
     scheme_file = args.scheme_file
     basename, ext = split_name_with_nii(scheme_file)
 
-    if ext == 'caru':
+    if ext == '.caru':
         # Caruyer format, X Y Z shell_idx
         tmp = np.genfromtxt(scheme_file)
         points = tmp[:, :3]
         shell_idx = tmp[:, 3]
 
-    elif ext == 'txt':
+    elif ext == '.txt':
         # Philips format, X Y Z b
         tmp = np.genfromtxt(scheme_file)
         points = tmp[:, :3]
         bvals = tmp[:, 3]
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
-    elif ext == 'bvecs':
+    elif ext == '.bvecs':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         points = np.genfromtxt(scheme_file)
         if points.shape[0] == 3:
@@ -110,7 +110,7 @@ def main():
         bvals = np.genfromtxt(basename + '.bvals')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
-    elif ext == 'bvec':
+    elif ext == '.bvec':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
         points = np.genfromtxt(scheme_file)
@@ -119,7 +119,7 @@ def main():
         bvals = np.genfromtxt(basename + '.bval')
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
-    elif ext == 'bvals':
+    elif ext == '.bvals':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         bvals = np.genfromtxt(scheme_file)
         points = np.genfromtxt(basename + '.bvecs')
@@ -127,7 +127,7 @@ def main():
             points = points.T
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
-    elif ext == 'bval':
+    elif ext == '.bval':
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
         logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
         bvals = np.genfromtxt(scheme_file)
@@ -136,7 +136,7 @@ def main():
             points = points.T
         shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
 
-    elif ext == 'dir' or ext == 'dvs':
+    elif ext == '.dir' or ext == '.dvs':
         vect = []
         # Siemens format, X, Y, Z
         with open(scheme_file) as f:
@@ -157,7 +157,7 @@ def main():
         shell_idx = build_shell_idx_from_bval(fake_bmax * norms**2,
                                               shell_th=50)
 
-    elif ext == "b":
+    elif ext == ".b":
         # MRtrix format X, Y, Z, b
         tmp = np.genfromtxt(scheme_file, delimiter=',')
         points = tmp[:, :3]
