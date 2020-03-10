@@ -41,6 +41,7 @@ is the id of the label (ex. 35.nii.gz, 36.nii.gz, ...). If the --range option
 is not provided, all labels of the image are extracted.
 """
 
+
 LABELS_DESCRIPTION = """
 Split a label image into multiple images where the name of the output images
 is taken from a lookup table (ex: left-lateral-occipital.nii.gz,
@@ -54,10 +55,10 @@ scilpy/data/LUT/ directory.
 
 # Taken from http://stackoverflow.com/a/6512463
 def parseNumList(str_to_parse):
-    """ 
-    Take a range of numbers and split it into a list
-    of numbers into the specified range.
-    The range should be formatted as '1-3' or '3 4'.
+    """
+    Return a list of numbers from the range specified in the string.
+    String to parse should be formatted as '1-3' or '3 4'.
+    Example: parseNumList('2-5') == [2, 3, 4, 5]
     """
     m = re.match(r'(\d+)(?:-(\d+))?$', str_to_parse)
 
@@ -69,8 +70,8 @@ def parseNumList(str_to_parse):
     start = m.group(1)
     end = m.group(2) or start
 
-    start = int(start, 10)
-    end = int(end, 10)
+    start = int(start)
+    end = int(end)
 
     if end < start:
         raise argparse.ArgumentTypeError("Range elements incorrectly " +
@@ -109,11 +110,10 @@ def _build_args_parser(luts):
         '--scilpy_lut', choices=luts,
         help='Lookup table, in the file scilpy/data/LUT, '
              'used to name the output files.')
-    mutual_group.add_arguments(
+    mutual_group.add_argument(
         '--custom_lut',
         help='Path of the lookup table file, '
              'used to name the output files.')
-    
 
     add_overwrite_arg(p)
 
@@ -122,9 +122,9 @@ def _build_args_parser(luts):
 
 def main():
     # Get the valid LUT choices.
-    module_path = inspect.getfile(scilpy) # /home/USERNAME/git/scilpy/scilpy/__init__.py
+    module_path = inspect.getfile(scilpy)
     lut_dir = os.path.join(os.path.dirname(
-                                           os.path.dirname(module_path)) + "/data/LUT")
+                           os.path.dirname(module_path)) + "/data/LUT")
     luts = [os.path.splitext(f)[0] for f in os.listdir(lut_dir)]
 
     parser = _build_args_parser(luts)
@@ -140,7 +140,7 @@ def main():
                      'Will not process.\nConvert your image to integers ' +
                      'before calling.')
 
-    label_image_data = label_image.get_fdata()
+    label_image_data = label_image.get_fdata().astype(int)
 
     if args.mode == 'ids':
         if args.range:
@@ -158,7 +158,6 @@ def main():
             with open(args.custom_lut) as f:
                 label_dict = json.load(f)
             (label_indices, label_names) = zip(*label_dict.items())
-
 
     output_filenames = []
     for label, name in zip(label_indices, label_names):
