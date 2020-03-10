@@ -306,7 +306,7 @@ def addition(input_list):
 def subtraction(input_list):
     """
     subtraction: IMG_1 IMG_2
-        Subtract two images together.
+        Subtract two images together (IMG_1 - IMG_2).
     """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
