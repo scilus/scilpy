@@ -139,6 +139,9 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
+    # TractCount before filtering
+    tc_bf = len(sft.streamlines)
+
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
@@ -181,7 +184,7 @@ def main():
         # below the dimension, since this is a voxel space operation
         elif filter_type in ['x_plane', 'y_plane', 'z_plane']:
             filter_arg = int(filter_arg)
-            _, dim, _, _ = sft.space_attribute
+            _, dim, _, _ = sft.space_attributes
             mask = np.zeros(dim, dtype=np.int16)
             error_msg = None
             if filter_type == 'x_plane':
@@ -236,12 +239,9 @@ def main():
         data_per_streamline = sft.data_per_streamline[indexes]
         data_per_point = sft.data_per_point[indexes]
 
-        # TractCount before filtering
-        tc_bf = len(sft.streamlines)
-
-        sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-                                 data_per_streamline=data_per_streamline,
-                                 data_per_point=data_per_point)
+        sft = StatefulTractogram.from_sft(filtered_streamlines, sft,
+                                          data_per_streamline=data_per_streamline,
+                                          data_per_point=data_per_point)
 
     if not filtered_streamlines:
         if args.no_empty:
