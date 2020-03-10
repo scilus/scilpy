@@ -481,7 +481,7 @@ def invert(input_list):
 def dilation(input_list):
     """
     dilation: IMG
-        Binary morphological operation to spatially expand the values of an
+        Binary morphological operation to spatially extend the values of an
         image to their neighbors.
     """
     if not len(input_list) == 2:
@@ -502,8 +502,8 @@ def dilation(input_list):
 def erosion(input_list):
     """
     erosion: IMG
-        Binary morphological operation to spatially shrink the values of an
-        image.
+        Binary morphological operation to spatially shrink the volume contained
+        in a binary image.
     """
     if not len(input_list) == 2:
         logging.error('This operation only support two operands.')
