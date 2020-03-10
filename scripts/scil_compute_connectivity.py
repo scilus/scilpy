@@ -327,7 +327,6 @@ def _build_args_parser():
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
 
-    add_reference_arg(p)
     add_overwrite_arg(p)
     add_processes_args(p)
     add_reference_arg(p)
@@ -344,7 +343,7 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     time2 = time.time()
-    logging.info('    Loading %s streamlines took %0.2f ms',
+    logging.info('    Loading %s streamlines took %0.2f sec.',
                  len(sft), (time2 - time1))
 
     logging.info('*** Filtering streamlines ***')
@@ -357,7 +356,7 @@ def main():
     sft.to_corner()
     sft.remove_invalid_streamlines()
     time2 = time.time()
-    logging.info('    Discarded %s streamlines from filtering in %0.2f ms',
+    logging.info('    Discarded %s streamlines from filtering in %0.2f sec.',
                  original_len - len(sft), (time2 - time1))
     logging.info('    Number of streamlines to process: %s', len(sft))
 
@@ -368,7 +367,7 @@ def main():
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
 
     time2 = time.time()
-    logging.info('    Streamlines intersection took %0.2f ms',
+    logging.info('    Streamlines intersection took %0.2f sec.',
                  (time2 - time1))
 
     # Compute the connectivity mapping
@@ -377,7 +376,7 @@ def main():
     con_info = compute_connectivity(indices, img_labels.get_data(),
                                     extract_longest_segments_from_profile)
     time2 = time.time()
-    logging.info('    Connectivity computation took %0.2f ms',
+    logging.info('    Connectivity computation took %0.2f sec.',
                  (time2 - time1))
 
     # Prepare directories and information needed to save.

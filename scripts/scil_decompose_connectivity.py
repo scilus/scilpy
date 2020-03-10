@@ -25,7 +25,7 @@ import os
 import time
 
 import coloredlogs
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamlinespeed import length
 import nibabel as nb
@@ -99,7 +99,7 @@ def _save_if_needed(streamlines, args,
                                 '{}_{}.trk'.format(in_label,
                                                    out_label))
         sft = StatefulTractogram(streamlines, args.in_tractogram,
-                                 Space.VOX, shifted_origin=True)
+                                 Space.VOX, origin=Origin.TRACKVIS)
         save_tractogram(sft, out_name)
 
 
@@ -192,7 +192,8 @@ def main():
     if os.path.abspath(args.output_dir) == os.getcwd():
         parser.error('Do not use the current path as output directory.')
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output_dir)
+    assert_output_dirs_exist_and_empty(parser, args, args.output_dir,
+                                       create_dir=True)
 
     log_level = logging.WARNING
     if args.verbose:
