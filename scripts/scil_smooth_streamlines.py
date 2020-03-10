@@ -2,22 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-    This script will smooth the streamlines, usually to remove the
-    'wiggles' in probabilistic tracking, two choices of methods are available:
-        - Gaussian will use the surrounding coordinates for smoothing.
-        Streamlines are resampled to 1mm step-size and the smoothing is
-        performed on the coordinate array. The sigma will be indicative of the
-        number of points surrounding the center points to be used for blurring.
+This script will smooth the streamlines, usually to remove the
+'wiggles' in probabilistic tracking, two choices of methods are available:
+- Gaussian will use the surrounding coordinates for smoothing.
+Streamlines are resampled to 1mm step-size and the smoothing is
+performed on the coordinate array. The sigma will be indicative of the
+number of points surrounding the center points to be used for blurring.
 
-        - Spline will fit a spline curve to every streamline using a sigma and
-        the number of control points. The sigma represents the allowed distance
-        from the control points. The control points for the spline fit will be
-        the resampled streamline.
+- Spline will fit a spline curve to every streamline using a sigma and
+the number of control points. The sigma represents the allowed distance
+from the control points. The control points for the spline fit will be
+the resampled streamline.
 
-        WARNING: Too low of a sigma (e.g: 1) with a lot of control
-        points (e.g: 15) will create crazy streamlines that could end up of the
-        bounding box.
-        This script enforces endpoints to remain the same.
+This script enforces endpoints to remain the same.
+
+WARNING: Too low of a sigma (e.g: 1) with a lot of control
+points (e.g: 15) will create crazy streamlines that could end up of the
+bounding box
 """
 
 import argparse
@@ -52,9 +53,9 @@ def _build_args_parser():
                             ' streamlines.\nSigma value around 5.')
     sub_p.add_argument('--spline', nargs=2, metavar=('SIGMA', 'NB_CTRL_POINT'),
                        type=int,
-                       help='Sigma for smoothing. Model each streamline as a'
+                       help='Sigma for smoothing. Model each streamline as a '
                             'spline.\nSigma value around 5 and control point '
-                            ' around 10.')
+                            'around 10.')
 
     p.add_argument('-e', dest='error_rate', type=float, default=0.1,
                    help='Maximum compression distance in mm after smoothing. '
