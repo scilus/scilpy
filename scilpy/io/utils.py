@@ -227,7 +227,7 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
                     'overwritten. Use -f option if you want to continue.'
                     .format(cur_dir))
             else:
-                for the_file in cur_dir:
+                for the_file in os.listdir(cur_dir):
                     file_path = os.path.join(cur_dir, the_file)
                     try:
                         if os.path.isfile(file_path):
