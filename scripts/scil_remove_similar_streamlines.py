@@ -28,7 +28,7 @@ import multiprocessing
 import random
 from time import time
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import ArraySequence
 
@@ -60,7 +60,7 @@ def multiprocess_subsampling(args):
                               min_cluster_size, average_streamlines)
 
 
-def _buildArgsParser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -98,7 +98,7 @@ def _buildArgsParser():
 
 
 def main():
-    parser = _buildArgsParser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundle)
