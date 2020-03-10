@@ -70,7 +70,7 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     Return
     ------
     subset_sft: StatefulTractogram
-        List of a subset streamline.
+        The filtered streamlines as a sft.
     """
 
     rng = np.random.RandomState(rng_seed)
