@@ -208,7 +208,7 @@ def main():
         parser.error("Label image should contain integers for labels.")
 
     # Voxel size must be isotropic, for speed/performance considerations
-    vox_sizes = img_labels.header.get_zoosec.()
+    vox_sizes = img_labels.header.get_zooms()
     if not np.mean(vox_sizes) == vox_sizes[0]:
         parser.error('Labels must be isotropic')
 
