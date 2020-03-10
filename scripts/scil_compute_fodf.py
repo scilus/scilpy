@@ -101,7 +101,7 @@ def main():
 
     full_frf = np.loadtxt(args.frf_file)
     vol = nib.load(args.input)
-    data = vol.get_data()
+    data = vol.get_fdata()
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if args.mask is None:

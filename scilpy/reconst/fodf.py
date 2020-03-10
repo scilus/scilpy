@@ -44,6 +44,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
         SH order used for the CSD. (Default: 8)
     nbr_processes: int, optional
         Number of sub processes to start. Default = none, i.e use the cpu count.
+        If 0, use all processes.
     mask: ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -93,10 +94,12 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     # Checking if we will use parallel processing
     parallel = True
     if nbr_processes is not None:
-        if nbr_processes <= 0:
-            nbr_processes = None        # C'est ok ça?? parallel reste true si nbr_processes <0? Je laisse comme c'était.
+        if nbr_processes == 0:  # Will use all processed
+            nbr_processes = None
         elif nbr_processes == 1:
             parallel = False
+        elif nbr_processes < 0:
+            raise ValueError('nbr_processes should be positive.')
 
     # Checking sh basis
     check_sh_basis_choice(sh_basis)
