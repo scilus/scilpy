@@ -49,13 +49,13 @@ def _get_output_paths(args):
     root_dir = args.output_dir
     paths = {'raw': os.path.join(root_dir, 'raw_connections/'),
              'final': os.path.join(root_dir, 'final_connections/'),
-             'removed_length': os.path.join(root_dir, 'removed_length/'),
+             'invalid_length': os.path.join(root_dir, 'invalid_length/'),
+             'valid_length': os.path.join(root_dir, 'valid_length/'),
              'loops': os.path.join(root_dir, 'loops/'),
              'outliers': os.path.join(root_dir, 'outliers/'),
-             'qb_loops': os.path.join(root_dir, 'qb_loops/'),
-             'pruned': os.path.join(root_dir, 'pruned/'),
+             'qb_curv': os.path.join(root_dir, 'qb_curv/'),
              'no_loops': os.path.join(root_dir, 'no_loops/'),
-             'no_outliers': os.path.join(root_dir, 'no_outliers/')}
+             'inliers': os.path.join(root_dir, 'inliers/')}
 
     return paths
 
@@ -79,13 +79,13 @@ def _create_required_output_dirs(args):
     if args.save_discarded:
         os.mkdir(out_paths['loops'])
         os.mkdir(out_paths['outliers'])
-        os.mkdir(out_paths['qb_loops'])
-        os.mkdir(out_paths['removed_length'])
+        os.mkdir(out_paths['qb_curv'])
+        os.mkdir(out_paths['invalid_length'])
 
     if args.save_intermediate:
-        os.mkdir(out_paths['pruned'])
         os.mkdir(out_paths['no_loops'])
-        os.mkdir(out_paths['no_outliers'])
+        os.mkdir(out_paths['inliers'])
+        os.mkdir(out_paths['valid_length'])
 
 
 def _save_if_needed(streamlines, args,
@@ -208,7 +208,7 @@ def main():
         parser.error("Label image should contain integers for labels.")
 
     # Voxel size must be isotropic, for speed/performance considerations
-    vox_sizes = img_labels.header.get_zooms()
+    vox_sizes = img_labels.header.get_zoosec.()
     if not np.mean(vox_sizes) == vox_sizes[0]:
         parser.error('Labels must be isotropic')
 
@@ -216,7 +216,7 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     time2 = time.time()
-    logging.info('    Loading %s streamlines took %0.2f ms',
+    logging.info('    Loading %s streamlines took %0.2f sec.',
                  len(sft), (time2 - time1))
 
     logging.info('*** Filtering streamlines ***')
@@ -230,7 +230,7 @@ def main():
     sft.to_corner()
     sft.remove_invalid_streamlines()
     time2 = time.time()
-    logging.info('    Discarded %s streamlines from filtering in %0.2f ms',
+    logging.info('    Discarded %s streamlines from filtering in %0.2f sec.',
                  original_len - len(sft), (time2 - time1))
     logging.info('    Number of streamlines to process: %s', len(sft))
 
@@ -241,7 +241,7 @@ def main():
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
 
     time2 = time.time()
-    logging.info('    Streamlines intersection took %0.2f ms',
+    logging.info('    Streamlines intersection took %0.2f sec.',
                  (time2 - time1))
 
     # Compute the connectivity mapping
@@ -251,7 +251,7 @@ def main():
                                     img_labels.get_data(), real_labels,
                                     extract_longest_segments_from_profile)
     time2 = time.time()
-    logging.info('    Connectivity computation took %0.2f ms',
+    logging.info('    Connectivity computation took %0.2f sec.',
                  (time2 - time1))
 
     # Prepare directories and information needed to save.
@@ -359,7 +359,7 @@ def main():
     logging.basicConfig(level=log_level)
     coloredlogs.install(level=log_level)
     time2 = time.time()
-    logging.info('    Connections post-processing and saving took %0.2f ms',
+    logging.info('    Connections post-processing and saving took %0.2f sec.',
                  (time2 - time1))
 
 
