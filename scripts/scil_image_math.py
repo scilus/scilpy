@@ -101,14 +101,14 @@ def main():
     for input_arg in args.inputs:
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
-            parser.error('Input do not have a compatible header')
+            parser.error('Inputs do not have a compatible header')
         data = load_data(input_arg)
 
         if isinstance(data, np.ndarray) and \
             data.dtype != ref_img.get_data_dtype() and \
                 not args.data_type:
-            parser.error('Input do not have a compatible data type.'
-                         'Use --data_type to specified output datatype.')
+            parser.error('Inputs do not have a compatible data type.'
+                         'Use --data_type to specify output datatype.')
         if args.operation in binary_op and isinstance(data, np.ndarray):
             unique = np.unique(data)
             if not len(unique) <= 2:
@@ -117,7 +117,7 @@ def main():
 
             if len(unique) == 2 and not (unique == [0, 1]).all():
                 logging.warning('Input data for binary operation are not '
-                                'binary array, will be converted. '
+                                'binary arrays, will be converted. '
                                 'Non-zeros will be set to ones.')
                 data[data != 0] = 1
 
