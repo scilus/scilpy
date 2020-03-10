@@ -53,7 +53,7 @@ def _build_arg_parser():
                    help='Seeding mask (isotropic resolution, nifti).')
     p.add_argument('mask_file',
                    help='Seeding mask(isotropic resolution, nifti).\n' +
-                   'Tracking will stop outside this mask')
+                   'Tracking will stop outside this mask.')
     p.add_argument('output_file',
                    help='Streamline output file (must be trk or tck).')
 
@@ -92,7 +92,7 @@ def _build_arg_parser():
     p.add_argument(
         '--sphere', choices=sorted(SPHERE_FILES.keys()),
         default='symmetric724',
-        help='Set of directions to be used for tracking')
+        help='Set of directions to be used for tracking.')
 
     out_g = p.add_argument_group('Output options')
     out_g.add_argument(
@@ -109,7 +109,7 @@ def _build_arg_parser():
     out_g.add_argument(
         '--save_seeds', action='store_true',
         help='If set, save the seeds used for the tracking in the '
-             'data_per_streamline property of the tractogram')
+             'data_per_streamline property of the tractogram.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)

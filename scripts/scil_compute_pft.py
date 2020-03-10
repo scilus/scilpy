@@ -142,7 +142,7 @@ def _build_args_parser():
     out_g.add_argument(
         '--save_seeds', action='store_true',
         help='If set, save the seeds used for the tracking in the '
-             'data_per_streamline property of the tractogram')
+             'data_per_streamline property of the tractogram.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
