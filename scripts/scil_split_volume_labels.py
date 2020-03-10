@@ -4,6 +4,7 @@
 from __future__ import division
 
 import argparse
+import inspect
 import json
 import os
 import re
@@ -11,8 +12,9 @@ import re
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
-                             assert_inputs_exist)
+import scilpy
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 DESCRIPTION = """
 Split a label image into multiple individual images where each image
@@ -52,12 +54,17 @@ scilpy/data/LUT/ directory.
 
 # Taken from http://stackoverflow.com/a/6512463
 def parseNumList(str_to_parse):
+    """ 
+    Take a range of numbers and split it into a list
+    of numbers into the specified range.
+    The range should be formatted as '1-3' or '3 4'.
+    """
     m = re.match(r'(\d+)(?:-(\d+))?$', str_to_parse)
 
     if not m:
         raise argparse.ArgumentTypeError("'" + str_to_parse + "' is not a " +
                                          "range of numbers. Expected forms " +
-                                         "like '0-5' or '2'.")
+                                         "like '1-3' or '3 4'.")
 
     start = m.group(1)
     end = m.group(2) or start
@@ -90,17 +97,23 @@ def _build_args_parser(luts):
 
     ids_subparser = mode_subparsers.add_parser(
         'ids', description=IDS_DESCRIPTION,
-        help='Names files using their label id.')
+        help='Names the files using their label id.')
     ids_subparser.add_argument('-r', '--range', type=parseNumList, nargs='*',
                                help='Specifies a subset of labels to split, '
                                     'formatted as 1-3 or 3 4.')
 
     labels_subparser = mode_subparsers.add_parser(
         'labels', help='Names the files using a lookup table.')
-    labels_subparser.add_argument(
-        'lut', choices=luts,
-        help='Lookup table, in the file ../data/LUT, '
+    mutual_group = labels_subparser.add_mutually_exclusive_group(required=True)
+    mutual_group.add_argument(
+        '--scilpy_lut', choices=luts,
+        help='Lookup table, in the file scilpy/data/LUT, '
              'used to name the output files.')
+    mutual_group.add_arguments(
+        '--custom_lut',
+        help='Path of the lookup table file, '
+             'used to name the output files.')
+    
 
     add_overwrite_arg(p)
 
@@ -109,10 +122,10 @@ def _build_args_parser(luts):
 
 def main():
     # Get the valid LUT choices.
-    path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        '../data/LUT')
-    luts = [os.path.splitext(f)[0] for f in os.listdir(path)]
+    module_path = inspect.getfile(scilpy) # /home/USERNAME/git/scilpy/scilpy/__init__.py
+    lut_dir = os.path.join(os.path.dirname(
+                                           os.path.dirname(module_path)) + "/data/LUT")
+    luts = [os.path.splitext(f)[0] for f in os.listdir(lut_dir)]
 
     parser = _build_args_parser(luts)
     args = parser.parse_args()
@@ -127,7 +140,7 @@ def main():
                      'Will not process.\nConvert your image to integers ' +
                      'before calling.')
 
-    label_image_data = label_image.get_data()
+    label_image_data = label_image.get_fdata()
 
     if args.mode == 'ids':
         if args.range:
@@ -137,9 +150,15 @@ def main():
         label_names = [str(i) for i in label_indices]
 
     else:
-        with open(os.path.join(path, args.lut + '.json')) as f:
-            label_dict = json.load(f)
-        (label_indices, label_names) = zip(*label_dict.items())
+        if args.scilpy_lut is not None:
+            with open(os.path.join(lut_dir, args.scilpy_lut + '.json')) as f:
+                label_dict = json.load(f)
+            (label_indices, label_names) = zip(*label_dict.items())
+        else:
+            with open(args.custom_lut) as f:
+                label_dict = json.load(f)
+            (label_indices, label_names) = zip(*label_dict.items())
+
 
     output_filenames = []
     for label, name in zip(label_indices, label_names):
