@@ -7,11 +7,11 @@ import os
 
 import numpy as np
 
-from scilpy.image.operations import (get_array_ops, get_operations_doc,
-                                     is_float)
+from scilpy.image.operations import (get_array_ops, get_operations_doc)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
+from scilpy.utils.util import is_float
 
 OPERATIONS = get_array_ops()
 

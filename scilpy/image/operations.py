@@ -14,6 +14,8 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.morphology import (binary_closing, binary_dilation,
                                       binary_erosion, binary_opening)
 
+from scilpy.utils.util import is_float
+
 
 def get_array_ops():
     """Get a dictionary of all functions relating to array operations"""
@@ -72,14 +74,6 @@ def get_array_operations_doc():
 def get_image_operations_doc():
     """Fetch documentation from all image operations."""
     return "".join([f.__doc__ for f in get_image_ops().values()])
-
-
-def is_float(value):
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
 
 
 def find_array(input_list):
