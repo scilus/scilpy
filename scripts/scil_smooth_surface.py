@@ -6,11 +6,13 @@ Script to smooth surface from a Laplacian blur.
 """
 
 import argparse
+import logging
 
 import numpy as np
 from trimeshpy.io import load_mesh_from_file
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -39,9 +41,10 @@ def _build_args_parser():
                    help='Number of steps for laplacian smooth [%(default)s].')
 
     p.add_argument('-s', '--step_size', type=float, default=5.0,
-                   help='Laplacian smooth step size [%(default)s]')
+                   help='Laplacian smooth step size [%(default)s].')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
     return p
 
 
@@ -58,6 +61,9 @@ def main():
 
     if args.step_size <= 0.0:
         parser.error("Step size should be strictly positive")
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     # Step size (zero for masked vertices)
     if args.vts_mask:
