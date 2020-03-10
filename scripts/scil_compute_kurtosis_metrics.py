@@ -79,18 +79,18 @@ def _build_args_parser():
                    help='Path to a binary mask.' +
                    '\nOnly data inside the mask will be used '
                    'for computations and reconstruction. ' +
-                   '\n(Default: None)')
+                   '\n[Default: None]')
 
     p.add_argument('--tolerance', '-t',
                    metavar='INT', type=int, default=20,
                    help='The tolerated distance between the b-values to '
                    'extract\nand the actual b-values [Default: %(default)s].')
     p.add_argument('--min_k', type=float, default=0.0,
-                   help='Minium kurtosis value in the output maps ' +
+                   help='Minimum kurtosis value in the output maps ' +
                    '\n(ak, mk, rk). In theory, -3/7 is the min kurtosis ' +
-                   '\n limit for regions that consist of water confined ' +
+                   '\nlimit for regions that consist of water confined ' +
                    '\nto spherical pores (see DIPY example and ' +
-                   '\n documentation) [Default: %(default)s].')
+                   '\ndocumentation) [Default: %(default)s].')
     p.add_argument('--max_k', type=float, default=3.0,
                    help='Maximum kurtosis value in the output maps ' +
                    '\n(ak, mk, rk). In theory, 10 is the max kurtosis' +
