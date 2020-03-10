@@ -21,7 +21,7 @@ listed below.
 
 Some operations such as multiplication or addition accept float value as
 parameters instead of matrices.
-> scil_connectivity_math.py multiplication mat.npy 10 mat mult_10.npy
+> scil_connectivity_math.py multiplication mat.npy 10 mult_10.npy
 """
 
 ADDED_DOC = get_operations_doc(OPERATIONS).replace('images', 'matrices')
@@ -95,7 +95,7 @@ def main():
     binary_op = ['union', 'intersection', 'difference', 'invert']
 
     if args.operation not in OPERATIONS.keys():
-        parser.error('Operation {} not implement'.format(args.operation))
+        parser.error('Operation {} not implemented'.format(args.operation))
 
     # Load all input masks.
     input_data = []
