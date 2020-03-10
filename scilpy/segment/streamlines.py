@@ -29,8 +29,8 @@ def streamlines_in_mask(sft, target_mask):
     target_mask = np.array(target_mask, dtype=np.uint8, copy=True)
 
     streamlines_case = _streamlines_in_mask(list(sft.streamlines),
-                                                   target_mask, np.eye(3), 
-                                                   [-0.5, -0.5, -0.5])
+                                            target_mask, np.eye(3),
+                                            [-0.5, -0.5, -0.5])
 
     return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
@@ -60,7 +60,7 @@ def filter_grid_roi(sft, mask, filter_type, is_not):
         sft.to_vox()
         sft.to_corner()
         streamline_vox = sft.streamlines
-        # For endpoint filtering, we need to keep 2 informations
+        # For endpoint filtering, we need to keep 2 separately
         # Could be faster for either end, but the code look cleaner like this
         line_based_indices_1 = []
         line_based_indices_2 = []
