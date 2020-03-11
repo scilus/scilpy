@@ -6,13 +6,13 @@ Script to display a connectivity matrix and adjust the desired visualization.
 Made to work with scil_decompose_connectivity.py and
 scil_visualize_connectivity.py.
 
-This scripts can either display the axis labels as:
+This script can either display the axis labels as:
 - Coordinates (0..N)
 - Labels (using --labels_list)
 - Names (using --labels_list and --lookup_table)
 
-If the matrix was made from a bigger matrix using scil_reorder_connectivity.py
-provide the json and specified the key (using --reorder_json)
+If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
+provide the json and specify the key (using --reorder_json)
 """
 
 import argparse
@@ -33,7 +33,7 @@ def _build_arg_parser():
                                             'encoding scheme matrix.')
 
     p.add_argument('in_matrix',
-                   help='Connectivity matrix in numpy format.')
+                   help='Connectivity matrix in numpy (.npy) format.')
     p.add_argument('out_png',
                    help='Output filename for the figure.')
 

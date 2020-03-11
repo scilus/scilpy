@@ -7,10 +7,10 @@ Re-order a connectivity matrix using a json file in a format such as:
 The key is to identify the sub-network, the first list is for the
 column (x) and the second is for the row (y).
 
-The values refers to the coordinates in the matrix, but if the --labels_list
-parameter is used, the values will refers to the label which will be converted
-to the appropriate coordinates. This file must be the same as the one provided
-to the scil_decompose_connectivity.py
+The values refers to the coordinates (starting at 0) in the matrix, but if the
+--labels_list parameter is used, the values will refers to the label which will
+be converted to the appropriate coordinates. This file must be the same as the
+one provided to the scil_decompose_connectivity.py
 
 To subsequently use scil_visualize_connectivity.py with a lookup table, you
 must use a label-based reording json and use --labels_list.
@@ -30,7 +30,7 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_matrix',
-                   help='Connectivity matrix in numpy format.')
+                   help='Connectivity matrix in numpy (.npy) format.')
     p.add_argument('in_json',
                    help='Json file with the sub-network as keys and x/y '
                         'lists as value.')
@@ -75,10 +75,18 @@ def main():
             for j in config[key][1]:
                 indices_2.append(labels_list.index(j))
         else:
+            if key not in config:
+                raise ValueError('{} not in config, maybe you need a labels '
+                                 'list?'.format(key))
             indices_1 = config[key][0]
             indices_2 = config[key][1]
 
         matrix = np.load(args.in_matrix)
+        if (np.array(indices_1) > matrix.shape[0]).any() \
+                or (indices_2 > np.array(matrix.shape[1])).any():
+            raise ValueError(
+                'Indices from config higher than matrix size, maybe you need a '
+                'labels list?'.format(key))
         tmp_matrix = matrix[tuple(indices_1), :]
         tmp_matrix = tmp_matrix[:, tuple(indices_2)]
         np.save(out_filenames[i], tmp_matrix)
