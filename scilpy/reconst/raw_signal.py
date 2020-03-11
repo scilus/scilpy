@@ -2,13 +2,13 @@
 
 import logging
 
+import numpy as np
 from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sf_to_sh
-import numpy as np
 
-from scilpy.utils.bvec_bval_tools import (DEFAULT_B0_THRESHOLD,
-                                          check_b0_threshold, identify_shells,
-                                          is_normalized_bvecs, normalize_bvecs)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold, identify_shells,
+                                          is_normalized_bvecs, normalize_bvecs,
+                                          DEFAULT_B0_THRESHOLD)
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
