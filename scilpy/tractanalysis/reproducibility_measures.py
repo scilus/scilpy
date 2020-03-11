@@ -3,14 +3,12 @@ import copy
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
-from dipy.tracking.streamline import length, set_number_of_points
+from dipy.tracking.streamline import set_number_of_points, length
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
-
-from scilpy.utils.streamlines import (intersection,
-                                      perform_streamlines_operation,
-                                      subtraction, union)
+from scilpy.utils.streamlines import (perform_streamlines_operation,
+                                      subtraction, intersection, union)
 
 
 def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
