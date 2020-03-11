@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Vizualisation for sampling schemes.
+Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
+and .b (MRtrix).
+"""
+
 import argparse
 import logging
 import numpy as np
@@ -15,20 +21,13 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         plot_proj_shell)
 
 
-DESCRIPTION = """
-Vizualisation for sampling schemes.
-Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
-and .b (MRtrix).
-"""
-
-
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument(
-        'scheme_file', action='store', metavar='scheme_file',
+        'scheme_file', metavar='scheme_file',
         help='Sampling scheme filename. (only accepts .txt or .caru or '
              '.bvecs and .bvals or .b or .dir or .dvs)')
 
@@ -87,7 +86,8 @@ def main():
     # In no way robust, assume the input is from generate_sampling_scheme.py
     # For bvec(s)/bval(s)/FSL format, uses bad assumption for Transpose
     scheme_file = args.scheme_file
-    basename, ext = split_name_with_nii(scheme_file)
+    ext = scheme_file.split('.')[-1]
+    basename = scheme_file.replace(".{}".format(ext), "")
 
     if ext == 'caru':
         # Caruyer format, X Y Z shell_idx
@@ -180,7 +180,7 @@ def main():
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
     if each:
-        plot_each_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
+        plot_each_shell(ms, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
 

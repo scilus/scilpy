@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Use multiple bundles to perform a voxel-wise vote (occurence across input).
+If streamlines originate from the same tractogram, streamline-wise vote
+is available.
+Input tractograms have to have identical header (register).
+"""
+
 
 import argparse
 
@@ -20,18 +27,11 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
-DESCRIPTION = """
-Use multiple bundles to perform a voxel-wise vote (occurence across input).
-If streamlines originate from the same tractogram, streamline-wise vote
-is available.
-Input tractograms have to have identical header (register).
-"""
-
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename.')
