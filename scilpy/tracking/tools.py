@@ -99,44 +99,30 @@ def get_subset_streamlines(streamlines,
     return subset_streamlines, subset_data_per_point, subset_data_per_streamline
 
 
-def resample_streamlines(streamlines, num_points=0, step_size=0,
-                         arc_length=False):
+def resample_streamlines(streamlines, num_points=0, arc_length=False):
     """
     Resample streamlines using number of points per streamline
-
     Parameters
     ----------
     streamlines: list
         List of list of 3D points.
     num_points: int
         Number of points per streamline in the output.
-    OR
-    step_size: float
-        Step size that all streamlines should have (in voxel space).
     arc_length: bool
         Whether to downsample using arc length parametrization.
-
     Return
     ------
     resampled_streamlines: list
         List of resampled streamlines.
     """
     resampled_streamlines = []
-    if step_size > 0 and num_points > 0:
-        raise ValueError("Please choose only one method. num_points OR "
-                         "step_size")
-    elif num_points > 0:
-        for streamline in streamlines:
-            if arc_length:
-                line = set_number_of_points(streamline, num_points)
-            else:
-                line = downsample(streamline, num_points)
-            resampled_streamlines.append(line)
-    else:  # step_size>0
-        lengths = length(streamlines)
-        nb_points = np.ceil(lengths / step_size).astype(int)
-        resampled_streamlines = [set_number_of_points(s, n) for s, n in
-                                 zip(streamlines, nb_points)]
+    for streamline in streamlines:
+        if arc_length:
+            line = set_number_of_points(streamline, num_points)
+        else:
+            line = downsample(streamline, num_points)
+        resampled_streamlines.append(line)
+
     return resampled_streamlines
 
 
