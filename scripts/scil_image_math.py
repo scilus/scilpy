@@ -128,7 +128,11 @@ def main():
     if args.operation == 'convert' and not args.data_type:
         parser.error('Convert operation must be used with --data_type')
 
-    output_data = OPERATIONS[args.operation](input_data)
+    try:
+        output_data = OPERATIONS[args.operation](input_data)
+    except ValueError:
+        logging.error('{} operation failed.'.format(args.operation.capitalize()))
+        return
 
     if args.data_type:
         output_data = output_data.astype(args.data_type)
