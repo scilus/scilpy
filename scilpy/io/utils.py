@@ -121,10 +121,18 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
-def check_sh_basis_choice(sh_basis):
+def validate_sh_basis_choice(sh_basis):
     """ Check if the passed sh_basis arg to a fct is right.
-    :param sh_basis:
-    :raises ValueError if sh_basis is not one of 'descoteaux07' or 'tournier07'
+
+    Parameters
+    ----------
+    sh_basis: str
+        Either 'descoteaux08' or 'tournier07'
+
+    Raises
+    ------
+    ValueError
+        If sh_basis is not one of 'descoteaux07' or 'tournier07'
     """
     if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
         raise ValueError("sh_basis should be either 'descoteaux07' or"

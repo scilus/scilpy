@@ -68,20 +68,13 @@ def main():
     img = nib.load(args.input)
 
     # Resampling volume
-    if args.ref:
-        resampled_image = resample_volume(img, ref=args.ref,
-                                          interp=args.interp,
-                                          enforce_dimensions=args.enforce_dimensions)
-    elif args.resolution:
-        resampled_image = resample_volume(img, res=args.resolution,
-                                          interp=args.interp)
-    elif args.iso_min:
-        resampled_image = resample_volume(img, iso_min=args.iso_min,
-                                          interp=args.interp)
+    resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
+                                    iso_min=args.iso_min, interp=args.interp,
+                                    enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
     logging.debug('Saving resampled data to %s', args.output)
-    nib.save(resampled_image, args.output)
+    nib.save(resampled_img, args.output)
 
 
 if __name__ == '__main__':
