@@ -53,7 +53,7 @@ def main():
     args = parser.parse_args()
     swap = args.swap
 
-    assert_inputs_exist(parser, [args.bundle, args.reference])
+    assert_inputs_exist(parser, [args.in_bundle, args.reference])
     assert_outputs_exist(parser, args, [args.endpoints_map_head,
                                         args.endpoints_map_tail])
 
