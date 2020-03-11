@@ -7,7 +7,7 @@ import numpy as np
 
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.samplingscheme.gen_scheme import gen_scheme
+from scilpy.samplingscheme.gen_scheme import generate_scheme
 from scilpy.samplingscheme.optimize_scheme import (add_b0s,
                                                    add_bvalue_b0,
                                                    compute_bvalue_lin_b,
@@ -164,7 +164,7 @@ def main():
     outfile = args.outfile
 
     # Scheme generation
-    points, shell_idx = gen_scheme(Ks, verbose=int(
+    points, shell_idx = generate_scheme(Ks, verbose=int(
         3 - logging.getLogger().getEffectiveLevel()//10))
 
     # eddy current optimization
