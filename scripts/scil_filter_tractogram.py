@@ -32,9 +32,8 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              read_info_from_mb_bdo)
-from scilpy.segment.streamlines import (filter_grid_roi,
-                                        filter_ellipsoid,
-                                        filter_cuboid)
+from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
+                                        filter_grid_roi)
 
 
 def _build_args_parser():
@@ -138,7 +137,7 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    # TractCount before filtering
+    # Streamline count before filtering
     sc_bf = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
