@@ -33,16 +33,20 @@ def _build_arg_parser():
     p.add_argument('md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
 
-    p.add_argument('--fa_t', dest='fa_threshold',  type=float, default='0.1',
+    p.add_argument(
+        '--fa_t', dest='fa_threshold',  type=float, default='0.1',
         help='Maximal threshold of FA (voxels under that threshold are '
              'considered for evaluation, [%(default)s]).')
-    p.add_argument('--md_t', dest='md_threshold',  type=float, default='0.003',
+    p.add_argument(
+        '--md_t', dest='md_threshold',  type=float, default='0.003',
         help='Minimal threshold of MD in mm2/s (voxels above that threshold '
              'are considered for evaluation, [%(default)s]).')
-    p.add_argument('--max_value_output',  metavar='file',
+    p.add_argument(
+        '--max_value_output',  metavar='file',
         help='Output path for the text file containing the value. If not set '
              'the file will not be saved.')
-    p.add_argument('--mask_output',  metavar='file',
+    p.add_argument(
+        '--mask_output',  metavar='file',
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
     add_sh_basis_args(p)
