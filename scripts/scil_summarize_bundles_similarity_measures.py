@@ -315,10 +315,10 @@ def main():
                 if measure_name not in output_measures_dict:
                     output_measures_dict[measure_name] = []
                 output_measures_dict[measure_name].append(
-                    measure_dict[measure_name])
+                    float(measure_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile)
+        json.dump(output_measures_dict, outfile, indent=1)
 
     if not args.keep_tmp:
         shutil.rmtree('tmp_measures/')
