@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -72,3 +73,61 @@ def get_metrics_stats_over_streamlines(streamlines, metrics_files,
                     weights,
                     metric_file.get_data().astype(np.float64)),
                metrics_files)
+
+
+def plot_metrics_stats(mean, std, title=None, xlabel=None,
+                       ylabel=None, figlabel=None, fill_color=None):
+    """
+    Plots the mean of a metric along n points with the standard deviation.
+
+    Parameters
+    ----------
+    mean: Numpy 1D array of size n
+        Mean of the metric along n points.
+    std: Numpy 1D array of size n
+        Standard deviation of the metric along n points.
+    title: string
+        Title of the figure.
+    xlabel: string
+        Label of the X axis.
+    ylabel: string
+        Label of the Y axis (suggestion: the metric name).
+    figlabel: string
+        Label of the figure (only metadata in the figure object returned).
+    fill_color: string
+        Hexadecimal RGB color filling the region between mean ± std. The
+        hexadecimal RGB color should be formatted as #RRGGBB
+
+    Return
+    ------
+    The figure object.
+    """
+    matplotlib.style.use('ggplot')
+
+    fig, ax = plt.subplots()
+
+    # Set optional information to the figure, if required.
+    if title is not None:
+        ax.set_title(title)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if figlabel is not None:
+        fig.set_label(figlabel)
+
+    dim = np.arange(1, len(mean)+1, 1)
+
+    if len(mean) <= 20:
+        ax.xaxis.set_ticks(dim)
+
+    ax.set_xlim(0, len(mean)+1)
+
+    # Plot the mean line.
+    ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
+
+    # Plot the std
+    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color)
+
+    plt.close(fig)
+    return fig
