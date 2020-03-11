@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Split a label image into multiple images where the name of the output images
+is the id of the label (ex. 35.nii.gz, 36.nii.gz, ...). If the --range option
+is not provided, all labels of the image are extracted.
 
-from __future__ import division
+IMPORTANT: your label image must be of an integer type.
+"""
 
 import argparse
 import os
@@ -12,14 +17,6 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
-
-DESCRIPTION = """
-Split a label image into multiple images where the name of the output images
-is the id of the label (ex. 35.nii.gz, 36.nii.gz, ...). If the --range option
-is not provided, all labels of the image are extracted.
-
-IMPORTANT: your label image must be of an integer type.
-"""
 
 
 # Taken from http://stackoverflow.com/a/6512463
@@ -51,7 +48,7 @@ def parseNumList(str_to_parse):
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('label_image',
                    help='Path of the input label file, '

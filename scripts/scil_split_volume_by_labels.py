@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+"""
+Split a label image into multiple images where the name of the output images
+is taken from a lookup table (ex: left-lateral-occipital.nii.gz,
+right-thalamus.nii.gz, ...). Only the labels included in the lookup table
+are extracted.
+
+IMPORTANT: your label image must be of an integer type.
+"""
 
 import argparse
 import inspect
@@ -15,20 +22,11 @@ import scilpy
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
-DESCRIPTION = """
-Split a label image into multiple images where the name of the output images
-is taken from a lookup table (ex: left-lateral-occipital.nii.gz,
-right-thalamus.nii.gz, ...). Only the labels included in the lookup table
-are extracted.
-
-IMPORTANT: your label image must be of an integer type.
-"""
-
 
 def _build_args_parser(luts):
 
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('label_image',
