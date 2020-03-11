@@ -40,7 +40,7 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Naming options')
     g1.add_argument('--labels_list',
                     help='List provided to the decomposition script,\n'
-                         'the json must contain labels rather than coordinates')
+                         'the json must contain labels rather than coordinates.')
     g1.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
                     help='Json file with the sub-network as keys and x/y '
                          'lists as value AND the key to use.')
@@ -50,7 +50,7 @@ def _build_arg_parser():
 
     g2 = p.add_argument_group(title='Matplotlib options')
     g2.add_argument('--name_axis', action='store_true',
-                    help='Use the provided info/files to name axis')
+                    help='Use the provided info/files to name axis.')
     g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
                     default=(10, 10),
                     help='Font size of the X and Y axis labels. [%(default)s]')

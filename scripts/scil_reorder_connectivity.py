@@ -41,7 +41,7 @@ def _build_arg_parser():
                    help='Only generate the specified sub-network.')
     p.add_argument('--labels_list',
                    help='List provided to the decomposition script,\n'
-                        'the json must contain labels rather than coordinates')
+                        'the json must contain labels rather than coordinates.')
 
     add_overwrite_arg(p)
 
