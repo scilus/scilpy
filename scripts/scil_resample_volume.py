@@ -19,13 +19,13 @@ from scilpy.image.resample_volume import resample_volume
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input', action='store', metavar='in_vol', type=str,
+    p.add_argument('in_image',
                    help='Path of the input volume.')
-    p.add_argument('output', action='store', metavar='out_vol', type=str,
+    p.add_argument('out_image',
                    help='Path of the resampled volume.')
 
     res_group = p.add_mutually_exclusive_group(required=True)
-    res_group.add_argument('--ref', action='store', metavar='ref_vol',
+    res_group.add_argument('--ref',
                            help='Reference volume to resample to.')
     res_group.add_argument(
         '--resolution', action='store', metavar='float', type=float,
@@ -55,17 +55,17 @@ def main():
     args = parser.parse_args()
 
     # Checking args
-    assert_inputs_exist(parser, args.input, args.ref)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_image, args.ref)
+    assert_outputs_exist(parser, args, args.out_image)
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from %s', args.input)
+    logging.debug('Loading Raw data from %s', args.in_image)
 
-    img = nib.load(args.input)
+    img = nib.load(args.in_image)
 
     # Resampling volume
     resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
@@ -73,8 +73,8 @@ def main():
                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
-    logging.debug('Saving resampled data to %s', args.output)
-    nib.save(resampled_img, args.output)
+    logging.debug('Saving resampled data to %s', args.out_image)
+    nib.save(resampled_img, args.out_image)
 
 
 if __name__ == '__main__':

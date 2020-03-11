@@ -23,7 +23,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
     ----------
     img: nib.Nifti1Image
         Image to resample.
-    ref:
+    ref: nib.Nifti1Image
         Reference volume to resample to. This method is used only if ref is not
         None. (default: None)
     res: float, optional
