@@ -45,7 +45,7 @@ from scilpy.io.utils import (create_header_from_anat,
 from scilpy.tracking.tools import get_theta
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
         epilog='References: [1] Girard, G., Whittingstall K., Deriche, R., '
@@ -151,7 +151,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:

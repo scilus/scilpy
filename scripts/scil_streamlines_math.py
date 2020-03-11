@@ -56,7 +56,7 @@ OPERATIONS = {
 }
 
 
-def build_args_p():
+def _build_arg_parser():
 
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -110,7 +110,7 @@ def load_data(parser, args, path):
 
 def main():
 
-    parser = build_args_p()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:

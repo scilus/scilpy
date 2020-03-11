@@ -72,7 +72,7 @@ def crop_nifti(img, wbbox):
     return nib.Nifti1Image(data_crop, new_affine)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -101,7 +101,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.input_path, args.input_bbox)

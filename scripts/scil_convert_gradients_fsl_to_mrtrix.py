@@ -10,7 +10,7 @@ from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 DESCRIPTION = "Script to convert bval/bvec FSL style to MRtrix style."
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION)
 
@@ -29,7 +29,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.fsl_bval, args.fsl_bvec])

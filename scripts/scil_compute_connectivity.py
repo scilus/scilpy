@@ -128,7 +128,7 @@ def _prune_segments(segments, min_length, max_length, vox_size):
     return valid, invalid
 
 
-def build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -202,7 +202,7 @@ def build_args_parser():
 
 
 def main():
-    parser = build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.tracks, args.labels])

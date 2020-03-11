@@ -57,7 +57,7 @@ def register_tractogram(moving_tractogram, static_tractogram,
     np.savetxt(matrix_filename, transfo)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=DESCRIPTION, epilog=EPILOG)
 
@@ -94,7 +94,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.moving_tractogram,

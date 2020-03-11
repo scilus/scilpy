@@ -22,7 +22,7 @@ def interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('input', action='store', metavar='in_vol', type=str,
@@ -57,7 +57,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.input, args.ref)
