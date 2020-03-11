@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import logging
+import os
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def weighted_mean_stddev(weights, data):
@@ -75,9 +79,70 @@ def get_bundle_metrics_meanstd(streamlines, metrics_files,
                metrics_files)
 
 
-def get_bundle_metrics_meanstdperpoint(streamlines, metrics_files,
-                                       density_weighting=True):
-    raise NotImplementedError
+def get_bundle_metrics_meanstdperpoint(streamlines, bundle_name,
+                                       distances_to_centroid_streamline,
+                                       metrics, track_count, labels,
+                                       distance_weighting=False):
+    """
+    Parameters
+    ----------
+    streamlines:
+    bundle_name:
+    distances_to_centroid_streamline:
+    metrics:
+    track_count:
+    labels:
+    distance_weighting:
+
+    Returns
+    -------
+    stats
+    """
+    unique_labels = np.unique(labels)
+    num_digits_labels = len(str(np.max(unique_labels)))
+
+    # Bigger weight near the centroid streamline
+    distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
+
+    # Keep data as int to get the underlying voxel
+    bundle_data_int = streamlines.data.astype(np.int)
+
+    # Get stats
+    stats = {bundle_name: {}}
+    for metric in metrics:
+        metric_data = metric.get_fdata()
+        current_metric_fname, _ = split_name_with_nii(
+            os.path.basename(metric.get_filename()))
+        stats[bundle_name][current_metric_fname] = {}
+
+        for i in unique_labels:
+            number_key = '{}'.format(i).zfill(num_digits_labels)
+            label_stats = {}
+            stats[bundle_name][current_metric_fname][number_key] = label_stats
+
+            label_indices = bundle_data_int[labels == i]
+            label_metric = metric_data[label_indices[:, 0],
+                                       label_indices[:, 1],
+                                       label_indices[:, 2]]
+            track_weight = track_count[label_indices[:, 0],
+                                       label_indices[:, 1],
+                                       label_indices[:, 2]]
+            label_weight = track_weight
+            if distance_weighting:
+                label_weight *= distances_to_centroid_streamline[labels == i]
+            if np.sum(label_weight) == 0:
+                logging.warning('Weights sum to zero, can\'t be normalized. '
+                                'Disabling weighting')
+                label_weight = None
+
+            label_mean = np.average(label_metric,
+                                    weights=label_weight)
+            label_std = np.sqrt(np.average(
+                (label_metric - label_mean) ** 2,
+                weights=label_weight))
+            label_stats['mean'] = float(label_mean)
+            label_stats['std'] = float(label_std)
+    return stats
 
 
 def plot_metrics_stats(mean, std, title=None, xlabel=None,

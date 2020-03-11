@@ -29,7 +29,7 @@ def _build_arg_parser():
                    help='Fiber bundle file to compute statistics on')
     p.add_argument('metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
-                        'tractography measure(s) such as FA, MD, RD, ...')
+                        'tractometry measure(s) such as FA, MD, RD, ...')
 
     p.add_argument('--density_weighting',
                    action='store_true',
