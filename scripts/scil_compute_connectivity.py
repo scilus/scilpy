@@ -12,10 +12,10 @@ longest.
 This is robust to compressed streamlines.
 
 NOTE: this script can take a while to run. Please be patient.
-      Example: on a tractogram with 1.8M streamlines, running on a SSD:
-               - 4 minutes without post-processing, only saving final bundles.
-               - 29 minutes with full post-processing, only saving final bundles.
-               - 30 minutes with full post-processing, saving all possible files.
+Example: on a tractogram with 1.8M streamlines, running on a SSD:
+- 4 minutes without post-processing, only saving final bundles.
+- 29 minutes with full post-processing, only saving final bundles.
+- 30 minutes with full post-processing, saving all possible files.
 """
 
 from __future__ import division
