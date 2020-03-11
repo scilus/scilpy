@@ -31,8 +31,7 @@ def _build_args_parser():
                    help='Path of the output tractogram file (trk or tck).')
 
     p.add_argument('-e', dest='error_rate', type=float, default=0.1,
-                   help='Maximum compression distance in mm. '
-                   '[default: %(default)s]')
+                   help='Maximum compression distance in mm [%(default)s].')
     add_overwrite_arg(p)
 
     return p
