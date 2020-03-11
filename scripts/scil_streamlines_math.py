@@ -158,7 +158,7 @@ def main():
         for name, nb in zip(args.inputs, nb_streamlines):
             end = start + nb
             file_indices = \
-                [i - start for i in indices if i >= start and i < end]
+                [i - start for i in indices if start <= i < end]
             indices_dict[name] = file_indices
             start = end
         with open(args.save_indices, 'wt') as f:

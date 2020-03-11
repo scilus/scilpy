@@ -92,15 +92,15 @@ def load_data(path):
         logging.info('Loading mask from {0}.'.format(path))
         mask = nibabel.load(path).get_data()
 
-        min = mask.min()
-        max = mask.max()
-        if max == 0 and min == 0:
+        min_val = mask.min()
+        max_val = mask.max()
+        if max_val == 0 and min_val == 0:
             logging.warning('The mask {0} is empty.'.format(path))
-        elif min < 0.0 or max > 1.0:
+        elif min_val < 0.0 or max_val > 1.0:
             logging.warning(
                 'The mask {0} is not binary or probabilistic. Converting it '
                 'to a probabilistic mask.'.format(path))
-            mask = old_div((mask.astype(float) - min), (max + min))
+            mask = old_div((mask.astype(float) - min_val), (max_val + min_val))
 
     return mask
 

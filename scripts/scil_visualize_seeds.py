@@ -8,6 +8,7 @@ in a tractogram
 
 import argparse
 
+from dipy.io.streamline import load_tractogram
 from fury import window, actor
 from nibabel.streamlines import detect_format, TrkFile
 
@@ -40,9 +41,12 @@ def main():
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk): {0}".format(args.tractogram_filename))
 
-    # Load files and data
-    trk = TrkFile.load(args.tractogram)
-    tractogram = trk.tractogram
+    # Load files and data. TRKs can have 'same' as reference
+    tractogram = load_tractogram(args.tractogram, 'same')
+    # Streamlines are saved in RASMM but seeds are saved in VOX
+    # This might produce weird behavior with non-iso
+    tractogram.to_vox()
+
     streamlines = tractogram.streamlines
     if 'seeds' not in tractogram.data_per_streamline:
         parser.error('Tractogram does not contain seeds')
