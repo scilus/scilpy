@@ -30,7 +30,7 @@ def _build_args_parser():
     p.add_argument('moving_tractogram',
                    help='Path of the tractogram to be transformed.')
     p.add_argument('target_file',
-                   help='Path of the reference file (trk or nii.')
+                   help='Path of the reference file (trk or nii).')
     p.add_argument('deformation',
                    help='Path of the file containing deformation field.')
 
