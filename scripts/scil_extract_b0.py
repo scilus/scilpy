@@ -104,9 +104,8 @@ def main():
 
     b0_threshold = args.b0_thr
     if b0_threshold < 0 or b0_threshold > 20:
-            raise ValueError('Invalid --b0_thr value (<0 or >20). This is '
-                             'highly suspicious. Value found: {}'
-                             .format(b0_threshold))
+        raise ValueError('Invalid --b0_thr value (<0 or >20). This is highly '
+                         'suspicious. Value found: {}'.format(b0_threshold))
 
     if not np.isclose(bvals_min, 0.0):
         b0_threshold = b0_threshold if b0_threshold > bvals_min else bvals_min

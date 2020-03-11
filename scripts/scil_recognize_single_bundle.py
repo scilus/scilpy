@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute a simple Recobundles (single-atlas & single-parameters).
-    The model need to be cleaned and lightweight.
-    Transform should come from ANTs: (using the --inverse flag)
-    AntsRegistration -m MODEL_REF -f SUBJ_REF
-    ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+Compute a simple Recobundles (single-atlas & single-parameters).
+The model need to be cleaned and lightweight.
+Transform should come from ANTs: (using the --inverse flag)
+AntsRegistration -m MODEL_REF -f SUBJ_REF
+ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
 """
 
 import argparse
@@ -41,20 +41,19 @@ def _build_args_parser():
     p.add_argument('in_model',
                    help='Model to use for recognition (trk or tck).')
     p.add_argument('transformation',
-                   help='4x4 transformation to bring the model onto \n'
-                   'the input tractogram')
+                   help='Path for the transformation to model space.')
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
-    p.add_argument('--wb_clustering_thr', type=float, default=8,
+    p.add_argument('--tractogram_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--model_clustering_thr', type=float, default=4,
                    help='Clustering threshold used for the model '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--pruning_thr', type=float, default=6,
                    help='MDF threshold used for final streamlines selection '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
 
     p.add_argument('--slr_threads', type=int, default=None,
                    help='Number of threads for SLR [all].')
@@ -68,7 +67,7 @@ def _build_args_parser():
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                       'Will override the wb_clustering_thr parameter.')
+                            'Will override the tractogram_clustering_thr parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
@@ -95,8 +94,7 @@ def main():
     if args.inverse:
         transfo = np.linalg.inv(np.loadtxt(args.transformation))
 
-    model_streamlines = ArraySequence(
-        transform_streamlines(model_file.streamlines, transfo))
+    model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
     if args.input_pickle:
@@ -108,14 +106,14 @@ def main():
                                verbose=args.verbose)
     else:
         reco_obj = RecoBundles(wb_streamlines,
-                               clust_thr=args.wb_clustering_thr,
+                               clust_thr=args.tractogram_clustering_thr,
                                rng=rng,
                                verbose=args.verbose)
 
     if args.output_pickle:
         with open(args.output_pickle, 'wb') as outfile:
             pickle.dump(reco_obj.cluster_map, outfile)
-    _, indices = reco_obj.recognize(model_streamlines,
+    _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
                                     slr_num_threads=args.slr_threads)
