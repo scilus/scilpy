@@ -4,7 +4,7 @@ import argparse
 import json
 import logging
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
