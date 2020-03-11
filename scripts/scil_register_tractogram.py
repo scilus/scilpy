@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Generate a linear transformation matrix from the registration of
+2 tractograms. Typically, this script is run before
+scil_apply_transform_to_tractogram.py.
+
+For more informations on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file
+"""
+
 import argparse
 import os
 
@@ -10,17 +19,9 @@ import numpy as np
 
 
 from scilpy.io.streamlines import ichunk, load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
-
-DESCRIPTION = """
-Generate a linear transformation matrix from the registration of
-2 tractograms. Typically, this script is run before
-scil_apply_transform_to_tractogram.py.
-
-For more informations on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file
-"""
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 EPILOG = """
 References:
@@ -59,7 +60,7 @@ def register_tractogram(moving_tractogram, static_tractogram,
 
 def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION, epilog=EPILOG)
+                                description=__doc__, epilog=EPILOG)
 
     p.add_argument('moving_tractogram',
                    help='Path of the moving tractogram.')

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute pair-wise similarity measures of bundles.
+All tractograms must be in the same space (aligned to one reference)
+"""
+
 import argparse
 import copy
 import hashlib
@@ -33,15 +38,9 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-DESCRIPTION = """
-Compute pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference)
-"""
-
-
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')

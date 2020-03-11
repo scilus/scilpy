@@ -1,20 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import argparse
-import logging
-
-import nibabel as nib
-import numpy as np
-
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             check_tracts_same_format)
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-
-
-DESCRIPTION = """
+"""
 This script can be used to remove loops in two types of streamline datasets:
 
   - Whole brain: For this type, the script removes streamlines if they
@@ -31,10 +18,22 @@ QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 ----------------------------------------------------------------------------
 """
 
+import argparse
+import logging
+
+import nibabel as nib
+import numpy as np
+
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             check_tracts_same_format)
+from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
