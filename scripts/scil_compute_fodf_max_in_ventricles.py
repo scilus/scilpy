@@ -16,7 +16,8 @@ from dipy.data import get_sphere
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
@@ -47,10 +48,11 @@ def _build_arg_parser():
         '--mask_output',  metavar='file',
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
+
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Use verbose output. Default: false.')
+
     return p
 
 

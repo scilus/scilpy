@@ -34,6 +34,7 @@ from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    save_from_voxel_space)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.features import (remove_outliers,
@@ -193,11 +194,9 @@ def build_args_parser():
                         'qb_loops')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
-    p.add_argument('--verbose', '-v', dest='verbose',
-                   action='store_true', default=False,
-                   help='Verbose. [%(default)s]')
     return p
 
 

@@ -12,10 +12,9 @@ from dipy.io.streamline import load_tractogram
 from fury import window, actor
 from nibabel.streamlines import detect_format, TrkFile
 
-from scilpy.io.utils import (
-    add_overwrite_arg,
-    assert_inputs_exist,
-    assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_args_parser():

@@ -12,8 +12,8 @@ import os
 import nibabel
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
-                             assert_inputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_outputs_exist, assert_inputs_exist)
 
 DESCRIPTION = """
 Performs an operation on a list of mask images. The supported
@@ -76,9 +76,7 @@ def build_args_parser():
                              'Note that the threshold is applied once on the '
                              'output mask and not\nafter each operation.')
 
-    parser.add_argument('--verbose', '-v', action='store_true', dest='verbose',
-                        help='Produce verbose output.')
-
+    add_verbose_arg(parser)
     add_overwrite_arg(parser)
 
     return parser
