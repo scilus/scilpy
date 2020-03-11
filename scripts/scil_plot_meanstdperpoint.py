@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Plot mean/std per point.
+"""
+
 import argparse
 import json
 import os
@@ -13,43 +17,46 @@ from scilpy.utils.metrics_tools import plot_metrics_stats
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description='Plot mean/std per point',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('meanstdperpoint',
-                        help='JSON file containing the mean/std per point')
-    parser.add_argument('output', help='Output directory')
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('input_json',
+                   help='JSON file containing the mean/std per point. For '
+                        'example, can be created using '
+                        'scil_compute_metrics_along_streamline.')
+    p.add_argument('output_dir',
+                   help='Output directory')
 
-    parser.add_argument(
-        '--fill_color',
-        help='Hexadecimal RGB color filling the region between mean ± std. '
-             'The hexadecimal RGB color should be formatted as 0xRRGGBB')
-    parser.add_argument('--nb_points', type=int, default=20,
-                        help='Number of points defining the centroid '
-                             'streamline')
-    add_overwrite_arg(parser)
-    return parser
+    p.add_argument('--fill_color',
+                   help='Hexadecimal RGB color filling the region between '
+                        'mean ± std. The hexadecimal RGB color should be '
+                        'formatted as 0xRRGGBB.')
+    p.add_argument('--nb_points', type=int, default=20,
+                   help='Number of points defining the centroid streamline.')
+
+    add_overwrite_arg(p)
+    return p
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.meanstdperpoint])
-    assert_output_dirs_exist_and_empty(parser, args, args.output)
+    assert_inputs_exist(parser, [args.input_json])
+    assert_output_dirs_exist_and_empty(parser, args, args.output_dir,
+                                       create_dir=True)
 
     if args.fill_color and len(args.fill_color) != 8:
         parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB')
 
-    with open(args.meanstdperpoint, 'r+') as f:
+    with open(args.input_json, 'r+') as f:
         meanstdperpoint = json.load(f)
 
-    for bundle_name, bundle_stats in meanstdperpoint.iteritems():
-        for metric, metric_stats in bundle_stats.iteritems():
+    for bundle_name, bundle_stats in meanstdperpoint.items():
+        for metric, metric_stats in bundle_stats.items():
             num_digits_labels = len(str(args.nb_points))
             means = []
             stds = []
-            for label_int in xrange(1, args.nb_points+1):
+            for label_int in range(1, args.nb_points+1):
                 label = str(label_int).zfill(num_digits_labels)
                 mean = metric_stats.get(label, {'mean': np.nan})['mean']
                 mean = mean if mean else np.nan
@@ -66,7 +73,7 @@ def main():
                 fill_color=(args.fill_color.replace("0x", "#")
                             if args.fill_color else None))
             fig.savefig(
-                os.path.join(args.output,
+                os.path.join(args.output_dir,
                              '{}_{}.png'.format(bundle_name, metric)),
                 bbox_inches='tight')
 

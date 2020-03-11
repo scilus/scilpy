@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute mean and std along the bundle for each metric.
+Compute mean and std for the whole bundle for each metric.
 """
 
 import argparse
@@ -17,7 +17,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
-from scilpy.utils.metrics_tools import get_metrics_stats_over_streamlines
+from scilpy.utils.metrics_tools import get_bundle_metrics_meanstd
 
 
 def _build_arg_parser():
@@ -28,7 +28,8 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
     p.add_argument('metrics', nargs='+',
-                   help='Nifti metric(s) to compute statistics on.')
+                   help='Nifti file to compute statistics on. Probably some '
+                        'tractography measure(s) such as FA, MD, RD, ...')
 
     p.add_argument('--density_weighting',
                    action='store_true',
@@ -55,9 +56,9 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-    bundle_stats = get_metrics_stats_over_streamlines(sft.streamlines,
-                                                      metrics,
-                                                      args.density_weighting)
+    bundle_stats = get_bundle_metrics_meanstd(sft.streamlines,
+                                              metrics,
+                                              args.density_weighting)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
 

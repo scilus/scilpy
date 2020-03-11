@@ -3,7 +3,7 @@
 
 """
 Compute mean and standard deviation for all streamlines points in the bundle
-for each metric combination.
+for each metric combination, along the bundle, i.e. for each point.
 """
 
 import argparse
@@ -21,6 +21,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.utils.metrics_tools import get_bundle_metrics_meanstdperpoint
 
 
 def _build_arg_parser():

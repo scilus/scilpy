@@ -31,13 +31,13 @@ def weighted_mean_stddev(weights, data):
     return mean, np.sqrt(variance)
 
 
-def get_metrics_stats_over_streamlines(streamlines, metrics_files,
-                                       density_weighting=True):
+def get_bundle_metrics_meanstd(streamlines, metrics_files,
+                               density_weighting=True):
     """
-    Returns the mean value of each metric, only considering voxels that
-    are crossed by streamlines. The mean values are weighted by the number of
-    streamlines crossing a voxel by default. If false, every voxel traversed
-    by a streamline has the same weight.
+    Returns the mean value of each metric for the whole bundle, only
+    considering voxels that are crossed by streamlines. The mean values are
+    weighted by the number of streamlines crossing a voxel by default.
+    If false, every voxel traversed by a streamline has the same weight.
 
     Parameters
     ------------
@@ -57,8 +57,8 @@ def get_metrics_stats_over_streamlines(streamlines, metrics_files,
     ---------
     stats : list
         list of tuples where the first element of the tuple is the mean
-        of a metric, and the second element is the standard deviation
-
+        of a metric, and the second element is the standard deviation, for each
+        metric.
     """
 
     # Compute weighting matrix taking the possible compression into account
@@ -73,6 +73,11 @@ def get_metrics_stats_over_streamlines(streamlines, metrics_files,
                     weights,
                     metric_file.get_data().astype(np.float64)),
                metrics_files)
+
+
+def get_bundle_metrics_meanstdperpoint(streamlines, metrics_files,
+                                       density_weighting=True):
+    raise NotImplementedError
 
 
 def plot_metrics_stats(mean, std, title=None, xlabel=None,
