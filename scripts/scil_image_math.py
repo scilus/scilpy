@@ -9,48 +9,13 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.operations import (is_float, absolute_value, around,
-                                     addition, ceil, closing, convert,
-                                     difference, dilation, division, erosion,
-                                     floor, gaussian_blur, intersection,
-                                     invert, lower_clip, lower_threshold, mean,
-                                     multiplication, normalize_max,
-                                     normalize_sum, opening, std, subtraction,
-                                     union, upper_threshold, upper_clip,
-                                     get_array_operation_doc, 
-                                     get_image_operation_doc)
+from scilpy.image.operations import (get_image_ops, get_operations_doc)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
+from scilpy.utils.util import is_float
 
-OPERATIONS = {
-    'lower_threshold': lower_threshold,
-    'upper_threshold': upper_threshold,
-    'lower_clip': lower_clip,
-    'upper_clip': upper_clip,
-    'absolute_value': absolute_value,
-    'round': around,
-    'ceil': ceil,
-    'floor': floor,
-    'normalize_sum': normalize_sum,
-    'normalize_max': normalize_max,
-    'convert': convert,
-    'invert': invert,
-    'addition': addition,
-    'subtraction': subtraction,
-    'multiplication': multiplication,
-    'division': division,
-    'mean': mean,
-    'std': std,
-    'union': union,
-    'intersection': intersection,
-    'difference': difference,
-    'dilation': dilation,
-    'erosion': erosion,
-    'closing': closing,
-    'opening': opening,
-    'blur': gaussian_blur
-}
+OPERATIONS = get_image_ops()
 
 DESCRIPTION = """
 Performs an operation on a list of images. The supported operations are 
@@ -61,7 +26,7 @@ parameters instead of images.
 > scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
 """
 
-DESCRIPTION += get_array_operation_doc() + get_image_operation_doc()
+DESCRIPTION += get_operations_doc(OPERATIONS)
 
 
 def _build_args_parser():
@@ -70,6 +35,7 @@ def _build_args_parser():
         description=DESCRIPTION)
 
     p.add_argument('operation',
+                   choices=OPERATIONS.keys(),
                    help='The type of operation to be performed on the '
                    'images.')
 
@@ -135,14 +101,14 @@ def main():
     for input_arg in args.inputs:
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
-            parser.error('Input do not have a compatible header')
+            parser.error('Inputs do not have a compatible header')
         data = load_data(input_arg)
 
         if isinstance(data, np.ndarray) and \
             data.dtype != ref_img.get_data_dtype() and \
                 not args.data_type:
-            parser.error('Input do not have a compatible data type.'
-                         'Use --data_type to specified output datatype.')
+            parser.error('Inputs do not have a compatible data type.'
+                         'Use --data_type to specify output datatype.')
         if args.operation in binary_op and isinstance(data, np.ndarray):
             unique = np.unique(data)
             if not len(unique) <= 2:
@@ -151,7 +117,7 @@ def main():
 
             if len(unique) == 2 and not (unique == [0, 1]).all():
                 logging.warning('Input data for binary operation are not '
-                                'binary array, will be converted. '
+                                'binary arrays, will be converted. '
                                 'Non-zeros will be set to ones.')
                 data[data != 0] = 1
 

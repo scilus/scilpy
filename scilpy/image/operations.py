@@ -1,115 +1,129 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
+"""
+Utility operations provided for scil_image_math.py and scil_connectiity_math.py
+They basically act as wrappers around numpy to avoid installing MRtrix/FSL
+to apply simple operations on nibabel images or numpy arrays.
+"""
+
 from copy import copy
+import logging
 
 import numpy as np
-from scipy.ndimage.morphology import (binary_dilation, binary_erosion,
-                                      binary_opening, binary_closing)
 from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.morphology import (binary_closing, binary_dilation,
+                                      binary_erosion, binary_opening)
+
+from scilpy.utils.util import is_float
 
 
-def get_array_operation_doc():
-    return """
-    lower_threshold: IMG THRESHOLD
-        All values below the threshold will be set to zero.
-        All values above the threshold will be set to one.
-    upper_threshold: IMG THRESHOLD
-        All values below the threshold will be set to one.
-        All values above the threshold will be set to zero.
-    lower_clip: IMG THRESHOLD
-        All values below the threshold will be set to threshold.
-    upper_clip: IMG THRESHOLD
-        All values above the threshold will be set to threshold.
-    absolute_value: IMG
-        All negative values will become positive.
-    round: IMG
-        Round all decimal values to the closest integer.
-    ceil: IMG
-        Ceil all decimal values to the next integer.
-    floor: IMG
-        Floor all decimal values to the previous integer.
-    normalize_sum: IMG
-        Normalize the image so the sum of all values is one.
-    normalize_max: IMG
-        Normalize the image so the maximum value is one.
-    convert: IMG
-        Perform no operation, but simply change the data type.
-    addition: IMGs
-        Add multiple images together.
-    subtraction: IMG_1 IMG_2
-        Subtract two images together.
-    multiplication: IMGs
-        Multiply multiple images together (danger of underflow and overflow)
-    division: IMG_1 IMG_2
-        Divide two images together (danger of underflow and overflow)
-    mean: IMGs
-        If a single 4D image is provided, average along the last dimension.
-    std: IMGs
-        Compute the standard deviation average of multiple images.
-        If a single 4D image is provided, compute the STD along the last
-        dimension.
-    union: IMGs
-        Binary operation to keep voxels that are in any file.
-    intersection: IMGs
-        Binary operation to keep the voxels that are present in all files.
-    difference: IMG_1 IMG_2
-        Binary operation to keep voxels from the first file that are not in
-        the second file.
-    invert: IMG
-        Binary operation to interchange 0 and 1 in a binary mask.
-    """
-
-def get_image_operation_doc():
-    return """dilation: IMG
-        Binary morphological operation to spatially expand the values of an
-        image to their neighbors.
-    erosion: IMG
-        Binary morphological operation to spatially shrink the values of an
-        image.
-    closing: IMG
-        Binary morphological operation, dilation followed by an erosion.
-    opening: IMG
-        Binary morphological operation, erosion followed by an dilation.
-    blur: IMG
-        Apply a gaussian blur to a single image.
-    """
-
-def is_float(value):
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
+def get_array_ops():
+    """Get a dictionary of all functions relating to array operations"""
+    return {
+        'lower_threshold': lower_threshold,
+        'upper_threshold': upper_threshold,
+        'lower_clip': lower_clip,
+        'upper_clip': upper_clip,
+        'absolute_value': absolute_value,
+        'round': around,
+        'ceil': ceil,
+        'floor': floor,
+        'normalize_sum': normalize_sum,
+        'normalize_max': normalize_max,
+        'convert': convert,
+        'invert': invert,
+        'addition': addition,
+        'subtraction': subtraction,
+        'multiplication': multiplication,
+        'division': division,
+        'mean': mean,
+        'std': std,
+        'union': union,
+        'intersection': intersection,
+        'difference': difference,
+    }
 
 
-def find_array(input_list):
-    at_least_one_arr = False
-    ref_array = None
-    for i in input_list:
-        if isinstance(i, np.ndarray):
-            at_least_one_arr = True
-            ref_array = i
-            break
+def get_image_ops():
+    """Get a dictionary of all functions relating to image operations"""
+    image_ops = get_array_ops()
+    image_ops.update({
+        'dilation': dilation,
+        'erosion': erosion,
+        'closing': closing,
+        'opening': opening,
+        'blur': gaussian_blur
+    })
+    return image_ops
 
-    if not at_least_one_arr:
-        logging.error('At least one array is required in the input list.')
+
+def get_operations_doc(ops: dict):
+    """From a dictionary mapping operation names to functions, fetch and join
+    all documentations, using the provided names."""
+    full_doc = []
+    for func in ops.values():
+        full_doc.append(func.__doc__)
+    return "".join(full_doc)
+
+
+def get_array_operations_doc():
+    """Fetch documentation from all array operations."""
+    return "".join([f.__doc__ for f in get_array_ops().values()])
+
+
+def get_image_operations_doc():
+    """Fetch documentation from all image operations."""
+    return "".join([f.__doc__ for f in get_image_ops().values()])
+
+
+def _validate_arrays(*arrays):
+    """Make sure that all inputs are arrays, and that their shapes match."""
+    ref_array = arrays[0]
+    for array in arrays:
+        if not isinstance(array, np.ndarray):
+            raise ValueError("All inputs must be arrays!")
+        if not np.all(ref_array.shape == array.shape):
+            raise ValueError("Not all inputs have the same shape!")
+
+
+def _validate_length(input_list, l, atleast=False):
+    """Make sure the the input list has the right number of arguments."""
+    if atleast:
+        if not len(input_list) >= l:
+            logging.error(
+                'This operation requires at least {} operands.'.format(l))
+            raise ValueError
+    else:
+        if not len(input_list) == l:
+            logging.error(
+                'This operation requires exactly {} operands.'.format(l))
+            raise ValueError
+
+
+def _validate_dtype(x, dtype):
+    """Make sure that the input has the right datatype."""
+    if not isinstance(x, dtype):
+        logging.error(
+            'The input must be of type {} for this operation.'.format(dtype))
         raise ValueError
 
-    return ref_array
+
+def _validate_float(x):
+    """Make sure that the input can be casted to a float."""
+    if not is_float(x):
+        logging.error('The input must be float/int for this operation.')
+        raise ValueError
 
 
 def lower_threshold(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    lower_threshold: IMG THRESHOLD
+        All values below the threshold will be set to zero.
+        All values above the threshold will be set to one.
+    """
+    _validate_length(input_list, 2)
+    _validate_dtype(input_list[0], np.ndarray)
+    _validate_float(input_list[1])
 
     output_data = copy(input_list[0])
     output_data[input_list[0] < input_list[1]] = 0
@@ -119,15 +133,14 @@ def lower_threshold(input_list):
 
 
 def upper_threshold(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    upper_threshold: IMG THRESHOLD
+        All values below the threshold will be set to one.
+        All values above the threshold will be set to zero.
+    """
+    _validate_length(input_list, 2)
+    _validate_dtype(input_list[0], np.ndarray)
+    _validate_float(input_list[1])
 
     output_data = copy(input_list[0])
     output_data[input_list[0] <= input_list[1]] = 1
@@ -137,116 +150,114 @@ def upper_threshold(input_list):
 
 
 def lower_clip(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    lower_clip: IMG THRESHOLD
+        All values below the threshold will be set to threshold.
+    """
+    _validate_length(input_list, 2)
+    _validate_dtype(input_list[0], np.ndarray)
+    _validate_float(input_list[1])
 
     return np.clip(input_list[0], input_list[1], None)
 
 
 def upper_clip(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    upper_clip: IMG THRESHOLD
+        All values above the threshold will be set to threshold.
+    """
+    _validate_length(input_list, 2)
+    _validate_dtype(input_list[0], np.ndarray)
+    _validate_float(input_list[1])
 
     return np.clip(input_list[0], None, input_list[1])
 
 
 def absolute_value(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    absolute_value: IMG
+        All negative values will become positive.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return np.abs(input_list[0])
 
 
 def around(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    round: IMG
+        Round all decimal values to the closest integer.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return np.round(input_list[0])
 
 
 def ceil(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    ceil: IMG
+        Ceil all decimal values to the next integer.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return np.ceil(input_list[0])
 
 
 def floor(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    floor: IMG
+        Floor all decimal values to the previous integer.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return np.floor(input_list[0])
 
 
 def normalize_sum(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    normalize_sum: IMG
+        Normalize the image so the sum of all values is one.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return copy(input_list[0]) / np.sum(input_list[0])
 
 
 def normalize_max(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    normalize_max: IMG
+        Normalize the image so the maximum value is one.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return copy(input_list[0]) / np.max(input_list[0])
 
 
 def convert(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    convert: IMG
+        Perform no operation, but simply change the data type.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
 
     return copy(input_list[0])
 
 
 def addition(input_list):
-    if not len(input_list) > 1:
-        logging.error('This operation requires at least two operands.')
-        raise ValueError
-
-    ref_array = find_array(input_list)
+    """
+    addition: IMGs
+        Add multiple images together.
+    """
+    _validate_length(input_list, 2, atleast=True)
+    _validate_arrays(*input_list)
+    ref_array = input_list[0]
 
     output_data = np.zeros(ref_array.shape)
     for data in input_list:
@@ -256,21 +267,23 @@ def addition(input_list):
 
 
 def subtraction(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    _ = find_array(input_list)
+    """
+    subtraction: IMG_1 IMG_2
+        Subtract two images together (IMG_1 - IMG_2).
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(*input_list)
 
     return input_list[0] - input_list[1]
 
 
 def multiplication(input_list):
-    if not len(input_list) > 1:
-        logging.error('This operation requires at least two operands.')
-        raise ValueError
-
-    _ = find_array(input_list)
+    """
+    multiplication: IMGs
+        Multiply multiple images together (danger of underflow and overflow)
+    """
+    _validate_length(input_list, 2, atleast=True)
+    _validate_arrays(*input_list)
 
     output_data = input_list[0]
     for data in input_list[1:]:
@@ -280,11 +293,13 @@ def multiplication(input_list):
 
 
 def division(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    ref_array = find_array(input_list)
+    """
+    division: IMG_1 IMG_2
+        Divide two images together (danger of underflow and overflow)
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(*input_list)
+    ref_array = input_list[0]
 
     output_data = np.zeros(ref_array.shape)
     output_data[input_list[1] > 0] = input_list[0][input_list[1] > 0] \
@@ -293,19 +308,13 @@ def division(input_list):
 
 
 def mean(input_list):
-    if not len(input_list) > 0:
-        logging.error('This operations required either one operand (4D) or'
-                      'or multiple operands (3D/4D).')
-        raise ValueError
-
-    ref_array = find_array(input_list)
-    for i in input_list:
-        if not isinstance(i, np.ndarray):
-            logging.error('All inputs must be array.')
-            raise ValueError
-        if not i.shape == ref_array.shape:
-            logging.error('All shapes must match.')
-            raise ValueError
+    """
+    mean: IMGs
+        If a single 4D image is provided, average along the last dimension.
+    """
+    _validate_length(input_list, 1, atleast=True)
+    _validate_arrays(*input_list)
+    ref_array = input_list[0]
 
     if len(input_list) == 1 and not ref_array.ndim > 3:
         logging.error('This operation with only one operand requires 4D data.')
@@ -318,19 +327,15 @@ def mean(input_list):
 
 
 def std(input_list):
-    if not len(input_list) > 0:
-        logging.error('This operations required either one operand (4D) or'
-                      'or multiple operands (3D/4D).')
-        raise ValueError
-
-    ref_array = find_array(input_list)
-    for i in input_list:
-        if not isinstance(i, np.ndarray):
-            logging.error('All inputs must be array.')
-            raise ValueError
-        if not i.shape == ref_array.shape:
-            logging.error('All shapes must match.')
-            raise ValueError
+    """
+    std: IMGs
+        Compute the standard deviation average of multiple images.
+        If a single 4D image is provided, compute the STD along the last
+        dimension.
+    """
+    _validate_length(input_list, 1, atleast=True)
+    _validate_arrays(*input_list)
+    ref_array = input_list[0]
 
     if len(input_list) == 1 and not ref_array.ndim > 3:
         logging.error('This operation with only one operand requires 4D data.')
@@ -343,6 +348,10 @@ def std(input_list):
 
 
 def union(input_list):
+    """
+    union: IMGs
+        Binary operation to keep voxels that are in any file.
+    """
     output_data = addition(input_list)
     output_data[output_data != 0] = 1
 
@@ -350,6 +359,10 @@ def union(input_list):
 
 
 def intersection(input_list):
+    """
+    intersection: IMGs
+        Binary operation to keep the voxels that are present in all files.
+    """
     output_data = multiplication(input_list)
     output_data[output_data != 0] = 1
 
@@ -357,17 +370,13 @@ def intersection(input_list):
 
 
 def difference(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not isinstance(input_list[1], np.ndarray):
-        logging.error('.')
-        raise ValueError
+    """
+    difference: IMG_1 IMG_2
+        Binary operation to keep voxels from the first file that are not in
+        the second file.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(*input_list)
 
     output_data = copy(input_list[0]).astype(np.bool)
     output_data[input_list[1] != 0] = 0
@@ -376,13 +385,12 @@ def difference(input_list):
 
 
 def invert(input_list):
-    if not len(input_list) == 1:
-        logging.error('This operation only support one operand.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
+    """
+    invert: IMG
+        Binary operation to interchange 0 and 1 in a binary mask.
+    """
+    _validate_length(input_list, 1)
+    _validate_arrays(*input_list)
 
     output_data = np.zeros(input_list[0].shape)
     output_data[input_list[0] != 0] = 0
@@ -392,80 +400,62 @@ def invert(input_list):
 
 
 def dilation(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    dilation: IMG
+        Binary morphological operation to spatially extend the values of an
+        image to their neighbors.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(input_list[0])
+    _validate_float(input_list[1])
 
     return binary_dilation(input_list[0], iterations=int(input_list[1]))
 
 
 def erosion(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    erosion: IMG
+        Binary morphological operation to spatially shrink the volume contained
+        in a binary image.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(input_list[0])
+    _validate_float(input_list[1])
 
     return binary_erosion(input_list[0], iterations=int(input_list[1]))
 
 
 def closing(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    closing: IMG
+        Binary morphological operation, dilation followed by an erosion.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(input_list[0])
+    _validate_float(input_list[1])
 
     return binary_closing(input_list[0], iterations=int(input_list[1]))
 
 
 def opening(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    opening: IMG
+        Binary morphological operation, erosion followed by an dilation.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(input_list[0])
+    _validate_float(input_list[1])
 
     return binary_opening(input_list[0], iterations=int(input_list[1]))
 
 
 def gaussian_blur(input_list):
-    if not len(input_list) == 2:
-        logging.error('This operation only support two operands.')
-        raise ValueError
-
-    if not isinstance(input_list[0], np.ndarray):
-        logging.error('The input must be an array for this operation.')
-        raise ValueError
-
-    if not is_float(input_list[1]):
-        logging.error('Second input must be float/int for this operation.')
-        raise ValueError
+    """
+    blur: IMG
+        Apply a gaussian blur to a single image.
+    """
+    _validate_length(input_list, 2)
+    _validate_arrays(input_list[0])
+    _validate_float(input_list[1])
 
     return gaussian_filter(input_list[0], sigma=input_list[1])
