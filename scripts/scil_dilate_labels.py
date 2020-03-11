@@ -86,8 +86,8 @@ def main():
     # Check if in both: label_to_fill & not_to_fill
     fill_and_not = np.in1d(args.label_not_to_dilate, args.label_to_fill)
     if np.any(fill_and_not):
-        logging.error("Error, both in not_to_dilate and to_fill: %s",
-                      np.asarray(args.label_not_to_dilate)[fill_and_not])
+        logging.error("Error, both in not_to_dilate and to_fill: {}".format(
+                      np.asarray(args.label_not_to_dilate)[fill_and_not]))
 
     # Create background mask
     is_background_mask = np.zeros(img_shape, dtype=np.bool)
@@ -115,14 +115,14 @@ def main():
         # Check if in both: to_dilate & not_to_dilate
         dil_and_not = np.in1d(args.label_to_dilate, args.label_not_to_dilate)
         if np.any(dil_and_not):
-            logging.error("Error, both in dilate and Not to dilate: %s",
-                          np.asarray(args.label_to_dilate)[dil_and_not])
+            logging.error("Error, both in dilate and Not to dilate: {}".format(
+                          np.asarray(args.label_to_dilate)[dil_and_not]))
 
         # Check if in both: to_dilate & to_fill
         dil_and_fill = np.in1d(args.label_to_dilate, args.label_to_fill)
         if np.any(dil_and_fill):
-            logging.error("Error, both in dilate and to fill: %s",
-                          np.asarray(args.label_to_dilate)[dil_and_fill])
+            logging.error("Error, both in dilate and to fill: {}".format(
+                          np.asarray(args.label_to_dilate)[dil_and_fill]))
 
         # Create new label to dilate list
         new_label_mask = np.zeros_like(data, dtype=np.bool)
