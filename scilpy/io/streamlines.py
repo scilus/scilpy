@@ -1,15 +1,13 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from itertools import islice
 import os
-import six
 
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
-from nibabel.streamlines import Field, Tractogram
-from nibabel.streamlines.trk import (get_affine_rasmm_to_trackvis,
-                                     get_affine_trackvis_to_rasmm)
+from nibabel.streamlines import Tractogram
+from nibabel.streamlines.trk import (get_affine_trackvis_to_rasmm)
+import six
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):

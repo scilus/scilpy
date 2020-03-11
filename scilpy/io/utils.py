@@ -1,14 +1,13 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
 import shutil
-import six
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
+import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
@@ -65,6 +64,13 @@ def add_json_args(parser):
     g1.add_argument('--sort_keys',
                     action='store_true',
                     help='Sort keys in output json.')
+
+
+def add_processes_args(parser):
+    parser.add_argument('--processes', dest='nbr_processes',
+                        metavar='NBR', type=int,
+                        help='Number of sub-processes to start. \n'
+                        'Default: CPU count')
 
 
 def add_reference_arg(parser, arg_name=None):
@@ -238,7 +244,7 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
                     'overwritten. Use -f option if you want to continue.'
                     .format(cur_dir))
             else:
-                for the_file in cur_dir:
+                for the_file in os.listdir(cur_dir):
                     file_path = os.path.join(cur_dir, the_file)
                     try:
                         if os.path.isfile(file_path):

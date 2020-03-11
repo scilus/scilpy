@@ -1,11 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import division
 
-import numpy as np
+import logging
 
-from dipy.tracking.metrics import length, downsample
+from dipy.tracking.metrics import downsample, length
 from dipy.tracking.streamline import set_number_of_points
+import numpy as np
+from scipy.interpolate import splev, splprep
+from scipy.ndimage.filters import gaussian_filter1d
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
@@ -137,6 +138,53 @@ def resample_streamlines(streamlines, num_points=0, step_size=0,
         resampled_streamlines = [set_number_of_points(s, n) for s, n in
                                  zip(streamlines, nb_points)]
     return resampled_streamlines
+
+
+def smooth_line_gaussian(streamline, sigma):
+    if sigma < 0.00001:
+        ValueError('Cant have a 0 sigma with gaussian.')
+
+    nb_points = int(length(streamline))
+    if nb_points < 2:
+        logging.debug('Streamline shorter than 1mm, corner cases possible.')
+        nb_points = 2
+    sampled_streamline = set_number_of_points(streamline, nb_points)
+
+    x, y, z = sampled_streamline.T
+    x3 = gaussian_filter1d(x, sigma)
+    y3 = gaussian_filter1d(y, sigma)
+    z3 = gaussian_filter1d(z, sigma)
+    smoothed_streamline = np.asarray([x3, y3, z3]).T
+
+    # Ensure first and last point remain the same
+    smoothed_streamline[0] = streamline[0]
+    smoothed_streamline[-1] = streamline[-1]
+
+    return smoothed_streamline
+
+
+def smooth_line_spline(streamline, sigma, nb_ctrl_points):
+    if sigma < 0.00001:
+        ValueError('Cant have a 0 sigma with spline.')
+
+    nb_points = int(length(streamline))
+    if nb_points < 2:
+        logging.debug('Streamline shorter than 1mm, corner cases possible.')
+
+    if nb_ctrl_points < 3:
+        nb_ctrl_points = 3
+
+    sampled_streamline = set_number_of_points(streamline, nb_ctrl_points)
+
+    tck, u = splprep(sampled_streamline.T, s=sigma)
+    smoothed_streamline = splev(np.linspace(0, 1, 99), tck)
+    smoothed_streamline = np.squeeze(np.asarray([smoothed_streamline]).T)
+
+    # Ensure first and last point remain the same
+    smoothed_streamline[0] = streamline[0]
+    smoothed_streamline[-1] = streamline[-1]
+
+    return smoothed_streamline
 
 
 def get_theta(requested_theta, tracking_type):

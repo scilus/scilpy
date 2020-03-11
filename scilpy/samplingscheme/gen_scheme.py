@@ -36,7 +36,7 @@ def generate_scheme(nb_samples, verbose=1):
         shell_groups += ([i],)
 
     shell_groups += (list(range(S)),)
-    alphas = len(shell_groups) * (1.0,)
+    alphas = list(len(shell_groups) * (1.0,))
     weights = compute_weights(S, nb_samples, shell_groups, alphas)
 
     # Where the optimized sampling scheme is computed
