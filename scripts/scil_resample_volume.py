@@ -68,7 +68,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from %s', args.input)
+    logging.debug('Loading Raw data from {}'.format(args.input))
 
     img = nib.load(args.input)
     data = img.get_data()
@@ -84,18 +84,20 @@ def main():
         min_zoom = min(original_zooms)
         new_zooms = (min_zoom, min_zoom, min_zoom)
 
-    logging.debug('Data shape: %s', data.shape)
-    logging.debug('Data affine: %s', affine)
-    logging.debug('Data affine setup: %s', nib.aff2axcodes(affine))
-    logging.debug('Resampling data to %s with mode %s', new_zooms, args.interp)
+    logging.debug('Data shape: {}'.format(data.shape))
+    logging.debug('Data affine: {}'.format(affine))
+    logging.debug('Data affine setup: {}'.format(nib.aff2axcodes(affine)))
+    logging.debug('Resampling data to {} with mode {}'.format(
+                  new_zooms, args.interp))
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              interp_code_to_order(args.interp))
 
-    logging.debug('Resampled data shape: %s', data2.shape)
-    logging.debug('Resampled data affine: %s', affine2)
-    logging.debug('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
-    logging.debug('Saving resampled data to %s', args.output)
+    logging.debug('Resampled data shape: {}'.format(data2.shape))
+    logging.debug('Resampled data affine: {}'.format(affine2))
+    logging.debug('Resampled data affine setup: {}'.format(
+                  nib.aff2axcodes(affine2)))
+    logging.debug('Saving resampled data to {}'.format(args.output))
 
     if args.enforce_dimensions:
         computed_dims = data2.shape
