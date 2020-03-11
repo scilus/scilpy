@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 #  -*- coding: utf-8 -*-
 
+"""
+Now supports sequential filtering condition and mixed filtering object.
+For example, --atlas_roi ROI_NAME ID MODE CRITERIA
+- ROI_NAME is the filename of a Nifti
+- ID is the integer value in the atlas
+- MODE must be one of these values: 'any', 'either_end', 'both_ends'
+- CRITERIA must be one of these values: ['include', 'exclude']
+
+Multiple filtering tuples can be used and options mixed.
+A logical AND is the only behavior available. All theses filtering
+conditions will be sequentially applied.
+"""
+
 import argparse
 import json
 import logging
 import os
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -24,23 +36,10 @@ from scilpy.segment.streamlines import (filter_grid_roi,
                                         filter_ellipsoid,
                                         filter_cuboid)
 
-DESCRIPTION = """
-    Now supports sequential filtering condition and mix filtering object.
-    For example, --atlas_roi ROI_NAME ID MODE CRITERIA
-    - ROI_NAME is the filename of a Nifti
-    - ID is the integer value in the atlas
-    - MODE must be one of these values: 'any', 'either_end', 'both_ends'
-    - CRITERIA must be one of these values: ['include', 'exclude']
 
-    Multiple filtering tuples can be used and options mixed.
-    A logical AND is the only behavior available. All theses filtering
-    conditions will be sequentially applied.
-"""
-
-
-def _buildArgsParser():
+def _build_args_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
@@ -53,7 +52,7 @@ def _buildArgsParser():
     p.add_argument('--atlas_roi', nargs=4, action='append',
                    metavar=('ROI_NAME', 'ID', 'MODE', 'CRITERIA'),
                    help='Filename of an atlas (.nii or .nii.gz).')
-    p.add_argument('--bdo', dest='bdo', nargs=3, action='append',
+    p.add_argument('--bdo', nargs=3, action='append',
                    metavar=('BDO_NAME', 'MODE', 'CRITERIA'),
                    help='Filename of a bounding box (bdo) file from MI-Brain.')
 
@@ -127,7 +126,7 @@ def prepare_filtering_list(parser, args):
 
 
 def main():
-    parser = _buildArgsParser()
+    parser = _build_args_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
@@ -139,49 +138,37 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
+    # TractCount before filtering
+    sc_bf = len(sft.streamlines)
+
     for i, roi_opt in enumerate(roi_opt_list):
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
-            filter_type, filter_arg_1, filter_arg_2, \
+            filter_type, filter_arg, filter_arg_2, \
                 filter_mode, filter_criteria = roi_opt
         else:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
-        is_not = False if filter_criteria == 'include' else True
+        is_exclude = False if filter_criteria == 'include' else True
 
-        if filter_type == 'drawn_roi':
+        if filter_type == 'drawn_roi' or filter_type == 'atlas_roi':
             img = nib.load(filter_arg)
             if not is_header_compatible(img, sft):
                 parser.error('Headers from the tractogram and the mask are '
                              'not compatible.')
-
-            mask = img.get_data()
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
-
-        elif filter_type == 'atlas_roi':
-            img = nib.load(filter_arg_1)
-            if not is_header_compatible(img, sft):
-                parser.error('Headers from the tractogram and the mask are '
-                             'not compatible.')
-
-            atlas = img.get_data().astype(np.uint16)
-            mask = np.zeros(atlas.shape, dtype=np.uint16)
-            mask[atlas == int(filter_arg_2)] = 1
-
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
+            if filter_type == 'drawn_roi':
+                mask = img.get_data().astype(np.uint16)
+            else:
+                atlas = img.get_data().astype(np.uint16)
+                mask = np.zeros(atlas.shape, dtype=np.uint16)
+                mask[atlas == int(filter_arg_2)] = 1
+            filtered_sft, indexes = filter_grid_roi(sft, mask,
+                                                    filter_mode, is_exclude)
 
         # For every case, the input number must be greater or equal to 0 and
         # below the dimension, since this is a voxel space operation
         elif filter_type in ['x_plane', 'y_plane', 'z_plane']:
             filter_arg = int(filter_arg)
-            _, dim, _, _ = sft.space_attribute
+            _, dim, _, _ = sft.space_attributes
             mask = np.zeros(dim, dtype=np.int16)
             error_msg = None
             if filter_type == 'x_plane':
@@ -206,44 +193,26 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
-            filtered_streamlines, indexes = filter_grid_roi(
-                sft,
-                mask,
-                filter_mode,
-                is_not)
+            filtered_sft, indexes = filter_grid_roi(sft, mask,
+                                                    filter_mode, is_exclude)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
             if geometry == 'Ellipsoid':
-                filtered_streamlines, indexes = filter_ellipsoid(
-                    sft,
-                    radius,
-                    center,
-                    filter_mode,
-                    is_not)
+                filtered_sft, indexes = filter_ellipsoid(sft,
+                                                         radius, center,
+                                                         filter_mode, is_exclude)
             elif geometry == 'Cuboid':
-                filtered_streamlines, indexes = filter_cuboid(
-                    sft,
-                    radius,
-                    center,
-                    filter_mode,
-                    is_not)
+                filtered_sft, indexes = filter_cuboid(sft,
+                                                      radius, center,
+                                                      filter_mode, is_exclude)
 
         logging.debug('The filtering options {0} resulted in '
-                      '{1} streamlines'.format(roi_opt,
-                                               len(filtered_streamlines)))
+                      '{1} streamlines'.format(roi_opt, len(filtered_sft)))
 
-        data_per_streamline = sft.data_per_streamline[indexes]
-        data_per_point = sft.data_per_point[indexes]
+        sft = filtered_sft
 
-        # TractCount before filtering
-        tc_bf = len(sft.streamlines)
-
-        sft = StatefulTractogram(filtered_streamlines, sft, Space.RASMM,
-                                 data_per_streamline=data_per_streamline,
-                                 data_per_point=data_per_point)
-
-    if not filtered_streamlines:
+    if not filtered_sft:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
                 args.out_tractogram))
@@ -255,11 +224,11 @@ def main():
 
     save_tractogram(sft, args.out_tractogram)
 
-    # TractCount after filtering
-    tc_af = len(sft.streamlines)
+    # Streamline count after filtering
+    sc_af = len(sft.streamlines)
     if args.display_counts:
-        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
 
