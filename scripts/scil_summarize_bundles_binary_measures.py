@@ -231,7 +231,7 @@ def main():
                 if measure_name not in output_binary_dict:
                     output_binary_dict[measure_name] = []
                 output_binary_dict[measure_name].append(
-                    binary_dict[measure_name])
+                    float(binary_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
         json.dump(output_binary_dict, outfile, indent=1)
