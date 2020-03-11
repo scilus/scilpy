@@ -6,9 +6,15 @@ Compute well-known binary measures between gold standard and bundles.
 All tractograms must be trk files and headers must be identical.
 The measures can be applied to voxel-wise or streamline-wise representation.
 
-A gold standard must be provided for the desired representation, if only the
-streamline-wise representation is provided a voxel-wise gold standard will be
-computed. At least one of the two representations is required.
+A gold standard must be provided for the desired representation. 
+A gold standard would be a segmentation from an expert or a group of experts.
+If only the streamline-wise representation is provided a voxel-wise gold 
+standard will be computed. At least one of the two representations is required.
+
+The original tractogram is the tractogram (whole brain most likely) from which
+the segmentation is performed.
+the original tracking mask is the tracking mask used by the tractography
+algorighm to generate the original tractogram.
 """
 
 import argparse
@@ -39,20 +45,20 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('bundles', nargs='+',
-                   help='Path of the input bundles')
-    p.add_argument('output',
-                   help='Path of the output file')
+    p.add_argument('in_bundles', nargs='+',
+                   help='Path of the input bundles.')
+    p.add_argument('out_json',
+                   help='Path of the output json.')
     p.add_argument('--streamlines_measures', nargs=2,
                    metavar=('GOLD STANDARD', 'TRACTOGRAM'),
-                   help='The gold standard bundle and the original tractogram')
+                   help='The gold standard bundle and the original tractogram.')
     p.add_argument('--voxels_measures', nargs=2,
                    metavar=('GOLD STANDARD', 'TRACKING MASK'),
-                   help='The gold standard mask and the original tracking mask')
+                   help='The gold standard mask and the original tracking mask.')
     p.add_argument('--files_exist', action='store_false',
-                   help='Disable the verification of input files')
+                   help='Disable the verification of input files.')
     p.add_argument('--processes', type=int,
-                   help='Number of processes to use [ALL]')
+                   help='Number of processes to use [ALL].')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -67,7 +73,7 @@ def compute_voxel_measures(args):
     gs_binary_3d = args[2]
 
     if not os.path.isfile(bundle_filename):
-        logging.info('{0} does not exist'.format(bundle_filename))
+        logging.info('{} does not exist'.format(bundle_filename))
         return None
 
     bundle_sft = load_tractogram(bundle_filename, bundle_reference)
@@ -77,7 +83,7 @@ def compute_voxel_measures(args):
     _, bundle_dimensions, _, _ = bundle_sft.space_attributes
 
     if not bundle_streamlines:
-        logging.info('{0} is empty'.format(bundle_filename))
+        logging.info('{} is empty'.format(bundle_filename))
         return None
 
     binary_3d = compute_tract_counts_map(bundle_streamlines, bundle_dimensions)
@@ -107,7 +113,7 @@ def compute_streamlines_measures(args):
     gs_streamlines_indices = args[2]
 
     if not os.path.isfile(bundle_filename):
-        logging.info('{0} does not exist'.format(bundle_filename))
+        logging.info('{} does not exist'.format(bundle_filename))
         return None
 
     bundle_sft = load_tractogram(bundle_filename, bundle_reference)
@@ -117,7 +123,7 @@ def compute_streamlines_measures(args):
     _, bundle_dimensions, _, _ = bundle_sft.space_attributes
 
     if not bundle_streamlines:
-        logging.info('{0} is empty'.format(bundle_filename))
+        logging.info('{} is empty'.format(bundle_filename))
         return None
 
     _, streamlines_indices = perform_streamlines_operation(intersection,
@@ -147,8 +153,8 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     if args.files_exist:
-        assert_inputs_exist(parser, args.bundles)
-    assert_outputs_exist(parser, args, [args.output])
+        assert_inputs_exist(parser, args.in_bundles)
+    assert_outputs_exist(parser, args, [args.out_json])
 
     if (not args.streamlines_measures) and (not args.voxels_measures):
         parser.error('At least one of the two modes is needed')
@@ -162,7 +168,7 @@ def main():
 
     all_binary_metrics = []
     bundles_references_tuple_extended = link_bundles_and_reference(
-        parser, args, args.bundles)
+        parser, args, args.in_bundles)
 
     if args.streamlines_measures:
         # Gold standard related indices are computed once
@@ -227,7 +233,7 @@ def main():
                 output_binary_dict[measure_name].append(
                     binary_dict[measure_name])
 
-    with open(args.output, 'w') as outfile:
+    with open(args.out_json, 'w') as outfile:
         json.dump(output_binary_dict, outfile, indent=1)
 
 

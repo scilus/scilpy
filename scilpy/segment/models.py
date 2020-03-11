@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 # encoding: utf-8
 
 import logging
 
-import numpy as np
 from dipy.align.bundlemin import distance_matrix_mdf
-from dipy.tracking.streamline import set_number_of_points
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
+from dipy.tracking.streamline import set_number_of_points
+import numpy as np
 
 
 def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
