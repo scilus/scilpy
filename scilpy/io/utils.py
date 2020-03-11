@@ -147,7 +147,7 @@ def assert_inputs_exist(parser, required, optional=None):
 
 
 def assert_outputs_exist(parser, args, required, optional=None,
-                         check_dir_exist=False):
+                         check_dir_exists=False):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
@@ -156,17 +156,17 @@ def assert_outputs_exist(parser, args, required, optional=None,
     :param required: string or list of paths
     :param optional: string or list of paths.
                      Each element will be ignored if None
-    :param check_dir_exist: test if output directory exist
+    :param check_dir_exists: test if output directory exists
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
                          'overwriting'.format(path))
 
-        if check_dir_exist:
+        if check_dir_exists:
             path_dir = os.path.dirname(path)
             if path_dir and not os.path.isdir(path_dir):
-                parser.error('Directory {}  for a given output file '
+                parser.error('Directory {} for a given output file '
                              'does not exists.'.format(path_dir))
 
     if isinstance(required, str):
