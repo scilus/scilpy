@@ -53,7 +53,7 @@ def main():
     args = parser.parse_args()
     swap = args.swap
 
-    assert_inputs_exist(parser, [args.in_bundle, args.reference])
+    assert_inputs_exist(parser, args.in_bundle, args.reference)
     assert_outputs_exist(parser, args, [args.endpoints_map_head,
                                         args.endpoints_map_tail])
 
@@ -63,7 +63,7 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    transfo, dim, _, _ = sft.space_attribute
+    transfo, dim, _, _ = sft.space_attributes
 
     endpoints_map_head = np.zeros(dim)
     endpoints_map_tail = np.zeros(dim)
@@ -85,7 +85,7 @@ def main():
     nib.save(nib.Nifti1Image(endpoints_map_head, transfo), head_name)
     nib.save(nib.Nifti1Image(endpoints_map_tail, transfo), tail_name)
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
     bundle_name_head = bundle_name + '_head'
     bundle_name_tail = bundle_name + '_tail'
 
