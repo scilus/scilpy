@@ -9,10 +9,8 @@
 # et al., MRM 69(6), pp. 1534-1540, 2013.      #
 # This software comes with no warranty, etc.   #
 ################################################
-
-import numpy as np
-
 from scipy import optimize
+import numpy as np
 
 
 def equality_constraints(bvecs, *args):
