@@ -33,7 +33,7 @@ import logging
 import os
 
 import coloredlogs
-from dipy.io.utils import is_header_compatible
+from dipy.io.utils import is_header_compatible, get_reference_info
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 import nibabel as nib
@@ -63,6 +63,9 @@ def load_node_nifti(directory, in_label, out_label, ref_filename):
                           in_filename, ref_filename)
             raise IOError
         return nib.load(in_filename).get_data()
+
+    _, dims, _, _ = get_reference_info(ref_filename)
+    return np.zeros(dims)
 
 
 def _processing_wrapper(args):
