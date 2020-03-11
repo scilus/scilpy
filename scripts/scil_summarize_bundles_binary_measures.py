@@ -35,7 +35,7 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -140,7 +140,7 @@ def compute_streamlines_measures(args):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
