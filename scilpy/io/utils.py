@@ -67,6 +67,13 @@ def add_json_args(parser):
                     help='Sort keys in output json.')
 
 
+def add_processes_args(parser):
+    parser.add_argument('--processes', dest='nbr_processes',
+                        metavar='NBR', type=int,
+                        help='Number of sub-processes to start. \n'
+                        'Default: CPU count')
+
+
 def add_reference_arg(parser, arg_name=None):
     if arg_name:
         parser.add_argument('--'+arg_name+'_ref',
@@ -230,7 +237,7 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
                     'overwritten. Use -f option if you want to continue.'
                     .format(cur_dir))
             else:
-                for the_file in cur_dir:
+                for the_file in os.listdir(cur_dir):
                     file_path = os.path.join(cur_dir, the_file)
                     try:
                         if os.path.isfile(file_path):
