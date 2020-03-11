@@ -2,11 +2,11 @@
 
 import logging
 
-from dipy.tracking.metrics import downsample, length
-from dipy.tracking.streamline import set_number_of_points
 import numpy as np
-from scipy.interpolate import splev, splprep
+from dipy.tracking.metrics import length, downsample
+from dipy.tracking.streamline import set_number_of_points
 from scipy.ndimage.filters import gaussian_filter1d
+from scipy.interpolate import splprep, splev
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
