@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Prepare a typical command for eddy and create the necessary files.
+"""
 
 from __future__ import print_function
 import argparse
@@ -16,13 +19,8 @@ from scilpy.preprocessing.distortion_correction import create_acqparams, \
     create_index, create_non_zero_norm_bvecs
 
 
-DESCRIPTION = """
-Prepare a typical command for eddy and create the necessary files.
- """
-
-
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('input_dwi',

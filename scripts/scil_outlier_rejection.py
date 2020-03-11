@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Clean a bundle (inliers/outliers) using hiearchical clustering.
+http://archive.ismrm.org/2015/2844.html
+"""
 
 import argparse
 import logging
@@ -16,15 +20,10 @@ from scilpy.tractanalysis.features import (
     outliers_removal_using_hierarchical_quickbundles,
     prune)
 
-DESCRIPTION = """
-Clean a bundle (inliers/outliers) using hiearchical clustering.
-http://archive.ismrm.org/2015/2844.html
-"""
-
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('in_bundle',
                         help='Fiber bundle file to remove outliers from.')

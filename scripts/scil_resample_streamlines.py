@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Resample a set of streamlines.
+'WARNING: data_per_point is not carried
+"""
+
 import argparse
 
 from nibabel.streamlines import load, save, Tractogram
@@ -13,8 +19,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Resample a set of streamlines.\n'
-                    'WARNING: data_per_point is not carried')
+        description=__doc__)
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('nb_pts_per_streamline', type=int,
