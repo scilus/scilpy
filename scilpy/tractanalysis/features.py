@@ -1,11 +1,10 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from builtins import range
 from itertools import count, takewhile
 import logging
 
-from dipy.segment.clustering import qbx_and_merge, QuickBundles, Cluster
+from dipy.segment.clustering import Cluster, QuickBundles, qbx_and_merge
 from dipy.tracking import metrics as tm
 import numpy as np
 

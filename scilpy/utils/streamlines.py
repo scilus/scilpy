@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from functools import reduce
@@ -6,9 +5,9 @@ import itertools
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
-from scipy import ndimage
-
+from scipy.ndimage import map_coordinates
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -124,11 +123,9 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def warp_tractogram(streamlines, transfo, deformation_data, source):
-    """
-    Warp tractogram using a deformation map.
+def warp_streamlines(sft, deformation_data, source):
+    """ Warp tractogram using a deformation map. Apply warp in-place.
     Support Ants and Dipy deformation map.
-    Apply warp in-place
 
     Parameters
     ----------
@@ -141,7 +138,10 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
     source: str
         Source of the deformation map [ants, dipy]
     """
-
+    sft.to_rasmm()
+    sft.to_center()
+    streamlines = sft.streamlines
+    transfo = sft.affine
     if source == 'ants':
         flip = [-1, -1, 1]
     elif source == 'dipy':
@@ -149,48 +149,44 @@ def warp_tractogram(streamlines, transfo, deformation_data, source):
 
     # Because of duplication, an iteration over chunks of points is necessary
     # for a big dataset (especially if not compressed)
+    streamlines = ArraySequence(streamlines)
     nb_points = len(streamlines._data)
-    current_position = 0
+    cur_position = 0
     chunk_size = 1000000
     nb_iteration = int(np.ceil(nb_points/chunk_size))
     inv_transfo = np.linalg.inv(transfo)
 
     while nb_iteration > 0:
-        max_position = min(current_position + chunk_size, nb_points)
-        streamline = streamlines._data[current_position:max_position]
+        max_position = min(cur_position + chunk_size, nb_points)
+        points = streamlines._data[cur_position:max_position]
 
         # To access the deformation information, we need to go in voxel space
-        streamline_vox = transform_streamlines(streamline,
-                                               inv_transfo)
+        # No need for corner shift since we are doing interpolation
+        cur_points_vox = np.array(transform_streamlines(points,
+                                                        inv_transfo)).T
 
-        current_streamline_vox = np.array(streamline_vox).T
-        current_streamline_vox_list = current_streamline_vox.tolist()
-
-        x_def = ndimage.map_coordinates(deformation_data[..., 0],
-                                        current_streamline_vox_list, order=1)
-        y_def = ndimage.map_coordinates(deformation_data[..., 1],
-                                        current_streamline_vox_list, order=1)
-        z_def = ndimage.map_coordinates(deformation_data[..., 2],
-                                        current_streamline_vox_list, order=1)
+        x_def = map_coordinates(deformation_data[..., 0],
+                                cur_points_vox.tolist(), order=1)
+        y_def = map_coordinates(deformation_data[..., 1],
+                                cur_points_vox.tolist(), order=1)
+        z_def = map_coordinates(deformation_data[..., 2],
+                                cur_points_vox.tolist(), order=1)
 
         # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
-        final_streamline = np.array([flip[0]*x_def,
-                                     flip[1]*y_def,
-                                     flip[2]*z_def])
+        final_points = np.array([flip[0]*x_def, flip[1]*y_def, flip[2]*z_def])
 
-        # The deformation obtained is in worldSpace
+        # The Ants deformation is relative to world space
         if source == 'ants':
-            final_streamline += np.array(streamline).T
+            final_points += np.array(points).T
+        # Dipy transformation is relative to vox space
         elif source == 'dipy':
-            final_streamline += current_streamline_vox
-            # The tractogram need to be brought back in world space to be saved
-            final_streamline = transform_streamlines(final_streamline,
-                                                     transfo)
-
-        streamlines._data[current_position:max_position] \
-            = final_streamline.T
-        current_position = max_position
+            final_points += cur_points_vox
+            transform_streamlines(final_points, transfo, in_place=True)
+        streamlines._data[cur_position:max_position] = final_points.T
+        cur_position = max_position
         nb_iteration -= 1
+
+        return streamlines
 
 
 def filter_tractogram_data(tractogram, streamline_ids):

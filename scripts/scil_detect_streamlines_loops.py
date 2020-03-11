@@ -1,6 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+This script can be used to remove loops in two types of streamline datasets:
+
+  - Whole brain: For this type, the script removes streamlines if they
+    make a loop with an angle of more than 360 degrees. It's possible to change
+    this angle with the -a option. Warning: Don't use --qb option for a
+    whole brain tractography.
+
+  - Bundle dataset: For this type, it is possible to remove loops and
+    streamlines outside of the bundle. For the sharp angle turn, use --qb
+    option.
+
+----------------------------------------------------------------------------
+Reference:
+QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
+----------------------------------------------------------------------------
+"""
+
 import argparse
 import logging
 
@@ -17,28 +35,9 @@ from scilpy.utils.streamlines import filter_tractogram_data
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
 
-DESCRIPTION = """
-This script can be used to remove loops in two types of streamline datasets:
-
-  - Whole brain: For this type, the script removes streamlines if they
-    make a loop with an angle of more than 360 degrees. It's possible to change
-    this angle with the -a option. Warning: Don't use --qb option for a
-    whole brain tractography.
-
-  - Bundle dataset: For this type, it is possible to remove loops and
-    streamlines outside of the bundle. For the sharp angle turn,
-    use --qb option.
-
-----------------------------------------------------------------------------
-Reference:
-QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
-----------------------------------------------------------------------------
-"""
-
-
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
@@ -59,6 +58,7 @@ def _build_arg_parser():
                         'a streamline in degrees. [%(default)s]')
 
     add_overwrite_arg(p)
+
     add_reference_arg(p)
 
     return p
