@@ -28,7 +28,7 @@ def _build_args_parser():
         description=DESCRIPTION)
 
     p.add_argument(
-        'scheme_file', action='store', metavar='scheme_file',
+        'scheme_file', metavar='scheme_file',
         help='Sampling scheme filename. (only accepts .txt or .caru or '
              '.bvecs and .bvals or .b or .dir or .dvs)')
 

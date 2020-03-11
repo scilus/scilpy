@@ -25,16 +25,16 @@ def interp_code_to_order(interp_code):
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input', action='store', metavar='in_vol', type=str,
+    p.add_argument('input', metavar='in_vol',
                    help='Path of the input volume.')
-    p.add_argument('output', action='store', metavar='out_vol', type=str,
+    p.add_argument('output', metavar='out_vol',
                    help='Path of the resampled volume.')
 
     res_group = p.add_mutually_exclusive_group(required=True)
-    res_group.add_argument('--ref', action='store', metavar='ref_vol',
+    res_group.add_argument('--ref', metavar='ref_vol',
                            help='Reference volume to resample to.')
     res_group.add_argument(
-        '--resolution', action='store', metavar='float', type=float,
+        '--resolution', metavar='float', type=float,
         help='Resolution to resample to. If the value it is set to is Y, it '
              'will resample to an isotropic resolution of Y x Y x Y.')
     res_group.add_argument(
@@ -43,7 +43,7 @@ def _build_args_parser():
              'current voxel dimension ')
 
     p.add_argument(
-        '--interp', action='store', default='lin', type=str,
+        '--interp', default='lin',
         choices=['nn', 'lin', 'quad', 'cubic'],
         help="Interpolation mode.\nnn: nearest neighbour\nlin: linear\n"
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
