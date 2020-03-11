@@ -35,11 +35,11 @@ def _build_args_parser():
     p.add_argument('out_surface',
                    help='Output flipped surface (formats supported by VTK).')
 
-    p.add_argument('-x', action='store_true',
+    p.add_argument('-x', action="store_const", const=-1, default=1,
                    help='If supplied, flip the x axis.')
-    p.add_argument('-y', action='store_true',
+    p.add_argument('-y', action="store_const", const=-1, default=1,
                    help='If supplied, flip the y axis.')
-    p.add_argument('-z', action='store_true',
+    p.add_argument('-z', action="store_const", const=-1, default=1,
                    help='If supplied, flip the z axis.')
 
     p.add_argument('-n', '--inverse_normal', action='store_true',
@@ -63,9 +63,7 @@ def main():
     mesh = load_mesh_from_file(args.surface)
 
     # Flip axes
-    flip = [-1 if args.x else 1,
-            -1 if args.y else 1,
-            -1 if args.z else 1]
+    flip = [args.x, args.y, args.z]
     tris, vts = mesh.flip_triangle_and_vertices(flip)
     mesh.set_vertices(vts)
     mesh.set_triangles(tris)

@@ -45,7 +45,7 @@ def _build_args_parser():
                    help='Output surface (formats supported by VTK).')
 
     p.add_argument('--ants_warp',
-                   help='Warp image from ANTs.')
+                   help='Warp image from ANTs (NIfTI format).')
 
     add_overwrite_arg(p)
     return p
@@ -63,7 +63,7 @@ def main():
     mesh = load_mesh_from_file(args.surface)
 
     # Affine transformation
-    if args.ants_affine is not None:
+    if args.ants_affine:
         # Load affine
         affine = np.loadtxt(args.ants_affine)
         inv_affine = np.linalg.inv(affine)
@@ -75,10 +75,10 @@ def main():
         if mesh.is_transformation_flip(inv_affine):
             mesh.set_triangles(mesh.triangles_face_flip())
 
-    if args.ants_warp is not None:
+    if args.ants_warp:
         # Load warp
         warp_img = nib.load(args.ants_warp)
-        warp = np.squeeze(warp_img.get_data())
+        warp = np.squeeze(warp_img.get_fdata())
 
         # Get vertices translation in voxel space, from the warp image
         vts_vox = vtk_u.vtk_to_vox(mesh.get_vertices(), warp_img)
