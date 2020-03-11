@@ -17,14 +17,13 @@ import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty,
-                             add_reference_arg)
-from scilpy.utils.filenames import split_name_with_nii
+                             assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import \
-     compute_tract_counts_map
+    compute_tract_counts_map
 from scilpy.tractanalysis.uncompress import uncompress
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def _build_arg_parser():

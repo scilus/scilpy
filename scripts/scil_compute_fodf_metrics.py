@@ -27,14 +27,15 @@ definitions.
 """
 
 from __future__ import division, print_function
+
 import argparse
 import os
-import numpy as np
-import nibabel as nib
 
 from dipy.core.ndindex import ndindex
 from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
+import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)

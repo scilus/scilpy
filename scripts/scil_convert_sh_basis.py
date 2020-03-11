@@ -4,13 +4,13 @@
 import argparse
 
 from dipy.data import get_sphere
-from dipy.reconst.shm import sph_harm_lookup, smooth_pinv
+from dipy.reconst.shm import smooth_pinv, sph_harm_lookup
 import nibabel as nib
 import numpy as np
 
-from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.reconst.utils import find_order_from_nb_coeff
 
 DESCRIPTION = """
     Convert a SH file between the two commonly used bases

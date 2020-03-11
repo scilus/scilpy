@@ -11,9 +11,9 @@ import multiprocessing
 import os
 import shutil
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram, save_tractogram
-from dipy.io.utils import is_header_compatible, get_reference_info
+from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
 import nibabel as nib
 import numpy as np
@@ -24,14 +24,10 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_reference)
-from scilpy.tractanalysis.reproducibility_measures \
-    import (compute_dice_voxel,
-            compute_bundle_adjacency_streamlines,
-            compute_bundle_adjacency_voxel,
-            compute_dice_streamlines,
-            get_endpoints_density_map)
+from scilpy.tractanalysis.reproducibility_measures import (
+    compute_bundle_adjacency_streamlines, compute_bundle_adjacency_voxel,
+    compute_dice_streamlines, compute_dice_voxel, get_endpoints_density_map)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-
 
 DESCRIPTION = """
 Compute pair-wise similarity measures of bundles.

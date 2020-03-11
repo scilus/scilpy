@@ -13,7 +13,6 @@ import os
 
 from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
-
 import nibabel as nib
 import numpy as np
 

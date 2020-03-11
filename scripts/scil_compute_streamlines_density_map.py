@@ -10,8 +10,8 @@ This script correctly handles compressed streamlines.
 """
 import argparse
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,

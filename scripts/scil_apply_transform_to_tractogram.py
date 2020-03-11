@@ -15,6 +15,7 @@ from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamline import transform_streamlines
 import numpy as np
 
+
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)

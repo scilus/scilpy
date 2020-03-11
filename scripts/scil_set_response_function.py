@@ -5,6 +5,7 @@ from __future__ import division, print_function
 
 import argparse
 from ast import literal_eval
+
 import numpy as np
 
 from scilpy.io.utils import (

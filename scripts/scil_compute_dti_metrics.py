@@ -24,27 +24,27 @@ MRM 2011].
 
 from __future__ import division, print_function
 
-from builtins import range
 import argparse
+from builtins import range
 import logging
-
-import matplotlib.pyplot as plt
-import nibabel as nib
-import numpy as np
 
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
-                              geodesic_anisotropy, mean_diffusivity,
-                              axial_diffusivity, norm,
-                              radial_diffusivity, lower_triangular)
 # Aliased to avoid clashes with images called mode.
-from dipy.reconst.dti import mode as dipy_mode
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold)
+from dipy.reconst.dti import (TensorModel, axial_diffusivity, color_fa,
+                              fractional_anisotropy, geodesic_anisotropy,
+                              lower_triangular,
+                              mean_diffusivity, mode as dipy_mode, norm,
+                              radial_diffusivity)
+import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
+
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+                                          is_normalized_bvecs, normalize_bvecs)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 
 logger = logging.getLogger("Compute_DTI_Metrics")

@@ -13,7 +13,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              check_tracts_same_format)
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
-
 DESCRIPTION = """
 This script can be used to remove loops in two types of streamline datasets:
 

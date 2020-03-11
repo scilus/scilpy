@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -13,7 +14,6 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         build_shell_idx_from_bval,
                                         plot_each_shell,
                                         plot_proj_shell)
-
 
 DESCRIPTION = """
 Vizualisation for sampling schemes.

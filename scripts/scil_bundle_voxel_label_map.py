@@ -13,13 +13,11 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_verbose_arg)
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
 def _build_arg_parser():

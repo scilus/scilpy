@@ -9,10 +9,10 @@ reference dataset or to the resolution specified as in argument.
 import argparse
 import logging
 
-from scilpy.image.reslice import reslice
 import nibabel as nib
 import numpy as np
 
+from scilpy.image.reslice import reslice
 from scilpy.io.utils import (
     add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 

@@ -5,11 +5,11 @@
 Create a json file with DWI, T1 and fmap informations from BIDS folder
 """
 
+import argparse
+import json
 import os
 
-import argparse
 from bids import BIDSLayout
-import json
 
 from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 

@@ -3,8 +3,8 @@
 
 import argparse
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 
 DESCRIPTION = "Script to convert bval/bvec FSL style to MRtrix style."

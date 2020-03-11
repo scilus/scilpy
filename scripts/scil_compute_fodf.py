@@ -22,18 +22,18 @@ import warnings
 
 from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
-from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.direction.peaks import (peaks_from_model,
                                   reshape_peaks_for_visualization)
+from dipy.io.gradients import read_bvals_bvecs
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args)
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
-                                          is_normalized_bvecs)
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+                             add_sh_basis_args, assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+                                          is_normalized_bvecs, normalize_bvecs)
 
 
 def _build_arg_parser():

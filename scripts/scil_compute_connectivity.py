@@ -20,8 +20,8 @@ NOTE: this script can take a while to run. Please be patient.
 
 from __future__ import division
 
-from builtins import zip
 import argparse
+from builtins import zip
 import logging
 import os
 import time
@@ -36,8 +36,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.tractanalysis.features import (remove_outliers,
-                                           remove_loops_and_sharp_turns)
+from scilpy.tractanalysis.features import (remove_loops_and_sharp_turns,
+                                           remove_outliers)
 from scilpy.tractanalysis.tools import (compute_connectivity,
                                         compute_streamline_segment,
                                         extract_longest_segments_from_profile)

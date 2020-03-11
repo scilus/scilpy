@@ -8,11 +8,12 @@ N4BiasFieldCorrection executable to compute the bias field
 """
 
 from __future__ import division
-from past.utils import old_div
+
 import argparse
 
 import nibabel as nib
 import numpy as np
+from past.utils import old_div
 
 from scilpy.io.utils import (
     add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)

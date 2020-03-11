@@ -16,13 +16,11 @@ from __future__ import division
 import argparse
 import logging
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_verbose_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_arg_parser():

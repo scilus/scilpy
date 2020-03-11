@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import argparse
 import json
 import logging
@@ -8,7 +9,6 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -16,6 +16,7 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tracking.tools import filter_streamlines_by_length
 
 
 def _build_args_parser():

@@ -5,7 +5,7 @@ import argparse
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible, get_reference_info
+from dipy.io.utils import get_reference_info, is_header_compatible
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -17,8 +17,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      intersection, union)
+from scilpy.utils.streamlines import (intersection,
+                                      perform_streamlines_operation, union)
 
 DESCRIPTION = """
 Use multiple bundles to perform a voxel-wise vote (occurence across input).

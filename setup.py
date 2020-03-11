@@ -2,8 +2,9 @@ import os
 
 from Cython.Build import cythonize
 import numpy
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.extension import Extension
+
 PACKAGES = find_packages()
 
 # Get version and release info, which is all stored in scilpy/version.py

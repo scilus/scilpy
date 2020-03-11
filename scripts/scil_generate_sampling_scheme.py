@@ -3,24 +3,23 @@
 
 import argparse
 import logging
+
 import numpy as np
 
-from scilpy.io.utils import (assert_outputs_exist,
-                             add_overwrite_arg, add_verbose_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_outputs_exist)
 from scilpy.samplingscheme.gen_scheme import generate_scheme
-from scilpy.samplingscheme.optimize_scheme import (add_b0s,
-                                                   add_bvalue_b0,
+from scilpy.samplingscheme.optimize_scheme import (add_b0s, add_bvalue_b0,
                                                    compute_bvalue_lin_b,
                                                    compute_bvalue_lin_q,
-                                                   correct_b0s_philips,
                                                    compute_min_duty_cycle_bruteforce,
+                                                   correct_b0s_philips,
                                                    swap_sampling_eddy)
 from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
                                                save_scheme_caru,
+                                               save_scheme_mrtrix,
                                                save_scheme_philips,
-                                               save_scheme_siemens,
-                                               save_scheme_mrtrix)
-
+                                               save_scheme_siemens)
 
 DESCRIPTION = """
 Generate multi-shell sampling schemes with various processing to accelerate

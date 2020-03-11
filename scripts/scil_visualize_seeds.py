@@ -9,8 +9,8 @@ in a tractogram
 import argparse
 
 from dipy.io.streamline import load_tractogram
-from fury import window, actor
-from nibabel.streamlines import detect_format, TrkFile
+from fury import actor, window
+from nibabel.streamlines import TrkFile, detect_format
 
 from scilpy.io.utils import (
     add_overwrite_arg,

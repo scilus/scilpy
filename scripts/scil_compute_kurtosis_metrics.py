@@ -42,26 +42,22 @@ therein.
 
 from __future__ import division, print_function
 
-from builtins import range
 import argparse
+from builtins import range
 import logging
 
-import nibabel as nib
-import numpy as np
-
+from dipy.core.gradients import gradient_table
+from dipy.io.gradients import read_bvals_bvecs
 import dipy.reconst.dki as dki
 import dipy.reconst.msdki as msdki
-
-from dipy.io.gradients import read_bvals_bvecs
-from dipy.core.gradients import gradient_table
-
+import nibabel as nib
+import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold,
-                                          identify_shells)
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold, identify_shells,
+                                          is_normalized_bvecs, normalize_bvecs)
 
 
 def _build_args_parser():

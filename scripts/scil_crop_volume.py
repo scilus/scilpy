@@ -11,12 +11,11 @@ it's looking for non-zero data. Therefore, you should validate the results on
 other types of images that haven't been masked.
 """
 
-from builtins import range
-from builtins import object
 import argparse
+from builtins import object, range
 import pickle
 
-from dipy.segment.mask import crop, bounding_box
+from dipy.segment.mask import bounding_box, crop
 import nibabel as nib
 import numpy as np
 

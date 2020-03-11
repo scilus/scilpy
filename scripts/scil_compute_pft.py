@@ -26,22 +26,21 @@ from __future__ import division
 import argparse
 import logging
 
-from dipy.data import get_sphere, HemiSphere
-from dipy.direction import (ProbabilisticDirectionGetter,
-                            DeterministicMaximumDirectionGetter)
+from dipy.data import HemiSphere, get_sphere
+from dipy.direction import (DeterministicMaximumDirectionGetter,
+                            ProbabilisticDirectionGetter)
+from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
-from dipy.tracking import utils as track_utils
-from dipy.tracking.streamlinespeed import length, compress_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines, length
 import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
-from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, create_header_from_anat)
 from scilpy.tracking.tools import get_theta
 
 

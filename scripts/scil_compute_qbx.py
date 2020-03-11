@@ -10,11 +10,10 @@ from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import qbx_and_merge
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             assert_outputs_exist)
 
 DESCRIPTION = """
     Compute clusters using QuickBundlesX and save them separately.

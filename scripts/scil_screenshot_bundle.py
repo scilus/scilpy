@@ -27,11 +27,11 @@ from nilearn import plotting
 import numpy as np
 from scipy.ndimage import map_coordinates
 
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 

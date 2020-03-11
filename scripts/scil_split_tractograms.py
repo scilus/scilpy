@@ -9,8 +9,8 @@ from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_reference_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 
 DESCRIPTION = """
     Split a tractogram into multiple files, 2 options available :

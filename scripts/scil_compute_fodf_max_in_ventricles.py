@@ -6,15 +6,15 @@ Script to compute the maximum fODF in the ventricles.
 """
 
 from __future__ import division, print_function
-from builtins import str
-from builtins import range
-from past.utils import old_div
+
 import argparse
+from builtins import range, str
 import logging
 
 from dipy.data import get_sphere
 import nibabel as nib
 import numpy as np
+from past.utils import old_div
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)

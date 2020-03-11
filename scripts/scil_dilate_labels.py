@@ -11,7 +11,6 @@ from scipy.spatial.ckdtree import cKDTree
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
-
 DESCRIPTION = """
     Dilate regions (with or without masking) from a labeled volume:
     - "label_to_dilate" are regions that will dilate over

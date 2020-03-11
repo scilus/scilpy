@@ -31,8 +31,8 @@ Example data and usage available at: https://zenodo.org/deposit/3613688
 """
 
 import argparse
-import logging
 import json
+import logging
 import os
 import random
 

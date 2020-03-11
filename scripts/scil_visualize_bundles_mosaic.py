@@ -8,17 +8,15 @@ The script will output a mosaic (image) with screenshots,
 """
 
 from __future__ import division, print_function
+
 import argparse
 import logging
 import os
 import shutil
 
-import nibabel as nib
+from PIL import Image, ImageDraw, ImageFont
 from fury import actor, window
-
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
+import nibabel as nib
 
 from scilpy.io.utils import (
     add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)

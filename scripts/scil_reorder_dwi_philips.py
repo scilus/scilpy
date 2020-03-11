@@ -14,7 +14,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 
-
 DESCRIPTION = """
 Re-order gradient according to original table
  """

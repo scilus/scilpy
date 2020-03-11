@@ -23,20 +23,19 @@ from dipy.data import SPHERE_FILES, get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
+from dipy.tracking import utils as track_utils
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
-from dipy.tracking.streamlinespeed import length, compress_streamlines
-from dipy.tracking import utils as track_utils
+from dipy.tracking.streamlinespeed import compress_streamlines, length
 import nibabel as nib
 from nibabel.streamlines.tractogram import LazyTractogram
 import numpy as np
 
+from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist, create_header_from_anat)
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
-from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
 

@@ -18,7 +18,6 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
-
 DESCRIPTION = """
     Generation of priors and enhanced-FOD from an example/template bundle.
     The bundle must have been cleaned thorougly before use. The E-FOD can then

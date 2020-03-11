@@ -2,21 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import os
 import logging
+import os
 
-from fury import window, actor, interactor
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
+from fury import actor, interactor, window
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty,
+                             assert_outputs_exist)
 
 DESCRIPTION = """
     Render clusters sequentially to either accept or reject them based on

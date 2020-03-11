@@ -22,7 +22,7 @@ The --processes parameters should only be use on massive bundle. For example,
 
 
 import argparse
-from itertools import repeat, chain
+from itertools import chain, repeat
 import logging
 import multiprocessing
 import random
@@ -30,16 +30,14 @@ from time import time
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from dipy.segment.clustering import qbx_and_merge
 from nibabel.streamlines import ArraySequence
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.segment.models import subsample_clusters
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_verbose_arg,
-                             add_reference_arg,
-                             assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from dipy.segment.clustering import qbx_and_merge
+from scilpy.segment.models import subsample_clusters
 
 
 def multiprocess_subsampling(args):

@@ -44,9 +44,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      subtraction, intersection, union)
-
+from scilpy.utils.streamlines import (intersection,
+                                      perform_streamlines_operation,
+                                      subtraction, union)
 
 OPERATIONS = {
     'subtraction': subtraction,

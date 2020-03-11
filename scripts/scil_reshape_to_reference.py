@@ -9,7 +9,6 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.image import transform_anatomy
 
-
 DESCRIPTION = """
     Reshape / reslice / resample *.nii or *.nii.gz using a reference.
     For more information on how to use the various registration scripts

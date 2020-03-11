@@ -9,12 +9,9 @@ import argparse
 
 from nibabel import Nifti1Image
 from nibabel.affines import apply_affine
-from nibabel.streamlines import (
-    detect_format,
-    Field,
-    load,
-    TckFile)
+from nibabel.streamlines import (Field, TckFile, detect_format, load)
 import numpy as np
+
 from scilpy.io.utils import (
     add_overwrite_arg,
     assert_inputs_exist,

@@ -2,18 +2,19 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
-from builtins import next
-from past.utils import old_div
+
 import argparse
+from builtins import next
 from functools import reduce
 import logging
 import os
 
 import nibabel
 import numpy as np
+from past.utils import old_div
 
-from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
-                             assert_inputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 DESCRIPTION = """
 Performs an operation on a list of mask images. The supported

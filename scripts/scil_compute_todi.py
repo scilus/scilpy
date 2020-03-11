@@ -13,7 +13,6 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
-
 DESCRIPTION = """
     Compute a length-weighted Track Orientation Density Image (TODI).
     This script can afterwards output a length-weighted Track Density Image

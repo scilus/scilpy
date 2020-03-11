@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import argparse
 import os
 
 from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.dti import fractional_anisotropy, TensorModel
+from dipy.reconst.dti import TensorModel, fractional_anisotropy
 from fury import actor
 import nibabel as nib
 import numpy as np
@@ -13,7 +14,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import normalize_bvecs, get_shell_indices
+from scilpy.utils.bvec_bval_tools import get_shell_indices, normalize_bvecs
 from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 

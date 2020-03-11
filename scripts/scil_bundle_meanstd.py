@@ -11,12 +11,12 @@ import os
 
 import nibabel as nib
 
-from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
+from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_stats_over_streamlines
 
 

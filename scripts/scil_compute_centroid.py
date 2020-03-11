@@ -10,15 +10,12 @@ import argparse
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import ResampleFeature
-from dipy.segment.metric import AveragePointwiseEuclideanMetric
+from dipy.segment.metric import AveragePointwiseEuclideanMetric, ResampleFeature
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_reference_arg)
-import numpy as np
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 
 
 def _build_arg_parser():

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
 import argparse
 import logging
 import os
@@ -10,8 +11,9 @@ from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
-from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exist
+
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.preprocessing.distortion_correction import create_acqparams
 
 DESCRIPTION = """
