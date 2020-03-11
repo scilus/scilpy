@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
+'''
 Script to resample a dataset to match the resolution of another
 reference dataset or to the resolution specified as in argument.
-"""
+'''
 
 import argparse
 import logging
@@ -13,8 +13,10 @@ from scilpy.image.reslice import reslice
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def interp_code_to_order(interp_code):
@@ -25,33 +27,38 @@ def interp_code_to_order(interp_code):
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input', action='store', metavar='in_vol', type=str,
+
+    p.add_argument('input', metavar='in_vol',
                    help='Path of the input volume.')
-    p.add_argument('output', action='store', metavar='out_vol', type=str,
+
+    p.add_argument('output', metavar='out_vol',
                    help='Path of the resampled volume.')
 
     res_group = p.add_mutually_exclusive_group(required=True)
-    res_group.add_argument('--ref', action='store', metavar='ref_vol',
-                           help='Reference volume to resample to.')
-    res_group.add_argument(
-        '--resolution', action='store', metavar='float', type=float,
-        help='Resolution to resample to. If the value it is set to is Y, it '
-             'will resample to an isotropic resolution of Y x Y x Y.')
-    res_group.add_argument(
-        '--iso_min', action='store_true',
-        help='Resample the volume to R x R x R with R being the smallest '
-             'current voxel dimension ')
 
-    p.add_argument(
-        '--interp', action='store', default='lin', type=str,
-        choices=['nn', 'lin', 'quad', 'cubic'],
-        help="Interpolation mode.\nnn: nearest neighbour\nlin: linear\n"
-             "quad: quadratic\ncubic: cubic\nDefaults to linear")
+    res_group.add_argument('--ref', metavar='ref_vol',
+                           help='Reference volume to resample to.')
+
+    res_group.add_argument('--resolution', metavar='float',
+                           type=float, help='Resolution to resample to. '
+                           'If the value is set to Y, it will resample '
+                           'to an isotropic resolution of Y x Y x Y.')
+
+    res_group.add_argument('--iso_min', action='store_true',
+                           help='Resample the volume to R x R x R with R '
+                           'being the smallest current voxel dimension ')
+
+    p.add_argument('--interp', default='lin',
+                   choices=['nn', 'lin', 'quad', 'cubic'],
+                   help='Interpolation mode.\nnn: nearest neighbour\n'
+                   'lin: linear\nquad: quadratic\ncubic: cubic\n'
+                   'Defaults to linear')
+
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Use verbose output. Default: false.')
 
     return p
 
@@ -63,7 +70,7 @@ def main():
     assert_inputs_exist(parser, args.input, args.ref)
     assert_outputs_exist(parser, args, args.output)
     if args.enforce_dimensions and not args.ref:
-        parser.error("Cannot enforce dimensions without a reference image")
+        parser.error('Cannot enforce dimensions without a reference image')
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
