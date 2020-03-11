@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Reshape / reslice / resample *.nii or *.nii.gz using a reference.
+For more information on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file.
+
+>>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
+    --interpolation nearest
+"""
+
 import argparse
 
 import numpy as np
@@ -10,18 +19,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.utils.image import transform_anatomy
 
 
-DESCRIPTION = """
-    Reshape / reslice / resample *.nii or *.nii.gz using a reference.
-    For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file.
-
-    >>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
-        --interpolation nearest
-"""
-
-
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_file',

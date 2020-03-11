@@ -1,6 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Render clusters sequentially to either accept or reject them based on
+    visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
+    The VTK window does not handle well opacity of streamlines, this is a normal
+    rendering behavior.
+    Often use in pair with scil_compute_qbx.py.
+
+    Key mapping:
+    - a/A: accept displayed clusters
+    - r/R: reject displayed clusters
+    - z/Z: Rewing one element
+    - c/C: Stop rendering of the background concatenation of streamlines
+    - q/Q: Early window exist, everything remaining will be rejected
+"""
+
+
 import argparse
 import os
 import logging
@@ -18,24 +34,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 
-DESCRIPTION = """
-    Render clusters sequentially to either accept or reject them based on
-    visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
-    The VTK window does not handle well opacity of streamlines, this is a normal
-    rendering behavior.
-    Often use in pair with scil_compute_qbx.py.
-
-    Key mapping:
-    - a/A: accept displayed clusters
-    - r/R: reject displayed clusters
-    - z/Z: Rewing one element
-    - c/C: Stop rendering of the background concatenation of streamlines
-    - q/Q: Early window exist, everything remaining will be rejected
-"""
-
 
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundles', nargs='+',

@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-import argparse
-
-import nibabel as nb
-import numpy as np
-
-from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
-
 """
 Merge a list of Spherical Harmonics files.
 
@@ -21,6 +11,15 @@ conserving the most relevant information.
 
 Based on [1].
 """
+
+import argparse
+
+import nibabel as nb
+import numpy as np
+
+from scilpy.io.image import assert_same_resolution
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 EPILOG = """
