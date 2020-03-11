@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Script to convert bval/bvec FSL style to MRtrix style.
+"""
+
 import argparse
 
 from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 
-DESCRIPTION = "Script to convert bval/bvec FSL style to MRtrix style."
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('fsl_bval',
                    help='path to FSL b-value file.')

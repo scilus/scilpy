@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from itertools import product, repeat
@@ -10,12 +9,11 @@ import random
 import tempfile
 from time import time
 
+from dipy.segment.clustering import qbx_and_merge
+from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 import numpy as np
 from scipy.sparse import lil_matrix
-
-from dipy.segment.clustering import qbx_and_merge
-from dipy.tracking.streamline import transform_streamlines
 
 from scilpy.segment.recobundlesx import RecobundlesX
 

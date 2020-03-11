@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute pair-wise similarity measures of bundles.
+All tractograms must be in the same space (aligned to one reference)
+"""
+
 import argparse
 import copy
 import hashlib
@@ -33,15 +38,9 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-DESCRIPTION = """
-Compute pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference)
-"""
-
-
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
@@ -79,7 +78,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     # that can be computed once is saved temporarily and simply loaded on demand
     if not os.path.isfile(filename):
         if init_only:
-            logging.warning('%s does not exist', filename)
+            logging.warning('{} does not exist'.format(filename))
         return None
 
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
@@ -96,7 +95,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     streamlines = sft.get_streamlines_copy()
     if not streamlines:
         if init_only:
-            logging.warning('%s is empty', filename)
+            logging.warning('{} is empty'.format(filename))
         return None
 
     if os.path.isfile(tmp_density_filename) \

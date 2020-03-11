@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Script to remove specific labels from a atlas volumes.
+
+    >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
+"""
+
+
 import argparse
 import logging
 
@@ -9,13 +16,6 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
-
-DESCRIPTION = """
-    Script to remove specific labels from a atlas volumes.
-
-    >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
-    """
-
 EPILOG = """
     References:
         [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
@@ -25,7 +25,7 @@ EPILOG = """
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('input',

@@ -1,11 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from itertools import chain
 import logging
 
-from dipy.align.streamlinear import (StreamlineLinearRegistration,
-                                     BundleMinDistanceMetric)
+from dipy.align.streamlinear import (BundleMinDistanceMetric,
+                                     StreamlineLinearRegistration)
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import (select_random_set_of_streamlines,

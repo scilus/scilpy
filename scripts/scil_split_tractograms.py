@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Split a tractogram into multiple files, 2 options available :
+Split into X files, or split into files of Y streamlines
+"""
+
+
 import argparse
 import os
 
@@ -12,16 +18,11 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_reference_arg)
 
-DESCRIPTION = """
-    Split a tractogram into multiple files, 2 options available :
-    Split into X files, or split into files of Y streamlines
-"""
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')

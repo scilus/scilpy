@@ -3,12 +3,14 @@ import copy
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
-from dipy.tracking.streamline import set_number_of_points, length
+from dipy.tracking.streamline import length, set_number_of_points
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      subtraction, intersection, union)
+
+from scilpy.utils.streamlines import (intersection,
+                                      perform_streamlines_operation,
+                                      subtraction, union)
 
 
 def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
@@ -185,23 +187,18 @@ def compute_dice_voxel(density_1, density_2):
         float: Value between 0 and 1 that represent the spatial aggrement
             between both bundles, weighted by streamlines density.
     """
-    binary_1 = copy.copy(density_1)
-    binary_1[binary_1 > 0] = 1
-    binary_2 = copy.copy(density_2)
-    binary_2[binary_2 > 0] = 1
-
-    numerator = 2 * np.count_nonzero(binary_1 * binary_2)
-    denominator = np.count_nonzero(binary_1) + np.count_nonzero(binary_2)
+    overlap_idx = np.nonzero(density_1 * density_2)
+    numerator = 2 * len(overlap_idx)
+    denominator = np.count_nonzero(density_1) + np.count_nonzero(density_2)
     if denominator > 0:
         dice = numerator / float(denominator)
     else:
         dice = np.nan
 
-    indices = np.nonzero(binary_1 * binary_2)
-    overlap_1 = density_1[indices]
-    overlap_2 = density_2[indices]
-    w_dice = (np.sum(overlap_1) + np.sum(overlap_2))
-    denominator = float(np.sum(density_1) + np.sum(density_2))
+    overlap_1 = density_1[overlap_idx]
+    overlap_2 = density_2[overlap_idx]
+    w_dice = np.sum(overlap_1) + np.sum(overlap_2)
+    denominator = np.sum(density_1) + np.sum(density_2)
     if denominator > 0:
         w_dice /= denominator
     else:

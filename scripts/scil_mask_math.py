@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Performs an operation on a list of mask images. The supported
+operations are:
+
+    subtraction:  Keep the voxels from the first file that are not in
+                  any of the following files.
+
+    intersection: Keep the voxels that are present in all files.
+
+    union:        Keep voxels that are in any file.
+
+This script handles both probabilistic masks and binary masks.
+"""
+
 
 from __future__ import division
 from builtins import next
@@ -14,20 +28,6 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
                              assert_inputs_exist)
-
-DESCRIPTION = """
-Performs an operation on a list of mask images. The supported
-operations are:
-
-    subtraction:  Keep the voxels from the first file that are not in
-                  any of the following files.
-
-    intersection: Keep the voxels that are present in all files.
-
-    union:        Keep voxels that are in any file.
-
-This script handles both probabilistic masks and binary masks.
-"""
 
 
 def mask_union(left, right):
@@ -53,7 +53,7 @@ def _build_arg_parser():
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     parser.add_argument('operation',
                         choices=list(OPERATIONS.keys()),
