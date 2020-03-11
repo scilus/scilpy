@@ -27,7 +27,7 @@ def _build_args_parser():
     p.add_argument('moving_tractogram',
                    help='Path of the tractogram to be transformed.')
     p.add_argument('target_file',
-                   help='Path of the reference target file (trk or nii)')
+                   help='Path of the reference target file (trk or nii).')
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
                         'transformation, matrix (*.txt).'
