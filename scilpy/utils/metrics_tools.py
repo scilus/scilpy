@@ -45,15 +45,10 @@ def get_bundle_metrics_meanstd(streamlines, metrics_files,
 
     Parameters
     ------------
-    streamlines : sequence
-        sequence of T streamlines. One streamline is an ndarray of shape
-        (N, 3), where N is the number of points in that streamline, and
-        ``streamlines[t][n]`` is the n-th point in the t-th streamline. Points
-        are of form x, y, z in voxmm coordinates.
-
+    streamlines : list of numpy.ndarray
+        Input streamlines under which to compute stats.
     metrics_files : sequence
         list of nibabel objects representing the metrics files
-
     density_weighting : bool
         weigh by the mean by the density of streamlines going through the voxel
 
@@ -81,25 +76,40 @@ def get_bundle_metrics_meanstd(streamlines, metrics_files,
 
 def get_bundle_metrics_meanstdperpoint(streamlines, bundle_name,
                                        distances_to_centroid_streamline,
-                                       metrics, track_count, labels,
+                                       metrics, labels, density_weighting=False,
                                        distance_weighting=False):
     """
+    Compute the mean and std PER POiNT of the bundle for every given metric.
+
     Parameters
     ----------
-    streamlines:
-    bundle_name:
+    streamlines: list of numpy.ndarray
+        Input streamlines under which to compute stats.
+    bundle_name: str
+        Name of the bundle. Will be used as a key in the dictionary.
     distances_to_centroid_streamline:
-    metrics:
-    track_count:
+    metrics: sequence
+        list of nibabel objects representing the metrics files
     labels:
-    distance_weighting:
+    density_weighting: bool
+        If true, weight statistics by the number of streamlines passing through
+        each voxel. [False]
+    distance_weighting: bool
+        If true, weight statistics by the inverse of the distance between a
+        streamline and the centroid.
 
     Returns
     -------
     stats
     """
+    # Computing infos on bundle
     unique_labels = np.unique(labels)
     num_digits_labels = len(str(np.max(unique_labels)))
+    if density_weighting:
+        track_count = compute_tract_counts_map(streamlines,
+                                               metrics[0].shape).astype(np.float64)
+    else:
+        track_count = np.ones(metrics[0].shape)
 
     # Bigger weight near the centroid streamline
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
