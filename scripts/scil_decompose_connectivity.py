@@ -12,10 +12,10 @@ longest.
 This is robust to compressed streamlines.
 
 NOTE: this script can take a while to run. Please be patient.
-      Example: on a tractogram with 1.8M streamlines, running on a SSD:
-            - 5 minutes without post-processing, only saving final bundles.
-            - 25 minutes with full post-processing, only saving final bundles.
-            - 30 minutes with full post-processing, saving all possible files.
+Example: on a tractogram with 1.8M streamlines, running on a SSD:
+- 15 minutes without post-processing, only saving final bundles.
+- 30 minutes with full post-processing, only saving final bundles.
+- 60 minutes with full post-processing, saving all possible files.
 """
 
 import argparse
@@ -25,7 +25,9 @@ import os
 import time
 
 import coloredlogs
-from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
+from dipy.io.stateful_tractogram import (Origin, Space,
+                                         StatefulTractogram,
+                                         set_sft_logger_level)
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamlinespeed import length
 import nibabel as nb
@@ -200,6 +202,7 @@ def main():
         log_level = logging.INFO
     logging.basicConfig(level=log_level)
     coloredlogs.install(level=log_level)
+    set_sft_logger_level('WARNING')
 
     img_labels = nb.load(args.labels)
     data_labels = img_labels.get_data()
@@ -216,58 +219,62 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     time2 = time.time()
-    logging.info('    Loading %s streamlines took %0.2f sec.',
-                 len(sft), (time2 - time1))
+    logging.info('    Loading {} streamlines took {} sec.'.format(
+        len(sft), round(time2 - time1, 2)))
 
     logging.info('*** Filtering streamlines ***')
-    data_mask = np.zeros(data_labels.shape)
-    data_mask[data_labels > 0] = 1
+    data_mask=np.zeros(data_labels.shape)
+    data_mask[data_labels > 0]=1
 
-    original_len = len(sft)
-    time1 = time.time()
+    original_len=len(sft)
+    time1=time.time()
 
     sft.to_vox()
     sft.to_corner()
     sft.remove_invalid_streamlines()
-    time2 = time.time()
-    logging.info('    Discarded %s streamlines from filtering in %0.2f sec.',
-                 original_len - len(sft), (time2 - time1))
-    logging.info('    Number of streamlines to process: %s', len(sft))
+    time2=time.time()
+    logging.info('    Discarded {} streamlines from filtering in {} sec.'.format(
+        original_len - len(sft), round(time2 - time1, 2)))
+    logging.info('    Number of streamlines to process: {}'.format(len(sft)))
 
     # Get all streamlines intersection indices
     logging.info('*** Computing streamlines intersection ***')
-    time1 = time.time()
+    time1=time.time()
 
-    indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
+    indices, points_to_idx=uncompress(sft.streamlines, return_mapping=True)
 
-    time2 = time.time()
-    logging.info('    Streamlines intersection took %0.2f sec.',
-                 (time2 - time1))
+    time2=time.time()
+    logging.info('    Streamlines intersection took {} sec.'.format(
+        round(time2 - time1, 2)))
 
     # Compute the connectivity mapping
     logging.info('*** Computing connectivity information ***')
-    time1 = time.time()
-    con_info = compute_connectivity(indices,
+    time1=time.time()
+    con_info=compute_connectivity(indices,
                                     img_labels.get_data(), real_labels,
                                     extract_longest_segments_from_profile)
-    time2 = time.time()
-    logging.info('    Connectivity computation took %0.2f sec.',
-                 (time2 - time1))
+    time2=time.time()
+    logging.info('    Connectivity computation took {} sec.'.format(
+        round(time2 - time1, 2)))
 
     # Prepare directories and information needed to save.
     _create_required_output_dirs(args)
 
     logging.info('*** Starting connection post-processing and saving. ***')
     logging.info('    This can be long, be patient.')
-    time1 = time.time()
+    time1=time.time()
 
     # Saving will be done from streamlines already in the right space
-    logging.basicConfig(level=logging.WARNING)
-    coloredlogs.install(level=logging.WARNING)
-    comb_list = list(itertools.combinations(real_labels, r=2))
+    comb_list=list(itertools.combinations(real_labels, r=2))
 
+    iteration_counter=0
     for in_label, out_label in comb_list:
-        pair_info = []
+        if iteration_counter > 0 and iteration_counter % 100 == 0:
+            logging.info('Split {} nodes out of {}'.format(iteration_counter,
+                          len(comb_list)))
+        iteration_counter += 1
+
+        pair_info=[]
         if in_label not in con_info:
             continue
         elif out_label in con_info[in_label]:
@@ -281,10 +288,10 @@ def main():
         if not len(pair_info):
             continue
 
-        connecting_streamlines = []
+        connecting_streamlines=[]
         for connection in pair_info:
-            strl_idx = connection['strl_idx']
-            curr_streamlines = compute_streamline_segment(
+            strl_idx=connection['strl_idx']
+            curr_streamlines=compute_streamline_segment(
                 sft.streamlines[strl_idx],
                 indices[strl_idx],
                 connection['in_idx'],
@@ -297,7 +304,7 @@ def main():
 
         # Doing all post-processing
         if not args.no_pruning:
-            valid_length, invalid_length = _prune_segments(connecting_streamlines,
+            valid_length, invalid_length=_prune_segments(connecting_streamlines,
                                                            args.min_length,
                                                            args.max_length,
                                                            vox_sizes[0])
@@ -306,7 +313,7 @@ def main():
                             'discarded', 'invalid_length',
                             in_label, out_label)
         else:
-            valid_length = connecting_streamlines
+            valid_length=connecting_streamlines
 
         if not len(valid_length):
             continue
@@ -315,12 +322,12 @@ def main():
                         'intermediate', 'valid_length', in_label, out_label)
 
         if not args.no_remove_loops:
-            no_loops, loops = remove_loops_and_sharp_turns(valid_length,
+            no_loops, loops=remove_loops_and_sharp_turns(valid_length,
                                                            args.loop_max_angle)
             _save_if_needed(loops, args,
                             'discarded', 'loops', in_label, out_label)
         else:
-            no_loops = valid_length
+            no_loops=valid_length
 
         if not len(no_loops):
             continue
@@ -329,12 +336,12 @@ def main():
                         'intermediate', 'no_loops', in_label, out_label)
 
         if not args.no_remove_outliers:
-            inliers, outliers = remove_outliers(no_loops,
+            inliers, outliers=remove_outliers(no_loops,
                                                 args.outlier_threshold)
             _save_if_needed(outliers, args,
                             'discarded', 'outliers', in_label, out_label)
         else:
-            inliers = no_loops
+            inliers=no_loops
 
         if not len(inliers):
             continue
@@ -343,7 +350,7 @@ def main():
                         'intermediate', 'inliers', in_label, out_label)
 
         if not args.no_remove_curv_dev:
-            no_qb_curv, qb_curv = remove_loops_and_sharp_turns(
+            no_qb_curv, qb_curv=remove_loops_and_sharp_turns(
                 inliers,
                 args.loop_max_angle,
                 True,
@@ -351,16 +358,14 @@ def main():
             _save_if_needed(qb_curv, args,
                             'discarded', 'qb_curv', in_label, out_label)
         else:
-            no_qb_curv = inliers
+            no_qb_curv=inliers
 
         _save_if_needed(no_qb_curv, args,
                         'final', 'final', in_label, out_label)
 
-    logging.basicConfig(level=log_level)
-    coloredlogs.install(level=log_level)
-    time2 = time.time()
-    logging.info('    Connections post-processing and saving took %0.2f sec.',
-                 (time2 - time1))
+    time2=time.time()
+    logging.info('    Connections post-processing and saving took {} sec.'.format(
+        round(time2 - time1, 2)))
 
 
 if __name__ == "__main__":

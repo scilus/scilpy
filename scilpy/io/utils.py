@@ -1,14 +1,13 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
 import shutil
-import six
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
 from nibabel.streamlines import TrkFile
 import numpy as np
+import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
