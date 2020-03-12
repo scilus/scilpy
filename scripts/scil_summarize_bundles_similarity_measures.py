@@ -16,7 +16,7 @@ import multiprocessing
 import os
 import shutil
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram, save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
 from dipy.segment.clustering import qbx_and_merge
