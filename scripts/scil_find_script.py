@@ -39,7 +39,7 @@ def main():
     script_dir = pathlib.Path(scilpy_init_file).parent / "../scripts"
     matches = []
 
-    kw_subs = [re.compile("(" + kw + ")", re.IGNORECASE)
+    kw_subs = [re.compile("(" + re.escape(kw) + ")", re.IGNORECASE)
                for kw in args.keywords]
 
     for script in sorted(script_dir.glob('*.py')):
