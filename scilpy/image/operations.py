@@ -287,13 +287,14 @@ def division(input_list):
     """
     division: IMG_1 IMG_2
         Divide first image by the second (danger of underflow and overflow)
+        Ignore zeros values, excluded from the operation.
     """
     _validate_length(input_list, 2)
     _validate_arrays(*input_list)
     ref_array = input_list[0]
 
     output_data = np.zeros(ref_array.shape)
-    output_data[input_list[1] > 0] = input_list[0][input_list[1] > 0] \
+    output_data[input_list[1] != 0] = input_list[0][input_list[1] != 0] \
         / input_list[1][input_list[1] > 0]
     return output_data
 
@@ -342,7 +343,8 @@ def std(input_list):
 def union(input_list):
     """
     union: IMGs
-        Binary operation to keep voxels that are non-zero in at least one file.
+        Operation on binary image to keep voxels, that are non-zero, in at
+        least one file.
     """
     output_data = addition(input_list)
     output_data[output_data != 0] = 1
@@ -353,8 +355,8 @@ def union(input_list):
 def intersection(input_list):
     """
     intersection: IMGs
-        Binary operation to keep the voxels that are non-zero are present in 
-        all files.
+        Operation on binary image to keep the voxels, that are non-zero,
+        are present in all files.
     """
     output_data = multiplication(input_list)
     output_data[output_data != 0] = 1
@@ -365,8 +367,8 @@ def intersection(input_list):
 def difference(input_list):
     """
     difference: IMG_1 IMG_2
-        Binary operation to keep voxels from the first file that are not in
-        the second file (non-zero).
+        Operation on binary image to keep voxels from the first file that are
+        not in the second file (non-zeros).
     """
     _validate_length(input_list, 2)
     _validate_arrays(*input_list)
@@ -380,7 +382,7 @@ def difference(input_list):
 def invert(input_list):
     """
     invert: IMG
-        Binary operation to interchange 0 and 1 in a binary mask.
+        Operation on binary image to interchange 0s and 1s in a binary mask.
     """
     _validate_length(input_list, 1)
     _validate_arrays(*input_list)
@@ -394,7 +396,7 @@ def invert(input_list):
 
 def dilation(input_list):
     """
-    dilation: IMG
+    dilation: IMG, VALUE
         Binary morphological operation to spatially extend the values of an
         image to their neighbors.
     """
@@ -407,7 +409,7 @@ def dilation(input_list):
 
 def erosion(input_list):
     """
-    erosion: IMG
+    erosion: IMG, VALUE
         Binary morphological operation to spatially shrink the volume contained
         in a binary image.
     """
@@ -420,7 +422,7 @@ def erosion(input_list):
 
 def closing(input_list):
     """
-    closing: IMG
+    closing: IMG, VALUE
         Binary morphological operation, dilation followed by an erosion.
     """
     _validate_length(input_list, 2)
@@ -432,7 +434,7 @@ def closing(input_list):
 
 def opening(input_list):
     """
-    opening: IMG
+    opening: IMG, VALUE
         Binary morphological operation, erosion followed by an dilation.
     """
     _validate_length(input_list, 2)
@@ -444,7 +446,7 @@ def opening(input_list):
 
 def gaussian_blur(input_list):
     """
-    blur: IMG
+    blur: IMG, VALUE
         Apply a gaussian blur to a single image.
     """
     _validate_length(input_list, 2)

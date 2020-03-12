@@ -16,7 +16,7 @@ from scilpy.utils.util import is_float
 OPERATIONS = get_array_ops()
 
 DESCRIPTION = """
-Performs an operation on a list of matrices. The supported operations are 
+Performs an operation on a list of matrices. The supported operations are
 listed below.
 
 Some operations such as multiplication or addition accept float value as
@@ -122,21 +122,25 @@ def main():
     if args.operation == 'convert' and not args.data_type:
         parser.error('Convert operation must be used with --data_type')
 
+    # Perform the request operation
     try:
         output_data = OPERATIONS[args.operation](input_data)
     except ValueError:
-        logging.error('{} operation failed.'.format(args.operation.capitalize()))
+        logging.error('{} operation failed.'.format(
+            args.operation.capitalize()))
         return
 
+    # Cast if needed
     if args.data_type:
         output_data = output_data.astype(args.data_type)
     else:
         output_data = output_data.astype(np.float64)
-    
+
+    # Saving in the right format
     _, ext = os.path.splitext(args.output)
     if ext == '.txt':
         np.savetxt(args.output, output_data)
-    elif ext == '.npy':
+    elif ext == '.npy' or ext == '':
         np.save(args.output, output_data)
     else:
         parser.error('Extension {} is not supported'.format(ext))
