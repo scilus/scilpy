@@ -55,7 +55,7 @@ def main():
             display_info = display_info.replace("\n", " ")
 
         # Test intersection of all keywords, either in filename or docstring
-        if not _is_matching_keywords(args.keywords, [filename, docstring]):
+        if not _test_matching_keywords(args.keywords, [filename, docstring]):
             continue
 
         matches.append(filename)
@@ -79,7 +79,7 @@ def main():
         print("No results found!")
 
 
-def _is_matching_keywords(keywords, texts):
+def _test_matching_keywords(keywords, texts):
     """Test multiple texts for matching keywords. Returns True only if all
     keywords are present in any of the texts.
 
