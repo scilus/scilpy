@@ -5,10 +5,12 @@ python:
   - "3.7"
   - "3.8"
 
-script:
+before_script:
   - sudo apt-get update
   - sudo apt-get install build-essential libatlas-base-dev libblas-dev liblapack-dev
   - pip install -r requirements.txt
+
+script:
   - python setup.py build_ext --inplace
   - python setup.py install
   - python setup.py install_scripts
