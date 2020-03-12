@@ -109,21 +109,21 @@ def main():
 
     if not np.isclose(bvals_min, 0.0):
         b0_threshold = b0_threshold if b0_threshold > bvals_min else bvals_min
-        logging.warning('No b=0 image. Setting b0_threshold to %s',
-                        b0_threshold)
+        logging.warning('No b=0 image. Setting b0_threshold to {}'.format(
+                        b0_threshold))
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
-    logger.info('Number of b0 images in the data: %s', len(b0_idx))
+    logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))
 
     if args.mean:
-        logger.info('Using mean of indices %s for b0', b0_idx)
+        logger.info('Using mean of indices {} for b0'.format(b0_idx))
         _mean_in_time(args.dwi, b0_idx, args.output)
     else:
         if not args.all:
             b0_idx = [b0_idx[0]]
-        logger.info("Keeping %s for b0", b0_idx)
+        logger.info("Keeping {} for b0".format(b0_idx))
         _keep_time_step(args.dwi, b0_idx, args.output)
 
 

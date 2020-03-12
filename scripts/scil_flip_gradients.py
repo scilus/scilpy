@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-
+"""
+Flip one or more axes of the encoding scheme matrix.
+"""
 import argparse
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -11,8 +13,7 @@ from scilpy.utils.util import str_to_index
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Flip one or more axes of the '
-                                            'encoding scheme matrix.')
+                                description=__doc__)
 
     p.add_argument('encoding_file',
                    help='Path to encoding file.')

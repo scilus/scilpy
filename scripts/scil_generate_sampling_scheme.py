@@ -1,13 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Generate multi-shell sampling schemes with various processing to accelerate
+acquisition and help artefact correction.
+
+Multi-shell schemes are generated as in [1], the bvecs are then flipped
+to maximize spread for eddy current correction, b0s are interleaved
+at equal spacing and the non-b0 samples are finally shuffled
+to minimize the total diffusion gradient amplitude over a few TR.
+"""
+
 import argparse
 import logging
 import numpy as np
 
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.samplingscheme.gen_scheme import gen_scheme
+from scilpy.samplingscheme.gen_scheme import generate_scheme
 from scilpy.samplingscheme.optimize_scheme import (add_b0s,
                                                    add_bvalue_b0,
                                                    compute_bvalue_lin_b,
@@ -22,16 +32,6 @@ from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
                                                save_scheme_mrtrix)
 
 
-DESCRIPTION = """
-Generate multi-shell sampling schemes with various processing to accelerate
-acquisition and help artefact correction.
-
-Multi-shell schemes are generated as in [1], the bvecs are then flipped
-to maximize spread for eddy current correction, b0s are interleaved
-at equal spacing and the non-b0 samples are finally shuffled
-to minimize the total diffusion gradient amplitude over a few TR.
-    """
-
 EPILOG = """
 References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
 Rachid Deriche. Design of multishell sampling schemes with uniform coverage
@@ -43,7 +43,7 @@ pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=DESCRIPTION,
+        description=__doc__,
         epilog=EPILOG)
     p._optionals.title = "Options and Parameters"
 
@@ -164,7 +164,7 @@ def main():
     outfile = args.outfile
 
     # Scheme generation
-    points, shell_idx = gen_scheme(Ks, verbose=int(
+    points, shell_idx = generate_scheme(Ks, verbose=int(
         3 - logging.getLogger().getEffectiveLevel()//10))
 
     # eddy current optimization

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
 import numpy as np
 
 from scilpy.utils.filenames import split_name_with_nii

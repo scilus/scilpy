@@ -25,16 +25,16 @@ def interp_code_to_order(interp_code):
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input', action='store', metavar='in_vol', type=str,
+    p.add_argument('input', metavar='in_vol',
                    help='Path of the input volume.')
-    p.add_argument('output', action='store', metavar='out_vol', type=str,
+    p.add_argument('output', metavar='out_vol',
                    help='Path of the resampled volume.')
 
     res_group = p.add_mutually_exclusive_group(required=True)
-    res_group.add_argument('--ref', action='store', metavar='ref_vol',
+    res_group.add_argument('--ref', metavar='ref_vol',
                            help='Reference volume to resample to.')
     res_group.add_argument(
-        '--resolution', action='store', metavar='float', type=float,
+        '--resolution', metavar='float', type=float,
         help='Resolution to resample to. If the value it is set to is Y, it '
              'will resample to an isotropic resolution of Y x Y x Y.')
     res_group.add_argument(
@@ -43,7 +43,7 @@ def _build_args_parser():
              'current voxel dimension ')
 
     p.add_argument(
-        '--interp', action='store', default='lin', type=str,
+        '--interp', default='lin',
         choices=['nn', 'lin', 'quad', 'cubic'],
         help="Interpolation mode.\nnn: nearest neighbour\nlin: linear\n"
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
@@ -68,7 +68,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from %s', args.input)
+    logging.debug('Loading Raw data from {}'.format(args.input))
 
     img = nib.load(args.input)
     data = img.get_data()
@@ -84,18 +84,20 @@ def main():
         min_zoom = min(original_zooms)
         new_zooms = (min_zoom, min_zoom, min_zoom)
 
-    logging.debug('Data shape: %s', data.shape)
-    logging.debug('Data affine: %s', affine)
-    logging.debug('Data affine setup: %s', nib.aff2axcodes(affine))
-    logging.debug('Resampling data to %s with mode %s', new_zooms, args.interp)
+    logging.debug('Data shape: {}'.format(data.shape))
+    logging.debug('Data affine: {}'.format(affine))
+    logging.debug('Data affine setup: {}'.format(nib.aff2axcodes(affine)))
+    logging.debug('Resampling data to {} with mode {}'.format(
+                  new_zooms, args.interp))
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
                              interp_code_to_order(args.interp))
 
-    logging.debug('Resampled data shape: %s', data2.shape)
-    logging.debug('Resampled data affine: %s', affine2)
-    logging.debug('Resampled data affine setup: %s', nib.aff2axcodes(affine2))
-    logging.debug('Saving resampled data to %s', args.output)
+    logging.debug('Resampled data shape: {}'.format(data2.shape))
+    logging.debug('Resampled data affine: {}'.format(affine2))
+    logging.debug('Resampled data affine setup: {}'.format(
+                  nib.aff2axcodes(affine2)))
+    logging.debug('Saving resampled data to {}'.format(args.output))
 
     if args.enforce_dimensions:
         computed_dims = data2.shape
