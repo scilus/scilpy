@@ -53,16 +53,19 @@ def binary_classification(segmentation_indices,
     # Extreme that is not covered, all indices are in the gold standard
     # and the segmentation indices got them 100% right
     if tp == 0:
-        sensitivity = np.nan
-        specificity = np.nan
-        precision = np.nan
-        accuracy = np.nan
-        dice = np.nan
-        kappa = np.nan
-        youden = np.nan
+        sensitivity = 0
+        specificity = 0
+        precision = 0
+        accuracy = 0
+        dice = 0
+        kappa = 0
+        youden = -1
     else:
         sensitivity = tp / float(tp + fn)
-        specificity = tn / float(tn + fp)
+        if np.isclose(tn + fp, 0):
+            specificity = 1
+        else:
+            specificity = tn / float(tn + fp)
         precision = tp / float(tp + fp)
         accuracy = (tp + tn) / float(tp + fp + fn + tn)
         dice = 2 * tp / float(2 * tp + fp + fn)
