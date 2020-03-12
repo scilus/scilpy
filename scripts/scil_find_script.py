@@ -11,6 +11,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 import ast
 import inspect
 import pathlib
+import re
 
 import numpy as np
 import scilpy
@@ -38,6 +39,9 @@ def main():
     script_dir = pathlib.Path(scilpy_init_file).parent / "../scripts"
     matches = []
 
+    kw_subs = [re.compile("(" + kw + ")", re.IGNORECASE)
+               for kw in args.keywords]
+
     for script in sorted(script_dir.glob('*.py')):
         filename = script.name
         docstring = _get_docstring(str(script))
@@ -56,16 +60,20 @@ def main():
 
         matches.append(filename)
 
-        for key in args.keywords:
-            filename = filename.replace(key,
-                                        "{}{}{}".format(RED + BOLD, key,
-                                                        ENDC))
-            display_info = display_info.replace(key,
-                                                "{}{}{}".format(RED + BOLD, key,
-                                                                ENDC))
+        # new_key calls regex group \1 to keep the same case
+        new_key = "{}\\1{}".format(RED + BOLD, ENDC)
+        for regex in kw_subs:
+            filename = regex.sub(new_key, filename)
+            display_info = regex.sub(new_key, display_info)
 
         display_info = display_info or "No docstring available!"
-        print("===== ", filename, '"{}"'.format(display_info))
+
+        if args.verbose:
+            print("=====", filename, "====")
+            print('"{}"'.format(display_info))
+            print()
+        else:
+            print(filename, '"{}"'.format(display_info))
 
     if not matches:
         print("No results found!")
