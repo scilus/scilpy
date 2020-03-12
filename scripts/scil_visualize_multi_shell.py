@@ -20,6 +20,7 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         plot_each_shell,
                                         plot_proj_shell)
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -153,7 +154,7 @@ def main():
         points[np.isinf(points)] = 0.0
 
         fake_bmax = 3000.
-        shell_idx = build_shell_idx_from_bval(fake_bmax * norms**2,
+        shell_idx = build_shell_idx_from_bval(fake_bmax * norms ** 2,
                                               shell_th=50)
 
     elif ext == "b":
