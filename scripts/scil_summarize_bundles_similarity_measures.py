@@ -83,11 +83,11 @@ def load_data_tmp_saving(filename, reference, init_only=False,
 
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
     tmp_density_filename = os.path.join('tmp_measures/',
-                                        '{0}_density.nii.gz'.format(hash_tmp))
+                                        '{}_density.nii.gz'.format(hash_tmp))
     tmp_endpoints_filename = os.path.join('tmp_measures/',
-                                          '{0}_endpoints.nii.gz'.format(hash_tmp))
+                                          '{}_endpoints.nii.gz'.format(hash_tmp))
     tmp_centroids_filename = os.path.join('tmp_measures/',
-                                          '{0}_centroids.trk'.format(hash_tmp))
+                                          '{}_centroids.trk'.format(hash_tmp))
 
     sft = load_tractogram(filename, reference)
     sft.to_vox()
@@ -145,7 +145,7 @@ def compute_all_measures(args):
     disable_streamline_distance = args[2]
 
     if not is_header_compatible(reference_1, reference_2):
-        raise ValueError('{0} and {1} have incompatible headers'.format(
+        raise ValueError('{} and {} have incompatible headers'.format(
             filename_1, filename_2))
 
     data_tuple_1 = load_data_tmp_saving(
