@@ -156,7 +156,9 @@ def assert_outputs_exist(parser, args, required, optional=None,
     :param required: string or list of paths
     :param optional: string or list of paths.
                      Each element will be ignored if None
-    :param check_dir_exists: test if output directory exists
+    :param check_dir_exists: bool
+                             Test if output directory exists
+
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
@@ -166,7 +168,7 @@ def assert_outputs_exist(parser, args, required, optional=None,
         if check_dir_exists:
             path_dir = os.path.dirname(path)
             if path_dir and not os.path.isdir(path_dir):
-                parser.error('Directory {} for a given output file '
+                parser.error('Directory {} \n for a given output file '
                              'does not exists.'.format(path_dir))
 
     if isinstance(required, str):
