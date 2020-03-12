@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Filter streamlines by length.
+"""
 import argparse
 import json
 import logging
@@ -21,7 +25,7 @@ from scilpy.io.utils import (add_json_args,
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Filter streamlines by length.')
+        description=__doc__)
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('out_tractogram',

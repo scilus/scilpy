@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Get a subset of streamlines.
+"""
+
 import argparse
 
 from nibabel.streamlines import load, save, Tractogram
@@ -13,7 +18,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description='Get a subset of streamlines.')
+        description=__doc__)
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('max_num_streamlines', type=int,

@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Compute streamlines min, mean and max length, as well as
+standard deviation of length in mm.
+"""
+
 import argparse
 import json
 
@@ -14,8 +20,7 @@ from scilpy.io.utils import (add_json_args,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute streamlines min, mean and max length, as well as '
-                    'standard deviation of length in mm.',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_bundle',
