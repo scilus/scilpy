@@ -108,7 +108,6 @@ def main():
             data2 = fix_dim_volume
 
     nib.save(nib.Nifti1Image(data2, affine2), args.output)
->>>>>>> f4921fc6165dc25862d11c380961ac363d30b7ed
 
 
 if __name__ == '__main__':
