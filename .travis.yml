@@ -1,0 +1,13 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "3.8"
+
+script:
+  - sudo apt-get install libblas-dev liblapack-dev
+  - pip install -r requirements.tx
+  - python setup.py build_ext --inplace
+  - python setup.py install
+  - python setup.py install_scripts
