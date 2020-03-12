@@ -22,7 +22,7 @@ BOLD = '\033[1m'
 ENDC = '\033[0m'
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = ArgumentParser(description=__doc__,
                             formatter_class=RawTextHelpFormatter)
     parser.add_argument('keywords', nargs='+',
@@ -31,7 +31,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     add_verbose_arg(parser)
     args = parser.parse_args()
 
