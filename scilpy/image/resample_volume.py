@@ -2,7 +2,7 @@
 
 import logging
 
-from dipy.align.reslice import reslice
+from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 import nibabel as nib
 import numpy as np
 
