@@ -105,13 +105,13 @@ def main():
             if key == 'a':
                 accepted_streamlines.append(iterator)
                 choices.append('a')
-                logging.info('Accepted file %s',
-                             filename_accepted_on_size[iterator])
+                logging.info('Accepted file {}'.format(
+                             filename_accepted_on_size[iterator]))
             elif key == 'r':
                 rejected_streamlines.append(iterator)
                 choices.append('r')
-                logging.info('Rejected file %s',
-                             filename_accepted_on_size[iterator])
+                logging.info('Rejected file {}'.format(
+                             filename_accepted_on_size[iterator]))
             iterator += 1
 
         if key == 'z':
@@ -181,15 +181,16 @@ def main():
             filename_accepted_on_size.append(basename)
             concat_streamlines.extend(sft.streamlines)
         else:
-            logging.info('File %s has %s streamlines, automatically rejected.',
-                         filename, len(sft))
+            logging.info('File {} has {} streamlines,'
+                         'automatically rejected.'.format(filename, len(sft)))
             sft_rejected_on_size.append(sft)
             filename_rejected_on_size.append(basename)
 
     if not filename_accepted_on_size:
         parser.error('No cluster survived the cluster_size threshold.')
 
-    logging.info('%s clusters to be classified.', len(sft_accepted_on_size))
+    logging.info('{} clusters to be classified.'.format(
+                 len(sft_accepted_on_size)))
     # The clusters are sorted by size for simplicity/efficiency
     tuple_accepted = zip(*sorted(zip(sft_accepted_on_size,
                                      filename_accepted_on_size),
@@ -225,8 +226,8 @@ def main():
     rejected_streamlines.extend(range(len_accepted - missing,
                                       len_accepted))
     if missing > 0:
-        logging.info('%s clusters automatically rejected from early exit',
-                     missing)
+        logging.info('{} clusters automatically rejected'
+                     'from early exit'.format(missing))
 
     # Save accepted clusters (by GUI)
     accepted_streamlines = save_clusters(sft_accepted_on_size,

@@ -63,7 +63,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from %s', args.input)
+    logging.debug('Loading Raw data from {}'.format(args.input))
 
     img = nib.load(args.input)
 
@@ -76,12 +76,39 @@ def main():
         resampled_image = resample_volume(img, res=args.resolution,
                                           interp=args.interp)
     elif args.iso_min:
-        resampled_image = resample_volume(img, iso_min=args.iso_min,
-                                          interp=args.interp)
+        min_zoom = min(original_zooms)
+        new_zooms = (min_zoom, min_zoom, min_zoom)
 
-    # Saving results
-    logging.debug('Saving resampled data to %s', args.output)
-    nib.save(resampled_image, args.output)
+    logging.debug('Data shape: {}'.format(data.shape))
+    logging.debug('Data affine: {}'.format(affine))
+    logging.debug('Data affine setup: {}'.format(nib.aff2axcodes(affine)))
+    logging.debug('Resampling data to {} with mode {}'.format(
+                  new_zooms, args.interp))
+
+    data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
+                             interp_code_to_order(args.interp))
+
+    logging.debug('Resampled data shape: {}'.format(data2.shape))
+    logging.debug('Resampled data affine: {}'.format(affine2))
+    logging.debug('Resampled data affine setup: {}'.format(
+                  nib.aff2axcodes(affine2)))
+    logging.debug('Saving resampled data to {}'.format(args.output))
+
+    if args.enforce_dimensions:
+        computed_dims = data2.shape
+        ref_dims = ref_img.shape[:3]
+        if computed_dims != ref_dims:
+            fix_dim_volume = np.zeros(ref_dims)
+            x_dim = min(computed_dims[0], ref_dims[0])
+            y_dim = min(computed_dims[1], ref_dims[1])
+            z_dim = min(computed_dims[2], ref_dims[2])
+
+            fix_dim_volume[:x_dim, :y_dim, :z_dim] = \
+                data2[:x_dim, :y_dim, :z_dim]
+            data2 = fix_dim_volume
+
+    nib.save(nib.Nifti1Image(data2, affine2), args.output)
+>>>>>>> f4921fc6165dc25862d11c380961ac363d30b7ed
 
 
 if __name__ == '__main__':
