@@ -6,7 +6,8 @@ python:
   - "3.8"
 
 script:
-  - sudo apt-get install libblas-dev liblapack-dev
+  - sudo apt-get update
+  - sudo apt-get install build-essential libatlas-base-dev libblas-dev liblapack-dev
   - pip install -r requirements.txt
   - python setup.py build_ext --inplace
   - python setup.py install
