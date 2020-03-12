@@ -27,12 +27,12 @@ def _build_arg_parser():
                             formatter_class=RawTextHelpFormatter)
     parser.add_argument('keywords', nargs='+',
                         help="Search keywords")
+    add_verbose_arg(parser)
     return parser
 
 
 def main():
     parser = _build_arg_parser()
-    add_verbose_arg(parser)
     args = parser.parse_args()
 
     scilpy_init_file = inspect.getfile(scilpy)  # scilpy/scilpy/__init__.py
