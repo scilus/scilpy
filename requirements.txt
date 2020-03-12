@@ -20,3 +20,4 @@ scikit-learn==0.22.1
 scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
+vtk==8.1.2

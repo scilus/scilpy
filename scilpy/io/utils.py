@@ -180,30 +180,6 @@ def assert_outputs_exist(parser, args, required, optional=None):
             check(optional_file)
 
 
-def create_header_from_anat(reference, base_filetype=TrkFile):
-    """
-    Create a valid header for a TRK or TCK file from an reference NIFTI file
-    :param reference: Nibabel.nifti or filepath (nii or nii.gz)
-    :param base_filetype: Either TrkFile or TckFile from nibabal.streamlines
-    """
-    if isinstance(reference, six.string_types):
-        reference = nib.load(reference)
-
-    new_header = base_filetype.create_empty_header()
-
-    new_header[nib.streamlines.Field.VOXEL_SIZES] = tuple(reference.header.
-                                                          get_zooms())[:3]
-    new_header[nib.streamlines.Field.DIMENSIONS] = tuple(reference.shape)[:3]
-    new_header[nib.streamlines.Field.VOXEL_TO_RASMM] = (reference.header.
-                                                        get_best_affine())
-    affine = new_header[nib.streamlines.Field.VOXEL_TO_RASMM]
-
-    new_header[nib.streamlines.Field.VOXEL_ORDER] = ''.join(
-        nib.aff2axcodes(affine))
-
-    return new_header
-
-
 def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     """
     Assert that all output directories exist.
