@@ -99,7 +99,7 @@ def _is_matching_keywords(keywords, texts):
     for key in keywords:
         key_match = False
         for text in texts:
-            if key in text:
+            if key.lower() in text.lower():
                 key_match = True
                 break
         matches.append(key_match)
