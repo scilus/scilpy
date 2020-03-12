@@ -18,6 +18,7 @@ import numpy as np
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args, add_reference_arg,
+                             add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.metrics_tools import get_bundle_metrics_meanstdperpoint
 
@@ -48,6 +49,7 @@ def _build_arg_parser():
                    help='Path of the output json file. If not given, json '
                         'formatted stats are simply printed.')
 
+    add_overwrite_arg(p)
     add_reference_arg(p)
     add_json_args(p)
     return p
@@ -59,7 +61,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_bundle, args.label_map,
                                  args.distance_map] + args.metrics)
-    assert_outputs_exist(parser, args, [args.out_json])
+    assert_outputs_exist(parser, args, args.out_json)
 
     # Load everything
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)

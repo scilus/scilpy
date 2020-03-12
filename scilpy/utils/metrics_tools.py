@@ -87,10 +87,12 @@ def get_bundle_metrics_meanstdperpoint(streamlines, bundle_name,
         Input streamlines under which to compute stats.
     bundle_name: str
         Name of the bundle. Will be used as a key in the dictionary.
-    distances_to_centroid_streamline:
+    distances_to_centroid_streamline: np.ndarray
+        List of distances obtained with scil_label_and_distance_maps.py
     metrics: sequence
         list of nibabel objects representing the metrics files
-    labels:
+    labels: np.ndarray
+        List of labels obtained with scil_label_and_distance_maps.py
     density_weighting: bool
         If true, weight statistics by the number of streamlines passing through
         each voxel. [False]

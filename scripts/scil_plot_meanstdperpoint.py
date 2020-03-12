@@ -19,7 +19,7 @@ from scilpy.utils.metrics_tools import plot_metrics_stats
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input_json',
+    p.add_argument('in_json',
                    help='JSON file containing the mean/std per point. For '
                         'example, can be created using '
                         'scil_compute_metrics_along_streamline.')
@@ -41,14 +41,14 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.input_json])
+    assert_inputs_exist(parser, args.in_json)
     assert_output_dirs_exist_and_empty(parser, args, args.output_dir,
                                        create_dir=True)
 
     if args.fill_color and len(args.fill_color) != 8:
         parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB')
 
-    with open(args.input_json, 'r+') as f:
+    with open(args.in_json, 'r+') as f:
         meanstdperpoint = json.load(f)
 
     for bundle_name, bundle_stats in meanstdperpoint.items():
