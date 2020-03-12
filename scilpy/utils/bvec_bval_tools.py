@@ -4,6 +4,7 @@ import logging
 
 import numpy as np
 
+from scilpy.image.utils import volume_iterator
 from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
                                                save_scheme_mrtrix)
 from scilpy.utils.filenames import split_name_with_nii
@@ -27,7 +28,7 @@ def is_normalized_bvecs(bvecs):
 
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     return np.all(np.logical_or(np.abs(bvecs_norm - 1) < 1e-3,
-                  bvecs_norm == 0))
+                                bvecs_norm == 0))
 
 
 def normalize_bvecs(bvecs, filename=None):
@@ -250,3 +251,82 @@ def identify_shells(bvals, threshold=40.0):
     shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
 
     return centroids, shell_indices
+
+
+def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
+                      block_size=None):
+    """Extracts the DWI volumes that are on specific b-value shells. Many
+    shells can be extracted at once by specifying multiple b-values. The
+    extracted volumes are in the same order as in the original file.
+
+    If the b-values of a shell are not all identical, use the --tolerance
+    argument to adjust the accepted interval. For example, a b-value of 2000
+    and a tolerance of 20 will extract all volumes with a b-values from 1980 to
+    2020.
+
+    Files that are too large to be loaded in memory can still be processed by
+    setting the --block-size argument. A block size of X means that X DWI
+    volumes are loaded at a time for processing.
+
+    Parameters
+    ----------
+    dwi : nib.Nifti1Image
+        Original multi-shell volume.
+    bvals : ndarray
+        The b-values in FSL format.
+    bvecs : ndarray
+        The b-vectors in FSL format.
+    bvals_to_extract : list of int
+        The list of b-values to extract.
+    tol : int
+        Loads the data using this block size. Useful when the data is too
+        large to be loaded in memory.
+    block_size : int
+        The tolerated gap between the b-values to extract and the actual
+        b-values.
+
+    Returns
+    -------
+    indices : ndarray
+        Indices of the volumes corresponding to the provided b-values.
+    shell_data : ndarray
+        Volumes corresponding to the provided b-values.
+    output_bvals : ndarray
+        Selected b-values.
+    output_bvecs : ndarray
+        Selected b-vectors.
+
+    """
+    indices = [get_shell_indices(bvals, shell, tol=tol)
+               for shell in bvals_to_extract]
+    indices = np.unique(np.sort(np.hstack(indices)))
+
+    if len(indices) == 0:
+        raise ValueError("There are no volumes that have the supplied b-values"
+                         ": {}".format(bvals_to_extract))
+
+    logging.info(
+        "Extracting shells [{}], with number of images per shell [{}], "
+        "from {} images from {}."
+        .format(" ".join([str(b) for b in bvals_to_extract]),
+                " ".join([str(len(get_shell_indices(bvals, shell)))
+                          for shell in bvals_to_extract]),
+                len(bvals), dwi.get_filename()))
+
+    if block_size is None:
+        block_size = dwi.shape[-1]
+
+    # Load the shells by iterating through blocks of volumes. This approach
+    # is slower for small files, but allows very big files to be split
+    # with less memory usage.
+    shell_data = np.zeros((dwi.shape[:-1] + (len(indices),)))
+    for vi, data in volume_iterator(dwi, block_size):
+        in_volume = np.array([i in vi for i in indices])
+        in_data = np.array([i in indices for i in vi])
+        shell_data[..., in_volume] = data[..., in_data]
+
+    output_bvals = bvals[indices].astype(int)
+    output_bvals.shape = (1, len(output_bvals))
+    output_bvecs = bvecs[indices, :]
+
+    return indices, shell_data, output_bvals, output_bvecs

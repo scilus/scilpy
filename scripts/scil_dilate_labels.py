@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Dilate regions (with or without masking) from a labeled volume:
+- "label_to_dilate" are regions that will dilate over
+    "label_to_fill" if close enough to it ("distance").
+- "label_to_dilate", by default (None) will be all
+        non-"label_to_fill" and non-"label_not_to_dilate".
+- "label_not_to_dilate" will not be changed, but will not dilate.
+- "mask" is where the dilation is allowed (constrained)
+    in addition to "background_label" (logical AND)
+
+>>> scil_dilate_labels.py wmparc_t1.nii.gz wmparc_dil.nii.gz \\
+    --label_to_fill 0 5001 5002 \\
+    --label_not_to_dilate 4 43 10 11 12 49 50 51
+"""
 
 import argparse
 import logging
@@ -11,22 +25,6 @@ from scipy.spatial.ckdtree import cKDTree
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
-
-DESCRIPTION = """
-    Dilate regions (with or without masking) from a labeled volume:
-    - "label_to_dilate" are regions that will dilate over
-        "label_to_fill" if close enough to it ("distance").
-    - "label_to_dilate", by default (None) will be all
-         non-"label_to_fill" and non-"label_not_to_dilate".
-    - "label_not_to_dilate" will not be changed, but will not dilate.
-    - "mask" is where the dilation is allowed (constrained)
-        in addition to "background_label" (logical AND)
-
-    >>> scil_dilate_labels.py wmparc_t1.nii.gz wmparc_dil.nii.gz \\
-        --label_to_fill 0 5001 5002 \\
-        --label_not_to_dilate 4 43 10 11 12 49 50 51
-    """
-
 EPILOG = """
     References:
         [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
@@ -36,7 +34,7 @@ EPILOG = """
 
 
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_file',
@@ -86,8 +84,8 @@ def main():
     # Check if in both: label_to_fill & not_to_fill
     fill_and_not = np.in1d(args.label_not_to_dilate, args.label_to_fill)
     if np.any(fill_and_not):
-        logging.error("Error, both in not_to_dilate and to_fill: %s",
-                      np.asarray(args.label_not_to_dilate)[fill_and_not])
+        logging.error("Error, both in not_to_dilate and to_fill: {}".format(
+                      np.asarray(args.label_not_to_dilate)[fill_and_not]))
 
     # Create background mask
     is_background_mask = np.zeros(img_shape, dtype=np.bool)
@@ -115,14 +113,14 @@ def main():
         # Check if in both: to_dilate & not_to_dilate
         dil_and_not = np.in1d(args.label_to_dilate, args.label_not_to_dilate)
         if np.any(dil_and_not):
-            logging.error("Error, both in dilate and Not to dilate: %s",
-                          np.asarray(args.label_to_dilate)[dil_and_not])
+            logging.error("Error, both in dilate and Not to dilate: {}".format(
+                          np.asarray(args.label_to_dilate)[dil_and_not]))
 
         # Check if in both: to_dilate & to_fill
         dil_and_fill = np.in1d(args.label_to_dilate, args.label_to_fill)
         if np.any(dil_and_fill):
-            logging.error("Error, both in dilate and to fill: %s",
-                          np.asarray(args.label_to_dilate)[dil_and_fill])
+            logging.error("Error, both in dilate and to fill: {}".format(
+                          np.asarray(args.label_to_dilate)[dil_and_fill]))
 
         # Create new label to dilate list
         new_label_mask = np.zeros_like(data, dtype=np.bool)

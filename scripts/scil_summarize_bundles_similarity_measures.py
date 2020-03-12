@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute pair-wise similarity measures of bundles.
+All tractograms must be in the same space (aligned to one reference)
+"""
+
 import argparse
 import copy
 import hashlib
@@ -33,15 +38,9 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-DESCRIPTION = """
-Compute pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference)
-"""
-
-
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
@@ -79,7 +78,7 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     # that can be computed once is saved temporarily and simply loaded on demand
     if not os.path.isfile(filename):
         if init_only:
-            logging.warning('%s does not exist', filename)
+            logging.warning('{} does not exist'.format(filename))
         return None
 
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
@@ -90,13 +89,13 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     tmp_centroids_filename = os.path.join('tmp_measures/',
                                           '{0}_centroids.trk'.format(hash_tmp))
 
-    sft = load_tractogram(filename, reference,
-                          to_space=Space.VOX,
-                          shifted_origin=True)
+    sft = load_tractogram(filename, reference)
+    sft.to_vox()
+    sft.to_corner()
     streamlines = sft.get_streamlines_copy()
     if not streamlines:
         if init_only:
-            logging.warning('%s is empty', filename)
+            logging.warning('{} is empty'.format(filename))
         return None
 
     if os.path.isfile(tmp_density_filename) \
@@ -107,12 +106,12 @@ def load_data_tmp_saving(filename, reference, init_only=False,
             return None
         density = nib.load(tmp_density_filename).get_data()
         endpoints_density = nib.load(tmp_endpoints_filename).get_data()
-        sft_centroids = load_tractogram(tmp_centroids_filename, reference,
-                                        to_space=Space.VOX,
-                                        shifted_origin=True)
+        sft_centroids = load_tractogram(tmp_centroids_filename, reference)
+        sft_centroids.to_vox()
+        sft_centroids.to_corner()
         centroids = sft_centroids.get_streamlines_copy()
     else:
-        transformation, dimensions, _, _ = sft.space_attribute
+        transformation, dimensions, _, _ = sft.space_attributes
         density = compute_tract_counts_map(streamlines, dimensions)
         endpoints_density = get_endpoints_density_map(streamlines, dimensions,
                                                       point_to_select=3)
@@ -131,8 +130,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                                  transformation),
                  tmp_endpoints_filename)
 
-        centroids_sft = StatefulTractogram(centroids, reference, Space.VOX,
-                                           shifted_origin=True)
+        # Saving in vox space and corner.
+        centroids_sft = StatefulTractogram.from_sft(centroids, sft)
         save_tractogram(centroids_sft, tmp_centroids_filename)
 
     return density, endpoints_density, streamlines, centroids

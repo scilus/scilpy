@@ -112,12 +112,12 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     streamlines = list(sft.streamlines)
     original_length = len(streamlines)
-    logging.debug('Loaded %s streamlines...', original_length)
+    logging.debug('Loaded {} streamlines...'.format(original_length))
 
     pool = multiprocessing.Pool(args.processes)
     timer = time()
 
-    logging.debug('Lauching subsampling on %s processes.', args.processes)
+    logging.debug('Lauching subsampling on {} processes.'.format(args.processes))
     last_iteration = False
     while True:
         if len(streamlines) < 1000:
@@ -143,18 +143,19 @@ def main():
         # Fused all subprocesses' result together
         streamlines = list(chain(*resulting_streamlines))
         difference_length = current_iteration_length - len(streamlines)
-        logging.debug('Difference (before - after): %s streamlines were removed',
-                      difference_length)
+        logging.debug('Difference (before - after): {}'
+                      'streamlines were removed'.format(difference_length))
 
         if last_iteration and difference_length < args.convergence:
-            logging.debug('Before (%s)-> After (%s), total runtime of %s sec.',
-                          original_length, len(streamlines),
-                          round(time() - timer, 3))
+            logging.debug('Before ({})-> After ({}),'
+                          'total runtime of {} sec.'.format(
+                           original_length, len(streamlines),
+                           round(time() - timer, 3)))
             break
         elif difference_length < args.convergence:
-            logging.debug('The smart-subsampling converged, below %s '
-                          'different streamlines. Adding single-thread iteration.',
-                          args.convergence)
+            logging.debug('The smart-subsampling converged, below {} '
+                          'different streamlines. Adding single-thread'
+                          'iteration.'.format(args.convergence))
             args.processes = 1
             last_iteration = True
         else:

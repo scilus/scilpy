@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Performs an operation on a list of mask images. The supported
+operations are:
+
+    subtraction:  Keep the voxels from the first file that are not in
+                  any of the following files.
+
+    intersection: Keep the voxels that are present in all files.
+
+    union:        Keep voxels that are in any file.
+
+This script handles both probabilistic masks and binary masks.
+"""
+
 
 from __future__ import division
 from builtins import next
@@ -14,20 +28,6 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_outputs_exist,
                              assert_inputs_exist)
-
-DESCRIPTION = """
-Performs an operation on a list of mask images. The supported
-operations are:
-
-    subtraction:  Keep the voxels from the first file that are not in
-                  any of the following files.
-
-    intersection: Keep the voxels that are present in all files.
-
-    union:        Keep voxels that are in any file.
-
-This script handles both probabilistic masks and binary masks.
-"""
 
 
 def mask_union(left, right):
@@ -53,7 +53,7 @@ def build_args_parser():
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     parser.add_argument('operation',
                         choices=list(OPERATIONS.keys()),
@@ -92,15 +92,15 @@ def load_data(path):
         logging.info('Loading mask from {0}.'.format(path))
         mask = nibabel.load(path).get_data()
 
-        min = mask.min()
-        max = mask.max()
-        if max == 0 and min == 0:
+        min_val = mask.min()
+        max_val = mask.max()
+        if max_val == 0 and min_val == 0:
             logging.warning('The mask {0} is empty.'.format(path))
-        elif min < 0.0 or max > 1.0:
+        elif min_val < 0.0 or max_val > 1.0:
             logging.warning(
                 'The mask {0} is not binary or probabilistic. Converting it '
                 'to a probabilistic mask.'.format(path))
-            mask = old_div((mask.astype(float) - min), (max + min))
+            mask = old_div((mask.astype(float) - min_val), (max_val + min_val))
 
     return mask
 

@@ -20,6 +20,7 @@ from scilpy.tracking.tools import get_subset_streamlines
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
+
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('max_num_streamlines', type=int,
