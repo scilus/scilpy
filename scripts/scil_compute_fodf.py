@@ -107,7 +107,7 @@ def main():
     if args.mask is None:
         mask = None
     else:
-        mask = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
+        mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
     # Computing fODF
     peaks_csd = compute_fodf(data, bvals, bvecs, full_frf,
