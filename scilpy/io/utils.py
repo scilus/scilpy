@@ -105,8 +105,13 @@ def add_verbose_arg(parser):
 
 def add_sh_basis_args(parser, mandatory=False):
     """Add spherical harmonics (SH) bases argument.
-    :param parser: argparse.ArgumentParser object
-    :param mandatory: should this argument be mandatory
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    mandatory: bool
+        Whether this argument is mandatory.
     """
     choices = ['descoteaux07', 'tournier07']
     def_val = 'descoteaux07'
@@ -146,12 +151,16 @@ def validate_sh_basis_choice(sh_basis):
 
 
 def assert_inputs_exist(parser, required, optional=None):
-    """
-    Assert that all inputs exist. If not, print parser's usage and exit.
-    :param parser: argparse.ArgumentParser object
-    :param required: string or list of paths
-    :param optional: string or list of paths.
-                     Each element will be ignored if None
+    """Assert that all inputs exist. If not, print parser's usage and exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    required: string or list of paths
+        Paths to be checked.
+    optional: string or list of paths
+        Each element will be ignored if None.
     """
     def check(path):
         if not os.path.isfile(path):
@@ -174,11 +183,17 @@ def assert_outputs_exist(parser, args, required, optional=None):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
-    :param parser: argparse.ArgumentParser object
-    :param args: argparse namespace
-    :param required: string or list of paths
-    :param optional: string or list of paths.
-                     Each element will be ignored if None
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    args: list
+        Argument list.
+    required: string or list of paths
+        Paths to be checked.
+    optional: string or list of paths
+        Each element will be ignored if None.
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
@@ -203,9 +218,15 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     Assert that all output directories exist.
     If not, print parser's usage and exit.
     If exists and not empty, and -f used, delete dirs.
-    :param parser: argparse.ArgumentParser object
-    :param args: argparse namespace
-    :param dirs: list of paths
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    args: list
+        Argument list.
+    dirs: list
+        Paths to be checked.
     """
     for cur_dir in dirs:
         if not os.path.isdir(cur_dir):
