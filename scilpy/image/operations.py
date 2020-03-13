@@ -435,7 +435,7 @@ def closing(input_list):
 def opening(input_list):
     """
     opening: IMG, VALUE
-        Binary morphological operation, erosion followed by an dilation.
+        Binary morphological operation, erosion followed by a dilation.
     """
     _validate_length(input_list, 2)
     _validate_arrays(input_list[0])
