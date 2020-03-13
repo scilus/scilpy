@@ -257,3 +257,42 @@ def read_info_from_mb_bdo(filename):
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center
+
+
+def load_frf(fname):
+    """Load the Fiber Response Function (FRF) from a text file.
+
+    Parameters
+    ----------
+    fname: str
+        Filename where the values are stored.
+
+    Returns
+    -------
+    frf_response: tuple (1D array-like, float)
+        Fiber Response Function containing the eigenvalues and the mean b0
+        value.
+    """
+
+    frf_response = np.loadtxt(fname)
+
+    if not frf_response.shape[0] == 4:
+        raise ValueError('FRF file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+
+    return frf_response
+
+
+def save_frf(fname, frf_response):
+    """Save the Fiber Response Function (FRF) to a text file.
+
+    Parameters
+    ----------
+    fname: str
+        Filename where the values are to be stored.
+    frf_response: tuple (1D array-like, float)
+        Fiber Response Function containing the eigenvalues and the mean b0
+        value.
+    """
+
+    np.savetxt(fname, np.hstack([frf_response[0], frf_response[1]]))

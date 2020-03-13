@@ -26,7 +26,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args)
+                             add_sh_basis_args, load_frf)
 from scilpy.reconst.fodf import compute_fodf
 
 
@@ -99,7 +99,7 @@ def main():
                                  args.frf_file])
     assert_outputs_exist(parser, args, arglist)
 
-    full_frf = np.loadtxt(args.frf_file)
+    full_frf = load_frf(args.frf_file)
     vol = nib.load(args.input)
     data = vol.dataobj
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)

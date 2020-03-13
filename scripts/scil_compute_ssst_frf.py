@@ -18,7 +18,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             save_frf)
 from scilpy.reconst.frf import compute_ssst_frf
 
 
@@ -114,7 +115,7 @@ def main():
                                      roi_center=args.roi_center,
                                      force_b0_threshold=args.force_b0_threshold)
 
-    np.savetxt(args.frf_file, full_response)
+    save_frf(args.frf_file, full_response)
 
 
 if __name__ == "__main__":

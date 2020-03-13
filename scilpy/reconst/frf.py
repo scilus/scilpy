@@ -126,3 +126,28 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
                               response[0][2], response[1]])
 
     return full_response
+
+
+def get_frf_components(frf_response):
+    """Get the Fiber Response Function (FRF) components, i.e. the eigenvalues
+    and the mean b0 value.
+
+    Parameters
+    ----------
+    frf_response: tuple (1D array-like, float)
+        Fiber Response Function containing the eigenvalues and the mean b0
+        value.
+
+    Returns
+    -------
+    eigenvals: 1D array-like
+        Eigenvalues (:math:`\lambda_1, \lambda_2, \lambda_3`) representing the
+        Fiber Response Function (FRF).
+    mean_b0_val: float
+        Mean b0 value.
+    """
+
+    eigenvals = frf_response[0:3]
+    mean_b0_val = frf_response[3]
+
+    return eigenvals, mean_b0_val

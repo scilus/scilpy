@@ -16,7 +16,9 @@ from ast import literal_eval
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist, load_frf,
+    save_frf)
+from scilpy.reconst.frf import get_frf_components
 
 
 def _build_arg_parser():
@@ -45,14 +47,16 @@ def main():
     assert_inputs_exist(parser, args.frf_file)
     assert_outputs_exist(parser, args, args.output_frf_file)
 
-    frf_file = np.array(np.loadtxt(args.frf_file))
+    frf_response = load_frf(args.frf_file)
+
     new_frf = np.array(literal_eval(args.new_frf), dtype=np.float64)
     if not args.no_factor:
         new_frf *= 10 ** -4
-    b0_mean = frf_file[3]
+    _, b0_mean = get_frf_components(frf_response)
 
     response = np.concatenate([new_frf, [b0_mean]])
-    np.savetxt(args.output_frf_file, response)
+
+    save_frf(args.output_frf_file, response)
 
 
 if __name__ == "__main__":

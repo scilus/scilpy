@@ -14,7 +14,8 @@ import logging
 import numpy as np
 
 from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist, load_frf,
+    save_frf)
 
 
 def _build_arg_parser():
@@ -43,17 +44,14 @@ def main():
     all_frfs = np.zeros((len(args.frf_files), 4))
 
     for idx, frf_file in enumerate(args.frf_files):
-        frf = np.loadtxt(frf_file)
 
-        if not frf.shape[0] == 4:
-            raise ValueError('FRF file {} did not contain 4 elements. Invalid '
-                             'or deprecated FRF format'.format(frf_file))
+        frf = load_frf(frf_file)
 
         all_frfs[idx] = frf
 
     final_frf = np.mean(all_frfs, axis=0)
 
-    np.savetxt(args.mean_frf, final_frf)
+    save_frf(args.mean_frf, final_frf)
 
 
 if __name__ == "__main__":
