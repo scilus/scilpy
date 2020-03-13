@@ -102,7 +102,6 @@ def get_subset_streamlines(streamlines,
 def resample_streamlines(streamlines, num_points=0, arc_length=False):
     """
     Resample streamlines using number of points per streamline
-
     Parameters
     ----------
     streamlines: list
@@ -111,7 +110,6 @@ def resample_streamlines(streamlines, num_points=0, arc_length=False):
         Number of points per streamline in the output.
     arc_length: bool
         Whether to downsample using arc length parametrization.
-
     Return
     ------
     resampled_streamlines: list
