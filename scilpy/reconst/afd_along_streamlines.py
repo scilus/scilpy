@@ -74,9 +74,7 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
     weight_map :
 
     """
-
-    fodf_data = fodf.dataobj
-
+    fodf_data = np.asanyarray(fodf.dataobj)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere('repulsion724')
     b_matrix, _, n = get_b_matrix(order, sphere, fodf_basis, return_all=True)
@@ -88,9 +86,7 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
     p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
-
     all_crossed_indices = grid_intersections(streamlines)
-
     for crossed_indices in all_crossed_indices:
         segments = crossed_indices[1:] - crossed_indices[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)
@@ -119,7 +115,6 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
                                                               closest_vertex_indices,
                                                               normalization_weights):
             vox_idx = tuple(vox_idx)
-
             b_at_idx = b_matrix[closest_vertex_index]
             fodf_at_index = fodf_data[vox_idx]
 

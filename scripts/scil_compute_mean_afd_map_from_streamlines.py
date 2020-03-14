@@ -53,12 +53,12 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.fODFs])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_fODF])
     assert_outputs_exist(parser, args, [args.afd_mean_map, args.rd_mean_map])
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    fodf_img = nb.load(args.fodf)
+    fodf_img = nb.load(args.in_fODF)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft,
                                                           fodf_img,
