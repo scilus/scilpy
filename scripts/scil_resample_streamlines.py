@@ -2,34 +2,38 @@
 # -*- coding: utf-8 -*-
 
 """
-Resample a set of streamlines.
-'WARNING: data_per_point is not carried
+Script to resample a set of streamlines to either a new number of points per
+streamline or to a fixed step size. WARNING: data_per_point is not carried.
 """
-
 import argparse
 
-from nibabel.streamlines import load, save, Tractogram
-import numpy as np
+from dipy.io.streamline import save_tractogram
 
-from scilpy.tracking.tools import resample_streamlines
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.tracking.tools import (resample_streamlines_num_points,
+                                   resample_streamlines_step_size)
 
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
+
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
-    p.add_argument('nb_pts_per_streamline', type=int,
-                   help='Number of points per streamline in the output.')
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
-    p.add_argument('--arclength', action="store_true",
-                   help='Whether to downsample using arc length ' +
-                   'parametrization. [%(default)s]')
 
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument('--nb_pts_per_streamline', type=int,
+                   help='Number of points per streamline in the output.')
+    g.add_argument('--step_size', type=float,
+                   help='Step size in the output (in mm).')
+
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -43,19 +47,15 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    tractogram_file = load(args.in_tractogram)
-    streamlines = list(tractogram_file.streamlines)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_streamlines = resample_streamlines(streamlines,
-                                           num_points=args.nb_pts_per_streamline,
-                                           arc_length=args.arclength)
+    if args.nb_pts_per_streamline:
+        new_sft = resample_streamlines_num_points(sft,
+                                                  args.nb_pts_per_streamline)
+    else:
+        new_sft = resample_streamlines_step_size(sft, args.step_size)
 
-    new_tractogram = Tractogram(
-        new_streamlines,
-        data_per_streamline=tractogram_file.tractogram.data_per_streamline,
-        affine_to_rasmm=np.eye(4))
-
-    save(new_tractogram, args.out_tractogram, header=tractogram_file.header)
+    save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
