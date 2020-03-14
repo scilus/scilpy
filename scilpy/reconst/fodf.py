@@ -1,17 +1,15 @@
-# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import warnings
 import logging
 
 from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.direction.peaks import peaks_from_model
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 
-from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
-from scilpy.io.utils import check_sh_basis_choice
-from scilpy.utils.bvec_bval_tools import check_b0_threshold
+from scilpy.io.utils import validate_sh_basis_choice
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
+                                          is_normalized_bvecs)
 
 
 def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
@@ -44,6 +42,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
         SH order used for the CSD. (Default: 8)
     nbr_processes: int, optional
         Number of sub processes to start. Default = none, i.e use the cpu count.
+        If 0, use all processes.
     mask: ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -71,7 +70,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     # Checking data and sh_order
     check_b0_threshold(force_b0_threshold, bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        warnings.warn(
+        logging.warning(
             'We recommend having at least {} unique DWI volumes, but you '
             'currently have {} volumes. Try lowering the parameter sh_order '
             'in case of non convergence.'.format(
@@ -93,13 +92,15 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     # Checking if we will use parallel processing
     parallel = True
     if nbr_processes is not None:
-        if nbr_processes <= 0:
-            nbr_processes = None        # C'est ok ça?? parallel reste true si nbr_processes <0? Je laisse comme c'était.
+        if nbr_processes == 0:  # Will use all processed
+            nbr_processes = None
         elif nbr_processes == 1:
             parallel = False
+        elif nbr_processes < 0:
+            raise ValueError('nbr_processes should be positive.')
 
     # Checking sh basis
-    check_sh_basis_choice(sh_basis)
+    validate_sh_basis_choice(sh_basis)
 
     # Loading the spheres
     reg_sphere = get_sphere('symmetric362')

@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import logging
 
-from dipy.align.reslice import reslice
+from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 import nibabel as nib
 import numpy as np
 
@@ -16,7 +15,7 @@ def _interp_code_to_order(interp_code):
 def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
                     enforce_dimensions=False):
     """
-    Script to resample a dataset to match the resolution of another
+    Function to resample a dataset to match the resolution of another
     reference dataset or to the resolution specified as in argument.
     One of the following options must be chosen: ref, res or iso_min.
 
@@ -24,7 +23,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
     ----------
     img: nib.Nifti1Image
         Image to resample.
-    ref:
+    ref: nib.Nifti1Image
         Reference volume to resample to. This method is used only if ref is not
         None. (default: None)
     res: float, optional
@@ -38,22 +37,28 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
         Interpolation mode. 'nn' = nearest neighbour, 'lin' = linear,
         'quad' = quadratic, 'cubic' = cubic. (Default: linear)
     enforce_dimensions: bool, optional
-        If True, enforce the reference volume dimension (only if res in not None).
-        (Default = False)
+        If True, enforce the reference volume dimension (only if res is not
+        None). (Default = False)
 
     Returns
     -------
     resampled_image: nib.Nifti1Image
         Resampled image.
     """
-    data = img.get_data()
+    data = img.get_fdata()
     affine = img.get_affine()
     original_zooms = img.get_header().get_zooms()[:3]
 
     if ref is not None:
+        if res is not None or iso_min:
+            raise ValueError('Please only provide one option amongst ref, res '
+                             'or iso_min.')
         ref_img = nib.load(ref)
         new_zooms = ref_img.header.get_zooms()[:3]
     elif res is not None:
+        if iso_min:
+            raise ValueError('Please only provide one option amongst ref, res '
+                             'or iso_min.')
         new_zooms = [res] * 3
     elif iso_min:
         min_zoom = min(original_zooms)

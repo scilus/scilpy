@@ -19,16 +19,18 @@ from scilpy.image.resample_volume import resample_volume
 def _build_args_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input', metavar='in_vol',
+
+    p.add_argument('in_image',
                    help='Path of the input volume.')
-    p.add_argument('output', metavar='out_vol',
+    p.add_argument('out_image',
                    help='Path of the resampled volume.')
 
     res_group = p.add_mutually_exclusive_group(required=True)
-    res_group.add_argument('--ref', metavar='ref_vol',
-                           help='Reference volume to resample to.')
     res_group.add_argument(
-        '--resolution', metavar='float', type=float,
+        '--ref',
+        help='Reference volume to resample to.')
+    res_group.add_argument(
+        '--resolution', type=float,
         help='Resolution to resample to. If the value it is set to is Y, it '
              'will resample to an isotropic resolution of Y x Y x Y.')
     res_group.add_argument(
@@ -55,59 +57,26 @@ def main():
     args = parser.parse_args()
 
     # Checking args
-    assert_inputs_exist(parser, args.input, args.ref)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_image, args.ref)
+    assert_outputs_exist(parser, args, args.out_image)
     if args.enforce_dimensions and not args.ref:
         parser.error("Cannot enforce dimensions without a reference image")
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from {}'.format(args.input))
+    logging.debug('Loading Raw data from %s', args.in_image)
 
-    img = nib.load(args.input)
+    img = nib.load(args.in_image)
 
     # Resampling volume
-    if args.ref:
-        resampled_image = resample_volume(img, ref=args.ref,
-                                          interp=args.interp,
-                                          enforce_dimensions=args.enforce_dimensions)
-    elif args.resolution:
-        resampled_image = resample_volume(img, res=args.resolution,
-                                          interp=args.interp)
-    elif args.iso_min:
-        min_zoom = min(original_zooms)
-        new_zooms = (min_zoom, min_zoom, min_zoom)
+    resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
+                                    iso_min=args.iso_min, interp=args.interp,
+                                    enforce_dimensions=args.enforce_dimensions)
 
-    logging.debug('Data shape: {}'.format(data.shape))
-    logging.debug('Data affine: {}'.format(affine))
-    logging.debug('Data affine setup: {}'.format(nib.aff2axcodes(affine)))
-    logging.debug('Resampling data to {} with mode {}'.format(
-                  new_zooms, args.interp))
-
-    data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
-                             interp_code_to_order(args.interp))
-
-    logging.debug('Resampled data shape: {}'.format(data2.shape))
-    logging.debug('Resampled data affine: {}'.format(affine2))
-    logging.debug('Resampled data affine setup: {}'.format(
-                  nib.aff2axcodes(affine2)))
-    logging.debug('Saving resampled data to {}'.format(args.output))
-
-    if args.enforce_dimensions:
-        computed_dims = data2.shape
-        ref_dims = ref_img.shape[:3]
-        if computed_dims != ref_dims:
-            fix_dim_volume = np.zeros(ref_dims)
-            x_dim = min(computed_dims[0], ref_dims[0])
-            y_dim = min(computed_dims[1], ref_dims[1])
-            z_dim = min(computed_dims[2], ref_dims[2])
-
-            fix_dim_volume[:x_dim, :y_dim, :z_dim] = \
-                data2[:x_dim, :y_dim, :z_dim]
-            data2 = fix_dim_volume
-
-    nib.save(nib.Nifti1Image(data2, affine2), args.output)
+    # Saving results
+    logging.debug('Saving resampled data to %s', args.out_image)
+    nib.save(resampled_img, args.out_image)
 
 
 if __name__ == '__main__':

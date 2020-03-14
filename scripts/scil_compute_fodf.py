@@ -101,13 +101,13 @@ def main():
 
     full_frf = np.loadtxt(args.frf_file)
     vol = nib.load(args.input)
-    data = vol.get_data()
+    data = vol.dataobj
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if args.mask is None:
         mask = None
     else:
-        mask = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
+        mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
     # Computing fODF
     peaks_csd = compute_fodf(data, bvals, bvecs, full_frf,
