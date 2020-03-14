@@ -28,9 +28,10 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
 
     Returns
     -------
-    afd_sum :
-
-    rd_sum :
+    afd_sum : np.array
+        AFD map (weighted if length_weighting)
+    rd_sum : np.array
+        rdAFD map (weighted if length_weighting)
     """
 
     sft.to_vox()
@@ -58,21 +59,21 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
     streamlines :
 
     fodf : np.ndarray
-        fODF with shape (X, Y, Z, #coeffs)
-        coeffs depending on the sh_order
+        fODF with shape (X, Y, Z, #coeffs).
+        coeffs depend on the sh_order.
     fodf_basis : string
-        Has to be descoteaux07 or tournier07
+        Has to be descoteaux07 or tournier07.
     length_weighting : bool
-        If set, will weigh the AFD values according to segment lengths
+        If set, will weigh the AFD values according to segment lengths.
 
     Returns
     -------
-    afd_sum_map :
-
-    rd_sum_map :
-
-    weight_map :
-
+    afd_sum_map : np.array
+        AFD map.
+    rd_sum_map : np.array
+        fdAFD map.
+    weight_map : np.array
+        Segment lengths.
     """
     fodf_data = np.asanyarray(fodf.dataobj)
     order = find_order_from_nb_coeff(fodf_data)
