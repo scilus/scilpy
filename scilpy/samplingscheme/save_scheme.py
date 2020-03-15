@@ -81,21 +81,18 @@ def save_scheme_mrtrix(points, shell_idx, bvals, filename):
         output file name
     ------
     """
-    fullfilename, ext = split_name_with_nii(filename)
-    fullfilename = fullfilename + '.b'
-
-    with open(fullfilename) as f:
+    with open(filename, 'w') as f:
         for idx in range(points.shape[0]):
             f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
                                                            points[idx, 1],
                                                            points[idx, 2],
                                                            bvals[shell_idx[idx]]))
 
-    logging.info('Scheme saved in MRtrix format as {}'.format(fullfilename))
+    logging.info('Scheme saved in MRtrix format as {}'.format(filename))
 
 
-def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename=None,
-                            filename_bval=None, filename_bvec=None):
+def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename_bval=None,
+                                                      filename_bvec=None):
     """
     Save table gradient (FSL format)
 
@@ -110,10 +107,7 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename=None,
         output file name
     ------
     """
-    if filename:
-        fullfilename, ext = split_name_with_nii(filename)
-        filename_bval = fullfilename + '.bval'
-        filename_bvec = fullfilename + '.bvec'
+    fullfilename, ext = split_name_with_nii(filename_bval)
 
     np.savetxt(filename_bvec, points.T, fmt='%.8f')
     np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')

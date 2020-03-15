@@ -7,7 +7,8 @@ Script to convert bval/bvec FSL style to MRtrix style.
 
 import argparse
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
+from scilpy.io.utils import (assert_gradients_filenames_valid,
+                             assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 
@@ -34,6 +35,9 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
+    assert_gradients_filenames_valid(parser, [args.fsl_bval, args.fsl_bvec],
+                                     'fsl')
+    assert_gradients_filenames_valid(parser, args.mrtrix_enc, 'mrtrix')
     assert_inputs_exist(parser, [args.fsl_bval, args.fsl_bvec])
     assert_outputs_exist(parser, args, [args.mrtrix_enc])
 

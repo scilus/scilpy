@@ -131,9 +131,8 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
         path to input fsl bval file.
     fsl_bvec_filename: str
         path to input fsl bvec file.
-    mrtrix_filename : str, optional
-        path to output mrtrix encoding.b file. Default is
-        fsl_bvec_filename.b.
+    mrtrix_filename : str
+        path to output mrtrix encoding.b file.
 
     Returns
     -------
@@ -150,13 +149,10 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
 
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
-    basefilename, ext = split_name_with_nii(mrtrix_filename)
-
     save_scheme_mrtrix(points,
                        shell_idx,
                        bvals,
-                       basefilename,
-                       verbose=1)
+                       mrtrix_filename)
 
 
 def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
@@ -168,10 +164,10 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     ----------
     mrtrix_filename : str
         path to mrtrix encoding.b file.
-    fsl_bval_filename: str, optional
+    fsl_bval_filename: str
         path to the output fsl bval file. Default is
         mrtrix_filename.bval.
-    fsl_bvec_filename: str, optional
+    fsl_bvec_filename: str
         path to the output fsl bvec file. Default is
         mrtrix_filename.bvec.
     Returns
@@ -188,18 +184,11 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     bvals = np.unique(shells).tolist()
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
-    if fsl_bval_filename is None:
-        fsl_bval_filename = mrtrix_filename + str(".bval")
-
-    if fsl_bvec_filename is None:
-        fsl_bvec_filename = mrtrix_filename + str(".bvec")
-
     save_scheme_bvecs_bvals(points,
                             shell_idx,
                             bvals,
                             filename_bval=fsl_bval_filename,
-                            filename_bvec=fsl_bvec_filename,
-                            verbose=1)
+                            filename_bvec=fsl_bvec_filename)
 
 
 def identify_shells(bvals, threshold=40.0):
