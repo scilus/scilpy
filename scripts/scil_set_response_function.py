@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Replace the fiber response function in the FRF file.
+Use this script when you want to use a fixed response function
+and keep the mean b0.
+
+The FRF file is obtained from scil_compute_ssst_frf.py
+"""
+
 from __future__ import division, print_function
 
 import argparse
@@ -10,18 +18,10 @@ import numpy as np
 from scilpy.io.utils import (
     add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
 
-DESCRIPTION = """
-Replace the fiber response function in the FRF file.
-Use this script when you want to use a fixed response function
-and keep the mean b0.
-
-The FRF file is obtained from scil_compute_ssst_frf.py
-"""
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION, formatter_class=argparse.RawTextHelpFormatter)
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('frf_file', metavar='input',
                    help='Path of the FRF file.')

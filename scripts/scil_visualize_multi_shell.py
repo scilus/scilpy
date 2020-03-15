@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Vizualisation for sampling schemes.
+Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
+and .b (MRtrix).
+"""
+
 import argparse
 import logging
 import numpy as np
@@ -15,20 +21,13 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         plot_proj_shell)
 
 
-DESCRIPTION = """
-Vizualisation for sampling schemes.
-Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
-and .b (MRtrix).
-"""
-
-
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument(
-        'scheme_file', action='store', metavar='scheme_file',
+        'scheme_file', metavar='scheme_file',
         help='Sampling scheme filename. (only accepts .txt or .caru or '
              '.bvecs and .bvals or .b or .dir or .dvs)')
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Modify PFT maps to allow PFT tracking in given mask.
+"""
+
 import argparse
 
 import nibabel as nib
@@ -10,7 +15,7 @@ from scilpy.io.utils import (
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
-        description='Modify PFT maps to allow PFT tracking in given mask.',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('map_include',
                         help='PFT map include.')
