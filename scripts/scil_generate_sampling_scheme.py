@@ -22,13 +22,9 @@ from scilpy.samplingscheme.optimize_scheme import (add_b0s,
                                                    add_bvalue_b0,
                                                    compute_bvalue_lin_b,
                                                    compute_bvalue_lin_q,
-                                                   correct_b0s_philips,
                                                    compute_min_duty_cycle_bruteforce,
                                                    swap_sampling_eddy)
 from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
-                                               save_scheme_caru,
-                                               save_scheme_philips,
-                                               save_scheme_siemens,
                                                save_scheme_mrtrix)
 
 
@@ -90,18 +86,9 @@ def _build_args_parser():
                                   'in *q*. [replaces -bvals]')
 
     g1 = p.add_argument_group(title='Save as')
-    g1.add_argument('--caru',
-                    action='store_true',
-                    help='Save in caruyer format (.caru). [%(default)s]')
-    g1.add_argument('--phil',
-                    action='store_true',
-                    help='Save in Philips format (.txt). [%(default)s]')
     g1.add_argument('--fsl',
                     action='store_true',
                     help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
-    g1.add_argument('--siemens',
-                    action='store_true',
-                    help='Save in Siemens format (.dvs). [%(default)s]')
     g1.add_argument('--mrtrix',
                     action='store_true',
                     help='Save in MRtrix format (.b). [%(default)s]')
@@ -117,13 +104,10 @@ def main():
     parser = _build_args_parser()
     args = parser.parse_args()
 
-    caru = args.caru
-    phil = args.phil
     fsl = args.fsl
-    siemens = args.siemens
     mrtrix = args.mrtrix
 
-    if not (caru or phil or fsl or siemens or mrtrix):
+    if not (fsl or mrtrix):
         parser.error('Select at least one save format.')
         return
 
@@ -173,39 +157,25 @@ def main():
 
     # Adding interleaved b0s
     if b0_every != 0:
-        points, shell_idx = add_b0s(
-            points, shell_idx, b0_every=b0_every, finish_b0=b0_end)
+        points, shell_idx = add_b0s(points,
+                                    shell_idx,
+                                    b0_every=b0_every,
+                                    finish_b0=b0_end)
 
     # duty cycle optimization
     if duty:
         points, shell_idx = compute_min_duty_cycle_bruteforce(
             points, shell_idx, bvals)
 
-    # Save the sampling scheme
-    if caru:
-        assert_outputs_exist(parser, args, outfile + '.caru')
-        save_scheme_caru(points, shell_idx, filename=outfile)
-
     if fsl:
-        assert_outputs_exist(parser, args, [outfile + '.bvecs',
-                                            outfile + '.bvals'])
-        save_scheme_bvecs_bvals(points, shell_idx, bvals, filename=outfile)
-
-    if siemens:
-        assert_outputs_exist(parser, args, outfile + '.dvs')
-        save_scheme_siemens(points, shell_idx, bvals, filename=outfile)
+        out_fsl = [outfile + '.bval', outfile + '.bvec']
+        assert_outputs_exist(parser, args, out_fsl)
+        save_scheme_bvecs_bvals(points, shell_idx, bvals,
+                                out_fsl[0], out_fsl[1])
 
     if mrtrix:
         assert_outputs_exist(parser, args, outfile + '.b')
         save_scheme_mrtrix(points, shell_idx, bvals, filename=outfile)
-
-    if phil:
-        # Correcting bvecs for b0s
-        if b0_every != 0:
-            points, shell_idx = correct_b0s_philips(points, shell_idx)
-
-        assert_outputs_exist(parser, args, outfile + '.txt')
-        save_scheme_philips(points, shell_idx, bvals, filename=outfile)
 
 
 if __name__ == "__main__":
