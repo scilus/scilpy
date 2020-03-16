@@ -86,28 +86,29 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
             basename_2, ext_2 = split_name_with_nii(filename_2)
 
             if ext_1 == '' or ext_2 == '':
-                parser.error('FSL gradients filenames must have a extension: '
+                parser.error('fsl gradients filenames must have a extension: '
                              '.bval and .bvec.')
 
             if basename_1 == basename_2:
                 curr_extensions = [ext_1, ext_2]
                 curr_extensions.sort()
                 if valid_fsl_extensions != curr_extensions:
-                    parser.error('FSL extensions should be .bval and .bvec')
+                    parser.error('fsl extensions should be .bval and .bvec')
             else:
-                parser.error('FSL gradients filenames must have the same '
+                parser.error('fsl gradients filenames must have the same '
                              'basename.')
-
         else:
-            parser.error('You should have two files for fsl type.')
+            parser.error('You should have two files for fsl format.')
 
     elif gradient_format == 'mrtrix':
-        curr_filename = filename_list[0]
-        basename, ext = split_name_with_nii(curr_filename)
-        if basename == '' or ext != valid_mrtrix_extension:
-            parser.error('Basename: {} and extension {} are not '
-                         'valid for mrtrix type.'.format(basename, ext))
-
+        if len(filename_list) == 1:
+            curr_filename = filename_list[0]
+            basename, ext = split_name_with_nii(curr_filename)
+            if basename == '' or ext != valid_mrtrix_extension:
+                parser.error('Basename: {} and extension {} are not '
+                             'valid for mrtrix format.'.format(basename, ext))
+        else:
+            parser.error('You should have one file for mrtrix format.')
     else:
         parser.error('Gradient file format should be either fsl or mrtrix.')
 
