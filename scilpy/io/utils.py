@@ -4,12 +4,11 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 
-import nibabel as nib
-from nibabel.streamlines import TrkFile
 import numpy as np
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -54,6 +53,64 @@ def check_tracts_same_format(parser, filename_list):
         if isinstance(filename, six.string_types) and \
                 not os.path.splitext(filename)[1] == ref_ext:
             parser.error('All tracts file must use the same format.')
+
+
+def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
+    """
+    Validate if gradients filenames follow BIDS or MRtrix convention
+
+    Parameters
+    ----------
+    parser: parser
+        Parser.
+    filename_list: list
+        list of gradient paths.
+    gradient_format : str
+        Can be either fsl or mrtrix.
+
+    Returns
+    -------
+    """
+
+    valid_fsl_extensions = ['.bval', '.bvec']
+    valid_mrtrix_extension = '.b'
+
+    if isinstance(filename_list, str):
+        filename_list = [filename_list]
+
+    if gradient_format == 'fsl':
+        if len(filename_list) == 2:
+            filename_1 = filename_list[0]
+            filename_2 = filename_list[1]
+            basename_1, ext_1 = split_name_with_nii(filename_1)
+            basename_2, ext_2 = split_name_with_nii(filename_2)
+
+            if ext_1 == '' or ext_2 == '':
+                parser.error('fsl gradients filenames must have a extension: '
+                             '.bval and .bvec.')
+
+            if basename_1 == basename_2:
+                curr_extensions = [ext_1, ext_2]
+                curr_extensions.sort()
+                if valid_fsl_extensions != curr_extensions:
+                    parser.error('fsl extensions should be .bval and .bvec')
+            else:
+                parser.error('fsl gradients filenames must have the same '
+                             'basename.')
+        else:
+            parser.error('You should have two files for fsl format.')
+
+    elif gradient_format == 'mrtrix':
+        if len(filename_list) == 1:
+            curr_filename = filename_list[0]
+            basename, ext = split_name_with_nii(curr_filename)
+            if basename == '' or ext != valid_mrtrix_extension:
+                parser.error('Basename: {} and extension {} are not '
+                             'valid for mrtrix format.'.format(basename, ext))
+        else:
+            parser.error('You should have one file for mrtrix format.')
+    else:
+        parser.error('Gradient file format should be either fsl or mrtrix.')
 
 
 def add_json_args(parser):
