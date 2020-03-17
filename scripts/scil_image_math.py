@@ -18,7 +18,7 @@ from scilpy.utils.util import is_float
 OPERATIONS = get_image_ops()
 
 DESCRIPTION = """
-Performs an operation on a list of images. The supported operations are 
+Performs an operation on a list of images. The supported operations are
 listed below.
 
 Some operations such as multiplication or addition accept float value as
@@ -43,7 +43,8 @@ def _build_args_parser():
                    help='The list of image files or parameters.')
 
     p.add_argument('--data_type',
-                   help='Data type of the output image.')
+                   help='Data type of the output image. Use the format: '
+                        'uint8, float16, int32.')
 
     p.add_argument('output',
                    help='Output image path.')

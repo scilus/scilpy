@@ -44,7 +44,8 @@ def _build_args_parser():
                    help='The list of matrices files or parameters.')
 
     p.add_argument('--data_type',
-                   help='Data type of the output matrix.')
+                   help='Data type of the output image. Use the format: '
+                        'uint8, float16, int32.')
 
     p.add_argument('output',
                    help='Output matrix path.')
