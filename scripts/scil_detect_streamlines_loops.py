@@ -93,7 +93,8 @@ def main():
 
     if len(streamlines) > 1:
         ids_c = remove_loops_and_sharp_turns(
-            streamlines, args.angle, args.qb, args.threshold)
+            streamlines, args.angle, use_qb=args.qb,
+            qb_threshold=args.threshold)
         ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
     else:
         parser.error(

@@ -360,8 +360,8 @@ def main():
             no_qb_curv_ids = remove_loops_and_sharp_turns(
                 inliers,
                 args.loop_max_angle,
-                True,
-                args.curv_qb_distance)
+                use_qb=True,
+                qb_threshold=args.curv_qb_distance)
             no_qb_curv = [inliers[i] for i in no_qb_curv_ids]
 
             qb_curv_ids = np.setdiff1d(

@@ -20,15 +20,17 @@ def remove_loops_and_sharp_turns(streamlines,
     ----------
     streamlines: list of ndarray
         The list of streamlines from which to remove loops and sharp turns.
+    max_angle: float
+        Maximal winding angle a streamline can have before
+        being classified as a loop.
     use_qb: bool
         Set to True if the additional QuickBundles pass is done.
         This will help remove sharp turns. Should only be used on
         bundled streamlines, not on whole-brain tractograms.
-    max_angle: float
-        Maximal winding angle a streamline can have before
-        being classified as a loop.
     qb_threshold: float
         Quickbundles distance threshold, only used if use_qb is True.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
 
     Returns
     -------
