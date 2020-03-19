@@ -10,7 +10,8 @@ This script can be used to remove loops in two types of streamline datasets:
     whole brain tractography.
 
   - Bundle dataset: For this type, it is possible to remove loops and
-    streamlines outside of the bundle. For the sharp angle turn, use --qb option.
+    streamlines outside of the bundle. For the sharp angle turn, use --qb
+    option.
 
 ----------------------------------------------------------------------------
 Reference:
@@ -21,13 +22,16 @@ QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 import argparse
 import logging
 
-import nibabel as nib
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
+from scilpy.utils.streamlines import filter_tractogram_data
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
 
@@ -38,7 +42,7 @@ def _build_arg_parser():
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
                    help='Output tractogram without loops.')
-    p.add_argument('--remaining_tractogram',
+    p.add_argument('--looping_tractogram',
                    help='If set, saves detected looping streamlines.')
     p.add_argument('--qb', action='store_true',
                    help='If set, uses QuickBundles to detect\n' +
@@ -55,6 +59,8 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
 
+    add_reference_arg(p)
+
     return p
 
 
@@ -64,9 +70,9 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,
-                         optional=args.remaining_tractogram)
+                         optional=args.looping_tractogram)
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
-                                      args.remaining_tractogram])
+                                      args.looping_tractogram])
 
     if args.threshold <= 0:
         parser.error('Threshold "{}" '.format(args.threshold) +
@@ -76,36 +82,37 @@ def main():
         parser.error('Angle "{}" '.format(args.angle) +
                      'must be greater than 0')
 
-    tractogram = nib.streamlines.load(args.in_tractogram)
+    tractogram = load_tractogram_with_reference(
+        parser, args, args.in_tractogram)
+
     streamlines = tractogram.streamlines
 
-    streamlines_c = []
-    loops = []
-    if len(streamlines) > 1:
-        streamlines_c, loops = remove_loops_and_sharp_turns(streamlines,
-                                                            args.angle,
-                                                            args.qb,
-                                                            args.threshold)
-    else:
-        parser.error('Zero or one streamline in {}'.format(args.in_tractogram) +
-                     '. The file must have more than one streamline.')
+    ids_c = []
 
-    if len(streamlines_c) > 0:
-        tractogram_c = nib.streamlines.Tractogram(streamlines_c,
-                                                  affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(tractogram_c, args.out_tractogram,
-                             header=tractogram.header)
+    ids_l = []
+
+    if len(streamlines) > 1:
+        ids_c = remove_loops_and_sharp_turns(
+            streamlines, args.angle, use_qb=args.qb,
+            qb_threshold=args.threshold)
+        ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
+    else:
+        parser.error(
+            'Zero or one streamline in {}'.format(args.in_tractogram) +
+            '. The file must have more than one streamline.')
+
+    if len(ids_c) > 0:
+        sft_c = filter_tractogram_data(tractogram, ids_c)
+        save_tractogram(sft_c, args.out_tractogram)
     else:
         logging.warning(
             'No clean streamlines in {}'.format(args.in_tractogram))
 
-    if len(loops) == 0:
+    if len(ids_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
-    elif args.remaining_tractogram:
-        tractogram_l = nib.streamlines.Tractogram(loops,
-                                                  affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(tractogram_l, args.remaining_tractogram,
-                             header=tractogram.header)
+    elif args.looping_tractogram:
+        sft_l = filter_tractogram_data(tractogram, ids_l)
+        save_tractogram(sft_l, args.looping_tractogram)
 
 
 if __name__ == "__main__":

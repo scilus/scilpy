@@ -20,4 +20,12 @@ scikit-learn==0.22.1
 scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
+<<<<<<< HEAD
 vtk==8.1.2
+=======
+vtk==8.1.2
+coloredlogs==10.0
+nilearn==0.6.1
+pytest==5.3.5
+pytest_console_scripts==0.2.0
+>>>>>>> 0b01ed38bffae53ff905fce85afea9f1c49d5460
