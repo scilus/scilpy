@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Removal of streamlines that are out of the volume bounding box. In voxel space
+no negative coordinate and no above volume dimension coordinate are possible.
+Any streamline that do not respect these two conditions are removed.
+"""
+
 import argparse
 
 from dipy.io.streamline import save_tractogram
@@ -9,15 +15,9 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
-DESCRIPTION = """
-Removal of streamlines that are out of the volume bounding box. In voxel space
-no negative coordinate and no above volume dimension coordinate are possible.
-Any streamline that do not respect these two conditions are removed.
-"""
-
 
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram', metavar='IN_TRACTOGRAM',

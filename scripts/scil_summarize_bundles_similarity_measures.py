@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Compute pair-wise similarity measures of bundles.
+All tractograms must be in the same space (aligned to one reference)
+"""
+
 import argparse
 import copy
 import hashlib
@@ -11,7 +16,7 @@ import multiprocessing
 import os
 import shutil
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram, save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
 from dipy.segment.clustering import qbx_and_merge
@@ -33,15 +38,9 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-DESCRIPTION = """
-Compute pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference)
-"""
-
-
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
@@ -79,24 +78,24 @@ def load_data_tmp_saving(filename, reference, init_only=False,
     # that can be computed once is saved temporarily and simply loaded on demand
     if not os.path.isfile(filename):
         if init_only:
-            logging.warning('%s does not exist', filename)
+            logging.warning('{} does not exist'.format(filename))
         return None
 
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
     tmp_density_filename = os.path.join('tmp_measures/',
-                                        '{0}_density.nii.gz'.format(hash_tmp))
+                                        '{}_density.nii.gz'.format(hash_tmp))
     tmp_endpoints_filename = os.path.join('tmp_measures/',
-                                          '{0}_endpoints.nii.gz'.format(hash_tmp))
+                                          '{}_endpoints.nii.gz'.format(hash_tmp))
     tmp_centroids_filename = os.path.join('tmp_measures/',
-                                          '{0}_centroids.trk'.format(hash_tmp))
+                                          '{}_centroids.trk'.format(hash_tmp))
 
-    sft = load_tractogram(filename, reference,
-                          to_space=Space.VOX,
-                          shifted_origin=True)
+    sft = load_tractogram(filename, reference)
+    sft.to_vox()
+    sft.to_corner()
     streamlines = sft.get_streamlines_copy()
     if not streamlines:
         if init_only:
-            logging.warning('%s is empty', filename)
+            logging.warning('{} is empty'.format(filename))
         return None
 
     if os.path.isfile(tmp_density_filename) \
@@ -107,12 +106,12 @@ def load_data_tmp_saving(filename, reference, init_only=False,
             return None
         density = nib.load(tmp_density_filename).get_data()
         endpoints_density = nib.load(tmp_endpoints_filename).get_data()
-        sft_centroids = load_tractogram(tmp_centroids_filename, reference,
-                                        to_space=Space.VOX,
-                                        shifted_origin=True)
+        sft_centroids = load_tractogram(tmp_centroids_filename, reference)
+        sft_centroids.to_vox()
+        sft_centroids.to_corner()
         centroids = sft_centroids.get_streamlines_copy()
     else:
-        transformation, dimensions, _, _ = sft.space_attribute
+        transformation, dimensions, _, _ = sft.space_attributes
         density = compute_tract_counts_map(streamlines, dimensions)
         endpoints_density = get_endpoints_density_map(streamlines, dimensions,
                                                       point_to_select=3)
@@ -131,8 +130,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                                  transformation),
                  tmp_endpoints_filename)
 
-        centroids_sft = StatefulTractogram(centroids, reference, Space.VOX,
-                                           shifted_origin=True)
+        # Saving in vox space and corner.
+        centroids_sft = StatefulTractogram.from_sft(centroids, sft)
         save_tractogram(centroids_sft, tmp_centroids_filename)
 
     return density, endpoints_density, streamlines, centroids
@@ -146,7 +145,7 @@ def compute_all_measures(args):
     disable_streamline_distance = args[2]
 
     if not is_header_compatible(reference_1, reference_2):
-        raise ValueError('{0} and {1} have incompatible headers'.format(
+        raise ValueError('{} and {} have incompatible headers'.format(
             filename_1, filename_2))
 
     data_tuple_1 = load_data_tmp_saving(
@@ -316,10 +315,10 @@ def main():
                 if measure_name not in output_measures_dict:
                     output_measures_dict[measure_name] = []
                 output_measures_dict[measure_name].append(
-                    measure_dict[measure_name])
+                    float(measure_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile)
+        json.dump(output_measures_dict, outfile, indent=1)
 
     if not args.keep_tmp:
         shutil.rmtree('tmp_measures/')

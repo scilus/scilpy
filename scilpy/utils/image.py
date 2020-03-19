@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from dipy.align.imaffine import (AffineMap,
@@ -7,10 +6,10 @@ from dipy.align.imaffine import (AffineMap,
                                  transform_centers_of_mass)
 from dipy.align.transforms import (AffineTransform3D,
                                    RigidTransform3D)
+from dipy.io.utils import get_reference_info
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_reference_info
 from scilpy.utils.nibabel_tools import get_data
 
 
@@ -33,7 +32,7 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     """
-    dim, grid2world = get_reference_info(reference)
+    grid2world, dim, _, _ = get_reference_info(reference)
     static_data = get_data(reference)
 
     moving_data, nib_file = get_data(moving, return_object=True)

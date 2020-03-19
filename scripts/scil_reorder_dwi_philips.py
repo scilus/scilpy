@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Re-order gradient according to original table
+"""
+
 import argparse
 import logging
 
@@ -15,13 +19,8 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.filenames import split_name_with_nii
 
 
-DESCRIPTION = """
-Re-order gradient according to original table
- """
-
-
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('dwi',

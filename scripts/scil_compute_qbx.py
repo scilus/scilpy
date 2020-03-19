@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Compute clusters using QuickBundlesX and save them separately.
+    We cannot know the number of clusters in advance.
+"""
+
 import argparse
 from operator import itemgetter
 import os
@@ -16,14 +21,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 
-DESCRIPTION = """
-    Compute clusters using QuickBundlesX and save them separately.
-    We cannot know the number of clusters in advance.
-"""
-
 
 def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
