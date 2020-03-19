@@ -95,7 +95,7 @@ def main():
     assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.tract_filename)
-    affine, data_shape, _, _ = sft.space_attribute
+    affine, data_shape, _, _ = sft.space_attributes
     sft.to_vox()
 
     logging.info('Computing length-weighted TODI ...')
