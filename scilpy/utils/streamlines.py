@@ -188,7 +188,45 @@ def warp_streamlines(sft, deformation_data, source):
         cur_position = max_position
         nb_iteration -= 1
 
-    return streamlines
+        return streamlines
+
+
+def filter_tractogram_data(tractogram, streamline_ids):
+    """ Filter tractogram according to streamline ids and keep the data
+
+    Parameters:
+    -----------
+    tractogram: StatefulTractogram
+        Tractogram containing the data to be filtered
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to
+
+    Returns:
+    --------
+    new_tractogram: Tractogram or StatefulTractogram
+        Returns a new tractogram with only the selected streamlines
+        and data
+    """
+
+    streamline_ids = np.asarray(streamline_ids, dtype=np.int)
+
+    assert np.all(
+        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
+    ), "Received ids outside of streamline range"
+
+    new_streamlines = tractogram.streamlines[streamline_ids]
+    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
+    new_data_per_point = tractogram.data_per_point[streamline_ids]
+
+    # Could have been nice to deepcopy the tractogram modify the attributes in
+    # place instead of creating a new one, but tractograms cant be subsampled
+    # if they have data
+
+    return StatefulTractogram.from_sft(
+        new_streamlines,
+        tractogram,
+        data_per_point=new_data_per_point,
+        data_per_streamline=new_data_per_streamline)
 
 
 def compress_sft(sft, tol_error=0.01):
