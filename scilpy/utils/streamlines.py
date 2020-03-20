@@ -65,8 +65,8 @@ def intersection(left, right):
     return {k: v for k, v in left.items() if k in right}
 
 
-def subtraction(left, right):
-    """Subtraction of two streamlines dict (see hash_streamlines)"""
+def difference(left, right):
+    """Difference of two streamlines dict (see hash_streamlines)"""
     return {k: v for k, v in left.items() if k not in right}
 
 
@@ -88,7 +88,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
 
     A valid operation is any function that takes two streamlines dict as input
     and produces a new streamlines dict (see hash_streamlines). Union,
-    subtraction, and intersection are valid examples of operations.
+    difference, and intersection are valid examples of operations.
 
     Parameters
     ----------

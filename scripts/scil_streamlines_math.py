@@ -5,8 +5,8 @@
 Performs an operation on a list of streamline files. The supported
 operations are:
 
-    subtraction:  Keep the streamlines from the first file that are not in
-                  any of the following files.
+    difference:  Keep the streamlines from the first file that are not in
+                 any of the following files.
 
     intersection: Keep the streamlines that are present in all files.
 
@@ -45,11 +45,11 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      subtraction, intersection, union)
+                                      difference, intersection, union)
 
 
 OPERATIONS = {
-    'subtraction': subtraction,
+    'difference': difference,
     'intersection': intersection,
     'union': union,
     'concatenate': 'concatenate'
