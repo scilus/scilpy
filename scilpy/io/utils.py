@@ -4,8 +4,6 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 
-import nibabel as nib
-from nibabel.streamlines import TrkFile
 import numpy as np
 import six
 
@@ -127,6 +125,24 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
+def validate_sh_basis_choice(sh_basis):
+    """ Check if the passed sh_basis arg to a fct is right.
+
+    Parameters
+    ----------
+    sh_basis: str
+        Either 'descoteaux08' or 'tournier07'
+
+    Raises
+    ------
+    ValueError
+        If sh_basis is not one of 'descoteaux07' or 'tournier07'
+    """
+    if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
+        raise ValueError("sh_basis should be either 'descoteaux07' or"
+                         "'tournier07'.")
+
+
 def assert_inputs_exist(parser, required, optional=None):
     """
     Assert that all inputs exist. If not, print parser's usage and exit.
@@ -152,7 +168,8 @@ def assert_inputs_exist(parser, required, optional=None):
             check(optional_file)
 
 
-def assert_outputs_exist(parser, args, required, optional=None):
+def assert_outputs_exist(parser, args, required, optional=None,
+                         check_dir_exists=False):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
@@ -161,11 +178,20 @@ def assert_outputs_exist(parser, args, required, optional=None):
     :param required: string or list of paths
     :param optional: string or list of paths.
                      Each element will be ignored if None
+    :param check_dir_exists: bool
+                             Test if output directory exists
+
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
             parser.error('Output file {} exists. Use -f to force '
                          'overwriting'.format(path))
+
+        if check_dir_exists:
+            path_dir = os.path.dirname(path)
+            if path_dir and not os.path.isdir(path_dir):
+                parser.error('Directory {} \n for a given output file '
+                             'does not exists.'.format(path_dir))
 
     if isinstance(required, str):
         required = [required]

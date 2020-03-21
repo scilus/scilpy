@@ -10,7 +10,7 @@ from scipy.spatial import cKDTree
 
 from scilpy.utils.streamlines import (intersection,
                                       perform_streamlines_operation,
-                                      subtraction, union)
+                                      difference, union)
 
 
 def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
@@ -85,10 +85,10 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
         centroids_2 = qbx_and_merge(bundle_2, thresholds, rng=RandomState(0),
                                     verbose=False).centroids
     if non_overlap:
-        non_overlap_1, _ = perform_streamlines_operation(subtraction,
+        non_overlap_1, _ = perform_streamlines_operation(difference,
                                                          [bundle_1, bundle_2],
                                                          precision=0)
-        non_overlap_2, _ = perform_streamlines_operation(subtraction,
+        non_overlap_2, _ = perform_streamlines_operation(difference,
                                                          [bundle_2, bundle_1],
                                                          precision=0)
         if non_overlap_1:
