@@ -4,8 +4,6 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 
-import nibabel as nib
-from nibabel.streamlines import TrkFile
 import numpy as np
 import six
 
