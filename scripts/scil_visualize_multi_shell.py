@@ -15,7 +15,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.filenames import split_name_with_nii
 from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         plot_each_shell,
                                         plot_proj_shell)
@@ -80,7 +79,7 @@ def main():
 
     out_basename = None
     if args.out:
-        out_basename, ext = split_name_with_nii(args.out)
+        out_basename, ext = os.path.splitext(args.out)
         possibleOutputPaths = [out_basename + '_shell_' + str(i) +
                                '.png' for i in range(30)]
         possibleOutputPaths.append(out_basename + '.png')

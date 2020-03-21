@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import shutil
 import xml.etree.ElementTree as ET
@@ -8,7 +9,6 @@ import numpy as np
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
-from scilpy.utils.filenames import split_name_with_nii
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -73,6 +73,8 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
     """
 
     valid_fsl_extensions = ['.bval', '.bvec']
+    bids_valid_fsl_extensions = ['.bvals', '.bvecs']
+    single_name_fsl = []['bval', 'bvec'], ['bvals', 'bvecs']]
     valid_mrtrix_extension = '.b'
 
     if isinstance(filename_list, str):
@@ -82,17 +84,23 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
         if len(filename_list) == 2:
             filename_1 = filename_list[0]
             filename_2 = filename_list[1]
-            basename_1, ext_1 = split_name_with_nii(filename_1)
-            basename_2, ext_2 = split_name_with_nii(filename_2)
+            basename_1, ext_1 = os.path.splitext(filename_1)
+            basename_2, ext_2 = os.path.splitext(filename_2)
 
-            if ext_1 == '' or ext_2 == '':
-                parser.error('fsl gradients filenames must have a extension: '
-                             '.bval and .bvec.')
+            if ext_1 == '' and ext_2 == '':
+                basenames = [basename_1, basename_2]
+                basenames.sort()
+                if basenames not in single_name_fsl:
+                    parser.error('fsl gradients filenames must have a extension: '
+                                 '.bval and .bvec.')
 
             if basename_1 == basename_2:
                 curr_extensions = [ext_1, ext_2]
                 curr_extensions.sort()
-                if valid_fsl_extensions != curr_extensions:
+                if curr_extensions == valid_fsl_extensions:
+                    logging.warning('Your extensions doesn\'t follow BIDS '
+                                    'convention.')
+                elif valid_fsl_extensions != bids_valid_fsl_extensions:
                     parser.error('fsl extensions should be .bval and .bvec')
             else:
                 parser.error('fsl gradients filenames must have the same '
@@ -103,7 +111,7 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
     elif gradient_format == 'mrtrix':
         if len(filename_list) == 1:
             curr_filename = filename_list[0]
-            basename, ext = split_name_with_nii(curr_filename)
+            basename, ext = os.path.splitext(curr_filename)
             if basename == '' or ext != valid_mrtrix_extension:
                 parser.error('Basename: {} and extension {} are not '
                              'valid for mrtrix format.'.format(basename, ext))

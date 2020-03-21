@@ -4,8 +4,6 @@ import logging
 
 import numpy as np
 
-from scilpy.utils.filenames import split_name_with_nii
-
 
 def save_scheme_mrtrix(points, shell_idx, bvals, filename):
     """
@@ -50,10 +48,10 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename_bval,
         output bvec filename.
     ------
     """
-    fullfilename, ext = split_name_with_nii(filename_bval)
+    basename, ext = os.path.splitext(filename_bval)
 
     np.savetxt(filename_bvec, points.T, fmt='%.8f')
     np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
-    logging.info('Scheme saved in FSL format as {}'.format(fullfilename +
+    logging.info('Scheme saved in FSL format as {}'.format(basename +
                                                            '{.bvec/.bval}'))
