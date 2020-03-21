@@ -74,7 +74,7 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
 
     valid_fsl_extensions = ['.bval', '.bvec']
     bids_valid_fsl_extensions = ['.bvals', '.bvecs']
-    single_name_fsl = []['bval', 'bvec'], ['bvals', 'bvecs']]
+    single_name_fsl = [['bval', 'bvec'], ['bvals', 'bvecs']]
     valid_mrtrix_extension = '.b'
 
     if isinstance(filename_list, str):

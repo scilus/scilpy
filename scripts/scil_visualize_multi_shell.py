@@ -9,6 +9,7 @@ and .b (MRtrix).
 
 import argparse
 import numpy as np
+import os
 
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
