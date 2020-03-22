@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
 
 from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      subtraction, intersection, union)
+                                      difference, intersection, union)
 
 
 def binary_classification(segmentation_indices,
@@ -161,10 +161,10 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
         centroids_2 = qbx_and_merge(bundle_2, thresholds, rng=RandomState(0),
                                     verbose=False).centroids
     if non_overlap:
-        non_overlap_1, _ = perform_streamlines_operation(subtraction,
+        non_overlap_1, _ = perform_streamlines_operation(difference,
                                                          [bundle_1, bundle_2],
                                                          precision=0)
-        non_overlap_2, _ = perform_streamlines_operation(subtraction,
+        non_overlap_2, _ = perform_streamlines_operation(difference,
                                                          [bundle_2, bundle_1],
                                                          precision=0)
         if non_overlap_1:
