@@ -34,10 +34,9 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
         rdAFD map (weighted if length_weighting)
     """
 
-    sft.to_vox()
 
     afd_sum, rd_sum, weights = \
-        afd_and_rd_sums_along_streamlines(sft.streamlines, fodf, fodf_basis,
+        afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
                                           length_weighting)
 
     non_zeros = np.nonzero(afd_sum)
@@ -48,7 +47,7 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
     return afd_sum, rd_sum
 
 
-def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
+def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
                                       length_weighting):
     """
     Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
@@ -56,11 +55,11 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
 
     Parameters
     ----------
-    streamlines :
-
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines needed.
     fodf : np.ndarray
         fODF with shape (X, Y, Z, #coeffs).
-        coeffs depend on the sh_order.
+        #coeffs depend on the sh_order.
     fodf_basis : string
         Has to be descoteaux07 or tournier07.
     length_weighting : bool
@@ -75,6 +74,10 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
     weight_map : np.array
         Segment lengths.
     """
+
+    sft.to_vox()
+    sft.to_corner()
+
     fodf_data = np.asanyarray(fodf.dataobj)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere('repulsion724')
@@ -87,7 +90,7 @@ def afd_and_rd_sums_along_streamlines(streamlines, fodf, fodf_basis,
     weight_map = np.zeros(shape=fodf_data.shape[:-1])
 
     p_matrix = np.eye(fodf_data.shape[3]) * legendre0_at_n
-    all_crossed_indices = grid_intersections(streamlines)
+    all_crossed_indices = grid_intersections(sft.streamlines)
     for crossed_indices in all_crossed_indices:
         segments = crossed_indices[1:] - crossed_indices[:-1]
         seg_lengths = np.linalg.norm(segments, axis=1)

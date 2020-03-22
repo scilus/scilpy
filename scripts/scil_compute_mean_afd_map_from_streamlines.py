@@ -6,6 +6,7 @@ Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
 maps along a bundle.
 
 Can be used to generate AFD and radfODF profiles along a bundle.
+Please use a bundle file rather than a whole tractogram.
 """
 
 import argparse
@@ -30,8 +31,8 @@ Reference:
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_tractogram',
-                   help='Path of the tractogram file.')
+    p.add_argument('in_bundle',
+                   help='Path of the bundle file.')
     p.add_argument('in_fODF', metavar='fodf',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('afd_mean_map',
@@ -53,10 +54,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_fODF])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_fODF])
     assert_outputs_exist(parser, args, [args.afd_mean_map, args.rd_mean_map])
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
     fodf_img = nb.load(args.in_fODF)
 
