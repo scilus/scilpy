@@ -5,8 +5,6 @@
 Script to denoise a dataset with the Non Local Means algorithm.
 """
 
-from __future__ import division, print_function
-
 import argparse
 import logging
 import warnings

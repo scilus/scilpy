@@ -8,8 +8,6 @@ A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
 """
 
-from __future__ import division
-
 import argparse
 import logging
 

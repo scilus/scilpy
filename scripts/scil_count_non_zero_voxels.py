@@ -10,8 +10,6 @@ This means that if there is at least one non-zero voxel in the 4th dimension,
 this voxel of the 3D volume will be considered as non-zero.
 """
 
-from __future__ import division
-
 import argparse
 import os
 

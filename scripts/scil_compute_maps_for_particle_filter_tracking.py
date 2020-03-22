@@ -11,8 +11,6 @@ References: Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M.
 biases. Neuroimage.
 """
 
-from __future__ import division
-
 import argparse
 import logging
 
