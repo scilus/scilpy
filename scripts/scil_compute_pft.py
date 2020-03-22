@@ -21,8 +21,6 @@ from the SF.
 Default parameters as suggested in [1].
 """
 
-from __future__ import division
-
 import argparse
 import logging
 

@@ -6,8 +6,6 @@ Compute the mean Fiber Response Function from a set of individually
 computed Response Functions.
 """
 
-from __future__ import division, print_function
-
 import argparse
 import logging
 

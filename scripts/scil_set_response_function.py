@@ -9,8 +9,6 @@ and keep the mean b0.
 The FRF file is obtained from scil_compute_ssst_frf.py
 """
 
-from __future__ import division, print_function
-
 import argparse
 from ast import literal_eval
 import numpy as np

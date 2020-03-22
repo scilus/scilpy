@@ -123,7 +123,7 @@ def add_json_args(parser):
                     help='Sort keys in output json.')
 
 
-def add_processes_args(parser):
+def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
                         metavar='NBR', type=int,
                         help='Number of sub-processes to start. \n'

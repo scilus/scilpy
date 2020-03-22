@@ -22,8 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging

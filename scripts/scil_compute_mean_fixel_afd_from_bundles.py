@@ -5,13 +5,20 @@
 Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
 maps along a bundle.
 
-Can be used to generate AFD and radfODF profiles along a bundle.
+This is the "real" fixel-based fODF amplitude along every streamline
+of the bundle provided, averaged at every voxel.
+Radial fODF comes for free from the mathematics, it is the great circle
+integral of the fODF orthogonal to the fixel of interest, similar to
+a Funk-Radon transform. Hence, radfODF is the fixel-based or HARDI-based
+generalization of the DTI radial diffusivity and AFD
+the generalization of axial diffusivity.
+
 Please use a bundle file rather than a whole tractogram.
 """
 
 import argparse
 
-import nibabel as nb
+import nibabel as nib
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
@@ -33,7 +40,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
-    p.add_argument('in_fODF', metavar='fodf',
+    p.add_argument('in_fODF',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('afd_mean_map',
                    help='Path of the output mean AFD map.')
@@ -59,17 +66,17 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
-    fodf_img = nb.load(args.in_fODF)
+    fodf_img = nib.load(args.in_fODF)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft,
                                                           fodf_img,
                                                           args.sh_basis,
                                                           args.length_weighting)
 
-    nb.Nifti1Image(afd_mean_map.astype('float32'),
+    nib.Nifti1Image(afd_mean_map.astype(np.float32),
                    fodf_img.affine).to_filename(args.afd_mean_map)
 
-    nb.Nifti1Image(rd_mean_map.astype('float32'),
+    nib.Nifti1Image(rd_mean_map.astype(np.float32),
                    fodf_img.affine).to_filename(args.rd_mean_map)
 
 
