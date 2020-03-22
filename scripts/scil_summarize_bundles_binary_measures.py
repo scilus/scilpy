@@ -29,10 +29,11 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_args,
+                             add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             add_reference_arg,
                              link_bundles_and_reference)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -42,9 +43,8 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
     p.add_argument('out_json',
@@ -55,11 +55,8 @@ def _build_arg_parser():
     p.add_argument('--voxels_measures', nargs=2,
                    metavar=('GOLD STANDARD', 'TRACKING MASK'),
                    help='The gold standard mask and the original tracking mask.')
-    p.add_argument('--files_exist', action='store_false',
-                   help='Disable the verification of input files.')
-    p.add_argument('--processes', type=int,
-                   help='Number of processes to use [ALL].')
 
+    add_processes_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -152,8 +149,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    if args.files_exist:
-        assert_inputs_exist(parser, args.in_bundles)
+    assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, args.out_json)
 
     if (not args.streamlines_measures) and (not args.voxels_measures):
