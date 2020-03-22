@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from dipy.data import get_sphere
@@ -18,7 +17,7 @@ def afd_map_along_streamlines(sft, fodf, fodf_basis, length_weighting):
     ----------
     sft : StatefulTractogram
         StatefulTractogram containing the streamlines needed.
-    fodf : np.ndarray
+    fodf : nibabel.image
         fODF with shape (X, Y, Z, #coeffs)
         coeffs depending on the sh_order
     fodf_basis : string
@@ -57,7 +56,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     ----------
     sft : StatefulTractogram
         StatefulTractogram containing the streamlines needed.
-    fodf : np.ndarray
+    fodf : nibabel.image
         fODF with shape (X, Y, Z, #coeffs).
         #coeffs depend on the sh_order.
     fodf_basis : string
