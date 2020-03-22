@@ -19,8 +19,8 @@ algorighm to generate the original tractogram.
 
 import argparse
 import itertools
-import logging
 import json
+import logging
 import multiprocessing
 import os
 
@@ -154,7 +154,7 @@ def main():
 
     if args.files_exist:
         assert_inputs_exist(parser, args.in_bundles)
-    assert_outputs_exist(parser, args, [args.out_json])
+    assert_outputs_exist(parser, args, args.out_json)
 
     if (not args.streamlines_measures) and (not args.voxels_measures):
         parser.error('At least one of the two modes is needed')
