@@ -6,9 +6,9 @@ Compute well-known binary measures between gold standard and bundles.
 All tractograms must be trk files and headers must be identical.
 The measures can be applied to voxel-wise or streamline-wise representation.
 
-A gold standard must be provided for the desired representation. 
+A gold standard must be provided for the desired representation.
 A gold standard would be a segmentation from an expert or a group of experts.
-If only the streamline-wise representation is provided a voxel-wise gold 
+If only the streamline-wise representation is provided a voxel-wise gold
 standard will be computed. At least one of the two representations is required.
 
 The original tractogram is the tractogram (whole brain most likely) from which
