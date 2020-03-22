@@ -5,7 +5,14 @@
 Compute the mean Apparent Fiber Density (AFD) and mean Radial fODF (radfODF)
 maps along a bundle.
 
-Can be used to generate AFD and radfODF profiles along a bundle.
+This is the "real" fixel-based fODF amplitude along every streamline
+of the bundle provided, averaged at every voxel.
+Radial fODF comes for free from the mathematics, it is the great circle
+integral of the fODF orthogonal to the fixel of interest, similar to
+a Funk-Radon transform. Hence, radfODF is the fixel-based or HARDI-based
+generalization of the DTI radial diffusivity and AFD
+the generalization of axial diffusivity.
+
 Please use a bundle file rather than a whole tractogram.
 """
 
