@@ -5,7 +5,6 @@
 Script to compute the maximum fODF in the ventricles.
 """
 
-from __future__ import division, print_function
 from builtins import str
 from builtins import range
 from past.utils import old_div
