@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Utility operations provided for scil_image_math.py and scil_connectiity_math.py
+Utility operations provided for scil_image_math.py and scil_connectivity_math.py
 They basically act as wrappers around numpy to avoid installing MRtrix/FSL
 to apply simple operations on nibabel images or numpy arrays.
 """
@@ -66,16 +66,6 @@ def get_operations_doc(ops: dict):
     return "".join(full_doc)
 
 
-def get_array_operations_doc():
-    """Fetch documentation from all array operations."""
-    return "".join([f.__doc__ for f in get_array_ops().values()])
-
-
-def get_image_operations_doc():
-    """Fetch documentation from all image operations."""
-    return "".join([f.__doc__ for f in get_image_ops().values()])
-
-
 def _validate_arrays(*arrays):
     """Make sure that all inputs are arrays, and that their shapes match."""
     ref_array = arrays[0]
@@ -87,7 +77,7 @@ def _validate_arrays(*arrays):
 
 
 def _validate_length(input_list, l, atleast=False):
-    """Make sure the the input list has the right number of arguments."""
+    """Make sure the the input list has the right number of arguments (l)."""
     if atleast:
         if not len(input_list) >= l:
             logging.error(
@@ -137,6 +127,7 @@ def upper_threshold(input_list):
     upper_threshold: IMG THRESHOLD
         All values below the threshold will be set to one.
         All values above the threshold will be set to zero.
+        Equivalent to lower_threshold followed by an inversion.
     """
     _validate_length(input_list, 2)
     _validate_dtype(input_list[0], np.ndarray)
@@ -269,7 +260,7 @@ def addition(input_list):
 def subtraction(input_list):
     """
     subtraction: IMG_1 IMG_2
-        Subtract two images together (IMG_1 - IMG_2).
+        Subtract first image by the second (IMG_1 - IMG_2).
     """
     _validate_length(input_list, 2)
     _validate_arrays(*input_list)
@@ -295,14 +286,15 @@ def multiplication(input_list):
 def division(input_list):
     """
     division: IMG_1 IMG_2
-        Divide two images together (danger of underflow and overflow)
+        Divide first image by the second (danger of underflow and overflow)
+        Ignore zeros values, excluded from the operation.
     """
     _validate_length(input_list, 2)
     _validate_arrays(*input_list)
     ref_array = input_list[0]
 
     output_data = np.zeros(ref_array.shape)
-    output_data[input_list[1] > 0] = input_list[0][input_list[1] > 0] \
+    output_data[input_list[1] != 0] = input_list[0][input_list[1] != 0] \
         / input_list[1][input_list[1] > 0]
     return output_data
 
@@ -310,6 +302,7 @@ def division(input_list):
 def mean(input_list):
     """
     mean: IMGs
+        Compute the mean of images.
         If a single 4D image is provided, average along the last dimension.
     """
     _validate_length(input_list, 1, atleast=True)
@@ -350,7 +343,8 @@ def std(input_list):
 def union(input_list):
     """
     union: IMGs
-        Binary operation to keep voxels that are in any file.
+        Operation on binary image to keep voxels, that are non-zero, in at
+        least one file.
     """
     output_data = addition(input_list)
     output_data[output_data != 0] = 1
@@ -361,7 +355,8 @@ def union(input_list):
 def intersection(input_list):
     """
     intersection: IMGs
-        Binary operation to keep the voxels that are present in all files.
+        Operation on binary image to keep the voxels, that are non-zero,
+        are present in all files.
     """
     output_data = multiplication(input_list)
     output_data[output_data != 0] = 1
@@ -372,8 +367,8 @@ def intersection(input_list):
 def difference(input_list):
     """
     difference: IMG_1 IMG_2
-        Binary operation to keep voxels from the first file that are not in
-        the second file.
+        Operation on binary image to keep voxels from the first file that are
+        not in the second file (non-zeros).
     """
     _validate_length(input_list, 2)
     _validate_arrays(*input_list)
@@ -387,7 +382,7 @@ def difference(input_list):
 def invert(input_list):
     """
     invert: IMG
-        Binary operation to interchange 0 and 1 in a binary mask.
+        Operation on binary image to interchange 0s and 1s in a binary mask.
     """
     _validate_length(input_list, 1)
     _validate_arrays(*input_list)
@@ -401,7 +396,7 @@ def invert(input_list):
 
 def dilation(input_list):
     """
-    dilation: IMG
+    dilation: IMG, VALUE
         Binary morphological operation to spatially extend the values of an
         image to their neighbors.
     """
@@ -414,7 +409,7 @@ def dilation(input_list):
 
 def erosion(input_list):
     """
-    erosion: IMG
+    erosion: IMG, VALUE
         Binary morphological operation to spatially shrink the volume contained
         in a binary image.
     """
@@ -427,7 +422,7 @@ def erosion(input_list):
 
 def closing(input_list):
     """
-    closing: IMG
+    closing: IMG, VALUE
         Binary morphological operation, dilation followed by an erosion.
     """
     _validate_length(input_list, 2)
@@ -439,8 +434,8 @@ def closing(input_list):
 
 def opening(input_list):
     """
-    opening: IMG
-        Binary morphological operation, erosion followed by an dilation.
+    opening: IMG, VALUE
+        Binary morphological operation, erosion followed by a dilation.
     """
     _validate_length(input_list, 2)
     _validate_arrays(input_list[0])
@@ -451,7 +446,7 @@ def opening(input_list):
 
 def gaussian_blur(input_list):
     """
-    blur: IMG
+    blur: IMG, VALUE
         Apply a gaussian blur to a single image.
     """
     _validate_length(input_list, 2)
