@@ -29,7 +29,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_args,
+                             add_processes_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -56,7 +56,7 @@ def _build_arg_parser():
                    metavar=('GOLD STANDARD', 'TRACKING MASK'),
                    help='The gold standard mask and the original tracking mask.')
 
-    add_processes_args(p)
+    add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
