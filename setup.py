@@ -26,7 +26,11 @@ opts = dict(name=NAME,
             packages=PACKAGES,
             install_requires=REQUIRES,
             requires=REQUIRES,
-            scripts=SCRIPTS)
+            scripts=SCRIPTS,
+            data_files=[('data/LUT',
+                        ["data/LUT/freesurfer_desikan_killiany.json",
+                         "data/LUT/freesurfer_subcortical.json"])],
+            include_package_data=True)
 
 extensions = [Extension('scilpy.tractanalysis.uncompress',
                         ['scilpy/tractanalysis/uncompress.pyx'],
