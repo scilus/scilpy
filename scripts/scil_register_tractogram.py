@@ -29,7 +29,7 @@ space of streamlines, NeuroImage, Volume 117, 15 August 2015, Pages 124-140
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG)
 
@@ -55,7 +55,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.moving_tractogram,
