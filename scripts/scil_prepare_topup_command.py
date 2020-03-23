@@ -6,7 +6,6 @@ Prepare a typical command for topup and create the necessary files.
 The reversed b0 must be in a different file.
 """
 
-from __future__ import print_function
 import argparse
 import logging
 import os

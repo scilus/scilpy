@@ -44,7 +44,7 @@ import numpy as np
 
 from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.io.utils import (add_overwrite_arg, add_processes_args,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
@@ -190,7 +190,7 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
 
     add_overwrite_arg(p)
-    add_processes_args(p)
+    add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
 

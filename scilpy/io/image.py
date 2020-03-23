@@ -1,36 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import nibabel as nib
-
-
-def get_reference_info(reference):
-    """
-    Get basic information from a reference NIFTI file.
-
-    Parameters
-    ----------
-    reference : Nibabel.nifti or filepath (nii or nii.gz)
-        Reference image.
-
-    Returns
-    -------
-    reference_shape : tuple
-        Shape of the image.
-    reference_affine : ndarray
-        Affine of the image.
-    """
-    # TODO remove/replace after stateful_tractogram PR is merged
-    nib_file = nib.load(reference)
-    reference_shape = nib_file.shape
-    reference_affine = nib_file.affine
-
-    return reference_shape, reference_affine
+from dipy.io.utils import get_reference_info
 
 
 def assert_same_resolution(images):
     """
     Check the resolution of multiple images.
-
     Parameters
     ----------
     images : array of string or string
@@ -43,8 +18,8 @@ def assert_same_resolution(images):
         raise Exception("Can't check if images are of the same "
                         "resolution/affine. No image has been given")
 
-    ref = get_reference_info(images[0])
+    aff_1, shape_1, _, _ = get_reference_info(images[0])
     for i in images[1:]:
-        shape, aff = get_reference_info(i)
-        if not (ref[0] == shape) and (ref[1] == aff).any():
+        aff_2, shape_2, _, _ = get_reference_info(i)
+        if not (shape_1 == shape_2) and (aff_1 == aff_2).any():
             raise Exception("Images are not of the same resolution/affine")

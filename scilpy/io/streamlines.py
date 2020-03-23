@@ -6,7 +6,7 @@ import os
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines import Tractogram
-from nibabel.streamlines.trk import (get_affine_trackvis_to_rasmm)
+from nibabel.streamlines.trk import get_affine_trackvis_to_rasmm
 import six
 
 
