@@ -29,7 +29,7 @@ parameters instead of images.
 DESCRIPTION += get_operations_doc(OPERATIONS)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=DESCRIPTION)
@@ -76,7 +76,7 @@ def load_data(arg):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
