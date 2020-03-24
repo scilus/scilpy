@@ -22,7 +22,7 @@ def _build_args_parser():
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('tractogram', help='Tractogram file (must be trk)')
-    parser.add_argument('--save', type=str, help='If set, save a ' +
+    parser.add_argument('--save', help='If set, save a ' +
                         'screenshot of the result in the ' +
                         'specified filename')
     add_overwrite_arg(parser)

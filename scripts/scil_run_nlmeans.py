@@ -5,8 +5,6 @@
 Script to denoise a dataset with the Non Local Means algorithm.
 """
 
-from __future__ import division, print_function
-
 import argparse
 import logging
 import warnings
@@ -68,7 +66,7 @@ def _get_basic_sigma(data, log):
     # This is the same value for a given bval with this estimator
     sigma = np.median(sigma)
     log.info('The noise standard deviation from the basic estimation '
-             'is %s', sigma)
+             'is {}'.format(sigma))
 
     # Broadcast the single value to a whole 3D volume for nlmeans
     return np.ones(data.shape[:3]) * sigma
@@ -101,7 +99,7 @@ def main():
     sigma = args.sigma
 
     if sigma is not None:
-        log.info('User supplied noise standard deviation is %s', sigma)
+        log.info('User supplied noise standard deviation is {}'.format(sigma))
         # Broadcast the single value to a whole 3D volume for nlmeans
         sigma = np.ones(data.shape[:3]) * sigma
     else:

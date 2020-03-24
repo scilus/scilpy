@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+"""
+Prepare a typical command for topup and create the necessary files.
+The reversed b0 must be in a different file.
+"""
+
 import argparse
 import logging
 import os
@@ -14,14 +18,9 @@ from scilpy.io.utils import add_overwrite_arg, \
     assert_inputs_exist, assert_outputs_exist
 from scilpy.preprocessing.distortion_correction import create_acqparams
 
-DESCRIPTION = """
-Prepare a typical command for topup and create the necessary files.
-The reversed b0 must be in a different file.
- """
-
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('input_dwi',

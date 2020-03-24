@@ -22,8 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging
@@ -178,7 +176,7 @@ def main():
         mask = nib.load(args.mask).get_data().astype(np.bool)
 
     # Validate bvals and bvecs
-    logging.info('Tensor estimation with the %s method...', args.method)
+    logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if not is_normalized_bvecs(bvecs):

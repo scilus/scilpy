@@ -40,8 +40,6 @@ therein.
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging

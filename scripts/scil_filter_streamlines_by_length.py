@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Script to filter streamlines based on their lengths.
+"""
+
 import argparse
 import json
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -20,16 +24,16 @@ from scilpy.io.utils import (add_json_args,
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description='Filter streamlines by length.')
+        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
+
     p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
     p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
     p.add_argument('--minL', default=0., type=float,
-                   help='Minimum length of streamlines. [%(default)s]')
+                   help='Minimum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--maxL', default=np.inf, type=float,
-                   help='Maximum length of streamlines. [%(default)s]')
+                   help='Maximum length of streamlines, in mm. [%(default)s]')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -54,19 +58,15 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
+    if args.minL == 0 and np.isinf(args.maxL):
+        logging.debug("You have not specified minL nor maxL. Output will "
+                      "simply be a copy of your input!")
+
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_streamlines, \
-        new_per_point, \
-        new_per_streamline = filter_streamlines_by_length(sft,
-                                                          args.minL,
-                                                          args.maxL)
+    new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
-                                          data_per_streamline=new_per_streamline,
-                                          data_per_point=new_per_point)
-
-    if not new_streamlines:
+    if len(new_sft.streamlines) == 0:
         if args.no_empty:
             logging.debug("The file {} won't be written "
                           "(0 streamline).".format(args.out_tractogram))
@@ -80,7 +80,7 @@ def main():
 
     if args.display_counts:
         tc_bf = len(sft.streamlines)
-        tc_af = len(new_streamlines)
+        tc_af = len(new_sft.streamlines)
         print(json.dumps({'tract_count_before_filtering': int(tc_bf),
                           'tract_count_after_filtering': int(tc_af)},
                          indent=args.indent))

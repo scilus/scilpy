@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Use multiple bundles to perform a voxel-wise vote (occurence across input).
+If streamlines originate from the same tractogram, streamline-wise vote
+is available.
+Input tractograms have to have identical header (register).
+"""
+
 
 import argparse
 
@@ -20,18 +27,11 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
-DESCRIPTION = """
-Use multiple bundles to perform a voxel-wise vote (occurence across input).
-If streamlines originate from the same tractogram, streamline-wise vote
-is available.
-Input tractograms have to have identical header (register).
-"""
-
 
 def _build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('in_bundles', nargs='+',
                    help='Input bundles filename.')
@@ -71,8 +71,8 @@ def main():
 
     fusion_streamlines = []
     for name in args.in_bundles:
-        fusion_streamlines.extend(
-            load_tractogram_with_reference(parser, args, name).streamlines)
+        tmp_sft = load_tractogram_with_reference(parser, args, name)
+        fusion_streamlines.extend(tmp_sft.streamlines)
 
     fusion_streamlines, _ = perform_streamlines_operation(union,
                                                           [fusion_streamlines],
@@ -94,6 +94,8 @@ def main():
         sft = load_tractogram_with_reference(parser, args, name)
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
+        sft.to_corner()
+
         bundle_vox_space = sft.get_streamlines_copy()
         binary = compute_tract_counts_map(bundle_vox_space, dimensions)
         volume[binary > 0] += 1
@@ -113,8 +115,9 @@ def main():
 
         new_streamlines = fusion_streamlines[real_indices]
 
-        sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM)
-        save_tractogram(sft, output_streamlines_filename)
+        new_sft = StatefulTractogram(list(new_streamlines), reference_file,
+                                     Space.RASMM)
+        save_tractogram(new_sft, output_streamlines_filename)
 
     volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
     volume[volume > 0] = 1
