@@ -264,8 +264,9 @@ def compute_dice_voxel(density_1, density_2):
             between both bundles, weighted by streamlines density.
     """
     overlap_idx = np.nonzero(density_1 * density_2)
-    numerator = 2 * len(overlap_idx)
+    numerator = 2 * len(overlap_idx[0])
     denominator = np.count_nonzero(density_1) + np.count_nonzero(density_2)
+
     if denominator > 0:
         dice = numerator / float(denominator)
     else:
