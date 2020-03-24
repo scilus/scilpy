@@ -236,7 +236,7 @@ def normalize_max(input_list):
 def base_10_log(input_list):
     """
     base_10_log: IMG
-        Apply a log (base 10) to all non zeros values.
+        Apply a log (base 10) to all non zeros values of an image.
     """
     _validate_length(input_list, 1)
     _validate_dtype(input_list[0], np.ndarray)
@@ -250,7 +250,7 @@ def base_10_log(input_list):
 def natural_log(input_list):
     """
     natural_log: IMG
-        Apply a natural log to all non zeros values.
+        Apply a natural log to all non zeros values of an image.
     """
     _validate_length(input_list, 1)
     _validate_dtype(input_list[0], np.ndarray)
