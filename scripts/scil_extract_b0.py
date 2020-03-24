@@ -17,7 +17,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.utils import add_verbose_arg, assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
@@ -46,8 +46,7 @@ def _build_arg_parser():
                             'the output file')
     group.add_argument('--mean', action='store_true', help='Extract mean b0')
 
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help='Produce verbose output.')
+    add_verbose_arg(parser)
 
     return parser
 
