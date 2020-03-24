@@ -25,7 +25,7 @@ Axial, coronal and sagittal slices are captured.
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=DESCRIPTION,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -136,7 +136,7 @@ def prepare_slices_mask(mask_data, x_slice, y_slice, z_slice):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     required = [args.dwi, args.bval, args.bvec, args.target_template]
     assert_inputs_exist(parser, required)

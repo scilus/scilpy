@@ -36,7 +36,7 @@ from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -134,7 +134,7 @@ def plot_glass_brain(args, sft, img, output_filenames):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     required = [args.in_bundle, args.in_anat]
     assert_inputs_exist(parser, required, args.target_template)

@@ -11,7 +11,7 @@ from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
 from scilpy.utils.bvec_bval_tools import mrtrix2fsl
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -28,7 +28,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.mrtrix_enc)
