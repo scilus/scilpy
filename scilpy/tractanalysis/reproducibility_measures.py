@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import copy
-
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import length, set_number_of_points
@@ -282,6 +280,35 @@ def compute_dice_voxel(density_1, density_2):
         w_dice = np.nan
 
     return dice, w_dice
+
+
+def compute_correlation(density_1, density_2):
+    """
+    Compute the overlap (dice coefficient) between two density maps (or binary).
+    Correlation being less robust to extreme case (no overlap, identical array),
+    a lot of check a needed to prevent NaN.
+    Parameters
+    ----------
+    density_1: ndarray
+        Density (or binary) map computed from the first bundle
+    density_1: ndarray of ndarray
+        Density (or binary) map computed from the second bundle
+    Returns
+    -------
+    float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles taking into account density.
+    """
+    indices = np.where(density_1 + density_2 > 0)
+    if np.array_equal(density_1, density_2):
+        density_correlation = 1
+    elif (np.sum(density_1) > 0 and np.sum(density_2) > 0) \
+            and np.count_nonzero(density_1 * density_2):
+        density_correlation = np.corrcoef(density_1[indices],
+                                          density_2[indices])[0, 1]
+    else:
+        density_correlation = 0
+
+    return max(0, density_correlation)
 
 
 def compute_dice_streamlines(bundle_1, bundle_2):

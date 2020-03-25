@@ -2,6 +2,36 @@
 # -*- coding: utf-8 -*-
 
 """
+Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
+3 categories of normalization are avaiable:
+- Edge attributes
+    - length: Multiply each edge by the average bundle length.
+      Compensate for far away connection when using INT seeding.
+    - inverse_length: Divide each edge by the average bundle length.
+      Compensate for big connection when using WM seeding.
+    - bundle_volume: Divide each edge by the average bundle length.
+      Compensate for big connection when using WM seeding.
+- Node attribute
+    - parcel_volume: Divide each edge by the sum of node volume.
+      Compensate for the likelyhood of ending in the node.
+      Compensate seeding bias connection when using INT seeding.
+    - parcel_surface: Divide each edge by the sum of node surface.
+      Compensate for the likelyhood of ending in the node.
+      Compensate for seeding bias connection when using INT seeding.
+- Matrix scaling
+    - max_at_one: Maximum value of the matrix will be set to one.
+    - sum_to_one: Ensure the sum of all edges weight is one
+    - log_10: Apply a base 10 logarithm to all edges weight
+
+The volume and length matrix should come from the scil_decompose_connectivity.py
+script.
+
+A review of the type of normalization is available in:
+Colon-Perez, Luis M., et al. "Dimensionless, scale invariant, edge weight
+metric for the study of complex structural networks." PLOS one 10.7 (2015).
+
+However, the proposed weighting of edge presented in this publication is not
+implemented.
 """
 
 import argparse
@@ -25,36 +55,34 @@ def _build_arg_parser():
         description=__doc__,)
 
     p.add_argument('in_matrix',
-                   help='')
+                   help='Input connectivity matrix. This is typically a '
+                   'streamline_count matrix.')
     p.add_argument('out_matrix',
-                   help='')
+                   help='Output matrix.')
 
-    node_p = p.add_argument_group('Node-wise options')
-    length = node_p.add_mutually_exclusive_group()
+    edge_p = p.add_argument_group('Edge-wise options')
+    length = edge_p.add_mutually_exclusive_group()
     length.add_argument('--length', metavar='LENGTH_MATRIX',
-                        help='CORRECT BIAS FOR WM')
+                        help='Length matrix use for edge-wise multiplication.')
     length.add_argument('--inverse_length', metavar='LENGTH_MATRIX',
-                        help='BOOST FOR INT')
+                        help='Length matrix use for edge-wise division.')
+    edge_p.add_argument('--bundle_volume', metavar='VOLUME_MATRIX',
+                        help='Volume matrix use for edge-wise division.')
 
-    node_p.add_argument('--bundle_volume', metavar='VOLUME_MATRIX',
-                        help='WM')
-
-    vol = node_p.add_mutually_exclusive_group()
-    vol.add_argument('--parcel_volume', metavar='ATLAS',
-                     help='ALL')
+    vol = edge_p.add_mutually_exclusive_group()
+    vol.add_argument('--parcel_volume', nargs=2, metavar=('ATLAS', 'LABELS_LIST'),
+                     help='Atlas and labels list for edge-wise division.')
     vol.add_argument('--parcel_surface', metavar='ATLAS',
-                     help='ALL')
+                     help='Atlas and labels list for edge-wise division.')
 
     scaling_p = p.add_argument_group('Scaling options')
     scale = scaling_p.add_mutually_exclusive_group()
     scale.add_argument('--max_at_one', action='store_true',
-                       help='')
+                       help='Scale matrix with maximum value at one.')
     scale.add_argument('--sum_to_one', action='store_true',
-                       help='')
+                       help='Scale matrix with sum of all element at one.')
     scale.add_argument('--log_10', action='store_true',
-                       help='')
-    scale.add_argument('--log_e', action='store_true',
-                       help='')
+                       help='Apply a base 10 logarithm to the matrix.')
 
     add_overwrite_arg(p)
 
@@ -66,7 +94,8 @@ def approximate_surface_node(atlas, node_id):
     roi[atlas == node_id] = 1
     ind = np.argwhere(roi > 0)
     tree = KDTree(ind)
-    count = np.sum(7 - tree.query_radius(ind, r=1.0, count_only=True))
+    count = np.sum(7 - tree.query_radius(ind, r=1.0,
+                                         count_only=True))
 
     return count
 
@@ -77,9 +106,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_matrix, [args.length,
                                                  args.inverse_length,
-                                                 args.bundle_volume,
-                                                 args.parcel_volume,
-                                                 args.parcel_surface])
+                                                 args.bundle_volume])
     assert_outputs_exist(parser, args, args.out_matrix)
 
     in_matrix = load_matrix_in_any_format(args.in_matrix)
@@ -87,8 +114,11 @@ def main():
     # Parcel volume and surface normalization require the atlas
     # This script should be used directly after scil_decompose_connectivity.py
     if args.parcel_volume or args.parcel_surface:
-        atlas_filepath = args.parcel_volume if args.parcel_volume \
+        atlas_tuple = args.parcel_volume if args.parcel_volume \
             else args.parcel_surface
+        atlas_filepath, labels_filepath = atlas_tuple
+        assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
+
         atlas_img = nib.load(atlas_filepath)
         atlas_data = atlas_img.get_fdata().astype(np.int)
 
@@ -100,7 +130,7 @@ def main():
         voxels_sur = np.prod(atlas_img.header.get_zooms()[:2])
 
         # Excluding background (0)
-        labels_list = np.unique(atlas_data)[1:]
+        labels_list = np.loadtxt(labels_filepath)
         if len(labels_list) != in_matrix.shape[0] \
                 and len(labels_list) != in_matrix.shape[1]:
             parser.error('Atlas should have the same number of label as the '
@@ -148,8 +178,6 @@ def main():
         out_matrix /= np.sum(out_matrix)
     elif args.log_10:
         out_matrix = np.log10(out_matrix)
-    elif args.log_e:
-        out_matrix = np.log(out_matrix)
 
     save_matrix_in_any_format(args.out_matrix, out_matrix)
 
