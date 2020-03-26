@@ -3,7 +3,7 @@
 
 """
 Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
-3 categories of normalization are avaiable:
+3 categories of normalization are available:
 -- Edge attributes
  - length: Multiply each edge by the average bundle length.
    Compensate for far away connection when using INT seeding.
@@ -18,11 +18,11 @@ Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
 
 -- Node attribute (Mutually exclusive)
  - parcel_volume: Divide each edge by the sum of node volume.
-   Compensate for the likelyhood of ending in the node.
+   Compensate for the likelihood of ending in the node.
    Compensate seeding bias connection when using INT seeding.
 
- - parcel_surface: Divide each edge by the sum of node surface.
-   Compensate for the likelyhood of ending in the node.
+ - parcel_surface: Divide each edge by the sum of the node surface.
+   Compensate for the likelihood of ending in the node.
    Compensate for seeding bias connection when using INT seeding.
 
 -- Matrix scaling (Mutually exclusive)
@@ -34,7 +34,7 @@ The volume and length matrix should come from the scil_decompose_connectivity.py
 script.
 
 A review of the type of normalization is available in:
-Colon-Perez, Luis M., et al. "Dimensionless, scale invariant, edge weight
+Colon-Perez, Luis M., et al. "Dimensionless, scale-invariant, edge weight
 metric for the study of complex structural networks." PLOS one 10.7 (2015).
 
 However, the proposed weighting of edge presented in this publication is not
@@ -64,7 +64,7 @@ def _build_arg_parser():
 
     p.add_argument('in_matrix',
                    help='Input connectivity matrix. This is typically a '
-                   'streamline_count matrix.')
+                        'streamline_count matrix.')
     p.add_argument('out_matrix',
                    help='Output matrix.')
 
@@ -78,7 +78,8 @@ def _build_arg_parser():
                         help='Volume matrix use for edge-wise division.')
 
     vol = edge_p.add_mutually_exclusive_group()
-    vol.add_argument('--parcel_volume', nargs=2, metavar=('ATLAS', 'LABELS_LIST'),
+    vol.add_argument('--parcel_volume', nargs=2,
+                     metavar=('ATLAS', 'LABELS_LIST'),
                      help='Atlas and labels list for edge-wise division.')
     vol.add_argument('--parcel_surface', metavar='ATLAS',
                      help='Atlas and labels list for edge-wise division.')
