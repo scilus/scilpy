@@ -11,8 +11,8 @@ import logging
 
 import nibabel as nib
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.image.resample_volume import resample_volume
 
 
@@ -45,9 +45,9 @@ def _build_arg_parser():
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Use verbose output. Default: false.')
 
     return p
 
