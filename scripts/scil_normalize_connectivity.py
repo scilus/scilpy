@@ -51,10 +51,10 @@ from sklearn.neighbors import KDTree
 
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,
-                             load_matrix_in_any_format,
-                             save_matrix_in_any_format,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format,
+                             save_matrix_in_any_format)
 
 
 def _build_arg_parser():
