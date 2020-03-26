@@ -6,6 +6,7 @@ They basically act as wrappers around numpy to avoid installing MRtrix/FSL
 to apply simple operations on nibabel images or numpy arrays.
 """
 
+from collections import OrderedDict
 from copy import copy
 import logging
 
@@ -19,41 +20,43 @@ from scilpy.utils.util import is_float
 
 def get_array_ops():
     """Get a dictionary of all functions relating to array operations"""
-    return {
-        'lower_threshold': lower_threshold,
-        'upper_threshold': upper_threshold,
-        'lower_clip': lower_clip,
-        'upper_clip': upper_clip,
-        'absolute_value': absolute_value,
-        'round': around,
-        'ceil': ceil,
-        'floor': floor,
-        'normalize_sum': normalize_sum,
-        'normalize_max': normalize_max,
-        'convert': convert,
-        'invert': invert,
-        'addition': addition,
-        'subtraction': subtraction,
-        'multiplication': multiplication,
-        'division': division,
-        'mean': mean,
-        'std': std,
-        'union': union,
-        'intersection': intersection,
-        'difference': difference,
-    }
+    return OrderedDict([
+        ('lower_threshold', lower_threshold),
+        ('upper_threshold', upper_threshold),
+        ('lower_clip', lower_clip),
+        ('upper_clip', upper_clip),
+        ('absolute_value', absolute_value),
+        ('round', around),
+        ('ceil', ceil),
+        ('floor', floor),
+        ('normalize_sum', normalize_sum),
+        ('normalize_max', normalize_max),
+        ('log_10', base_10_log),
+        ('log_e', natural_log),
+        ('convert', convert),
+        ('invert', invert),
+        ('addition', addition),
+        ('subtraction', subtraction),
+        ('multiplication', multiplication),
+        ('division', division),
+        ('mean', mean),
+        ('std', std),
+        ('union', union),
+        ('intersection', intersection),
+        ('difference', difference),
+    ])
 
 
 def get_image_ops():
     """Get a dictionary of all functions relating to image operations"""
     image_ops = get_array_ops()
-    image_ops.update({
-        'dilation': dilation,
-        'erosion': erosion,
-        'closing': closing,
-        'opening': opening,
-        'blur': gaussian_blur
-    })
+    image_ops.update(OrderedDict([
+        ('dilation', dilation),
+        ('erosion', erosion),
+        ('closing', closing),
+        ('opening', opening),
+        ('blur', gaussian_blur)
+    ]))
     return image_ops
 
 
@@ -71,9 +74,9 @@ def _validate_arrays(*arrays):
     ref_array = arrays[0]
     for array in arrays:
         if not isinstance(array, np.ndarray):
-            raise ValueError("All inputs must be arrays!")
+            raise ValueError('All inputs must be arrays!')
         if not np.all(ref_array.shape == array.shape):
-            raise ValueError("Not all inputs have the same shape!")
+            raise ValueError('Not all inputs have the same shape!')
 
 
 def _validate_length(input_list, l, atleast=False):
@@ -228,6 +231,34 @@ def normalize_max(input_list):
     _validate_dtype(input_list[0], np.ndarray)
 
     return copy(input_list[0]) / np.max(input_list[0])
+
+
+def base_10_log(input_list):
+    """
+    base_10_log: IMG
+        Apply a log (base 10) to all non zeros values of an image.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
+
+    output_data = np.zeros(input_list[0].shape)
+    output_data[input_list[0] > 0] = np.log10(input_list[0][input_list[0] > 0])
+
+    return output_data
+
+
+def natural_log(input_list):
+    """
+    natural_log: IMG
+        Apply a natural log to all non zeros values of an image.
+    """
+    _validate_length(input_list, 1)
+    _validate_dtype(input_list[0], np.ndarray)
+
+    output_data = np.zeros(input_list[0].shape)
+    output_data[input_list[0] > 0] = np.log(input_list[0][input_list[0] > 0])
+
+    return output_data
 
 
 def convert(input_list):

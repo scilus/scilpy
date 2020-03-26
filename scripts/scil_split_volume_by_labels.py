@@ -23,7 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
 
-def _build_args_parser(luts):
+def _build_arg_parser(luts):
 
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -61,7 +61,7 @@ def main():
 
     luts = [os.path.splitext(f)[0] for f in os.listdir(lut_dir)]
 
-    parser = _build_args_parser(luts)
+    parser = _build_arg_parser(luts)
     args = parser.parse_args()
 
     required = args.label_image
@@ -74,9 +74,9 @@ def main():
                      'Will not process.\nConvert your image to integers ' +
                      'before calling.')
 
-    label_image_data = label_image.get_fdata().astype(int)
+    label_image_data = label_image.get_fdata().astype(np.int)
 
-    if args.scilpy_lut is not None:
+    if args.scilpy_lut:
         with open(os.path.join(lut_dir, args.scilpy_lut + '.json')) as f:
             label_dict = json.load(f)
         (label_indices, label_names) = zip(*label_dict.items())

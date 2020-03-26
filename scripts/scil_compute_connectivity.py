@@ -157,10 +157,10 @@ def _processing_wrapper(args):
     return {(in_label, out_label): measures_to_return}
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p=argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter,)
     p.add_argument('in_bundles_dir',
                    help='Folder containing all the bundle files (trk).')
     p.add_argument('labels_list',
@@ -198,8 +198,8 @@ def _build_args_parser():
 
 
 def main():
-    parser=_build_args_parser()
-    args=parser.parse_args()
+    parser = _build_arg_parser()
+    args = parser.parse_args()
 
     assert_inputs_exist(parser, args.labels_list)
     if not os.path.isdir(args.in_bundles_dir):

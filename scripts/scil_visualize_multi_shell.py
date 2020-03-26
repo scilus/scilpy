@@ -21,7 +21,7 @@ from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
                                         plot_proj_shell)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
@@ -66,7 +66,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, args.scheme_file)
 
@@ -99,9 +99,48 @@ def main():
         points = np.genfromtxt(scheme_files[1])
         if points.shape[0] == 3:
             points = points.T
-        bvals = np.genfromtxt(scheme_files[0])
-        centroids, shell_idx = identify_shells(bvals)
-    else:
+        bvals = np.genfromtxt(basename + '.bval')
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
+
+    elif ext == 'bvals':
+        # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
+        bvals = np.genfromtxt(scheme_file)
+        points = np.genfromtxt(basename + '.bvecs')
+        if points.shape[0] == 3:
+            points = points.T
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
+
+    elif ext == 'bval':
+        # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
+        logging.info('Should rename .bvec/.bval to .bvecs/.bvals')
+        bvals = np.genfromtxt(scheme_file)
+        points = np.genfromtxt(basename + '.bvec')
+        if points.shape[0] == 3:
+            points = points.T
+        shell_idx = build_shell_idx_from_bval(bvals, shell_th=50)
+
+    elif ext == 'dir' or ext == 'dvs':
+        vect = []
+        # Siemens format, X, Y, Z
+        with open(scheme_file) as f:
+            for line in f:
+                if 'vector[' in line.lower():
+                    vect.append([float(f) for f in line.split('=')[1][2:-3].split(',')])
+        vect = np.array(vect)
+
+        norms = np.linalg.norm(vect, axis=1)
+        # ugly work around for the division by b0 / replacing NaNs with 0.0
+        old_settings = np.seterr(divide='ignore', invalid='ignore')
+        points = vect / norms[:, None]
+        np.seterr(**old_settings)
+        points[np.isnan(points)] = 0.0
+        points[np.isinf(points)] = 0.0
+
+        fake_bmax = 3000.
+        shell_idx = build_shell_idx_from_bval(fake_bmax * norms ** 2,
+                                              shell_th=50)
+
+    elif ext == "b":
         # MRtrix format X, Y, Z, b
         scheme_file = args.scheme_file[0]
         tmp = np.genfromtxt(scheme_file, delimiter=' ')

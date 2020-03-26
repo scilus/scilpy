@@ -46,7 +46,7 @@ def parseNumList(str_to_parse):
     return list(range(start, end+1))
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -69,7 +69,7 @@ def _build_args_parser():
 
 def main():
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     required = args.label_image
