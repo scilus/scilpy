@@ -87,7 +87,7 @@ def main():
     outlier_mask = np.logical_not(model_ransac.inlier_mask_)
     outliers = X[outlier_mask]
 
-    logging.info('# outliers: %s', len(outliers))
+    logging.info('# outliers: {}'.format(len(outliers)))
 
     in_data_flat[outliers] = 0
 

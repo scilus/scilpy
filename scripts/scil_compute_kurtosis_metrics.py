@@ -40,8 +40,6 @@ therein.
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging
@@ -64,7 +62,7 @@ from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           identify_shells)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -146,7 +144,7 @@ def main():
     logger = logging.getLogger("Compute_DKI_Metrics")
     logger.setLevel(logging.INFO)
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if not args.not_all:

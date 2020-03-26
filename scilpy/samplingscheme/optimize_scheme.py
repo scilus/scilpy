@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import numpy as np
 
+import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 
 

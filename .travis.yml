@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install build-essential libblas-dev liblapack-dev
+  - pip install -r requirements.txt
+
+script:
+  - python setup.py build_ext --inplace
+  - python setup.py install
+  - python setup.py install_scripts
+  - pytest -v

@@ -11,67 +11,30 @@
 
 import argparse
 
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
+from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.streamlines import warp_tractogram
+from scilpy.utils.streamlines import warp_streamlines
 
 
-def transform_tractogram(in_filename, ref_filename, def_filename,
-                         filename_to_save, field_source):
-    in_tractogram = nib.streamlines.load(in_filename)
-
-    _, out_extension = split_name_with_nii(filename_to_save)
-    if out_extension == '.trk':
-        # Only TRK/NII can be a reference, because they have an affine
-        _, ref_extension = split_name_with_nii(ref_filename)
-        if ref_extension == '.trk':
-            ref_tractogram = nib.streamlines.load(ref_filename, lazy_load=True)
-            ref_header = ref_tractogram.header
-        else:
-            ref_img = nib.load(ref_filename)
-            ref_header = create_header_from_anat(ref_img)
-    elif out_extension == '.tck':
-        ref_header = nib.streamlines.TckFile.create_empty_header()
-
-    deformation = nib.load(def_filename)
-    deformation_data = np.squeeze(deformation.get_data())
-
-    if not np.allclose(deformation.affine,
-                       in_tractogram.header["voxel_to_rasmm"]):
-        raise ValueError('Both affines are not equal')
-
-    if not np.array_equal(deformation_data.shape[0:3],
-                          in_tractogram.header["dimensions"]):
-        raise ValueError('Both dimensions are not equal')
-
-    transfo = in_tractogram.header["voxel_to_rasmm"]
-    # Warning: Apply warp in-place
-    warp_tractogram(in_tractogram.streamlines, transfo, deformation_data,
-                    field_source)
-
-    new_tractogram = nib.streamlines.Tractogram(in_tractogram.streamlines,
-                                                affine_to_rasmm=np.eye(4))
-    nib.streamlines.save(new_tractogram, filename_to_save, header=ref_header)
-
-
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('in_file',
-                   help='Path of the tractogram to be warped (trk).')
-
-    p.add_argument('ref_file',
-                   help='Path of the reference file (trk, nii or nii.gz')
-
+    p.add_argument('moving_tractogram',
+                   help='Path of the tractogram to be transformed.')
+    p.add_argument('target_file',
+                   help='Path of the reference file (trk or nii).')
     p.add_argument('deformation',
                    help='Path of the file containing deformation field.')
 
-    p.add_argument('out_name',
+    p.add_argument('out_tractogram',
                    help='Output filename of the transformed tractogram.')
 
     p.add_argument('--field_source', default='ants', choices=['ants', 'dipy'],
@@ -79,30 +42,36 @@ def _build_args_parser():
                         'be cautious, the default is  [%(default)s].')
 
     add_overwrite_arg(p)
+    add_reference_arg(p)
 
     return p
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_file, args.ref_file,
+    assert_inputs_exist(parser, [args.moving_tractogram, args.target_file,
                                  args.deformation])
-    assert_outputs_exist(parser, args, args.out_name)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not nib.streamlines.TrkFile.is_correct_format(args.in_file):
-        parser.error('The input file needs to be a TRK file')
+    sft = load_tractogram_with_reference(parser, args, args.moving_tractogram)
 
-    _, ref_extension = split_name_with_nii(args.ref_file)
-    if ref_extension == '.trk':
-        if not nib.streamlines.TrkFile.is_correct_format(args.ref_file):
-            parser.error('{} is not a valid TRK file.'.format(args.ref_file))
-    elif ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is an unsupported format.'.format(args.ref_file))
+    deformation = nib.load(args.deformation)
+    deformation_data = np.squeeze(deformation.get_fdata())
 
-    transform_tractogram(args.in_file, args.ref_file, args.deformation,
-                         args.out_name, args.field_source)
+    if not is_header_compatible(sft, deformation):
+        parser.error('Input tractogram/reference do not have the same spatial '
+                     'attribute as the deformation field.')
+
+    # Warning: Apply warp in-place
+    moved_streamlines = warp_streamlines(sft, deformation_data,
+                                         args.field_source)
+    new_sft = StatefulTractogram(moved_streamlines, args.target_file,
+                                 Space.RASMM,
+                                 data_per_point=sft.data_per_point,
+                                 data_per_streamline=sft.data_per_streamline)
+    save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

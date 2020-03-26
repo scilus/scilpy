@@ -5,7 +5,6 @@
 Script to compute the maximum fODF in the ventricles.
 """
 
-from __future__ import division, print_function
 from builtins import str
 from builtins import range
 from past.utils import old_div
@@ -16,14 +15,16 @@ from dipy.data import get_sphere
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description=__doc__)
+
     p.add_argument('input',  metavar='fODFs',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('fa',  metavar='FA',
@@ -34,11 +35,11 @@ def _build_arg_parser():
     p.add_argument(
         '--fa_t', dest='fa_threshold',  type=float, default='0.1',
         help='Maximal threshold of FA (voxels under that threshold are '
-             'considered for evaluation, default: 0.1)')
+             'considered for evaluation, [%(default)s]).')
     p.add_argument(
         '--md_t', dest='md_threshold',  type=float, default='0.003',
         help='Minimal threshold of MD in mm2/s (voxels above that threshold '
-             'are considered for evaluation, default: 0.003)')
+             'are considered for evaluation, [%(default)s]).')
     p.add_argument(
         '--max_value_output',  metavar='file',
         help='Output path for the text file containing the value. If not set '
@@ -48,9 +49,9 @@ def _build_arg_parser():
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
-    p.add_argument('-v', action='store_true', dest='verbose',
-                   help='Use verbose output. Default: false.')
+
     return p
 
 
@@ -104,13 +105,13 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
                     count += 1
                     mask[i, j, k] = 1
 
-    logging.debug('Number of voxels detected: %s', count)
+    logging.debug('Number of voxels detected: {}'.format(count))
     if count == 0:
         logging.warning('No voxels found for evaluation! Change your fa '
                         'and/or md thresholds')
         return 0, mask
 
-    logging.debug('Average max fodf value: %s', sum_of_max / count)
+    logging.debug('Average max fodf value: {}'.format(sum_of_max / count))
     return sum_of_max / count, mask
 
 
@@ -120,7 +121,7 @@ def main():
 
     assert_inputs_exist(parser, [args.input, args.fa, args.md])
     assert_outputs_exist(parser, args, [],
-                          [args.max_value_output, args.mask_output])
+                         [args.max_value_output, args.mask_output])
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)

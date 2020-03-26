@@ -29,7 +29,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 
-def build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -77,7 +77,7 @@ def build_args_parser():
 
 
 def main():
-    parser = build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:

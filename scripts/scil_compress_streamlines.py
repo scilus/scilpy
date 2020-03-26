@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_tractogram',
@@ -31,8 +31,7 @@ def _build_args_parser():
                    help='Path of the output tractogram file (trk or tck).')
 
     p.add_argument('-e', dest='error_rate', type=float, default=0.1,
-                   help='Maximum compression distance in mm. '
-                   '[default: %(default)s]')
+                   help='Maximum compression distance in mm [%(default)s].')
     add_overwrite_arg(p)
 
     return p
@@ -44,7 +43,7 @@ def compress_streamlines_wrapper(tractogram, error_rate):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)

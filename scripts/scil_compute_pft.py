@@ -21,14 +21,14 @@ from the SF.
 Default parameters as suggested in [1].
 """
 
-from __future__ import division
-
 import argparse
 import logging
 
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (ProbabilisticDirectionGetter,
                             DeterministicMaximumDirectionGetter)
+from dipy.io.utils import (get_reference_info,
+                           create_tractogram_header)
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
@@ -38,14 +38,13 @@ import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
-from scilpy.io.utils import (create_header_from_anat,
-                             add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter,
         epilog='References: [1] Girard, G., Whittingstall K., Deriche, R., '
@@ -151,7 +150,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
@@ -305,7 +304,8 @@ def main():
                                 affine_to_rasmm=seed_img.affine)
 
     filetype = nib.streamlines.detect_format(args.output_file)
-    header = create_header_from_anat(seed_img, base_filetype=filetype)
+    reference = get_reference_info(seed_img)
+    header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.output_file, header=header)

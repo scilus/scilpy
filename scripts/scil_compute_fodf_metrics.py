@@ -26,7 +26,6 @@ See [Raffelt et al. NeuroImage 2012] and [Dell'Acqua et al HBM 2013] for the
 definitions.
 """
 
-from __future__ import division, print_function
 import argparse
 import os
 import numpy as np

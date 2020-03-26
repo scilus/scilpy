@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Assign an hexadecimal RGB color to a Trackvis TRK tractogram.
+The hexadecimal RGB color should be formatted as 0xRRGGBB or
+"#RRGGBB".
+"""
+
 import argparse
 
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -16,9 +22,7 @@ from scilpy.io.utils import (assert_inputs_exist,
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Assign an hexadecimal RGB color to a Trackvis TRK '
-                    'tractogram. The hexadecimal RGB color should be '
-                    'formatted as 0xRRGGBB or "#RRGGBB"',
+        description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_tractogram',
