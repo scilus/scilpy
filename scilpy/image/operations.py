@@ -9,6 +9,7 @@ to apply simple operations on nibabel images or numpy arrays.
 from collections import OrderedDict
 from copy import copy
 import logging
+import sys
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
@@ -16,6 +17,9 @@ from scipy.ndimage.morphology import (binary_closing, binary_dilation,
                                       binary_erosion, binary_opening)
 
 from scilpy.utils.util import is_float
+
+
+EPSILON = sys.float_info.epsilon
 
 
 def get_array_ops():
@@ -235,28 +239,32 @@ def normalize_max(input_list):
 
 def base_10_log(input_list):
     """
-    base_10_log: IMG
+    log_10: IMG
         Apply a log (base 10) to all non zeros values of an image.
     """
     _validate_length(input_list, 1)
     _validate_dtype(input_list[0], np.ndarray)
 
     output_data = np.zeros(input_list[0].shape)
-    output_data[input_list[0] > 0] = np.log10(input_list[0][input_list[0] > 0])
+    output_data[input_list[0] > EPSILON] = np.log10(
+        input_list[0][input_list[0] > EPSILON])
+    output_data[np.abs(output_data) < EPSILON] = -65536
 
     return output_data
 
 
 def natural_log(input_list):
     """
-    natural_log: IMG
+    log_e: IMG
         Apply a natural log to all non zeros values of an image.
     """
     _validate_length(input_list, 1)
     _validate_dtype(input_list[0], np.ndarray)
 
     output_data = np.zeros(input_list[0].shape)
-    output_data[input_list[0] > 0] = np.log(input_list[0][input_list[0] > 0])
+    output_data[input_list[0] > EPSILON] = np.log(
+        input_list[0][input_list[0] > EPSILON])
+    output_data[np.abs(output_data) < EPSILON] = -65536
 
     return output_data
 

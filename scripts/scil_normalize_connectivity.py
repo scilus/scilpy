@@ -4,24 +4,31 @@
 """
 Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
 3 categories of normalization are avaiable:
-- Edge attributes
-    - length: Multiply each edge by the average bundle length.
-      Compensate for far away connection when using INT seeding.
-    - inverse_length: Divide each edge by the average bundle length.
-      Compensate for big connection when using WM seeding.
-    - bundle_volume: Divide each edge by the average bundle length.
-      Compensate for big connection when using WM seeding.
-- Node attribute
-    - parcel_volume: Divide each edge by the sum of node volume.
-      Compensate for the likelyhood of ending in the node.
-      Compensate seeding bias connection when using INT seeding.
-    - parcel_surface: Divide each edge by the sum of node surface.
-      Compensate for the likelyhood of ending in the node.
-      Compensate for seeding bias connection when using INT seeding.
-- Matrix scaling
-    - max_at_one: Maximum value of the matrix will be set to one.
-    - sum_to_one: Ensure the sum of all edges weight is one
-    - log_10: Apply a base 10 logarithm to all edges weight
+-- Edge attributes
+ - length: Multiply each edge by the average bundle length.
+   Compensate for far away connection when using INT seeding.
+   Cannot be used with inverse_length.
+
+ - inverse_length: Divide each edge by the average bundle length.
+   Compensate for big connection when using WM seeding.
+   Cannot be used with length.
+
+ - bundle_volume: Divide each edge by the average bundle length.
+   Compensate for big connection when using WM seeding.
+
+-- Node attribute (Mutually exclusive)
+ - parcel_volume: Divide each edge by the sum of node volume.
+   Compensate for the likelyhood of ending in the node.
+   Compensate seeding bias connection when using INT seeding.
+
+ - parcel_surface: Divide each edge by the sum of node surface.
+   Compensate for the likelyhood of ending in the node.
+   Compensate for seeding bias connection when using INT seeding.
+
+-- Matrix scaling (Mutually exclusive)
+ - max_at_one: Maximum value of the matrix will be set to one.
+ - sum_to_one: Ensure the sum of all edges weight is one
+ - log_10: Apply a base 10 logarithm to all edges weight
 
 The volume and length matrix should come from the scil_decompose_connectivity.py
 script.
@@ -42,6 +49,7 @@ import nibabel as nib
 import numpy as np
 from sklearn.neighbors import KDTree
 
+from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format,
@@ -173,11 +181,11 @@ def main():
 
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:
-        out_matrix /= np.max(out_matrix)
+        out_matrix = normalize_max([out_matrix])
     elif args.sum_to_one:
-        out_matrix /= np.sum(out_matrix)
+        out_matrix = normalize_sum([out_matrix])
     elif args.log_10:
-        out_matrix = np.log10(out_matrix)
+        out_matrix = base_10_log([out_matrix])
 
     save_matrix_in_any_format(args.out_matrix, out_matrix)
 

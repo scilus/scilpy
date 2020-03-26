@@ -23,8 +23,9 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
 
+from scilpy.image.operations import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -67,6 +68,8 @@ def _build_arg_parser():
                          'The font size and the rouding parameters can be '
                          'adjusted.')
 
+    p.add_argument('--log', action='store_true',
+                   help='Apply a base 10 logarithm to the matrix.')
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
 
@@ -94,13 +97,19 @@ def main():
     assert_inputs_exist(parser, args.in_matrix)
     assert_outputs_exist(parser, args, args.out_png)
 
-    matrix = np.load(args.in_matrix)
+    matrix = load_matrix_in_any_format(args.in_matrix)
+
+    if args.log:
+        matrix[matrix > EPSILON] = np.log10(matrix[matrix > EPSILON])
+        min_value = np.min(matrix)
+        matrix[np.abs(matrix) < EPSILON] = -65536
+    else:
+        min_value = np.min(matrix)
 
     fig, ax = plt.subplots()
     im = ax.imshow(matrix,
                    interpolation='nearest',
-                   cmap=args.colormap,
-                   vmin=0.0, vmax=np.max(matrix))
+                   cmap=args.colormap, vmin=min_value)
 
     if args.write_values:
         if np.prod(matrix.shape) > 1000:
