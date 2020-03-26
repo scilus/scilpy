@@ -95,7 +95,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_matrix)
-    assert_outputs_exist(parser, args, args.out_png)
+    if not args.show_only:
+        assert_outputs_exist(parser, args, args.out_png)
 
     matrix = load_matrix_in_any_format(args.in_matrix)
 
