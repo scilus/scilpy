@@ -16,7 +16,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_force_b0_arg,
-                             add_overwrite_arg, add_verbose_arg
+                             add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_ssst_frf
 
