@@ -30,8 +30,6 @@ def _build_arg_parser():
                    help='Hexadecimal RGB color filling the region between '
                         'mean ± std. The hexadecimal RGB color should be '
                         'formatted as 0xRRGGBB.')
-    p.add_argument('--nb_points', type=int, default=20,
-                   help='Number of points defining the centroid streamline.')
 
     add_overwrite_arg(p)
     return p
@@ -53,10 +51,11 @@ def main():
 
     for bundle_name, bundle_stats in meanstdperpoint.items():
         for metric, metric_stats in bundle_stats.items():
-            num_digits_labels = len(str(args.nb_points))
+            nb_points = len(metric_stats)
+            num_digits_labels = len(str(nb_points))
             means = []
             stds = []
-            for label_int in range(1, args.nb_points+1):
+            for label_int in range(1, nb_points+1):
                 label = str(label_int).zfill(num_digits_labels)
                 mean = metric_stats.get(label, {'mean': np.nan})['mean']
                 mean = mean if mean else np.nan

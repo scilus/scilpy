@@ -61,7 +61,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_bundle, args.label_map,
                                  args.distance_map] + args.metrics)
-    assert_outputs_exist(parser, args, args.out_json)
+    assert_outputs_exist(parser, args, '', args.out_json)
 
     # Load everything
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
@@ -96,7 +96,7 @@ def main():
                                                args.density_weighting,
                                                args.distance_weighting)
 
-    if args.out_json is not None:
+    if args.out_json:
         with open(args.out_json, 'w') as outfile:
             json.dump(stats, outfile, indent=args.indent,
                       sort_keys=args.sort_keys)
