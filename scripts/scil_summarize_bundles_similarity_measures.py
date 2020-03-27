@@ -25,10 +25,12 @@ import numpy as np
 from numpy.random import RandomState
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             link_bundles_and_reference)
+                             link_bundles_and_reference,
+                             validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
             compute_bundle_adjacency_streamlines,
@@ -55,11 +57,10 @@ def _build_arg_parser():
                         '[%(default)s].')
     p.add_argument('--single_compare',
                    help='Compare inputs to this single file.')
-    p.add_argument('--processes', type=int,
-                   help='Number of processes to use [ALL].')
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end.')
 
+    add_processes_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 
@@ -76,11 +77,6 @@ def load_data_tmp_saving(filename, reference, init_only=False,
                          disable_centroids=False):
     # Since data is often re-use when comparing multiple bundles, anything
     # that can be computed once is saved temporarily and simply loaded on demand
-    if not os.path.isfile(filename):
-        if init_only:
-            logging.warning('{} does not exist'.format(filename))
-        return None
-
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
     tmp_density_filename = os.path.join('tmp_measures/',
                                         '{}_density.nii.gz'.format(hash_tmp))
@@ -261,12 +257,7 @@ def main():
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [args.out_json])
 
-    nbr_cpu = args.processes if args.processes else multiprocessing.cpu_count()
-    if nbr_cpu <= 0:
-        parser.error('Number of processes cannot be <= 0.')
-    elif nbr_cpu > multiprocessing.cpu_count():
-        parser.error('Max number of processes is {}. Got {}.'.format(
-            multiprocessing.cpu_count(), nbr_cpu))
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     if not os.path.isdir('tmp_measures/'):
         os.mkdir('tmp_measures/')

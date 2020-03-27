@@ -8,6 +8,7 @@ All tractograms must be trk files and headers must be identical.
 
 import argparse
 import json
+import logging
 import multiprocessing
 
 from dipy.io.streamline import load_tractogram
@@ -49,6 +50,7 @@ def compute_measures(filename_tuple):
 
     nbr_streamlines = len(sft)
     if not nbr_streamlines:
+        logging.warning('{} is empty'.format(filename_tuple[0]))
         return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                          'avg_length', 'std_length', 'min_length', 'max_length',
                          'mean_curvature'], [0, 0, 0, 0, 0, 0, 0, 0]))

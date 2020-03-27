@@ -34,7 +34,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             link_bundles_and_reference)
+                             link_bundles_and_reference,
+                             validate_nbr_processes)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
@@ -68,10 +69,6 @@ def compute_voxel_measures(args):
     bundle_filename, bundle_reference = args[0]
     tracking_mask = args[1]
     gs_binary_3d = args[2]
-
-    if not os.path.isfile(bundle_filename):
-        logging.info('{} does not exist'.format(bundle_filename))
-        return None
 
     bundle_sft = load_tractogram(bundle_filename, bundle_reference)
     bundle_sft.to_vox()
@@ -155,12 +152,7 @@ def main():
     if (not args.streamlines_measures) and (not args.voxels_measures):
         parser.error('At least one of the two modes is needed')
 
-    nbr_cpu = args.processes if args.processes else multiprocessing.cpu_count()
-    if nbr_cpu <= 0:
-        parser.error('Number of processes cannot be <= 0.')
-    elif nbr_cpu > multiprocessing.cpu_count():
-        parser.error('Max number of processes is {}. Got {}.'.format(
-            multiprocessing.cpu_count(), nbr_cpu))
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     all_binary_metrics = []
     bundles_references_tuple_extended = link_bundles_and_reference(
