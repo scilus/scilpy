@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import multiprocessing
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -125,6 +126,21 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
+def validate_nbr_processes(parser, args, default_nbr_cpus=None):
+    if args.nbr_processes:
+        nbr_cpu = args.nbr_processes
+    else:
+        nbr_cpu = multiprocessing.cpu_count()
+
+    if nbr_cpu <= 0:
+        parser.error('Number of processes must be > 0.')
+    elif nbr_cpu > multiprocessing.cpu_count():
+        parser.error('Max number of processes is {}. Got {}.'.format(
+            multiprocessing.cpu_count(), nbr_cpu))
+
+    return nbr_cpu
+
+
 def validate_sh_basis_choice(sh_basis):
     """ Check if the passed sh_basis arg to a fct is right.
 
@@ -218,7 +234,8 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     for cur_dir in dirs:
         if not os.path.isdir(cur_dir):
             if not create_dir:
-                parser.error('Output directory {} doesn\'t exist.'.format(cur_dir))
+                parser.error(
+                    'Output directory {} doesn\'t exist.'.format(cur_dir))
             else:
                 os.makedirs(cur_dir, exist_ok=True)
         if os.listdir(cur_dir):
