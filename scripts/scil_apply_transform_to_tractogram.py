@@ -60,7 +60,8 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     moving_sft = load_tractogram_with_reference(parser, args,
-                                                args.moving_tractogram)
+                                                args.moving_tractogram,
+                                                bbox_check=False)
 
     transfo = np.loadtxt(args.transformation)
     if args.inverse:
