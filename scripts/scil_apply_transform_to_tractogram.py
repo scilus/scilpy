@@ -6,6 +6,14 @@ Transform tractogram using an affine/rigid transformation.
 
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
+
+Applying transformation to tractogram can lead to invalid streamlines (out of
+the bbox), three strategies are available:
+- default, crash at saving if invalid streamlines are present
+- --keep_invalid, save invalid streamlines. Leave it to the user to run
+    scil_remove_invalid_streamlines.py if needed.
+- --remove_invalid, automatically remove invalid streamlines before saving.
+    Should not remove more than a few streamlines.
 """
 
 import argparse
@@ -41,9 +49,9 @@ def _build_arg_parser():
 
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--remove_invalid', action='store_true',
-                   help='Remove the streamlines landing out of the bbox.')
+                         help='Remove the streamlines landing out of the bbox.')
     invalid.add_argument('--keep_invalid', action='store_true',
-                   help='Keep the streamlines landing out of the bbox.')
+                         help='Keep the streamlines landing out of the bbox.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)

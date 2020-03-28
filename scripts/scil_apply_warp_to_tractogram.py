@@ -6,9 +6,18 @@ Warp tractogram using a non linear deformation from an ANTs deformation map.
 
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
+
+Applying transformation to tractogram can lead to invalid streamlines (out of
+the bbox), three strategies are available:
+- default, crash at saving if invalid streamlines are present
+- --keep_invalid, save invalid streamlines. Leave it to the user to run
+    scil_remove_invalid_streamlines.py if needed.
+- --remove_invalid, automatically remove invalid streamlines before saving.
+    Should not remove more than a few streamlines.
 """
 
 import argparse
+import logging
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
