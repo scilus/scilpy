@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-    Warp *.trk using a non linear deformation.
-    Can be used with Ants or Dipy deformation map.
+Warp tractogram using a non linear deformation from an ANTs deformation map.
 
-    For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+For more information on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file
 """
 
 import argparse
@@ -33,13 +32,14 @@ def _build_arg_parser():
                    help='Path of the reference file (trk or nii).')
     p.add_argument('deformation',
                    help='Path of the file containing deformation field.')
-
     p.add_argument('out_tractogram',
                    help='Output filename of the transformed tractogram.')
 
-    p.add_argument('--field_source', default='ants', choices=['ants', 'dipy'],
-                   help='Source of the deformation field: [%(choices)s]  \n'
-                        'be cautious, the default is  [%(default)s].')
+    invalid = p.add_mutually_exclusive_group()
+    invalid.add_argument('--remove_invalid', action='store_true',
+                         help='Remove the streamlines landing out of the bbox.')
+    invalid.add_argument('--keep_invalid', action='store_true',
+                         help='Keep the streamlines landing out of the bbox.')
 
     add_overwrite_arg(p)
     add_reference_arg(p)
@@ -55,7 +55,8 @@ def main():
                                  args.deformation])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    sft = load_tractogram_with_reference(parser, args, args.moving_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.moving_tractogram,
+                                         bbox_check=False)
 
     deformation = nib.load(args.deformation)
     deformation_data = np.squeeze(deformation.get_fdata())
@@ -65,13 +66,24 @@ def main():
                      'attribute as the deformation field.')
 
     # Warning: Apply warp in-place
-    moved_streamlines = warp_streamlines(sft, deformation_data,
-                                         args.field_source)
+    moved_streamlines = warp_streamlines(sft, deformation_data)
     new_sft = StatefulTractogram(moved_streamlines, args.target_file,
                                  Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
-    save_tractogram(new_sft, args.out_tractogram)
+
+    if args.remove_invalid:
+        ori_len = len(new_sft)
+        new_sft.remove_invalid_streamlines()
+        logging.warning('Removed {} invalid streamlines.'.format(
+            ori_len - len(new_sft)))
+        save_tractogram(new_sft, args.out_tractogram)
+    elif args.keep_invalid:
+        if not new_sft.is_bbox_in_vox_valid():
+            logging.warning('Saving tractogram with invalid streamlines.')
+        save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
+    else:
+        save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

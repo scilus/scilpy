@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-    Transform tractogram using an affine/rigid transformation.
+Transform tractogram using an affine/rigid transformation.
 
-    For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+For more information on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file
 """
 
 import argparse
+import logging
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
@@ -38,6 +39,12 @@ def _build_arg_parser():
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse transformation.')
 
+    invalid = p.add_mutually_exclusive_group()
+    invalid.add_argument('--remove_invalid', action='store_true',
+                   help='Remove the streamlines landing out of the bbox.')
+    invalid.add_argument('--keep_invalid', action='store_true',
+                   help='Keep the streamlines landing out of the bbox.')
+
     add_reference_arg(p)
     add_overwrite_arg(p)
 
@@ -65,7 +72,19 @@ def main():
                                  Space.RASMM,
                                  data_per_point=moving_sft.data_per_point,
                                  data_per_streamline=moving_sft.data_per_streamline)
-    save_tractogram(new_sft, args.out_tractogram)
+
+    if args.remove_invalid:
+        ori_len = len(new_sft)
+        new_sft.remove_invalid_streamlines()
+        logging.warning('Removed {} invalid streamlines.'.format(
+            ori_len - len(new_sft)))
+        save_tractogram(new_sft, args.out_tractogram)
+    elif args.keep_invalid:
+        if not new_sft.is_bbox_in_vox_valid():
+            logging.warning('Saving tractogram with invalid streamlines.')
+        save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
+    else:
+        save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
