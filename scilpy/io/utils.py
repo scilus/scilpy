@@ -275,8 +275,7 @@ def load_matrix_in_any_format(filepath):
     elif ext == '.npy':
         data = np.load(filepath)
     else:
-        parser.error('Extension {} is not supported'.format(ext))
-        raise ValueError
+        raise ValueError('Extension {} is not supported'.format(ext))
 
     return data
 
@@ -288,5 +287,4 @@ def save_matrix_in_any_format(filepath, output_data):
     elif ext == '.npy' or ext == '':
         np.save(filepath, output_data)
     else:
-        parser.error('Extension {} is not supported'.format(ext))
-        raise ValueError
+        raise ValueError('Extension {} is not supported'.format(ext))
