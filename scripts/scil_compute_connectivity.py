@@ -7,13 +7,13 @@ matrices. This script is made to follow scil_decompose_connectivity and
 uses the same labels list as input.
 
 The script expects a folder containing all relevants bundles following the
-naming convention label1_label2.trk and a text file containing the list of
+naming convention LABEL1_LABEL2.trk and a text file containing the list of
 labels that should be part of the matrices. The ordering of labels in the
 matrices will follow the same order as the list.
 This script only generates matrices in the form of array, does not visualize
 or reorder the labels (node).
 
-The parameter --similarity expects a folder with density maps (.nii.gz)
+The parameter --similarity expects a folder with density maps (LABEL1_LABEL2.nii.gz)
 following the same naming convention as the input directory.
 The bundles should be averaged version in the same space. This will
 compute the weighted-dice between each node and their homologuous average

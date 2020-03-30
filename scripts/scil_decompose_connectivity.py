@@ -212,6 +212,9 @@ def main():
     img_labels = nib.load(args.labels)
     data_labels = img_labels.get_fdata().astype(np.int16)
     real_labels = np.unique(data_labels)[1:]
+    if args.out_labels_list:
+        np.savetxt(args.out_labels_list, real_labels, fmt='%i')
+
     if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
         parser.error("Label image should contain integers for labels.")
 
