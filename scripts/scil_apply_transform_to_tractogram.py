@@ -8,7 +8,7 @@ For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
 Applying transformation to tractogram can lead to invalid streamlines (out of
-the bbox), three strategies are available:
+the bounding box), three strategies are available:
 - default, crash at saving if invalid streamlines are present
 - --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_remove_invalid_streamlines.py if needed.
@@ -39,7 +39,7 @@ def _build_arg_parser():
                    help='Path of the reference target file (trk or nii).')
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (*.txt).'
+                        'transformation, matrix (*.txt).\n'
                         'See the script description for more information.')
     p.add_argument('out_tractogram',
                    help='Output tractogram filename (transformed data).')
@@ -49,9 +49,11 @@ def _build_arg_parser():
 
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--remove_invalid', action='store_true',
-                         help='Remove the streamlines landing out of the bbox.')
+                         help='Remove the streamlines landing out of the '
+                              'bounding box.')
     invalid.add_argument('--keep_invalid', action='store_true',
-                         help='Keep the streamlines landing out of the bbox.')
+                         help='Keep the streamlines landing out of the '
+                              'bounding box.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)

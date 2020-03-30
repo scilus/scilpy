@@ -12,6 +12,7 @@ import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
@@ -31,6 +32,8 @@ def _build_arg_parser():
 
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
+    p.add_argument('--remove_overlapping_points', action='store_true',
+                   help='Consider streamlines with overlapping points invalid.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -47,15 +50,25 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
+    print('loaded')
     ori_len = len(sft)
     sft.remove_invalid_streamlines()
+    print('bbox')
 
+    indices = []
     if args.remove_single_point:
         # Will try to do a PR in Dipy
-        indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) > 1]
-    else:
-        indices = range(len(sft))
+        indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) <= 1]
+        print('single')
 
+    if args.remove_overlapping_points:
+        for i in range(len(sft)):
+            norm = np.linalg.norm(np.gradient(sft.streamlines[i],
+                                              axis=0), axis=1)
+            if (norm < 0.001).any():
+                indices.append(i)
+
+    indices = np.setdiff1d(range(len(sft)), indices)
     new_sft = StatefulTractogram.from_sft(
         sft.streamlines[indices], sft,
         data_per_point=sft.data_per_point[indices],

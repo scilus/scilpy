@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-Warp tractogram using a non linear deformation from an ANTs deformation map.
+Warp tractogram using a non linear deformation from an ANTs deformation field.
 
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
 Applying transformation to tractogram can lead to invalid streamlines (out of
-the bbox), three strategies are available:
+the bounding box), three strategies are available:
 - default, crash at saving if invalid streamlines are present
 - --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_remove_invalid_streamlines.py if needed.
@@ -46,9 +46,11 @@ def _build_arg_parser():
 
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--remove_invalid', action='store_true',
-                         help='Remove the streamlines landing out of the bbox.')
+                         help='Remove the streamlines landing out of the '
+                              'bounding box.')
     invalid.add_argument('--keep_invalid', action='store_true',
-                         help='Keep the streamlines landing out of the bbox.')
+                         help='Keep the streamlines landing out of the '
+                              'bounding box.')
 
     add_overwrite_arg(p)
     add_reference_arg(p)
