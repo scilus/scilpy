@@ -102,6 +102,7 @@ def _save_if_needed(streamlines, args,
                                                    out_label))
         sft = StatefulTractogram(streamlines, args.in_tractogram,
                                  Space.VOX, origin=Origin.TRACKVIS)
+
         if not sft.is_bbox_in_vox_valid():
             print(out_name)
         save_tractogram(sft, out_name, bbox_valid_check=False)
@@ -158,10 +159,10 @@ def build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.5,
+    og.add_argument('--outlier_threshold', type=float, default=0.6,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
-    og.add_argument('--loop_max_angle', type=float, default=345.,
+    og.add_argument('--loop_max_angle', type=float, default=330.,
                     help='Maximal winding angle over which a streamline is '
                          'considered as looping. [%(default)s]')
     og.add_argument('--curv_qb_distance', type=float, default=10.,
@@ -179,7 +180,6 @@ def build_arg_parser():
                    help='If set, will save discarded streamlines in '
                         'subdirectories.\n'
                         'Includes loops, outliers and qb_loops')
-
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
