@@ -53,7 +53,6 @@ def _build_arg_parser():
                    help='Lower than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
                         'See description for more details.')
-
     p.add_argument('--greater_than', nargs='*', action='append',
                    help='Greater than condition using the VALUE_THR in '
                         'at least POPULATION_PERC (from MATRICES_LIST).\n'
