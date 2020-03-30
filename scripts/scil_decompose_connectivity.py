@@ -243,7 +243,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Discarded {} streamlines from filtering in {} sec.'.format(
-          original_len - len(sft), round(time2 - time1, 2)))
+            original_len - len(sft), round(time2 - time1, 2)))
     logging.info('    Number of streamlines to process: {}'.format(len(sft)))
 
     # Get all streamlines intersection indices
@@ -387,7 +387,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Connections post-processing and saving took {} sec.'.format(
-          round(time2 - time1, 2)))
+            round(time2 - time1, 2)))
 
 
 if __name__ == "__main__":
