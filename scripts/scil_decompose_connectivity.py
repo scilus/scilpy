@@ -103,9 +103,7 @@ def _save_if_needed(streamlines, args,
         sft = StatefulTractogram(streamlines, args.in_tractogram,
                                  Space.VOX, origin=Origin.TRACKVIS)
 
-        if not sft.is_bbox_in_vox_valid():
-            print(out_name)
-        save_tractogram(sft, out_name, bbox_valid_check=False)
+        save_tractogram(sft, out_name)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
