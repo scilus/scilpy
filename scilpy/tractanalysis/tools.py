@@ -32,7 +32,9 @@ def get_point_on_line(first_point, second_point, vox_lower_corner):
     # Some simplifications are made since we are sure that an intersection
     # exists (else this function would not have been called).
     ray = second_point - first_point
-    ray = ray / np.linalg.norm(ray)
+    norm = np.linalg.norm(ray)
+    if norm > 0.000001:
+        ray /= np.linalg.norm(ray)
 
     corners = np.array([vox_lower_corner, vox_lower_corner + 1])
 
