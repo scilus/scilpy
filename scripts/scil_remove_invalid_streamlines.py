@@ -26,7 +26,7 @@ def _build_arg_parser():
     p.add_argument('in_tractogram', metavar='IN_TRACTOGRAM',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
-    p.add_argument('output_name', metavar='OUTPUT_NAME',
+    p.add_argument('out_tractogram', metavar='OUTPUT_NAME',
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
 
@@ -46,20 +46,17 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
-    assert_outputs_exist(parser, args, args.output_name)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
-    print('loaded')
     ori_len = len(sft)
     sft.remove_invalid_streamlines()
-    print('bbox')
 
     indices = []
     if args.remove_single_point:
         # Will try to do a PR in Dipy
         indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) <= 1]
-        print('single')
 
     if args.remove_overlapping_points:
         for i in range(len(sft)):
@@ -75,7 +72,7 @@ def main():
         data_per_streamline=sft.data_per_streamline[indices])
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(new_sft)))
-    save_tractogram(new_sft, args.output_name)
+    save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":
