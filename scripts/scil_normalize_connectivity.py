@@ -6,24 +6,24 @@ Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
 3 categories of normalization are available:
 -- Edge attributes
  - length: Multiply each edge by the average bundle length.
-   Compensate for far away connection when using INT seeding.
+   Compensate for far away connections when using interface seeding.
    Cannot be used with inverse_length.
 
  - inverse_length: Divide each edge by the average bundle length.
-   Compensate for big connection when using WM seeding.
+   Compensate for big connections when using white matter seeding.
    Cannot be used with length.
 
  - bundle_volume: Divide each edge by the average bundle length.
-   Compensate for big connection when using WM seeding.
+   Compensate for big connections when using white matter seeding.
 
--- Node attribute (Mutually exclusive)
+-- Node attributes (Mutually exclusive)
  - parcel_volume: Divide each edge by the sum of node volume.
    Compensate for the likelihood of ending in the node.
-   Compensate seeding bias connection when using INT seeding.
+   Compensate seeding bias when using interface seeding.
 
  - parcel_surface: Divide each edge by the sum of the node surface.
    Compensate for the likelihood of ending in the node.
-   Compensate for seeding bias connection when using INT seeding.
+   Compensate for seeding bias when using interface seeding.
 
 -- Matrix scaling (Mutually exclusive)
  - max_at_one: Maximum value of the matrix will be set to one.
@@ -64,24 +64,25 @@ def _build_arg_parser():
 
     p.add_argument('in_matrix',
                    help='Input connectivity matrix. This is typically a '
-                        'streamline_count matrix.')
+                        'streamline_count matrix (.npy).')
     p.add_argument('out_matrix',
-                   help='Output matrix.')
+                   help='Output normalized matrix (.npy).')
 
     edge_p = p.add_argument_group('Edge-wise options')
     length = edge_p.add_mutually_exclusive_group()
     length.add_argument('--length', metavar='LENGTH_MATRIX',
-                        help='Length matrix use for edge-wise multiplication.')
+                        help='Length matrix used for edge-wise multiplication.')
     length.add_argument('--inverse_length', metavar='LENGTH_MATRIX',
-                        help='Length matrix use for edge-wise division.')
+                        help='Length matrix used for edge-wise division.')
     edge_p.add_argument('--bundle_volume', metavar='VOLUME_MATRIX',
-                        help='Volume matrix use for edge-wise division.')
+                        help='Volume matrix used for edge-wise division.')
 
     vol = edge_p.add_mutually_exclusive_group()
     vol.add_argument('--parcel_volume', nargs=2,
                      metavar=('ATLAS', 'LABELS_LIST'),
                      help='Atlas and labels list for edge-wise division.')
-    vol.add_argument('--parcel_surface', metavar='ATLAS',
+    vol.add_argument('--parcel_surface', nargs=2,
+                     metavar=('ATLAS', 'LABELS_LIST'),
                      help='Atlas and labels list for edge-wise division.')
 
     scaling_p = p.add_argument_group('Scaling options')
@@ -89,7 +90,7 @@ def _build_arg_parser():
     scale.add_argument('--max_at_one', action='store_true',
                        help='Scale matrix with maximum value at one.')
     scale.add_argument('--sum_to_one', action='store_true',
-                       help='Scale matrix with sum of all element at one.')
+                       help='Scale matrix with sum of all elements at one.')
     scale.add_argument('--log_10', action='store_true',
                        help='Apply a base 10 logarithm to the matrix.')
 
