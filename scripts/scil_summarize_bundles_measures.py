@@ -2,8 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute basic measurement of bundles, all at once.
-All tractograms must be trk files and headers must be identical.
+Compute basic measurements of bundles, all at once.
+All tractograms must be in the same space (aligned to one reference)
+
+The computed measures are:
+volume, volume_endpoints, streamlines_count, avg_length, std_length,
+min_length, max_length, mean_curvature
 """
 
 import argparse

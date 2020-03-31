@@ -15,6 +15,10 @@ The original tractogram is the tractogram (whole brain most likely) from which
 the segmentation is performed.
 the original tracking mask is the tracking mask used by the tractography
 algorighm to generate the original tractogram.
+
+The computed binary classification measures are:
+sensitivity_streamlines, specificity_streamlines, precision_streamlines,
+accuracy_streamlines, dice_streamlines, kappa_streamlines, youden_streamlines
 """
 
 import argparse
@@ -51,10 +55,10 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output json.')
     p.add_argument('--streamlines_measures', nargs=2,
-                   metavar=('GOLD STANDARD', 'TRACTOGRAM'),
+                   metavar=('GOLD_STANDARD_STREAMLINES', 'TRACTOGRAM'),
                    help='The gold standard bundle and the original tractogram.')
     p.add_argument('--voxels_measures', nargs=2,
-                   metavar=('GOLD STANDARD', 'TRACKING MASK'),
+                   metavar=('GOLD_STANDARD_MASK', 'TRACKING MASK'),
                    help='The gold standard mask and the original tracking mask.')
 
     add_processes_arg(p)

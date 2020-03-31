@@ -4,6 +4,12 @@
 """
 Compute pair-wise similarity measures of bundles.
 All tractograms must be in the same space (aligned to one reference)
+
+The computed similarity measures are:
+bundle_adjacency_voxels, dice_voxels, w_dice_voxels, volume_overlap,
+volume_overreach, dice_voxels_endpoints, w_dice_voxels_endpoints,
+volume_overlap_endpoints, volume_overreach_endpoints, density_correlation,
+density_correlation_endpoints
 """
 
 import argparse
