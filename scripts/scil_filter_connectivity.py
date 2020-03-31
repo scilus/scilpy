@@ -5,7 +5,7 @@
 Script to facilitate filtering of connectivity matrices.
 The same could be achieved through a complex sequence of scil_connectivity_math.py.
 
-Can be used with any connectivity matrices from scil_compute_connectivity.py.
+Can be used with any connectivity matrix from scil_compute_connectivity.py.
 
 For example, a simple filtering (Jasmeen style) would be:
 scil_filter_connectivity.py out_mask.npy
@@ -59,8 +59,8 @@ def _build_arg_parser():
                         'See description for more details.')
 
     p.add_argument('--keep_condition_count', action='store_true',
-                   help='Report the number of condition that pass/fail rather '
-                        'than a binary mask.')
+                   help='Report the number of condition(s) that pass/fail '
+                        'rather than a binary mask.')
     p.add_argument('--inverse_mask', action='store_true',
                    help='Inverse the final mask. 0 where all conditions are '
                         'respected and 1 where at least one fail.')
