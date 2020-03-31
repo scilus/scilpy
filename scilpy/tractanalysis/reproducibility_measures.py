@@ -251,7 +251,7 @@ def compute_dice_voxel(density_1, density_2):
     ----------
     density_1: ndarray
         Density (or binary) map computed from the first bundle
-    density_1: ndarray of ndarray
+    density_2: ndarray
         Density (or binary) map computed from the second bundle
     Returns
     -------
@@ -291,7 +291,7 @@ def compute_correlation(density_1, density_2):
     ----------
     density_1: ndarray
         Density (or binary) map computed from the first bundle
-    density_1: ndarray of ndarray
+    density_2: ndarray
         Density (or binary) map computed from the second bundle
     Returns
     -------

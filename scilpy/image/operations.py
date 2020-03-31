@@ -9,7 +9,6 @@ to apply simple operations on nibabel images or numpy arrays.
 from collections import OrderedDict
 from copy import copy
 import logging
-import sys
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
@@ -19,7 +18,7 @@ from scipy.ndimage.morphology import (binary_closing, binary_dilation,
 from scilpy.utils.util import is_float
 
 
-EPSILON = sys.float_info.epsilon
+EPSILON = np.finfo(float).eps
 
 
 def get_array_ops():
