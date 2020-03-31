@@ -125,7 +125,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def warp_streamlines(sft, deformation_data, source):
+def warp_streamlines(sft, deformation_data, source='ants'):
     """ Warp tractogram using a deformation map. Apply warp in-place.
     Support Ants and Dipy deformation map.
 
