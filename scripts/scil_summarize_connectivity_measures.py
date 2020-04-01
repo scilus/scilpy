@@ -8,6 +8,7 @@ Warning not to mix node_wise_as_list and append_json
 import argparse
 import json
 import os
+import warnings
 
 import bct
 import numpy as np
@@ -23,17 +24,18 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_length_matrix',
-                   help='.')
+                   help='Input length weighted matrix.')
     p.add_argument('in_streamline_count_matrix',
-                   help='.')
+                   help='Input streamline count weighted matrix..')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
-    p.add_argument('--node_wise_as_list', action='store_true',
-                   help='Keep the node-wise measures as list.')
     p.add_argument('--output_path_length', nargs=2,
                    metavar='PATH_LENGTH, EDGE_COUNT',
                    help='Save the computed path length and edge count matrix.')
+
+    p.add_argument('--node_wise_as_list', action='store_true',
+                   help='Keep the node-wise measures as list.')
     p.add_argument('--append_json', action='store_true',
                    help='If the file already exists, will append to the '
                         'dictionary.')
@@ -58,23 +60,33 @@ def main():
         parser.error('Cannot use the append option at the same time as listing '
                      'the node values.')
 
+    if args.append_json and args.overwrite:
+        parser.error('Cannot use the append option at the same time as '
+                     'overwrite.\nAmbiguous behavior, consider deleting the '
+                     'output json file first instead')
+
     sc_matrix = load_matrix_in_any_format(args.in_streamline_count_matrix)
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
     gtm_dict = {}
-
     gtm_dict['centrality'] = bct.betweenness_wei(len_matrix).tolist()
-    ci, gtm_dict['modularity'] = bct.modularity_finetune_und(sc_matrix)
+    ci, gtm_dict['modularity'] = bct.modularity_finetune_und(sc_matrix, seed=0)
     gtm_dict['assortativity'] = bct.assortativity_wei(sc_matrix, flag=0)
-    gtm_dict['participation'] = bct.participation_coef(sc_matrix, ci).tolist()
+    gtm_dict['participation'] = bct.participation_coef_sign(sc_matrix,
+                                                            ci)[0].tolist()
     gtm_dict['clustering'] = bct.clustering_coef_wu(sc_matrix).tolist()
-    gtm_dict['rich_club'] = bct.rich_club_wu(sc_matrix).tolist()
     gtm_dict['degree'] = bct.degrees_und(sc_matrix).tolist()
     gtm_dict['nodal_strength'] = bct.strengths_und(sc_matrix).tolist()
     gtm_dict['local_efficiency'] = bct.efficiency_wei(len_matrix,
                                                       local=True).tolist()
     gtm_dict['global_efficiency'] = bct.efficiency_wei(len_matrix)
     gtm_dict['density'], _, _ = bct.density_und(sc_matrix)
+
+    # Rich club always gives an error for the matrix rank and gives NaN
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tmp_rich_club = bct.rich_club_wu(sc_matrix)
+    gtm_dict['rich_club'] = tmp_rich_club[~np.isnan(tmp_rich_club)].tolist()
 
     # Path length gives an infinite distance for unconnected nodes
     # All of this is simply to fix that
@@ -89,14 +101,12 @@ def main():
     gtm_dict['edge_count'] = path_length_tuple[1]
 
     if args.node_wise_as_list:
-        gtm_dict['path_length'] = np.insert(
-            gtm_dict['path_length'],
-            empty_connections,
-            -1, axis=1)
-        gtm_dict['edge_count'] = np.insert(
-            gtm_dict['edge_count'],
-            empty_connections,
-            -1, axis=1)
+        gtm_dict['path_length'] = np.insert(gtm_dict['path_length'],
+                                            empty_connections,
+                                            -1, axis=1)
+        gtm_dict['edge_count'] = np.insert(gtm_dict['edge_count'],
+                                           empty_connections,
+                                           -1, axis=1)
 
         # Path length is a matrix that can be saved
         if args.output_path_length:
@@ -112,40 +122,41 @@ def main():
                                       plec_for_saving)
 
     if not args.node_wise_as_list:
-        gtm_dict['centrality'] = float(np.average(gtm_dict['centrality']))
-        gtm_dict['participation'] = float(
-            np.average(gtm_dict['participation']))
-        gtm_dict['clustering'] = float(np.average(gtm_dict['clustering']))
-        gtm_dict['rich_club'] = float(np.average(gtm_dict['rich_club']))
-        gtm_dict['degree'] = float(np.average(gtm_dict['degree']))
-        gtm_dict['nodal_strength'] = float(
-            np.average(gtm_dict['nodal_strength']))
-        gtm_dict['local_efficiency'] = float(
-            np.average(gtm_dict['local_efficiency']))
+        # Shorter and easier to read
+        def avg_cast(input):
+            return float(np.average(input))
+
+        # Average all node-wise measures into a single value
+        gtm_dict['centrality'] = avg_cast(gtm_dict['centrality'])
+        gtm_dict['participation'] = avg_cast(gtm_dict['participation'])
+        gtm_dict['clustering'] = avg_cast(gtm_dict['clustering'])
+        gtm_dict['rich_club'] = avg_cast(gtm_dict['rich_club'])
+        gtm_dict['degree'] = avg_cast(gtm_dict['degree'])
+        gtm_dict['nodal_strength'] = avg_cast(gtm_dict['nodal_strength'])
+        gtm_dict['local_efficiency'] = avg_cast(gtm_dict['local_efficiency'])
 
         valid_values_pl = gtm_dict['path_length'][gtm_dict['path_length'] > 0]
-        gtm_dict['path_length'] = float(
-            np.average(valid_values_pl))
-
+        gtm_dict['path_length'] = avg_cast(valid_values_pl)
         valid_values_plec = gtm_dict['edge_count'][gtm_dict['edge_count'] > 0]
-        gtm_dict['edge_count'] = float(
-            np.average(valid_values_plec))
+        gtm_dict['edge_count'] = avg_cast(valid_values_plec)
     else:
-        gtm_dict['path_length'] = np.average(
-            gtm_dict['path_length'], axis=0).tolist()
-        gtm_dict['edge_count'] = np.average(
-            gtm_dict['edge_count'], axis=0).tolist()
+        gtm_dict['path_length'] = np.average(gtm_dict['path_length'],
+                                             axis=0).tolist()
+        gtm_dict['edge_count'] = np.average(gtm_dict['edge_count'],
+                                            axis=0).tolist()
 
-    if os.path.isfile(args.out_json) and not args.overwrite:
+    if os.path.isfile(args.out_json) and args.append_json:
         with open(args.out_json) as json_data:
             out_dict = json.load(json_data)
-        for key in out_dict.keys():
+        for key in gtm_dict.keys():
             if isinstance(out_dict[key], list):
                 out_dict[key].append(gtm_dict[key])
             else:
                 out_dict[key] = [out_dict[key], gtm_dict[key]]
     else:
-        out_dict = gtm_dict
+        out_dict = {}
+        for key in gtm_dict.keys():
+            out_dict[key] = [gtm_dict[key]]
 
     with open(args.out_json, 'w') as outfile:
         json.dump(out_dict, outfile, indent=1)
