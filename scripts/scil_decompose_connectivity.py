@@ -235,7 +235,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Discarded {} streamlines from filtering in {} sec.'.format(
-          original_len - len(sft), round(time2 - time1, 2)))
+            original_len - len(sft), round(time2 - time1, 2)))
     logging.info('    Number of streamlines to process: {}'.format(len(sft)))
 
     # Get all streamlines intersection indices
@@ -267,6 +267,7 @@ def main():
 
     # Saving will be done from streamlines already in the right space
     comb_list = list(itertools.combinations(real_labels, r=2))
+    comb_list.extend(zip(real_labels, real_labels))
 
     iteration_counter = 0
     for in_label, out_label in comb_list:
@@ -379,7 +380,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Connections post-processing and saving took {} sec.'.format(
-          round(time2 - time1, 2)))
+            round(time2 - time1, 2)))
 
 
 if __name__ == "__main__":

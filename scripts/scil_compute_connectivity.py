@@ -42,7 +42,7 @@ from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 import numpy as np
 
-from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
+from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg, add_reference_arg,
@@ -123,11 +123,13 @@ def _processing_wrapper(args):
         measures_to_return['length'] = mean_length
         measures_to_compute.remove('length')
     if 'similarity' in measures_to_compute and similarity_directory:
-        density_sim = load_node_nifti(
-            similarity_directory, in_label, out_label, in_filename)
-        _, w_dice = compute_dice_voxel(density, density_sim)
+        density_sim = load_node_nifti(similarity_directory,
+                                      in_label, out_label,
+                                      in_filename)
 
-        measures_to_return['similarity'] = w_dice
+        ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
+
+        measures_to_return['similarity'] = ba_vox
         measures_to_compute.remove('similarity')
 
     for measure in measures_to_compute:
