@@ -5,31 +5,26 @@
 """
 
 import argparse
-import itertools
 import json
 import logging
-import multiprocessing
-import os
 
-from dipy.io.streamline import load_tractogram
-import nibabel as nib
+import bct
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
-                             add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, 
+                             load_matrix_in_any_format)
 
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_length_matrix',
+    p.add_argument('in_length_matrices', action='+',
                    help='.')
-    p.add_argument('in_streamline_count_matrix',
+    p.add_argument('in_streamline_count_matrix', action='+',
                    help='.')
     p.add_argument('out_json',
                    help='Path of the output json.')
