@@ -32,14 +32,14 @@ from scilpy.tractanalysis.reproducibility_measures import get_endpoints_density_
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
-                   help='Path of the input bundles')
+                   help='Path of the input bundles.')
     p.add_argument('out_json',
-                   help='Path of the output file')
+                   help='Path of the output file.')
 
     add_reference_arg(p)
     add_processes_arg(p)
@@ -86,7 +86,7 @@ def compute_measures(filename_tuple):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, args.out_json)
