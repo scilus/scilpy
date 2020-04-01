@@ -284,7 +284,9 @@ def save_matrix_in_any_format(filepath, output_data):
     _, ext = os.path.splitext(filepath)
     if ext == '.txt':
         np.savetxt(filepath, output_data)
-    elif ext == '.npy' or ext == '':
+    elif ext == '.npy':
         np.save(filepath, output_data)
+    elif ext == '':
+        np.save('{}.npy'.format(filepath), output_data)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
