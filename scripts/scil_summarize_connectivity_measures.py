@@ -20,13 +20,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
-                             link_bundles_and_reference)
-from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.reproducibility_measures import binary_classification
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      intersection)
+                             assert_outputs_exist)
+
 
 
 def _build_arg_parser():
