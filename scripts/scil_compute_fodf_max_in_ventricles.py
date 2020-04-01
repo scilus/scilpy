@@ -48,6 +48,7 @@ def _build_arg_parser():
         '--mask_output',  metavar='file',
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
+
     add_sh_basis_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
