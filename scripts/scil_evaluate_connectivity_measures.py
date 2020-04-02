@@ -23,6 +23,7 @@ path_length, edge_count
 
 import argparse
 import json
+import logging
 import os
 import warnings
 
@@ -31,6 +32,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
@@ -58,6 +60,7 @@ def _build_arg_parser():
                         'dictionary.')
 
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -70,13 +73,16 @@ def main():
     assert_inputs_exist(parser, [args.in_length_matrix,
                                  args.in_streamline_count_matrix])
 
+    if args.verbose:
+        logging.setLevel(level=logging.INFO)
+
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)
+    else:
+        logging.warning('Using --append_json, make sure to delete {} '
+                        'before re-launching a group analysis.'.format(
+                            args.out_json))
     assert_outputs_exist(parser, args, [], args.output_path_length)
-
-    if args.append_json and args.node_wise_as_list:
-        parser.error('Cannot use the append option at the same time as listing '
-                     'the node values.')
 
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '
@@ -94,8 +100,13 @@ def main():
                                                             ci)[0].tolist()
     gtm_dict['clustering'] = bct.clustering_coef_wu(sc_matrix).tolist()
     gtm_dict['degree'] = bct.degrees_und(sc_matrix).tolist()
-    gtm_dict['module_degree_zscore'] = bct.module_degree_zscore(sc_matrix,
-                                                                ci).tolist()
+
+    if not args.node_wise_as_list:
+        gtm_dict['module_degree_zscore'] = bct.module_degree_zscore(sc_matrix,
+                                                                    ci).tolist()
+    else:
+        logging.info('Skipping module_degree_zscore, to obtain this value '
+                     'use --node_wise_as_list.')
     gtm_dict['nodal_strength'] = bct.strengths_und(sc_matrix).tolist()
     gtm_dict['local_efficiency'] = bct.efficiency_wei(len_matrix,
                                                       local=True).tolist()
@@ -152,7 +163,6 @@ def main():
         gtm_dict['clustering'] = avg_cast(gtm_dict['clustering'])
         gtm_dict['rich_club'] = avg_cast(gtm_dict['rich_club'])
         gtm_dict['degree'] = avg_cast(gtm_dict['degree'])
-        gtm_dict['module_degree_zscore'] = avg_cast(gtm_dict['module_degree_zscore'])
         gtm_dict['nodal_strength'] = avg_cast(gtm_dict['nodal_strength'])
         gtm_dict['local_efficiency'] = avg_cast(gtm_dict['local_efficiency'])
 
