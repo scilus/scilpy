@@ -33,7 +33,8 @@ import nibabel as nib
 import numpy as np
 from numpy.random import RandomState
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_arg,
+                             add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -71,6 +72,7 @@ def _build_arg_parser():
 
     add_processes_arg(p)
     add_reference_arg(p)
+    add_json_args(p)
     add_overwrite_arg(p)
 
     return p
@@ -110,7 +112,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
         if init_only:
             return None
         density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
-        endpoints_density = nib.load(tmp_endpoints_filename).get_fdata().astype(np.uint16)
+        endpoints_density = nib.load(
+            tmp_endpoints_filename).get_fdata().astype(np.uint16)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
@@ -318,7 +321,8 @@ def main():
                     float(measure_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile, indent=1)
+        json.dump(output_measures_dict, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
     if not args.keep_tmp:
         shutil.rmtree('tmp_measures/')

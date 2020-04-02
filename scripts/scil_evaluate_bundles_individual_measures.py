@@ -20,7 +20,8 @@ from dipy.tracking.metrics import mean_curvature
 from dipy.tracking.utils import length
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -43,6 +44,7 @@ def _build_arg_parser():
 
     add_reference_arg(p)
     add_processes_arg(p)
+    add_json_args(p)
     add_overwrite_arg(p)
 
     return p
@@ -112,7 +114,8 @@ def main():
                     measure_dict[measure_name])
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile, indent=1)
+        json.dump(output_measures_dict, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == "__main__":

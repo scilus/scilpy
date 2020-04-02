@@ -33,7 +33,8 @@ from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -65,6 +66,7 @@ def _build_arg_parser():
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_json_args(p)
     add_overwrite_arg(p)
 
     return p
@@ -202,9 +204,11 @@ def main():
                                                       gs_dimensions)
         tracking_mask_data[tracking_mask_data > 0] = 1
     else:
-        gs_binary_3d = nib.load(args.voxels_measures[0]).get_fdata().astype(np.uint8)
+        gs_binary_3d = nib.load(
+            args.voxels_measures[0]).get_fdata().astype(np.uint8)
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = nib.load(args.voxels_measures[1]).get_fdata().astype(np.uint8)
+        tracking_mask_data = nib.load(
+            args.voxels_measures[1]).get_fdata().astype(np.uint8)
         tracking_mask_data[tracking_mask_data > 0] = 1
 
     pool = multiprocessing.Pool(nbr_cpu)
@@ -227,7 +231,8 @@ def main():
                     float(binary_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_binary_dict, outfile, indent=1)
+        json.dump(output_binary_dict, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == "__main__":
