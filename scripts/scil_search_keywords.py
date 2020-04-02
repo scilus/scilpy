@@ -5,6 +5,10 @@
 Search through all of SCILPY scripts and their docstrings. The output of the
 search will be the intersection of all provided keywords, found either in the
 script name or in its docstring.
+
+Examples:
+    scil_search_keywords.py tractogram filtering
+    scil_search_keywords.py --search_parser tractogram filtering
 """
 
 import argparse
