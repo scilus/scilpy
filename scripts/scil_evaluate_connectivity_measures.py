@@ -6,11 +6,21 @@ Evaluate graph theory measures from connectivity matrices.
 A length weighted and a streamline count weighted matrix are required since
 some measures require one or the other.
 
+This script evaluate the measure one subject at the time, to generate a
+population dictionary (similarly to the other scil_evaluate_*.py ) use the
+--append_json option as well as using the same output filename.
+
+Some measures output one value per node, the default behavior is to average
+them all into a single value. To obtain all values as a list use the
+--node_wise_as_list option.
+
 The computed connectivity measures are:
 centrality, modularity, assortativity, participation, clustering, degree
 nodal_strength, local_efficiency, global_efficiency, density, rich_club
 path_length, edge_count
 """
+
+
 import argparse
 import json
 import os
@@ -19,7 +29,8 @@ import warnings
 import bct
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
@@ -46,6 +57,7 @@ def _build_arg_parser():
                    help='If the file already exists, will append to the '
                         'dictionary.')
 
+    add_json_args(p)
     add_overwrite_arg(p)
 
     return p
@@ -165,7 +177,8 @@ def main():
             out_dict[key] = [gtm_dict[key]]
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(out_dict, outfile, indent=1)
+        json.dump(out_dict, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == "__main__":
