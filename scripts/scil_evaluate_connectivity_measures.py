@@ -94,6 +94,8 @@ def main():
                                                             ci)[0].tolist()
     gtm_dict['clustering'] = bct.clustering_coef_wu(sc_matrix).tolist()
     gtm_dict['degree'] = bct.degrees_und(sc_matrix).tolist()
+    gtm_dict['module_degree_zscore'] = bct.module_degree_zscore(sc_matrix,
+                                                                ci).tolist()
     gtm_dict['nodal_strength'] = bct.strengths_und(sc_matrix).tolist()
     gtm_dict['local_efficiency'] = bct.efficiency_wei(len_matrix,
                                                       local=True).tolist()
@@ -150,6 +152,7 @@ def main():
         gtm_dict['clustering'] = avg_cast(gtm_dict['clustering'])
         gtm_dict['rich_club'] = avg_cast(gtm_dict['rich_club'])
         gtm_dict['degree'] = avg_cast(gtm_dict['degree'])
+        gtm_dict['module_degree_zscore'] = avg_cast(gtm_dict['module_degree_zscore'])
         gtm_dict['nodal_strength'] = avg_cast(gtm_dict['nodal_strength'])
         gtm_dict['local_efficiency'] = avg_cast(gtm_dict['local_efficiency'])
 
