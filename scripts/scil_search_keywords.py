@@ -9,9 +9,9 @@ script name or in its docstring.
 
 import argparse
 import ast
-import os
 import pathlib
 import re
+import subprocess
 
 import numpy as np
 
@@ -48,10 +48,18 @@ def main():
     for script in sorted(script_dir.glob('*.py')):
         filename = script.name
 
+        error_msg = ""
         if args.search_parser:
-            # Run the script's argparser
-            help_print = os.popen('{} --help'.format(script.absolute()))
-            search_text = help_print.read()
+            # Run the script's argparser, and catch the output in case there
+            # is an error, such as ModuleNotFoundException.
+            sub = subprocess.run(['{}'.format(script.absolute()), '--help'],
+                                 capture_output=True)
+            search_text = sub.stdout.decode("utf-8")
+            if sub.stderr:
+                # Fall back on the docstring in case of error
+                error_msg = "There was an error executing script parser, " \
+                            "searching through docstring instead...\n\n"
+                search_text = _get_docstring(str(script))
         else:
             # Fetch the docstring
             search_text = _get_docstring(str(script))
@@ -66,12 +74,19 @@ def main():
         new_key = '{}\\1{}'.format(RED + BOLD, END_COLOR)
 
         for regex in kw_subs:
+            # Highlight found keywords
             filename = regex.sub(new_key, filename)
-            search_text = regex.sub(new_key, search_text)
+            display_text = regex.sub(new_key, search_text)
 
-        print(SPACING, filename, SPACING)
-        print(search_text)
-        print(SPACING, "End of {}".format(filename), SPACING)
+        # Keep title in BOLD after matching keyword
+        filename = filename.replace(END_COLOR, END_COLOR + BOLD)
+
+        print(BOLD + SPACING, filename, SPACING + END_COLOR)
+        if error_msg:
+            print(RED + BOLD + error_msg + END_COLOR)
+        print(display_text)
+        print(BOLD + SPACING, "End of {}".format(filename), SPACING + END_COLOR)
+        print()
 
     if not matches:
         print('No results found!')
