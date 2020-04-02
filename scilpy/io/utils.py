@@ -277,7 +277,8 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     for cur_dir in dirs:
         if not os.path.isdir(cur_dir):
             if not create_dir:
-                parser.error('Output directory {} doesn\'t exist.'.format(cur_dir))
+                parser.error(
+                    'Output directory {} doesn\'t exist.'.format(cur_dir))
             else:
                 os.makedirs(cur_dir, exist_ok=True)
         if os.listdir(cur_dir):
@@ -324,3 +325,27 @@ def read_info_from_mb_bdo(filename):
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center
+
+
+def load_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        data = np.loadtxt(filepath)
+    elif ext == '.npy':
+        data = np.load(filepath)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
+
+    return data
+
+
+def save_matrix_in_any_format(filepath, output_data):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        np.savetxt(filepath, output_data)
+    elif ext == '.npy':
+        np.save(filepath, output_data)
+    elif ext == '':
+        np.save('{}.npy'.format(filepath), output_data)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
