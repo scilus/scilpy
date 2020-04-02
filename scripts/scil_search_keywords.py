@@ -18,7 +18,8 @@ import numpy as np
 RED = '\033[31m'
 BOLD = '\033[1m'
 END_COLOR = '\033[0m'
-SPACING = '=================='
+SPACING_CHAR = '='
+SPACING_LEN = 80
 
 
 def _build_arg_parser():
@@ -81,15 +82,21 @@ def main():
         # Keep title in BOLD after matching keyword
         filename = filename.replace(END_COLOR, END_COLOR + BOLD)
 
-        print(BOLD + SPACING, filename, SPACING + END_COLOR)
+        print(_colorize(" {} ".format(filename), BOLD).center(SPACING_LEN,
+                                                              SPACING_CHAR))
         if error_msg:
             print(RED + BOLD + error_msg + END_COLOR)
         print(display_text)
-        print(BOLD + SPACING, "End of {}".format(filename), SPACING + END_COLOR)
+        print(_colorize(" End of {} ".format(filename),
+                        BOLD).center(SPACING_LEN, SPACING_CHAR))
         print()
 
     if not matches:
         print('No results found!')
+
+
+def _colorize(text, color):
+    return color + text + END_COLOR
 
 
 def _test_matching_keywords(keywords, texts):
