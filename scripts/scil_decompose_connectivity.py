@@ -127,9 +127,8 @@ def build_arg_parser():
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
     p.add_argument('labels',
-                   help='Labels file name (nifti).\nLabels must be consecutive '
-                        'from 0 to N, with 0 the background.\n'
-                        'This generates a NxN connectivity matrix.')
+                   help='Labels file name (nifti). Labels must have 0 as '
+                        'background.')
     p.add_argument('output_dir',
                    help='Output directory path.')
 
@@ -231,9 +230,6 @@ def main():
         len(sft), round(time2 - time1, 2)))
 
     logging.info('*** Filtering streamlines ***')
-    data_mask = np.zeros(data_labels.shape)
-    data_mask[data_labels > 0] = 1
-
     original_len = len(sft)
     time1 = time.time()
 
