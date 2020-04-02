@@ -18,8 +18,11 @@ The computed connectivity measures are:
 centrality, modularity, assortativity, participation, clustering, degree
 nodal_strength, local_efficiency, global_efficiency, density, rich_club
 path_length, edge_count
-"""
 
+For more details about the measures, please refer to
+- https://sites.google.com/site/bctnet/measures
+- https://github.com/aestrivex/bctpy/wiki
+"""
 
 import argparse
 import json
@@ -39,9 +42,18 @@ from scilpy.io.utils import (add_json_args,
                              save_matrix_in_any_format)
 
 
+EPILOG = """
+References:
+    [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+        connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+        1059-1069.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter,
+                                epilog=EPILOG)
     p.add_argument('in_length_matrix',
                    help='Input length weighted matrix.')
     p.add_argument('in_streamline_count_matrix',
@@ -74,14 +86,14 @@ def main():
                                  args.in_streamline_count_matrix])
 
     if args.verbose:
-        logging.setLevel(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
 
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)
     else:
-        logging.warning('Using --append_json, make sure to delete {} '
-                        'before re-launching a group analysis.'.format(
-                            args.out_json))
+        logging.debug('Using --append_json, make sure to delete {} '
+                      'before re-launching a group analysis.'.format(
+                          args.out_json))
     assert_outputs_exist(parser, args, [], args.output_path_length)
 
     if args.append_json and args.overwrite:
@@ -101,12 +113,12 @@ def main():
     gtm_dict['clustering'] = bct.clustering_coef_wu(sc_matrix).tolist()
     gtm_dict['degree'] = bct.degrees_und(sc_matrix).tolist()
 
-    if not args.node_wise_as_list:
+    if args.node_wise_as_list:
         gtm_dict['module_degree_zscore'] = bct.module_degree_zscore(sc_matrix,
                                                                     ci).tolist()
     else:
-        logging.info('Skipping module_degree_zscore, to obtain this value '
-                     'use --node_wise_as_list.')
+        logging.debug('Skipping module_degree_zscore, to obtain this value '
+                      'use --node_wise_as_list.')
     gtm_dict['nodal_strength'] = bct.strengths_und(sc_matrix).tolist()
     gtm_dict['local_efficiency'] = bct.efficiency_wei(len_matrix,
                                                       local=True).tolist()
