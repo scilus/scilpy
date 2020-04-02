@@ -2,14 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute pair-wise similarity measures of bundles.
+Evaluate pair-wise similarity measures of bundles.
 All tractograms must be in the same space (aligned to one reference)
 
-The computed similarity measures are:
-bundle_adjacency_voxels, dice_voxels, w_dice_voxels, volume_overlap,
-volume_overreach, dice_voxels_endpoints, w_dice_voxels_endpoints,
-volume_overlap_endpoints, volume_overreach_endpoints, density_correlation,
-density_correlation_endpoints
+For the voxel representation the computed similarity measures are:
+bundle_adjacency_voxels, dice_voxels, w_dice_voxels, density_correlation
+volume_overlap, volume_overreach
+The same measures are also evluated for the endpoints.
+
+For the streamline representation the computed similarity measures are:
+bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
+streamlines_count_overreach
 """
 
 import argparse
@@ -106,8 +109,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
         # If initilization, loading the data is useless
         if init_only:
             return None
-        density = nib.load(tmp_density_filename).get_data()
-        endpoints_density = nib.load(tmp_endpoints_filename).get_data()
+        density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
+        endpoints_density = nib.load(tmp_endpoints_filename).get_fdata().astype(np.uint16)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()

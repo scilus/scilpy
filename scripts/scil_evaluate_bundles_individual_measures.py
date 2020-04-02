@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute basic measurements of bundles, all at once.
+Evaluate basic measurements of bundles, all at once.
 All tractograms must be in the same space (aligned to one reference)
 
 The computed measures are:

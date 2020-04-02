@@ -2,23 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute well-known binary measures between gold standard and bundles.
-All tractograms must be trk files and headers must be identical.
+Evaluate binary classification measures between gold standard and bundles.
+All tractograms must be in the same space (aligned to one reference)
 The measures can be applied to voxel-wise or streamline-wise representation.
 
 A gold standard must be provided for the desired representation.
 A gold standard would be a segmentation from an expert or a group of experts.
-If only the streamline-wise representation is provided a voxel-wise gold
-standard will be computed. At least one of the two representations is required.
+If only the streamline-wise representation is provided without a voxel-wise
+gold standard, it will be computed from the provided streamlines.
+At least one of the two representations is required.
 
-The original tractogram is the tractogram (whole brain most likely) from which
-the segmentation is performed.
-the original tracking mask is the tracking mask used by the tractography
-algorighm to generate the original tractogram.
+The gold standard tractogram is the tractogram (whole brain most likely) from
+which the segmentation is performed.
+The gold standard tracking mask is the tracking mask used by the tractography
+algorighm to generate the gold standard tractogram.
 
 The computed binary classification measures are:
-sensitivity_streamlines, specificity_streamlines, precision_streamlines,
-accuracy_streamlines, dice_streamlines, kappa_streamlines, youden_streamlines
+sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
+the streamline and voxel representation (if provided).
 """
 
 import argparse
@@ -201,9 +202,9 @@ def main():
                                                       gs_dimensions)
         tracking_mask_data[tracking_mask_data > 0] = 1
     else:
-        gs_binary_3d = nib.load(args.voxels_measures[0]).get_data()
+        gs_binary_3d = nib.load(args.voxels_measures[0]).get_fdata().astype(np.uint8)
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = nib.load(args.voxels_measures[1]).get_data()
+        tracking_mask_data = nib.load(args.voxels_measures[1]).get_fdata().astype(np.uint8)
         tracking_mask_data[tracking_mask_data > 0] = 1
 
     pool = multiprocessing.Pool(nbr_cpu)
