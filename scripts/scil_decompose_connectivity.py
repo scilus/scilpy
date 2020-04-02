@@ -275,6 +275,7 @@ def main():
 
     # Saving will be done from streamlines already in the right space
     comb_list = list(itertools.combinations(real_labels, r=2))
+    comb_list.extend(zip(real_labels, real_labels))
 
     iteration_counter = 0
     for in_label, out_label in comb_list:

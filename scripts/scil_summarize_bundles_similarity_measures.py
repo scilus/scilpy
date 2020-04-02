@@ -33,6 +33,7 @@ from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel,
             compute_bundle_adjacency_streamlines,
             compute_bundle_adjacency_voxel,
+            compute_correlation,
             compute_dice_streamlines,
             get_endpoints_density_map)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -199,18 +200,14 @@ def compute_all_measures(args):
                                                  centroids_2=centroids_2,
                                                  non_overlap=True)
     # These measures are between 0 and 1
-    dice_vox, w_dice_vox = compute_dice_voxel(density_1,
-                                              density_2)
-    indices = np.where(density_1 + density_2 > 0)
-    indices_endpoints = np.where(endpoints_density_1 + endpoints_density_2 > 0)
+    dice_vox, w_dice_vox = compute_dice_voxel(density_1, density_2)
+
     dice_vox_endpoints, w_dice_vox_endpoints = compute_dice_voxel(
         endpoints_density_1,
         endpoints_density_2)
-    density_correlation = np.corrcoef(
-        density_1[indices], density_2[indices])[0, 1]
-    corrcoef = np.corrcoef(endpoints_density_1[indices_endpoints],
-                           endpoints_density_2[indices_endpoints])
-    density_correlation_endpoints = corrcoef[0, 1]
+    density_correlation = compute_correlation(density_1, density_2)
+    density_correlation_endpoints = compute_correlation(endpoints_density_1,
+                                                        endpoints_density_2)
 
     measures_name = ['bundle_adjacency_voxels',
                      'dice_voxels', 'w_dice_voxels',

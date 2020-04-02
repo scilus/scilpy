@@ -10,7 +10,9 @@ import numpy as np
 from scilpy.image.operations import (get_array_ops, get_operations_doc)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format,
+                             save_matrix_in_any_format)
 from scilpy.utils.util import is_float
 
 OPERATIONS = get_array_ops()
@@ -64,14 +66,7 @@ def load_data(arg):
             logging.error('Input file %s does not exist', arg)
             raise ValueError
 
-        _, ext = os.path.splitext(arg)
-        if ext == '.txt':
-            data = np.loadtxt(arg)
-        elif ext == '.npy':
-            data = np.load(arg)
-        else:
-            logging.error('Extension {} is not supported'.format(ext))
-            raise ValueError
+        data = load_matrix_in_any_format(arg)
         logging.info('Loaded %s of shape %s and data_type %s',
                      arg, data.shape, data.dtype)
 
@@ -138,13 +133,7 @@ def main():
         output_data = output_data.astype(np.float64)
 
     # Saving in the right format
-    _, ext = os.path.splitext(args.output)
-    if ext == '.txt':
-        np.savetxt(args.output, output_data)
-    elif ext == '.npy' or ext == '':
-        np.save(args.output, output_data)
-    else:
-        parser.error('Extension {} is not supported'.format(ext))
+    save_matrix_in_any_format(args.output, output_data)
 
 
 if __name__ == "__main__":
