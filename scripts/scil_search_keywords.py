@@ -78,10 +78,11 @@ def main():
 
         new_key = '{}\\1{}'.format(RED + BOLD, END_COLOR)
 
+        display_text = search_text
         for regex in kw_subs:
             # Highlight found keywords
             filename = regex.sub(new_key, filename)
-            display_text = regex.sub(new_key, search_text)
+            display_text = regex.sub(new_key, display_text)
 
         # Keep title in BOLD after matching keyword
         filename = filename.replace(END_COLOR, END_COLOR + BOLD)
