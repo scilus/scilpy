@@ -33,7 +33,7 @@ import nibabel as nib
 import numpy as np
 from numpy.random import RandomState
 
-from scilpy.io.utils import (add_json_arg,
+from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
