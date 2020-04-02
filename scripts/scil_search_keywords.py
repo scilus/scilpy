@@ -41,8 +41,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    scilpy_init_file = inspect.getfile(scilpy)  # scilpy/scilpy/__init__.py
-    script_dir = pathlib.Path(scilpy_init_file).parent / '../scripts'
+    # Use directory of this script, should work with most installation setups
+    script_dir = pathlib.Path(__file__).parent
     matches = []
 
     kw_subs = [re.compile('(' + re.escape(kw) + ')', re.IGNORECASE)
