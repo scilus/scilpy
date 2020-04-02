@@ -2,9 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Warning not to mix node_wise_as_list and append_json
-"""
+Evaluate graph theory measures from connectivity matrices.
+A length weighted and a streamline count weighted matrix are required since
+some measures require one or the other.
 
+The computed connectivity measures are:
+centrality, modularity, assortativity, participation, clustering, degree
+nodal_strength, local_efficiency, global_efficiency, density, rich_club
+path_length, edge_count
+"""
 import argparse
 import json
 import os
