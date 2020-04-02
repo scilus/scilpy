@@ -37,7 +37,7 @@ cdef struct Pointers:
 def uncompress(streamlines, return_mapping=False):
     """
     Get the indices of the voxels traversed by each streamline; then returns
-    an ArraySequence of indices. Yes, of *indices*. ArraySequence.data is
+    an ArraySequence of indices. Yes, of *indices*. ArraySequence.get_data() is
     always of type float32 and contains points except here: it's of type
     uint16 and contain indices. You can use this object exactly as you would
     use a normal ArraySequence.
@@ -51,7 +51,7 @@ def uncompress(streamlines, return_mapping=False):
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
-        cnp.npy_intp max_points = (streamlines.data.size / 3) * 6
+        cnp.npy_intp max_points = (streamlines.get_data().size / 3) * 6
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
     new_array_sequence._lengths.resize(nb_streamlines)
@@ -61,7 +61,7 @@ def uncompress(streamlines, return_mapping=False):
     points_to_index = nib.streamlines.array_sequence.ArraySequence()
     points_to_index._lengths.resize(nb_streamlines)
     points_to_index._offsets.resize(nb_streamlines)
-    points_to_index._data = np.zeros(int(streamlines.data.size / 3), np.uint64)
+    points_to_index._data = np.zeros(int(streamlines.get_data().size / 3), np.uint64)
 
     cdef:
         cnp.npy_intp[:] lengths_view_in = streamlines._lengths

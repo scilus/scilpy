@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Script to combine labels from multiple volumes,
+        if there is overlap, it will overwrite them based on the input order.
+
+    >>> scil_combine_labels.py out_labels.nii.gz  -v animal_labels.nii 20\\
+            DKT_labels.nii.gz 44 53  --out_labels_indices 20 44 53
+    >>> scil_combine_labels.py slf_labels.nii.gz  -v a2009s_aseg.nii.gz all\\
+            -v clean/s1__DKT.nii.gz 1028 2028
+"""
+
+
 import argparse
 import logging
 
@@ -11,15 +22,6 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
-DESCRIPTION = """
-    Script to combine labels from multiple volumes,
-        if there is overlap, it will overwrite them based on the input order.
-
-    >>> scil_combine_labels.py out_labels.nii.gz  -v animal_labels.nii 20\\
-            DKT_labels.nii.gz 44 53  --out_labels_indices 20 44 53
-    >>> scil_combine_labels.py slf_labels.nii.gz  -v a2009s_aseg.nii.gz all\\
-            -v clean/s1__DKT.nii.gz 1028 2028
-    """
 
 EPILOG = """
     References:
@@ -29,8 +31,8 @@ EPILOG = """
     """
 
 
-def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION, epilog=EPILOG,
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('output',
@@ -62,7 +64,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     image_files = []

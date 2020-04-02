@@ -1,14 +1,90 @@
 # -*- coding: utf-8 -*-
-import copy
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
-from dipy.tracking.streamline import set_number_of_points, length
+from dipy.tracking.streamline import length, set_number_of_points
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
+from sklearn.metrics import cohen_kappa_score
+
 from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      subtraction, intersection, union)
+                                      difference, intersection, union)
+
+
+def binary_classification(segmentation_indices,
+                          gold_standard_indices,
+                          original_count,
+                          mask_count=0):
+    """
+    Compute all the binary classification measures using only indices from
+    a dataset and its ground truth in any representation (voxels
+    or streamlines).
+    ----------
+    segmentation_indices: list of int
+        Indices of the data that are part of the segmentation.
+    gold_standard_indices: list of int
+        Indices of the ground truth.
+    original_count: int
+        Total size of the original dataset (before segmentation),
+        e.g len(streamlines) or np.prod(mask.shape).
+    mask_count: int
+        Number of non-zeros voxels in the original dataset.
+        Needed in order to get a valid true positive count for the voxel
+        representation.
+    Returns
+    -------
+    A tuple containing
+        float: Value between 0 and 1 that represent the spatial aggrement
+            between both bundles.
+        list of ndarray: Intersection of streamlines in both bundle
+        list of ndarray: Union of streamlines in both bundle
+    """
+    tp = len(np.intersect1d(segmentation_indices, gold_standard_indices))
+    fp = len(np.setdiff1d(segmentation_indices, gold_standard_indices))
+    fn = len(np.setdiff1d(gold_standard_indices, segmentation_indices))
+    tn = len(np.setdiff1d(range(original_count),
+                          np.union1d(segmentation_indices,
+                                     gold_standard_indices)))
+    if mask_count > 0:
+        tn = tn - original_count + mask_count
+    # Extreme that is not covered, all indices are in the gold standard
+    # and the segmentation indices got them 100% right
+    if tp == 0:
+        sensitivity = 0
+        specificity = 0
+        precision = 0
+        accuracy = 0
+        dice = 0
+        kappa = 0
+        youden = -1
+    else:
+        sensitivity = tp / float(tp + fn)
+        if np.isclose(tn + fp, 0):
+            specificity = 1
+        else:
+            specificity = tn / float(tn + fp)
+        precision = tp / float(tp + fp)
+        accuracy = (tp + tn) / float(tp + fp + fn + tn)
+        dice = 2 * tp / float(2 * tp + fp + fn)
+
+        seg_arr = np.zeros((original_count,))
+        gs_arr = np.zeros((original_count,))
+
+        seg_arr[segmentation_indices] = 1
+        gs_arr[gold_standard_indices] = 1
+
+        # To make sure the amount of indices within the WM mask is consistent
+        if mask_count > 0:
+            empty_indices = np.where(seg_arr + gs_arr < 1)[0]
+            indices_to_removes = original_count - mask_count
+            seg_arr = np.delete(seg_arr, empty_indices[0:indices_to_removes])
+            gs_arr = np.delete(gs_arr, empty_indices[0:indices_to_removes])
+
+        kappa = cohen_kappa_score(seg_arr, gs_arr)
+        youden = sensitivity + specificity - 1
+
+    return sensitivity, specificity, precision, accuracy, dice, kappa, youden
 
 
 def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
@@ -83,10 +159,10 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
         centroids_2 = qbx_and_merge(bundle_2, thresholds, rng=RandomState(0),
                                     verbose=False).centroids
     if non_overlap:
-        non_overlap_1, _ = perform_streamlines_operation(subtraction,
+        non_overlap_1, _ = perform_streamlines_operation(difference,
                                                          [bundle_1, bundle_2],
                                                          precision=0)
-        non_overlap_2, _ = perform_streamlines_operation(subtraction,
+        non_overlap_2, _ = perform_streamlines_operation(difference,
                                                          [bundle_2, bundle_1],
                                                          precision=0)
         if non_overlap_1:
@@ -175,7 +251,7 @@ def compute_dice_voxel(density_1, density_2):
     ----------
     density_1: ndarray
         Density (or binary) map computed from the first bundle
-    density_1: ndarray of ndarray
+    density_2: ndarray
         Density (or binary) map computed from the second bundle
     Returns
     -------
@@ -185,29 +261,54 @@ def compute_dice_voxel(density_1, density_2):
         float: Value between 0 and 1 that represent the spatial aggrement
             between both bundles, weighted by streamlines density.
     """
-    binary_1 = copy.copy(density_1)
-    binary_1[binary_1 > 0] = 1
-    binary_2 = copy.copy(density_2)
-    binary_2[binary_2 > 0] = 1
+    overlap_idx = np.nonzero(density_1 * density_2)
+    numerator = 2 * len(overlap_idx[0])
+    denominator = np.count_nonzero(density_1) + np.count_nonzero(density_2)
 
-    numerator = 2 * np.count_nonzero(binary_1 * binary_2)
-    denominator = np.count_nonzero(binary_1) + np.count_nonzero(binary_2)
     if denominator > 0:
         dice = numerator / float(denominator)
     else:
         dice = np.nan
 
-    indices = np.nonzero(binary_1 * binary_2)
-    overlap_1 = density_1[indices]
-    overlap_2 = density_2[indices]
-    w_dice = (np.sum(overlap_1) + np.sum(overlap_2))
-    denominator = float(np.sum(density_1) + np.sum(density_2))
+    overlap_1 = density_1[overlap_idx]
+    overlap_2 = density_2[overlap_idx]
+    w_dice = np.sum(overlap_1) + np.sum(overlap_2)
+    denominator = np.sum(density_1) + np.sum(density_2)
     if denominator > 0:
         w_dice /= denominator
     else:
         w_dice = np.nan
 
     return dice, w_dice
+
+
+def compute_correlation(density_1, density_2):
+    """
+    Compute the overlap (dice coefficient) between two density maps (or binary).
+    Correlation being less robust to extreme case (no overlap, identical array),
+    a lot of check a needed to prevent NaN.
+    Parameters
+    ----------
+    density_1: ndarray
+        Density (or binary) map computed from the first bundle
+    density_2: ndarray
+        Density (or binary) map computed from the second bundle
+    Returns
+    -------
+    float: Value between 0 and 1 that represent the spatial aggrement
+        between both bundles taking into account density.
+    """
+    indices = np.where(density_1 + density_2 > 0)
+    if np.array_equal(density_1, density_2):
+        density_correlation = 1
+    elif (np.sum(density_1) > 0 and np.sum(density_2) > 0) \
+            and np.count_nonzero(density_1 * density_2):
+        density_correlation = np.corrcoef(density_1[indices],
+                                          density_2[indices])[0, 1]
+    else:
+        density_correlation = 0
+
+    return max(0, density_correlation)
 
 
 def compute_dice_streamlines(bundle_1, bundle_2):

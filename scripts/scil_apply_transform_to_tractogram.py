@@ -2,93 +2,100 @@
 # -*- coding: utf-8 -*-
 
 """
-    Transform tractogram using an affine/rigid transformation.
+Transform tractogram using an affine/rigid transformation.
 
-    For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+For more information on how to use the various registration scripts
+see the doc/tractogram_registration.md readme file
+
+Applying transformation to tractogram can lead to invalid streamlines (out of
+the bounding box), three strategies are available:
+1) default, crash at saving if invalid streamlines are present
+2) --keep_invalid, save invalid streamlines. Leave it to the user to run
+    scil_remove_invalid_streamlines.py if needed.
+3) --remove_invalid, automatically remove invalid streamlines before saving.
+    Should not remove more than a few streamlines.
 """
 
 import argparse
+import logging
 
-import nibabel as nib
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
+from dipy.tracking.streamline import transform_streamlines
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, create_header_from_anat,
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.filenames import split_name_with_nii
 
 
-def transform_tractogram(in_filename, ref_filename, transfo,
-                         filename_to_save):
-    tractogram = nib.streamlines.load(in_filename)
-
-    _, out_extension = split_name_with_nii(filename_to_save)
-    if out_extension == '.trk':
-        # Only TRK/NII can be a reference, because they have an affine
-        _, ref_extension = split_name_with_nii(ref_filename)
-        if ref_extension == '.trk':
-            ref_tractogram = nib.streamlines.load(ref_filename, lazy_load=True)
-            ref_header = ref_tractogram.header
-        else:
-            ref_img = nib.load(ref_filename)
-            ref_header = create_header_from_anat(ref_img)
-    elif out_extension == '.tck':
-        ref_header = nib.streamlines.TckFile.create_empty_header()
-
-    tractogram.tractogram.apply_affine(transfo)
-
-    new_tractogram = nib.streamlines.Tractogram(tractogram.streamlines,
-                                                affine_to_rasmm=np.eye(4))
-    nib.streamlines.save(new_tractogram, filename_to_save, header=ref_header)
-
-
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('in_file',
-                   help='Path of the tractogram to be transformed (trk or tck).')
-
-    p.add_argument('ref_file',
-                   help='Path of the reference file (trk or nii)')
-
+    p.add_argument('moving_tractogram',
+                   help='Path of the tractogram to be transformed.')
+    p.add_argument('target_file',
+                   help='Path of the reference target file (trk or nii).')
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
-                   'transformation, matrix (*.npy).'
-                   'See the script description for more information.')
-
-    p.add_argument('out_name',
-                   help='Output filename of the transformed data.')
+                        'transformation, matrix (*.txt).\n'
+                        'See the script description for more information.')
+    p.add_argument('out_tractogram',
+                   help='Output tractogram filename (transformed data).')
 
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse transformation.')
 
+    invalid = p.add_mutually_exclusive_group()
+    invalid.add_argument('--remove_invalid', action='store_true',
+                         help='Remove the streamlines landing out of the '
+                              'bounding box.')
+    invalid.add_argument('--keep_invalid', action='store_true',
+                         help='Keep the streamlines landing out of the '
+                              'bounding box.')
+
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_file, args.ref_file,
+    assert_inputs_exist(parser, [args.moving_tractogram, args.target_file,
                                  args.transformation])
-    assert_outputs_exist(parser, args, args.out_name)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    _, ref_extension = split_name_with_nii(args.ref_file)
-    if ref_extension == '.trk':
-        if not nib.streamlines.TrkFile.is_correct_format(args.ref_file):
-            parser.error('{} is not a valid TRK file.'.format(args.ref_file))
-    elif ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is an unsupported format.'.format(args.ref_file))
+    moving_sft = load_tractogram_with_reference(parser, args,
+                                                args.moving_tractogram,
+                                                bbox_check=False)
 
     transfo = np.loadtxt(args.transformation)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
-    transform_tractogram(args.in_file, args.ref_file, transfo,
-                         args.out_name)
+    moved_streamlines = transform_streamlines(moving_sft.streamlines,
+                                              transfo)
+    new_sft = StatefulTractogram(moved_streamlines, args.target_file,
+                                 Space.RASMM,
+                                 data_per_point=moving_sft.data_per_point,
+                                 data_per_streamline=moving_sft.data_per_streamline)
+
+    if args.remove_invalid:
+        ori_len = len(new_sft)
+        new_sft.remove_invalid_streamlines()
+        logging.warning('Removed {} invalid streamlines.'.format(
+            ori_len - len(new_sft)))
+        save_tractogram(new_sft, args.out_tractogram)
+    elif args.keep_invalid:
+        if not new_sft.is_bbox_in_vox_valid():
+            logging.warning('Saving tractogram with invalid streamlines.')
+        save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
+    else:
+        save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

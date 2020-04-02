@@ -9,8 +9,10 @@
 # et al., MRM 69(6), pp. 1534-1540, 2013.      #
 # This software comes with no warranty, etc.   #
 ################################################
-from scipy import optimize
+
 import numpy as np
+
+from scipy import optimize
 
 
 def equality_constraints(bvecs, *args):
@@ -285,10 +287,10 @@ def compute_weights(nb_shells, nb_points_per_shell, shell_groups, alphas):
     ----------
     nb_shells: int
         Number of shells
-    nb_points_per_shell: int
+    nb_points_per_shell: list of ints
         Number of points per shell
-    shell_groups: list
-        list of group of shells
+    shell_groups: tuple
+        tuple listing the groups of shells as lists of indices
     alphas: list
         list of weights per group of shells
     Returns

@@ -22,8 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging
@@ -55,7 +53,7 @@ def _get_min_nonzero_signal(data):
     return np.min(data[data > 0])
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -138,7 +136,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if not args.not_all:
@@ -178,7 +176,7 @@ def main():
         mask = nib.load(args.mask).get_data().astype(np.bool)
 
     # Validate bvals and bvecs
-    logging.info('Tensor estimation with the %s method...', args.method)
+    logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if not is_normalized_bvecs(bvecs):

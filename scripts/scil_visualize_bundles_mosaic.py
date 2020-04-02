@@ -7,7 +7,6 @@ The script will output a mosaic (image) with screenshots,
 6 views per bundle in the list.
 """
 
-from __future__ import division, print_function
 import argparse
 import logging
 import os

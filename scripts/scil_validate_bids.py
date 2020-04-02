@@ -14,7 +14,7 @@ import json
 from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
@@ -108,7 +108,7 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
+def get_data(nSub, dwi, t1s, associations, default_readout):
     """ Return subject data
 
     Parameters
@@ -125,16 +125,20 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
     associations : Dictionnary
         Dictionnary containing files associated to the DWI
 
-    nRun : int
-        Run index
+    default_readout : Float
+        Default readout time
 
     Returns
     -------
     Dictionnary containing the metadata
     """
-    nSess = ''
+    nSess = 0
     if 'session' in dwi.get_entities().keys():
         nSess = dwi.get_entities()['session']
+
+    nRun = 0
+    if 'run' in dwi.get_entities().keys():
+        nRun = dwi.get_entities()['run']
 
     fmaps = []
     bval_path = ''
@@ -201,7 +205,7 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
         t1_path = t1_nSess[0].path
     elif 'run' in dwi.path:
         for t1 in t1_nSess:
-            if 'run-' + str(nRun + 1) in t1.path:
+            if 'run-' + str(nRun) in t1.path:
                 t1_path = t1.path
 
     return {'subject': nSub,
@@ -217,7 +221,7 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_outputs_exist(parser, args, args.output_json)
@@ -246,9 +250,8 @@ def main():
         associations = get_dwi_associations(fmaps, bvals, bvecs)
 
         # Get the data for each run of DWIs
-        for nRun, dwi in enumerate(dwis):
-            data.append(get_data(nSub, dwi, t1s, associations, nRun,
-                                 args.readout))
+        for dwi in dwis:
+            data.append(get_data(nSub, dwi, t1s, associations, args.readout))
 
     with open(args.output_json, 'w') as outfile:
         json.dump(data,

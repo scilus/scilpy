@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Conversion of '.tck', '.trk', '.fib', '.vtk' and 'dpy' files using updated file
+format standard. TRK file always needs a reference file, a NIFTI, for
+conversion. The FIB file format is in fact a VTK, MITK Diffusion supports it.
+"""
 
 import argparse
 import os
@@ -10,15 +15,9 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
-DESCRIPTION = """
-Conversion of '.tck', '.trk', '.fib', '.vtk' and 'dpy' files using updated file
-format standard. TRK file always needs a reference file, a NIFTI, for
-conversion. The FIB file format is in fact a VTK, MITK Diffusion supports it.
-"""
 
-
-def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram', metavar='IN_TRACTOGRAM',
@@ -36,7 +35,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
