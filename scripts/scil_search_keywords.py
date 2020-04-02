@@ -17,9 +17,8 @@ import numpy as np
 
 RED = '\033[31m'
 BOLD = '\033[1m'
-ENDC_1 = '\033[0m'
-ENDC_2 = '\033[37m'
-spacing = '=================='
+END_COLOR = '\033[0m'
+SPACING = '=================='
 
 
 def _build_arg_parser():
@@ -46,7 +45,6 @@ def main():
     kw_subs = [re.compile('(' + re.escape(kw) + ')', re.IGNORECASE)
                for kw in args.keywords]
 
-    counter = 0
     for script in sorted(script_dir.glob('*.py')):
         filename = script.name
 
@@ -65,25 +63,15 @@ def main():
         matches.append(filename)
         search_text = search_text or 'No docstring available!'
 
-        # new_key calls regex group \1 to keep the same case
-        # Alternate light gray and white for easier reading
-        if counter % 2 == 0:
-            color_scheme = ENDC_1
-        else:
-            color_scheme = ENDC_2
-
-        search_text = color_scheme + search_text
-        new_key = '{}\\1{}'.format(RED + BOLD, END_COLOR + color_scheme)
+        new_key = '{}\\1{}'.format(RED + BOLD, END_COLOR)
 
         for regex in kw_subs:
             filename = regex.sub(new_key, filename)
             search_text = regex.sub(new_key, search_text)
 
-        print(color_scheme, SPACING, filename, SPACING)
+        print(SPACING, filename, SPACING)
         print(search_text)
-        print()
-
-        counter += 1
+        print(SPACING, "End of {}".format(filename), SPACING)
 
     if not matches:
         print('No results found!')
