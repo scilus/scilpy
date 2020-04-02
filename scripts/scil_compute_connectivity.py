@@ -7,25 +7,26 @@ matrices. This script is made to follow scil_decompose_connectivity and
 uses the same labels list as input.
 
 The script expects a folder containing all relevants bundles following the
-naming convention label1_label2.trk and a text file containing the list of
+naming convention LABEL1_LABEL2.trk and a text file containing the list of
 labels that should be part of the matrices. The ordering of labels in the
 matrices will follow the same order as the list.
 This script only generates matrices in the form of array, does not visualize
 or reorder the labels (node).
 
-The parameter --similarity expects a folder with density map (nii.gz) following
-the same naming convention as the input directory.
+The parameter --similarity expects a folder with density maps (LABEL1_LABEL2.nii.gz)
+following the same naming convention as the input directory.
 The bundles should be averaged version in the same space. This will
-compute the weigthed-dice between each node and their homologuous average
+compute the weighted-dice between each node and their homologuous average
 version.
 
 The parameters --metrics can be used more than once and expect a map (t1, fa,
 etc.) in the same space and each will generate a matrix. The average value in
 the volume occupied by the bundle will be reported in the matrices nodes.
+
 The parameters --maps can be used more than once and expect a folder with
-pre-computed maps (nii.gz) following the same naming convention as the
-input directory. Each will generate a matrix. The average non-zeros value in
-the map will be reported in the matrices nodes.
+pre-computed maps (LABEL1_LABEL2.nii.gz) following the same naming convention
+as the input directory. Each will generate a matrix. The average non-zeros
+value in the map will be reported in the matrices nodes.
 """
 
 import argparse
@@ -65,7 +66,7 @@ def load_node_nifti(directory, in_label, out_label, ref_filename):
             logging.error('{} and {} do not have a compatible header'.format(
                 in_filename, ref_filename))
             raise IOError
-        return nib.load(in_filename).get_data()
+        return nib.load(in_filename).get_fdata()
 
     _, dims, _, _ = get_reference_info(ref_filename)
     return np.zeros(dims)
@@ -164,37 +165,40 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,)
     p.add_argument('in_bundles_dir',
-                   help='Folder containing all the bundle files (trk).')
+                   help='Folder containing all the bundle files (.trk).')
     p.add_argument('labels_list',
                    help='Text file containing the list of labels from the '
-                   'atlas.')
+                        'atlas.')
     p.add_argument('--volume', metavar='OUT_FILE',
-                   help='Output file for the volume weighted matrix')
+                   help='Output file for the volume weighted matrix (.npy).')
     p.add_argument('--streamline_count', metavar='OUT_FILE',
-                   help='Output file for the streamline count weighted matrix.')
+                   help='Output file for the streamline count weighted matrix '
+                        '(.npy).')
     p.add_argument('--length', metavar='OUT_FILE',
-                   help='Output file for the length weighted matrix.')
+                   help='Output file for the length weighted matrix (.npy).')
     p.add_argument('--similarity', nargs=2,
                    metavar=('IN_FOLDER', 'OUT_FILE'),
-                   help='Input folder containing the average bundles. \n'
-                   'and output file for the similarity weigthed matrix.')
+                   help='Input folder containing the averaged bundle density\n'
+                        'maps (.nii.gz) and output file for the similarity '
+                        'weighted matrix (.npy).')
     p.add_argument('--maps', nargs=2,  action='append',
                    metavar=('IN_FOLDER', 'OUT_FILE'),
-                   help='Input folder containing pre-computed maps. \n'
-                   'and output file for that weigthed matrix.')
+                   help='Input folder containing pre-computed maps (.nii.gz)\n'
+                        'and output file for the weighted matrix (.npy).')
     p.add_argument('--metrics', nargs=2, action='append',
                    metavar=('IN_FILE', 'OUT_FILE'),
-                   help='Input and output file for the metric weigthed matrix.')
+                   help='Input (.nii.gz). and output file (.npy) for a metric '
+                        'weighted matrix.')
 
-    p.add_argument('--density_weigthing', action="store_true",
-                   help='Use density-weighting for the metric weigthed matrix.')
+    p.add_argument('--density_weighting', action="store_true",
+                   help='Use density-weighting for the metric weighted matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
 
-    add_overwrite_arg(p)
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -265,7 +269,7 @@ def main():
                                   zip(itertools.repeat(args.in_bundles_dir),
                                       comb_list,
                                       itertools.repeat(measures_to_compute),
-                                      itertools.repeat(args.density_weigthing),
+                                      itertools.repeat(args.density_weighting),
                                       itertools.repeat(args.similarity)))
 
     # Removing None entries (combinaisons that do not exist)

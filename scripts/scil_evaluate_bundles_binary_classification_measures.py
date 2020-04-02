@@ -2,19 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute well-known binary measures between gold standard and bundles.
-All tractograms must be trk files and headers must be identical.
+Evaluate binary classification measures between gold standard and bundles.
+All tractograms must be in the same space (aligned to one reference)
 The measures can be applied to voxel-wise or streamline-wise representation.
 
 A gold standard must be provided for the desired representation.
 A gold standard would be a segmentation from an expert or a group of experts.
-If only the streamline-wise representation is provided a voxel-wise gold
-standard will be computed. At least one of the two representations is required.
+If only the streamline-wise representation is provided without a voxel-wise
+gold standard, it will be computed from the provided streamlines.
+At least one of the two representations is required.
 
-The original tractogram is the tractogram (whole brain most likely) from which
-the segmentation is performed.
-the original tracking mask is the tracking mask used by the tractography
-algorighm to generate the original tractogram.
+The gold standard tractogram is the tractogram (whole brain most likely) from
+which the segmentation is performed.
+The gold standard tracking mask is the tracking mask used by the tractography
+algorighm to generate the gold standard tractogram.
+
+The computed binary classification measures are:
+sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
+the streamline and voxel representation (if provided).
 """
 
 import argparse
@@ -28,13 +33,15 @@ from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             link_bundles_and_reference)
+                             link_bundles_and_reference,
+                             validate_nbr_processes)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
@@ -50,15 +57,16 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output json.')
     p.add_argument('--streamlines_measures', nargs=2,
-                   metavar=('GOLD STANDARD', 'TRACTOGRAM'),
+                   metavar=('GOLD_STANDARD_STREAMLINES', 'TRACTOGRAM'),
                    help='The gold standard bundle and the original tractogram.')
     p.add_argument('--voxels_measures', nargs=2,
-                   metavar=('GOLD STANDARD', 'TRACKING MASK'),
+                   metavar=('GOLD_STANDARD_MASK', 'TRACKING MASK'),
                    help='The gold standard mask and the original tracking mask.')
 
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_json_args(p)
     add_overwrite_arg(p)
 
     return p
@@ -68,10 +76,6 @@ def compute_voxel_measures(args):
     bundle_filename, bundle_reference = args[0]
     tracking_mask = args[1]
     gs_binary_3d = args[2]
-
-    if not os.path.isfile(bundle_filename):
-        logging.info('{} does not exist'.format(bundle_filename))
-        return None
 
     bundle_sft = load_tractogram(bundle_filename, bundle_reference)
     bundle_sft.to_vox()
@@ -155,12 +159,7 @@ def main():
     if (not args.streamlines_measures) and (not args.voxels_measures):
         parser.error('At least one of the two modes is needed')
 
-    nbr_cpu = args.processes if args.processes else multiprocessing.cpu_count()
-    if nbr_cpu <= 0:
-        parser.error('Number of processes cannot be <= 0.')
-    elif nbr_cpu > multiprocessing.cpu_count():
-        parser.error('Max number of processes is {}. Got {}.'.format(
-            multiprocessing.cpu_count(), nbr_cpu))
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     all_binary_metrics = []
     bundles_references_tuple_extended = link_bundles_and_reference(
@@ -205,9 +204,11 @@ def main():
                                                       gs_dimensions)
         tracking_mask_data[tracking_mask_data > 0] = 1
     else:
-        gs_binary_3d = nib.load(args.voxels_measures[0]).get_data()
+        gs_binary_3d = nib.load(
+            args.voxels_measures[0]).get_fdata().astype(np.uint8)
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = nib.load(args.voxels_measures[1]).get_data()
+        tracking_mask_data = nib.load(
+            args.voxels_measures[1]).get_fdata().astype(np.uint8)
         tracking_mask_data[tracking_mask_data > 0] = 1
 
     pool = multiprocessing.Pool(nbr_cpu)
@@ -230,7 +231,8 @@ def main():
                     float(binary_dict[measure_name]))
 
     with open(args.out_json, 'w') as outfile:
-        json.dump(output_binary_dict, outfile, indent=1)
+        json.dump(output_binary_dict, outfile,
+                  indent=args.indent, sort_keys=args.sort_keys)
 
 
 if __name__ == "__main__":
