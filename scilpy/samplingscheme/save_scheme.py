@@ -22,11 +22,11 @@ def save_scheme_mrtrix(points, shell_idx, bvals, filename):
     ------
     """
     with open(filename, 'w') as f:
-        for idx in range(points.shape[0]):
-            f.write('{:.8f} {:.8f} {:.8f} {:.2f}\n'.format(points[idx, 0],
-                                                           points[idx, 1],
-                                                           points[idx, 2],
-                                                           bvals[shell_idx[idx]]))
+        for idx in range(points.shape[1]):
+            f.write('{:.8f} {:.8f} {:.8f} {:}\n'.format(points[0, idx],
+                                                        points[1, idx],
+                                                        points[2, idx],
+                                                        bvals[shell_idx[idx]]))
 
     logging.info('Scheme saved in MRtrix format as {}'.format(filename))
 
@@ -51,7 +51,7 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename_bval,
     """
     basename, ext = os.path.splitext(filename_bval)
 
-    np.savetxt(filename_bvec, points.T, fmt='%.8f')
+    np.savetxt(filename_bvec, points, fmt='%.8f')
     np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
     logging.info('Scheme saved in FSL format as {}'.format(basename +

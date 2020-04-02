@@ -147,7 +147,6 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
                         'Transposing them.')
 
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-
     save_scheme_mrtrix(points,
                        shell_idx,
                        bvals,

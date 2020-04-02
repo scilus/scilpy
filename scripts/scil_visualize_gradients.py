@@ -3,16 +3,17 @@
 
 """
 Vizualisation for sampling schemes.
-Only supports .caru, .txt (Philips), .dir or .dvs (Siemens), .bvecs/.bvals
-and .b (MRtrix).
+Only supports .bvec/.bval and .b (MRtrix).
 """
 
 import argparse
+import logging
 import numpy as np
 import os
 
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -29,7 +30,7 @@ def _build_arg_parser():
     p.add_argument(
         'scheme_file', metavar='scheme_file', nargs='+',
         help='Sampling scheme filename. (only accepts .bvecs and .bvals '
-             'or .b.)')
+             'or .b).')
 
     p.add_argument(
         '--dis-sym', action='store_false', dest='enable_sym',
@@ -37,12 +38,12 @@ def _build_arg_parser():
     p.add_argument(
         '--out',
         help='Output file name picture without extension ' +
-             '(will be png file(s))')
+             '(will be png file(s)).')
     p.add_argument(
         '--res', type=int, default=(300, 300), nargs='+',
-        help='Resolution of the output picture(s)')
+        help='Resolution of the output picture(s).')
 
-    g1 = p.add_argument_group(title='Enable/Disable renderings')
+    g1 = p.add_argument_group(title='Enable/Disable renderings.')
     g1.add_argument(
         '--dis-sphere', action='store_false', dest='enable_sph',
         help='Disable the rendering of the sphere.')
@@ -53,7 +54,7 @@ def _build_arg_parser():
         '--plot-shells', action='store_true', dest='plot_shells',
         help='Enable rendering each shell individually.')
 
-    g2 = p.add_argument_group(title='Rendering options')
+    g2 = p.add_argument_group(title='Rendering options.')
     g2.add_argument(
         '--same-color', action='store_true', dest='same_color',
         help='Use same color for all shell.')
@@ -62,6 +63,7 @@ def _build_arg_parser():
         help='Opacity for the shells.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
     return p
 
 
@@ -69,6 +71,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, args.scheme_file)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     if len(args.scheme_file) == 2:
         assert_gradients_filenames_valid(parser, args.scheme_file, 'fsl')
@@ -111,6 +116,7 @@ def main():
 
     for b0 in centroids[centroids < 40]:
         shell_idx[shell_idx == b0] = -1
+        centroids = np.delete(centroids,  np.where(centroids == b0))
 
     shell_idx[shell_idx != -1] -= 1
 
@@ -124,7 +130,7 @@ def main():
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
     if each:
-        plot_each_shell(ms, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
+        plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=tuple(args.res))
 
