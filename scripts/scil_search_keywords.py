@@ -49,6 +49,10 @@ def main():
     for script in sorted(script_dir.glob('*.py')):
         filename = script.name
 
+        # Skip this script
+        if filename == pathlib.Path(__file__).name:
+            continue
+
         error_msg = ""
         if args.search_parser:
             # Run the script's argparser, and catch the output in case there
