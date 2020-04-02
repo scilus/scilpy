@@ -36,7 +36,7 @@ pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
     """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__,
@@ -101,7 +101,7 @@ def _build_args_parser():
 
 def main():
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     fsl = args.fsl

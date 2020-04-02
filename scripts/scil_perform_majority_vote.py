@@ -28,7 +28,7 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -56,7 +56,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundles)
@@ -71,8 +71,8 @@ def main():
 
     fusion_streamlines = []
     for name in args.in_bundles:
-        fusion_streamlines.extend(
-            load_tractogram_with_reference(parser, args, name).streamlines)
+        tmp_sft = load_tractogram_with_reference(parser, args, name)
+        fusion_streamlines.extend(tmp_sft.streamlines)
 
     fusion_streamlines, _ = perform_streamlines_operation(union,
                                                           [fusion_streamlines],
@@ -94,6 +94,8 @@ def main():
         sft = load_tractogram_with_reference(parser, args, name)
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
+        sft.to_corner()
+
         bundle_vox_space = sft.get_streamlines_copy()
         binary = compute_tract_counts_map(bundle_vox_space, dimensions)
         volume[binary > 0] += 1
@@ -113,8 +115,9 @@ def main():
 
         new_streamlines = fusion_streamlines[real_indices]
 
-        sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM)
-        save_tractogram(sft, output_streamlines_filename)
+        new_sft = StatefulTractogram(list(new_streamlines), reference_file,
+                                     Space.RASMM)
+        save_tractogram(new_sft, output_streamlines_filename)
 
     volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
     volume[volume > 0] = 1
