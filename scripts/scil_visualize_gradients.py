@@ -29,8 +29,8 @@ def _build_arg_parser():
 
     p.add_argument(
         'scheme_file', metavar='scheme_file', nargs='+',
-        help='Sampling scheme filename. (only accepts .bvecs and .bvals '
-             'or .b).')
+        help='Sampling scheme filename. (only accepts .bvec and .bval together'
+             ' or only .b).')
 
     p.add_argument(
         '--dis-sym', action='store_false', dest='enable_sym',
@@ -78,7 +78,12 @@ def main():
     if len(args.scheme_file) == 2:
         assert_gradients_filenames_valid(parser, args.scheme_file, 'fsl')
     elif len(args.scheme_file) == 1:
-        assert_gradients_filenames_valid(parser, args.scheme_file, 'mrtrix')
+        basename, ext = os.splitext(args.scheme_file)
+        if ext in ['bvec','bvecs','bvals','bval']:
+            parser.error('You should input two files for fsl format (.bvec '
+                         'and .bval).')
+        else:
+            assert_gradients_filenames_valid(parser, args.scheme_file, 'mrtrix')
     else:
         parser.error('Depending on the gradient format you should have '
                      'two files for FSL format and one file for MRtrix')

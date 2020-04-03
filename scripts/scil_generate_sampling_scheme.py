@@ -47,9 +47,10 @@ def _build_arg_parser():
                    type=int, nargs='+',
                    help='Number of samples on each shells. If multishell, '
                         'provide a number per shell.')
-    p.add_argument('outfile',
-                   help='Sampling scheme output filename (don\'t '
-                        'include extension).')
+    p.add_argument('out_basename',
+                   help='Sampling scheme output basename (don\'t '
+                        'include extension).\n'
+                        'Please add options --fsl and/or --mrtrix below.')
 
     p.add_argument('--eddy',
                    action='store_true',
@@ -88,7 +89,7 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Save as')
     g1.add_argument('--fsl',
                     action='store_true',
-                    help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
+                    help='Save in FSL format (.bvec/.bval). [%(default)s]')
     g1.add_argument('--mrtrix',
                     action='store_true',
                     help='Save in MRtrix format (.b). [%(default)s]')
@@ -145,7 +146,7 @@ def main():
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)
 
-    outfile = args.outfile
+    out_basename, _ = os.splitext(args.out_basename)
 
     # Scheme generation
     points, shell_idx = generate_scheme(Ks, verbose=int(
@@ -168,14 +169,14 @@ def main():
             points, shell_idx, bvals)
 
     if fsl:
-        out_fsl = [outfile + '.bval', outfile + '.bvec']
+        out_fsl = [out_basename + '.bval', out_basename + '.bvec']
         assert_outputs_exist(parser, args, out_fsl)
         save_scheme_bvecs_bvals(points, shell_idx, bvals,
                                 out_fsl[0], out_fsl[1])
 
     if mrtrix:
-        assert_outputs_exist(parser, args, outfile + '.b')
-        save_scheme_mrtrix(points, shell_idx, bvals, filename=outfile)
+        assert_outputs_exist(parser, args, out_basename + '.b')
+        save_scheme_mrtrix(points, shell_idx, bvals, filename=out_basename)
 
 
 if __name__ == "__main__":
