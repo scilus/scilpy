@@ -3,7 +3,7 @@
 
 """
 Output the list of filename using the coordinates for a binary connectivity
-matrix. Typically used to move around file that are considered valid after
+matrix. Typically used to move around files that are considered valid after
 the scil_filter_connectivity.py script.
 
 Example:
