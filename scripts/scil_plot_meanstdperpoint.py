@@ -23,7 +23,7 @@ def _build_arg_parser():
                    help='JSON file containing the mean/std per point. For '
                         'example, can be created using '
                         'scil_compute_metrics_along_streamline.')
-    p.add_argument('output_dir',
+    p.add_argument('out_dir',
                    help='Output directory')
 
     p.add_argument('--fill_color',
@@ -40,7 +40,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_json)
-    assert_output_dirs_exist_and_empty(parser, args, args.output_dir,
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
     if args.fill_color and len(args.fill_color) != 8:
@@ -72,8 +72,8 @@ def main():
                 fill_color=(args.fill_color.replace("0x", "#")
                             if args.fill_color else None))
             fig.savefig(
-                os.path.join(args.output_dir,
-                             '{}_{}.png'.format(bundle_name, metric)),
+                os.path.join(args.out_dir, '{}_{}.png'.format(bundle_name,
+                                                              metric)),
                 bbox_inches='tight')
 
 
