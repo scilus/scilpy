@@ -61,8 +61,12 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output json.')
 
+    p.add_argument('--filtering_mask',
+                   help='Binary filtering mask to apply before computing the '
+                        'measures.')
+
     p.add_argument('--output_path_length', nargs=2,
-                   metavar='PATH_LENGTH, EDGE_COUNT',
+                   metavar=('PATH_LENGTH', 'EDGE_COUNT'),
                    help='Save the computed path length and edge count matrix.')
 
     p.add_argument('--node_wise_as_list', action='store_true',
@@ -104,6 +108,11 @@ def main():
     sc_matrix = load_matrix_in_any_format(args.in_streamline_count_matrix)
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
+    if args.filtering_mask:
+        mask_matrix = load_matrix_in_any_format(args.filtering_mask)
+        sc_matrix *= mask_matrix
+        len_matrix *= mask_matrix
+
     gtm_dict = {}
     gtm_dict['centrality'] = bct.betweenness_wei(len_matrix).tolist()
     ci, gtm_dict['modularity'] = bct.modularity_finetune_und(sc_matrix, seed=0)
@@ -144,20 +153,21 @@ def main():
     gtm_dict['edge_count'] = path_length_tuple[1]
 
     if args.node_wise_as_list:
+        correction = np.arange(len(empty_connections))
         gtm_dict['path_length'] = np.insert(gtm_dict['path_length'],
-                                            empty_connections,
+                                            empty_connections - correction,
                                             -1, axis=1)
         gtm_dict['edge_count'] = np.insert(gtm_dict['edge_count'],
-                                           empty_connections,
+                                           empty_connections - correction,
                                            -1, axis=1)
 
         # Path length is a matrix that can be saved
         if args.output_path_length:
             pl_for_saving = np.insert(gtm_dict['path_length'],
-                                      empty_connections,
-                                      -1, axis=1)
+                                      empty_connections - correction,
+                                      -1, axis=0)
             plec_for_saving = np.insert(gtm_dict['edge_count'],
-                                        empty_connections,
+                                        empty_connections - correction,
                                         -1, axis=0)
             save_matrix_in_any_format(args.output_path_length[0],
                                       pl_for_saving)

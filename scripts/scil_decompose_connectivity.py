@@ -156,7 +156,7 @@ def build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.6,
+    og.add_argument('--outlier_threshold', type=float, default=0.5,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
     og.add_argument('--loop_max_angle', type=float, default=330.,
