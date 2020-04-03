@@ -34,8 +34,8 @@ def weighted_mean_stddev(weights, data):
     return mean, np.sqrt(variance)
 
 
-def get_bundle_metrics_meanstd(streamlines, metrics_files,
-                               density_weighting=True):
+def get_bundle_metrics_mean_std(streamlines, metrics_files,
+                                density_weighting=True):
     """
     Returns the mean value of each metric for the whole bundle, only
     considering voxels that are crossed by streamlines. The mean values are
@@ -73,10 +73,10 @@ def get_bundle_metrics_meanstd(streamlines, metrics_files,
                metrics_files)
 
 
-def get_bundle_metrics_meanstdperpoint(streamlines, bundle_name,
-                                       distances_to_centroid_streamline,
-                                       metrics, labels, density_weighting=False,
-                                       distance_weighting=False):
+def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
+                                          distances_to_centroid_streamline,
+                                          metrics, labels, density_weighting=False,
+                                          distance_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
 

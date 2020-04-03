@@ -20,7 +20,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args, add_reference_arg,
                              add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.metrics_tools import get_bundle_metrics_meanstdperpoint
+from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std_per_point
 
 
 def _build_arg_parser():
@@ -90,11 +90,11 @@ def main():
                                             len(distances_to_centroid_streamline)))
 
     # Compute stats
-    stats = get_bundle_metrics_meanstdperpoint(sft.streamlines, bundle_name,
-                                               distances_to_centroid_streamline,
-                                               metrics, labels,
-                                               args.density_weighting,
-                                               args.distance_weighting)
+    stats = get_bundle_metrics_mean_std_per_point(sft.streamlines, bundle_name,
+                                                  distances_to_centroid_streamline,
+                                                  metrics, labels,
+                                                  args.density_weighting,
+                                                  args.distance_weighting)
 
     if args.out_json:
         with open(args.out_json, 'w') as outfile:

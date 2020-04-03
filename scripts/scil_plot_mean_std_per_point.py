@@ -47,9 +47,9 @@ def main():
         parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB')
 
     with open(args.in_json, 'r+') as f:
-        meanstdperpoint = json.load(f)
+        mean_std_per_point = json.load(f)
 
-    for bundle_name, bundle_stats in meanstdperpoint.items():
+    for bundle_name, bundle_stats in mean_std_per_point.items():
         for metric, metric_stats in bundle_stats.items():
             nb_points = len(metric_stats)
             num_digits_labels = len(str(nb_points))

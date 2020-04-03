@@ -17,7 +17,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist)
-from scilpy.utils.metrics_tools import get_bundle_metrics_meanstd
+from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std
 
 
 def _build_arg_parser():
@@ -56,9 +56,9 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-    bundle_stats = get_bundle_metrics_meanstd(sft.streamlines,
-                                              metrics,
-                                              args.density_weighting)
+    bundle_stats = get_bundle_metrics_mean_std(sft.streamlines,
+                                               metrics,
+                                               args.density_weighting)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
 
