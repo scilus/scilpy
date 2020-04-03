@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import multiprocessing
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -13,13 +14,13 @@ from scilpy.utils.filenames import split_name_with_nii
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
     """
-    Associate the bundle to their reference (if they require a reference)
+    Associate the bundle to their reference (if they require a reference).
     Parameters
     ----------
     parser: argparse.ArgumentParser object
-        Parser as created by argparse
+        Parser as created by argparse.
     args: argparse namespace
-        Args as created by argparse
+        Args as created by argparse.
     input_tractogram_list: list
         List of tractogram paths.
     Returns
@@ -182,6 +183,39 @@ def add_sh_basis_args(parser, mandatory=False):
     parser.add_argument(arg_name,
                         choices=choices, default=def_val,
                         help=help_msg)
+
+
+def validate_nbr_processes(parser, args, default_nbr_cpu=None):
+    """ Check if the passed number of processes arg is valid.
+    If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse.
+    args: argparse namespace
+        Args as created by argparse.
+    default_nbr_cpu: int (or None)
+        Number of cpu to use, default is cpu_count (all).
+
+    Results
+    ------
+    nbr_cpu
+        The number of CPU to be used.
+    """
+
+    if args.nbr_processes:
+        nbr_cpu = args.nbr_processes
+    else:
+        nbr_cpu = multiprocessing.cpu_count()
+
+    if nbr_cpu <= 0:
+        parser.error('Number of processes must be > 0.')
+    elif nbr_cpu > multiprocessing.cpu_count():
+        parser.error('Max number of processes is {}. Got {}.'.format(
+            multiprocessing.cpu_count(), nbr_cpu))
+
+    return nbr_cpu
 
 
 def validate_sh_basis_choice(sh_basis):
