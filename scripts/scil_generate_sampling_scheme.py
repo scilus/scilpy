@@ -14,6 +14,7 @@ to minimize the total diffusion gradient amplitude over a few TR.
 import argparse
 import logging
 import numpy as np
+import os
 
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)

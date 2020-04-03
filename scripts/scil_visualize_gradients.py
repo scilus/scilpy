@@ -79,7 +79,7 @@ def main():
         assert_gradients_filenames_valid(parser, args.scheme_file, 'fsl')
     elif len(args.scheme_file) == 1:
         basename, ext = os.splitext(args.scheme_file)
-        if ext in ['bvec','bvecs','bvals','bval']:
+        if ext in ['bvec', 'bvecs', 'bvals', 'bval']:
             parser.error('You should input two files for fsl format (.bvec '
                          'and .bval).')
         else:
