@@ -147,7 +147,7 @@ def main():
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)
 
-    out_basename, _ = os.splitext(args.out_basename)
+    out_basename, _ = os.path.splitext(args.out_basename)
 
     # Scheme generation
     points, shell_idx = generate_scheme(Ks, verbose=int(
