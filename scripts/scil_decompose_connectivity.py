@@ -30,7 +30,7 @@ from dipy.io.stateful_tractogram import (Origin, Space,
                                          set_sft_logger_level)
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamlinespeed import length
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -102,6 +102,7 @@ def _save_if_needed(streamlines, args,
                                                    out_label))
         sft = StatefulTractogram(streamlines, args.in_tractogram,
                                  Space.VOX, origin=Origin.TRACKVIS)
+
         save_tractogram(sft, out_name)
 
 
@@ -126,8 +127,8 @@ def build_arg_parser():
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
     p.add_argument('labels',
-                   help='Labels file name (nifti). Labels must be consecutive '
-                        'from 0 to N, with 0 the background. '
+                   help='Labels file name (nifti).\nLabels must be consecutive '
+                        'from 0 to N, with 0 the background.\n'
                         'This generates a NxN connectivity matrix.')
     p.add_argument('output_dir',
                    help='Output directory path.')
@@ -156,14 +157,14 @@ def build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.3,
+    og.add_argument('--outlier_threshold', type=float, default=0.6,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
-    og.add_argument('--loop_max_angle', type=float, default=360.,
+    og.add_argument('--loop_max_angle', type=float, default=330.,
                     help='Maximal winding angle over which a streamline is '
                          'considered as looping. [%(default)s]')
     og.add_argument('--curv_qb_distance', type=float, default=10.,
-                    help='Maximal distance to a centroid for loop / turn '
+                    help='Maximal distance to a centroid for curvature '
                          'filtering with QB. [%(default)s]')
 
     s = p.add_argument_group('Saving options')
@@ -178,9 +179,13 @@ def build_arg_parser():
                         'subdirectories.\n'
                         'Includes loops, outliers and qb_loops')
 
-    add_overwrite_arg(p)
+    p.add_argument('--out_labels_list', metavar='OUT_FILE',
+                   help='Save the labels list as text file.\n'
+                        'Needed for scil_compute_connectivity.py and others.')
+
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -204,9 +209,12 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
-    img_labels = nb.load(args.labels)
-    data_labels = img_labels.get_data()
+    img_labels = nib.load(args.labels)
+    data_labels = img_labels.get_fdata().astype(np.int16)
     real_labels = np.unique(data_labels)[1:]
+    if args.out_labels_list:
+        np.savetxt(args.out_labels_list, real_labels, fmt='%i')
+
     if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
         parser.error("Label image should contain integers for labels.")
 
@@ -235,7 +243,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Discarded {} streamlines from filtering in {} sec.'.format(
-          original_len - len(sft), round(time2 - time1, 2)))
+            original_len - len(sft), round(time2 - time1, 2)))
     logging.info('    Number of streamlines to process: {}'.format(len(sft)))
 
     # Get all streamlines intersection indices
@@ -252,7 +260,7 @@ def main():
     logging.info('*** Computing connectivity information ***')
     time1 = time.time()
     con_info = compute_connectivity(indices,
-                                    img_labels.get_data(), real_labels,
+                                    data_labels, real_labels,
                                     extract_longest_segments_from_profile)
     time2 = time.time()
     logging.info('    Connectivity computation took {} sec.'.format(
@@ -267,6 +275,7 @@ def main():
 
     # Saving will be done from streamlines already in the right space
     comb_list = list(itertools.combinations(real_labels, r=2))
+    comb_list.extend(zip(real_labels, real_labels))
 
     iteration_counter = 0
     for in_label, out_label in comb_list:
@@ -379,7 +388,7 @@ def main():
     time2 = time.time()
     logging.info(
         '    Connections post-processing and saving took {} sec.'.format(
-          round(time2 - time1, 2)))
+            round(time2 - time1, 2)))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import multiprocessing
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -12,13 +13,13 @@ from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
     """
-    Associate the bundle to their reference (if they require a reference)
+    Associate the bundle to their reference (if they require a reference).
     Parameters
     ----------
     parser: argparse.ArgumentParser object
-        Parser as created by argparse
+        Parser as created by argparse.
     args: argparse namespace
-        Args as created by argparse
+        Args as created by argparse.
     input_tractogram_list: list
         List of tractogram paths.
     Returns
@@ -125,6 +126,39 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
+def validate_nbr_processes(parser, args, default_nbr_cpu=None):
+    """ Check if the passed number of processes arg is valid.
+    If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser as created by argparse.
+    args: argparse namespace
+        Args as created by argparse.
+    default_nbr_cpu: int (or None)
+        Number of cpu to use, default is cpu_count (all).
+
+    Results
+    ------
+    nbr_cpu
+        The number of CPU to be used.
+    """
+
+    if args.nbr_processes:
+        nbr_cpu = args.nbr_processes
+    else:
+        nbr_cpu = multiprocessing.cpu_count()
+
+    if nbr_cpu <= 0:
+        parser.error('Number of processes must be > 0.')
+    elif nbr_cpu > multiprocessing.cpu_count():
+        parser.error('Max number of processes is {}. Got {}.'.format(
+            multiprocessing.cpu_count(), nbr_cpu))
+
+    return nbr_cpu
+
+
 def validate_sh_basis_choice(sh_basis):
     """ Check if the passed sh_basis arg to a fct is right.
 
@@ -218,7 +252,8 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     for cur_dir in dirs:
         if not os.path.isdir(cur_dir):
             if not create_dir:
-                parser.error('Output directory {} doesn\'t exist.'.format(cur_dir))
+                parser.error(
+                    'Output directory {} doesn\'t exist.'.format(cur_dir))
             else:
                 os.makedirs(cur_dir, exist_ok=True)
         if os.listdir(cur_dir):
@@ -265,3 +300,27 @@ def read_info_from_mb_bdo(filename):
     radius = np.asarray(radius, dtype=np.float32)
     center = np.asarray(center, dtype=np.float32)
     return geometry, radius, center
+
+
+def load_matrix_in_any_format(filepath):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        data = np.loadtxt(filepath)
+    elif ext == '.npy':
+        data = np.load(filepath)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
+
+    return data
+
+
+def save_matrix_in_any_format(filepath, output_data):
+    _, ext = os.path.splitext(filepath)
+    if ext == '.txt':
+        np.savetxt(filepath, output_data)
+    elif ext == '.npy':
+        np.save(filepath, output_data)
+    elif ext == '':
+        np.save('{}.npy'.format(filepath), output_data)
+    else:
+        raise ValueError('Extension {} is not supported'.format(ext))
