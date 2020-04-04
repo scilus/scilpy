@@ -46,8 +46,8 @@ def _build_arg_parser():
 
     p.add_argument('nb_samples',
                    type=int, nargs='+',
-                   help='Number of samples on each shells. If multishell, '
-                        'provide a number per shell.')
+                   help='Number of samples on each non b0 shell. '
+                        'If multishell, provide a number per shell.')
     p.add_argument('out_basename',
                    help='Sampling scheme output basename (don\'t '
                         'include extension).\n'
@@ -62,7 +62,7 @@ def _build_arg_parser():
                    help='Apply duty cycle optimization. '
                         '\nB-vectors are shuffled to reduce consecutive '
                         'colinearity in the samples. [%(default)s]')
-    p.add_argument('--b0_inter',
+    p.add_argument('--b0_every',
                    type=int, default=-1,
                    help='Interleave a b0 every b0_every. \nNo b0 if 0. '
                         '\nOnly 1 b0 at beginning if > number of samples '
@@ -113,6 +113,8 @@ def main():
         parser.error('Select at least one save format.')
         return
 
+    out_basename, _ = os.path.splitext(args.out_basename)
+
     if fsl:
         out_filename = [out_basename + '.bval', out_basename + '.bvec']
     else:
@@ -144,9 +146,10 @@ def main():
     # Compute bval list
     if args.bvals is not None:
         bvals = args.bvals
-        if len(bvals) != Ks:
-            parser.error('You have provided {} shells ' +
-                         ' but only {} bvals'.format(Ks, len(bvals)))
+        unique_bvals = np.unique(bvals)
+        if len(unique_bvals) != S:
+            parser.error('You have provided {} shells '.format(S) +
+                         'but only {} unique bvals.'.format(len(unique_bvals)))
 
     elif args.b_lin_max is not None:
         bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
@@ -157,8 +160,6 @@ def main():
     # Add b0 b-value
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)
-
-    out_basename, _ = os.path.splitext(args.out_basename)
 
     # Scheme generation
     points, shell_idx = generate_scheme(Ks, verbose=int(

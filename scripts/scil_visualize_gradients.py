@@ -134,7 +134,7 @@ def main():
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=out_basename, ores=(args.res, arg.res))
+                        ofile=out_basename, ores=(args.res, args.res))
     if each:
         plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
