@@ -10,17 +10,24 @@ import logging
 import bct
 import numpy as np
 
-from scilpy.image.operations import invert
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist,
-                             load_matrix_in_any_format,
-                             save_matrix_in_any_format)
+                             load_matrix_in_any_format)
+
+
+EPILOG = """
+References:
+    [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+        connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+        1059-1069.
+"""
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=EPILOG)
 
     p.add_argument('--in_g1', nargs='+', required=True,
                    help='')
