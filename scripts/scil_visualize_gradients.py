@@ -116,7 +116,7 @@ def main():
     if args.out_basename:
         out_basename, ext = os.path.splitext(args.out_basename)
         possible_output_paths = [out_basename + '_shell_' + str(i) +
-                                '.png' for i in centroids]
+                                 '.png' for i in centroids]
         possible_output_paths.append(out_basename + '.png')
         assert_outputs_exist(parser, args, possible_output_paths)
 
