@@ -36,11 +36,11 @@ def _build_arg_parser():
         '--dis-sym', action='store_false', dest='enable_sym',
         help='Disable antipodal symmetry.')
     p.add_argument(
-        '--out',
+        '--out_basename',
         help='Output file name picture without extension ' +
              '(will be png file(s)).')
     p.add_argument(
-        '--res', type=int, default=(300, 300), nargs='+',
+        '--res', type=int, default=300,
         help='Resolution of the output picture(s).')
 
     g1 = p.add_argument_group(title='Enable/Disable renderings.')
@@ -51,7 +51,7 @@ def _build_arg_parser():
         '--dis-proj', action='store_false', dest='enable_proj',
         help='Disable rendering of the projection supershell.')
     g1.add_argument(
-        '--plot-shells', action='store_true', dest='plot_shells',
+        '--plot_shells', action='store_true',
         help='Enable rendering each shell individually.')
 
     g2 = p.add_argument_group(title='Rendering options.')
@@ -89,12 +89,6 @@ def main():
                      'two files for FSL format and one file for MRtrix')
 
     out_basename = None
-    if args.out:
-        out_basename, ext = os.path.splitext(args.out)
-        possibleOutputPaths = [out_basename + '_shell_' + str(i) +
-                               '.png' for i in range(30)]
-        possibleOutputPaths.append(out_basename + '.png')
-        assert_outputs_exist(parser, args, possibleOutputPaths)
 
     proj = args.enable_proj
     each = args.plot_shells
@@ -119,6 +113,13 @@ def main():
         bvals = tmp[:, 3]
         centroids, shell_idx = identify_shells(bvals)
 
+    if args.out_basename:
+        out_basename, ext = os.path.splitext(args.out_basename)
+        possible_output_paths = [out_basename + '_shell_' + str(i) +
+                                '.png' for i in centroids]
+        possible_output_paths.append(out_basename + '.png')
+        assert_outputs_exist(parser, args, possible_output_paths)
+
     for b0 in centroids[centroids < 40]:
         shell_idx[shell_idx == b0] = -1
         centroids = np.delete(centroids,  np.where(centroids == b0))
@@ -133,11 +134,11 @@ def main():
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=out_basename, ores=tuple(args.res))
+                        ofile=out_basename, ores=(args.res, arg.res))
     if each:
         plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,
-                        ofile=out_basename, ores=tuple(args.res))
+                        ofile=out_basename, ores=(args.res, args.res))
 
 
 if __name__ == "__main__":

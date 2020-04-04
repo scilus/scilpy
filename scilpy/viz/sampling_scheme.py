@@ -61,7 +61,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_col
         affine = np.eye(4)
 
     for i, shell in enumerate(ms):
-        logging.info('Showing shell {}'.format(centroids[i]))
+        logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
         ren = window.Renderer()
@@ -79,7 +79,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_col
         window.show(ren)
 
         if ofile:
-            window.snapshot(ren, fname=ofile + '_shell_' + str(centroids[i]) + '.png',
+            window.snapshot(ren, fname=ofile + '_shell_' +
+                            str(int(centroids[i])) + '.png',
                             size=ores)
 
 

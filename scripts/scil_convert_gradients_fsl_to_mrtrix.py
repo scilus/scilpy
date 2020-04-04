@@ -19,13 +19,13 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('fsl_bval',
-                   help='path to FSL b-value file (.bval).')
+                   help='Path to FSL b-value file (.bval).')
 
     p.add_argument('fsl_bvec',
-                   help='path to FSL gradient directions file (.bvec).')
+                   help='Path to FSL gradient directions file (.bvec).')
 
     p.add_argument('mrtrix_enc',
-                   help='path to gradient directions encoding file (.b).')
+                   help='Path to gradient directions encoding file (.b).')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)

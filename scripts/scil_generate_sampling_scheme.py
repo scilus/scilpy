@@ -62,28 +62,28 @@ def _build_arg_parser():
                    help='Apply duty cycle optimization. '
                         '\nB-vectors are shuffled to reduce consecutive '
                         'colinearity in the samples. [%(default)s]')
-    p.add_argument('--b0inter',
-                   dest='b0_every', type=int, default=-1,
+    p.add_argument('--b0_inter',
+                   type=int, default=-1,
                    help='Interleave a b0 every b0_every. \nNo b0 if 0. '
                         '\nOnly 1 b0 at beginning if > number of samples '
                         'or negative. [%(default)s]')
-    p.add_argument('--b0end',
-                   action='store_true', dest='b0_end',
+    p.add_argument('--b0_end',
+                   action='store_true',
                    help='Add a b0 as last sample. [%(default)s]')
-    p.add_argument('--b0value',
-                   dest='b0_value', type=float, default=0.0,
+    p.add_argument('--b0_value',
+                   type=float, default=0.0,
                    help='b-value of the b0s. [%(default)s]')
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
     bvals_group.add_argument('--bvals',
                              type=float, nargs='+', metavar='bvals',
                              help='bval of each non-b0 shell.')
-    bvals_group.add_argument('--blinmax',
-                             dest='b_lin_max', type=float,
+    bvals_group.add_argument('--b_lin_max',
+                             type=float,
                              help='b-max for linear bval distribution '
                                   'in *b*. [replaces -bvals]')
-    bvals_group.add_argument('--qlinmax',
-                             dest='q_lin_max', type=float,
+    bvals_group.add_argument('--q_lin_max',
+                             type=float,
                              help='b-max for linear bval distribution '
                                   'in *q*. [replaces -bvals]')
 
@@ -113,6 +113,13 @@ def main():
         parser.error('Select at least one save format.')
         return
 
+    if fsl:
+        out_filename = [out_basename + '.bval', out_basename + '.bvec']
+    else:
+        out_filename = out_basename + '.b'
+
+    assert_outputs_exist(parser, args, out_filename)
+
     logging.basicConfig(level=logging.INFO)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -137,6 +144,10 @@ def main():
     # Compute bval list
     if args.bvals is not None:
         bvals = args.bvals
+        if len(bvals) != Ks:
+            parser.error('You have provided {} shells ' +
+                         ' but only {} bvals'.format(Ks, len(bvals)))
+
     elif args.b_lin_max is not None:
         bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
                                      nb_of_b_inside=S - 1, exclude_bmin=True)
@@ -170,14 +181,11 @@ def main():
             points, shell_idx, bvals)
 
     if fsl:
-        out_fsl = [out_basename + '.bval', out_basename + '.bvec']
-        assert_outputs_exist(parser, args, out_fsl)
         save_scheme_bvecs_bvals(points, shell_idx, bvals,
-                                out_fsl[0], out_fsl[1])
+                                out_filename[0], out_filename[1])
 
     if mrtrix:
-        assert_outputs_exist(parser, args, out_basename + '.b')
-        save_scheme_mrtrix(points, shell_idx, bvals, filename=out_basename)
+        save_scheme_mrtrix(points, shell_idx, bvals, filename=out_filename)
 
 
 if __name__ == "__main__":
