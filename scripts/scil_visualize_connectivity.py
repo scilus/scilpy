@@ -4,7 +4,7 @@
 """
 Script to display a connectivity matrix and adjust the desired visualization.
 Made to work with scil_decompose_connectivity.py and
-scil_visualize_connectivity.py.
+scil_reorder_connectivity.py.
 
 This script can either display the axis labels as:
 - Coordinates (0..N)
@@ -70,6 +70,8 @@ def _build_arg_parser():
     histo = p.add_argument_group(title='Histogram options')
     histo.add_argument('--histogram', metavar='FILENAME',
                        help='Compute and display/save an histogram of weigth.')
+    histo.add_argument('--nb_bins', type=int,
+                       help='Number of bins to use for the histogram.')
     histo.add_argument('--exclude_zeros', action='store_true',
                        help='Exclude the zeros from the histogram.')
 
@@ -194,7 +196,8 @@ def main():
         if args.exclude_zeros:
             min_value = EPSILON
         N, bins, patches = ax.hist(matrix.ravel(),
-                                   range=(min_value, matrix.max()))
+                                   range=(min_value, matrix.max()),
+                                   bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
         for i in range(0, nbr_bins):

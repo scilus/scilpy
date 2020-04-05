@@ -2,13 +2,19 @@
 # -*- coding: utf-8 -*-
 
 """
-Output the list of filename using the coordinates for a binary connectivity
+Output the list of filenames using the coordinates from a binary connectivity
 matrix. Typically used to move around files that are considered valid after
 the scil_filter_connectivity.py script.
 
 Example:
-scil_print_connectivity_filenames.py filtering_mask.npy labels_list.txt pass.txt
-for file in $(cat pass.txt); do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/; done
+# Keep connections with more than 1000 streamlines for 100% of a population
+scil_filter_connectivity.py filtering_mask.npy
+    --greater_than */streamlines_count.npy 1000 1.0
+scil_print_connectivity_filenames.py filtering_mask.npy
+    labels_list.txt pass.txt
+for file in $(cat pass.txt);
+    do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
+done
 """
 
 import argparse
