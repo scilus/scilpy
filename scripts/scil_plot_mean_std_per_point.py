@@ -24,7 +24,7 @@ def _build_arg_parser():
                         'example, can be created using '
                         'scil_compute_metrics_along_streamline.')
     p.add_argument('out_dir',
-                   help='Output directory')
+                   help='Output directory.')
 
     p.add_argument('--fill_color',
                    help='Hexadecimal RGB color filling the region between '
