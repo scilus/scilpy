@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
+import os
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def weighted_mean_stddev(weights, data):
@@ -29,25 +34,20 @@ def weighted_mean_stddev(weights, data):
     return mean, np.sqrt(variance)
 
 
-def get_metrics_stats_over_streamlines(streamlines, metrics_files,
-                                       density_weighting=True):
+def get_bundle_metrics_mean_std(streamlines, metrics_files,
+                                density_weighting=True):
     """
-    Returns the mean value of each metric, only considering voxels that
-    are crossed by streamlines. The mean values are weighted by the number of
-    streamlines crossing a voxel by default. If false, every voxel traversed
-    by a streamline has the same weight.
+    Returns the mean value of each metric for the whole bundle, only
+    considering voxels that are crossed by streamlines. The mean values are
+    weighted by the number of streamlines crossing a voxel by default.
+    If false, every voxel traversed by a streamline has the same weight.
 
     Parameters
     ------------
-    streamlines : sequence
-        sequence of T streamlines. One streamline is an ndarray of shape
-        (N, 3), where N is the number of points in that streamline, and
-        ``streamlines[t][n]`` is the n-th point in the t-th streamline. Points
-        are of form x, y, z in voxmm coordinates.
-
+    streamlines : list of numpy.ndarray
+        Input streamlines under which to compute stats.
     metrics_files : sequence
         list of nibabel objects representing the metrics files
-
     density_weighting : bool
         weigh by the mean by the density of streamlines going through the voxel
 
@@ -55,8 +55,8 @@ def get_metrics_stats_over_streamlines(streamlines, metrics_files,
     ---------
     stats : list
         list of tuples where the first element of the tuple is the mean
-        of a metric, and the second element is the standard deviation
-
+        of a metric, and the second element is the standard deviation, for each
+        metric.
     """
 
     # Compute weighting matrix taking the possible compression into account
@@ -71,3 +71,144 @@ def get_metrics_stats_over_streamlines(streamlines, metrics_files,
                     weights,
                     metric_file.get_data().astype(np.float64)),
                metrics_files)
+
+
+def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
+                                          distances_to_centroid_streamline,
+                                          metrics, labels, density_weighting=False,
+                                          distance_weighting=False):
+    """
+    Compute the mean and std PER POiNT of the bundle for every given metric.
+
+    Parameters
+    ----------
+    streamlines: list of numpy.ndarray
+        Input streamlines under which to compute stats.
+    bundle_name: str
+        Name of the bundle. Will be used as a key in the dictionary.
+    distances_to_centroid_streamline: np.ndarray
+        List of distances obtained with scil_label_and_distance_maps.py
+    metrics: sequence
+        list of nibabel objects representing the metrics files
+    labels: np.ndarray
+        List of labels obtained with scil_label_and_distance_maps.py
+    density_weighting: bool
+        If true, weight statistics by the number of streamlines passing through
+        each voxel. [False]
+    distance_weighting: bool
+        If true, weight statistics by the inverse of the distance between a
+        streamline and the centroid.
+
+    Returns
+    -------
+    stats
+    """
+    # Computing infos on bundle
+    unique_labels = np.unique(labels)
+    num_digits_labels = len(str(np.max(unique_labels)))
+    if density_weighting:
+        track_count = compute_tract_counts_map(streamlines,
+                                               metrics[0].shape).astype(np.float64)
+    else:
+        track_count = np.ones(metrics[0].shape)
+
+    # Bigger weight near the centroid streamline
+    distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
+
+    # Keep data as int to get the underlying voxel
+    bundle_data_int = streamlines.data.astype(np.int)
+
+    # Get stats
+    stats = {bundle_name: {}}
+    for metric in metrics:
+        metric_data = metric.get_fdata()
+        current_metric_fname, _ = split_name_with_nii(
+            os.path.basename(metric.get_filename()))
+        stats[bundle_name][current_metric_fname] = {}
+
+        for i in unique_labels:
+            number_key = '{}'.format(i).zfill(num_digits_labels)
+            label_stats = {}
+            stats[bundle_name][current_metric_fname][number_key] = label_stats
+
+            label_indices = bundle_data_int[labels == i]
+            label_metric = metric_data[label_indices[:, 0],
+                                       label_indices[:, 1],
+                                       label_indices[:, 2]]
+            track_weight = track_count[label_indices[:, 0],
+                                       label_indices[:, 1],
+                                       label_indices[:, 2]]
+            label_weight = track_weight
+            if distance_weighting:
+                label_weight *= distances_to_centroid_streamline[labels == i]
+            if np.sum(label_weight) == 0:
+                logging.warning('Weights sum to zero, can\'t be normalized. '
+                                'Disabling weighting')
+                label_weight = None
+
+            label_mean = np.average(label_metric,
+                                    weights=label_weight)
+            label_std = np.sqrt(np.average(
+                (label_metric - label_mean) ** 2,
+                weights=label_weight))
+            label_stats['mean'] = float(label_mean)
+            label_stats['std'] = float(label_std)
+    return stats
+
+
+def plot_metrics_stats(mean, std, title=None, xlabel=None,
+                       ylabel=None, figlabel=None, fill_color=None):
+    """
+    Plots the mean of a metric along n points with the standard deviation.
+
+    Parameters
+    ----------
+    mean: Numpy 1D array of size n
+        Mean of the metric along n points.
+    std: Numpy 1D array of size n
+        Standard deviation of the metric along n points.
+    title: string
+        Title of the figure.
+    xlabel: string
+        Label of the X axis.
+    ylabel: string
+        Label of the Y axis (suggestion: the metric name).
+    figlabel: string
+        Label of the figure (only metadata in the figure object returned).
+    fill_color: string
+        Hexadecimal RGB color filling the region between mean ± std. The
+        hexadecimal RGB color should be formatted as #RRGGBB
+
+    Return
+    ------
+    The figure object.
+    """
+    matplotlib.style.use('ggplot')
+
+    fig, ax = plt.subplots()
+
+    # Set optional information to the figure, if required.
+    if title is not None:
+        ax.set_title(title)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if figlabel is not None:
+        fig.set_label(figlabel)
+
+    dim = np.arange(1, len(mean)+1, 1)
+
+    if len(mean) <= 20:
+        ax.xaxis.set_ticks(dim)
+
+    ax.set_xlim(0, len(mean)+1)
+
+    # Plot the mean line.
+    ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
+
+    # Plot the std
+    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color)
+
+    plt.close(fig)
+    return fig
