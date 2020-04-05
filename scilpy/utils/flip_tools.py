@@ -3,26 +3,26 @@
 import numpy as np
 
 
-def flip_mrtrix_gradient_sampling(encoding_scheme_filename,
-                                  encoding_scheme_flipped_filename, axes):
+def flip_mrtrix_gradient_sampling(gradient_sampling_filename,
+                                  gradient_sampling_flipped_filename, axes):
     """
     Flip Mrtrix gradient sampling on a axis
 
     Parameters
     ----------
-    encoding_scheme_filename: str
-        Encoding scheme filename
-    encoding_scheme_flipped_filename: str
-        Encoding scheme flipped filename
+    gradient_sampling_filename: str
+        Gradient sampling filename
+    gradient_sampling_flipped_filename: str
+        Gradient sampling flipped filename
     axes: list of int
         List of axes to flip (e.g. [0, 1])
     """
-    encoding_scheme = np.loadtxt(encoding_scheme_filename)
+    gradient_sampling = np.loadtxt(gradient_sampling_filename)
     for axis in axes:
-        encoding_scheme[:, axis] *= -1
+        gradient_sampling[:, axis] *= -1
 
-    np.savetxt(encoding_scheme_flipped_filename,
-               encoding_scheme,
+    np.savetxt(gradient_sampling_flipped_filename,
+               gradient_sampling,
                "%.8f %.8f %.8f %0.6f")
 
 

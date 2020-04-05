@@ -54,5 +54,4 @@ def save_gradient_sampling_fsl(points, shell_idx, bvals, filename_bval,
     np.savetxt(filename_bvec, points, fmt='%.8f')
     np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
-    logging.info('Gradient sampling saved in FSL format as {}'.format(basename +
-                                                           '{.bvec/.bval}'))
+    logging.info('Gradient sampling saved in FSL format as {}'.format(basename + '{.bvec/.bval}'))
