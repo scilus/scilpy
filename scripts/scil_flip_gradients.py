@@ -1,13 +1,14 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Flip one or more axes of the encoding scheme matrix.
+Flip one or more axes of the gradient sampling matrix.
 """
 import argparse
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.flip_tools import flip_mrtrix_encoding_scheme, flip_fsl_bvecs
+from scilpy.utils.flip_tools import (flip_mrtrix_gradient_sampling,
+                                     flip_fsl_gradient_sampling)
 from scilpy.utils.util import str_to_index
 
 
@@ -15,11 +16,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('encoding_file',
-                   help='Path to encoding file.')
+    p.add_argument('gradient_sampling_file',
+                   help='Path to gradient sampling file.')
 
-    p.add_argument('flipped_encoding',
-                   help='Path to the flipped encoding file.')
+    p.add_argument('flipped_sampling_file',
+                   help='Path to the flipped gradient sampling file.')
 
     p.add_argument('axes', metavar='dimension',
                    choices=['x', 'y', 'z'], nargs='+',
@@ -42,15 +43,18 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.encoding_file)
-    assert_outputs_exist(parser, args, args.flipped_encoding)
+    assert_inputs_exist(parser, args.gradient_sampling_file)
+    assert_outputs_exist(parser, args, args.flipped_sampling_file)
 
     indices = [str_to_index(axis) for axis in list(args.axes)]
     if args.fsl_bvecs:
-        flip_fsl_bvecs(args.encoding_file, args.flipped_encoding, indices)
+        flip_fsl_gradient_sampling(args.gradient_sampling_file,
+                                   args.flipped_sampling_file,
+                                   indices)
     else:
-        flip_mrtrix_encoding_scheme(args.encoding_file, args.flipped_encoding,
-                                    indices)
+        flip_mrtrix_gradient_sampling(args.gradient_sampling_file,
+                                      args.flipped_sampling_file,
+                                      indices)
 
 
 if __name__ == "__main__":

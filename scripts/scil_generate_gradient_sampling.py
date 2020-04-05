@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Generate multi-shell sampling schemes with various processing to accelerate
+Generate multi-shell gradient sampling with various processing to accelerate
 acquisition and help artefact correction.
 
-Multi-shell schemes are generated as in [1], the bvecs are then flipped
+Multi-shell gradient sampling is generated as in [1], the bvecs are then flipped
 to maximize spread for eddy current correction, b0s are interleaved
 at equal spacing and the non-b0 samples are finally shuffled
 to minimize the total diffusion gradient amplitude over a few TR.
@@ -18,20 +18,20 @@ import os
 
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.samplingscheme.gen_scheme import generate_scheme
-from scilpy.samplingscheme.optimize_scheme import (add_b0s,
-                                                   add_bvalue_b0,
-                                                   compute_bvalue_lin_b,
-                                                   compute_bvalue_lin_q,
-                                                   compute_min_duty_cycle_bruteforce,
-                                                   swap_sampling_eddy)
-from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
-                                               save_scheme_mrtrix)
+from scilpy.gradientsampling.gen_gradient_sampling import generate_gradient_sampling
+from scilpy.gradientsampling.optimize_gradient_sampling import (add_b0s,
+                                                                add_bvalue_b0,
+                                                                compute_bvalue_lin_b,
+                                                                compute_bvalue_lin_q,
+                                                                compute_min_duty_cycle_bruteforce,
+                                                                swap_sampling_eddy)
+from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampling_fsl,
+                                                            save_gradient_sampling_mrtrix)
 
 
 EPILOG = """
 References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
-Rachid Deriche. Design of multishell sampling schemes with uniform coverage
+Rachid Deriche. Design of multishell gradient sampling with uniform coverage
 in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
 pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
     """
@@ -49,7 +49,7 @@ def _build_arg_parser():
                    help='Number of samples on each non b0 shell. '
                         'If multishell, provide a number per shell.')
     p.add_argument('out_basename',
-                   help='Sampling scheme output basename (don\'t '
+                   help='Gradient sampling output basename (don\'t '
                         'include extension).\n'
                         'Please add options --fsl and/or --mrtrix below.')
 
@@ -161,8 +161,8 @@ def main():
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)
 
-    # Scheme generation
-    points, shell_idx = generate_scheme(Ks, verbose=int(
+    # Gradient sampling generation
+    points, shell_idx = generate_gradient_sampling(Ks, verbose=int(
         3 - logging.getLogger().getEffectiveLevel()//10))
 
     # eddy current optimization
@@ -182,11 +182,14 @@ def main():
             points, shell_idx, bvals)
 
     if fsl:
-        save_scheme_bvecs_bvals(points, shell_idx, bvals,
-                                out_filename[0], out_filename[1])
+        save_gradient_sampling_fsl(points, shell_idx, bvals,
+                                   out_filename[0], out_filename[1])
 
     if mrtrix:
-        save_scheme_mrtrix(points, shell_idx, bvals, filename=out_filename)
+        if not points.shape[0] == 3:
+            points = points.transpose()
+            save_gradient_sampling_mrtrix(points, shell_idx, bvals,
+                                          filename=out_filename)
 
 
 if __name__ == "__main__":

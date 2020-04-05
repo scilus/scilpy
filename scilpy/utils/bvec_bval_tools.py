@@ -5,8 +5,8 @@ import logging
 import numpy as np
 
 from scilpy.image.utils import volume_iterator
-from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
-                                               save_scheme_mrtrix)
+from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampling_fsl,
+                                                            save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
 
@@ -147,10 +147,10 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
                         'Transposing them.')
 
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-    save_scheme_mrtrix(points,
-                       shell_idx,
-                       bvals,
-                       mrtrix_filename)
+    save_gradient_sampling_mrtrix(points,
+                                  shell_idx,
+                                  bvals,
+                                  mrtrix_filename)
 
 
 def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
@@ -182,11 +182,11 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     bvals = np.unique(shells).tolist()
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
-    save_scheme_bvecs_bvals(points,
-                            shell_idx,
-                            bvals,
-                            filename_bval=fsl_bval_filename,
-                            filename_bvec=fsl_bvec_filename)
+    save_gradient_sampling_fsl(points,
+                               shell_idx,
+                               bvals,
+                               filename_bval=fsl_bval_filename,
+                               filename_bvec=fsl_bvec_filename)
 
 
 def identify_shells(bvals, threshold=40.0):

@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 
-def save_scheme_mrtrix(points, shell_idx, bvals, filename):
+def save_gradient_sampling_mrtrix(points, shell_idx, bvals, filename):
     """
     Save table gradient (MRtrix format)
 
@@ -28,11 +28,11 @@ def save_scheme_mrtrix(points, shell_idx, bvals, filename):
                                                         points[2, idx],
                                                         bvals[shell_idx[idx]]))
 
-    logging.info('Scheme saved in MRtrix format as {}'.format(filename))
+    logging.info('Gradient sampling saved in MRtrix format as {}'.format(filename))
 
 
-def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename_bval,
-                            filename_bvec):
+def save_gradient_sampling_fsl(points, shell_idx, bvals, filename_bval,
+                               filename_bvec):
     """
     Save table gradient (FSL format)
 
@@ -54,5 +54,5 @@ def save_scheme_bvecs_bvals(points, shell_idx, bvals, filename_bval,
     np.savetxt(filename_bvec, points, fmt='%.8f')
     np.savetxt(filename_bval, np.array([bvals[idx] for idx in shell_idx])[None, :], fmt='%.3f')
 
-    logging.info('Scheme saved in FSL format as {}'.format(basename +
+    logging.info('Gradient sampling saved in FSL format as {}'.format(basename +
                                                            '{.bvec/.bval}'))

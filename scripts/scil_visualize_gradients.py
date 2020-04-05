@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Vizualisation for sampling schemes.
+Vizualisation for gradient sampling.
 Only supports .bvec/.bval and .b (MRtrix).
 """
 
@@ -17,9 +17,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_gradients_filenames_valid,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.viz.sampling_scheme import (build_ms_from_shell_idx,
-                                        plot_each_shell,
-                                        plot_proj_shell)
+from scilpy.viz.gradient_sampling import (build_ms_from_shell_idx,
+                                          plot_each_shell,
+                                          plot_proj_shell)
 
 
 def _build_arg_parser():
@@ -28,9 +28,9 @@ def _build_arg_parser():
         description=__doc__)
 
     p.add_argument(
-        'scheme_file', metavar='scheme_file', nargs='+',
-        help='Sampling scheme filename. (only accepts .bvec and .bval together'
-             ' or only .b).')
+        'gradient_sampling_file', metavar='gradient_sampling_file', nargs='+',
+        help='Gradient sampling filename. (only accepts .bvec and .bval '
+             'together or only .b).')
 
     p.add_argument(
         '--dis-sym', action='store_false', dest='enable_sym',
@@ -70,20 +70,20 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    assert_inputs_exist(parser, args.scheme_file)
+    assert_inputs_exist(parser, args.gradient_sampling_file)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    if len(args.scheme_file) == 2:
-        assert_gradients_filenames_valid(parser, args.scheme_file, 'fsl')
-    elif len(args.scheme_file) == 1:
-        basename, ext = os.path.splitext(args.scheme_file[0])
+    if len(args.gradient_sampling_file) == 2:
+        assert_gradients_filenames_valid(parser, args.gradient_sampling_file, 'fsl')
+    elif len(args.gradient_sampling_file) == 1:
+        basename, ext = os.path.splitext(args.gradient_sampling_file[0])
         if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
             parser.error('You should input two files for fsl format (.bvec '
                          'and .bval).')
         else:
-            assert_gradients_filenames_valid(parser, args.scheme_file, 'mrtrix')
+            assert_gradients_filenames_valid(parser, args.gradient_sampling_file, 'mrtrix')
     else:
         parser.error('Depending on the gradient format you should have '
                      'two files for FSL format and one file for MRtrix')
@@ -96,19 +96,19 @@ def main():
     if not (proj or each):
         parser.error('Select at least one type of rendering (proj or each).')
 
-    if len(args.scheme_file) == 2:
-        scheme_files = args.scheme_file
-        scheme_files.sort()  # [bval, bvec]
+    if len(args.gradient_sampling_file) == 2:
+        gradient_sampling_files = args.gradient_sampling_file
+        gradient_sampling_files.sort()  # [bval, bvec]
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-        points = np.genfromtxt(scheme_files[1])
+        points = np.genfromtxt(gradient_sampling_files[1])
         if points.shape[0] == 3:
             points = points.T
-        bvals = np.genfromtxt(scheme_files[0])
+        bvals = np.genfromtxt(gradient_sampling_files[0])
         centroids, shell_idx = identify_shells(bvals)
     else:
         # MRtrix format X, Y, Z, b
-        scheme_file = args.scheme_file[0]
-        tmp = np.genfromtxt(scheme_file, delimiter=' ')
+        gradient_sampling_file = args.gradient_sampling_file[0]
+        tmp = np.genfromtxt(gradient_sampling_file, delimiter=' ')
         points = tmp[:, :3]
         bvals = tmp[:, 3]
         centroids, shell_idx = identify_shells(bvals)

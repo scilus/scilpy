@@ -3,10 +3,10 @@
 import numpy as np
 
 
-def flip_mrtrix_encoding_scheme(encoding_scheme_filename,
-                                encoding_scheme_flipped_filename, axes):
+def flip_mrtrix_gradient_sampling(encoding_scheme_filename,
+                                  encoding_scheme_flipped_filename, axes):
     """
-    Flip Mrtrix encoding scheme on a axis
+    Flip Mrtrix gradient sampling on a axis
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def flip_mrtrix_encoding_scheme(encoding_scheme_filename,
                "%.8f %.8f %.8f %0.6f")
 
 
-def flip_fsl_bvecs(bvecs_filename, bvecs_flipped_filename, axes):
+def flip_fsl_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
     """
     Flip FSL bvecs on a axis
 
