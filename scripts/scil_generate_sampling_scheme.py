@@ -149,7 +149,7 @@ def main():
         unique_bvals = np.unique(bvals)
         if len(unique_bvals) != S:
             parser.error('You have provided {} shells '.format(S) +
-                         'but only {} unique bvals.'.format(len(unique_bvals)))
+                         'but {} unique bvals.'.format(len(unique_bvals)))
 
     elif args.b_lin_max is not None:
         bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
