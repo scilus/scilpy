@@ -9,7 +9,7 @@ from scipy.spatial.distance import cdist, pdist, squareform
 # TODO: make this robust to having b0s
 def swap_sampling_eddy(points, shell_idx, verbose=1):
     """
-    Optimize the bvecs of fixed multi-shell scheme for eddy
+    Optimize the bvecs of fixed multi-shell gradient sampling for eddy
     currents correction (fsl EDDY).
 
     Bruteforce approach to maximally spread the bvec,
@@ -95,7 +95,7 @@ def compute_ks_from_shell_idx(shell_idx):
     Parameters
     ----------
     shell_idx: numpy.array
-        Shell index of sampling scheme.
+        Shell index of gradient sampling.
 
     Return
     ------
@@ -113,13 +113,14 @@ def compute_ks_from_shell_idx(shell_idx):
 
 def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     """
-    Add interleaved b0s to sampling scheme.
+    Add interleaved b0s to gradient sampling.
 
     Parameters
     ----------
     points: numpy.array, bvecs normalized to 1.
     shell_idx: numpy.array, Shell index for bvecs in points.
-    b0_every: integer, final scheme will have a b0 every b0_every samples
+    b0_every: integer, final gradient sampling will have a b0 every b0_every
+              samples
     finish_b0: boolean, Option to add a b0 as last sample.
     verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
@@ -157,7 +158,7 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
 def correct_b0s_philips(points, shell_idx, verbose=1):
     """
     Replace the [0.0, 0.0, 0.0] value of b0s bvecs
-    by existing bvecs in the sampling scheme.
+    by existing bvecs in the gradient sampling.
 
     This is useful because Recon 1.0 of Philips allocates memory
     proportional to (total nb. of diff. bvals) x (total nb. diff. bvecs)

@@ -5,9 +5,8 @@ import logging
 import numpy as np
 
 from scilpy.image.utils import volume_iterator
-from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
-                                               save_scheme_mrtrix)
-from scilpy.utils.filenames import split_name_with_nii
+from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampling_fsl,
+                                                            save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
 
@@ -131,9 +130,8 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
         path to input fsl bval file.
     fsl_bvec_filename: str
         path to input fsl bvec file.
-    mrtrix_filename : str, optional
-        path to output mrtrix encoding.b file. Default is
-        fsl_bvec_filename.b.
+    mrtrix_filename : str
+        path to output mrtrix encoding.b file.
 
     Returns
     -------
@@ -149,14 +147,10 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
                         'Transposing them.')
 
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
-
-    basefilename, ext = split_name_with_nii(mrtrix_filename)
-
-    save_scheme_mrtrix(points,
-                       shell_idx,
-                       bvals,
-                       basefilename,
-                       verbose=1)
+    save_gradient_sampling_mrtrix(points,
+                                  shell_idx,
+                                  bvals,
+                                  mrtrix_filename)
 
 
 def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
@@ -168,10 +162,10 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     ----------
     mrtrix_filename : str
         path to mrtrix encoding.b file.
-    fsl_bval_filename: str, optional
+    fsl_bval_filename: str
         path to the output fsl bval file. Default is
         mrtrix_filename.bval.
-    fsl_bvec_filename: str, optional
+    fsl_bvec_filename: str
         path to the output fsl bvec file. Default is
         mrtrix_filename.bvec.
     Returns
@@ -188,18 +182,11 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     bvals = np.unique(shells).tolist()
     shell_idx = [int(np.where(bval == bvals)[0]) for bval in shells]
 
-    if fsl_bval_filename is None:
-        fsl_bval_filename = mrtrix_filename + str(".bval")
-
-    if fsl_bvec_filename is None:
-        fsl_bvec_filename = mrtrix_filename + str(".bvec")
-
-    save_scheme_bvecs_bvals(points,
-                            shell_idx,
-                            bvals,
-                            filename_bval=fsl_bval_filename,
-                            filename_bvec=fsl_bvec_filename,
-                            verbose=1)
+    save_gradient_sampling_fsl(points,
+                               shell_idx,
+                               bvals,
+                               filename_bval=fsl_bval_filename,
+                               filename_bvec=fsl_bvec_filename)
 
 
 def identify_shells(bvals, threshold=40.0):
@@ -222,6 +209,7 @@ def identify_shells(bvals, threshold=40.0):
     threshold: float
         Limit value to consider that a b-value is on an existing shell. Above
         this limit, the b-value is placed on a new shell.
+    remove_b0
 
     Returns
     -------
@@ -330,3 +318,46 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     output_bvecs = bvecs[indices, :]
 
     return indices, shell_data, output_bvals, output_bvecs
+
+
+def flip_mrtrix_gradient_sampling(gradient_sampling_filename,
+                                  gradient_sampling_flipped_filename, axes):
+    """
+    Flip Mrtrix gradient sampling on a axis
+
+    Parameters
+    ----------
+    gradient_sampling_filename: str
+        Gradient sampling filename
+    gradient_sampling_flipped_filename: str
+        Gradient sampling flipped filename
+    axes: list of int
+        List of axes to flip (e.g. [0, 1])
+    """
+    gradient_sampling = np.loadtxt(gradient_sampling_filename)
+    for axis in axes:
+        gradient_sampling[:, axis] *= -1
+
+    np.savetxt(gradient_sampling_flipped_filename,
+               gradient_sampling,
+               "%.8f %.8f %.8f %0.6f")
+
+
+def flip_fsl_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
+    """
+    Flip FSL bvecs on a axis
+
+    Parameters
+    ----------
+    bvecs_filename: str
+        Bvecs filename
+    bvecs_flipped_filename: str
+        Bvecs flipped filename
+    axes: list of int
+        List of axes to flip (e.g. [0, 1])
+    """
+    bvecs = np.loadtxt(bvecs_filename)
+    for axis in axes:
+        bvecs[axis, :] *= -1
+
+    np.savetxt(bvecs_flipped_filename, bvecs, "%.8f")
