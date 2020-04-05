@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import numpy as np
 from tempfile import mkstemp
 
@@ -19,7 +20,7 @@ vtkcolors = [window.colors.blue,
              window.colors.grey]
 
 
-def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
+def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
     """
     Plot each shell
@@ -60,6 +61,7 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
         affine = np.eye(4)
 
     for i, shell in enumerate(ms):
+        logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
         ren = window.Renderer()
@@ -77,7 +79,8 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
         window.show(ren)
 
         if ofile:
-            window.snapshot(ren, fname=ofile + '_shell_' + str(i) + '.png',
+            window.snapshot(ren, fname=ofile + '_shell_' +
+                            str(int(centroids[i])) + '.png',
                             size=ores)
 
 

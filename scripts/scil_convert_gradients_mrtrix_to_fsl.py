@@ -5,10 +5,12 @@ Script to convert bval/bvec MRtrix style to FSL style.
 """
 
 import argparse
+import logging
 
-from scilpy.io.utils import (assert_gradients_filenames_valid,
-                             assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_gradients_filenames_valid,
+                             assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import mrtrix2fsl
 
 
@@ -17,13 +19,14 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('mrtrix_enc',
-                   help='Gradient directions encoding file. (.b)')
+                   help='Path to the gradient directions encoding file. (.b)')
     p.add_argument('fsl_bval',
-                   help='path to output FSL b-value file.')
+                   help='Path to output FSL b-value file (.bval).')
     p.add_argument('fsl_bvec',
-                   help='path to output FSL gradient directions file.')
+                   help='Path to output FSL gradient directions file (.bvec).')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -31,6 +34,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     assert_gradients_filenames_valid(parser, args.mrtrix_enc, 'mrtrix')
     assert_gradients_filenames_valid(parser, [args.fsl_bval, args.fsl_bvec],

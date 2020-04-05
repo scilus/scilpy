@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_visualize_multi_shell.py', '--help')
+    ret = script_runner.run('scil_generate_gradient_sampling.py', '--help')
     assert ret.success

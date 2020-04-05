@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Generate multi-shell sampling schemes with various processing to accelerate
+Generate multi-shell gradient sampling with various processing to accelerate
 acquisition and help artefact correction.
 
-Multi-shell schemes are generated as in [1], the bvecs are then flipped
+Multi-shell gradient sampling is generated as in [1], the bvecs are then flipped
 to maximize spread for eddy current correction, b0s are interleaved
 at equal spacing and the non-b0 samples are finally shuffled
 to minimize the total diffusion gradient amplitude over a few TR.
@@ -14,23 +14,24 @@ to minimize the total diffusion gradient amplitude over a few TR.
 import argparse
 import logging
 import numpy as np
+import os
 
 from scilpy.io.utils import (assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.samplingscheme.gen_scheme import generate_scheme
-from scilpy.samplingscheme.optimize_scheme import (add_b0s,
-                                                   add_bvalue_b0,
-                                                   compute_bvalue_lin_b,
-                                                   compute_bvalue_lin_q,
-                                                   compute_min_duty_cycle_bruteforce,
-                                                   swap_sampling_eddy)
-from scilpy.samplingscheme.save_scheme import (save_scheme_bvecs_bvals,
-                                               save_scheme_mrtrix)
+from scilpy.gradientsampling.gen_gradient_sampling import generate_gradient_sampling
+from scilpy.gradientsampling.optimize_gradient_sampling import (add_b0s,
+                                                                add_bvalue_b0,
+                                                                compute_bvalue_lin_b,
+                                                                compute_bvalue_lin_q,
+                                                                compute_min_duty_cycle_bruteforce,
+                                                                swap_sampling_eddy)
+from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampling_fsl,
+                                                            save_gradient_sampling_mrtrix)
 
 
 EPILOG = """
 References: [1] Emmanuel Caruyer, Christophe Lenglet, Guillermo Sapiro,
-Rachid Deriche. Design of multishell sampling schemes with uniform coverage
+Rachid Deriche. Design of multishell gradient sampling with uniform coverage
 in diffusion MRI. Magnetic Resonance in Medicine, Wiley, 2013, 69 (6),
 pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
     """
@@ -45,11 +46,12 @@ def _build_arg_parser():
 
     p.add_argument('nb_samples',
                    type=int, nargs='+',
-                   help='Number of samples on each shells. If multishell, '
-                        'provide a number per shell.')
-    p.add_argument('outfile',
-                   help='Sampling scheme output filename (don\'t '
-                        'include extension).')
+                   help='Number of samples on each non b0 shell. '
+                        'If multishell, provide a number per shell.')
+    p.add_argument('out_basename',
+                   help='Gradient sampling output basename (don\'t '
+                        'include extension).\n'
+                        'Please add options --fsl and/or --mrtrix below.')
 
     p.add_argument('--eddy',
                    action='store_true',
@@ -60,35 +62,35 @@ def _build_arg_parser():
                    help='Apply duty cycle optimization. '
                         '\nB-vectors are shuffled to reduce consecutive '
                         'colinearity in the samples. [%(default)s]')
-    p.add_argument('--b0inter',
-                   dest='b0_every', type=int, default=-1,
+    p.add_argument('--b0_every',
+                   type=int, default=-1,
                    help='Interleave a b0 every b0_every. \nNo b0 if 0. '
                         '\nOnly 1 b0 at beginning if > number of samples '
                         'or negative. [%(default)s]')
-    p.add_argument('--b0end',
-                   action='store_true', dest='b0_end',
+    p.add_argument('--b0_end',
+                   action='store_true',
                    help='Add a b0 as last sample. [%(default)s]')
-    p.add_argument('--b0value',
-                   dest='b0_value', type=float, default=0.0,
+    p.add_argument('--b0_value',
+                   type=float, default=0.0,
                    help='b-value of the b0s. [%(default)s]')
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
     bvals_group.add_argument('--bvals',
                              type=float, nargs='+', metavar='bvals',
                              help='bval of each non-b0 shell.')
-    bvals_group.add_argument('--blinmax',
-                             dest='b_lin_max', type=float,
+    bvals_group.add_argument('--b_lin_max',
+                             type=float,
                              help='b-max for linear bval distribution '
                                   'in *b*. [replaces -bvals]')
-    bvals_group.add_argument('--qlinmax',
-                             dest='q_lin_max', type=float,
+    bvals_group.add_argument('--q_lin_max',
+                             type=float,
                              help='b-max for linear bval distribution '
                                   'in *q*. [replaces -bvals]')
 
     g1 = p.add_argument_group(title='Save as')
     g1.add_argument('--fsl',
                     action='store_true',
-                    help='Save in FSL format (.bvecs/.bvals). [%(default)s]')
+                    help='Save in FSL format (.bvec/.bval). [%(default)s]')
     g1.add_argument('--mrtrix',
                     action='store_true',
                     help='Save in MRtrix format (.b). [%(default)s]')
@@ -110,6 +112,15 @@ def main():
     if not (fsl or mrtrix):
         parser.error('Select at least one save format.')
         return
+
+    out_basename, _ = os.path.splitext(args.out_basename)
+
+    if fsl:
+        out_filename = [out_basename + '.bval', out_basename + '.bvec']
+    else:
+        out_filename = out_basename + '.b'
+
+    assert_outputs_exist(parser, args, out_filename)
 
     logging.basicConfig(level=logging.INFO)
     if args.verbose:
@@ -135,6 +146,11 @@ def main():
     # Compute bval list
     if args.bvals is not None:
         bvals = args.bvals
+        unique_bvals = np.unique(bvals)
+        if len(unique_bvals) != S:
+            parser.error('You have provided {} shells '.format(S) +
+                         'but {} unique bvals.'.format(len(unique_bvals)))
+
     elif args.b_lin_max is not None:
         bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
                                      nb_of_b_inside=S - 1, exclude_bmin=True)
@@ -145,10 +161,8 @@ def main():
     if b0_every != 0:
         bvals = add_bvalue_b0(bvals, b0_value=b0_value)
 
-    outfile = args.outfile
-
-    # Scheme generation
-    points, shell_idx = generate_scheme(Ks, verbose=int(
+    # Gradient sampling generation
+    points, shell_idx = generate_gradient_sampling(Ks, verbose=int(
         3 - logging.getLogger().getEffectiveLevel()//10))
 
     # eddy current optimization
@@ -168,14 +182,14 @@ def main():
             points, shell_idx, bvals)
 
     if fsl:
-        out_fsl = [outfile + '.bval', outfile + '.bvec']
-        assert_outputs_exist(parser, args, out_fsl)
-        save_scheme_bvecs_bvals(points, shell_idx, bvals,
-                                out_fsl[0], out_fsl[1])
+        save_gradient_sampling_fsl(points, shell_idx, bvals,
+                                   out_filename[0], out_filename[1])
 
     if mrtrix:
-        assert_outputs_exist(parser, args, outfile + '.b')
-        save_scheme_mrtrix(points, shell_idx, bvals, filename=outfile)
+        if not points.shape[0] == 3:
+            points = points.transpose()
+            save_gradient_sampling_mrtrix(points, shell_idx, bvals,
+                                          filename=out_filename)
 
 
 if __name__ == "__main__":
