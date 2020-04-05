@@ -55,6 +55,65 @@ def check_tracts_same_format(parser, filename_list):
             parser.error('All tracts file must use the same format.')
 
 
+def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
+    """
+    Validate if gradients filenames follow BIDS or MRtrix convention
+
+    Parameters
+    ----------
+    parser: parser
+        Parser.
+    filename_list: list
+        list of gradient paths.
+    gradient_format : str
+        Can be either fsl or mrtrix.
+
+    Returns
+    -------
+    """
+
+    valid_fsl_extensions = ['.bval', '.bvec']
+    valid_mrtrix_extension = '.b'
+
+    if isinstance(filename_list, str):
+        filename_list = [filename_list]
+
+    if gradient_format == 'fsl':
+        if len(filename_list) == 2:
+            filename_1 = filename_list[0]
+            filename_2 = filename_list[1]
+            basename_1, ext_1 = os.path.splitext(filename_1)
+            basename_2, ext_2 = os.path.splitext(filename_2)
+
+            if ext_1 == '' or ext_2 == '':
+                parser.error('fsl gradients filenames must have extensions: '
+                             '.bval and .bvec.')
+
+            if basename_1 == basename_2:
+                curr_extensions = [ext_1, ext_2]
+                curr_extensions.sort()
+                if curr_extensions != valid_fsl_extensions:
+                    parser.error('Your extensions ({}) doesn\'t follow BIDS '
+                                 'convention.'.format(curr_extensions))
+            else:
+                parser.error('fsl gradients filenames must have the same '
+                             'basename.')
+        else:
+            parser.error('You should have two files for fsl format.')
+
+    elif gradient_format == 'mrtrix':
+        if len(filename_list) == 1:
+            curr_filename = filename_list[0]
+            basename, ext = os.path.splitext(curr_filename)
+            if basename == '' or ext != valid_mrtrix_extension:
+                parser.error('Basename: {} and extension {} are not '
+                             'valid for mrtrix format.'.format(basename, ext))
+        else:
+            parser.error('You should have one file for mrtrix format.')
+    else:
+        parser.error('Gradient file format should be either fsl or mrtrix.')
+
+
 def add_json_args(parser):
     g1 = parser.add_argument_group(title='Json options')
     g1.add_argument('--indent',

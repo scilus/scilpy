@@ -2,16 +2,16 @@
 
 import numpy as np
 
-from scilpy.samplingscheme.multiple_shell_energy import (compute_weights,
-                                                         multiple_shell)
+from scilpy.gradientsampling.multiple_shell_energy import (compute_weights,
+                                                           multiple_shell)
 
 
-def generate_scheme(nb_samples, verbose=1):
+def generate_gradient_sampling(nb_samples, verbose=1):
     """
-    Wrapper code to generate sampling scheme from Caruyer's
+    Wrapper code to generate gradient sampling from Caruyer's
     multiple_shell_energy.py
 
-    Generate the bvecs of a multiple shell sampling scheme using generalized
+    Generate the bvecs of a multiple shell gradient sampling using generalized
     Jones electrostatic repulsion.
 
     Parameters
@@ -39,7 +39,7 @@ def generate_scheme(nb_samples, verbose=1):
     alphas = list(len(shell_groups) * (1.0,))
     weights = compute_weights(S, nb_samples, shell_groups, alphas)
 
-    # Where the optimized sampling scheme is computed
+    # Where the optimized gradient sampling is computed
     # max_iter hardcoded to fit default Caruyer's value
     points = multiple_shell(S, nb_samples, weights,
                             max_iter=100, verbose=verbose)
