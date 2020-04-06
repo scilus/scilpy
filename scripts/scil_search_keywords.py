@@ -13,6 +13,7 @@ Examples:
 
 import argparse
 import ast
+import logging
 import pathlib
 import re
 import subprocess
@@ -91,17 +92,17 @@ def main():
         # Keep title in BOLD after matching keyword
         filename = filename.replace(END_COLOR, END_COLOR + BOLD)
 
-        print(_colorize(" {} ".format(filename), BOLD).center(SPACING_LEN,
-                                                              SPACING_CHAR))
+        logging.info(_colorize(" {} ".format(filename), BOLD)
+                     .center(SPACING_LEN, SPACING_CHAR))
         if error_msg:
-            print(RED + BOLD + error_msg + END_COLOR)
-        print(display_text)
-        print(_colorize(" End of {} ".format(filename),
-                        BOLD).center(SPACING_LEN, SPACING_CHAR))
-        print()
+            logging.info(RED + BOLD + error_msg + END_COLOR)
+        logging.info(display_text)
+        logging.info(_colorize(" End of {} ".format(filename), BOLD)
+                     .center(SPACING_LEN, SPACING_CHAR))
+        logging.info("\n")
 
     if not matches:
-        print('No results found!')
+        logging.info('No results found!')
 
 
 def _colorize(text, color):
