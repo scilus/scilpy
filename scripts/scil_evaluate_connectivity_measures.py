@@ -106,6 +106,7 @@ def main():
                      'output json file first instead')
 
     sc_matrix = load_matrix_in_any_format(args.in_streamline_count_matrix)
+    sc_matrix /= sc_matrix.max()
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
     if args.filtering_mask:
@@ -114,7 +115,7 @@ def main():
         len_matrix *= mask_matrix
 
     gtm_dict = {}
-    gtm_dict['centrality'] = bct.betweenness_wei(len_matrix).tolist()
+    gtm_dict['centrality'] = bct.betweenness_wei(sc_matrix).tolist()
     ci, gtm_dict['modularity'] = bct.modularity_finetune_und(sc_matrix, seed=0)
     gtm_dict['assortativity'] = bct.assortativity_wei(sc_matrix, flag=0)
     gtm_dict['participation'] = bct.participation_coef_sign(sc_matrix,
@@ -129,9 +130,9 @@ def main():
         logging.debug('Skipping module_degree_zscore, to obtain this value '
                       'use --node_wise_as_list.')
     gtm_dict['nodal_strength'] = bct.strengths_und(sc_matrix).tolist()
-    gtm_dict['local_efficiency'] = bct.efficiency_wei(len_matrix,
+    gtm_dict['local_efficiency'] = bct.efficiency_wei(sc_matrix,
                                                       local=True).tolist()
-    gtm_dict['global_efficiency'] = bct.efficiency_wei(len_matrix)
+    gtm_dict['global_efficiency'] = bct.efficiency_wei(sc_matrix)
     gtm_dict['density'], _, _ = bct.density_und(sc_matrix)
 
     # Rich club always gives an error for the matrix rank and gives NaN
