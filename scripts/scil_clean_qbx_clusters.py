@@ -1,6 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Render clusters sequentially to either accept or reject them based on
+    visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
+    The VTK window does not handle well opacity of streamlines, this is a normal
+    rendering behavior.
+    Often use in pair with scil_compute_qbx.py.
+
+    Key mapping:
+    - a/A: accept displayed clusters
+    - r/R: reject displayed clusters
+    - z/Z: Rewing one element
+    - c/C: Stop rendering of the background concatenation of streamlines
+    - q/Q: Early window exist, everything remaining will be rejected
+"""
+
+
 import argparse
 import os
 import logging
@@ -18,24 +34,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 
-DESCRIPTION = """
-    Render clusters sequentially to either accept or reject them based on
-    visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
-    The VTK window does not handle well opacity of streamlines, this is a normal
-    rendering behavior.
-    Often use in pair with scil_compute_qbx.py.
 
-    Key mapping:
-    - a/A: accept displayed clusters
-    - r/R: reject displayed clusters
-    - z/Z: Rewing one element
-    - c/C: Stop rendering of the background concatenation of streamlines
-    - q/Q: Early window exist, everything remaining will be rejected
-"""
-
-
-def _build_args_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+def _build_arg_parser():
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundles', nargs='+',
@@ -104,13 +105,13 @@ def main():
             if key == 'a':
                 accepted_streamlines.append(iterator)
                 choices.append('a')
-                logging.info('Accepted file %s',
-                             filename_accepted_on_size[iterator])
+                logging.info('Accepted file {}'.format(
+                             filename_accepted_on_size[iterator]))
             elif key == 'r':
                 rejected_streamlines.append(iterator)
                 choices.append('r')
-                logging.info('Rejected file %s',
-                             filename_accepted_on_size[iterator])
+                logging.info('Rejected file {}'.format(
+                             filename_accepted_on_size[iterator]))
             iterator += 1
 
         if key == 'z':
@@ -140,7 +141,7 @@ def main():
 
         renwin.Render()
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundles)
@@ -180,15 +181,16 @@ def main():
             filename_accepted_on_size.append(basename)
             concat_streamlines.extend(sft.streamlines)
         else:
-            logging.info('File %s has %s streamlines, automatically rejected.',
-                         filename, len(sft))
+            logging.info('File {} has {} streamlines,'
+                         'automatically rejected.'.format(filename, len(sft)))
             sft_rejected_on_size.append(sft)
             filename_rejected_on_size.append(basename)
 
     if not filename_accepted_on_size:
         parser.error('No cluster survived the cluster_size threshold.')
 
-    logging.info('%s clusters to be classified.', len(sft_accepted_on_size))
+    logging.info('{} clusters to be classified.'.format(
+                 len(sft_accepted_on_size)))
     # The clusters are sorted by size for simplicity/efficiency
     tuple_accepted = zip(*sorted(zip(sft_accepted_on_size,
                                      filename_accepted_on_size),
@@ -224,8 +226,8 @@ def main():
     rejected_streamlines.extend(range(len_accepted - missing,
                                       len_accepted))
     if missing > 0:
-        logging.info('%s clusters automatically rejected from early exit',
-                     missing)
+        logging.info('{} clusters automatically rejected'
+                     'from early exit'.format(missing))
 
     # Save accepted clusters (by GUI)
     accepted_streamlines = save_clusters(sft_accepted_on_size,

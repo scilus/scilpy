@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
+
 from builtins import range
 
 import numpy as np
@@ -31,7 +32,7 @@ def get_point_on_line(first_point, second_point, vox_lower_corner):
     # Some simplifications are made since we are sure that an intersection
     # exists (else this function would not have been called).
     ray = second_point - first_point
-    ray = ray / np.linalg.norm(ray)
+    ray /= np.linalg.norm(ray)
 
     corners = np.array([vox_lower_corner, vox_lower_corner + 1])
 
@@ -147,10 +148,8 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
              'end_index': end_idx}]
 
 
-def compute_connectivity(indices, atlas_data,
-                         segmenting_func):
+def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
     atlas_data = atlas_data.astype(np.int32)
-    real_labels = np.unique(atlas_data)
 
     connectivity = {k: {lab: [] for lab in real_labels} for k in real_labels}
 

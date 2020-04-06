@@ -12,18 +12,17 @@ from dipy.io.streamline import load_tractogram
 from fury import window, actor
 from nibabel.streamlines import detect_format, TrkFile
 
-from scilpy.io.utils import (
-    add_overwrite_arg,
-    assert_inputs_exist,
-    assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('tractogram', help='Tractogram file (must be trk)')
-    parser.add_argument('--save', type=str, help='If set, save a ' +
+    parser.add_argument('--save', help='If set, save a ' +
                         'screenshot of the result in the ' +
                         'specified filename')
     add_overwrite_arg(parser)
@@ -31,7 +30,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, [args.tractogram])
     assert_outputs_exist(parser, args, [], [args.save])

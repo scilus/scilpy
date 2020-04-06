@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+"""
+Prepare a typical command for topup and create the necessary files.
+The reversed b0 must be in a different file.
+"""
+
 import argparse
 import logging
 import os
@@ -10,18 +14,13 @@ from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
-from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist, assert_outputs_exist
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.preprocessing.distortion_correction import create_acqparams
-
-DESCRIPTION = """
-Prepare a typical command for topup and create the necessary files.
-The reversed b0 must be in a different file.
- """
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=DESCRIPTION,
+    p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('input_dwi',
@@ -65,9 +64,7 @@ def _build_arg_parser():
                         'terminal [%(default)s].')
 
     add_overwrite_arg(p)
-
-    p.add_argument('--verbose', '-v', action='store_true',
-                   help='produce verbose output.')
+    add_verbose_arg(p)
 
     return p
 

@@ -1,4 +1,5 @@
 # Scilpy
+[![Build Status](https://travis-ci.org/scilus/scilpy.svg?branch=master)](https://travis-ci.org/scilus/scilpy)
 
 **Scilpy** is the main library supporting research and development at the Sherbrooke Connectivity Imaging Lab
 ([SCIL]).
