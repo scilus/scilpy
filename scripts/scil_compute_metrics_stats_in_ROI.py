@@ -14,7 +14,7 @@ standard deviation will also be weighted.
 """
 
 import argparse
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 import os
 import json
@@ -23,7 +23,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist)
-
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_stats_over_volume
 
@@ -37,19 +36,18 @@ def _build_arg_parser():
                         'supported format.\nCan be a binary mask or a ' +
                         'weighting mask.')
 
-    mg = p.add_mutually_exclusive_group(required=True)
-    mg.add_argument('--metrics_dir', action='store', metavar=' ', type=str,
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument('--metrics_dir',
                     help='metrics files directory. name of the directory ' +
                          'containing the metrics files.')
-    mg.add_argument('--metrics', dest='metrics_file_list', action='store',
-                    metavar=' ', type=str, nargs='+',
+    g.add_argument('--metrics', dest='metrics_file_list', nargs='+',
                     help='metrics nifti file name. list of the names of the ' +
                          'metrics file, in nifti format.')
 
     p.add_argument('--bin', action='store_true',
                    help='if set, will consider every value of the mask ' +
                         'higher than 0 to be part of the mask, and set to 1 ' +
-                        '(equivalent weighting for every voxel)')
+                        '(equivalent weighting for every voxel).')
 
     p.add_argument('--normalize_weights', action='store_true',
                    help='if set, the weights will be normalized to the [0,1] '
@@ -57,7 +55,7 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
     add_json_args(p)
-
+    
     return p
 
 
@@ -69,30 +67,31 @@ def main():
                                                args.metrics_file_list])
 
     # Load mask and validate content depending on flags
-    img = nb.load(args.mask)
+    mask_img = nib.load(args.in_mask)
 
-    if not issubclass(img.get_data_dtype().type, np.floating) and \
+    if not issubclass(mask_img.get_data_dtype().type, np.floating) and \
             not args.normalize_weights:
         parser.error('The mask file must contain floating point numbers.')
 
-    weighting_data = img.get_data().astype(np.float64)
-
     if args.normalize_weights:
-        weighting_data /= np.sum(weighting_data)
+        mask_data = mask_img.get_fdata(np.float64)
+        mask_data /= np.sum(mask_data)
+    else:
+        mask_data = np.asanyarray(mask_img.object).astype(np.uint8)
 
-    if np.min(weighting_data) < 0.0 or np.max(weighting_data) > 1.0:
+    if np.min(mask_data) < 0.0 or np.max(mask_data) > 1.0:
         parser.error('Mask data should only contain values between 0 and 1. '
                      'Try --normalize_weights.')
 
     if args.bin:
-        weighting_data[np.where(weighting_data > 0.0)] = 1.0
+        mask_data[np.where(mask_data > 0.0)] = 1.0
 
-    # Load all metrics files, and keep some header information.
+    # Load all metrics files.
     if args.metrics_dir:
-        metrics_files = [nb.load(args.metrics_dir + f)
+        metrics_files = [nib.load(args.metrics_dir + f)
                          for f in sorted(os.listdir(args.metrics_dir))]
     elif args.metrics_file_list:
-        metrics_files = [nb.load(f) for f in args.metrics_file_list]
+        metrics_files = [nib.load(f) for f in args.metrics_file_list]
 
     # Compute the mean values and standard deviations
     stats = get_metrics_stats_over_volume(weighting_data, metrics_files)

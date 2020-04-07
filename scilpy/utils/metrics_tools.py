@@ -212,3 +212,30 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     plt.close(fig)
     return fig
+
+
+def get_metrics_stats_over_volume(weights, metrics_files):
+    """
+    Returns the mean and standard deviation of each metric, using the
+    weighting matrix provided in weights. This can be a binary mask,
+    or contain weighting factors between 0 and 1.
+
+    Parameters
+    ------------
+    data : 3d-array (X, Y, Z)
+        3D numpy array containing a weighting matrix
+
+    metrics_files : sequence
+        list of nibabel objects representing the metrics files
+
+    Returns
+    ---------
+    stats : list
+        list of tuples where the first element of the tuple is the mean
+        of a metric, and the second element is the standard deviation
+
+    """
+
+    return map(lambda metric_file:
+               weighted_mean_stddev(weights,metric_file.get_fdata(np.float64)),
+               metrics_files)
