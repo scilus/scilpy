@@ -12,6 +12,7 @@ scil_filter_connectivity.py out_mask.npy
     --greater_than */sc.npy 1 0.90
     --lower_than */sim.npy 2 0.90
     --greater_than */len.npy 40 0.90 -v;
+
 This will result in a binary mask where each node with a value of 1 represents
 a node with at least 90% of the population having at least 1 streamline,
 90% of the population is similar to the average (2mm) and 90% of the
@@ -43,7 +44,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('out_matrix_mask',
                    help='Output mask (matrix) resulting from the provided '
@@ -146,7 +147,8 @@ def main():
                       'elements out of {}.'.format(filtered_elem,
                                                    np.prod(shape)))
 
-    save_matrix_in_any_format(args.out_matrix_mask, output_mask)
+    save_matrix_in_any_format(args.out_matrix_mask,
+                              output_mask.astype(np.uint8))
 
 
 if __name__ == '__main__':
