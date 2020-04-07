@@ -46,7 +46,7 @@ def get_data_as_mask(parser, in_img, filename):
     """
 
     curr_type = in_img.get_data_dtype().type
-    if curr_type in [np.uint8, np.bool, ] or np.issubdtype(curr_type, np.int):
+    if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger) or np.issubdtype(curr_type, np.bool):
         data = np.asanyarray(in_img.object).astype(np.uint8)
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
