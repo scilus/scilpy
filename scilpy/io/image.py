@@ -83,7 +83,7 @@ def get_data_as_label(parser, in_img):
 
     curr_type = in_img.get_data_dtype()
     basename = os.path.basename(in_img.get_filename())
-    if np.issubdtype(curr_type, np.int):
+    if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger):
         return np.asanyarray(in_img.object).astype(np.uint16)
     else:
         parser.error('The image {} cannot be loaded as label because '
