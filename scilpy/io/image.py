@@ -3,6 +3,7 @@
 from dipy.io.utils import get_reference_info
 import logging
 import numpy as np
+import os
 
 
 def assert_same_resolution(images):
@@ -45,16 +46,16 @@ def get_data_as_mask(in_img):
     curr_type = in_img.get_data_dtype().type
     basename = os.path.basename(in_img.get_filename())
     if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger) or np.issubdtype(curr_type, np.bool):
-        data = np.asanyarray(in_img.object).astype(np.uint8)
+        data = np.asanyarray(in_img.dataobj).astype(np.uint8)
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
-            if np.all(unique_vals != np.array[0, 1]):
+            if np.all(unique_vals != np.array([0, 1])):
                 logging.warning('The two unique values in mask were not 0 and'
                                 ' 1. Tha mask has been binarised.')
                 data[data != 0] = 1
         else:
             raise IOError('The image {} contains more than 2 values. '
-                          'It can\t be loaded as mask.'.format(basename))
+                          'It can\'t be loaded as mask.'.format(basename))
 
     else:
         raise IOError('The image {} cannot be loaded as mask because '
@@ -83,7 +84,7 @@ def get_data_as_label(in_img):
     curr_type = in_img.get_data_dtype()
     basename = os.path.basename(in_img.get_filename())
     if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger):
-        return np.asanyarray(in_img.object).astype(np.uint16)
+        return np.asanyarray(in_img.dataobj).astype(np.uint16)
     else:
         raise IOError('The image {} cannot be loaded as label because '
                      'its format {} is not compatible with a label '

@@ -169,12 +169,12 @@ def main():
     assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
-    data = img.get_fdata(np.float32)
+    data = img.get_fdata(dtype=np.float32)
     affine = img.get_affine()
     if args.mask is None:
         mask = None
     else:
-        mask = get_data_as_mask(parser, nib.load(args.mask))
+        mask = get_data_as_mask(nib.load(args.mask))
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))

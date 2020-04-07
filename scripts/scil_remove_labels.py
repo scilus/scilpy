@@ -53,7 +53,7 @@ def main():
 
     # Load volume
     label_img = nib.load(args.in_labels)
-    labels_volume = get_data_as_label(parser, label_img)
+    labels_volume = get_data_as_label(label_img)
 
     # Remove given labels from the volume
     for index in np.unique(args.indices):
