@@ -4,7 +4,11 @@
 Use multiple bundles to perform a voxel-wise vote (occurence across input).
 If streamlines originate from the same tractogram, streamline-wise vote
 is available.
-Input tractograms have to have identical header (register).
+
+Useful to generate an average representation from bundles of a given population
+or multiple bundle segmentations (gold standard).
+
+Input tractograms have to have identical header.
 """
 
 
@@ -90,14 +94,15 @@ def main():
 
     for i, name in enumerate(args.in_bundles):
         if not is_header_compatible(reference_file, name):
-            raise ValueError('Both headers are not the same')
+            raise ValueError('Headers are not compatible.')
         sft = load_tractogram_with_reference(parser, args, name)
+
+        # Needed for streamline-wise representation
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
         sft.to_corner()
 
-        bundle_vox_space = sft.get_streamlines_copy()
-        binary = compute_tract_counts_map(bundle_vox_space, dimensions)
+        binary = compute_tract_counts_map(sft.streamlines, dimensions)
         volume[binary > 0] += 1
 
         if args.same_tractogram:
@@ -119,7 +124,7 @@ def main():
                                      Space.RASMM)
         save_tractogram(new_sft, output_streamlines_filename)
 
-    volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
+    volume[volume < int(args.ratio_voxels*len(args.in_bundles))] = 0
     volume[volume > 0] = 1
     nib.save(nib.Nifti1Image(volume.astype(np.uint8), transformation),
              output_voxels_filename)
