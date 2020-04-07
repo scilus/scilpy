@@ -10,6 +10,58 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
+def get_metrics_profile_over_streamlines(streamlines, metrics_files):
+    """
+    Returns the profile of each metric along each streamline.
+    This is used to create tract profiles.
+
+    Parameters
+    ------------
+    streamlines : sequence
+        sequence of T streamlines. One streamline is an ndarray of shape
+        (N, 3), where N is the number of points in that streamline, and
+        ``streamlines[t][n]`` is the n-th point in the t-th streamline. Points
+        are of form x, y, z in voxel coordinates.
+
+    metrics_files : sequence
+        list of nibabel objects representing the metrics files
+
+    Returns
+    ---------
+    profiles_values : list
+        list of profiles for each streamline, per metric given
+
+    """
+
+    def _get_profile_one_streamline(streamline, metrics_files):
+        x_ind = np.floor(streamline[:, 0]).astype(np.int)
+        y_ind = np.floor(streamline[:, 1]).astype(np.int)
+        z_ind = np.floor(streamline[:, 2]).astype(np.int)
+
+        return map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
+                   metrics_files)
+
+    # We preload the data to avoid loading it for each streamline
+    metrics_data = map(lambda metric_file: metric_file.get_data(),
+                       metrics_files)
+
+    # The root list has S elements, where S == the number of streamlines.
+    # Each element from S is a sublist with N elements, where N is the number
+    # of metrics. Each element from N is a list of the metric values
+    # encountered along the current streamline.
+    metrics_per_strl =\
+        map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
+            streamlines)
+
+    converted = []
+    # Here, the zip gives us a list of N tuples, so one tuple for each metric.
+    # Each tuple has S elements, where S is the number of streamlines.
+    # We then convert each tuple to a numpy array
+    for metric_values in zip(*metrics_per_strl):
+        converted.append(np.asarray(metric_values))
+
+    return converted
+
 def weighted_mean_stddev(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.

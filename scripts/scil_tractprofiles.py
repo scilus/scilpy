@@ -16,11 +16,14 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import assert_inputs_exist
-from scilpy.tracking.tools import subsample_streamlines
+from scilpy.io.utils import (assert_inputs_exist,
+                             add_json_args,
+                             add_overwrite_arg,
+                             add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_profile_over_streamlines
-
+from scilpy.tracking.tools import (resample_streamlines_num_points,
+                                   resample_streamlines_step_size)
 
 def norm_l2(x):
     return np.sqrt(np.sum(np.power(x, 2), axis=1, dtype="float"))
@@ -49,7 +52,7 @@ def _build_arg_parser():
     add_json_args(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
-    return parser
+    return p
 
 
 def main():
@@ -77,7 +80,6 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-
     if args.nb_pts_per_streamline:
         new_sft = resample_streamlines_num_points(sft,
                                                   args.nb_pts_per_streamline)
@@ -88,7 +90,7 @@ def main():
     # Make sure all streamlines go in the same direction. We want to make
     # sure point #1 / 20 of streamline A is matched with point #1 / 20 of
     # streamline B and so on
-    num_streamlines = len(bundle_subsampled)
+    num_streamlines = len(new_sft.streamlines)
     reference = bundle_subsampled[0]
     for s in np.arange(num_streamlines):
         streamline = bundle_subsampled[s]
