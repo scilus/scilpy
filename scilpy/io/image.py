@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from dipy.io.utils import get_reference_info
-
+import numpy as np
 
 def assert_same_resolution(images):
     """
@@ -23,3 +23,67 @@ def assert_same_resolution(images):
         aff_2, shape_2, _, _ = get_reference_info(i)
         if not (shape_1 == shape_2) and (aff_1 == aff_2).any():
             raise Exception("Images are not of the same resolution/affine")
+
+
+def get_as_mask(parser, in_img):
+    """
+    Get data as mask (force type np.uint8), check data type before casting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    in_img: nibabel.nifti1.Nifti1Image
+        Image
+    filename: string
+        Filename used for logging.
+
+    Return
+    ------
+    data: numpy.ndarray
+        Data (dtype : np.uint8).
+    """
+
+    curr_type = in_img.get_data_dtype().type
+    if curr_type in [np.uint8, np.bool, ] or np.issubdtype(curr_type, np.int):
+        data = np.asanyarray(in_img.object).astype(np.uint8)
+        unique_vals = np.unique(data)
+        if len(unique_vals) == 2:
+            if np.all(unique_vals != np.array[0, 1]):
+                    data[data != 0] = 1
+        else:
+            parser.error('The image {} contains more '.format(filename) +
+                         'than 2 values. It can\t be loaded as mask.')
+
+    else:
+        parser.error('The image {} cannot be loaded '.format(filename) +
+                     'as mask because its type {} is '.format(curr_type) +
+                     'not compatible with a mask.'
+
+    return data
+
+def get_as_mask(parser, in_img, filename):
+    """
+    Get data as label (force type np.uint16), check data type before casting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    in_img: nibabel.nifti1.Nifti1Image
+        Image.
+    filename: string
+        Filename used for logging.
+
+    Return
+    ------
+
+    data: numpy.ndarray
+        Data (dtype: np.uint16).
+    """
+
+    curr_type = in_img.get_data_dtype()
+    if np.issubdtype(curr_type, np.int):
+        return np.asanyarray(in_img.object).astype(np.uint16)
+    else:
+        parser.error('The image {} cannot be loaded as label because ')
