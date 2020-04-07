@@ -32,30 +32,30 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_mask',
-                   help='mask volume file name, formatted in any nibabel ' +
+                   help='Mask volume file name, formatted in any nibabel ' +
                         'supported format.\nCan be a binary mask or a ' +
                         'weighting mask.')
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--metrics_dir',
-                    help='metrics files directory. name of the directory ' +
+                    help='Metrics files directory. name of the directory ' +
                          'containing the metrics files.')
     g.add_argument('--metrics', dest='metrics_file_list', nargs='+',
-                    help='metrics nifti file name. list of the names of the ' +
+                    help='Metrics nifti file name. list of the names of the ' +
                          'metrics file, in nifti format.')
 
     p.add_argument('--bin', action='store_true',
-                   help='if set, will consider every value of the mask ' +
+                   help='If set, will consider every value of the mask ' +
                         'higher than 0 to be part of the mask, and set to 1 ' +
                         '(equivalent weighting for every voxel).')
 
     p.add_argument('--normalize_weights', action='store_true',
-                   help='if set, the weights will be normalized to the [0,1] '
+                   help='If set, the weights will be normalized to the [0,1] '
                         'range.')
 
     add_overwrite_arg(p)
     add_json_args(p)
-    
+
     return p
 
 

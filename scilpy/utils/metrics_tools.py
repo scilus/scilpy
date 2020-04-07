@@ -10,7 +10,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def weighted_mean_stddev(weights, data):
+def weighted_mean_std_dev(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.
 
@@ -67,7 +67,7 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
         weights = weights > 0
 
     return map(lambda metric_file:
-               weighted_mean_stddev(
+               weighted_mean_std_dev(
                     weights,
                     metric_file.get_data().astype(np.float64)),
                metrics_files)
