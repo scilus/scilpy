@@ -8,7 +8,7 @@ is available.
 Useful to generate an average representation from bundles of a given population
 or multiple bundle segmentations (gold standard).
 
-Input tractograms have to have identical header.
+Input tractograms must have identical header.
 """
 
 
