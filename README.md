@@ -16,7 +16,7 @@ We highly recommend working in a [Python Virtual Environment]. Dependencies can 
 pip install -r requirements.txt
 ```
 
-Following this, the library and scripts can be installed locally by using
+Following this, the library and scripts can be installed locally by using :
 
 ```
 python setup.py build_ext --inplace
