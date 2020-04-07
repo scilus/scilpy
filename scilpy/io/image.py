@@ -3,6 +3,7 @@
 from dipy.io.utils import get_reference_info
 import numpy as np
 
+
 def assert_same_resolution(images):
     """
     Check the resolution of multiple images.
@@ -25,7 +26,7 @@ def assert_same_resolution(images):
             raise Exception("Images are not of the same resolution/affine")
 
 
-def get_as_mask(parser, in_img):
+def get_data_as_mask(parser, in_img, filename):
     """
     Get data as mask (force type np.uint8), check data type before casting.
 
@@ -50,19 +51,20 @@ def get_as_mask(parser, in_img):
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
             if np.all(unique_vals != np.array[0, 1]):
-                    data[data != 0] = 1
+                data[data != 0] = 1
         else:
-            parser.error('The image {} contains more '.format(filename) +
-                         'than 2 values. It can\t be loaded as mask.')
+            parser.error('The image {} contains more than 2 values. '
+                         'It can\t be loaded as mask.'.format(filename))
 
     else:
-        parser.error('The image {} cannot be loaded '.format(filename) +
-                     'as mask because its type {} is '.format(curr_type) +
-                     'not compatible with a mask.'
+        parser.error('The image {} cannot be loaded as mask because '
+                     'its type {} is not compatible '
+                     'with a mask'.format(filename, curr_type))
 
     return data
 
-def get_as_mask(parser, in_img, filename):
+
+def get_data_as_label(parser, in_img, filename):
     """
     Get data as label (force type np.uint16), check data type before casting.
 
