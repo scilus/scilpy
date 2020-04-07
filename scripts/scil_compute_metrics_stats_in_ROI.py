@@ -38,11 +38,11 @@ def _build_arg_parser():
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--metrics_dir',
-                    help='Metrics files directory. name of the directory ' +
-                         'containing the metrics files.')
+                   help='Metrics files directory. name of the directory ' +
+                        'containing the metrics files.')
     g.add_argument('--metrics', dest='metrics_file_list', nargs='+',
-                    help='Metrics nifti file name. list of the names of the ' +
-                         'metrics file, in nifti format.')
+                   help='Metrics nifti file name. list of the names of the ' +
+                        'metrics file, in nifti format.')
 
     p.add_argument('--bin', action='store_true',
                    help='If set, will consider every value of the mask ' +
@@ -107,6 +107,7 @@ def main():
         }
 
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
+
 
 if __name__ == "__main__":
     main()

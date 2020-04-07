@@ -237,5 +237,6 @@ def get_metrics_stats_over_volume(weights, metrics_files):
     """
 
     return map(lambda metric_file:
-               weighted_mean_stddev(weights,metric_file.get_fdata(np.float64)),
+               weighted_mean_stddev(weights,
+                                    metric_file.get_fdata(np.float64)),
                metrics_files)
