@@ -19,6 +19,7 @@ import nibabel as nib
 import numpy as np
 
 import scilpy
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -74,7 +75,7 @@ def main():
                      'Will not process.\nConvert your image to integers ' +
                      'before calling.')
 
-    label_image_data = label_image.get_fdata().astype(np.int)
+    label_image_data = get_data_as_label(label_image)
 
     if args.scilpy_lut:
         with open(os.path.join(lut_dir, args.scilpy_lut + '.json')) as f:

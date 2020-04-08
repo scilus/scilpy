@@ -19,6 +19,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -95,7 +96,7 @@ def main():
     for i in range(len(image_files)):
         # Load images
         volume_nib = nib.load(image_files[i])
-        data = np.round(volume_nib.get_data()).astype(np.uint16)
+        data = get_data_as_label(volume_nib)
         data_list.append(data)
         assert (is_header_compatible(first_img, image_files[i]))
 

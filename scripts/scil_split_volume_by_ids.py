@@ -15,6 +15,7 @@ import re
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -82,7 +83,7 @@ def main():
                      'Will not process.\nConvert your image to integers ' +
                      'before calling.')
 
-    label_image_data = label_image.get_fdata().astype(int)
+    label_image_data = get_data_as_label(label_image)
 
     if args.range:
         label_indices = [item for sublist in args.range for item in sublist]
