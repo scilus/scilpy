@@ -45,7 +45,9 @@ def get_data_as_mask(in_img):
 
     curr_type = in_img.get_data_dtype().type
     basename = os.path.basename(in_img.get_filename())
-    if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger) or np.issubdtype(curr_type, np.bool):
+    if np.issubdtype(curr_type, np.signedinteger) or \
+        np.issubdtype(curr_type, np.unsignedinteger) \
+            or np.issubdtype(curr_type, np.bool):
         data = np.asanyarray(in_img.dataobj).astype(np.uint8)
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
@@ -83,7 +85,8 @@ def get_data_as_label(in_img):
 
     curr_type = in_img.get_data_dtype()
     basename = os.path.basename(in_img.get_filename())
-    if np.issubdtype(curr_type, np.signedinteger) or np.issubdtype(curr_type, np.unsignedinteger):
+    if np.issubdtype(curr_type, np.signedinteger) or \
+       np.issubdtype(curr_type, np.unsignedinteger):
         return np.asanyarray(in_img.dataobj).astype(np.uint16)
     else:
         raise IOError('The image {} cannot be loaded as label because '
