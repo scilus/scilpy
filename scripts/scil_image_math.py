@@ -62,7 +62,7 @@ def load_data(arg):
         if not os.path.isfile(arg):
             logging.error('Input file %s does not exist', arg)
             raise ValueError
-        data = nib.load(arg).get_data()
+        data = np.asanyarray(nib.load(arg).dataobj)
         logging.info('Loaded %s of shape %s and data_type %s',
                      arg, data.shape, data.dtype)
 

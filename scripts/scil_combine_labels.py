@@ -95,7 +95,7 @@ def main():
     for i in range(len(image_files)):
         # Load images
         volume_nib = nib.load(image_files[i])
-        data = np.round(volume_nib.get_data()).astype(np.int)
+        data = np.round(volume_nib.get_data()).astype(np.uint16)
         data_list.append(data)
         assert (is_header_compatible(first_img, image_files[i]))
 
