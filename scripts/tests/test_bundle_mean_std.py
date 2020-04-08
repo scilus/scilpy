@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_meanstd.py', '--help')
+    ret = script_runner.run('scil_bundle_mean_std.py', '--help')
     assert ret.success
