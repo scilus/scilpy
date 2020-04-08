@@ -14,6 +14,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 EPILOG = """
@@ -28,10 +29,10 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_labels',
                    help='Input labels volume.')
 
-    p.add_argument('output',
+    p.add_argument('out_labels',
                    help='Output labels volume.')
 
     p.add_argument('-i', '--indices', type=int, nargs='+', required=True,
@@ -47,12 +48,12 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_labels)
+    assert_outputs_exist(parser, args, args.out_labels)
 
     # Load volume
-    volume_img = nib.load(args.input)
-    labels_volume = volume_img.get_data()
+    label_img = nib.load(args.in_labels)
+    labels_volume = get_data_as_label(label_img)
 
     # Remove given labels from the volume
     for index in np.unique(args.indices):
@@ -63,7 +64,7 @@ def main():
 
     # Save final volume
     nii = nib.Nifti1Image(labels_volume, volume_img.affine, volume_img.header)
-    nib.save(nii, args.output)
+    nib.save(nii, args.out_labels)
 
 
 if __name__ == "__main__":
