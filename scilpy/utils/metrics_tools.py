@@ -62,6 +62,7 @@ def get_metrics_profile_over_streamlines(streamlines, metrics_files):
 
     return converted
 
+
 def weighted_mean_stddev(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.

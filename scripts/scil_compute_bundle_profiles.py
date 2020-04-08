@@ -22,8 +22,9 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_metrics_profile_over_streamlines
-from scilpy.tracking.tools import (resample_streamlines_num_points,
-                                   resample_streamlines_step_size)
+from scilpy.tracking.tools import resample_streamlines_num_points
+
+
 
 def norm_l2(x):
     return np.sqrt(np.sum(np.power(x, 2), axis=1, dtype="float"))
@@ -39,8 +40,8 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute the tract profiles on.')
     p.add_argument('in_metrics', nargs='+',
-                    help='Nifti metric(s) on which to compute '
-                         'the tract profiles.')
+                   help='Nifti metric(s) on which to compute '
+                        'the tract profiles.')
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--nb_pts_per_streamline',
@@ -68,24 +69,16 @@ def main():
     metrics = [nib.load(m) for m in args.metrics]
     assert_same_resolution(*metrics)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle )
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.bundle))
+    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
     stats = {}
     if len(sft) == 0:
         stats[bundle_name] = None
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    sft.to_vox()
-    sft.to_corner()
-
-    if args.nb_pts_per_streamline:
-        new_sft = resample_streamlines_num_points(sft,
-                                                  args.nb_pts_per_streamline)
-    else:
-        new_sft = resample_streamlines_step_size(sft, args.step_size)
-
+    new_sft = resample_streamlines_num_points(sft, args.nb_pts_per_streamline)
 
     # Make sure all streamlines go in the same direction. We want to make
     # sure point #1 / 20 of streamline A is matched with point #1 / 20 of
