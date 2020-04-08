@@ -87,5 +87,5 @@ def get_data_as_label(in_img):
         return np.asanyarray(in_img.dataobj).astype(np.uint16)
     else:
         raise IOError('The image {} cannot be loaded as label because '
-                     'its format {} is not compatible with a label '
-                     'image'.format(basename, curr_type))
+                      'its format {} is not compatible with a label '
+                      'image'.format(basename, curr_type))
