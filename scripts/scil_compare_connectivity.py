@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
+Performs a network-based statistical comparison for populations X and Y using
+a t-statistic threshold of alpha. All matrices must have the same shape and be
+ordered in the same way.
+
+For more details visit:
+https://brainconn.readthedocs.io/en/latest/generated/brainconn.nbs.nbs_bct.html
 """
 
 import argparse
@@ -57,7 +63,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_g1+args.in_g2,
                         args.filtering_mask)
-    print(args.in_g2)
+
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
@@ -79,6 +85,9 @@ def main():
                                  tail=args.tail,
                                  paired=args.paired,
                                  verbose=args.verbose)
+
+    print('The statistical significance (pvalue) of the difference between '
+          'both group is {}'.format(round(pval, 5)))
 
 
 if __name__ == '__main__':
