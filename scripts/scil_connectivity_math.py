@@ -40,17 +40,15 @@ def _build_arg_parser():
     p.add_argument('operation',
                    choices=OPERATIONS.keys(),
                    help='The type of operation to be performed on the '
-                   'matrices.')
-
+                        'matrices.')
     p.add_argument('inputs', nargs='+',
                    help='The list of matrices files or parameters.')
+    p.add_argument('output',
+                   help='Output matrix path.')
 
     p.add_argument('--data_type',
                    help='Data type of the output image. Use the format: '
                         'uint8, float16, int32.')
-
-    p.add_argument('output',
-                   help='Output matrix path.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -63,18 +61,18 @@ def load_data(arg):
         data = float(arg)
     else:
         if not os.path.isfile(arg):
-            logging.error('Input file %s does not exist', arg)
-            raise ValueError
+            raise ValueError('Input file {} does not exist.'.format(arg))
 
         data = load_matrix_in_any_format(arg)
-        logging.info('Loaded %s of shape %s and data_type %s',
-                     arg, data.shape, data.dtype)
+        logging.info('Loaded {} of shape {} and data_type {}.'.format(
+            arg, data.shape, data.dtype))
 
         if data.ndim > 2:
-            logging.warning('%s has %s dimensions, be careful', arg, data.ndim)
+            logging.warning('{} has {} dimensions, be careful.'.format(
+                arg, data.ndim))
         elif data.ndim < 2:
-            logging.warning('%s has %s dimensions, not valid ', arg, data.ndim)
-            raise ValueError
+            raise ValueError('{} has {} dimensions, not valid.'.format(
+                arg, data.ndim))
 
     return data
 
@@ -92,7 +90,7 @@ def main():
     binary_op = ['union', 'intersection', 'difference', 'invert']
 
     if args.operation not in OPERATIONS.keys():
-        parser.error('Operation {} not implemented'.format(args.operation))
+        parser.error('Operation {} not implemented.'.format(args.operation))
 
     # Load all input masks.
     input_data = []
@@ -103,11 +101,11 @@ def main():
             unique = np.unique(data)
             if not len(unique) <= 2:
                 parser.error('Binary operations can only be performed with '
-                             'binary masks')
+                             'binary masks.')
 
             if len(unique) == 2 and not (unique == [0, 1]).all():
                 logging.warning('Input data for binary operation are not '
-                                'binary array, will be converted. '
+                                'binary array, will be converted.\n'
                                 'Non-zeros will be set to ones.')
                 data[data != 0] = 1
 
@@ -116,7 +114,7 @@ def main():
         input_data.append(data)
 
     if args.operation == 'convert' and not args.data_type:
-        parser.error('Convert operation must be used with --data_type')
+        parser.error('Convert operation must be used with --data_type.')
 
     # Perform the request operation
     try:

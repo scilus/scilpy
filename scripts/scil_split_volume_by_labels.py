@@ -108,13 +108,13 @@ def main():
     cnt_filename = 0
     for label in label_indices:
         if int(label) != 0:
-            split_label = np.zeros(label_image.get_header().get_data_shape(),
-                                   dtype=label_image.get_data_dtype())
+            split_label = np.zeros(label_image.shape,
+                                   dtype=np.uint16)
             split_label[np.where(label_image_data == int(label))] = label
 
             split_image = nib.Nifti1Image(split_label,
-                                          label_image.get_affine(),
-                                          label_image.get_header())
+                                          label_image.affine,
+                                          header=label_image.header)
             nib.save(split_image, output_filenames[cnt_filename])
             cnt_filename += 1
 
