@@ -126,7 +126,7 @@ def build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
-    p.add_argument('labels',
+    p.add_argument('in_labels',
                    help='Labels file name (nifti). Labels must have 0 as '
                         'background.')
     p.add_argument('output_dir',
@@ -193,7 +193,7 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
 
     if os.path.abspath(args.output_dir) == os.getcwd():
         parser.error('Do not use the current path as output directory.')
@@ -208,8 +208,8 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
-    img_labels = nib.load(args.labels)
-    data_labels = img_labels.get_fdata().astype(np.int16)
+    img_labels = nib.load(args.in_labels)
+    data_labels = img_labels.get_fdata().astype(np.uint16)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')

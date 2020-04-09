@@ -55,9 +55,9 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=EPILOG)
     p.add_argument('in_length_matrix',
-                   help='Input length weighted matrix.')
+                   help='Input length weighted matrix (.npy).')
     p.add_argument('in_streamline_count_matrix',
-                   help='Input streamline count weighted matrix..')
+                   help='Input streamline count weighted matrix (.npy).')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
