@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to convert cortical surface (vtk or freesurfer).
+Script to convert surface (FreeSurfer or VTK supported).
+    ".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"
 
 > scil_convert_surface.py surf.vtk converted_surf.ply
 """
@@ -22,11 +23,11 @@ References:
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('surface',
+    p.add_argument('in_surface',
                    help='Input surface (FreeSurfer or supported by VTK).')
 
     p.add_argument('out_surface',
@@ -37,13 +38,13 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.surface)
+    assert_inputs_exist(parser, args.in_surface)
     assert_outputs_exist(parser, args, args.out_surface)
 
-    mesh = load_mesh_from_file(args.surface)
+    mesh = load_mesh_from_file(args.in_surface)
     mesh.save(args.out_surface)
 
 

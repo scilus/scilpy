@@ -2,13 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to load and transform cortical surface (vtk or freesurfer),
+Script to load and transform surface (FreeSurfer or VTK supported),
 This script is using ANTs transform (affine.txt, warp.nii.gz).
 
 Best usage for with ANTs from T1 to b0:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
 > scil_transform_surface.py lh_white_lps.vtk affine.txt lh_white_b0.vtk\\
     --ants_warp warp.nii.gz
+
+The input surface need to be in *T1 world LPS* coordinates
+(aligned over the T1 in MI-Brain).
+The resulting surface should be aligned *B0 world LPS* coordinates
+(aligned over the B0 in MI-Brain.
 """
 
 import argparse
@@ -31,11 +36,11 @@ References:
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('surface',
+    p.add_argument('in_surface',
                    help='Input surface (FreeSurfer or supported by VTK).')
 
     p.add_argument('ants_affine',
@@ -52,15 +57,15 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.surface, args.ants_affine],
+    assert_inputs_exist(parser, [args.in_surface, args.ants_affine],
                         args.ants_warp)
     assert_outputs_exist(parser, args, args.out_surface)
 
     # Load mesh
-    mesh = load_mesh_from_file(args.surface)
+    mesh = load_mesh_from_file(args.in_surface)
 
     # Affine transformation
     if args.ants_affine:

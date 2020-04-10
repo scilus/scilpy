@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to smooth surface from a Laplacian blur.
+Script to smooth surface with a Laplacian blur.
+
+step_size in between 0.1 to 10 are recommended
+Smoothing_time = step_size * nb_steps
+    [1, 10] for a small smoothing
+    [10, 100] for a moderate smoothing
+    [100, 1000] for a big smoothing
 """
 
 import argparse
@@ -24,11 +30,11 @@ References:
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('surface',
+    p.add_argument('in_surface',
                    help='Input surface (FreeSurfer or supported by VTK).')
 
     p.add_argument('out_surface',
@@ -49,10 +55,10 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.surface, args.vts_mask)
+    assert_inputs_exist(parser, args.in_surface, args.vts_mask)
     assert_outputs_exist(parser, args, args.out_surface)
 
     # Check smoothing parameters
@@ -72,7 +78,7 @@ def main():
     else:
         step_size_per_vts = args.step_size
 
-    mesh = load_mesh_from_file(args.surface)
+    mesh = load_mesh_from_file(args.in_surface)
 
     # Laplacian smoothing
     vts = mesh.laplacian_smooth(
