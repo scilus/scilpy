@@ -75,6 +75,9 @@ def main():
     assert_inputs_exist(parser, args.in_file, optional=args.mask)
     assert_outputs_exist(parser, args, args.out_file)
 
+    if args.nbr_processes is None:
+        args.nbr_processes = -1
+
     # load volume
     volume_nib = nib.load(args.in_file)
     data = get_data_as_label(volume_nib)
@@ -138,7 +141,7 @@ def main():
     # Compute the nearest labels for each voxel of the background
     dist, indices = ckd_tree.query(
         background_pos, k=1, distance_upper_bound=args.distance,
-        n_jobs=args.processes)
+        n_jobs=args.nbr_processes)
 
     # Associate indices to the nearest label (in distance)
     valid_nearest = np.squeeze(np.isfinite(dist))
@@ -151,7 +154,8 @@ def main():
     data = data.reshape(img_shape)
 
     # Save image
-    nib.save(nib.Nifti1Image(data, volume_nib.affine, volume_nib.header),
+    nib.save(nib.Nifti1Image(data.astype(np.uint16), volume_nib.affine,
+                             header=volume_nib.header),
              args.out_file)
 
 
