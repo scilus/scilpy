@@ -22,8 +22,9 @@ import nibabel as nib
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.image import get_data_as_label, get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 
 EPILOG = """
     References:
@@ -44,7 +45,7 @@ def _build_arg_parser():
                    help='Output filename of the dilated labels.')
 
     p.add_argument('--distance', type=float, default=2.0,
-                   help='Maximal distance to dilated (in mm).')
+                   help='Maximal distance to dilated (in mm) [%(default)s].')
 
     p.add_argument('--label_to_dilate', type=int, nargs='+', default=None,
                    help='Label list to dilate, by default it dilate all that\n'
@@ -60,10 +61,9 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Only dilate values inside the mask.')
 
-    p.add_argument('--processes', type=int, default=-1,
-                   help='Number of sub processes to start. [cpu count]')
-
+    add_processes_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 
@@ -77,7 +77,7 @@ def main():
 
     # load volume
     volume_nib = nib.load(args.in_file)
-    data = np.round(volume_nib.get_data()).astype(np.int)
+    data = get_data_as_label(volume_nib)
     vox_size = np.reshape(volume_nib.header.get_zooms(), (1, 3))
     img_shape = data.shape
 
@@ -101,7 +101,7 @@ def main():
     # Add mask
     if args.mask:
         mask_nib = nib.load(args.mask)
-        mask_data = mask_nib.get_data().astype(np.bool)
+        mask_data = get_data_as_mask(mask_nib)
         to_dilate_mask = np.logical_and(is_background_mask, mask_data)
     else:
         to_dilate_mask = is_background_mask
