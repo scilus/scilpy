@@ -41,13 +41,13 @@ def _build_arg_parser():
     p.add_argument('in_matrix',
                    help='Connectivity matrix in numpy (.npy) format.')
     p.add_argument('out_prefix',
-                   help='Prefix for the output filename.')
+                   help='Prefix for the output matrix filename.')
 
     reorder = p.add_mutually_exclusive_group(required=True)
     reorder.add_argument('--in_json',
                          help='Json file with the sub-network as keys and x/y '
                               'lists as value.')
-    reorder.add_argument('--bct_reorder_nodes', metavar='OUTPUT_FILE',
+    reorder.add_argument('--bct_reorder_nodes', metavar='OUT_JSON',
                          help='Rearranges the nodes so the elements are '
                               'squeezed along the main diagonal.')
 
@@ -72,6 +72,9 @@ def main():
     if args.labels_list and args.bct_reorder_nodes:
         parser.error('Cannot use the bct_reorder_nodes option with a '
                      'labels_list.')
+
+    if args.keys and args.bct_reorder_nodes:
+        parser.error('Cannot use the bct_reorder_nodes option with keys.')
 
     matrix = load_matrix_in_any_format(args.in_matrix)
 
