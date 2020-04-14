@@ -19,6 +19,7 @@ Please use a bundle file rather than a whole tractogram.
 import argparse
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
