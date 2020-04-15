@@ -11,49 +11,37 @@ population dictionary (similarly to the other scil_evaluate_*.py ) use the
 --append_json option as well as using the same output filename.
 
 Some measures output one value per node, the default behavior is to average
-them all into a single value.
+them all into a single value. To obtain all values as a list use the
+--node_wise_as_list option.
 
 The computed connectivity measures are:
-degree_centrality, betweenness_centrality, degree_assortativity
-clustering, modularity_quality, modularity_coverage, modularity_performance
+centrality, modularity, assortativity, participation, clustering, degree
 nodal_strength, local_efficiency, global_efficiency, density, rich_club
 path_length, edge_count, omega, sigma
 
-For more details about the measures, please refer to:
+For more details about the measures, please refer to
 - https://sites.google.com/site/bctnet/measures
-- https://networkx.github.io/documentation/networkx-1.9/overview.html
+- https://github.com/aestrivex/bctpy/wiki
 """
 
 import argparse
 import json
 import logging
-import multiprocessing
 import os
-from time import time
-import itertools
+import warnings
 
-import networkx as nx
-from networkx.algorithms.assortativity import degree_assortativity_coefficient
-from networkx.algorithms.centrality import degree_centrality, betweenness_centrality
-from networkx.algorithms.cluster import transitivity
-from networkx.algorithms.community import (kernighan_lin_bisection,
-                                           modularity, performance, coverage)
-from networkx.algorithms.efficiency_measures import (local_efficiency,
-                                                     global_efficiency)
-from networkx.algorithms.richclub import rich_club_coefficient
-from networkx.algorithms.shortest_paths.generic import average_shortest_path_length
-from networkx.algorithms.smallworld import random_reference, lattice_reference
+import bct
 import numpy as np
 
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
-                             add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             load_matrix_in_any_format)
+                             load_matrix_in_any_format,
+                             save_matrix_in_any_format)
 
-
+from time import time
 EPILOG = """
 References:
     [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
@@ -66,11 +54,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter,
                                 epilog=EPILOG)
+    p.add_argument('in_conn_matrix',
+                   help='Input connectivity matrix (.npy).\n'
+                        'Typically a streamline count weighted matrix.')
     p.add_argument('in_length_matrix',
                    help='Input length weighted matrix (.npy).')
-    p.add_argument('in_connection_matrix',
-                   help='Input connection matrix (.npy).\n'
-                        'Typically a streamline count weighted')
     p.add_argument('out_json',
                    help='Path of the output json.')
 
@@ -78,67 +66,37 @@ def _build_arg_parser():
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
 
-    p.add_argument('--small_world', action='store_true',
-                   help='Compute measure related to small worldness (omega '
-                   'and sigma).\n This option is much slower.')
-
     p.add_argument('--append_json', action='store_true',
                    help='If the file already exists, will append to the '
                         'dictionary.')
+    p.add_argument('--small_world', action='store_true',
+                   help='Compute measure related to small worldness (omega '
+                        'and sigma).\n This option is much slower.')
 
     add_json_args(p)
     add_verbose_arg(p)
-    add_processes_arg(p)
     add_overwrite_arg(p)
 
     return p
 
 
-def random_reference_wrapper(args):
-    return random_reference(args[0], niter=args[1], seed=args[2])
+def omega_sigma(matrix):
+    """Returns the small-world coefficients (omega & sigma) of a graph
+    Omega ranges between -1 and 1. Values close to 0 means the metrix
+    features small-world characteristics. 
+    Values close to -1 means the network has a lattice structure and values 
+    close to 1 means G is a random network.
 
+    A network is commonly classified as small-world if sigma > 1.
 
-def lattice_reference_wrapper(args):
-    return lattice_reference(args[0], niter=args[1], seed=args[2])
-
-
-def dict_to_avg(dix):
-    array = np.zeros(len(dix))
-    for i in dix:
-        array[int(i)] = float(dix[i])
-
-    return float(np.average(array))
-
-
-def omega_sigma(G, nbr_processes, niter=10, nrand=10, seed=None):
-    """Returns the small-world coefficient (omega) of a graph
-    The small-world coefficient of a graph G is:
-    omega = Lr/L - C/Cl
-    where C and L are respectively the average clustering coefficient and
-    average shortest path length of G. Lr is the average shortest path length
-    of an equivalent random graph and Cl is the average clustering coefficient
-    of an equivalent lattice graph.
-    The small-world coefficient (omega) ranges between -1 and 1. Values close
-    to 0 means the G features small-world characteristics. Values close to -1
-    means G has a lattice shape whereas values close to 1 means G is a random
-    graph.
     Parameters
     ----------
-    G : NetworkX graph
-        An undirected graph.
-    niter: integer (optional, default=10)
-        Approximate number of rewiring per edge to compute the equivalent
-        random graph.
-    nrand: integer (optional, default=10)
-        Number of random graphs generated to compute the average clustering
-        coefficient (Cr) and average shortest path length (Lr).
-    seed : integer, random_state, or None (default)
-        Indicator of random number generation state.
-        See :ref:`Randomness<randomness>`.
+    matrix : numpy.ndarray
+        A weighted undirected graph.
     Returns
     -------
-    omega : float
-        The small-work coefficient (omega)
+    smallworld : tuple of float
+        The small-work coefficients (omega & sigma)
     Notes
     -----
     The implementation is adapted from the algorithm by Telesford et al. [1]_.
@@ -149,43 +107,36 @@ def omega_sigma(G, nbr_processes, niter=10, nrand=10, seed=None):
            Brain Connectivity. 1 (0038): 367-75.  PMC 3604768. PMID 22432451.
            doi:10.1089/brain.2011.0038.
     """
-    randMetrics = {"C1": [], "L": [], "C2": []}
+    transitivity_rand_list = []
+    transitivity_latt_list = []
+    path_length_rand_list = []
+    for i in range(10):
+        logging.debug('Generating random and lattice matrices, '
+                      'iteration #{}.'.format(i))
 
-    pool = multiprocessing.Pool(nbr_processes)
-    timer = time()
-    Gr_list = pool.map(random_reference_wrapper, zip(itertools.repeat(G),
-                                                     itertools.repeat(niter),
-                                                     range(nrand)))
-    logging.debug('Generated {} random reference matrices in {} sec. using {} '
-                  'processes'.format(niter, np.round(time() - timer, 3),
-                  nbr_processes))
-    Gl_list = pool.map(lattice_reference_wrapper, zip(itertools.repeat(G),
-                                                      itertools.repeat(niter),
-                                                      range(nrand)))
-    pool.close()
-    pool.join()
+        random = bct.randmio_und(matrix, 10)[0]
+        lattice = bct.latmio_und(matrix, 10)[1]
 
-    logging.debug('Generated {} lattice reference matrices in {} sec. using {} '
-                  'processes'.format(niter, np.round(time() - timer, 3),
-                  nbr_processes))
-    pool.close()
-    pool.join()
+        transitivity_rand_list.append(bct.transitivity_wu(random))
+        transitivity_latt_list.append(bct.transitivity_wu(lattice))
+        path_length_rand_list.append(avg_cast(bct.distance_wei(random)[0]))
 
-    for i in range(nrand):
-        randMetrics["C1"].append(nx.transitivity(Gr_list[i]))
-        randMetrics["C2"].append(nx.transitivity(Gl_list[i]))
-        randMetrics["L"].append(nx.average_shortest_path_length(Gr_list[i]))
+    transitivity = bct.transitivity_wu(matrix)
+    path_length = avg_cast(bct.distance_wei(matrix)[0])
+    transitivity_rand = np.mean(transitivity_rand_list)
+    transitivity_latt = np.mean(transitivity_latt_list)
+    path_length_rand = np.mean(path_length_rand_list)
 
-    C = nx.transitivity(G)
-    L = nx.average_shortest_path_length(G)
-    Cr = np.mean(randMetrics["C1"])
-    Cl = np.mean(randMetrics["C2"])
-    Lr = np.mean(randMetrics["L"])
+    omega = (path_length_rand / path_length) - \
+        (transitivity / transitivity_latt)
+    sigma = (transitivity / transitivity_rand) / \
+        (path_length / path_length_rand)
 
-    omega = (Lr / L) - (C / Cl)
-    sigma = (C / Cr) / (L / Lr)
+    return float(omega), float(sigma)
 
-    return omega, sigma
+
+def avg_cast(input):
+    return float(np.average(input))
 
 
 def main():
@@ -193,7 +144,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_length_matrix,
-                                 args.in_connection_matrix])
+                                 args.in_conn_matrix])
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -210,7 +161,7 @@ def main():
                      'overwrite.\nAmbiguous behavior, consider deleting the '
                      'output json file first instead')
 
-    conn_matrix = load_matrix_in_any_format(args.in_connection_matrix)
+    conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
     conn_matrix /= conn_matrix.max()
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)
 
@@ -218,52 +169,54 @@ def main():
         mask_matrix = load_matrix_in_any_format(args.filtering_mask)
         conn_matrix *= mask_matrix
         len_matrix *= mask_matrix
-
-    conn_graph = nx.from_numpy_matrix(conn_matrix)
-    len_graph = nx.from_numpy_matrix(len_matrix)
+    N = len_matrix.shape[0]
 
     gtm_dict = {}
-    gtm_dict['degree_centrality'] = dict_to_avg(degree_centrality(conn_graph))
-    betweenness_centra = betweenness_centrality(len_graph,
-                                                weight='weight')
-    gtm_dict['betweenness_centrality'] = dict_to_avg(betweenness_centra)
-    ci = kernighan_lin_bisection(conn_graph, max_iter=100, seed=0)
-    gtm_dict['modularity_quality'] = modularity(conn_graph, ci,
-                                                weight='weight')
-    gtm_dict['modularity_coverage'] = coverage(conn_graph, ci)
-    gtm_dict['modularity_performance'] = performance(conn_graph, ci)
-    gtm_dict['assortativity'] = degree_assortativity_coefficient(conn_graph)
-    gtm_dict['transitivity'] = transitivity(conn_graph)
-    gtm_dict['nodal_strength'] = float(np.average(np.sum(conn_matrix,
-                                                         axis=0)))
-    gtm_dict['local_efficiency'] = local_efficiency(conn_graph)
-    gtm_dict['global_efficiency'] = global_efficiency(conn_graph)
+    betweenness_centrality = bct.betweenness_wei(len_matrix) / ((N-1)*(N-2))
+    gtm_dict['betweenness_centrality'] = avg_cast(betweenness_centrality)
+    ci, gtm_dict['modularity'] = bct.modularity_louvain_und(conn_matrix,
+                                                             seed=0)
 
-    rich_club = rich_club_coefficient(conn_graph, normalized=False,
-                                      seed=0)
-    gtm_dict['rich_club'] = dict_to_avg(rich_club)
+    gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,
+                                                      flag=0)
+    gtm_dict['participation'] = avg_cast(bct.participation_coef_sign(conn_matrix,
+                                                                     ci)[0])
+    gtm_dict['clustering'] = avg_cast(bct.clustering_coef_wu(conn_matrix))
 
-    # Last measures, does not support the unconnected edges. Removing them.
+    gtm_dict['nodal_strength'] = avg_cast(bct.strengths_und(conn_matrix))
+    gtm_dict['local_efficiency'] = avg_cast(bct.efficiency_wei(len_matrix,
+                                                               local=True))
+    gtm_dict['global_efficiency'] = avg_cast(bct.efficiency_wei(len_matrix))
+    gtm_dict['density'] = avg_cast(bct.density_und(conn_matrix)[0])
+
+    # Rich club always gives an error for the matrix rank and gives NaN
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        tmp_rich_club = bct.rich_club_wu(conn_matrix)
+    gtm_dict['rich_club'] = avg_cast(tmp_rich_club[~np.isnan(tmp_rich_club)])
+
+    # Path length gives an infinite distance for unconnected nodes
+    # All of this is simply to fix that
     empty_connections = np.where(np.sum(len_matrix, axis=1) < 0.001)[0]
     if len(empty_connections):
-        tmp_len_matrix = np.delete(len_matrix, empty_connections, axis=0)
-        tmp_len_matrix = np.delete(tmp_len_matrix, empty_connections, axis=1)
-        len_graph = nx.from_numpy_matrix(tmp_len_matrix)
+        len_matrix = np.delete(len_matrix, empty_connections, axis=0)
+        len_matrix = np.delete(len_matrix, empty_connections, axis=1)
 
-    gtm_dict['path_length'] = average_shortest_path_length(len_graph,
-                                                           weight='weight')
-    gtm_dict['edge_count'] = average_shortest_path_length(len_graph)
+    path_length_tuple = bct.distance_wei(len_matrix)
+    gtm_dict['path_length'] = avg_cast(path_length_tuple[0])
+    gtm_dict['edge_count'] = avg_cast(path_length_tuple[1])
 
     if args.small_world:
-        gtm_dict['omega'], gtm_dict['sigma'] = omega_sigma(len_graph,
-                                                           args.nbr_processes,
-                                                           seed=0)
+        gtm_dict['omega'], gtm_dict['sigma'] = omega_sigma(len_matrix)
 
     if os.path.isfile(args.out_json) and args.append_json:
         with open(args.out_json) as json_data:
             out_dict = json.load(json_data)
         for key in gtm_dict.keys():
-            out_dict[key].append(gtm_dict[key])
+            if isinstance(out_dict[key], list):
+                out_dict[key].append(gtm_dict[key])
+            else:
+                out_dict[key] = [out_dict[key], gtm_dict[key]]
     else:
         out_dict = {}
         for key in gtm_dict.keys():
