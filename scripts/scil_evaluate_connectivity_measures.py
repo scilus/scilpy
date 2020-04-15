@@ -38,10 +38,8 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             load_matrix_in_any_format,
-                             save_matrix_in_any_format)
+                             load_matrix_in_any_format)
 
-from time import time
 EPILOG = """
 References:
     [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
@@ -83,8 +81,8 @@ def _build_arg_parser():
 def omega_sigma(matrix):
     """Returns the small-world coefficients (omega & sigma) of a graph
     Omega ranges between -1 and 1. Values close to 0 means the metrix
-    features small-world characteristics. 
-    Values close to -1 means the network has a lattice structure and values 
+    features small-world characteristics.
+    Values close to -1 means the network has a lattice structure and values
     close to 1 means G is a random network.
 
     A network is commonly classified as small-world if sigma > 1.
@@ -175,7 +173,7 @@ def main():
     betweenness_centrality = bct.betweenness_wei(len_matrix) / ((N-1)*(N-2))
     gtm_dict['betweenness_centrality'] = avg_cast(betweenness_centrality)
     ci, gtm_dict['modularity'] = bct.modularity_louvain_und(conn_matrix,
-                                                             seed=0)
+                                                            seed=0)
 
     gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,
                                                       flag=0)
