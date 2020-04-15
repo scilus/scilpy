@@ -15,13 +15,16 @@ them all into a single value. To obtain all values as a list use the
 --node_wise_as_list option.
 
 The computed connectivity measures are:
-centrality, modularity, assortativity, participation, clustering, degree
-nodal_strength, local_efficiency, global_efficiency, density, rich_club
+centrality, modularity, assortativity, participation, clustering,
+nodal_strength, local_efficiency, global_efficiency, density, rich_club,
 path_length, edge_count, omega, sigma
 
 For more details about the measures, please refer to
 - https://sites.google.com/site/bctnet/measures
 - https://github.com/aestrivex/bctpy/wiki
+
+This script is under the GNU GPLv3 license, for more detail please refer to
+https://www.gnu.org/licenses/gpl-3.0.en.html
 """
 
 import argparse
@@ -63,7 +66,6 @@ def _build_arg_parser():
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
-
     p.add_argument('--append_json', action='store_true',
                    help='If the file already exists, will append to the '
                         'dictionary.')
@@ -111,7 +113,6 @@ def omega_sigma(matrix):
     for i in range(10):
         logging.debug('Generating random and lattice matrices, '
                       'iteration #{}.'.format(i))
-
         random = bct.randmio_und(matrix, 10)[0]
         lattice = bct.latmio_und(matrix, 10)[1]
 
