@@ -67,9 +67,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
         weights = weights > 0
 
     return map(lambda metric_file:
-               weighted_mean_std_dev(
-                    weights,
-                    metric_file.get_data().astype(np.float64)),
+               weighted_mean_std_dev(weights,
+                                     metric_file.get_fdata(dtype=np.float32)),
                metrics_files)
 
 
@@ -237,6 +236,6 @@ def get_metrics_stats_over_volume(weights, metrics_files):
     """
 
     return map(lambda metric_file:
-               weighted_mean_stddev(weights,
-                                    metric_file.get_fdata(np.float64)),
+               weighted_mean_std_dev(weights,
+                                     metric_file.get_fdata(dtype=np.float32)),
                metrics_files)
