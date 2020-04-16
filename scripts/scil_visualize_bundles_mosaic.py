@@ -10,44 +10,60 @@ The script will output a mosaic (image) with screenshots,
 import argparse
 import logging
 import os
+import random
 import shutil
 
-import nibabel as nib
 from fury import actor, window
+import nibabel as nib
+import numpy as np
 
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
+from scilpy.utils.filenames import split_name_with_nii
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('anat_reference',
-                        help='Image used as background (e.g. T1, FA, b0).')
-    parser.add_argument('inputs', nargs='+',
-                        help='List of streamline files supported by nibabel.')
-    parser.add_argument('output_name',
-                        help='Name of the output image mosaic '
-                             '(e.g. mosaic.jpg, mosaic.png).')
-    parser.add_argument('--zoom', type=float, default=1.0,
-                        help='Rendering zoom. '
-                             'A value greater than 1 is a zoom-in, '
-                             'a value less than 1 is a zoom-out.')
-    parser.add_argument('--ttf', default=None,
-                        help='Path of the true type font to use for legends.')
-    parser.add_argument('--ttf_size', type=int, default=35,
-                        help='Font size (int) to use for the legends.')
-    parser.add_argument('--opacity_background', type=float, default=0.4,
-                        help='Opacity of background image [0, 1.0]')
-    parser.add_argument('--resolution_of_thumbnails', type=int, default=300,
-                        help='Resolution of thumbnails used in mosaic.')
+    p.add_argument('anat_reference',
+                   help='Image used as background (e.g. T1, FA, b0).')
+    p.add_argument('inputs', nargs='+',
+                   help='List of streamline or files supported by nibabel '
+                        'or binary mask file.')
+    p.add_argument('output_name',
+                   help='Name of the output image mosaic '
+                        '(e.g. mosaic.jpg, mosaic.png).')
 
-    add_overwrite_arg(parser)
-    return parser
+    p.add_argument('--uniform_coloring', nargs=3,
+                   metavar=('R', 'G', 'B'), type=float,
+                   help='Assign an uniform color to streamlines (or ROIs).')
+    p.add_argument('--random_coloring', action='store_true',
+                   help='Assign a random color to streamlines (or ROIs).')
+    p.add_argument('--zoom', type=float, default=1.0,
+                   help='Rendering zoom. '
+                        'A value greater than 1 is a zoom-in,\n'
+                        'a value less than 1 is a zoom-out [%(default)s].')
+
+    p.add_argument('--ttf', default=None,
+                   help='Path of the true type font to use for legends.')
+    p.add_argument('--ttf_size', type=int, default=35,
+                   help='Font size (int) to use for the legends. '
+                        '[%(default)s]')
+    p.add_argument('--opacity_background', type=float, default=0.4,
+                   help='Opacity of background image, between 0 and 1.0 '
+                        '[%(default)s].')
+    p.add_argument('--resolution_of_thumbnails', type=int, default=300,
+                   help='Resolution of thumbnails used in mosaic '
+                        '[%(default)s].')
+
+    add_overwrite_arg(p)
+    return p
 
 
 def get_font(args):
@@ -102,16 +118,16 @@ def draw_column_with_names(draw, output_names, text_pos_x,
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
     draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
-              ('Streamlines'), font=font)
+              ('Elements'), font=font)
 
 
-def draw_bundle_information(draw, bundle_file_name, number_streamlines,
+def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
                             pos_x, pos_y, font):
     """Draw text with bundle information."""
     draw.text((pos_x, pos_y),
               (bundle_file_name), font=font)
     draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
-              ('{}'.format(number_streamlines)), font=font)
+              ('{}'.format(nbr_of_elem)), font=font)
 
 
 def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
@@ -121,6 +137,13 @@ def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
     image = Image.open(path)
     image.thumbnail((width, height))
     mosaic.paste(image, (i, j))
+
+
+def random_rgb():
+    r = random.randint(0, 255)
+    g = random.randint(0, 255)
+    b = random.randint(0, 255)
+    return np.array([r, g, b]) / 255.0
 
 
 def main():
@@ -157,7 +180,7 @@ def main():
 
     # Data of the image used as background
     ref_img = nib.load(args.anat_reference)
-    data = ref_img.get_data()
+    data = ref_img.get_fdata(dtype=np.float32)
     affine = ref_img.affine
     mean, std = data[data > 0].mean(), data[data > 0].std()
     value_range = (mean - 0.5 * std, mean + 1.5 * std)
@@ -172,7 +195,7 @@ def main():
     for idx_bundle, bundle_file in enumerate(list_of_bundles):
 
         bundle_file_name = os.path.basename(bundle_file)
-        bundle_name, _ = os.path.splitext(bundle_file_name)
+        bundle_name, bundle_ext = split_name_with_nii(bundle_file_name)
 
         # !! It creates a temporary folder to create
         # the images to concatenate in the mosaic !!
@@ -200,13 +223,28 @@ def main():
                                     i + text_pos_x, j + text_pos_y, font)
 
         else:
+            if args.uniform_coloring:
+                colors = args.uniform_coloring
+            elif args.random_coloring:
+                colors = random_rgb()
             # Select the streamlines to plot
-            bundle_tractogram_file = nib.streamlines.load(bundle_file)
-            streamlines = bundle_tractogram_file.streamlines
-
-            tubes = actor.line(streamlines)
-
-            number_streamlines = len(streamlines)
+            if bundle_ext in ['.tck', '.trk']:
+                if not args.random_coloring and not args.uniform_coloring:
+                    colors = None
+                bundle_tractogram_file = nib.streamlines.load(bundle_file)
+                streamlines = bundle_tractogram_file.streamlines
+                bundle_actor = actor.line(streamlines, colors)
+                nbr_of_elem = len(streamlines)
+            # Select the volume to plot
+            elif bundle_ext in ['.nii.gz', '.nii']:
+                if not args.random_coloring and not args.uniform_coloring:
+                    colors = [1.0, 1.0, 1.0]
+                bundle_img_file = nib.load(bundle_file)
+                roi = get_data_as_mask(bundle_img_file)
+                bundle_actor = actor.contour_from_roi(roi,
+                                                      bundle_img_file.affine,
+                                                      colors)
+                nbr_of_elem = np.count_nonzero(roi)
 
             # Render
             ren = window.Renderer()
@@ -219,7 +257,7 @@ def main():
             ren.add(slice_actor)
 
             # Streamlines
-            ren.add(tubes)
+            ren.add(bundle_actor)
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 0
@@ -277,7 +315,7 @@ def main():
 
             view_number = 6
             j = height * view_number
-            draw_bundle_information(draw, bundle_file_name, number_streamlines,
+            draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
                                     i + text_pos_x, j + text_pos_y, font)
 
         shutil.rmtree(output_bundle_dir)
