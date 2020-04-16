@@ -33,6 +33,7 @@ from dipy.tracking.streamlinespeed import length
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg,
@@ -209,7 +210,7 @@ def main():
     set_sft_logger_level('WARNING')
 
     img_labels = nib.load(args.in_labels)
-    data_labels = img_labels.get_fdata().astype(np.uint16)
+    data_labels = get_data_as_label(img_labels)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')
