@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to smooth surface with a Laplacian blur.
+Script to smooth a surface with a Laplacian blur.
 
 step_size from 0.1 to 10 is recommended
 Smoothing_time = step_size * nb_steps

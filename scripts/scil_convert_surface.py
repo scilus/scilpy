@@ -28,7 +28,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_surface',
-                   help='Input surface (FreeSurfer or supported by VTK).')
+                   help='Input a surface (FreeSurfer or supported by VTK).')
 
     p.add_argument('out_surface',
                    help='Output flipped surface (formats supported by VTK).')

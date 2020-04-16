@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to flip and reverse surface (FreeSurfer or VTK supported).
+Script to flip and reverse a surface (FreeSurfer or VTK supported).
 Can be used to flip in chosen axes (x, y or z),
 it can also flip inside out the surface orientation (normal).
 

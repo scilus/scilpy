@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to load and transform surface (FreeSurfer or VTK supported),
+Script to load and transform a surface (FreeSurfer or VTK supported),
 This script is using ANTs transform (affine.txt, warp.nii.gz).
 
-Best usage for with ANTs from T1 to b0:
+Best usage with ANTs from T1 to b0:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
 > scil_transform_surface.py lh_white_lps.vtk affine.txt lh_white_b0.vtk\\
     --ants_warp warp.nii.gz
 
-The input surface need to be in *T1 world LPS* coordinates
+The input surface needs to be in *T1 world LPS* coordinates
 (aligned over the T1 in MI-Brain).
-The resulting surface should be aligned *B0 world LPS* coordinates
-(aligned over the B0 in MI-Brain).
+The resulting surface should be aligned *b0 world LPS* coordinates
+(aligned over the b0 in MI-Brain).
 """
 
 import argparse
