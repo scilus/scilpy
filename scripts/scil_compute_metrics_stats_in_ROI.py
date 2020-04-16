@@ -21,10 +21,9 @@ import json
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
-                             assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_inputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.metrics_tools import get_metrics_stats_over_volume
+from scilpy.utils.metrics_tools import get_roi_metrics_stats
 
 
 def _build_arg_parser():
@@ -34,7 +33,7 @@ def _build_arg_parser():
     p.add_argument('in_mask',
                    help='Mask volume file name, formatted in any nibabel ' +
                         'supported format.\nCan be a binary mask or a ' +
-                        'weighting mask.')
+                        'weighted mask.')
 
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('--metrics_dir',
@@ -73,11 +72,11 @@ def main():
             not args.normalize_weights:
         parser.error('The mask file must contain floating point numbers.')
 
+    # Can be a weighted image
+    mask_data = mask_img.get_fdata(dtype=np.float32)
+
     if args.normalize_weights:
-        mask_data = mask_img.get_fdata(np.float64)
         mask_data /= np.sum(mask_data)
-    else:
-        mask_data = np.asanyarray(mask_img.object).astype(np.uint8)
 
     if np.min(mask_data) < 0.0 or np.max(mask_data) > 1.0:
         parser.error('Mask data should only contain values between 0 and 1. '
@@ -94,7 +93,7 @@ def main():
         metrics_files = [nib.load(f) for f in args.metrics_file_list]
 
     # Compute the mean values and standard deviations
-    stats = get_metrics_stats_over_volume(weighting_data, metrics_files)
+    stats = get_roi_metrics_stats(mask_data, metrics_files)
 
     roi_name = split_name_with_nii(os.path.basename(args.mask))[0]
     json_stats = {roi_name: {}}
