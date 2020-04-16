@@ -13,7 +13,7 @@ Best usage for with ANTs from T1 to b0:
 The input surface need to be in *T1 world LPS* coordinates
 (aligned over the T1 in MI-Brain).
 The resulting surface should be aligned *B0 world LPS* coordinates
-(aligned over the B0 in MI-Brain.
+(aligned over the B0 in MI-Brain).
 """
 
 import argparse

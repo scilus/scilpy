@@ -4,7 +4,7 @@
 """
 Script to smooth surface with a Laplacian blur.
 
-step_size in between 0.1 to 10 are recommended
+step_size from 0.1 to 10 is recommended
 Smoothing_time = step_size * nb_steps
     [1, 10] for a small smoothing
     [10, 100] for a moderate smoothing
