@@ -43,7 +43,7 @@ def _build_arg_parser():
     p.add_argument('--uniform_coloring', nargs=3,
                    metavar=('R', 'G', 'B'), type=float,
                    help='Assign an uniform color to streamlines (or ROIs).')
-    p.add_argument('--random_coloring', action='store_true',
+    p.add_argument('--random_coloring', metavar='SEED', type=int, default=0,
                    help='Assign a random color to streamlines (or ROIs).')
     p.add_argument('--zoom', type=float, default=1.0,
                    help='Rendering zoom. '
@@ -192,6 +192,7 @@ def main():
     # ----------------------------------------------------------------------- #
     # Columns with bundles
     # ----------------------------------------------------------------------- #
+    random.seed(args.random_coloring)
     for idx_bundle, bundle_file in enumerate(list_of_bundles):
 
         bundle_file_name = os.path.basename(bundle_file)
