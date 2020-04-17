@@ -21,9 +21,9 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_reference_arg)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.metrics_tools import get_metrics_profile_over_streamlines
+from scilpy.utils.metrics_tools import get_bundle_metrics_profiles
 from scilpy.tracking.tools import resample_streamlines_num_points
-
+from scilpy.tractanalysis.features import get_streamlines_centroid
 
 
 def norm_l2(x):
@@ -42,13 +42,13 @@ def _build_arg_parser():
     p.add_argument('in_metrics', nargs='+',
                    help='Nifti metric(s) on which to compute '
                         'the tract profiles.')
-
-    g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument('--nb_pts_per_streamline',
+    p.add_argument('--in_centroid',
+                   help='If provided it will be used to make sure all '
+                        'streamlines go in the same direction. Otherwise, a '
+                        'centroid will be automatically computed.')
+    p.add_argument('--nb_pts_per_streamline',
                    type=int, default=20,
                    help='Subsample each streamline to this number of points.')
-    g.add_argument('--step_size', type=float,
-                   help='Step size in the output (in mm).')
 
     add_json_args(p)
     add_reference_arg(p)
@@ -60,14 +60,15 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.bundle] + args.metrics)
+    assert_inputs_exist(parser, [args.in_bundle] + args.in_metrics,
+                        optional=args.in_centroid)
 
-    if args.num_points <= 1:
-        parser.error('--num_points {} needs to be greater than '
-                     '1'.format(args.num_points))
+    if args.nb_pts_per_streamline <= 1:
+        parser.error('--nb_pts_per_streamline {} needs to be greater than '
+                     '1'.format(args.nb_pts_per_streamline))
 
-    metrics = [nib.load(m) for m in args.metrics]
-    assert_same_resolution(*metrics)
+    assert_same_resolution(args.in_metrics)
+    metrics = [nib.load(m) for m in args.in_metrics]
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
@@ -78,23 +79,32 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    new_sft = resample_streamlines_num_points(sft, args.nb_pts_per_streamline)
+    resampled_sft = resample_streamlines_num_points(sft,
+                                                    args.nb_pts_per_streamline)
+
+    # Centroid - will be use as reference to reorient each streamline
+    if args.in_centroid:
+        sft_centroid = load_tractogram_with_reference(parser, args,
+                                                      args.in_centroid)
+        centroid_streamlines = sft_centroid.streamlines
+    else:
+        centroid_streamlines = get_streamlines_centroid(resampled_sft.streamlines,
+                                                        args.nb_pts_per_streamline)
 
     # Make sure all streamlines go in the same direction. We want to make
-    # sure point #1 / 20 of streamline A is matched with point #1 / 20 of
-    # streamline B and so on
-    num_streamlines = len(new_sft.streamlines)
-    reference = bundle_subsampled[0]
+    # sure point #1 / args.nb_pts_per_streamline of streamline A is matched
+    # with point #1 / 20 of streamline B and so on
+    num_streamlines = len(resampled_sft.streamlines)
+
     for s in np.arange(num_streamlines):
-        streamline = bundle_subsampled[s]
-        direct = average_euclidean(reference, streamline)
-        flipped = average_euclidean(reference, streamline[::-1])
+        streamline = resampled_sft.streamlines[s]
+        direct = average_euclidean(centroid_streamlines, streamline)
+        flipped = average_euclidean(centroid_streamlines, streamline[::-1])
 
         if flipped < direct:
-            bundle_subsampled[s] = streamline[::-1]
+            resampled_sft.streamlines[s] = streamline[::-1]
 
-    profiles = get_metrics_profile_over_streamlines(bundle_subsampled,
-                                                    metrics)
+    profiles = get_bundle_metrics_profiles(resampled_sft, metrics)
     t_profiles = np.expand_dims(profiles, axis=1)
     t_profiles = np.rollaxis(t_profiles, 3, 2)
 

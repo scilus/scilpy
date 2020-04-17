@@ -10,19 +10,15 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def get_metrics_profile_over_streamlines(streamlines, metrics_files):
+def get_bundle_metrics_profiles(sft, metrics_files):
     """
-    Returns the profile of each metric along each streamline.
+    Returns the profile of each metric along each streamline from a sft.
     This is used to create tract profiles.
 
     Parameters
     ------------
-    streamlines : sequence
-        sequence of T streamlines. One streamline is an ndarray of shape
-        (N, 3), where N is the number of points in that streamline, and
-        ``streamlines[t][n]`` is the n-th point in the t-th streamline. Points
-        are of form x, y, z in voxel coordinates.
-
+    sft : StatefulTractogram
+        Input bundle under which to compute profile.
     metrics_files : sequence
         list of nibabel objects representing the metrics files
 
@@ -33,6 +29,10 @@ def get_metrics_profile_over_streamlines(streamlines, metrics_files):
 
     """
 
+    sft.to_vox()
+    sft.to_corner()
+    streamlines = sft.streamlines
+
     def _get_profile_one_streamline(streamline, metrics_files):
         x_ind = np.floor(streamline[:, 0]).astype(np.int)
         y_ind = np.floor(streamline[:, 1]).astype(np.int)
@@ -42,7 +42,7 @@ def get_metrics_profile_over_streamlines(streamlines, metrics_files):
                    metrics_files)
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = map(lambda metric_file: metric_file.get_data(),
+    metrics_data = map(lambda metric_file: metric_file.get_fdata(),
                        metrics_files)
 
     # The root list has S elements, where S == the number of streamlines.

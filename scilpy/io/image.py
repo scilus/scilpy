@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dipy.io.utils import get_reference_info
+from dipy.io.utils import is_header_compatible
 
 
 def assert_same_resolution(images):
@@ -18,8 +18,6 @@ def assert_same_resolution(images):
         raise Exception("Can't check if images are of the same "
                         "resolution/affine. No image has been given")
 
-    aff_1, shape_1, _, _ = get_reference_info(images[0])
     for i in images[1:]:
-        aff_2, shape_2, _, _ = get_reference_info(i)
-        if not (shape_1 == shape_2) and (aff_1 == aff_2).any():
+        if not is_header_compatible(images[0], images[1]):
             raise Exception("Images are not of the same resolution/affine")
