@@ -63,9 +63,6 @@ def outliers_removal_wrapper(args):
     cluster_indices = args[0]
     memmap_filenames = args[1]
     alpha = args[2]
-    min_clusters_size = args[3]
-    if len(cluster_indices) < min_clusters_size:
-        return []
 
     cluster_streamlines = reconstruct_streamlines(memmap_filenames,
                                                   cluster_indices)
@@ -90,17 +87,18 @@ def main():
     clusters_map = qbx_and_merge(sft.streamlines, thresholds,
                                  nb_pts=2, rng=rng,
                                  verbose=False)
+    indices = []
+    for cluster in clusters_map:
+        if len(cluster.indices) >= args.min_cluster_size:
+            indices.append(np.asarray(cluster.indices, dtype=np.int32))
 
-    indices = [np.asarray(cluster.indices, dtype=np.int32)
-               for cluster in clusters_map]
     _, tmp_filenames = streamlines_to_memmap(sft.streamlines)
 
     pool = multiprocessing.Pool(args.nbr_processes)
     results = pool.map(outliers_removal_wrapper,
                        zip(indices,
                            itertools.repeat(tmp_filenames),
-                           itertools.repeat(args.alpha),
-                           itertools.repeat(args.min_cluster_size)))
+                           itertools.repeat(args.alpha)))
     pool.close()
     pool.join()
 
