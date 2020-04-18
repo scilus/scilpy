@@ -27,7 +27,7 @@ from scilpy.tractanalysis.features import get_streamlines_centroid
 
 
 def norm_l2(x):
-    return np.sqrt(np.sum(np.power(x, 2), axis=1, dtype="float"))
+    return np.sqrt(np.sum(np.power(x, 2), axis=1, dtype=np.float32))
 
 
 def average_euclidean(x, y):
