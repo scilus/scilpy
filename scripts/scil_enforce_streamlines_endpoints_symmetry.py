@@ -97,8 +97,6 @@ def main():
     ind_outliers = []
 
     for i, streamline in enumerate(sft.get_streamlines_copy()):
-        if i % 100 == 0:
-            print(i, '/', len(sft))
         points = set_number_of_points(streamline, 10)
         plane_normal = np.cross(points[0] - points[4],
                                 points[0] - points[-1])
