@@ -78,15 +78,14 @@ def main():
     if len(mask_img.shape) > 3:
         logging.error('Mask should be a 3D image.')
 
-    if not issubclass(mask_img.get_data_dtype().type, np.floating) and \
-            not args.normalize_weights:
-        parser.error('The mask file must contain floating point numbers.')
-
     # Can be a weighted image
     mask_data = mask_img.get_fdata(dtype=np.float32)
 
+    if np.min(mask_data)<0:
+        logging.error('Mask should not contain negative values.')
+
     if args.normalize_weights:
-        mask_data /= np.sum(mask_data)
+        mask_data = mask_data - np.max(mask_data) / (np.max(mask_data) - np.min(max_data))
 
     if np.min(mask_data) < 0.0 or np.max(mask_data) > 1.0:
         parser.error('Mask data should only contain values between 0 and 1. '
@@ -105,14 +104,14 @@ def main():
     # Compute the mean values and standard deviations
     stats = get_roi_metrics_stats(mask_data, metrics_files)
 
-    roi_name = split_name_with_nii(os.path.basename(args.mask))[0]
+    roi_name = split_name_with_nii(os.path.basename(args.in_mask))[0]
     json_stats = {roi_name: {}}
     for metric_file, (mean, std) in zip(metrics_files, stats):
         metric_name = split_name_with_nii(
             os.path.basename(metric_file.get_filename()))[0]
         json_stats[roi_name][metric_name] = {
-            'mean': mean,
-            'std': std
+            'mean': mean.item(),
+            'std': std.item()
         }
 
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
