@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Flip streamlines locally around specific axes.
+Enforce a planar-like shape for streamlines. Mainly useful for the corpus
+callosum. When streamlines are expected to stay within the same plane as oppose
+to abruptly turn. Will facilitate investiguation of commisural heterotopy.
 
-IMPORTANT: this script should only be used in case of absolute necessity.
-It's better to fix the real tools than to force flipping streamlines to
-have them fit in the tools.
+Optionally enforce the left-right symmetry to investiguate commisural homotopy.
+Use at your own risk on other bundles.
 """
 
 import argparse
@@ -30,7 +31,7 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Path of the input bundle file.')
     p.add_argument('projection_distance', type=float,
-                   help='Allowed threshold (mm) for symmetry/validity.')
+                   help='Allowed threshold (mm) for planar projection validity.')
     p.add_argument('inliers',
                    help='Path of the output inliers bundle file.')
 
@@ -38,8 +39,6 @@ def _build_arg_parser():
                    help='Path of the output outliers bundle file.')
     p.add_argument('--symmetry_distance', type=float,
                    help='Enforce symmetry over the X axis (commissural).')
-    p.add_argument('--shape_similarity', action='store_true',
-                   help='Enforce local shape similarity (very slow).')
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p
@@ -69,6 +68,9 @@ def flip_points_in_x(sft, points):
 
 def dist_to_plane(normal, plane_point, points):
     # Normal must always be normalized
+    plane_normal /= np.linalg.norm(plane_normal)
+
+    # To support entire streamline
     if points.ndim == 2:
         dists = []
         for point in points:
@@ -76,6 +78,7 @@ def dist_to_plane(normal, plane_point, points):
                           np.array(point) - np.array(plane_point))
             dists.append(np.abs(dist))
         return np.array(dists)
+    # Or a single point
     else:
         dist = np.dot(np.array(normal),
                       np.array(points) - np.array(plane_point))
@@ -96,19 +99,22 @@ def main():
     ind_inliers = []
     ind_outliers = []
 
+    # Each streamlines is processed individually)
     for i, streamline in enumerate(sft.get_streamlines_copy()):
         points = set_number_of_points(streamline, 10)
+
+        # Use the first, last and midpoint to create a plane
         plane_normal = np.cross(points[0] - points[4],
                                 points[0] - points[-1])
         plane_point = points[4]
-
-        plane_normal /= np.linalg.norm(plane_normal)
         distances = dist_to_plane(plane_normal, plane_point, points)
 
+        # Only if the planar test is passed, the symmetry test will follow
         if (distances < args.projection_distance).all():
             if args.symmetry_distance:
+                # Simply flip the first point (in X) and check if the last point
+                # fall close enough to its flipped counterpart
                 sym_first = flip_points_in_x(sft, points)[0]
-
                 if np.linalg.norm(sym_first - points[-1]) < args.symmetry_distance:
                     ind_inliers.append(i)
                 else:
