@@ -52,7 +52,7 @@ def _build_arg_parser():
                    help='Directory to save all rejected clusters separately.')
 
     p.add_argument('--min_cluster_size', type=int, default=1,
-                   help='Minimum cluster size for consideration [%(default)s].'
+                   help='Minimum cluster size for consideration [%(default)s].\n'
                         'Must be at least 1.')
     p.add_argument('--background_opacity', type=float, default=0.1,
                    help='Opacity of the background streamlines.'

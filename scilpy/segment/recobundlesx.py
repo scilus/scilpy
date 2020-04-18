@@ -12,7 +12,7 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
 import numpy as np
 
 
-def _reconstruct_streamlines(memmap_filenames, indices):
+def reconstruct_streamlines(memmap_filenames, indices):
     data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
     offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
     lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
@@ -160,8 +160,8 @@ class RecobundlesX(object):
         for i in close_clusters_indices:
             self.neighb_indices.extend(self.wb_clusters_indices[i])
         self.neighb_indices = np.array(self.neighb_indices, dtype=np.int32)
-        self.neighb_streamlines = _reconstruct_streamlines(self.memmap_filenames,
-                                                           self.neighb_indices)
+        self.neighb_streamlines = reconstruct_streamlines(self.memmap_filenames,
+                                                          self.neighb_indices)
 
         self.neighb_centroids = [self.centroids[i]
                                  for i in close_clusters_indices]

@@ -17,6 +17,7 @@ from dipy.segment.clustering import qbx_and_merge
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_seed_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -42,6 +43,7 @@ def _build_arg_parser():
                    help='Output tractogram filename.\n'
                         'Format must be readable by the Nibabel API.')
 
+    add_seed_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 
@@ -62,8 +64,10 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
     thresholds = [40, 30, 20, args.dist_thresh]
+    rng = np.random.RandomState(args.seed)
     clusters = qbx_and_merge(streamlines, thresholds,
-                             nb_pts=args.nb_points, verbose=False)
+                             nb_pts=args.nb_points, rng=rng,
+                             verbose=False)
 
     for i, cluster in enumerate(clusters):
         if len(cluster.indices) > 1:

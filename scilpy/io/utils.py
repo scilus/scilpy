@@ -143,10 +143,14 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
+def add_seed_arg(parser):
+    parser.add_argument('--seed', type=int,
+                        help='Random number generator seed.')
+
+
 def add_overwrite_arg(parser):
-    parser.add_argument(
-        '-f', dest='overwrite', action='store_true',
-        help='Force overwriting of the output files.')
+    parser.add_argument('-f', dest='overwrite', action='store_true',
+                        help='Force overwriting of the output files.')
 
 
 def add_force_b0_arg(parser):

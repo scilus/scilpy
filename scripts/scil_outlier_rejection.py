@@ -33,7 +33,8 @@ def _build_arg_parser():
                         help='Removed outliers.')
     parser.add_argument('--alpha', type=float, default=0.6,
                         help='Percent of the length of the tree that clusters '
-                             'of individual streamlines will be pruned.')
+                             'of individual streamlines will be pruned '
+                             '[%(default)s].')
     add_overwrite_arg(parser)
     return parser
 
