@@ -10,7 +10,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def weighted_mean_std_dev(weights, data):
+def weighted_mean_std(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.
 
@@ -18,7 +18,6 @@ def weighted_mean_std_dev(weights, data):
     ------------
     weights : ndarray
         a ndarray containing the weighting factor
-
     data : ndarray
         the ndarray containing the data for which the stats are desired
 
@@ -67,8 +66,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
         weights = weights > 0
 
     return map(lambda metric_file:
-               weighted_mean_std_dev(weights,
-                                     metric_file.get_fdata(dtype=np.float32)),
+               weighted_mean_std(weights,
+                                 metric_file.get_fdata(dtype=np.float32)),
                metrics_files)
 
 
@@ -216,14 +215,13 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 def get_roi_metrics_stats(density_map, metrics_files):
     """
     Returns the mean and standard deviation of each metric, using the
-    density map provided. This can be a binary mask,
-    or contains weighted values between 0 and 1.
+    provided density map. This can be a binary mask,
+    or contain weighted values between 0 and 1.
 
     Parameters
     ------------
     density_map : ndarray
         3D numpy array containing a density map.
-
     metrics_files : sequence
         list of nibabel objects representing the metrics files.
 
@@ -236,6 +234,6 @@ def get_roi_metrics_stats(density_map, metrics_files):
     """
 
     return map(lambda metric_file:
-               weighted_mean_std_dev(density_map,
-                                     metric_file.get_fdata(dtype=np.float32)),
+               weighted_mean_std(density_map,
+                                 metric_file.get_fdata(dtype=np.float32)),
                metrics_files)

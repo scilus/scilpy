@@ -2,18 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute the statistics (mean, stddev) of scalar maps, which can represent
+Compute the statistics (mean, std) of scalar maps, which can represent
 diffusion metrics, in a ROI.
 
-The mask can either be a binary mask, or a weighting mask. If a weighting mask
-should either contain floats between 0 and 1, or should be normalized with
---normalize_weights.
+The mask can either be a binary mask, or a weighting mask. If the mask is
+a weighting mask it should either contain floats between 0 and 1 or should be
+normalized with --normalize_weights.
 
 IMPORTANT: if the mask contains weights (and not 0 and 1 exclusively), the
 standard deviation will also be weighted.
 """
 
 import argparse
+import glob
+import logging
 import nibabel as nib
 import numpy as np
 import os
@@ -31,26 +33,27 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_mask',
-                   help='Mask volume file name, formatted in any nibabel ' +
-                        'supported format.\nCan be a binary mask or a ' +
+                   help='Mask volume filename.\nCan be a binary mask or a '
                         'weighted mask.')
 
-    g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument('--metrics_dir',
-                   help='Metrics files directory. name of the directory ' +
-                        'containing the metrics files.')
-    g.add_argument('--metrics', dest='metrics_file_list', nargs='+',
-                   help='Metrics nifti file name. list of the names of the ' +
-                        'metrics file, in nifti format.')
+    p_metric = p.add_argument_group('Metrics input options')
+    g_metric = p_metric.add_mutually_exclusive_group(required=True)
+    g_metric.add_argument('--metrics_dir',
+                    help='Metrics files directory. Name of the directory ' +
+                         'containing the metrics files.')
+    g_metric.add_argument('--metrics', dest='metrics_file_list', nargs='+',
+                    help='Metrics nifti filename. List of the names of the ' +
+                         'metrics file, in nifti format.')
 
-    p.add_argument('--bin', action='store_true',
-                   help='If set, will consider every value of the mask ' +
-                        'higher than 0 to be part of the mask, and set to 1 ' +
-                        '(equivalent weighting for every voxel).')
+    g2 = p.add_mutually_exclusive_group()
+    g2.add_argument('--bin', action='store_true',
+                    help='If set, will consider every value of the mask ' +
+                         'higher than 0 to be part of the mask, and set to 1 ' +
+                         '(equivalent weighting for every voxel).')
 
-    p.add_argument('--normalize_weights', action='store_true',
-                   help='If set, the weights will be normalized to the [0,1] '
-                        'range.')
+    g2.add_argument('--normalize_weights', action='store_true',
+                    help='If set, the weights will be normalized to the [0,1] '
+                         'range.')
 
     add_overwrite_arg(p)
     add_json_args(p)
@@ -62,11 +65,18 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_mask, [os.listdir(args.metrics_dir),
-                                               args.metrics_file_list])
+    if args.metrics_dir and os.path.exists(args.metrics_dir):
+        list_metrics_files = glob.glob(os.path.join(args.metrics_dir,
+                                                    '*nii.gz'))
+        assert_inputs_exist(parser, [args.in_mask] + list_metrics_files)
+    elif args.metrics_file_list:
+        assert_inputs_exist(parser, [args.in_mask] + args.metrics_file_list)
 
     # Load mask and validate content depending on flags
     mask_img = nib.load(args.in_mask)
+
+    if len(mask_img.shape) > 3:
+        logging.error('Mask should be a 3D image.')
 
     if not issubclass(mask_img.get_data_dtype().type, np.floating) and \
             not args.normalize_weights:
