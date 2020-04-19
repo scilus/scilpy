@@ -44,10 +44,9 @@ from scilpy.io.utils import (add_json_args,
                              load_matrix_in_any_format)
 
 EPILOG = """
-References:
-    [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
-        connectivity: uses and interpretations." Neuroimage 52.3 (2010):
-        1059-1069.
+[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+    1059-1069.
 """
 
 
