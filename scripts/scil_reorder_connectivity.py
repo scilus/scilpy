@@ -34,9 +34,16 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
 
+EPILOG = """
+[1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
+    connectivity: uses and interpretations." Neuroimage 52.3 (2010):
+    1059-1069.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                description=__doc__, epilog=EPILOG)
 
     p.add_argument('in_matrix',
                    help='Connectivity matrix in numpy (.npy) format.')
