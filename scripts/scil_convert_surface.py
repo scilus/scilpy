@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to convert surface (FreeSurfer or VTK supported).
+Script to convert a surface (FreeSurfer or VTK supported).
     ".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"
 
 > scil_convert_surface.py surf.vtk converted_surf.ply
