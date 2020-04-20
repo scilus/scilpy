@@ -33,10 +33,10 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_surface',
-                   help='Input surface (FreeSurfer or supported by VTK).')
+                   help='Input surface (.vtk).')
 
     p.add_argument('out_surface',
-                   help='Output flipped surface (formats supported by VTK).')
+                   help='Output flipped surface (.vtk).')
 
     p.add_argument('axes',
                    choices=['x', 'y', 'z', 'n'], nargs='+',

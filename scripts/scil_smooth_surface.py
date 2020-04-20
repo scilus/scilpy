@@ -35,10 +35,10 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_surface',
-                   help='Input surface (FreeSurfer or supported by VTK).')
+                   help='Input surface (.vtk).')
 
     p.add_argument('out_surface',
-                   help='Output smoothed surface (formats supported by VTK).')
+                   help='Output smoothed surface (.vtk).')
 
     p.add_argument('-m', '--vts_mask',
                    help='Vertices mask, where to apply the flow (.npy).')

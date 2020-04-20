@@ -41,13 +41,13 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_surface',
-                   help='Input surface (FreeSurfer or supported by VTK).')
+                   help='Input surface (.vtk).')
 
     p.add_argument('ants_affine',
                    help='Affine transform from ANTs (.txt).')
 
     p.add_argument('out_surface',
-                   help='Output surface (formats supported by VTK).')
+                   help='Output surface (.vtk).')
 
     p.add_argument('--ants_warp',
                    help='Warp image from ANTs (NIfTI format).')
