@@ -31,45 +31,37 @@ def union(left, right):
     result.update(right)
     return result
 
-def find_identical_streamlines(streamlines_1, streamlines_2, epsilon=0.001):
-    print('a')
-    # Minimize the slow python iterator
-    if len(streamlines_1) <= len(streamlines_2):
-        smaller_set = streamlines_1
-        bigger_set = streamlines_2
-    else:
-        smaller_set = streamlines_2
-        bigger_set = streamlines_1
 
+def find_identical_streamlines(streamlines, epsilon=0.001):
+    print('a')
     # Find all matching first point (rarely more than a few)
-    bigger_set_first_points = bigger_set.get_data()[bigger_set._offsets]
-    smaller_set_first_points = smaller_set.get_data()[smaller_set._offsets]
-    tree = cKDTree(bigger_set_first_points)
-    distance_ind = tree.query_ball_point(smaller_set_first_points, epsilon)
+    first_points = np.array(streamlines.get_data()[streamlines._offsets])
+    tree = cKDTree(first_points)
+    distance_ind = tree.query_ball_point(first_points, epsilon)
     print('b')
 
-    # Must have the right number of point (couple thousands)
+    # Must have the right number of point (tens of matches at most)
     all_point_count = {}
-    for point_count in np.unique(bigger_set._lengths):
-        all_point_count[point_count] = np.where(bigger_set._lengths == point_count)[0]
+    for point_count in np.unique(streamlines._lengths):
+        all_point_count[point_count] = np.where(
+            streamlines._lengths == point_count)[0]
     print('c')
 
-    identical_indices = []
-    for i, streamline in enumerate(smaller_set):
-        print(i)
+    streamlines_to_keep = np.zeros((len(streamlines),))
+    for i, streamline in enumerate(streamlines):
         # Need to respect both condition (never more than 3-4)
-        indices_to_check = np.intersect1d(all_point_count[len(streamline)], distance_ind[i])
+        indices_to_check = np.intersect1d(all_point_count[len(streamline)],
+                                          distance_ind[i])
         for j in indices_to_check:
+            if (streamlines_to_keep[indices_to_check]).all():
+                continue
+
             # Actual check of the whole streamline
-            if np.allclose(streamline, bigger_set[j],
-                           rtol=0, atol=epsilon):
-                # Return the right indices, i.e from the first argument.
-                if len(streamlines_1) <= len(streamlines_2):
-                    identical_indices.append(i)
-                else:
-                    identical_indices.append(j)
-                
-    return identical_indices
+            if (np.sum((streamline-streamlines[j])**2, axis=1) < epsilon).all() \
+                and not (streamlines_to_keep[indices_to_check]).any():
+                    streamlines_to_keep[j] = 1
+    print(np.where(streamlines_to_keep > 0)[0])
+    return np.where(streamlines_to_keep > 0)[0]
 
 
 def warp_streamlines(sft, deformation_data, source='ants'):
