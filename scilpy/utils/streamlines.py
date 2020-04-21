@@ -33,33 +33,34 @@ def union(left, right):
 
 
 def find_identical_streamlines(streamlines, epsilon=0.001):
-    print('a')
+    print('b')
     # Find all matching first point (rarely more than a few)
     first_points = np.array(streamlines.get_data()[streamlines._offsets])
     tree = cKDTree(first_points)
     distance_ind = tree.query_ball_point(first_points, epsilon)
-    print('b')
+    print('c')
 
     # Must have the right number of point (tens of matches at most)
-    all_point_count = {}
-    for point_count in np.unique(streamlines._lengths):
-        all_point_count[point_count] = np.where(
-            streamlines._lengths == point_count)[0]
-    print('c')
+    # all_point_count = {}
+    # for point_count in np.unique(streamlines._lengths):
+    #     all_point_count[point_count] = np.where(
+    #         streamlines._lengths == point_count)[0]
+    # print('c')
 
     streamlines_to_keep = np.zeros((len(streamlines),))
     for i, streamline in enumerate(streamlines):
         # Need to respect both condition (never more than 3-4)
-        indices_to_check = np.intersect1d(all_point_count[len(streamline)],
-                                          distance_ind[i])
-        for j in indices_to_check:
-            if (streamlines_to_keep[indices_to_check]).all():
+        # indices_to_check = np.intersect1d(all_point_count[len(streamline)],
+        #                                   distance_ind[i])
+        for j in distance_ind:
+            if len(streamline) == len(streamlines[j]) \
+                    and (streamlines_to_keep[indices_to_check]).all():
                 continue
 
             # Actual check of the whole streamline
             if (np.sum((streamline-streamlines[j])**2, axis=1) < epsilon).all() \
-                and not (streamlines_to_keep[indices_to_check]).any():
-                    streamlines_to_keep[j] = 1
+                    and not (streamlines_to_keep[indices_to_check]).any():
+                streamlines_to_keep[j] = 1
     print(np.where(streamlines_to_keep > 0)[0])
     return np.where(streamlines_to_keep > 0)[0]
 
