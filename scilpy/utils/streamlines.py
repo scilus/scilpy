@@ -13,39 +13,67 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 
-def sum_sft(sft_list):
+def sum_sft(sft_list, erase_metadata=False):
     fused_sft = sft_list[0]
-    for i in sft_list[1:]:
-        fused_sft += i
+    if erase_metadata:
+        fused_sft.data_per_point = {}
+        fused_sft.data_per_streamline = {}
+
+    for sft in sft_list[1:]:
+        sft.data_per_point = {}
+        sft.data_per_streamline = {}
+        fused_sft += sft
+
     return fused_sft
 
 
-def intersection(sft_list):
-    """Intersection of two streamlines dict (see hash_streamlines)"""
-    sft_fused = sum_sft(sft_list)
-    indices = find_identical_streamlines(sft_fused.streamlines)
-    return indices
+def intersection(streamlines_list, precision=1):
+    """ Intersection of a list of StatefulTractogram """
+    streamlines_fused = ArraySequence(itertools.chain(*streamlines_list))
+    indices = find_identical_streamlines(streamlines_fused,
+                                         epsilon=10**(-precision))
+    return streamlines_fused[indices], indices
 
 
-def difference(sft_list):
-    sft_fused = sum_sft(sft_list)
-    indices = find_identical_streamlines(sft_fused.streamlines)
-    indices = indices[indices < len(sft_list[0])]
-    indices = np.setdiff1d(np.arange(len(sft_list[0])), indices)
-    
-    return indices
+def difference(streamlines_list, precision=1):
+    """ Difference of a list of StatefulTractogram from the first element """
+    streamlines_fused = ArraySequence(itertools.chain(*streamlines_list))
+    indices = find_identical_streamlines(streamlines_fused,
+                                         epsilon=10**(-precision))
+    indices = indices[indices <= len(streamlines_list[0])]
+    indices = np.setdiff1d(np.arange(len(streamlines_list[0])), indices)
+
+    return streamlines_fused[indices], indices
 
 
-def union(sft_list):
-    """Union of two streamlines dict (see hash_streamlines)"""
-    sft_fused = sum_sft(sft_list)
-    indices = find_identical_streamlines(sft_fused.streamlines,
+def union(streamlines_list, precision=1):
+    """ Union of a list of StatefulTractogram """
+    streamlines_fused = ArraySequence(itertools.chain(*streamlines_list))
+    indices = find_identical_streamlines(streamlines_fused,
+                                         epsilon=10**(-precision),
                                          return_duplicated=True)
-    return indices
+    return streamlines_fused[indices], indices
+
+# TODO
 
 
 def find_identical_streamlines(streamlines, epsilon=0.001,
                                return_duplicated=False):
+    """ Filter tractogram according to streamline ids and keep the data
+
+    Parameters:
+    -----------
+    tractogram: StatefulTractogram
+        Tractogram containing the data to be filtered
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to
+
+    Returns:
+    --------
+    new_tractogram: Tractogram or StatefulTractogram
+        Returns a new tractogram with only the selected streamlines
+        and data
+    """
     all_tree = {}
     all_tree_mapping = {}
     first_points = np.array(streamlines.get_data()[streamlines._offsets])
@@ -67,7 +95,7 @@ def find_identical_streamlines(streamlines, epsilon=0.001,
         for j in actual_ind:
             # Actual check of the whole streamline
             if i != j and (np.linalg.norm(streamline-streamlines[j], axis=1) < epsilon).all():
-                if streamlines_to_keep[j]  == inversion_val:
+                if streamlines_to_keep[j] == inversion_val:
                     streamlines_to_keep[i] = not inversion_val
                     break
 

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import itertools
+
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import length, set_number_of_points
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
 
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      difference, intersection, union)
+from scilpy.utils.streamlines import difference, intersection, union
 
 
 def binary_classification(segmentation_indices,
@@ -159,12 +161,9 @@ def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
         centroids_2 = qbx_and_merge(bundle_2, thresholds, rng=RandomState(0),
                                     verbose=False).centroids
     if non_overlap:
-        non_overlap_1, _ = perform_streamlines_operation(difference,
-                                                         [bundle_1, bundle_2],
-                                                         precision=0)
-        non_overlap_2, _ = perform_streamlines_operation(difference,
-                                                         [bundle_2, bundle_1],
-                                                         precision=0)
+        non_overlap_1, _ = difference([bundle_1, bundle_2])
+        non_overlap_2, _ = difference([bundle_2, bundle_1])
+
         if non_overlap_1:
             non_overlap_centroids_1 = qbx_and_merge(non_overlap_1, thresholds,
                                                     rng=RandomState(0),
@@ -329,12 +328,8 @@ def compute_dice_streamlines(bundle_1, bundle_2):
         list of ndarray: Intersection of streamlines in both bundle
         list of ndarray: Union of streamlines in both bundle
     """
-    streamlines_intersect, _ = perform_streamlines_operation(intersection,
-                                                             [bundle_1, bundle_2],
-                                                             precision=0)
-    streamlines_union, _ = perform_streamlines_operation(union,
-                                                         [bundle_1, bundle_2],
-                                                         precision=0)
+    streamlines_intersect, _ = intersection([bundle_1, bundle_2])
+    streamlines_union, _ = union([bundle_1, bundle_2])
 
     numerator = 2 * len(streamlines_intersect)
     denominator = len(bundle_1) + len(bundle_2)

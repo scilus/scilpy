@@ -73,18 +73,13 @@ def _build_arg_parser():
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                    'are saved.')
-
+    # TODO
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
-
-    p.add_argument('--save_metadata_indices', '-m', action='store_true',
-                   help='Save streamline indices to metadata. Has no '
-                   'effect if --no-data\nis present. Will '
-                   'overwrite \'ids\' metadata if already present.')
-
+    # TODO
     p.add_argument('--save_indices', '-s', metavar='OUTPUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
                    'json file.')
@@ -94,17 +89,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def load_data(parser, args, path):
-    logging.info(
-        'Loading streamlines from {0}.'.format(path))
-    sft = load_tractogram_with_reference(parser, args, path)
-    streamlines = list(sft.streamlines)
-    data_per_streamline = sft.data_per_streamline
-    data_per_point = sft.data_per_point
-
-    return streamlines, data_per_streamline, data_per_point
 
 
 def main():
@@ -119,7 +103,7 @@ def main():
 
     # Load all input streamlines.
     sft_list = [load_tractogram_with_reference(parser, args, f) for f in args.inputs]
-    new_sft = sum_sft(sft_list)
+    new_sft = sum_sft(sft_list, args.no_metadata)
     nb_streamlines = [len(sft) for sft in sft_list]
 
     # Apply the requested operation to each input file.
@@ -128,7 +112,7 @@ def main():
     if args.operation == 'concatenate':
         indices = range(len(new_sft))
     else:
-        indices = OPERATIONS[args.operation](sft_list)
+        _, indices = OPERATIONS[args.operation](new_sft.streamlines)
 
     # Save the indices to a file if requested.
     if args.save_indices is not None:
