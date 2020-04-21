@@ -67,7 +67,7 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
     return map(lambda metric_file:
                weighted_mean_std(weights,
-                                 metric_file.get_fdata(dtype=np.float32)),
+                                 metric_file.get_fdata()),
                metrics_files)
 
 
@@ -212,7 +212,7 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     return fig
 
 
-def get_roi_metrics_stats(density_map, metrics_files):
+def get_roi_metrics_mean_std(density_map, metrics_files):
     """
     Returns the mean and standard deviation of each metric, using the
     provided density map. This can be a binary mask,
@@ -235,5 +235,5 @@ def get_roi_metrics_stats(density_map, metrics_files):
 
     return map(lambda metric_file:
                weighted_mean_std(density_map,
-                                 metric_file.get_fdata(dtype=np.float32)),
+                                 metric_file.get_fdata()),
                metrics_files)
