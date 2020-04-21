@@ -44,8 +44,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      difference, intersection, union)
+from scilpy.utils.streamlines import (difference, intersection, union, sum_sft)
 
 
 OPERATIONS = {
@@ -109,7 +108,6 @@ def load_data(parser, args, path):
 
 
 def main():
-
     parser = _build_arg_parser()
     args = parser.parse_args()
 
@@ -120,36 +118,17 @@ def main():
     assert_outputs_exist(parser, args, args.output)
 
     # Load all input streamlines.
-    data = [load_data(parser, args, f) for f in args.inputs]
-    streamlines, data_per_streamline, data_per_point = zip(*data)
-    nb_streamlines = [len(s) for s in streamlines]
+    sft_list = [load_tractogram_with_reference(parser, args, f) for f in args.inputs]
+    new_sft = sum_sft(sft_list)
+    nb_streamlines = [len(sft) for sft in sft_list]
 
     # Apply the requested operation to each input file.
     logging.info(
         'Performing operation \'{}\'.'.format(args.operation))
     if args.operation == 'concatenate':
-        new_streamlines = sum(streamlines, [])
-        indices = range(len(new_streamlines))
+        indices = range(len(new_sft))
     else:
-        new_streamlines, indices = perform_streamlines_operation(
-            OPERATIONS[args.operation], streamlines, args.precision)
-
-    # Get the meta data of the streamlines.
-    new_data_per_streamline = {}
-    new_data_per_point = {}
-    if not args.no_metadata:
-
-        for key in data_per_streamline[0].keys():
-            all_data = np.vstack([s[key] for s in data_per_streamline])
-            new_data_per_streamline[key] = all_data[indices, :]
-
-        # Add the indices to the metadata if requested.
-        if args.save_metadata_indices:
-            new_data_per_streamline['ids'] = indices
-
-        for key in data_per_point[0].keys():
-            all_data = list(chain(*[s[key] for s in data_per_point]))
-            new_data_per_point[key] = [all_data[i] for i in indices]
+        indices = OPERATIONS[args.operation](sft_list)
 
     # Save the indices to a file if requested.
     if args.save_indices is not None:
@@ -166,17 +145,7 @@ def main():
 
     # Save the new streamlines.
     logging.info('Saving streamlines to {0}.'.format(args.output))
-
-    # If no reference was provided, it means all input were trk file
-    if args.reference:
-        reference_file = args.reference
-    else:
-        reference_file = args.inputs[0]
-
-    sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM,
-                             data_per_streamline=new_data_per_streamline,
-                             data_per_point=new_data_per_point)
-    save_tractogram(sft, args.output)
+    save_tractogram(new_sft[indices], args.output)
 
 
 if __name__ == "__main__":

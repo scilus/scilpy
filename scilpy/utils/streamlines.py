@@ -13,55 +13,64 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 
-def intersection(left, right):
+def sum_sft(sft_list):
+    fused_sft = sft_list[0]
+    for i in sft_list[1:]:
+        fused_sft += i
+    return fused_sft
+
+
+def intersection(sft_list):
     """Intersection of two streamlines dict (see hash_streamlines)"""
-    return {k: v for k, v in left.items() if k in right}
+    sft_fused = sum_sft(sft_list)
+    indices = find_identical_streamlines(sft_fused.streamlines)
+    return indices
 
 
-def difference(left, right):
-    """Difference of two streamlines dict (see hash_streamlines)"""
-    return {k: v for k, v in left.items() if k not in right}
+def difference(sft_list):
+    sft_fused = sum_sft(sft_list)
+    indices = find_identical_streamlines(sft_fused.streamlines)
+    indices = indices[indices < len(sft_list[0])]
+    indices = np.setdiff1d(np.arange(len(sft_list[0])), indices)
+    
+    return indices
 
 
-def union(left, right):
+def union(sft_list):
     """Union of two streamlines dict (see hash_streamlines)"""
+    sft_fused = sum_sft(sft_list)
+    indices = find_identical_streamlines(sft_fused.streamlines,
+                                         return_duplicated=True)
+    return indices
 
-    # In python 3 : return {**left, **right}
-    result = left.copy()
-    result.update(right)
-    return result
 
-
-def find_identical_streamlines(streamlines, epsilon=0.001):
-    print('b')
-    # Find all matching first point (rarely more than a few)
+def find_identical_streamlines(streamlines, epsilon=0.001,
+                               return_duplicated=False):
+    all_tree = {}
+    all_tree_mapping = {}
     first_points = np.array(streamlines.get_data()[streamlines._offsets])
-    tree = cKDTree(first_points)
-    distance_ind = tree.query_ball_point(first_points, epsilon)
-    print('c')
-
     # Must have the right number of point (tens of matches at most)
-    # all_point_count = {}
-    # for point_count in np.unique(streamlines._lengths):
-    #     all_point_count[point_count] = np.where(
-    #         streamlines._lengths == point_count)[0]
-    # print('c')
+    for point_count in np.unique(streamlines._lengths):
+        same_length_ind = np.where(streamlines._lengths == point_count)[0]
+        all_tree[point_count] = cKDTree(first_points[same_length_ind])
+        all_tree_mapping[point_count] = same_length_ind
 
-    streamlines_to_keep = np.zeros((len(streamlines),))
+    # Check the close enough first point for streamlines with the same
+    # number of point
+    inversion_val = 1 if return_duplicated else 0
+    streamlines_to_keep = np.ones((len(streamlines),)) * inversion_val
     for i, streamline in enumerate(streamlines):
-        # Need to respect both condition (never more than 3-4)
-        # indices_to_check = np.intersect1d(all_point_count[len(streamline)],
-        #                                   distance_ind[i])
-        for j in distance_ind:
-            if len(streamline) == len(streamlines[j]) \
-                    and (streamlines_to_keep[indices_to_check]).all():
-                continue
+        distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
+                                                                  r=epsilon)
+        actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
 
+        for j in actual_ind:
             # Actual check of the whole streamline
-            if (np.sum((streamline-streamlines[j])**2, axis=1) < epsilon).all() \
-                    and not (streamlines_to_keep[indices_to_check]).any():
-                streamlines_to_keep[j] = 1
-    print(np.where(streamlines_to_keep > 0)[0])
+            if i != j and (np.linalg.norm(streamline-streamlines[j], axis=1) < epsilon).all():
+                if streamlines_to_keep[j]  == inversion_val:
+                    streamlines_to_keep[i] = not inversion_val
+                    break
+
     return np.where(streamlines_to_keep > 0)[0]
 
 
