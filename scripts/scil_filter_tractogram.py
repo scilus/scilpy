@@ -232,6 +232,11 @@ def main():
             curr_dict['streamline_count_after_filtering'] = len(sft.streamlines)
             o_dict[filtering_Name] = curr_dict
 
+    # Streamline count after filtering
+    o_dict['streamline_count_final_filtering'] = len(sft.streamlines)
+    if args.display_counts:
+        print(json.dumps(o_dict, indent=args.indent))
+
     if not filtered_sft:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
@@ -243,11 +248,6 @@ def main():
             args.out_tractogram))
 
     save_tractogram(sft, args.out_tractogram)
-
-    # Streamline count after filtering
-    o_dict['streamline_count_final_filtering'] = len(sft.streamlines)
-    if args.display_counts:
-        print(json.dumps(o_dict, indent=args.indent))
 
 
 if __name__ == "__main__":
