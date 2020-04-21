@@ -10,54 +10,7 @@ from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
-
-MIN_NB_POINTS = 10
-KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
-
-
-def get_streamline_key(streamline, precision=None):
-    # Use just a few data points as hash key. I could use all the data of
-    # the streamlines, but then the complexity grows with the number of
-    # points.
-    if len(streamline) < MIN_NB_POINTS:
-        key = streamline.copy()
-    else:
-        key = streamline[KEY_INDEX].copy()
-
-    if precision is not None:
-        key = np.round(key, precision)
-
-    key.flags.writeable = False
-
-    return key.data.tobytes()
-
-
-def hash_streamlines(streamlines, start_index=0, precision=None):
-    """Produces a dict from streamlines
-
-    Produces a dict from streamlines by using the points as keys and the
-    indices of the streamlines as values.
-
-    Parameters
-    ----------
-    streamlines: list of ndarray
-        The list of streamlines used to produce the dict.
-    start_index: int, optional
-        The index of the first streamline. 0 by default.
-    precision: int, optional
-        The number of decimals to keep when hashing the points of the
-        streamlines. Allows a soft comparison of streamlines. If None, no
-        rounding is performed.
-
-    Returns
-    -------
-    A dict where the keys are streamline points and the values are indices
-    starting at start_index.
-
-    """
-
-    keys = [get_streamline_key(s, precision) for s in streamlines]
-    return {k: i for i, k in enumerate(keys, start_index)}
+from scipy.spatial import cKDTree
 
 
 def intersection(left, right):
@@ -78,51 +31,38 @@ def union(left, right):
     result.update(right)
     return result
 
+def find_identical_streamlines(streamlines_1, streamlines_2, epsilon=0.001):
+    # Minimize the slow python iterator
+    if len(streamlines_1) <= len(streamlines_2):
+        smaller_set = streamlines_1
+        bigger_set = streamlines_2
+    else:
+        smaller_set = streamlines_2
+        bigger_set = streamlines_1
 
-def perform_streamlines_operation(operation, streamlines, precision=None):
-    """Peforms an operation on a list of list of streamlines
+    tree = cKDTree(bigger_set.get_data()[bigger_set._offsets])
+    identical_indices = []
+    for i, streamline in enumerate(smaller_set):
+        # Must have the right number of point (couple thousands)
+        length_ind = np.where(bigger_set._lengths == len(streamline))[0]
 
-    Given a list of list of streamlines, this function applies the operation
-    to the first two lists of streamlines. The result in then used recursively
-    with the third, fourth, etc. lists of streamlines.
-
-    A valid operation is any function that takes two streamlines dict as input
-    and produces a new streamlines dict (see hash_streamlines). Union,
-    difference, and intersection are valid examples of operations.
-
-    Parameters
-    ----------
-    operation: callable
-        A callable that takes two streamlines dicts as inputs and preduces a
-        new streamline dict.
-    streamlines: list of list of streamlines
-        The streamlines used in the operation.
-    precision: int, optional
-        The number of decimals to keep when hashing the points of the
-        streamlines. Allows a soft comparison of streamlines. If None, no
-        rounding is performed.
-
-    Returns
-    -------
-    streamlines: list of `nib.streamline.Streamlines`
-        The streamlines obtained after performing the operation on all the
-        input streamlines.
-    indices: list
-        The indices of the streamlines that are used in the output.
-
-    """
-
-    # Hash the streamlines using the desired precision.
-    indices = np.cumsum([0] + [len(s) for s in streamlines[:-1]])
-    hashes = [hash_streamlines(s, i, precision) for
-              s, i in zip(streamlines, indices)]
-
-    # Perform the operation on the hashes and get the output streamlines.
-    to_keep = reduce(operation, hashes)
-    all_streamlines = list(itertools.chain(*streamlines))
-    indices = sorted(to_keep.values())
-    streamlines = [all_streamlines[i] for i in indices]
-    return streamlines, indices
+        # Find all matching first point (rarely more than a few)
+        distance_ind = tree.query_ball_point(streamline[0], epsilon)
+        
+        # Need to respect both condition (never more than 3-4)
+        indices_to_check = np.intersect1d(length_ind, distance_ind)
+        print(indices_to_check)
+        for j in indices_to_check:
+            # Actual check of the whole streamline
+            if np.allclose(streamline, bigger_set[j],
+                           rtol=0, atol=epsilon):
+                # Return the right indices, i.e from the first argument.
+                if len(streamlines_1) <= len(streamlines_2):
+                    identical_indices.append(i)
+                else:
+                    identical_indices.append(j)
+                
+    return identical_indices
 
 
 def warp_streamlines(sft, deformation_data, source='ants'):
