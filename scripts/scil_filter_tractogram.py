@@ -24,6 +24,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label, get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -157,10 +158,10 @@ def main():
         else:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
 
-        curr_dict['Filename'] = os.path.abspath(filter_arg)
-        curr_dict['Type'] = filter_type
-        curr_dict['Mode'] = filter_mode
-        curr_dict['Criteria'] = filter_criteria
+        curr_dict['filename'] = os.path.abspath(filter_arg)
+        curr_dict['type'] = filter_type
+        curr_dict['mode'] = filter_mode
+        curr_dict['criteria'] = filter_criteria
 
         is_exclude = False if filter_criteria == 'include' else True
 
@@ -170,9 +171,9 @@ def main():
                 parser.error('Headers from the tractogram and the mask are '
                              'not compatible.')
             if filter_type == 'drawn_roi':
-                mask = img.get_data().astype(np.uint16)
+                mask = get_data_as_mask(img)
             else:
-                atlas = img.get_data().astype(np.uint16)
+                atlas = get_data_as_label(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
                 mask[atlas == int(filter_arg_2)] = 1
             filtered_sft, indexes = filter_grid_roi(sft, mask,
@@ -228,7 +229,7 @@ def main():
 
         if only_filtering_list:
             filtering_Name = 'Filter_' + str(i)
-            curr_dict['tract_count_after_filtering'] = len(sft.streamlines)
+            curr_dict['streamline_count_after_filtering'] = len(sft.streamlines)
             o_dict[filtering_Name] = curr_dict
 
     if not filtered_sft:
