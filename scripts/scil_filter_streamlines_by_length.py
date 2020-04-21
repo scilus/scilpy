@@ -66,6 +66,13 @@ def main():
 
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
+    if args.display_counts:
+        tc_bf = len(sft.streamlines)
+        tc_af = len(new_sft.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(tc_bf),
+                         'streamline_count_after_filtering': int(tc_af)},
+                         indent=args.indent))
+
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
             logging.debug("The file {} won't be written "
@@ -77,13 +84,6 @@ def main():
             args.out_tractogram))
 
     save_tractogram(new_sft, args.out_tractogram)
-
-    if args.display_counts:
-        tc_bf = len(sft.streamlines)
-        tc_af = len(new_sft.streamlines)
-        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
-                         indent=args.indent))
 
 
 if __name__ == "__main__":
