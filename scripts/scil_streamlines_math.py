@@ -98,6 +98,9 @@ def main():
     assert_inputs_exist(parser, args.inputs)
     assert_outputs_exist(parser, args, args.output)
 
+    if len(args.inputs) == 1:
+        args.operation = 'union'
+
     # Load all input streamlines.
     sft_list = [load_tractogram_with_reference(parser, args, f) for f in args.inputs]
     new_sft = sum_sft(sft_list, args.no_metadata)

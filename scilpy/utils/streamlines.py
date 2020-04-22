@@ -116,7 +116,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
                 if streamlines_to_keep[j] == inversion_val and (norm < epsilon).all():
                     intersect_test[np.max(
                         np.where(nb_streamlines <= j)[0])] = True
-        
+
         if (not union_mode or not difference_mode) and intersect_test.all():
             streamlines_to_keep[i] = not inversion_val
         elif difference_mode and intersect_test.any():
