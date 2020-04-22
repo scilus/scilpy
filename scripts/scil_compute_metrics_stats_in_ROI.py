@@ -17,9 +17,10 @@ import argparse
 import glob
 import json
 import logging
+import os
+
 import nibabel as nib
 import numpy as np
-import os
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
