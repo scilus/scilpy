@@ -14,19 +14,20 @@ operations are:
 
     concatenate:  Keep all streamlines with duplicates.
 
-For efficiency, the comparisons are performed using a hash table. This means
-that streamlines must be identical for a match to be found. To allow a soft
-match, use the --precision option to round streamlines before processing.
-Note that the streamlines that are saved in the output are the original
-streamlines, not the rounded ones.
+If a file 'duplicate.trk' have identical streamlines calling the script using
+the difference/intersection/union with a single input will remove these
+duplicated streamlines.
+
+To allow a soft match, use the --precision option to increase the allowed
+threshold for similarity. A precision of 1 represent 10**(-1), so a
+maximum distance of 0.1mm  is allowed. If the streamlines are identical, the
+default value of 3 or 0.001mm distance) should work. If there is a 0.5mm shift,
+use a precision of 0 (or 1mm distance) should work, but slightly slower.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
---no-data to strip the metadata from the output.
-
-Repeated uses with .trk files will slighly affect coordinate values
-due to precision error.
+--no_metadata to strip the metadata from the output.
 """
 
 import argparse
@@ -36,7 +37,8 @@ import logging
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -62,25 +64,24 @@ def _build_arg_parser():
                    help='The type of operation to be performed on the '
                    'streamlines. Must\nbe one of the following: '
                    '%(choices)s.')
-
     p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
                    'streamlines to operate on.')
-
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                    'are saved.')
-    # TODO
-    p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
-                   help='The precision used when comparing streamlines.')
+
+    p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
+                   type=int, default=3,
+                   help='Precision used to compare streamlines [%(default)s].')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
-    # TODO
-    p.add_argument('--save_indices', '-s', metavar='OUTPUT_INDEX_FILE',
+    p.add_argument('--save_indices', '-s', metavar='OUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
-                   'json file.')
+                        'json file.')
 
+    add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -98,38 +99,40 @@ def main():
     assert_inputs_exist(parser, args.inputs)
     assert_outputs_exist(parser, args, args.output)
 
-    if len(args.inputs) == 1:
-        args.operation = 'union'
-
     # Load all input streamlines.
-    sft_list = [load_tractogram_with_reference(parser, args, f) for f in args.inputs]
-    new_sft = sum_sft(sft_list, args.no_metadata)
-    streamlines_list = [sft.streamlines for sft in sft_list]
-    nb_streamlines = [len(sft) for sft in sft_list]
+    sft_list = [load_tractogram_with_reference(parser, args,
+                                               f) for f in args.inputs]
 
     # Apply the requested operation to each input file.
-    logging.info(
-        'Performing operation \'{}\'.'.format(args.operation))
+    logging.info('Performing operation \'{}\'.'.format(args.operation))
+    new_sft = sum_sft(sft_list, args.no_metadata)
     if args.operation == 'concatenate':
         indices = range(len(new_sft))
     else:
-        _, indices = OPERATIONS[args.operation](streamlines_list)
+        streamlines_list = [sft.streamlines for sft in sft_list]
+        _, indices = OPERATIONS[args.operation](streamlines_list,
+                                                precision=args.precision)
 
     # Save the indices to a file if requested.
-    if args.save_indices is not None:
+    if args.save_indices:
         start = 0
-        indices_dict = {'filenames': args.inputs}
-        for name, nb in zip(args.inputs, nb_streamlines):
+        out_dict = {}
+        streamlines_len_cumsum = [len(sft) for sft in sft_list]
+        for name, nb in zip(args.inputs, streamlines_len_cumsum):
             end = start + nb
-            file_indices = \
-                [i - start for i in indices if start <= i < end]
-            indices_dict[name] = file_indices
+            # Switch to int32 for json
+            out_dict[name] = [int(i - start)
+                              for i in indices if start <= i < end]
             start = end
-        with open(args.save_indices, 'wt') as f:
-            json.dump(indices_dict, f)
 
-    # Save the new streamlines.
-    logging.info('Saving streamlines to {0}.'.format(args.output))
+        with open(args.save_indices, 'wt') as f:
+            json.dump(out_dict, f,
+                      indent=args.indent,
+                      sort_keys=args.sort_keys)
+
+    # Save the new streamlines (and metadata)
+    logging.info('Saving {} streamlines to {}.'.format(len(indices),
+                                                       args.output))
     save_tractogram(new_sft[indices], args.output)
 
 

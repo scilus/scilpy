@@ -13,6 +13,7 @@ from scipy.spatial import cKDTree
 
 
 def sum_sft(sft_list, erase_metadata=False):
+    """ Concatenate a list of StatefulTractogram together """
     fused_sft = sft_list[0]
     if erase_metadata:
         fused_sft.data_per_point = {}
@@ -22,54 +23,63 @@ def sum_sft(sft_list, erase_metadata=False):
         if erase_metadata:
             sft.data_per_point = {}
             sft.data_per_streamline = {}
+
+        if not StatefulTractogram.is_compatible_sft(sft, fused_sft):
+            raise ValueError('Incompatible SFT.')
         fused_sft += sft
 
     return fused_sft
 
 
-def intersection(streamlines_list, precision=1):
+def intersection(streamlines_list, precision=3):
     """ Intersection of a list of StatefulTractogram """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
+
     streamlines_fused, indices = find_identical_streamlines(streamlines_list,
                                                             epsilon=10**(-precision))
     return streamlines_fused[indices], indices
 
 
-def difference(streamlines_list, precision=1):
+def difference(streamlines_list, precision=3):
     """ Difference of a list of StatefulTractogram from the first element """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
     streamlines_fused, indices = find_identical_streamlines(streamlines_list,
                                                             epsilon=10**(-precision),
                                                             difference_mode=True)
-    # print(indices)
-
     return streamlines_fused[indices], indices
 
 
-def union(streamlines_list, precision=1):
+def union(streamlines_list, precision=3):
     """ Union of a list of StatefulTractogram """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
     streamlines_fused, indices = find_identical_streamlines(streamlines_list,
                                                             epsilon=10**(-precision),
                                                             union_mode=True)
     return streamlines_fused[indices], indices
 
-# TODO
-
 
 def find_identical_streamlines(streamlines_list, epsilon=0.001,
                                union_mode=False, difference_mode=False):
-    """ Filter tractogram according to streamline ids and keep the data
+    """ Return the intersection/union/difference from a list of list of
+    streamlines. Allows for a maximum distance for matching.
 
     Parameters:
     -----------
-    tractogram: StatefulTractogram
-        Tractogram containing the data to be filtered
-    streamline_ids: array_like
-        List of streamline ids the data corresponds to
-
+    streamlines_list: list
+        List of lists of streamlines or list of ArraySequences
+    epsilon: float
+        Maximum allowed distance (should go above 1.0)
+    union_mode: bool
+        Perform the union of streamlines
+    difference_mode
+        Perform the difference of streamlines (from the first element)
     Returns:
     --------
-    new_tractogram: Tractogram or StatefulTractogram
-        Returns a new tractogram with only the selected streamlines
-        and data
+    Tuple, ArraySequence, np.ndarray
+        Returns the concatenated streamlines and the indices to pick from it
     """
     streamlines = ArraySequence(itertools.chain(*streamlines_list))
     nb_streamlines = np.cumsum([len(sft) for sft in streamlines_list])
@@ -82,23 +92,31 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     all_tree = {}
     all_tree_mapping = {}
     first_points = np.array(streamlines.get_data()[streamlines._offsets])
-    # Must have the right number of point (tens of matches at most)
+    # Uses the number of point to speed up the search in the ckdtree
     for point_count in np.unique(streamlines._lengths):
         same_length_ind = np.where(streamlines._lengths == point_count)[0]
         all_tree[point_count] = cKDTree(first_points[same_length_ind])
         all_tree_mapping[point_count] = same_length_ind
 
-    inversion_val = 1 if union_mode or difference_mode else 0 
+    inversion_val = 1 if union_mode or difference_mode else 0
     streamlines_to_keep = np.ones((len(streamlines),)) * inversion_val
+    average_match_distance = []
+
+    # Difference by design will never select streamlines that are not from the
+    # first set
     if difference_mode:
         streamlines_to_keep[nb_streamlines[1]:] = 0
     for i, streamline in enumerate(streamlines):
+        # Unless do an union, there is no point at looking past the first set
         if not union_mode and i >= nb_streamlines[1]:
             break
+
+        # Find the closest (first) points
         distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
                                                                   r=epsilon)
         actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
 
+        # Intersection requires finding matches is all sets
         if not union_mode or not difference_mode:
             intersect_test = np.zeros((len(nb_streamlines)-1,))
 
@@ -106,25 +124,50 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
             # Actual check of the whole streamline
             norm = np.linalg.norm(streamline-streamlines[j], axis=1)
             if union_mode:
-                if i != j and streamlines_to_keep[i] == inversion_val and (norm < epsilon).all():
+                # 1) Yourself is not a match
+                # 2) If the streamline hasn't been selected (by another match)
+                # 3) The streamline is 'identical'
+                if i != j and streamlines_to_keep[i] == inversion_val \
+                        and (norm < epsilon).all():
                     streamlines_to_keep[j] = not inversion_val
+                    average_match_distance.append(np.average(norm))
             elif difference_mode:
+                # 1) Yourself is not a match
+                # 2) The streamline is 'identical'
                 if i != j and (norm < epsilon).all():
-                    intersect_test[np.max(
-                        np.where(nb_streamlines <= j)[0])] = True
-            else:
-                if streamlines_to_keep[j] == inversion_val and (norm < epsilon).all():
-                    intersect_test[np.max(
-                        np.where(nb_streamlines <= j)[0])] = True
+                    pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
 
+                    # If it is an identical streamline, but from the same set
+                    # it needs to be removed
+                    if pos_in_list_j == 0:
+                        if streamlines_to_keep[actual_ind].all():
+                            streamlines_to_keep[j] = not inversion_val
+                            average_match_distance.append(np.average(norm))
+                    else:
+                        streamlines_to_keep[actual_ind] = not inversion_val
+                        average_match_distance.append(np.average(norm))
+            else:
+                # 1) The streamline is 'identical'
+                if (norm < epsilon).all():
+                    pos_in_list_i = np.max(np.where(nb_streamlines <= i)[0])
+                    pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
+                    # If it is an identical streamline, but from the same set
+                    # it needs to be removed
+                    if i == j or pos_in_list_i != pos_in_list_j:
+                        intersect_test[pos_in_list_j] = True
+                    if i != j:
+                        average_match_distance.append(np.average(norm))
+
+        # Verify that you actually found a match in each set
         if (not union_mode or not difference_mode) and intersect_test.all():
             streamlines_to_keep[i] = not inversion_val
-        elif difference_mode and intersect_test.any():
-            streamlines_to_keep[actual_ind] = not inversion_val
 
-    final_indices = np.where(streamlines_to_keep > 0)[0]
-    if difference_mode:
-        indices = np.setdiff1d(np.arange(len(streamlines_list[0])), final_indices)
+    # To facilitate debugging and discovering shifts in data
+    if average_match_distance:
+        logging.info('Average matches distance: {}mm'.format(
+            np.round(np.average(average_match_distance), 5)))
+    else:
+        logging.info('No matches found.')
 
     return streamlines, np.where(streamlines_to_keep > 0)[0]
 
