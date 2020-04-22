@@ -71,7 +71,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     streamlines_list: list
         List of lists of streamlines or list of ArraySequences
     epsilon: float
-        Maximum allowed distance (should go above 1.0)
+        Maximum allowed distance (should not go above 1.0)
     union_mode: bool
         Perform the union of streamlines
     difference_mode
@@ -113,7 +113,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
 
         # Find the closest (first) points
         distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
-                                                                  r=epsilon)
+                                                                  r=2*epsilon)
         actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
 
         # Intersection requires finding matches is all sets
@@ -122,33 +122,39 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
 
         for j in actual_ind:
             # Actual check of the whole streamline
-            norm = np.linalg.norm(streamline-streamlines[j], axis=1)
+            sub_vector = streamline-streamlines[j]
+            norm = np.linalg.norm(sub_vector, axis=1)
+
             if union_mode:
                 # 1) Yourself is not a match
                 # 2) If the streamline hasn't been selected (by another match)
                 # 3) The streamline is 'identical'
                 if i != j and streamlines_to_keep[i] == inversion_val \
-                        and (norm < epsilon).all():
+                        and (norm < 2*epsilon).all():
                     streamlines_to_keep[j] = not inversion_val
-                    average_match_distance.append(np.average(norm))
+                    average_match_distance.append(np.average(sub_vector,
+                                                             axis=0))
             elif difference_mode:
                 # 1) Yourself is not a match
                 # 2) The streamline is 'identical'
-                if i != j and (norm < epsilon).all():
+                if i != j and (norm < 2*epsilon).all():
                     pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
 
                     # If it is an identical streamline, but from the same set
-                    # it needs to be removed
+                    # it needs to be removed, otherwise remove all instances
                     if pos_in_list_j == 0:
+                        # If it is the first 'encounter' add it
                         if streamlines_to_keep[actual_ind].all():
                             streamlines_to_keep[j] = not inversion_val
-                            average_match_distance.append(np.average(norm))
+                            average_match_distance.append(np.average(sub_vector,
+                                                                     axis=0))
                     else:
                         streamlines_to_keep[actual_ind] = not inversion_val
-                        average_match_distance.append(np.average(norm))
+                        average_match_distance.append(np.average(sub_vector,
+                                                                 axis=0))
             else:
                 # 1) The streamline is 'identical'
-                if (norm < epsilon).all():
+                if (norm < 2*epsilon).all():
                     pos_in_list_i = np.max(np.where(nb_streamlines <= i)[0])
                     pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
                     # If it is an identical streamline, but from the same set
@@ -156,7 +162,8 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
                     if i == j or pos_in_list_i != pos_in_list_j:
                         intersect_test[pos_in_list_j] = True
                     if i != j:
-                        average_match_distance.append(np.average(norm))
+                        average_match_distance.append(
+                            np.average(sub_vector, axis=0))
 
         # Verify that you actually found a match in each set
         if (not union_mode or not difference_mode) and intersect_test.all():
@@ -165,7 +172,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     # To facilitate debugging and discovering shifts in data
     if average_match_distance:
         logging.info('Average matches distance: {}mm'.format(
-            np.round(np.average(average_match_distance), 5)))
+            np.round(np.average(average_match_distance, axis=0), 5)))
     else:
         logging.info('No matches found.')
 

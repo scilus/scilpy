@@ -55,7 +55,6 @@ OPERATIONS = {
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -72,7 +71,7 @@ def _build_arg_parser():
                    'are saved.')
 
     p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
-                   type=int, default=3,
+                   type=int, default=4,
                    help='Precision used to compare streamlines [%(default)s].')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
