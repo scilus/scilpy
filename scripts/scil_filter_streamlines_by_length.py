@@ -67,10 +67,10 @@ def main():
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
     if args.display_counts:
-        tc_bf = len(sft.streamlines)
-        tc_af = len(new_sft.streamlines)
-        print(json.dumps({'streamline_count_before_filtering': int(tc_bf),
-                         'streamline_count_after_filtering': int(tc_af)},
+        sc_bf = len(sft.streamlines)
+        sc_af = len(new_sft.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                         'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
     if len(new_sft.streamlines) == 0:
