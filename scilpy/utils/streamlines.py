@@ -29,10 +29,14 @@ def sum_sft(sft_list, erase_metadata=False):
 
 def intersection(streamlines_list, precision=1):
     """ Intersection of a list of StatefulTractogram """
-    streamlines_fused = ArraySequence(itertools.chain(*streamlines_list))
-    indices = find_identical_streamlines(streamlines_fused,
-                                         epsilon=10**(-precision))
-    return streamlines_fused[indices], indices
+    indices_init = np.arange(len(streamlines_list[0]))
+    for i in range(len(streamlines_list)):
+        streamlines_fused = ArraySequence(itertools.chain(*[streamlines_list[0],
+                                                            streamlines_list[i]]))
+        indices = find_identical_streamlines(streamlines_fused,
+                                             epsilon=10**(-precision))
+        indices_init = np.intersect1d(indices_init, indices)
+    return streamlines_fused[indices_init], indices_init
 
 
 def difference(streamlines_list, precision=1):
@@ -51,14 +55,14 @@ def union(streamlines_list, precision=1):
     streamlines_fused = ArraySequence(itertools.chain(*streamlines_list))
     indices = find_identical_streamlines(streamlines_fused,
                                          epsilon=10**(-precision),
-                                         return_duplicated=True)
+                                         union_mode=True)
     return streamlines_fused[indices], indices
 
 # TODO
 
 
 def find_identical_streamlines(streamlines, epsilon=0.001,
-                               return_duplicated=False):
+                               union_mode=False):
     """ Filter tractogram according to streamline ids and keep the data
 
     Parameters:
@@ -85,7 +89,7 @@ def find_identical_streamlines(streamlines, epsilon=0.001,
 
     # Check the close enough first point for streamlines with the same
     # number of point
-    inversion_val = 1 if return_duplicated else 0
+    inversion_val = 1 if union_mode else 0
     streamlines_to_keep = np.ones((len(streamlines),)) * inversion_val
     for i, streamline in enumerate(streamlines):
         distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
