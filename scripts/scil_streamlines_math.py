@@ -30,13 +30,10 @@ due to precision error.
 """
 
 import argparse
-from itertools import chain
 import json
 import logging
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -104,6 +101,7 @@ def main():
     # Load all input streamlines.
     sft_list = [load_tractogram_with_reference(parser, args, f) for f in args.inputs]
     new_sft = sum_sft(sft_list, args.no_metadata)
+    streamlines_list = [sft.streamlines for sft in sft_list]
     nb_streamlines = [len(sft) for sft in sft_list]
 
     # Apply the requested operation to each input file.
@@ -112,7 +110,7 @@ def main():
     if args.operation == 'concatenate':
         indices = range(len(new_sft))
     else:
-        _, indices = OPERATIONS[args.operation](new_sft.streamlines)
+        _, indices = OPERATIONS[args.operation](streamlines_list)
 
     # Save the indices to a file if requested.
     if args.save_indices is not None:

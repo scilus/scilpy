@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from functools import reduce
 import itertools
 import logging
 
@@ -20,8 +19,9 @@ def sum_sft(sft_list, erase_metadata=False):
         fused_sft.data_per_streamline = {}
 
     for sft in sft_list[1:]:
-        sft.data_per_point = {}
-        sft.data_per_streamline = {}
+        if erase_metadata:
+            sft.data_per_point = {}
+            sft.data_per_streamline = {}
         fused_sft += sft
 
     return fused_sft
@@ -94,7 +94,8 @@ def find_identical_streamlines(streamlines, epsilon=0.001,
 
         for j in actual_ind:
             # Actual check of the whole streamline
-            if i != j and (np.linalg.norm(streamline-streamlines[j], axis=1) < epsilon).all():
+            norm = np.linalg.norm(streamline-streamlines[j], axis=1)
+            if i != j and (norm < epsilon).all():
                 if streamlines_to_keep[j] == inversion_val:
                     streamlines_to_keep[i] = not inversion_val
                     break
