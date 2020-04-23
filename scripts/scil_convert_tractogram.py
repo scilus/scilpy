@@ -43,8 +43,8 @@ def main():
     in_extension = os.path.splitext(args.in_tractogram)[1]
     out_extension = os.path.splitext(args.output_name)[1]
 
-    if in_extension == out_extension:
-        parser.error('Input and output cannot be of the same file format')
+    # if in_extension == out_extension:
+    #     parser.error('Input and output cannot be of the same file format')
 
     assert_outputs_exist(parser, args, args.output_name)
 
