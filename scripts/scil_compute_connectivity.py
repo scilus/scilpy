@@ -147,7 +147,7 @@ def _processing_wrapper(args):
                     in_filename, metric_filename))
                 raise IOError
 
-            metric_data = nib.load(metric_filename).get_data()
+            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float32)
             if weighted:
                 density = density / np.max(density)
                 voxels_value = metric_data * density
@@ -249,7 +249,7 @@ def main():
 
             # This is necessary to support more than one map for weighting
             dict_metrics_out_name[in_name] = out_name
-            measures_output_filename.append(out_name)
+            measures_to_compute.append(in_name)
 
     assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
@@ -280,12 +280,14 @@ def main():
         measures_dict.update(dix)
 
     if args.no_self_connection:
-        total_elem = len(measures_dict.keys())*2
+        total_elem = len(labels_list)**2 - len(labels_list)
+        results_elem = len(measures_dict.keys())*2 - len(labels_list)
     else:
-        total_elem = len(measures_dict.keys())*2 - len(labels_list)
+        total_elem = len(labels_list)**2
+        results_elem = len(measures_dict.keys())*2
 
-    logging.info('Out of {} node, {} contain values'.format(
-        total_elem, len(measures_dict.keys())*2))
+    logging.info('Out of {} possible nodes, {} contain values'.format(
+        total_elem, results_elem))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
     nbr_of_measures = len(measures_to_compute)
