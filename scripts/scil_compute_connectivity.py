@@ -38,7 +38,6 @@ import os
 
 import coloredlogs
 from dipy.io.utils import is_header_compatible, get_reference_info
-from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 from dipy.tracking.streamlinespeed import length
 import h5py
 import nibabel as nib
@@ -47,7 +46,7 @@ import numpy as np
 from scilpy.io.image import get_data_as_label
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             add_verbose_arg, add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -63,8 +62,7 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
                 in_filename))
         return nib.load(in_filename).get_fdata()
 
-    _, dims, _, _ = get_reference_info(ref_img)
-    return np.zeros(dims)
+    return None
 
 
 def _processing_wrapper(args):
@@ -78,7 +76,10 @@ def _processing_wrapper(args):
 
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
+    if key not in hdf5_file:
+        return
     streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+
     _, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
 
@@ -114,8 +115,10 @@ def _processing_wrapper(args):
         density_sim = load_node_nifti(similarity_directory,
                                       in_label, out_label,
                                       labels_img)
-
-        ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
+        if density_sim is None:
+            ba_vox = 0
+        else:
+            ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
 
         measures_to_return['similarity'] = ba_vox
         measures_to_compute.remove('similarity')
@@ -184,7 +187,6 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
 
     add_processes_arg(p)
-    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 

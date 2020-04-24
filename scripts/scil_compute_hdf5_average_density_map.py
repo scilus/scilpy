@@ -13,7 +13,6 @@ import itertools
 import multiprocessing
 import os
 
-from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 import h5py
 import numpy as np
 import nibabel as nib
@@ -68,8 +67,8 @@ def average_wrapper(args):
     if np.max(density_data) > 0:
         density_data /= len(hdf5_filenames)
 
-    nib.save(nib.Nifti1Image(density_data, template_img.affine),
-             os.path.join(out_dir, '{}.nii.gz'.format(key)))
+        nib.save(nib.Nifti1Image(density_data, template_img.affine),
+                 os.path.join(out_dir, '{}.nii.gz'.format(key)))
 
 
 def main():
@@ -88,12 +87,12 @@ def main():
 
     template_img = nib.load(args.population_template)
     pool = multiprocessing.Pool(args.nbr_processes)
-    results = pool.map(average_wrapper,
-                       zip(itertools.repeat(args.in_hdf5),
-                           keys,
-                           itertools.repeat(template_img),
-                           itertools.repeat(args.binary),
-                           itertools.repeat(args.out_dir)))
+    _ = pool.map(average_wrapper,
+                 zip(itertools.repeat(args.in_hdf5),
+                     keys,
+                     itertools.repeat(template_img),
+                     itertools.repeat(args.binary),
+                     itertools.repeat(args.out_dir)))
     pool.close()
     pool.join()
 
