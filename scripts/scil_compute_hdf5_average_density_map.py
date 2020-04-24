@@ -56,12 +56,13 @@ def average_wrapper(args):
     binary = args[3]
     out_dir = args[4]
 
-    density_data = np.zeros(template_img.shape)
+    density_data = np.zeros(template_img.shape, dtype=np.float32)
     for hdf5_filename in hdf5_filenames:
         hdf5_file = h5py.File(hdf5_filename, 'r')
         # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
         density = compute_tract_counts_map(streamlines, template_img.shape)
+        hdf5_file.close()
 
         if binary:
             density_data[density > 0] += 1
