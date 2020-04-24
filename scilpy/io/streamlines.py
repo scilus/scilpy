@@ -130,6 +130,8 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
         hdf5_file = hdf5_filename
 
     if key is not None:
+        if key not in hdf5_file:
+            return []
         group = hdf5_file[key]
     else:
         group = hdf5_file

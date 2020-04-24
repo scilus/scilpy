@@ -142,8 +142,7 @@ def build_arg_parser():
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
     p.add_argument('labels',
-                   help='Labels file name (nifti).\nLabels must be consecutive '
-                        'from 0 to N, with 0 the background.\n'
+                   help='Labels file name (nifti).\n'
                         'This generates a NxN connectivity matrix.')
     p.add_argument('out_hdf5',
                    help='Output filename for the hdf5 container (.h5).')

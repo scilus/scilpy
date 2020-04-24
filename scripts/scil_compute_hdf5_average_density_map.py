@@ -9,6 +9,8 @@ A specific value can be assigned instead of using the tract count.
 This script correctly handles compressed streamlines.
 """
 import argparse
+import itertools
+import multiprocessing
 import os
 
 from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
@@ -18,6 +20,7 @@ import nibabel as nib
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -30,16 +33,43 @@ def _build_arg_parser():
                    help='List of HDF5 filenames (.h5) containing streamlines '
                         'data, offsets and lengths.')
     p.add_argument('population_template',
-                        help='Reference anatomy for the streamlines '
-                             '(.nii or .nii.gz).')
+                   help='Reference anatomy for the streamlines '
+                   '(.nii or .nii.gz).')
     p.add_argument('out_dir',
                    help='Path of the output directory.')
 
     p.add_argument('--binary', action='store_true',
                    help='Binarize density maps before the population average.')
 
+    add_processes_arg(p)
     add_overwrite_arg(p)
     return p
+
+
+def average_wrapper(args):
+    hdf5_filenames = args[0]
+    key = args[1]
+    template_img = args[2]
+    binary = args[3]
+    out_dir = args[4]
+
+    density_data = np.zeros(template_img.shape)
+    for hdf5_filename in hdf5_filenames:
+        hdf5_file = h5py.File(hdf5_filename, 'r')
+        # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
+        streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+        density = compute_tract_counts_map(streamlines, template_img.shape)
+
+        if binary:
+            density_data[density > 0] += 1
+        elif np.max(density) > 0:
+            density_data += density / np.max(density)
+
+    if np.max(density_data) > 0:
+        density_data /= len(hdf5_filenames)
+
+    nib.save(nib.Nifti1Image(density_data, template_img.affine),
+             os.path.join(out_dir, '{}.nii.gz'.format(key)))
 
 
 def main():
@@ -50,30 +80,22 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
-    hdf5_files = []
     keys = []
     for filename in args.in_hdf5:
         curr_file = h5py.File(filename, 'r')
-        hdf5_files.append(curr_file)
         keys.extend(curr_file.keys())
-
+        curr_file.close()
 
     template_img = nib.load(args.population_template)
-    dimensions = template_img.shape
-    for key in set(keys):
-        density_data = np.zeros(dimensions)
-        for hdf5_file in hdf5_files:
-            # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-            density = compute_tract_counts_map(streamlines, dimensions)
-
-            if args.binary:
-                density_data[density > 0] += 1
-            else:
-                density_data += density / np.max(density)
-        density_data /= np.max(density_data)
-        nib.save(nib.Nifti1Image(density_data, template_img.affine),
-                 os.path.join(args.out_dir, '{}.nii.gz'.format(key)))
+    pool = multiprocessing.Pool(args.nbr_processes)
+    results = pool.map(average_wrapper,
+                       zip(itertools.repeat(args.in_hdf5),
+                           keys,
+                           itertools.repeat(template_img),
+                           itertools.repeat(args.binary),
+                           itertools.repeat(args.out_dir)))
+    pool.close()
+    pool.join()
 
 
 if __name__ == "__main__":

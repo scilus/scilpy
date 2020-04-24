@@ -38,67 +38,55 @@ import os
 
 import coloredlogs
 from dipy.io.utils import is_header_compatible, get_reference_info
-from dipy.io.streamline import load_tractogram
+from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 from dipy.tracking.streamlinespeed import length
+import h5py
 import nibabel as nib
 import numpy as np
 
-from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.io.image import get_data_as_label
+from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-def load_node_nifti(directory, in_label, out_label, ref_filename):
-    in_filename_1 = os.path.join(directory,
-                                 '{}_{}.nii.gz'.format(in_label, out_label))
-    in_filename_2 = os.path.join(directory,
-                                 '{}_{}.nii.gz'.format(out_label, in_label))
-    in_filename = None
-    if os.path.isfile(in_filename_1):
-        in_filename = in_filename_1
-    elif os.path.isfile(in_filename_2):
-        in_filename = in_filename_2
+def load_node_nifti(directory, in_label, out_label, ref_img):
+    in_filename = os.path.join(directory,
+                               '{}_{}.nii.gz'.format(in_label, out_label))
 
-    if in_filename is not None:
-        if not is_header_compatible(in_filename, ref_filename):
-            logging.error('{} and {} do not have a compatible header'.format(
-                in_filename, ref_filename))
-            raise IOError
+    if os.path.isfile(in_filename):
+        if not is_header_compatible(in_filename, ref_img):
+            raise IOError('{} do not have a compatible header'.format(
+                in_filename))
         return nib.load(in_filename).get_fdata()
 
-    _, dims, _, _ = get_reference_info(ref_filename)
+    _, dims, _, _ = get_reference_info(ref_img)
     return np.zeros(dims)
 
 
 def _processing_wrapper(args):
-    bundles_dir = args[0]
-    in_label, out_label = args[1]
-    measures_to_compute = copy.copy(args[2])
-    weighted = args[3]
-    if args[4] is not None:
-        similarity_directory = args[4][0]
+    hdf5_filename = args[0]
+    labels_img = args[1]
+    in_label, out_label = args[2]
+    measures_to_compute = copy.copy(args[3])
+    weighted = args[4]
+    if args[5] is not None:
+        similarity_directory = args[5][0]
 
-    in_filename_1 = os.path.join(bundles_dir,
-                                 '{}_{}.trk'.format(in_label, out_label))
-    in_filename_2 = os.path.join(bundles_dir,
-                                 '{}_{}.trk'.format(out_label, in_label))
-    if os.path.isfile(in_filename_1):
-        in_filename = in_filename_1
-    elif os.path.isfile(in_filename_2):
-        in_filename = in_filename_2
-    else:
-        return
-
-    sft = load_tractogram(in_filename, 'same')
-    affine, dimensions, voxel_sizes, _ = sft.space_attributes
+    hdf5_file = h5py.File(hdf5_filename, 'r')
+    key = '{}_{}'.format(in_label, out_label)
+    streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+    _, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
 
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:
-        streamlines_copy = list(sft.get_streamlines_copy())
-        mean_length = np.average(length(streamlines_copy))
+        streamlines_copy = list(streamlines)
+        # scil_decompose_connectivity.py requires isotropic voxels
+        mean_length = np.average(length(streamlines_copy))*voxel_sizes[0]
 
     # If density is not required, do not compute it
     # Only required for volume, similarity and any metrics
@@ -108,9 +96,8 @@ def _processing_wrapper(args):
             (len(measures_to_compute) == 2 and
              ('length' in measures_to_compute and
               'streamline_count' in measures_to_compute))):
-        sft.to_vox()
-        sft.to_corner()
-        density = compute_tract_counts_map(sft.streamlines,
+
+        density = compute_tract_counts_map(streamlines,
                                            dimensions)
 
     if 'volume' in measures_to_compute:
@@ -118,7 +105,7 @@ def _processing_wrapper(args):
             np.prod(voxel_sizes)
         measures_to_compute.remove('volume')
     if 'streamline_count' in measures_to_compute:
-        measures_to_return['streamline_count'] = len(sft)
+        measures_to_return['streamline_count'] = len(streamlines)
         measures_to_compute.remove('streamline_count')
     if 'length' in measures_to_compute:
         measures_to_return['length'] = mean_length
@@ -126,7 +113,7 @@ def _processing_wrapper(args):
     if 'similarity' in measures_to_compute and similarity_directory:
         density_sim = load_node_nifti(similarity_directory,
                                       in_label, out_label,
-                                      in_filename)
+                                      labels_img)
 
         ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
 
@@ -136,15 +123,16 @@ def _processing_wrapper(args):
     for measure in measures_to_compute:
         if os.path.isdir(measure):
             map_dirname = measure
-            map_data = load_node_nifti(
-                map_dirname, in_label, out_label, in_filename)
+            map_data = load_node_nifti(map_dirname,
+                                       in_label, out_label,
+                                       labels_img)
             measures_to_return[map_dirname] = np.average(
                 map_data[map_data > 0])
         elif os.path.isfile(measure):
             metric_filename = measure
-            if not is_header_compatible(metric_filename, sft):
-                logging.error('{} and {} do not have a compatible header'.format(
-                    in_filename, metric_filename))
+            if not is_header_compatible(metric_filename, labels_img):
+                logging.error('{} do not have a compatible header'.format(
+                    metric_filename))
                 raise IOError
 
             metric_data = nib.load(metric_filename).get_fdata(dtype=np.float32)
@@ -164,11 +152,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,)
-    p.add_argument('in_bundles_dir',
-                   help='Folder containing all the bundle files (.trk).')
-    p.add_argument('labels_list',
-                   help='Text file containing the list of labels from the '
-                        'atlas.')
+    p.add_argument('in_hdf5',
+                   help='Input filename for the hdf5 container (.h5).')
+    p.add_argument('labels',
+                   help='Labels file name (nifti).\n'
+                        'This generates a NxN connectivity matrix.')
     p.add_argument('--volume', metavar='OUT_FILE',
                    help='Output file for the volume weighted matrix (.npy).')
     p.add_argument('--streamline_count', metavar='OUT_FILE',
@@ -207,10 +195,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.labels_list)
-    if not os.path.isdir(args.in_bundles_dir):
-        parser.error('The directory {} does not exist.'.format(
-            args.in_bundles_dir))
+    assert_inputs_exist(parser, args.labels)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -253,12 +238,14 @@ def main():
 
     assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
-        parser.error('No connectivity measures were selected, nothing'
+        parser.error('No connectivity measures were selected, nothing '
                      'to compute.')
     logging.info('The following measures will be computed and save: {}'.format(
         measures_to_compute))
 
-    labels_list = np.loadtxt(args.labels_list, dtype=int).tolist()
+    img_labels = nib.load(args.labels)
+    data_labels = get_data_as_label(img_labels)
+    labels_list = np.unique(data_labels)[1:].tolist()
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
@@ -266,7 +253,8 @@ def main():
 
     pool = multiprocessing.Pool(args.nbr_processes)
     measures_dict_list = pool.map(_processing_wrapper,
-                                  zip(itertools.repeat(args.in_bundles_dir),
+                                  zip(itertools.repeat(args.in_hdf5),
+                                      itertools.repeat(img_labels),
                                       comb_list,
                                       itertools.repeat(measures_to_compute),
                                       itertools.repeat(args.density_weighting),
