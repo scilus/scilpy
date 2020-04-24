@@ -2,9 +2,13 @@
 # encoding: utf-8
 
 """
-Compute a density map from a streamlines file.
+Compute a density map for each edges of a connection from a HDF5 file.
+Typically use after scil_decompose_connectivity.py in order to obtain the
+average density map of each connections to enable the use of --similarity
+in scil_compute_connectivity.py.
 
-A specific value can be assigned instead of using the tract count.
+This script is parallelize, but will run much slower on non-SSD if too many
+processes are used.
 
 This script correctly handles compressed streamlines.
 """
@@ -33,7 +37,7 @@ def _build_arg_parser():
                         'data, offsets and lengths.')
     p.add_argument('population_template',
                    help='Reference anatomy for the streamlines '
-                   '(.nii or .nii.gz).')
+                        '(.nii or .nii.gz).')
     p.add_argument('out_dir',
                    help='Path of the output directory.')
 
