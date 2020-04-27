@@ -16,6 +16,7 @@ For more details visit (notes after the docstring):
 https://github.com/aestrivex/bctpy/wiki#network-based-statistic
 """
 
+
 import argparse
 import logging
 import os
@@ -109,11 +110,9 @@ def main():
     matrices_g2 = np.rollaxis(np.array(matrices_g2),
                               axis=0, start=3)
     pval, adj, _ = bct.nbs.nbs_bct(matrices_g1, matrices_g2,
-                                   thresh=args.t_value,
-                                   k=args.nb_permutations,
-                                   tail=args.tail,
-                                   paired=args.paired,
-                                   verbose=args.verbose)
+                                   args.t_value,
+                                   K=args.nb_permutations,
+                                   TAIL=args.tail)
     logging.debug(
         '{} components has been found in the networks'.format(len(pval)))
     if args.save_all:
@@ -128,8 +127,8 @@ def main():
             with open(filename, 'a') as the_file:
                 for j in range(len(results)):
                     the_file.write('{} {} {}\n'.format(int(results[j, 0]),
-                                                     int(results[j, 1]),
-                                                     round(results[j, 2], 5)))
+                                                       int(results[j, 1]),
+                                                       round(results[j, 2], 5)))
             logging.debug('Components #{} had {} elements and a pvalue of {}'.format(
                 i, len(coord), pval[i]))
 
