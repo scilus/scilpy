@@ -14,6 +14,9 @@ matrices before performing the statistical compariso.
 
 For more details visit (notes after the docstring):
 https://github.com/aestrivex/bctpy/wiki#network-based-statistic
+
+This script is under the GNU GPLv3 license, for more detail please refer to
+https://www.gnu.org/licenses/gpl-3.0.en.html
 """
 
 
