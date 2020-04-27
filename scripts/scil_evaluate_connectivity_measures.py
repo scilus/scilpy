@@ -65,6 +65,8 @@ def _build_arg_parser():
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask to apply before computing the '
                         'measures.')
+    p.add_argument('--avg_node_wise', action='store_true',
+                   help='Return a single value for node-wise measures.')
     p.add_argument('--append_json', action='store_true',
                    help='If the file already exists, will append to the '
                         'dictionary.')
@@ -117,10 +119,10 @@ def omega_sigma(matrix):
 
         transitivity_rand_list.append(bct.transitivity_wu(random))
         transitivity_latt_list.append(bct.transitivity_wu(lattice))
-        path_length_rand_list.append(avg_cast(bct.distance_wei(random)[0]))
+        path_length_rand_list.append(list_cast(bct.distance_wei(random)[0]))
 
     transitivity = bct.transitivity_wu(matrix)
-    path_length = avg_cast(bct.distance_wei(matrix)[0])
+    path_length = list_cast(bct.distance_wei(matrix)[0])
     transitivity_rand = np.mean(transitivity_rand_list)
     transitivity_latt = np.mean(transitivity_latt_list)
     path_length_rand = np.mean(path_length_rand_list)
@@ -135,6 +137,13 @@ def omega_sigma(matrix):
 
 def avg_cast(input):
     return float(np.average(input))
+
+def list_cast(input):
+    if isinstance(input, np.ndarray):
+        if input.ndim == 2:
+            return np.average(input, axis=1).astype(np.float32).tolist()
+        return input.astype(np.float32).tolist()
+    return float(input)
 
 
 def main():
@@ -168,29 +177,34 @@ def main():
         len_matrix *= mask_matrix
     N = len_matrix.shape[0]
 
+    if args.avg_node_wise:
+        func_cast = avg_cast
+    else:
+        func_cast = list_cast
+
     gtm_dict = {}
     betweenness_centrality = bct.betweenness_wei(len_matrix) / ((N-1)*(N-2))
-    gtm_dict['betweenness_centrality'] = avg_cast(betweenness_centrality)
+    gtm_dict['betweenness_centrality'] = func_cast(betweenness_centrality)
     ci, gtm_dict['modularity'] = bct.modularity_louvain_und(conn_matrix,
                                                             seed=0)
 
     gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,
                                                       flag=0)
-    gtm_dict['participation'] = avg_cast(bct.participation_coef_sign(conn_matrix,
+    gtm_dict['participation'] = func_cast(bct.participation_coef_sign(conn_matrix,
                                                                      ci)[0])
-    gtm_dict['clustering'] = avg_cast(bct.clustering_coef_wu(conn_matrix))
+    gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(conn_matrix))
 
-    gtm_dict['nodal_strength'] = avg_cast(bct.strengths_und(conn_matrix))
-    gtm_dict['local_efficiency'] = avg_cast(bct.efficiency_wei(len_matrix,
+    gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(conn_matrix))
+    gtm_dict['local_efficiency'] = func_cast(bct.efficiency_wei(len_matrix,
                                                                local=True))
-    gtm_dict['global_efficiency'] = avg_cast(bct.efficiency_wei(len_matrix))
-    gtm_dict['density'] = avg_cast(bct.density_und(conn_matrix)[0])
+    gtm_dict['global_efficiency'] = func_cast(bct.efficiency_wei(len_matrix))
+    gtm_dict['density'] = func_cast(bct.density_und(conn_matrix)[0])
 
     # Rich club always gives an error for the matrix rank and gives NaN
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         tmp_rich_club = bct.rich_club_wu(conn_matrix)
-    gtm_dict['rich_club'] = avg_cast(tmp_rich_club[~np.isnan(tmp_rich_club)])
+    gtm_dict['rich_club'] = func_cast(tmp_rich_club[~np.isnan(tmp_rich_club)])
 
     # Path length gives an infinite distance for unconnected nodes
     # All of this is simply to fix that
@@ -200,8 +214,13 @@ def main():
         len_matrix = np.delete(len_matrix, empty_connections, axis=1)
 
     path_length_tuple = bct.distance_wei(len_matrix)
-    gtm_dict['path_length'] = avg_cast(path_length_tuple[0])
-    gtm_dict['edge_count'] = avg_cast(path_length_tuple[1])
+    gtm_dict['path_length'] = func_cast(path_length_tuple[0])
+    gtm_dict['edge_count'] = func_cast(path_length_tuple[1])
+
+    if args.avg_node_wise:
+        for i in empty_connections:
+            gtm_dict['path_length'].insert(i, -1)
+            gtm_dict['edge_count'].insert(i, -1)
 
     if args.small_world:
         gtm_dict['omega'], gtm_dict['sigma'] = omega_sigma(len_matrix)
