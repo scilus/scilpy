@@ -119,10 +119,10 @@ def omega_sigma(matrix):
 
         transitivity_rand_list.append(bct.transitivity_wu(random))
         transitivity_latt_list.append(bct.transitivity_wu(lattice))
-        path_length_rand_list.append(list_cast(bct.distance_wei(random)[0]))
+        path_length_rand_list.append(avg_cast(bct.distance_wei(random)[0]))
 
     transitivity = bct.transitivity_wu(matrix)
-    path_length = list_cast(bct.distance_wei(matrix)[0])
+    path_length = avg_cast(bct.distance_wei(matrix)[0])
     transitivity_rand = np.mean(transitivity_rand_list)
     transitivity_latt = np.mean(transitivity_latt_list)
     path_length_rand = np.mean(path_length_rand_list)
@@ -217,7 +217,7 @@ def main():
     gtm_dict['path_length'] = func_cast(path_length_tuple[0])
     gtm_dict['edge_count'] = func_cast(path_length_tuple[1])
 
-    if args.avg_node_wise:
+    if not args.avg_node_wise:
         for i in empty_connections:
             gtm_dict['path_length'].insert(i, -1)
             gtm_dict['edge_count'].insert(i, -1)
