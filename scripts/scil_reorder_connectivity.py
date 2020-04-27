@@ -19,6 +19,9 @@ The option bct_reorder_nodes creates its own ordering scheme that will be saved
 and then applied to others.
 We recommand running this option on a population-averaged matrix.
 The results are stochastic due to simulated annealing.
+
+This script is under the GNU GPLv3 license, for more detail please refer to
+https://www.gnu.org/licenses/gpl-3.0.en.html
 """
 
 import argparse
