@@ -6,13 +6,15 @@ Evaluate graph theory measures from connectivity matrices.
 A length weighted and a streamline count weighted matrix are required since
 some measures require one or the other.
 
-This script evaluate the measure one subject at the time, to generate a
-population dictionary (similarly to the other scil_evaluate_*.py ) use the
+This script evaluates the measures one subject at the time. To generate a
+population dictionary (similarly to other scil_evaluate_*.py scripts), use the
 --append_json option as well as using the same output filename.
+>> for i in hcp/*/; do scil_evaluate_connectivity_measures.py ${i}/sc_prob.npy 
+    ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
 
-Some measures output one value per node, the default behavior is to average
-them all into a single value. To obtain all values as a list use the
---node_wise_as_list option.
+Some measures output one value per node, the default behavior is to list
+them all into a list. To obtain only the average use the
+--avg_node_wise option.
 
 The computed connectivity measures are:
 centrality, modularity, assortativity, participation, clustering,
@@ -82,11 +84,11 @@ def _build_arg_parser():
 
 
 def omega_sigma(matrix):
-    """Returns the small-world coefficients (omega & sigma) of a graph
-    Omega ranges between -1 and 1. Values close to 0 means the metrix
+    """Returns the small-world coefficients (omega & sigma) of a graph.
+    Omega ranges between -1 and 1. Values close to 0 mean the metrix
     features small-world characteristics.
-    Values close to -1 means the network has a lattice structure and values
-    close to 1 means G is a random network.
+    Values close to -1 mean the network has a lattice structure and values
+    close to 1 mean G is a random network.
 
     A network is commonly classified as small-world if sigma > 1.
 
