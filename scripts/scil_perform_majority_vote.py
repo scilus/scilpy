@@ -4,7 +4,11 @@
 Use multiple bundles to perform a voxel-wise vote (occurence across input).
 If streamlines originate from the same tractogram, streamline-wise vote
 is available.
-Input tractograms have to have identical header (register).
+
+Useful to generate an average representation from bundles of a given population
+or multiple bundle segmentations (gold standard).
+
+Input tractograms must have identical header.
 """
 
 
@@ -28,7 +32,7 @@ from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       intersection, union)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -56,7 +60,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundles)
@@ -71,8 +75,8 @@ def main():
 
     fusion_streamlines = []
     for name in args.in_bundles:
-        fusion_streamlines.extend(
-            load_tractogram_with_reference(parser, args, name).streamlines)
+        tmp_sft = load_tractogram_with_reference(parser, args, name)
+        fusion_streamlines.extend(tmp_sft.streamlines)
 
     fusion_streamlines, _ = perform_streamlines_operation(union,
                                                           [fusion_streamlines],
@@ -90,12 +94,15 @@ def main():
 
     for i, name in enumerate(args.in_bundles):
         if not is_header_compatible(reference_file, name):
-            raise ValueError('Both headers are not the same')
+            raise ValueError('Headers are not compatible.')
         sft = load_tractogram_with_reference(parser, args, name)
+
+        # Needed for streamline-wise representation
         bundle = sft.get_streamlines_copy()
         sft.to_vox()
-        bundle_vox_space = sft.get_streamlines_copy()
-        binary = compute_tract_counts_map(bundle_vox_space, dimensions)
+        sft.to_corner()
+
+        binary = compute_tract_counts_map(sft.streamlines, dimensions)
         volume[binary > 0] += 1
 
         if args.same_tractogram:
@@ -113,10 +120,11 @@ def main():
 
         new_streamlines = fusion_streamlines[real_indices]
 
-        sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM)
-        save_tractogram(sft, output_streamlines_filename)
+        new_sft = StatefulTractogram(list(new_streamlines), reference_file,
+                                     Space.RASMM)
+        save_tractogram(new_sft, output_streamlines_filename)
 
-    volume[volume < int(args.ratio_streamlines*len(args.in_bundles))] = 0
+    volume[volume < int(args.ratio_voxels*len(args.in_bundles))] = 0
     volume[volume > 0] = 1
     nib.save(nib.Nifti1Image(volume.astype(np.uint8), transformation),
              output_voxels_filename)

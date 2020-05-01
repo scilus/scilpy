@@ -19,7 +19,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
@@ -40,7 +40,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_bundle, optional=args.reference)

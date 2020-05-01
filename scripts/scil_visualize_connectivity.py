@@ -4,7 +4,7 @@
 """
 Script to display a connectivity matrix and adjust the desired visualization.
 Made to work with scil_decompose_connectivity.py and
-scil_visualize_connectivity.py.
+scil_reorder_connectivity.py.
 
 This script can either display the axis labels as:
 - Coordinates (0..N)
@@ -23,14 +23,14 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
 
+from scilpy.image.operations import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, load_matrix_in_any_format)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description='Flip one or more axes of the '
-                                            'encoding scheme matrix.')
+                                description=__doc__)
 
     p.add_argument('in_matrix',
                    help='Connectivity matrix in numpy (.npy) format.')
@@ -39,7 +39,7 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='Naming options')
     g1.add_argument('--labels_list',
-                    help='List provided to the decomposition script,\n'
+                    help='List saved by the decomposition script,\n'
                          'the json must contain labels rather than coordinates.')
     g1.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
                     help='Json file with the sub-network as keys and x/y '
@@ -67,6 +67,16 @@ def _build_arg_parser():
                          'The font size and the rouding parameters can be '
                          'adjusted.')
 
+    histo = p.add_argument_group(title='Histogram options')
+    histo.add_argument('--histogram', metavar='FILENAME',
+                       help='Compute and display/save an histogram of weigth.')
+    histo.add_argument('--nb_bins', type=int,
+                       help='Number of bins to use for the histogram.')
+    histo.add_argument('--exclude_zeros', action='store_true',
+                       help='Exclude the zeros from the histogram.')
+
+    p.add_argument('--log', action='store_true',
+                   help='Apply a base 10 logarithm to the matrix.')
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
 
@@ -92,15 +102,22 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_matrix)
-    assert_outputs_exist(parser, args, args.out_png)
+    if not args.show_only:
+        assert_outputs_exist(parser, args, args.out_png, args.histogram)
 
-    matrix = np.load(args.in_matrix)
+    matrix = load_matrix_in_any_format(args.in_matrix)
+
+    if args.log:
+        matrix[matrix > EPSILON] = np.log10(matrix[matrix > EPSILON])
+        min_value = np.min(matrix)
+        matrix[np.abs(matrix) < EPSILON] = -65536
+    else:
+        min_value = np.min(matrix)
 
     fig, ax = plt.subplots()
     im = ax.imshow(matrix,
                    interpolation='nearest',
-                   cmap=args.colormap,
-                   vmin=0.0, vmax=np.max(matrix))
+                   cmap=args.colormap, vmin=min_value)
 
     if args.write_values:
         if np.prod(matrix.shape) > 1000:
@@ -173,6 +190,23 @@ def main():
         plt.show()
     else:
         plt.savefig(args.out_png, dpi=300, bbox_inches='tight')
+
+    if args.histogram:
+        fig, ax = plt.subplots()
+        if args.exclude_zeros:
+            min_value = EPSILON
+        N, bins, patches = ax.hist(matrix.ravel(),
+                                   range=(min_value, matrix.max()),
+                                   bins=args.nb_bins)
+        nbr_bins = len(patches)
+        color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
+        for i in range(0, nbr_bins):
+            patches[i].set_facecolor(color[i])
+
+        if args.show_only:
+            plt.show()
+        else:
+            plt.savefig(args.histogram, dpi=300, bbox_inches='tight')
 
 
 if __name__ == "__main__":

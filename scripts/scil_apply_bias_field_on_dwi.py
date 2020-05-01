@@ -7,7 +7,6 @@ field itself. It ONLY applies an existing bias field. Use the ANTs
 N4BiasFieldCorrection executable to compute the bias field
 """
 
-from __future__ import division
 from past.utils import old_div
 import argparse
 
