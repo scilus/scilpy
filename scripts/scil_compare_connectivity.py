@@ -2,28 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs a network-based statistical comparison for populations G1 and G2.
-This script perform a edge-wise one-way ANOVA with group permtutation. The
+Performs a network-based statistical comparison for populations G1 and G2. The
 output is a matrix of the same size as the input connectivity matrices, with
-p-values at each coordinates. This matrix must be thresholded using a p-values
-corrected for FWE (e.g Bonferroni correction).
-
-All input matrices must have the same shape. A number of permutation above 1000
-is recommanded.
+p-values at each coordinates.
+All input matrices must have the same shape (NxN). For paired t-test, both
+groups must have the same number of observation.
 
 For example, if you have streamline count weighted matrices for a MCI and a
 control group and you want to investiguate difference in their connectomme:
-    scil_compare_connectivity.py --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
+>>> scil_compare_connectivity.py pval.npy --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
 
 --filtering_mask will simply multiply the binary mask to with all input
-matrices before performing the statistical comparison.
+matrices before performing the statistical comparison. Reduces the number of
+statistical tests, useful when using --fdr or --bonferroni.
 """
 
 import argparse
-import itertools
 import logging
-import multiprocessing
-import os
 
 import numpy as np
 from scipy.stats import t
@@ -32,7 +27,6 @@ from statsmodels.stats.multitest import multipletests
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
 
@@ -71,18 +65,20 @@ def _build_arg_parser():
     fwe = p.add_mutually_exclusive_group()
     fwe.add_argument('--fdr', action='store_true',
                      help='Perform a false discovery rate (FDR) correction '
-                          'for the p-values.\nUses the number of non-zeros edges '
-                          'as number of tests (value between 0.01 and 0.1).')
+                          'for the p-values.\nUses the number of non-zeros '
+                          'edges as number of tests (value between 0.01 and '
+                          '0.1).')
     fwe.add_argument('--bonferroni', action='store_true',
                      help='Perform a Bonferroni correction for the p-values.\n'
-                          'Uses the number of non-zeros edges as number of tests.')
+                          'Uses the number of non-zeros edges as number of '
+                          'tests.')
+
     p.add_argument('--p_threshold', nargs=2, metavar=('THRESH', 'OUT_FILE'),
                    help='Threshold the final p-value matrix and save the '
                         'binary matrix (.npy).')
-
     p.add_argument('--filtering_mask',
-                   help='Binary filtering mask (.npy) to apply before computing the '
-                        'measures.')
+                   help='Binary filtering mask (.npy) to apply before '
+                        'computing the measures.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -109,7 +105,6 @@ def ttest_stat_only(x, y, tail):
 
 def ttest_paired_stat_only(x, y, tail):
     n = len(x - y)
-    df = n - 1
     sample_ss = np.sum((x - y)**2) - np.sum(x - y)**2 / n
     unbiased_std = np.sqrt(sample_ss / (n - 1))
 
@@ -167,6 +162,7 @@ def main():
 
     matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
     matrices_g2 = matrices_g2.reshape((np.prod(matrix_shape), nb_group_g2))
+    # Negative epsilon, to differenciate from null p-values
     matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
 
     text = ' paired' if args.paired else ''
@@ -183,6 +179,7 @@ def main():
         dof = nb_group_g1 + nb_group_g2 - 2
 
     for ind in range(np.prod(matrix_shape)):
+        # Skip edges with no data, leaves a negative epsilon instead
         if not matrices_g1[ind].any() and not matrices_g2[ind].any():
             continue
 
@@ -201,22 +198,26 @@ def main():
         logging.debug('Using FDR, the results will be q-values.')
         corr_matrix_pval = np.triu(corr_matrix_pval)
         corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
-            corr_matrix_pval[corr_matrix_pval > 0],
-            0, method='fdr_bh')[1]
+            corr_matrix_pval[corr_matrix_pval > 0], 0, method='fdr_bh')[1]
+
+        # Symmetrize  the matrix
         matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
             np.diag(corr_matrix_pval.diagonal())
     elif args.bonferroni:
         corr_matrix_pval = np.triu(corr_matrix_pval)
         corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
-            corr_matrix_pval[corr_matrix_pval > 0],
-            0, method='bonferroni')[1]
+            corr_matrix_pval[corr_matrix_pval > 0], 0, method='bonferroni')[1]
+
+        # Symmetrize  the matrix
         matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
             np.diag(corr_matrix_pval.diagonal())
     else:
         matrix_pval = matrix_pval.reshape(matrix_shape)
-        
+
     save_matrix_in_any_format(args.out_pval_matrix, matrix_pval)
 
+    # Save the significant edges (equivalent to an upper_threshold)
+    # 0 where it is not significant and 1 where it is significant
     if args.p_threshold:
         p_thresh = float(args.p_threshold[0])
         masked_pval_matrix = np.zeros(matrix_shape)
