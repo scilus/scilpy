@@ -2,37 +2,39 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs a network-based statistical comparison for populations G1 and G2 using
-a t-statistic threshold of alpha. All matrices must have the same shape.
+Performs a network-based statistical comparison for populations G1 and G2.
+This script perform a edge-wise one-way ANOVA with group permtutation. The
+output is a matrix of the same size as the input connectivity matrices, with
+p-values at each coordinates. This matrix must be thresholded using a p-values
+corrected for FWE (e.g Bonferroni correction).
+
+All input matrices must have the same shape. A number of permutation above 1000
+is recommanded.
 
 For example, if you have streamline count weighted matrices for a MCI and a
 control group and you want to investiguate difference in their connectomme:
     scil_compare_connectivity.py --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
 
 --filtering_mask will simply multiply the binary mask to with all input
-matrices before performing the statistical compariso.
-
-For more details visit (notes after the docstring):
-https://github.com/aestrivex/bctpy/wiki#network-based-statistic
-
-This script is under the GNU GPLv3 license, for more detail please refer to
-https://www.gnu.org/licenses/gpl-3.0.en.html
+matrices before performing the statistical comparison.
 """
 
-
 import argparse
+import itertools
 import logging
+import multiprocessing
 import os
 
-import bct
 import numpy as np
+from scipy.stats import t
+from statsmodels.stats.multitest import multipletests
 
-from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
-
 
 EPILOG = """
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
@@ -50,19 +52,13 @@ def _build_arg_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         epilog=EPILOG)
 
-    p.add_argument('out_matrix',
+    p.add_argument('out_pval_matrix',
                    help='Output matrix (.npy) containing the edges p-value.')
 
     p.add_argument('--in_g1', nargs='+', required=True,
                    help='List of matrices for the first population (.npy).')
     p.add_argument('--in_g2', nargs='+', required=True,
                    help='List of matrices for the second population (.npy).')
-
-    p.add_argument('--t_value', type=float, default=3,
-                   help='Minimum t-value used as threshold [%(default)s].')
-    p.add_argument('--nb_permutations', type=int, default=1000,
-                   help='Number of permutations used to estimate the empirical '
-                        'null distribution [%(default)s].')
     p.add_argument('--tail', choices=['left', 'right', 'both'], default='both',
                    help='Enables specification of an alternative hypothesis:\n'
                         'left: mean of g1 < mean of g2,\n'
@@ -71,17 +67,60 @@ def _build_arg_parser():
     p.add_argument('--paired', action='store_true',
                    help='Use paired sample t-test instead of population t-test.\n'
                         '--in_g1 and --in_g2 must be ordered the same way.')
+
+    fwe = p.add_mutually_exclusive_group()
+    fwe.add_argument('--fdr', action='store_true',
+                     help='Perform a false discovery rate (FDR) correction '
+                          'for the p-values.\nUses the number of non-zeros edges '
+                          'as number of tests (value between 0.01 and 0.1).')
+    fwe.add_argument('--bonferroni', action='store_true',
+                     help='Perform a Bonferroni correction for the p-values.\n'
+                          'Uses the number of non-zeros edges as number of tests.')
+    p.add_argument('--p_threshold', nargs=2, metavar=('THRESH', 'OUT_FILE'),
+                   help='Threshold the final p-value matrix and save the '
+                        'binary matrix (.npy).')
+
     p.add_argument('--filtering_mask',
                    help='Binary filtering mask (.npy) to apply before computing the '
                         'measures.')
 
-    p.add_argument('--save_all', metavar='OUT_DIR',
-                   help='Save all the subcomponents in a text format in the'
-                        'specified output directory.')
+    add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
+
+
+def ttest_stat_only(x, y, tail):
+    t = np.mean(x) - np.mean(y)
+    n1, n2 = len(x), len(y)
+    s = np.sqrt(((n1 - 1) * np.var(x, ddof=1) + (n2 - 1)
+                 * np.var(y, ddof=1)) / (n1 + n2 - 2))
+    denom = s * np.sqrt(1 / n1 + 1 / n2)
+    if denom == 0:
+        return 0
+    if tail == 'both':
+        return np.abs(t / denom)
+    if tail == 'left':
+        return -t / denom
+    else:
+        return t / denom
+
+
+def ttest_paired_stat_only(x, y, tail):
+    n = len(x - y)
+    df = n - 1
+    sample_ss = np.sum((x - y)**2) - np.sum(x - y)**2 / n
+    unbiased_std = np.sqrt(sample_ss / (n - 1))
+
+    z = np.mean(x - y) / unbiased_std
+    t = z * np.sqrt(n)
+    if tail == 'both':
+        return np.abs(t)
+    if tail == 'left':
+        return -t
+    else:
+        return t
 
 
 def main():
@@ -90,11 +129,7 @@ def main():
 
     assert_inputs_exist(parser, args.in_g1+args.in_g2,
                         args.filtering_mask)
-    assert_outputs_exist(parser, args, args.out_matrix)
-
-    if args.save_all:
-        assert_output_dirs_exist_and_empty(parser, args, args.save_all,
-                                           create_dir=True)
+    assert_outputs_exist(parser, args, args.out_pval_matrix)
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -112,34 +147,84 @@ def main():
                               axis=0, start=3)
     matrices_g2 = np.rollaxis(np.array(matrices_g2),
                               axis=0, start=3)
-    pval, adj, _ = bct.nbs.nbs_bct(matrices_g1, matrices_g2,
-                                   args.t_value,
-                                   K=args.nb_permutations,
-                                   TAIL=args.tail)
-    logging.debug(
-        '{} components has been found in the networks'.format(len(pval)))
-    if args.save_all:
-        for i in range(len(pval)):
-            coord = np.array(np.where(adj == i)).T
-            results = np.zeros((len(coord), 3))
-            results[:, 0:2] = coord
-            results[:, 2] = pval[i]
-            filename = os.path.join(args.save_all,
-                                    'component_{}.txt'.format(i))
-            # Manual array saving to support int for coord and float for pval
-            with open(filename, 'a') as the_file:
-                for j in range(len(results)):
-                    the_file.write('{} {} {}\n'.format(int(results[j, 0]),
-                                                       int(results[j, 1]),
-                                                       round(results[j, 2], 5)))
-            logging.debug('Components #{} had {} elements and a pvalue of {}'.format(
-                i, len(coord), pval[i]))
 
-    matrix = np.zeros(adj.shape)
-    for i in range(len(pval)):
-        matrix[adj == i] = pval[i]
+    if matrices_g1.shape[0:2] != matrices_g2.shape[0:2]:
+        parser.error('Both groups have different matrices dimensions (NxN).')
+    if args.paired and matrices_g1.shape[2] != matrices_g2.shape[2]:
+        parser.error('For paired statistic both groups must have the same '
+                     'number of observations.')
 
-    save_matrix_in_any_format(args.out_matrix, matrix)
+    matrix_shape = matrices_g1.shape[0:2]
+    nb_group_g1 = matrices_g1.shape[2]
+    nb_group_g2 = matrices_g2.shape[2]
+
+    # To do better reshape, more simple
+    sum_both_groups = np.sum(matrices_g1, axis=2) + np.sum(matrices_g2, axis=2)
+    nbr_non_zeros = np.count_nonzero(np.triu(sum_both_groups))
+
+    logging.debug('The provided matrices contain {} non zeros elements'.format(
+        nbr_non_zeros))
+
+    matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
+    matrices_g2 = matrices_g2.reshape((np.prod(matrix_shape), nb_group_g2))
+    matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
+
+    text = ' paired' if args.paired else ''
+    logging.debug('Performing{} t-test with "{}" hypothesis'.format(text,
+                                                                    args.tail))
+    logging.debug('Data has dimensions {}x{} with {} and {} observations.'.format(
+        matrix_shape[0], matrix_shape[1],
+        nb_group_g1, nb_group_g2))
+
+    # For conversion to p-values
+    if args.paired:
+        dof = nb_group_g1 - 1
+    else:
+        dof = nb_group_g1 + nb_group_g2 - 2
+
+    for ind in range(np.prod(matrix_shape)):
+        if not matrices_g1[ind].any() and not matrices_g2[ind].any():
+            continue
+
+        if args.paired:
+            t_stat = ttest_paired_stat_only(matrices_g1[ind], matrices_g2[ind],
+                                            args.tail)
+        else:
+            t_stat = ttest_stat_only(matrices_g1[ind], matrices_g2[ind],
+                                     args.tail)
+
+        pval = t.sf(t_stat, dof)
+        matrix_pval[ind] = pval if args.tail == 'both' else pval / 2.0
+
+    corr_matrix_pval = matrix_pval.reshape(matrix_shape)
+    if args.fdr:
+        logging.debug('Using FDR, the results will be q-values.')
+        corr_matrix_pval = np.triu(corr_matrix_pval)
+        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
+            corr_matrix_pval[corr_matrix_pval > 0],
+            0, method='fdr_bh')[1]
+        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
+            np.diag(corr_matrix_pval.diagonal())
+    elif args.bonferroni:
+        corr_matrix_pval = np.triu(corr_matrix_pval)
+        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
+            corr_matrix_pval[corr_matrix_pval > 0],
+            0, method='bonferroni')[1]
+        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
+            np.diag(corr_matrix_pval.diagonal())
+    else:
+        matrix_pval = matrix_pval.reshape(matrix_shape)
+        
+    save_matrix_in_any_format(args.out_pval_matrix, matrix_pval)
+
+    if args.p_threshold:
+        p_thresh = float(args.p_threshold[0])
+        masked_pval_matrix = np.zeros(matrix_shape)
+        logging.debug('Threshold the p-values at {}'.format(p_thresh))
+        masked_pval_matrix[matrix_pval < p_thresh] = 1
+        masked_pval_matrix[matrix_pval < 0] = 0
+
+        save_matrix_in_any_format(args.p_threshold[1], masked_pval_matrix)
 
 
 if __name__ == '__main__':
