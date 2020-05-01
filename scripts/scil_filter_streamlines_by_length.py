@@ -22,7 +22,7 @@ from scilpy.io.utils import (add_json_args,
                              assert_outputs_exist)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
 
@@ -49,7 +49,7 @@ def _build_args_parser():
 
 def main():
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
@@ -66,6 +66,13 @@ def main():
 
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
+    if args.display_counts:
+        sc_bf = len(sft.streamlines)
+        sc_af = len(new_sft.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                         'streamline_count_after_filtering': int(sc_af)},
+                         indent=args.indent))
+
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
             logging.debug("The file {} won't be written "
@@ -77,13 +84,6 @@ def main():
             args.out_tractogram))
 
     save_tractogram(new_sft, args.out_tractogram)
-
-    if args.display_counts:
-        tc_bf = len(sft.streamlines)
-        tc_af = len(new_sft.streamlines)
-        print(json.dumps({'tract_count_before_filtering': int(tc_bf),
-                          'tract_count_after_filtering': int(tc_af)},
-                         indent=args.indent))
 
 
 if __name__ == "__main__":

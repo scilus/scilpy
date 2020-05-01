@@ -4,7 +4,6 @@
 Prepare a typical command for eddy and create the necessary files.
 """
 
-from __future__ import print_function
 import argparse
 import logging
 import os
@@ -13,8 +12,8 @@ import subprocess
 from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
-from scilpy.io.utils import add_overwrite_arg, \
-    assert_inputs_exist
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import create_acqparams, \
     create_index, create_non_zero_norm_bvecs
 
@@ -76,9 +75,7 @@ def _build_arg_parser():
                         'Enhances reproducibility.')
 
     add_overwrite_arg(p)
-
-    p.add_argument('--verbose', '-v', action='store_true',
-                   help='produce verbose output.')
+    add_verbose_arg(p)
 
     return p
 

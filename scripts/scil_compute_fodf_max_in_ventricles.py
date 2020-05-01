@@ -5,7 +5,6 @@
 Script to compute the maximum fODF in the ventricles.
 """
 
-from __future__ import division, print_function
 from builtins import str
 from builtins import range
 from past.utils import old_div
@@ -49,6 +48,7 @@ def _build_arg_parser():
         '--mask_output',  metavar='file',
         help='Output path for the ventricule mask. If not set, the mask will '
              'not be saved.')
+
     add_sh_basis_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)

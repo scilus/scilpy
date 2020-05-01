@@ -14,8 +14,6 @@ See [Tournier et al. NeuroImage 2007] and [Cote et al Tractometer MedIA 2013]
 for quantitative comparisons with Sharpening Deconvolution Transform (SDT)
 """
 
-from __future__ import division
-
 import argparse
 import logging
 
