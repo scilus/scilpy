@@ -5,6 +5,9 @@ import itertools
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.segment.clustering import QuickBundles
+from dipy.segment.metric import ResampleFeature
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -123,6 +126,16 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     indices = sorted(to_keep.values())
     streamlines = [all_streamlines[i] for i in indices]
     return streamlines, indices
+
+
+def get_centroid_streamline(streamlines, nb_points):
+    resample_feature = ResampleFeature(nb_points=nb_points)
+    quick_bundle = QuickBundles(
+        threshold=np.inf,
+        metric=AveragePointwiseEuclideanMetric(resample_feature))
+    clusters = quick_bundle.cluster(streamlines)
+
+    return clusters.centroids
 
 
 def warp_streamlines(sft, deformation_data, source='ants'):
