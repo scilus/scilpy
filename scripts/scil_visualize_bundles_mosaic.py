@@ -31,19 +31,19 @@ from scilpy.utils.filenames import split_name_with_nii
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('anat_reference',
-                   help='Image used as background (e.g. T1, FA, b0).')
-    p.add_argument('inputs', nargs='+',
-                   help='List of streamline or files supported by nibabel '
-                        'or binary mask file.')
-    p.add_argument('output_name',
+    p.add_argument('in_volume',
+                   help='Volume used as background (e.g. T1, FA, b0).')
+    p.add_argument('in_bundles', nargs='+',
+                   help='List of tractography files supported by nibabel '
+                        'or binary mask files.')
+    p.add_argument('out_image',
                    help='Name of the output image mosaic '
                         '(e.g. mosaic.jpg, mosaic.png).')
 
     p.add_argument('--uniform_coloring', nargs=3,
                    metavar=('R', 'G', 'B'), type=float,
                    help='Assign an uniform color to streamlines (or ROIs).')
-    p.add_argument('--random_coloring', metavar='SEED', type=int, default=0,
+    p.add_argument('--random_coloring', metavar='SEED', type=int,
                    help='Assign a random color to streamlines (or ROIs).')
     p.add_argument('--zoom', type=float, default=1.0,
                    help='Rendering zoom. '
@@ -67,7 +67,7 @@ def _build_arg_parser():
 
 
 def get_font(args):
-    """Returns a ttf font object."""
+    """ Returns a ttf font object. """
     if args.ttf is not None:
         try:
             font = ImageFont.truetype(args.ttf, args.ttf_size)
@@ -123,7 +123,7 @@ def draw_column_with_names(draw, output_names, text_pos_x,
 
 def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
                             pos_x, pos_y, font):
-    """Draw text with bundle information."""
+    """ Draw text with bundle information. """
     draw.text((pos_x, pos_y),
               (bundle_file_name), font=font)
     draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
@@ -131,7 +131,7 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
 
 
 def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
-    """Set a snapshot of the bundle in a cell of mosaic"""
+    """ Set a snapshot of the bundle in a cell of mosaic """
     window.snapshot(ren, path, size=(width, height))
     j = height * view_number
     image = Image.open(path)
@@ -150,16 +150,16 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.anat_reference])
-    assert_outputs_exist(parser, args, [args.output_name])
+    assert_inputs_exist(parser, args.in_volume)
+    assert_outputs_exist(parser, args, args.out_image)
 
     output_names = ['axial_superior', 'axial_inferior',
                     'coronal_posterior', 'coronal_anterior',
                     'sagittal_left', 'sagittal_right']
 
-    list_of_bundles = [f for f in args.inputs]
+    list_of_bundles = [f for f in args.in_bundles]
     # output_dir: where temporary files will be created
-    output_dir = os.path.dirname(args.output_name)
+    output_dir = os.path.dirname(args.out_image)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
@@ -178,8 +178,8 @@ def main():
     draw = ImageDraw.Draw(mosaic)
     font = get_font(args)
 
-    # Data of the image used as background
-    ref_img = nib.load(args.anat_reference)
+    # Data of the volume used as background
+    ref_img = nib.load(args.in_volume)
     data = ref_img.get_fdata(dtype=np.float32)
     affine = ref_img.affine
     mean, std = data[data > 0].mean(), data[data > 0].std()
@@ -226,11 +226,11 @@ def main():
         else:
             if args.uniform_coloring:
                 colors = args.uniform_coloring
-            elif args.random_coloring:
+            elif args.random_coloring is not None:
                 colors = random_rgb()
             # Select the streamlines to plot
             if bundle_ext in ['.tck', '.trk']:
-                if not args.random_coloring and not args.uniform_coloring:
+                if args.random_coloring is None and args.uniform_coloring is None:
                     colors = None
                 bundle_tractogram_file = nib.streamlines.load(bundle_file)
                 streamlines = bundle_tractogram_file.streamlines
@@ -322,7 +322,7 @@ def main():
         shutil.rmtree(output_bundle_dir)
 
     # Save image to file
-    mosaic.save(args.output_name)
+    mosaic.save(args.out_image)
 
 
 if __name__ == '__main__':
