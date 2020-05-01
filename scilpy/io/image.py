@@ -28,27 +28,35 @@ def assert_same_resolution(images):
             raise Exception("Images are not of the same resolution/affine")
 
 
-def get_data_as_mask(in_img):
+def get_data_as_mask(in_img, dtype=np.uint8):
     """
-    Get data as mask (force type np.uint8), check data type before casting.
+    Get data as mask (force type np.uint8 or bool), check data type before
+    casting.
 
     Parameters
     ----------
     in_img: nibabel.nifti1.Nifti1Image
         Image
 
+    dtype: data type for the output data (default: uint8)
+        type
+
     Return
     ------
     data: numpy.ndarray
-        Data (dtype : np.uint8).
+        Data (dtype : np.uint8 or np.bool).
     """
+    if not (issubclass(np.dtype(dtype).type, np.uint8) or
+            issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
+        raise IOError('Data type must be uint8 or bool. '
+                      'Current data type is {}.'.format(dtype))
 
     curr_type = in_img.get_data_dtype().type
     basename = os.path.basename(in_img.get_filename())
     if np.issubdtype(curr_type, np.signedinteger) or \
         np.issubdtype(curr_type, np.unsignedinteger) \
             or np.issubdtype(curr_type, np.dtype(bool).type):
-        data = np.asanyarray(in_img.dataobj).astype(np.uint8)
+        data = np.asanyarray(in_img.dataobj).astype(dtype)
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
             if np.all(unique_vals != np.array([0, 1])):

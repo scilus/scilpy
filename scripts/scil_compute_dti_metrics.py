@@ -174,7 +174,7 @@ def main():
     if args.mask is None:
         mask = None
     else:
-        mask = get_data_as_mask(nib.load(args.mask)).astype(np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))
