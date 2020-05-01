@@ -9,6 +9,7 @@ from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.csdeconv import auto_response
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.reconst.multi_voxel import MultiVoxelFit
+from dipy.reconst.odf import gfa
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 ​
 import numpy as np
@@ -201,33 +202,52 @@ def maps_from_sh_parallel(args):
     shm_coeff = args[0]
     peaks_dirs = args[1]
     peaks_values = args[2]
-    chunk_id = args[3]
+    B = args[3]
+    sphere = args[4]
+    gfa_thr = args[5]
+    chunk_id = args[6]
 ​
     data_shape = shm_coeff.shape[0]
     nufo_map = np.zeros(data_shape)
     afd_map = np.zeros(data_shape)
     afd_sum = np.zeros(data_shape)
+    rgb_map = np.zeros(data_shape + (3,))
+
+    gfa = np.zeros(data_shape)
+    qa = np.zeros(data_shape + (peaks_values.shape[1],))
 ​
+    max_odf = 0
+    global_max = -np.inf
     for idx in range(len(shm_coeff)):
-        if np.isnan(data[index]).any():
-            nufo_map[index] = 0
-            afd_map[index] = 0
-        else:
-            if len(np.linalg.norm(peaks_dir, axis=1) > 0):
-                nufo_map[idx] = 0.0
-                afd_map[idx] = 0.0
-            else:
+        if not np.isnan(data[idx]).any():
+            odf = np.dot(shm_coeff[idx], B)
+            sum_odf = np.sum(odf)
+            max_odf = np.maximum(max_odf, sum_odf)
+            if sum_odf > 0:
+                rgb_map[ind] = np.sum(np.abs(sphere.vertices) * odf, axis=0)
+                rgb_map[ind] /= np.linalg.norm(rgb_map[ind])
+                rgb_map[ind] *= sum_odf
+            gfa[idx] = gfa(odf)
+            if gfa[idx] < gfa_thr:
+                global_max = max(global_max, odf.max())
+            elif len(np.linalg.norm(peaks_dir[idx], axis=1) > 0):
                 nufo_map[idx] = peaks_dirs[idx].shape[0]
                 afd_map[idx] = peaks_values[idx].max()
                 afd_sum[idx] = n.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
+                qa = peaks_values[idx] - odf.min()
+                global_max = max(global_max, peaks_values[idx][0])
+
+    rgb_map /= max_odf
+    rgb_map *= 255
+    qa /= global_max
 ​
-    return chunk_id, nufo_map, afd_map, afd_sum
+    return chunk_id, nufo_map, afd_map, afd_sum, rgb_map, gfa, qa
 
 
-def maps_from_sh(shm_coeff, peak_dirs, peak_values, sphere, mask=None,
-                 sh_basis_type='descoteaux07',
+def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
+                 sh_basis_type='descoteaux07', gfa_thr=0,
                  nbr_processes=None):
-    # B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
+    B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
 
     # I hate doing that kind of testing in a core function, this should be handle by the lawer above it to 'clarify' the code
     data_shape = shm_coeff.shape
@@ -255,6 +275,9 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, sphere, mask=None,
                        zip(shm_coeff_chunks,
                            peaks_dirs_chunks,
                            peaks_values_chunks,
+                           intertools.repeat(B),
+                           itertools.repeat(sphere),
+                           itertools.repeat(gfa_thr),
                            np.arange(len(shm_coeff_chunks))))
     pool.close()
     pool.join()
@@ -262,16 +285,26 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, sphere, mask=None,
     nufo_map_array = np.zeros((np.prod(data_shape[0:3])))
     afd_map_array = np.zeros((np.prod(data_shape[0:3])))
     afd_sum_array = np.zeros((np.prod(data_shape[0:3])))
-    for i, nufo_map, afd_map, afd_sum in results:
+    rgb_map_array = np.zeros((np.prod(data_shape[0:3]), 3))
+    gfa_array = np.zeros((np.prod(data_shape[0:3])))
+    qa_array = np.zeros((np.prod(data_shape[0:3]), peaks_values.shape[3]))
+    for i, nufo_map, afd_map, afd_sum, rgb_map, gfa, qa in results:
         nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
         afd_map_array[chunk_len[i]:chunk_len[i+1]] = afd_map
         afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
+        rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+        gfa_array[chunk_len[i]:chunk_len[i+1]] = gfa
+        qa_array[chunk_len[i]:chunk_len[i+1], :] = qa
 ​
     nufo_map_array = nufo_map_array.reshape(data_shape[0:3])
     afd_map_array = afd_map_array.reshape(data_shape[0:3])
     afd_sum_array = afd_sum_array.reshape(data_shape[0:3])
+    rgb_map_array = rgb_map_array.reshape(data_shape[0:3] + (3,))
+    gfa_array = gfa_array.reshape(data_shape[0:3])
+    qa_array = qa_array.reshape(data_shape[0:3] + (peaks_values.shape[3],))
 ​
-    return nufo_map_array, afd_map_array, afd_sum_array
+    return(nufo_map_array, afd_map_array, afd_sum_array,
+           rgb_map_array, gfa_array, qa_array)
 
 def get_maps(data, mask, args, npeaks=5):
     nufo_map = np.zeros(data.shape[0:3])
