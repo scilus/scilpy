@@ -12,7 +12,6 @@ ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
 import argparse
 import pickle
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.bundles import RecoBundles
 from dipy.tracking.streamline import transform_streamlines
@@ -67,7 +66,8 @@ def _build_arg_parser():
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                            'Will override the tractogram_clustering_thr parameter.')
+                            'Will override the tractogram_clustering_thr '
+                            'parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
@@ -109,23 +109,17 @@ def main():
                                clust_thr=args.tractogram_clustering_thr,
                                rng=rng,
                                verbose=args.verbose)
+        if args.output_pickle:
+            with open(args.output_pickle, 'wb') as outfile:
+                pickle.dump(reco_obj.cluster_map, outfile)
 
-    if args.output_pickle:
-        with open(args.output_pickle, 'wb') as outfile:
-            pickle.dump(reco_obj.cluster_map, outfile)
     _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
                                     slr_num_threads=args.slr_threads)
-    new_streamlines = wb_streamlines[indices]
-    new_data_per_streamlines = wb_file.data_per_streamline[indices]
-    new_data_per_points = wb_file.data_per_point[indices]
 
-    if not args.no_empty or new_streamlines:
-        sft = StatefulTractogram(new_streamlines, wb_file, Space.RASMM,
-                                 data_per_streamline=new_data_per_streamlines,
-                                 data_per_point=new_data_per_points)
-        save_tractogram(sft, args.output_name)
+    if not args.no_empty or len(indices):
+        save_tractogram(wb_file[indices], args.output_name)
 
 
 if __name__ == '__main__':

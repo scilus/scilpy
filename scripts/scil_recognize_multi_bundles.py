@@ -105,7 +105,8 @@ def main():
         if not os.path.isdir(directory):
             parser.error('Input folder {0} does not exist'.format(directory))
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output)
+    assert_output_dirs_exist_and_empty(parser, args, args.output,
+                                       create_dir=True)
 
     logging.basicConfig(filename=os.path.join(args.output, 'logfile.txt'),
                         filemode='w',
