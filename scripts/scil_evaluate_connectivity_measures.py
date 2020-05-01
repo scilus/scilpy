@@ -9,7 +9,7 @@ some measures require one or the other.
 This script evaluates the measures one subject at the time. To generate a
 population dictionary (similarly to other scil_evaluate_*.py scripts), use the
 --append_json option as well as using the same output filename.
->> for i in hcp/*/; do scil_evaluate_connectivity_measures.py ${i}/sc_prob.npy 
+>>> for i in hcp/*/; do scil_evaluate_connectivity_measures.py ${i}/sc_prob.npy
     ${i}/len_prob.npy hcp_prob.json --append_json --avg_node_wise; done
 
 Some measures output one value per node, the default behavior is to list
@@ -140,6 +140,7 @@ def omega_sigma(matrix):
 def avg_cast(input):
     return float(np.average(input))
 
+
 def list_cast(input):
     if isinstance(input, np.ndarray):
         if input.ndim == 2:
@@ -193,12 +194,12 @@ def main():
     gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,
                                                       flag=0)
     gtm_dict['participation'] = func_cast(bct.participation_coef_sign(conn_matrix,
-                                                                     ci)[0])
+                                                                      ci)[0])
     gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(conn_matrix))
 
     gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(conn_matrix))
     gtm_dict['local_efficiency'] = func_cast(bct.efficiency_wei(len_matrix,
-                                                               local=True))
+                                                                local=True))
     gtm_dict['global_efficiency'] = func_cast(bct.efficiency_wei(len_matrix))
     gtm_dict['density'] = func_cast(bct.density_und(conn_matrix)[0])
 
