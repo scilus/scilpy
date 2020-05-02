@@ -219,9 +219,10 @@ def maps_from_sh_parallel(args):
             sum_odf = np.sum(odf)
             max_odf = np.maximum(max_odf, sum_odf)
             if sum_odf > 0:
-                rgb_map[ind] = np.sum(np.abs(sphere.vertices) * odf, axis=0)
-                rgb_map[ind] /= np.linalg.norm(rgb_map[ind])
-                rgb_map[ind] *= sum_odf
+                rgb_map[idx] = np.dot(np.abs(sphere.vertices).T, odf)
+                # rgb_map[ind] = np.sum(np.abs(sphere.vertices) * odf, axis=0)
+                rgb_map[idx] /= np.linalg.norm(rgb_map[idx])
+                rgb_map[idx] *= sum_odf
             gfa_map[idx] = gfa(odf)
             if gfa_map[idx] < gfa_thr:
                 global_max = max(global_max, odf.max())
@@ -258,9 +259,10 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
         or nbr_processes < 0 else nbr_processes
 
     # In the script : need to make sure that shm and peaks have the same data_shape
+    npeaks = peaks_values.shape[3]
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
-    peaks_dirs = peaks_dirs.ravel().reshape((np.prod(data_shape[0:3]), peaks_dirs.shape[3], peaks_dirs.shape[4]))
-    peaks_values = peaks_values.ravel().reshape(np.prod(data_shape[0:3]), peaks_values.shape[3])
+    peaks_dirs = peaks_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
+    peaks_values = peaks_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
     peaks_dirs_chunks = np.array_split(peaks_dirs, nbr_processes)
     peaks_values_chunks = np.array_split(peaks_values, nbr_processes)
@@ -283,7 +285,7 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
     afd_sum_array = np.zeros((np.prod(data_shape[0:3])))
     rgb_map_array = np.zeros((np.prod(data_shape[0:3]), 3))
     gfa_map_array = np.zeros((np.prod(data_shape[0:3])))
-    qa_map_array = np.zeros((np.prod(data_shape[0:3]), peaks_values.shape[3]))
+    qa_map_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
     for i, nufo_map, afd_map, afd_sum, rgb_map, gfa_map, qa_map in results:
         nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
         afd_map_array[chunk_len[i]:chunk_len[i+1]] = afd_map
@@ -297,7 +299,7 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
     afd_sum_array = afd_sum_array.reshape(data_shape[0:3])
     rgb_map_array = rgb_map_array.reshape(data_shape[0:3] + (3,))
     gfa_map_array = gfa_map_array.reshape(data_shape[0:3])
-    qa_map_array = qa_map_array.reshape(data_shape[0:3] + (peaks_values.shape[3],))
+    qa_map_array = qa_map_array.reshape(data_shape[0:3] + (npeaks,))
 
     return(nufo_map_array, afd_map_array, afd_sum_array,
            rgb_map_array, gfa_map_array, qa_map_array)
