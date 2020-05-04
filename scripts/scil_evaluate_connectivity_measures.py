@@ -85,7 +85,7 @@ def _build_arg_parser():
 
 def omega_sigma(matrix):
     """Returns the small-world coefficients (omega & sigma) of a graph.
-    Omega ranges between -1 and 1. Values close to 0 mean the metrix
+    Omega ranges between -1 and 1. Values close to 0 mean the matrix
     features small-world characteristics.
     Values close to -1 mean the network has a lattice structure and values
     close to 1 mean G is a random network.
@@ -99,7 +99,7 @@ def omega_sigma(matrix):
     Returns
     -------
     smallworld : tuple of float
-        The small-work coefficients (omega & sigma)
+        The small-work coefficients (omega & sigma).
     Notes
     -----
     The implementation is adapted from the algorithm by Telesford et al. [1]_.
@@ -169,7 +169,7 @@ def main():
     if args.append_json and args.overwrite:
         parser.error('Cannot use the append option at the same time as '
                      'overwrite.\nAmbiguous behavior, consider deleting the '
-                     'output json file first instead')
+                     'output json file first instead.')
 
     conn_matrix = load_matrix_in_any_format(args.in_conn_matrix)
     len_matrix = load_matrix_in_any_format(args.in_length_matrix)

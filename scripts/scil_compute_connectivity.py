@@ -66,7 +66,7 @@ def load_node_nifti(directory, in_label, out_label, ref_filename):
             logging.error('{} and {} do not have a compatible header'.format(
                 in_filename, ref_filename))
             raise IOError
-        return nib.load(in_filename).get_fdata(dtype=np.float32)
+        return nib.load(in_filename).get_fdata(dtype=np.float64)
 
     _, dims, _, _ = get_reference_info(ref_filename)
     return np.zeros(dims)
@@ -146,7 +146,7 @@ def _processing_wrapper(args):
                 raise IOError('{} and {} do not have a compatible header'.format(
                     in_filename, metric_filename))
 
-            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float32)
+            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float64)
             if weighted:
                 density = density / np.max(density)
                 voxels_value = metric_data * density
