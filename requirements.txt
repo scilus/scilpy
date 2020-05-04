@@ -26,5 +26,6 @@ nilearn==0.6.1
 pytest==5.3.5
 pytest_console_scripts==0.2.0
 spams==2.6.1
-pip install -e git://github.com/daducci/AMICO.git@b599636#egg=amico
-pip install -e git://github.com/daducci/COMMIT.git@17b92e2#egg=commit
+-e git://github.com/daducci/AMICO.git@b599636#egg=amico
+-e git://github.com/daducci/COMMIT.git@17b92e2#egg=commit
+-e git://github.com/aestrivex/bctpy.git@1973df9#egg=bctpy
