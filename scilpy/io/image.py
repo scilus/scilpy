@@ -48,8 +48,8 @@ def get_data_as_mask(in_img, dtype=np.uint8):
     """
     if not (issubclass(np.dtype(dtype).type, np.uint8) or
             issubclass(np.dtype(dtype).type, np.dtype(bool).type)):
-        raise IOError('Data type must be uint8 or bool. '
-                      'Output data type is {}.'.format(dtype))
+        raise IOError('Output data type must be uint8 or bool. '
+                      'Current data type is {}.'.format(dtype))
 
     curr_type = in_img.get_data_dtype().type
     basename = os.path.basename(in_img.get_filename())
