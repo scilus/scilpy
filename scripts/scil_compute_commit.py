@@ -2,20 +2,33 @@
 # -*- coding: utf-8 -*-
 
 """
+Estimate the fit between a provided tractogram and DWI. Assign a weight to each
+streamline that represent how well they explain the signal.
 
+The real output from COMMIT is:
+- fit_NRMSE.nii.gz
+    fiting error (Normalized Root Mean Square Error)
+- fit_RMSE.nii.gz
+    fiting error (Root Mean Square Error)
+- results.pickle
+    Dictionary containing the experiment parameters and final weights
+- compartment_EC.nii.gz
+- compartment_IC.nii.gz
+- compartment_ISO.nii.gz
+    Each of COMMIT compartments
+
+This script can divide the input tractogram in two using a threshold to apply
+on the streamlines' weight.
 """
 
 
-import random
 from scilpy.utils.bvec_bval_tools import identify_shells
 import sys
 import io
-from contextlib import contextmanager
 from contextlib import redirect_stdout
 import tempfile
 import shutil
 from commit import trk2dictionary
-import amico
 import commit
 import argparse
 import os
@@ -25,18 +38,13 @@ import pickle
 import numpy as np
 import nibabel as nib
 from nibabel.streamlines import Tractogram
-from fury import window, actor, interactor
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.gradients import read_bvals_bvecs
 
-from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix
 from scilpy.io.streamlines import lazy_streamlines_count
@@ -47,28 +55,31 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help='.')
+                   help='Input tractogram (.trk or .tck).')
     p.add_argument('in_dwi',
-                   help='.')
+                   help='Diffusion from which the fodf were computed.')
     p.add_argument('in_bvals',
-                   help='.')
+                   help='Bvals in the FSL format.')
     p.add_argument('in_bvecs',
-                   help='.')
+                   help='Bvecs in the FSL format..')
     p.add_argument('in_peaks',
-                   help='.')
+                   help='Peaks extracted from the fodf.')
     p.add_argument('out_dir',
-                   help='.')
+                   help='Output directory for the COMMIT maps.')
 
     p.add_argument('--tracking_mask',
-                   help='If not set, use a binary mask computed from the streamlines.')
+                   help='Binary mask were tratography was allowed.\n'
+                        'If not set, uses a binary mask computed from '
+                        'the streamlines.')
     p.add_argument('--disable_zeppelin', action='store_true',
-                   help='.')
+                   help='Disable the zeppelin compartment for single-shell.')
 
     p.add_argument('--assign_weights', action='store_true',
-                   help='Store the streamlines weights in the data_per_streamline.')
+                   help='Store the streamlines weights in the '
+                        'data_per_streamline.')
     p.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
-                   help='Split the tractogram in two. Valid and invalid, based '
-                        'on the provided threshold.')
+                   help='Split the tractogram in two. Valid and invalid, '
+                        'based on the provided threshold.')
 
     add_processes_arg(p)
     add_overwrite_arg(p)
@@ -96,12 +107,18 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
+    is_header_compatible(args.in_tractogram, args.in_dwi)
+    if args.tracking_mask:
+        is_header_compatible(args.in_tractogram, args.tracking_mask)
+
+    # COMMIT has some c-level stdout and non-logging print that cannot
+    # be easily stopped. Manual redirection of all printed output
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
-        redirected = redirect_stdout(sys.stdout)
+        redirected_stdout = redirect_stdout(sys.stdout)
     else:
         f = io.StringIO()
-        redirected = redirect_stdout(f)
+        redirected_stdout = redirect_stdout(f)
         redirect_stdout_c()
 
     tmp_dir = tempfile.TemporaryDirectory()
@@ -113,7 +130,12 @@ def main():
         len(shells_centroids),
         shells_centroids))
 
-    with redirected:
+    if len(shells_centroids) == 2 and not args.disable_zeppelin:
+        parser.error('The DWI data appears to be single-shell.\n'
+                     'Use --disable_zeppelin for single-shell.')
+
+    with redirected_stdout:
+        # Setting up the tractogram and nifti files
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
                            peaks_use_affine=False,
@@ -122,7 +144,7 @@ def main():
                            gen_trk=False,
                            path_out=tmp_dir.name)
 
-        # preparation and fitting
+        # Preparation for fitting
         commit.core.setup(ndirs=500)
         mit = commit.Evaluation('.', '.')
         mit.load_data(args.in_dwi, tmp_scheme_filename)
@@ -134,6 +156,8 @@ def main():
             logging.debug('Using the Stick Zeppelin Ball model.')
             zeppelin_priors = [0.7]
         mit.model.set(1.7E-3, zeppelin_priors, [2.0E-3])
+
+        # The kernels are, by default, set to be in the current directory
         mit.set_config('ATOMS_path', os.path.join(tmp_dir.name,
                                                   'kernels',
                                                   mit.model.id))
@@ -148,13 +172,16 @@ def main():
     # Simplifying output for streamlines and cleaning output directory
     commit_results_dir = os.path.join(tmp_dir.name,
                                       'Results_StickZeppelinBall')
-    file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
-    commit_output_dict = pickle.load(file)
+    pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
+    commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
     commit_weights = commit_output_dict[2][:nbr_streamlines]
     np.savetxt(os.path.join(commit_results_dir, 'streamlines_weights.txt'),
                commit_weights)
-    dest = shutil.move(commit_results_dir, args.out_dir)
+
+    files = os.listdir(commit_results_dir)
+    for f in files:
+        shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
     tmp_dir.cleanup()
 
     # Save split tractogram (valid/invalid) and/or saving the tractogram with
@@ -190,10 +217,12 @@ def main():
                                             data_per_streamline=invalid_data_per_streamline,
                                             affine_to_rasmm=np.eye(4))
 
-            nib.streamlines.save(valid_tractogram, os.path.join(args.out_dir,
-                                                                'valid_tractogram.trk'))
-            nib.streamlines.save(invalid_tractogram, os.path.join(args.out_dir,
-                                                                  'invalid_tractogram.trk'))
+            nib.streamlines.save(valid_tractogram,
+                                 os.path.join(args.out_dir,
+                                              'valid_tractogram.trk'))
+            nib.streamlines.save(invalid_tractogram,
+                                 os.path.join(args.out_dir,
+                                              'invalid_tractogram.trk'))
         if args.assign_weights:
             output_filename = os.path.join(args.out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
