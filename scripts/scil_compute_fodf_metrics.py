@@ -39,6 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import (
     find_order_from_nb_coeff, get_b_matrix, get_maximas)
+from scilpy.reconst.multi_process import peaks_from_sh, maps_from_sh
 
 
 def _build_arg_parser():
@@ -68,6 +69,9 @@ def _build_arg_parser():
         '--rt', dest='r_threshold', type=float, default='0.1',
         help='Relative threshold on fODF amplitude in percentage  '
              '[%(default)s].')
+    p.add_argument(
+        '--processes', dest='nbr_processes', metavar='NBR', type=int,
+        help='Number of sub processes to start. Default : cpu count')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     p.add_argument(
@@ -91,10 +95,21 @@ def _build_arg_parser():
         '--afd_sum', metavar='file', default='',
         help='Output filename for the sum of all peak contributions (sum of '
              'fODF lobes on the sphere).')
-    g.add_argument('--nufo', metavar='file', default='',
-                   help='Output filename for the NuFO map.')
-    g.add_argument('--peaks', metavar='file', default='',
-                   help='Output filename for the extracted peaks.')
+    g.add_argument(
+        '--gfa', metavar='file', default='',
+        help='Output filename for the GFA map.')
+    g.add_argument(
+        '--nufo', metavar='file', default='',
+        help='Output filename for the NuFO map.')
+    g.add_argument(
+        '--qa', metavar='file', default='',
+        help='Output filename for the QA map.')
+    g.add_argument(
+        '--rgb', metavar='file', default='',
+        help='Output filename for the RGB map.')
+    g.add_argument(
+        '--peaks', metavar='file', default='',
+        help='Output filename for the extracted peaks.')
     return p
 
 
@@ -112,48 +127,6 @@ def save(data, affine, output, visu=False):
     else:
         img = nib.Nifti1Image(np.array(data, 'float32'),  affine)
         nib.save(img, output)
-
-
-def get_maps(data, mask, args, npeaks=5):
-    nufo_map = np.zeros(data.shape[0:3])
-    afd_map = np.zeros(data.shape[0:3])
-    afd_sum = np.zeros(data.shape[0:3])
-
-    peaks_dirs = np.zeros(list(data.shape[0:3]) + [npeaks, 3])
-    order = find_order_from_nb_coeff(data)
-    sphere = get_sphere(args.sphere)
-    b_matrix = get_b_matrix(order, sphere, args.sh_basis)
-
-    for index in ndindex(data.shape[:-1]):
-        if mask[index]:
-            if np.isnan(data[index]).any():
-                nufo_map[index] = 0
-                afd_map[index] = 0
-            else:
-                maximas, afd, _ = get_maximas(
-                    data[index], sphere, b_matrix, args.r_threshold, args.at)
-                # sf = np.dot(data[index], B.T)
-
-                n = min(npeaks, maximas.shape[0])
-                nufo_map[index] = maximas.shape[0]
-                if n == 0:
-                    afd_map[index] = 0.0
-                    nufo_map[index] = 0.0
-                else:
-                    afd_map[index] = afd.max()
-                    peaks_dirs[index][:n] = maximas[:n]
-
-                    # sum of all coefficients, sqrt(power spectrum)
-                    # sum C^2 = sum fODF^2
-                    afd_sum[index] = np.sqrt(np.dot(data[index], data[index]))
-
-                    # sum of all peaks contributions to the afd
-                    # integral of all the lobes. Numerical sum.
-                    # With an infinite number of SH, this should == to afd_sum
-                    # sf[np.nonzero(sf < args.at)] = 0.
-                    # afd_sum[index] = sf.sum()/n*4*np.pi/B.shape[0]x
-
-    return nufo_map, afd_map, afd_sum, peaks_dirs
 
 
 def main():
@@ -181,7 +154,22 @@ def main():
     else:
         mask, affine2 = load(args.mask)
 
-    nufo_map, afd_map, afd_sum, peaks_dirs = get_maps(data, mask, args)
+    # Computing peaks
+    peak_dirs, peak_values, peak_indices = peaks_from_sh(data,
+                                                        args.sphere,
+                                                        mask=mask,
+                                                        relative_peak_threshold=.5,
+                                                        absolute_threshold=args.at
+                                                        min_separation_angle=25,
+                                                        normalize_peaks=True,
+                                                        sh_basis_type=args.sh_basis,
+                                                        nbr_processes=args.nbr_processes)
+
+    # Computing maps
+    nufo_map, afd_map, afd_sum \
+        rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs, peak_values,
+                                                args.sphere,
+                                                nbr_processes=args.nbr_processes)
 
     # Save result
     if args.nufo:
@@ -198,9 +186,19 @@ def main():
     if args.afd_sum:
         save(afd_sum, affine, args.afd_sum)
 
+    if args.gfa:
+        nib.save(nib.Nifti1Image(gfa_map, affine), args.gfa)
+
+    if args.qa:
+        nib.save(nib.Nifti1Image(qa_map, affine), args.qa)
+
+    if args.rgb:
+        nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
+
     if args.peaks:
         nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peaks_dirs),
                                  affine), args.peaks)
+
     if args.visu:
         if nufo_map.max() > nufo_map.min():
             nufo_map = (255 * (nufo_map - nufo_map.min()) / (nufo_map.max() -
