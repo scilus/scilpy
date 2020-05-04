@@ -69,6 +69,9 @@ def _build_arg_parser():
         '--peaks', metavar='file', default='',
         help='Output filename for the extracted peaks.')
     g.add_argument(
+        '--peak_values', metavar='file', default='',
+        help='Output filename for the extracted peaks values.')
+    g.add_argument(
         '--peak_indices', metavar='file', default='',
         help='Output filename for the generated peaks indices on the sphere.')
 
@@ -82,13 +85,13 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    # Checking args
     if not args.not_all:
         args.fodf = args.fodf or 'fodf.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
+        args.peak_values = args.peak_values or 'peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
 
-    arglist = [args.fodf, args.peaks, args.peak_indices]
+    arglist = [args.fodf, args.peaks, args.peak_values, args.peak_indices]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
@@ -107,27 +110,65 @@ def main():
     else:
         mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
-    # Computing fODF
-    peaks_csd = compute_fodf(data, bvals, bvecs, full_frf,
-                             sh_order=args.sh_order,
-                             nbr_processes=args.nbr_processes,
-                             mask=mask, sh_basis=args.sh_basis,
-                             return_sh=True,
-                             force_b0_threshold=args.force_b0_threshold)
+    # Checking data and sh_order
+    check_b0_threshold(force_b0_threshold, bvals.min())
+    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
+        logging.warning(
+            'We recommend having at least {} unique DWI volumes, but you '
+            'currently have {} volumes. Try lowering the parameter sh_order '
+            'in case of non convergence.'.format(
+                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
+
+    # Checking bvals, bvecs values and loading gtab
+    if not is_normalized_bvecs(bvecs):
+        logging.warning('Your b-vectors do not seem normalized...')
+        bvecs = normalize_bvecs(bvecs)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+
+    # Checking full_frf and separating it
+    if not full_frf.shape[0] == 4:
+        raise ValueError('FRF file did not contain 4 elements. '
+                         'Invalid or deprecated FRF format')
+    frf = full_frf[0:3]
+    mean_b0_val = full_frf[3]
+
+    # Loading the spheres
+    reg_sphere = get_sphere('symmetric362')
+    peaks_sphere = get_sphere('symmetric724')
+
+    # Computing CSD
+    csd_model = ConstrainedSphericalDeconvModel(
+        gtab, (frf, mean_b0_val),
+        reg_sphere=reg_sphere,
+        sh_order=args.sh_order)
+
+    # Computing CSD fit
+    csd_fit = fit_from_model(csd_model, data, nbr_processes=nbr_processes)
+
+    if args.peaks or args.peak_values or args.peak_indices:
+        # Computing peaks
+        peak_dirs, peak_values, peak_indices = peaks_from_sh(csd_fit.shm_coeff,
+                                                            peaks_sphere,
+                                                            mask=mask,
+                                                            relative_peak_threshold=.5,
+                                                            min_separation_angle=25,
+                                                            normalize_peaks=True,
+                                                            sh_basis_type=args.sh_basis,
+                                                            nbr_processes=args.nbr_processes)
 
     # Saving results
     if args.fodf:
-        nib.save(nib.Nifti1Image(peaks_csd.shm_coeff.astype(np.float32),
+        nib.save(nib.Nifti1Image(csd_fit.shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
 
     if args.peaks:
-        nib.save(nib.Nifti1Image(
-            reshape_peaks_for_visualization(peaks_csd), vol.affine),
-            args.peaks)
+        nib.save(nib.Nifti1Image(peak_dirs, vol.affine), args.peaks)
+
+    if args.peak_values:
+        nib.save(nib.Nifti1Image(peak_values, vol.affine), args.peak_values)
 
     if args.peak_indices:
-        nib.save(nib.Nifti1Image(peaks_csd.peak_indices, vol.affine),
-                 args.peak_indices)
+        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
 
 
 if __name__ == "__main__":
