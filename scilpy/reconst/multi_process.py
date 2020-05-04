@@ -79,10 +79,11 @@ def peaks_from_sh_parallel(args):
     B = args[1]
     sphere = args[2]
     relative_peak_threshold = args[3]
-    min_separation_angle = args[4]
-    npeaks = args[5]
-    normalize_peaks = args[6]
-    chunk_id = args[7]
+    absolute_threshold = args[4]
+    min_separation_angle = args[5]
+    npeaks = args[6]
+    normalize_peaks = args[7]
+    chunk_id = args[8]
 
     data_shape = shm_coeff.shape[0]
     peak_dirs = np.zeros((data_shape, npeaks, 3))
@@ -92,6 +93,7 @@ def peaks_from_sh_parallel(args):
 
     for idx in range(len(shm_coeff)):
         odf = np.dot(shm_coeff[idx], B)
+        odf[np.nonzero(odf < absolute_threshold)] = 0.
         dirs, peaks, ind = peak_directions(odf, sphere,
                                              relative_peak_threshold,
                                              min_separation_angle)
@@ -111,9 +113,9 @@ def peaks_from_sh_parallel(args):
 
 
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
-                   min_separation_angle=25, normalize_peaks=False,
-                   npeaks=5, sh_basis_type='descoteaux07',
-                   nbr_processes=None):
+                   absolute_threshold=0, min_separation_angle=25,
+                   normalize_peaks=False, npeaks=5,
+                   sh_basis_type='descoteaux07', nbr_processes=None):
     """Fit the model to data and computes peaks and metrics
 
     Parameters
@@ -128,6 +130,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     relative_peak_threshold : float, optional
         Only return peaks greater than ``relative_peak_threshold * m`` where m
         is the largest peak.
+    Add absolute_threshold!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     min_separation_angle : float in [0, 90], optional
         The minimum distance between
         directions. If two peaks are too close only the larger of the two is
@@ -170,6 +173,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                            itertools.repeat(B),
                            itertools.repeat(sphere),
                            itertools.repeat(relative_peak_threshold),
+                           itertools.repeat(absolute_threshold),
                            itertools.repeat(min_separation_angle),
                            itertools.repeat(npeaks),
                            itertools.repeat(normalize_peaks),
