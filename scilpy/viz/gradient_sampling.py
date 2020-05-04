@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import numpy as np
 from tempfile import mkstemp
 
@@ -19,7 +20,7 @@ vtkcolors = [window.colors.blue,
              window.colors.grey]
 
 
-def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
+def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_color=False,
                     rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
     """
     Plot each shell
@@ -46,7 +47,7 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
     Return
     ------
     """
-
+    global vtkcolors
     if len(ms) > 10:
         vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
 
@@ -60,6 +61,7 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
         affine = np.eye(4)
 
     for i, shell in enumerate(ms):
+        logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
         ren = window.Renderer()
@@ -77,7 +79,8 @@ def plot_each_shell(ms, plot_sym_vecs=True, use_sphere=True, same_color=False,
         window.show(ren)
 
         if ofile:
-            window.snapshot(ren, fname=ofile + '_shell_' + str(i) + '.png',
+            window.snapshot(ren, fname=ofile + '_shell_' +
+                            str(int(centroids[i])) + '.png',
                             size=ores)
 
 
@@ -108,7 +111,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     Return
     ------
     """
-
+    global vtkcolors
     if len(ms) > 10:
         vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
 
@@ -141,33 +144,6 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         window.snapshot(ren, fname=ofile + '.png', size=ores)
 
 
-def build_shell_idx_from_bval(bvals, shell_th=50):
-    """
-    Get index of each bvals
-
-    Parameters
-    ----------
-    bvals: numpy.ndarray
-        array of bvalues
-    shell_th: int
-        shells threshold
-
-    Return
-    ------
-    shell_idx: numpy.ndarray
-        index for each bval
-    """
-    target_bvals = _find_target_bvals(bvals, shell_th=shell_th)
-
-    # Pop b0
-    if target_bvals[0] < shell_th:
-        target_bvals.pop(0)
-
-    shell_idx = _find_shells(bvals, target_bvals, shell_th=shell_th)
-
-    return shell_idx
-
-
 def build_ms_from_shell_idx(bvecs, shell_idx):
     """
     Get bvecs from indexes
@@ -194,71 +170,3 @@ def build_ms_from_shell_idx(bvecs, shell_idx):
         ms.append(bvecs[shell_idx == i_ms])
 
     return ms
-
-
-def _find_target_bvals(bvals, shell_th=50):
-    """
-    Find bvals
-
-    Parameters
-    ----------
-    bvals: numpy.ndarray
-        array of bvals
-    shell_th: int
-        threshold used to find bvals
-
-    Return
-    ------
-    target_bvals: list
-        unique bvals
-    """
-
-    target_bvals = []
-    tmp_targets = []
-    bvalues = np.unique(bvals)
-    distances = np.ediff1d(bvalues) <= shell_th
-    wasClose = False
-
-    for idx, distance in enumerate(distances):
-        if distance:
-            if wasClose:
-                tmp_targets[-1].append(bvalues[idx+1])
-            else:
-                tmp_targets.append([bvalues[idx], bvalues[idx+1]])
-            wasClose = True
-        else:
-            if not(wasClose):
-                target_bvals.append(bvalues[idx])
-            wasClose = False
-
-    return target_bvals
-
-
-def _find_shells(bvals, target_bvals, shell_th=50):
-    """
-    Assign bvecs to a target shell
-
-    Parameters
-    ----------
-    bvals: numpy.ndarray
-        bvals
-    target_bvals: list
-        list of targeted bvals
-    shell_th: int
-        Threshold used to select bvals
-
-    Return
-    ------
-    shells: numpy.ndarray
-        Selected shells
-    """
-
-    # Not robust
-    # shell -1 means nbvecs not part of target_bvals
-    shells = -1 * np.ones_like(bvals)
-
-    for shell_id, bval in enumerate(target_bvals):
-        shells[(bvals <= bval + shell_th) &
-               (bvals >= bval - shell_th)] = shell_id
-
-    return shells

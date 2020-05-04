@@ -3,8 +3,8 @@
 ################################################
 # Author: Emmanuel Caruyer <caruyer@gmail.com> #
 #                                              #
-# Code to generate multiple-shell sampling     #
-# schemes, with optimal angular coverage. This #
+# Code to generate multiple-shell gradient     #
+# sampling, with optimal angular coverage. This #
 # implements the method described in Caruyer   #
 # et al., MRM 69(6), pp. 1534-1540, 2013.      #
 # This software comes with no warranty, etc.   #
