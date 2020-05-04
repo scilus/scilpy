@@ -124,7 +124,7 @@ class RecobundlesX(object):
         self.model_centroids = model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logging.warning('Model {0} simplified at threshod '
+            logging.warning('Model {0} simplified at threshold '
                             '{1}mm with {2} centroids'.format(identifier,
                                                               str(model_clust_thr),
                                                               str(len_centroids)))

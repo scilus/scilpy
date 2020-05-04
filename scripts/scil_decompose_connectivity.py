@@ -141,11 +141,11 @@ def build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
-    p.add_argument('labels',
-                   help='Labels file name (nifti).\n'
-                        'This generates a NxN connectivity matrix.')
+    p.add_argument('in_labels',
+                   help='Labels file name (nifti). Labels must have 0 as '
+                        'background.')
     p.add_argument('out_hdf5',
-                   help='Output filename for the hdf5 container (.h5).')
+                   help='Output directory path.')
 
     post_proc = p.add_argument_group('Post-processing options')
     post_proc.add_argument('--no_pruning', action='store_true',
@@ -171,7 +171,7 @@ def build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.6,
+    og.add_argument('--outlier_threshold', type=float, default=0.5,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
     og.add_argument('--loop_max_angle', type=float, default=330.,
@@ -210,7 +210,7 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
     assert_outputs_exist(parser, args, args.out_hdf5)
 
     # HDF5 will not overwrite the file
@@ -235,7 +235,7 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
-    img_labels = nib.load(args.labels)
+    img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
@@ -254,9 +254,6 @@ def main():
         len(sft), round(time2 - time1, 2)))
 
     logging.info('*** Filtering streamlines ***')
-    data_mask = np.zeros(data_labels.shape)
-    data_mask[data_labels > 0] = 1
-
     original_len = len(sft)
     time1 = time.time()
 
