@@ -21,33 +21,31 @@ This script can divide the input tractogram in two using a threshold to apply
 on the streamlines' weight.
 """
 
-
-from scilpy.utils.bvec_bval_tools import identify_shells
-import sys
-import io
-from contextlib import redirect_stdout
-import tempfile
-import shutil
-from commit import trk2dictionary
-import commit
 import argparse
-import os
+from contextlib import redirect_stdout
+import io
 import logging
+import os
 import pickle
+import shutil
+import sys
+import tempfile
 
+import commit
+from commit import trk2dictionary
 import numpy as np
 import nibabel as nib
 from nibabel.streamlines import Tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.gradients import read_bvals_bvecs
 
+from scilpy.io.streamlines import lazy_streamlines_count
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.utils.bvec_bval_tools import fsl2mrtrix
-from scilpy.io.streamlines import lazy_streamlines_count
+from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 
 def _build_arg_parser():
@@ -107,9 +105,12 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
-    is_header_compatible(args.in_tractogram, args.in_dwi)
-    if args.tracking_mask:
-        is_header_compatible(args.in_tractogram, args.tracking_mask)
+    # If it is a trk, check compatibility of header since COMMIT does not do it
+    _, ext = os.path.splitext(args.in_tractogram)
+    if ext == '.trk' and not is_header_compatible(args.in_tractogram,
+                                                  args.in_dwi):
+        parser.error('{} does not have a compatible header with {}'.format(
+            args.in_tractogram, args.args.in_dwi))
 
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
