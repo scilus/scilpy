@@ -43,7 +43,7 @@ def _build_arg_parser():
                         'matrices.')
     p.add_argument('inputs', nargs='+',
                    help='The list of matrices files or parameters.')
-    p.add_argument('output',
+    p.add_argument('out_matrix',
                    help='Output matrix path.')
 
     p.add_argument('--data_type',
@@ -84,7 +84,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_outputs_exist(parser, args, args.output)
+    assert_outputs_exist(parser, args, args.out_matrix)
 
     # Binary operations require specific verifications
     binary_op = ['union', 'intersection', 'difference', 'invert']
@@ -131,7 +131,7 @@ def main():
         output_data = output_data.astype(np.float64)
 
     # Saving in the right format
-    save_matrix_in_any_format(args.output, output_data)
+    save_matrix_in_any_format(args.out_matrix, output_data)
 
 
 if __name__ == "__main__":
