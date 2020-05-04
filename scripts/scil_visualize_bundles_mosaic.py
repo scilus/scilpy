@@ -13,6 +13,7 @@ import os
 import random
 import shutil
 
+from dipy.io.utils import is_header_compatible
 from fury import actor, window
 import nibabel as nib
 import numpy as np
@@ -24,7 +25,8 @@ from PIL import ImageDraw
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -53,8 +55,8 @@ def _build_arg_parser():
     p.add_argument('--ttf', default=None,
                    help='Path of the true type font to use for legends.')
     p.add_argument('--ttf_size', type=int, default=35,
-                   help='Font size (int) to use for the legends. '
-                        '[%(default)s]')
+                   help='Font size (int) to use for the legends '
+                        '[%(default)s].')
     p.add_argument('--opacity_background', type=float, default=0.4,
                    help='Opacity of background image, between 0 and 1.0 '
                         '[%(default)s].')
@@ -157,9 +159,14 @@ def main():
                     'coronal_posterior', 'coronal_anterior',
                     'sagittal_left', 'sagittal_right']
 
-    list_of_bundles = [f for f in args.in_bundles]
-    # output_dir: where temporary files will be created
+    for filename in args.in_bundles:
+        if not is_header_compatible(args.in_volume, filename):
+            parser.error('{} does not have a compatible header with {}'.format(
+                filename, args.in_volume))
+
     output_dir = os.path.dirname(args.out_image)
+    assert_output_dirs_exist_and_empty(parser, args, output_dir,
+                                       create_dir=True)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
@@ -167,7 +174,7 @@ def main():
     width = args.resolution_of_thumbnails
     height = args.resolution_of_thumbnails
     rows = 6
-    cols = len(list_of_bundles)
+    cols = len(args.in_bundles)
     text_pos_x = 50
     text_pos_y = 50
 
@@ -193,7 +200,7 @@ def main():
     # Columns with bundles
     # ----------------------------------------------------------------------- #
     random.seed(args.random_coloring)
-    for idx_bundle, bundle_file in enumerate(list_of_bundles):
+    for idx_bundle, bundle_file in enumerate(args.in_bundles):
 
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, bundle_ext = split_name_with_nii(bundle_file_name)
