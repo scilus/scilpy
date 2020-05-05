@@ -108,6 +108,11 @@ def main():
     rev_b0_img = nib.load(args.reverse_b0)
     rev_b0 = rev_b0_img.get_data()
 
+    if len(rev_b0.shape) == 4:
+        logging.warning("Reverse B0 is 4D. To speed up Topup, the mean of all "
+                        "reverse B0 will be taken.")
+        rev_b0 = np.mean(rev_b0, axis=3, dtype=rev_b0.dtype)
+
     dwi_image = nib.load(args.input_dwi)
     dwi = dwi_image.get_data()
     b0s = dwi[..., gtab.b0s_mask]
