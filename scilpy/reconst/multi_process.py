@@ -49,7 +49,7 @@ def fit_from_model(model, data, mask=None,
         data[mask == 0] = 0
     else:
         # Check shape before in main()
-        data[mask == 0, :] = 0
+        data[mask == 0] = 0
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes
@@ -158,7 +158,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         shm_coeff[mask == 0] = 0
     else:
         # Check shape before in main()
-        shm_coeff[mask == 0, :] = 0
+        shm_coeff[mask == 0] = 0
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
