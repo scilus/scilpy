@@ -40,7 +40,8 @@ import coloredlogs
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             load_matrix_in_any_format)
 from scilpy.segment.voting_scheme import VotingScheme
 
 
@@ -54,13 +55,14 @@ def _build_arg_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
+                   help='Input tractogram filename (.trk or .tck).')
     p.add_argument('config_file',
-                   help='Path of the config file (json)')
+                   help='Path of the config file (.json)')
     p.add_argument('models_directories', nargs='+',
                    help='Path for the directories containing model.')
     p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
 
     p.add_argument('--output', default='voting_results/',
                    help='Path for the output directory [%(default)s].')
@@ -114,7 +116,7 @@ def main():
 
     coloredlogs.install(level=args.log_level)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.transformation)
     if args.inverse:
         transfo = np.linalg.inv(np.loadtxt(args.transformation))
 

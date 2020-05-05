@@ -24,7 +24,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -37,11 +38,12 @@ def _build_arg_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
+                   help='Input tractogram filename.')
     p.add_argument('in_model',
-                   help='Model to use for recognition (trk or tck).')
+                   help='Model to use for recognition.')
     p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
     p.add_argument('output_name',
                    help='Output tractogram filename.')
 
@@ -90,7 +92,7 @@ def main():
     model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
     # Default transformation source is expected to be ANTs
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.transformation)
     if args.inverse:
         transfo = np.linalg.inv(np.loadtxt(args.transformation))
 

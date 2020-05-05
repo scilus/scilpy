@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import transform_anatomy
 
@@ -26,11 +26,11 @@ def _build_arg_parser():
 
     p.add_argument('ref_file',
                    help='Path of the reference file (the static \n'
-                   'file from registration), must be in the Nifti format.')
+                        'file from registration), must be in the Nifti format.')
 
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
-                   'transformation, matrix (*.npy).')
+                        'transformation, matrix (.txt, .npy or .mat).')
 
     p.add_argument('out_name',
                    help='Output filename of the transformed data.')
@@ -51,7 +51,7 @@ def main():
                                  args.transformation])
     assert_outputs_exist(parser, args, args.out_name)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.transformation)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 

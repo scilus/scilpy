@@ -7,8 +7,8 @@ Warp tractogram using a non linear deformation from an ANTs deformation field.
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
-Applying transformation to tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
+Applying deformation field to tractogram can lead to invalid streamlines (out
+of the bounding box), three strategies are available:
 1) default, crash at saving if invalid streamlines are present
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_remove_invalid_streamlines.py if needed.

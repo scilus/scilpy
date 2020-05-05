@@ -26,7 +26,8 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -39,7 +40,7 @@ def _build_arg_parser():
                    help='Path of the reference target file (trk or nii).')
     p.add_argument('transformation',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (*.txt).\n'
+                        'transformation, matrix (.txt, .npy or .mat).\n'
                         'See the script description for more information.')
     p.add_argument('out_tractogram',
                    help='Output tractogram filename (transformed data).')
@@ -73,7 +74,7 @@ def main():
                                                 args.moving_tractogram,
                                                 bbox_check=False)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.transformation)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
