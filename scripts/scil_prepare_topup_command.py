@@ -23,16 +23,16 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input_dwi',
+    p.add_argument('in_dwi',
                    help='input DWI Nifti image')
 
-    p.add_argument('bvals',
+    p.add_argument('in_bvals',
                    help='b-values file in FSL format')
 
-    p.add_argument('bvecs',
+    p.add_argument('in_bvecs',
                    help='b-vectors file in FSL format')
 
-    p.add_argument('reverse_b0',
+    p.add_argument('in_reverse_b0',
                    help='b0 image with reversed phase encoding.')
 
     p.add_argument('--config', default='b02b0.cnf',
@@ -49,16 +49,16 @@ def _build_arg_parser():
     p.add_argument('--readout', type=float, default=0.062,
                    help='total readout time from the DICOM metadata [%(default)s].')
 
-    p.add_argument('--output_b0s', default='fused_b0s.nii.gz',
+    p.add_argument('--out_b0s', default='fused_b0s.nii.gz',
                    help='output fused b0 file [%(default)s].')
 
-    p.add_argument('--output_directory', default='.',
+    p.add_argument('--out_directory', default='.',
                    help='output directory for topup files [%(default)s].')
 
-    p.add_argument('--output_prefix', default='topup_results',
+    p.add_argument('--out_prefix', default='topup_results',
                    help='prefix of the topup results [%(default)s].')
 
-    p.add_argument('--output_script', action='store_true',
+    p.add_argument('--out_script', action='store_true',
                    help='if set, will output a .sh script (topup.sh).\n' +
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
@@ -76,15 +76,15 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    required_args = [args.input_dwi, args.bvals, args.bvecs, args.reverse_b0]
+    required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_reverse_b0]
 
     assert_inputs_exist(parser, required_args)
-    assert_outputs_exist(parser, args, [], args.output_b0s)
+    assert_outputs_exist(parser, args, [], args.out_b0s)
 
-    if os.path.splitext(args.output_prefix)[1] != '':
+    if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
 
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
     bvals_min = bvals.min()
 
     # TODO refactor this
@@ -99,13 +99,13 @@ def main():
 
     acqparams = create_acqparams(gtab, args.readout, args.encoding_direction)
 
-    if not os.path.exists(args.output_directory):
-        os.makedirs(args.output_directory)
+    if not os.path.exists(args.out_directory):
+        os.makedirs(args.out_directory)
 
-    acqparams_path = os.path.join(args.output_directory, 'acqparams.txt')
+    acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
     np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
 
-    rev_b0_img = nib.load(args.reverse_b0)
+    rev_b0_img = nib.load(args.in_reverse_b0)
     rev_b0 = rev_b0_img.get_data()
 
     if len(rev_b0.shape) == 4:
@@ -113,7 +113,7 @@ def main():
                         "reverse B0 will be taken.")
         rev_b0 = np.mean(rev_b0, axis=3, dtype=rev_b0.dtype)
 
-    dwi_image = nib.load(args.input_dwi)
+    dwi_image = nib.load(args.in_dwi)
     dwi = dwi_image.get_data()
     b0s = dwi[..., gtab.b0s_mask]
 
@@ -121,21 +121,21 @@ def main():
     fused_b0s = np.zeros(b0s.shape[:-1]+(len(b0_idx)+1,))
     fused_b0s[..., 0:-1] = b0s
     fused_b0s[..., -1] = rev_b0
-    fused_b0s_path = os.path.join(args.output_directory, args.output_b0s)
+    fused_b0s_path = os.path.join(args.out_directory, args.out_b0s)
     nib.save(nib.Nifti1Image(fused_b0s,
                              rev_b0_img.affine),
              fused_b0s_path)
 
-    output_path = os.path.join(args.output_directory, args.output_prefix)
-    fout_path = os.path.join(args.output_directory, "correction_field")
-    iout_path = os.path.join(args.output_directory, "corrected_b0s")
+    output_path = os.path.join(args.out_directory, args.out_prefix)
+    fout_path = os.path.join(args.out_directory, "correction_field")
+    iout_path = os.path.join(args.out_directory, "corrected_b0s")
     topup = 'topup --imain={0} --datain={1}'\
             ' --config={2} --verbose --out={3}'\
             ' --fout={4} --iout={5} --subsamp=1 \n'\
         .format(fused_b0s_path, acqparams_path, args.config, output_path,
                 fout_path, iout_path)
 
-    if args.output_script:
+    if args.out_script:
         with open("topup.sh", 'w') as f:
             f.write(topup)
     else:
