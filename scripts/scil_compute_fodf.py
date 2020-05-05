@@ -17,8 +17,11 @@ for quantitative comparisons with Sharpening Deconvolution Transform (SDT)
 import argparse
 import logging
 
+from dipy.core.gradients import gradient_table
+from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.direction.peaks import reshape_peaks_for_visualization
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
 
