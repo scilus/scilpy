@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute tract profiles and their statistics along streamlines.
+Compute bundle profiles and their statistics along streamlines.
 """
 
 
@@ -38,15 +38,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
     p.add_argument('in_bundle',
-                   help='Fiber bundle file to compute the tract profiles on.')
+                   help='Fiber bundle file to compute the bundle profiles on.')
     p.add_argument('in_metrics', nargs='+',
                    help='Nifti metric(s) on which to compute '
-                        'the tract profiles.')
-    p.add_argument('--in_centroid',
+                        'the bundle profiles.')
+
+    g = p.add_mutually_exclusive_group()
+    g.add_argument('--in_centroid',
                    help='If provided it will be used to make sure all '
                         'streamlines go in the same direction. Otherwise, a '
                         'centroid will be automatically computed.')
-    p.add_argument('--nb_pts_per_streamline',
+    g.add_argument('--nb_pts_per_streamline',
                    type=int, default=20,
                    help='Subsample each streamline to this number of points.')
 
@@ -79,17 +81,18 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    resampled_sft = resample_streamlines_num_points(sft,
-                                                    args.nb_pts_per_streamline)
-
     # Centroid - will be use as reference to reorient each streamline
     if args.in_centroid:
         sft_centroid = load_tractogram_with_reference(parser, args,
                                                       args.in_centroid)
         centroid_streamlines = sft_centroid.streamlines
+        nb_pts_per_streamline = sft.streamlines.total_nb_rows
     else:
-        centroid_streamlines = get_streamlines_centroid(resampled_sft.streamlines,
+        centroid_streamlines = get_streamlines_centroid(sft.streamlines,
                                                         args.nb_pts_per_streamline)
+        nb_pts_per_streamline = args.nb_pts_per_streamline
+
+    resampled_sft = resample_streamlines_num_points(sft, nb_pts_per_streamline)
 
     # Make sure all streamlines go in the same direction. We want to make
     # sure point #1 / args.nb_pts_per_streamline of streamline A is matched
@@ -115,7 +118,7 @@ def main():
         stats[bundle_name][metric_name] = {
             'mean': np.mean(profile, axis=0).tolist(),
             'std': np.std(profile, axis=0).tolist(),
-            'tractprofile': t_profile.tolist()
+            'bundleprofile': t_profile.tolist()
         }
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
