@@ -4,6 +4,7 @@
 """
 Estimate the fit between a provided tractogram and DWI. Assign a weight to each
 streamline that represent how well they explain the signal.
+Default is stick-zeppelin-ball for multi-shells data.
 
 The real output from COMMIT is:
 - fit_NRMSE.nii.gz
@@ -69,16 +70,40 @@ def _build_arg_parser():
                    help='Binary mask were tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
-    p.add_argument('--disable_zeppelin', action='store_true',
-                   help='Disable the zeppelin compartment for single-shell.')
 
-    p.add_argument('--assign_weights', action='store_true',
-                   help='Store the streamlines weights in the '
-                        'data_per_streamline.')
-    p.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
-                   help='Split the tractogram in two. Valid and invalid, '
-                        'based on the provided threshold.')
+    g1 = p.add_argument_group(title='Model options')
+    g1.add_argument('--ball_stick', action='store_true',
+                    help='Use the ball&Stick model.\n'
+                         'Disable the zeppelin compartment for single-shell.')
+    g1.add_argument('--parallel_diff', type=float,
+                    help='Parallel diffusivity in mm^2/s.\n'
+                    'Default for ball_stick: 1.7E-3\n'
+                    'Default for stick_zeppelin_ball: 1.7E-3')
+    g1.add_argument('--perpendicular_diff', nargs='+', type=float,
+                    help='Perpendicular diffusivity in mm^2/s.\n'
+                    'Default for ball_stick: None\n'
+                    'Default for stick_zeppelin_ball: '
+                    '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
+    g1.add_argument('--isotropic_diff', nargs='+', type=float,
+                    help='Istropic diffusivity in mm^2/s.\n'
+                    'Default for ball_stick: 2.0E-3\n'
+                    'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
 
+    g2 = p.add_argument_group(title='Tractogram options')
+    g2.add_argument('--assign_weights', action='store_true',
+                    help='Store the streamlines weights in the '
+                    'data_per_streamline.')
+    g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
+                    help='Split the tractogram in two. Valid and invalid, '
+                    'based on the provided threshold.')
+
+    g3 = p.add_argument_group(title='Kernels options')
+    kern = g3.add_mutually_exclusive_group()
+    kern.add_argument('--save_kernels', metavar='DIRECTORY',
+                      help='Output directory for the COMMIT kernels.')
+    kern.add_argument('--load_kernels', metavar='DIRECTORY',
+                      help='Input directory where the COMMIT kernels are '
+                           'located.')
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -103,7 +128,16 @@ def main():
                                  args.in_bvals, args.in_bvecs,
                                  args.in_peaks], args.tracking_mask)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
-                                       create_dir=True)
+                                       optional=args.save_kernels)
+    if args.load_kernels and not os.path.isdir(args.load_kernels):
+        parser.error('Kernels directory does not exist.')
+
+    if args.ball_stick and args.perpendicular_diff:
+        parser.error('Cannot use --perpendicular_diff with ball&stick.')
+
+    if args.ball_stick and args.isotropic_diff and len(args.isotropic_diff) > 1:
+        parser.error(
+            'Cannot use more than one --isotropic_diff with ball&stick.')
 
     # If it is a trk, check compatibility of header since COMMIT does not do it
     _, ext = os.path.splitext(args.in_tractogram)
@@ -150,19 +184,34 @@ def main():
         mit = commit.Evaluation('.', '.')
         mit.load_data(args.in_dwi, tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
-        if args.disable_zeppelin:
-            logging.debug('Disabled zeppelin, using the Ball & Sticks model.')
-            zeppelin_priors = []
+
+        if args.ball_stick:
+            logging.debug('Disabled zeppelin, using the Ball & Stick model.')
+            parallel_diff = args.parallel_diff or 1.7E-3
+            perpendicular_diff = []
+            isotropc_diff = args.isotropic_diff or [2.0E-3]
+            mit.model.set(parallel_diff, perpendicular_diff, isotropc_diff)
         else:
             logging.debug('Using the Stick Zeppelin Ball model.')
-            zeppelin_priors = [0.7]
-        mit.model.set(1.7E-3, zeppelin_priors, [2.0E-3])
+            parallel_diff = args.parallel_diff or 1.7E-3
+            perpendicular_diff = args.perpendicular_diff or \
+                [1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]
+            isotropc_diff = args.isotropic_diff or [1.7E-3, 3.0E-3]
+            mit.model.set(parallel_diff, perpendicular_diff, isotropc_diff)
 
         # The kernels are, by default, set to be in the current directory
-        mit.set_config('ATOMS_path', os.path.join(tmp_dir.name,
-                                                  'kernels',
-                                                  mit.model.id))
-        mit.generate_kernels(ndirs=500, regenerate=True)
+        if args.save_kernels:
+            kernels_dir = os.path.join(args.save_kernels)
+            regenerate_kernels = True
+        elif args.load_kernels:
+            kernels_dir = os.path.join(args.load_kernels)
+            regenerate_kernels = False
+        else:
+            kernels_dir = os.path.join(tmp_dir.name, 'kernels', mit.model.id)
+            regenerate_kernels = True
+
+        mit.set_config('ATOMS_path', kernels_dir)
+        mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
         mit.load_kernels()
         mit.load_dictionary(tmp_dir.name)
         mit.set_threads(args.nbr_processes)
