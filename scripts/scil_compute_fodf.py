@@ -28,6 +28,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args)
+from scilpy.reconst.multi_process import fit_from_model, peaks_from_sh
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
 
