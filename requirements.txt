@@ -25,4 +25,8 @@ coloredlogs==10.0
 nilearn==0.6.1
 pytest==5.3.5
 pytest_console_scripts==0.2.0
+<<<<<<< HEAD
 statsmodels==0.11.1
+=======
+-e git://github.com/aestrivex/bctpy.git@1973df9#egg=bctpy
+>>>>>>> 43f516cf60e4beab7a9120d3cd2ae02012a13e64

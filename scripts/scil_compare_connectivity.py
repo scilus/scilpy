@@ -157,7 +157,7 @@ def main():
     sum_both_groups = np.sum(matrices_g1, axis=2) + np.sum(matrices_g2, axis=2)
     nbr_non_zeros = np.count_nonzero(np.triu(sum_both_groups))
 
-    logging.debug('The provided matrices contain {} non zeros elements'.format(
+    logging.debug('The provided matrices contain {} non zeros elements.'.format(
         nbr_non_zeros))
 
     matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
@@ -166,8 +166,8 @@ def main():
     matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
 
     text = ' paired' if args.paired else ''
-    logging.debug('Performing{} t-test with "{}" hypothesis'.format(text,
-                                                                    args.tail))
+    logging.debug('Performing{} t-test with "{}" hypothesis.'.format(text,
+                                                                     args.tail))
     logging.debug('Data has dimensions {}x{} with {} and {} observations.'.format(
         matrix_shape[0], matrix_shape[1],
         nb_group_g1, nb_group_g2))
