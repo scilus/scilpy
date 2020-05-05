@@ -150,7 +150,7 @@ def main():
         sh_order=sh_order)
 
     # Computing CSD fit
-    csd_fit = fit_from_model(csd_model, data, nbr_processes=nbr_processes)
+    csd_fit = fit_from_model(csd_model, data, nbr_processes=args.nbr_processes)
 
     if args.peaks or args.peak_values or args.peak_indices:
         # Computing peaks
