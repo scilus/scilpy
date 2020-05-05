@@ -157,7 +157,7 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,)
     p.add_argument('in_hdf5',
                    help='Input filename for the hdf5 container (.h5).')
-    p.add_argument('labels',
+    p.add_argument('in_labels',
                    help='Labels file name (nifti).\n'
                         'This generates a NxN connectivity matrix.')
     p.add_argument('--volume', metavar='OUT_FILE',
@@ -197,7 +197,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.labels)
+    assert_inputs_exist(parser, args.in_labels)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -247,7 +247,7 @@ def main():
     logging.info('The following measures will be computed and save: {}'.format(
         measures_to_compute))
 
-    img_labels = nib.load(args.labels)
+    img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
     labels_list = np.unique(data_labels)[1:].tolist()
 
@@ -278,7 +278,7 @@ def main():
         total_elem = len(labels_list)**2
         results_elem = len(measures_dict.keys())*2
 
-    logging.info('Out of {} possible nodes, {} contain values'.format(
+    logging.info('Out of {} possible nodes, {} contain value'.format(
         total_elem, results_elem))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
