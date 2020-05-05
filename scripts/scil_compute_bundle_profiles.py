@@ -46,8 +46,10 @@ def _build_arg_parser():
     g = p.add_mutually_exclusive_group()
     g.add_argument('--in_centroid',
                    help='If provided it will be used to make sure all '
-                        'streamlines go in the same direction. Otherwise, a '
-                        'centroid will be automatically computed.')
+                        'streamlines go in the same direction. \nOtherwise, a '
+                        'centroid will be automatically computed.\n'
+                        'Number of point per streamline will be set according'
+                        ' to centroid.')
     g.add_argument('--nb_pts_per_streamline',
                    type=int, default=20,
                    help='Subsample each streamline to this number of points.')
