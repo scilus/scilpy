@@ -63,7 +63,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     return converted
 
 
-def weighted_mean_stddev(weights, data):
+def weighted_mean_std(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.
 
@@ -71,7 +71,6 @@ def weighted_mean_stddev(weights, data):
     ------------
     weights : ndarray
         a ndarray containing the weighting factor
-
     data : ndarray
         the ndarray containing the data for which the stats are desired
 
@@ -120,9 +119,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
         weights = weights > 0
 
     return map(lambda metric_file:
-               weighted_mean_stddev(
-                    weights,
-                    metric_file.get_data().astype(np.float64)),
+               weighted_mean_std(weights,
+                                 metric_file.get_fdata()),
                metrics_files)
 
 
@@ -265,3 +263,30 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     plt.close(fig)
     return fig
+
+
+def get_roi_metrics_mean_std(density_map, metrics_files):
+    """
+    Returns the mean and standard deviation of each metric, using the
+    provided density map. This can be a binary mask,
+    or contain weighted values between 0 and 1.
+
+    Parameters
+    ------------
+    density_map : ndarray
+        3D numpy array containing a density map.
+    metrics_files : sequence
+        list of nibabel objects representing the metrics files.
+
+    Returns
+    ---------
+    stats : list
+        list of tuples where the first element of the tuple is the mean
+        of a metric, and the second element is the standard deviation.
+
+    """
+
+    return map(lambda metric_file:
+               weighted_mean_std(density_map,
+                                 metric_file.get_fdata()),
+               metrics_files)

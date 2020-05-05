@@ -66,7 +66,7 @@ def load_node_nifti(directory, in_label, out_label, ref_filename):
             logging.error('{} and {} do not have a compatible header'.format(
                 in_filename, ref_filename))
             raise IOError
-        return nib.load(in_filename).get_fdata()
+        return nib.load(in_filename).get_fdata(dtype=np.float64)
 
     _, dims, _, _ = get_reference_info(ref_filename)
     return np.zeros(dims)
@@ -143,11 +143,10 @@ def _processing_wrapper(args):
         elif os.path.isfile(measure):
             metric_filename = measure
             if not is_header_compatible(metric_filename, sft):
-                logging.error('{} and {} do not have a compatible header'.format(
+                raise IOError('{} and {} do not have a compatible header'.format(
                     in_filename, metric_filename))
-                raise IOError
 
-            metric_data = nib.load(metric_filename).get_data()
+            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float64)
             if weighted:
                 density = density / np.max(density)
                 voxels_value = metric_data * density
@@ -245,9 +244,11 @@ def main():
         for in_name, out_name in args.metrics:
             # Verify that all metrics are compatible with each other
             if not is_header_compatible(args.metrics[0][0], in_name):
-                continue
+                raise IOError('Metrics {} and  {} do not share a compatible '
+                              'header'.format(args.metrics[0][0], in_name))
 
             # This is necessary to support more than one map for weighting
+            measures_to_compute.append(in_name)
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
