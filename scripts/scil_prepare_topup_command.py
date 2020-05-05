@@ -106,7 +106,7 @@ def main():
     np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
 
     rev_b0_img = nib.load(args.in_reverse_b0)
-    rev_b0 = rev_b0_img.get_data()
+    rev_b0 = rev_b0_img.get_fdata(dtype=np.float32)
 
     if len(rev_b0.shape) == 4:
         logging.warning("Reverse B0 is 4D. To speed up Topup, the mean of all "
@@ -114,7 +114,7 @@ def main():
         rev_b0 = np.mean(rev_b0, axis=3, dtype=rev_b0.dtype)
 
     dwi_image = nib.load(args.in_dwi)
-    dwi = dwi_image.get_data()
+    dwi = dwi_image.get_fdata(dtype=np.float32)
     b0s = dwi[..., gtab.b0s_mask]
 
     b0_idx = np.where(gtab.b0s_mask)[0]
