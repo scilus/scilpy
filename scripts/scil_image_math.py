@@ -41,9 +41,9 @@ def _build_arg_parser():
                    choices=OPERATIONS.keys(),
                    help='The type of operation to be performed on the '
                         'images.')
-    p.add_argument('inputs', nargs='+',
+    p.add_argument('in_images', nargs='+',
                    help='The list of image files or parameters.')
-    p.add_argument('output',
+    p.add_argument('out_image',
                    help='Output image path.')
 
     p.add_argument('--data_type',
@@ -85,7 +85,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_outputs_exist(parser, args, args.output)
+    assert_outputs_exist(parser, args, args.out_image)
 
     # Binary operations require specific verifications
     binary_op = ['union', 'intersection', 'difference', 'invert',
@@ -95,7 +95,7 @@ def main():
         parser.error('Operation {} not implement.'.format(args.operation))
 
     # Find at least one image for reference
-    for input_arg in args.inputs:
+    for input_arg in args.in_images:
         if not is_float(input_arg):
             ref_img = nib.load(input_arg)
             mask = np.zeros(ref_img.shape)
@@ -103,7 +103,7 @@ def main():
 
     # Load all input masks.
     input_data = []
-    for input_arg in args.inputs:
+    for input_arg in args.in_images:
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
@@ -152,7 +152,7 @@ def main():
 
     new_img = nib.Nifti1Image(output_data, ref_img.affine,
                               header=ref_img.header)
-    nib.save(new_img, args.output)
+    nib.save(new_img, args.out_image)
 
 
 if __name__ == "__main__":
