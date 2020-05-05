@@ -112,7 +112,7 @@ def main():
         mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
     # Checking data and sh_order
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    check_b0_threshold(args.force_b0_threshold, bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWI volumes, but you '
