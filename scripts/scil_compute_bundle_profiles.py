@@ -52,7 +52,8 @@ def _build_arg_parser():
                         ' to centroid.')
     g.add_argument('--nb_pts_per_streamline',
                    type=int, default=20,
-                   help='Subsample each streamline to this number of points.')
+                   help='Subsample each streamline to this number of points '
+                        '[%(default)s].')
 
     add_json_args(p)
     add_reference_arg(p)
@@ -87,8 +88,8 @@ def main():
     if args.in_centroid:
         sft_centroid = load_tractogram_with_reference(parser, args,
                                                       args.in_centroid)
-        centroid_streamlines = sft_centroid.streamlines
-        nb_pts_per_streamline = sft.streamlines.total_nb_rows
+        centroid_streamlines = sft_centroid.streamlines[0]
+        nb_pts_per_streamline = len(centroid_streamlines)
     else:
         centroid_streamlines = get_streamlines_centroid(sft.streamlines,
                                                         args.nb_pts_per_streamline)

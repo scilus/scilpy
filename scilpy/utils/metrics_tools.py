@@ -38,20 +38,20 @@ def get_bundle_metrics_profiles(sft, metrics_files):
         y_ind = np.floor(streamline[:, 1]).astype(np.int)
         z_ind = np.floor(streamline[:, 2]).astype(np.int)
 
-        return map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
-                   metrics_files)
+        return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
+                    metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = map(lambda metric_file: metric_file.get_fdata(),
-                       metrics_files)
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(),
+                        metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
     # of metrics. Each element from N is a list of the metric values
     # encountered along the current streamline.
     metrics_per_strl =\
-        map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
-            streamlines)
+        list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
+             streamlines))
 
     converted = []
     # Here, the zip gives us a list of N tuples, so one tuple for each metric.
