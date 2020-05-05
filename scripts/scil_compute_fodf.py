@@ -111,6 +111,8 @@ def main():
     else:
         mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
+    sh_order = args.sh_order
+
     # Checking data and sh_order
     check_b0_threshold(args.force_b0_threshold, bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
@@ -141,7 +143,7 @@ def main():
     csd_model = ConstrainedSphericalDeconvModel(
         gtab, (frf, mean_b0_val),
         reg_sphere=reg_sphere,
-        sh_order=args.sh_order)
+        sh_order=sh_order)
 
     # Computing CSD fit
     csd_fit = fit_from_model(csd_model, data, nbr_processes=nbr_processes)
