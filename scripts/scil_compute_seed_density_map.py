@@ -55,7 +55,9 @@ def main():
                      .format(args.binary, max_))
 
     # Load files and data. TRKs can have 'same' as reference
-    tractogram = load_tractogram(args.tractogram_filename, 'same')
+    # Can handle streamlines outside of bbox
+    tractogram = load_tractogram(args.tractogram_filename, 'same',
+                                 bbox_valid_check=False)
     # Streamlines are saved in RASMM but seeds are saved in VOX
     # This might produce weird behavior with non-iso
     tractogram.to_vox()
