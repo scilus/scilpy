@@ -156,9 +156,11 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
+    sphere = get_sphere(sphere)
+
     # Computing peaks
     peak_dirs, peak_values, peak_indices = peaks_from_sh(data,
-                                                        args.sphere,
+                                                        sphere,
                                                         mask=mask,
                                                         relative_peak_threshold=.5,
                                                         absolute_threshold=args.at,
@@ -169,8 +171,8 @@ def main():
 
     # Computing maps
     nufo_map, afd_map, afd_sum \
-        rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs, peak_values,
-                                                args.sphere,
+        ,rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs, peak_values,
+                                                sphere,
                                                 nbr_processes=args.nbr_processes)
 
     # Save result
