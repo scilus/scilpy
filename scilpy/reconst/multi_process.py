@@ -45,11 +45,9 @@ def fit_from_model(model, data, mask=None,
     """
     data_shape = data.shape
     if mask is None:
-        mask = np.sum(data, axis=3).astype(np.int32)
-        data[mask == 0] = 0
+        mask = np.sum(data, axis=3).astype(bool)
     else:
-        # Check shape before in main()
-        data[mask == 0] = 0
+        data *= mask
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes
@@ -150,15 +148,11 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     """
     B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
 
-    # I hate doing that kind of testing in a core function, this should be handle by the lawer above it to 'clarify' the code
-    # !!!!!!!!! HUM à enlever???!!!!!!!!!!!!!!!
     data_shape = shm_coeff.shape
     if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(np.int32)
-        shm_coeff[mask == 0] = 0
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
     else:
-        # Check shape before in main()
-        shm_coeff[mask == 0] = 0
+        shm_coeff *= mask
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
@@ -249,15 +243,13 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
                  nbr_processes=None):
     B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
 
-    # I hate doing that kind of testing in a core function, this should be handle by the lawer above it to 'clarify' the code
-    # !!!!!!!!! HUM à enlever???!!!!!!!!!!!!!!!
     data_shape = shm_coeff.shape
     if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(np.int32)
-        shm_coeff[mask == 0] = 0
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
     else:
-        # Check shape before in main()
-        shm_coeff[mask == 0, :] = 0
+        shm_coeff *= mask
+        peaks_dirs *= mask
+        peaks_values *= mask
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes

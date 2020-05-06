@@ -153,6 +153,8 @@ def main():
         mask = np.ones(data.shape[:-1])
     else:
         mask, affine2 = load(args.mask)
+        if mask.shape != data.shape[:-1]:
+            raise ValueError("Mask is not the same shape as data.")
 
     # Computing peaks
     peak_dirs, peak_values, peak_indices = peaks_from_sh(data,

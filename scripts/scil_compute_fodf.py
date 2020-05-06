@@ -114,6 +114,8 @@ def main():
         mask = None
     else:
         mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
+        if mask.shape != data.shape[:-1]:
+            raise ValueError("Mask is not the same shape as data.")
 
     sh_order = args.sh_order
 
