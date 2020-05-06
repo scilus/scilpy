@@ -4,6 +4,7 @@ from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
+from dipy.segment.mask import applymask
 
 import numpy as np
 
@@ -47,7 +48,7 @@ def fit_from_model(model, data, mask=None,
     if mask is None:
         mask = np.sum(data, axis=3).astype(bool)
     else:
-        data *= mask
+        data = applymask(data, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes
@@ -152,7 +153,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
     else:
-        shm_coeff *= mask
+        shm_coeff = applymask(shm_coeff, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
@@ -247,9 +248,9 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
     else:
-        shm_coeff *= mask
-        peaks_dirs *= mask
-        peaks_values *= mask
+        shm_coeff = applymask(shm_coeff, mask)
+        peaks_dirs = applymask(peaks_dirs, mask)
+        peaks_values = applymask(peaks_values, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
