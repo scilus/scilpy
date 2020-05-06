@@ -107,7 +107,7 @@ def main():
 
     full_frf = np.loadtxt(args.frf_file)
     vol = nib.load(args.input)
-    data = vol.dataobj
+    data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if args.mask is None:
@@ -158,13 +158,13 @@ def main():
     if args.peaks or args.peak_values or args.peak_indices:
         # Computing peaks
         peak_dirs, peak_values, peak_indices = peaks_from_sh(csd_fit.shm_coeff,
-                                                            peaks_sphere,
-                                                            mask=mask,
-                                                            relative_peak_threshold=.5,
-                                                            min_separation_angle=25,
-                                                            normalize_peaks=True,
-                                                            sh_basis_type=args.sh_basis,
-                                                            nbr_processes=args.nbr_processes)
+                                                             peaks_sphere,
+                                                             mask=mask,
+                                                             relative_peak_threshold=.5,
+                                                             min_separation_angle=25,
+                                                             normalize_peaks=True,
+                                                             sh_basis_type=args.sh_basis,
+                                                             nbr_processes=args.nbr_processes)
 
     # Saving results
     if args.fodf:
