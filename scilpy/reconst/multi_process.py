@@ -36,7 +36,7 @@ def fit_from_model(model, data, mask=None,
         If `mask` is provided, voxels that are False in `mask` are skipped and
         no peaks are returned.
     nbr_processes: int
-        The number of subprocesses to use. 
+        The number of subprocesses to use.
         Default: cpu_count().
 
     Returns
