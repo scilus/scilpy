@@ -161,7 +161,7 @@ def main():
                                                         args.sphere,
                                                         mask=mask,
                                                         relative_peak_threshold=.5,
-                                                        absolute_threshold=args.at
+                                                        absolute_threshold=args.at,
                                                         min_separation_angle=25,
                                                         normalize_peaks=True,
                                                         sh_basis_type=args.sh_basis,
