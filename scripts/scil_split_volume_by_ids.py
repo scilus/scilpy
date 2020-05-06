@@ -77,12 +77,6 @@ def main():
     assert_inputs_exist(parser, required)
 
     label_img = nib.load(args.in_labels)
-
-    if not issubclass(label_img.get_data_dtype().type, np.integer):
-        parser.error('The label image does not contain integers. ' +
-                     'Will not process.\nConvert your image to integers ' +
-                     'before calling.')
-
     label_img_data = get_data_as_label(label_img)
 
     if args.range:
