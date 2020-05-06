@@ -156,7 +156,7 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
-    sphere = get_sphere(sphere)
+    sphere = get_sphere(args.sphere)
 
     # Computing peaks
     peak_dirs, peak_values, peak_indices = peaks_from_sh(data,
