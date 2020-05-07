@@ -157,6 +157,8 @@ def main():
 
     if args.peaks or args.peak_values or args.peak_indices:
         # Computing peaks
+        print(type(csd_fit.shm_coeff))
+        print(csd_fit.shm_coeff.dtype)
         peak_dirs, peak_values, peak_indices = peaks_from_sh(csd_fit.shm_coeff,
                                                              peaks_sphere,
                                                              mask=mask,
