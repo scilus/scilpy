@@ -200,7 +200,7 @@ def main():
 
     if args.peaks:
         # nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
-                                 affine), args.peaks)
+                                 # affine), args.peaks)
         nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peaks)
 
     if args.visu:
