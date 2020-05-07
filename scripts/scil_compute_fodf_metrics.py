@@ -149,7 +149,6 @@ def main():
 
     if args.mask is None:
         mask = None
-        # mask = np.ones(data.shape[:-1])
     else:
         mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
         if mask.shape != data.shape[:-1]:
