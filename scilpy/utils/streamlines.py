@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import copy
 from functools import reduce
 import itertools
 import logging
@@ -285,3 +286,48 @@ def compress_sft(sft, tol_error=0.01):
     compressed_sft.to_space(orig_space)
 
     return compressed_sft
+
+
+def cut_invalid_streamlines(sft):
+    """ Cut streamlines so their longest segment are within the bounding box """
+    sft.to_vox()
+    sft.to_corner()
+
+    copy_sft = copy.deepcopy(sft)
+    indices_to_remove, indices_to_keep = copy_sft.remove_invalid_streamlines()
+    epsilon = 0.001
+
+    new_streamlines = []
+    new_data_per_point = {}
+    for key in sft.data_per_point.keys():
+        new_data_per_point[key] = []
+
+    for ind in range(len(sft.streamlines)):
+        # No reason to try to cut if all points are within the volume
+        if ind in indices_to_remove:
+            best_pos = [0, 0]
+            cur_pos = [0, 0]
+            for pos, point in enumerate(sft.streamlines[ind]):
+                if (point < epsilon).any() or (point >= sft.dimensions).any():
+                    cur_pos = [pos+1, pos+1]
+                if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
+                    best_pos = cur_pos
+                cur_pos[1] += 1
+
+            if not best_pos == [0, 0]:
+                new_streamlines.append(
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
+                for key in sft.data_per_point.keys():
+                    new_data_per_point[key].append(
+                        sft.data_per_point[key][ind][best_pos[0]:best_pos[1]])
+            else:
+                logging.warning('Streamlines entirely out of the volume.')
+        else:
+            new_streamlines.append(sft.streamlines[ind])
+            for key in sft.data_per_point.keys():
+                new_data_per_point[key].append(sft.data_per_point[key][ind])
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
+                                          data_per_streamline=sft.data_per_streamline,
+                                          data_per_point=new_data_per_point)
+
+    return new_sft
