@@ -150,9 +150,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
 
     data_shape = shm_coeff.shape
-    if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(bool)
-    else:
+    if mask is not None:
         shm_coeff = applymask(shm_coeff, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
@@ -245,9 +243,7 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
     B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
 
     data_shape = shm_coeff.shape
-    if mask is None:
-        mask = np.sum(shm_coeff, axis=3).astype(bool)
-    else:
+    if mask is not None:
         shm_coeff = applymask(shm_coeff, mask)
         peaks_dirs = applymask(peaks_dirs, mask)
         peaks_values = applymask(peaks_values, mask)

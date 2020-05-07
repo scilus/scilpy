@@ -150,7 +150,8 @@ def main():
 
     data, affine = load(args.input)
     if args.mask is None:
-        mask = np.ones(data.shape[:-1])
+        mask = None
+        # mask = np.ones(data.shape[:-1])
     else:
         mask, affine2 = load(args.mask)
         if mask.shape != data.shape[:-1]:
