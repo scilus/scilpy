@@ -157,8 +157,6 @@ def main():
     sphere = get_sphere(args.sphere)
 
     # Computing peaks
-    print(type(data))
-    print(data.dtype)
     peak_dirs, peak_values, peak_indices = peaks_from_sh(data,
                                                         sphere,
                                                         mask=mask,
