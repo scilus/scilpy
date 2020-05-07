@@ -36,6 +36,7 @@ from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+                             add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.utils import (
     find_order_from_nb_coeff, get_b_matrix, get_maximas)
@@ -69,11 +70,9 @@ def _build_arg_parser():
         '--rt', dest='r_threshold', type=float, default='0.1',
         help='Relative threshold on fODF amplitude in percentage  '
              '[%(default)s].')
-    p.add_argument(
-        '--processes', dest='nbr_processes', metavar='NBR', type=int,
-        help='Number of sub processes to start. Default : cpu count')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
+    add_processes_arg(p)
     p.add_argument(
         '--vis', dest='visu', action='store_true',
         help='Export map for better visualization in FiberNavigator.\n'

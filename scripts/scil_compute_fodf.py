@@ -27,7 +27,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args)
+                             add_sh_basis_args, add_processes_arg)
 from scilpy.reconst.multi_process import fit_from_model, peaks_from_sh
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
@@ -54,16 +54,13 @@ def _build_arg_parser():
         help='Path to a binary mask. Only the data inside the mask will be '
              'used for computations and reconstruction.')
     p.add_argument(
-        '--processes', dest='nbr_processes', metavar='NBR', type=int,
-        help='Number of sub processes to start. Default : cpu count')
-
-    p.add_argument(
         '--not_all', action='store_true',
         help='If set, only saves the files specified using the file flags. '
              '(Default: False)')
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
+    add_processes_arg
 
     g = p.add_argument_group(title='File flags')
 
@@ -163,11 +160,12 @@ def main():
                                                              relative_peak_threshold=.5,
                                                              min_separation_angle=25,
                                                              normalize_peaks=True,
-                                                             sh_basis_type=args.sh_basis,
                                                              nbr_processes=args.nbr_processes)
 
     # Saving results
     if args.fodf:
+        if args.sh_basis == 'tournier07':
+            print("Changing sh basis.")
         nib.save(nib.Nifti1Image(csd_fit.shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
 
