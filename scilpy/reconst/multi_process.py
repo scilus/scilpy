@@ -224,7 +224,7 @@ def maps_from_sh_parallel(args):
             if gfa_map[idx] < gfa_thr:
                 global_max = max(global_max, odf.max())
             elif len(np.linalg.norm(peaks_dirs[idx], axis=1) > 0):
-                nufo_map[idx] = peaks_dirs[idx].shape[0]
+                nufo_map[idx] = len(np.linalg.norm(peaks_dirs[idx], axis=1) > 0)
                 afd_map[idx] = peaks_values[idx].max()
                 afd_sum[idx] = np.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
                 qa_map = peaks_values[idx] - odf.min()
