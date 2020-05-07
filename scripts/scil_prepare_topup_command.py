@@ -97,7 +97,8 @@ def main():
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
-    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction)
+    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction,
+                                 keep_all_b0s=False)
 
     if not os.path.exists(args.out_directory):
         os.makedirs(args.out_directory)
@@ -111,16 +112,22 @@ def main():
     if len(rev_b0.shape) == 4:
         logging.warning("Reverse B0 is 4D. To speed up Topup, the mean of all "
                         "reverse B0 will be taken.")
-        rev_b0 = np.mean(rev_b0, axis=3, dtype=rev_b0.dtype)
+        rev_b0 = np.mean(rev_b0, axis=3)
 
     dwi_image = nib.load(args.in_dwi)
     dwi = dwi_image.get_fdata(dtype=np.float32)
-    b0s = dwi[..., gtab.b0s_mask]
+    b0 = dwi[..., gtab.b0s_mask]
 
-    b0_idx = np.where(gtab.b0s_mask)[0]
-    fused_b0s = np.zeros(b0s.shape[:-1]+(len(b0_idx)+1,))
-    fused_b0s[..., 0:-1] = b0s
-    fused_b0s[..., -1] = rev_b0
+    if b0.shape[3] > 1:
+        logging.warning("More than one B0 was found. To speed up Topup, "
+                        "the mean of all B0 will be taken.")
+        b0 = np.mean(b0, axis=3)
+    else:
+        b0 = np.squeeze(b0, axis=3)
+
+    fused_b0s = np.zeros(b0.shape+(2,))
+    fused_b0s[..., 0] = b0
+    fused_b0s[..., 1] = rev_b0
     fused_b0s_path = os.path.join(args.out_directory, args.out_b0s)
     nib.save(nib.Nifti1Image(fused_b0s,
                              rev_b0_img.affine),

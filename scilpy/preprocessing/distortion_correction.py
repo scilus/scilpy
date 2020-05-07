@@ -5,9 +5,11 @@ from builtins import range
 import numpy as np
 
 
-def create_acqparams(gtab, readout, encoding_direction):
-    b0_idx = np.where(gtab.b0s_mask)[0]
-    acqparams = np.zeros((len(b0_idx) + 1, 4))
+def create_acqparams(gtab, readout, encoding_direction, keep_all_b0s=True):
+    nb_b0s = 1
+    if keep_all_b0s:
+        nb_b0s = len(np.where(gtab.b0s_mask)[0])
+    acqparams = np.zeros((nb_b0s + 1, 4))
     acqparams[:, 3] = readout
 
     enum_direction = {'x': 0, 'y': 1, 'z': 2}
