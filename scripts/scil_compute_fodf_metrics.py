@@ -169,9 +169,10 @@ def main():
 
     # Computing maps
     nufo_map, afd_map, afd_sum \
-        ,rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs, peak_values,
-                                                sphere,
-                                                nbr_processes=args.nbr_processes)
+        ,rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs,
+                                                 peak_values, peak_indices,
+                                                 sphere,
+                                                 nbr_processes=args.nbr_processes)
 
     # Save result
     if args.nufo:

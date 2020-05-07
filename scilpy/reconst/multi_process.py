@@ -193,10 +193,11 @@ def maps_from_sh_parallel(args):
     shm_coeff = args[0]
     peaks_dirs = args[1]
     peaks_values = args[2]
-    B = args[3]
-    sphere = args[4]
-    gfa_thr = args[5]
-    chunk_id = args[6]
+    peaks_indices = args[3]
+    B = args[4]
+    sphere = args[5]
+    gfa_thr = args[6]
+    chunk_id = args[7]
 
     data_shape = shm_coeff.shape[0]
     nufo_map = np.zeros(data_shape)
@@ -217,14 +218,13 @@ def maps_from_sh_parallel(args):
             max_odf = np.maximum(max_odf, sum_odf)
             if sum_odf > 0:
                 rgb_map[idx] = np.dot(np.abs(sphere.vertices).T, odf)
-                # rgb_map[ind] = np.sum(np.abs(sphere.vertices) * odf, axis=0)
                 rgb_map[idx] /= np.linalg.norm(rgb_map[idx])
                 rgb_map[idx] *= sum_odf
             gfa_map[idx] = gfa(odf)
             if gfa_map[idx] < gfa_thr:
                 global_max = max(global_max, odf.max())
-            elif len(np.linalg.norm(peaks_dirs[idx], axis=1) > 0):
-                nufo_map[idx] = len(np.linalg.norm(peaks_dirs[idx], axis=1) > 0)
+            elif len(peaks_indices[idx] > -1):
+                nufo_map[idx] = len(peaks_indices[idx] > -1)
                 afd_map[idx] = peaks_values[idx].max()
                 afd_sum[idx] = np.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
                 qa_map = peaks_values[idx] - odf.min()
@@ -237,7 +237,8 @@ def maps_from_sh_parallel(args):
     return chunk_id, nufo_map, afd_map, afd_sum, rgb_map, gfa_map, qa_map
 
 
-def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
+def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, peaks_indices,
+                 sphere, mask=None,
                  sh_basis_type='descoteaux07', gfa_thr=0,
                  nbr_processes=None):
     B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
@@ -247,6 +248,7 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
         shm_coeff = applymask(shm_coeff, mask)
         peaks_dirs = applymask(peaks_dirs, mask)
         peaks_values = applymask(peaks_values, mask)
+        peaks_indices = applymask(peaks_indices, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
@@ -256,9 +258,11 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
     peaks_dirs = peaks_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
     peaks_values = peaks_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
+    peaks_indices = peaks_indices.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
     peaks_dirs_chunks = np.array_split(peaks_dirs, nbr_processes)
     peaks_values_chunks = np.array_split(peaks_values, nbr_processes)
+    peaks_indices_chunks = np.array_split(peaks_indices, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
 
     pool = multiprocessing.Pool(nbr_processes)
@@ -266,6 +270,7 @@ def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, sphere, mask=None,
                        zip(shm_coeff_chunks,
                            peaks_dirs_chunks,
                            peaks_values_chunks,
+                           peaks_indices_chunks,
                            itertools.repeat(B),
                            itertools.repeat(sphere),
                            itertools.repeat(gfa_thr),
