@@ -113,11 +113,6 @@ def _build_arg_parser():
     return p
 
 
-def load(path):
-    img = nib.load(path)
-    return img.get_data(), img.affine
-
-
 def save(data, affine, output, visu=False):
     if visu:
         img = nib.Nifti1Image(np.array(data, 'uint8'),  affine)
@@ -148,12 +143,15 @@ def main():
     assert_inputs_exist(parser, [])
     assert_outputs_exist(parser, args, arglist)
 
-    data, affine = load(args.input)
+    vol = nib.load(args.input)
+    data = vol.get_fdata(dtype=np.float32)
+    affine = vol.affine
+
     if args.mask is None:
         mask = None
         # mask = np.ones(data.shape[:-1])
     else:
-        mask, affine2 = load(args.mask)
+        mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
