@@ -199,8 +199,9 @@ def main():
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
 
     if args.peaks:
-        nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
+        # nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
                                  affine), args.peaks)
+        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peaks)
 
     if args.visu:
         if nufo_map.max() > nufo_map.min():
