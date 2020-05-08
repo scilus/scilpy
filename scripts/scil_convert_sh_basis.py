@@ -44,8 +44,7 @@ def main():
 
     sphere = get_sphere('repulsion724').subdivide(1)
     img = nib.load(args.input_sh)
-    # data = img.get_fdata(dtype=np.float32)
-    data = img.get_fdata()
+    data = img.get_fdata(dtype=np.float32)
 
     new_data = convert_sh_basis(data, sphere,
                                 args.sh_basis,

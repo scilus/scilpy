@@ -28,7 +28,8 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
-from scilpy.reconst.multi_process import fit_from_model, peaks_from_sh
+from scilpy.reconst.multi_process import (fit_from_model, peaks_from_sh,
+                                          convert_sh_basis)
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
 
@@ -164,9 +165,11 @@ def main():
 
     # Saving results
     if args.fodf:
+        shm_coeff = csd_fit.shm_coeff
         if args.sh_basis == 'tournier07':
-            print("Changing sh basis.")
-        nib.save(nib.Nifti1Image(csd_fit.shm_coeff.astype(np.float32),
+            shm_coeff = convert_sh_basis(shm_coeff, sphere, args.sh_basis,
+                                         mask=mask, nbr_processes=args.nbr_processes)
+        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
 
     if args.peaks:
