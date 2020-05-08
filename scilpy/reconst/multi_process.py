@@ -336,7 +336,7 @@ def convert_sh_basis(shm_coeff, sphere, sh_basis, mask=None, nbr_processes=None)
     chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
 
     pool = multiprocessing.Pool(nbr_processes)
-    results = pool.map(maps_from_sh_parallel,
+    results = pool.map(convert_sh_basis_parallel,
                        zip(shm_coeff_chunks,
                            itertools.repeat(B_in),
                            itertools.repeat(invB_out),
