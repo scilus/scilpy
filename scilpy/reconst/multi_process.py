@@ -93,8 +93,8 @@ def peaks_from_sh_parallel(args):
         odf = np.dot(shm_coeff[idx], B)
         odf[np.nonzero(odf < absolute_threshold)] = 0.
         dirs, peaks, ind = peak_directions(odf, sphere,
-                                             relative_peak_threshold,
-                                             min_separation_angle)
+                                           relative_peak_threshold,
+                                           min_separation_angle)
 
         if peaks.shape[0] != 0:
             n = min(npeaks, peaks.shape[0])
@@ -111,9 +111,9 @@ def peaks_from_sh_parallel(args):
 
 
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
-                   absolute_threshold=0, min_separation_angle=25,
-                   normalize_peaks=False, npeaks=5,
-                   sh_basis_type='descoteaux07', nbr_processes=None):
+                  absolute_threshold=0, min_separation_angle=25,
+                  normalize_peaks=False, npeaks=5,
+                  sh_basis_type='descoteaux07', nbr_processes=None):
     """Computes peaks from given spherical harmonic coefficients
 
     Parameters
@@ -249,7 +249,7 @@ def maps_from_sh_parallel(args):
 def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
                  mask=None, gfa_thr=0, sh_basis_type='descoteaux07',
                  nbr_processes=None):
-    """Computes metrics from given SH coefficients and peaks
+    """Computes maps from given SH coefficients and peaks
 
     Parameters
     ----------

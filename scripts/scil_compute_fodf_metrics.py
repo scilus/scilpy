@@ -31,15 +31,12 @@ import os
 import numpy as np
 import nibabel as nib
 
-from dipy.core.ndindex import ndindex
 from dipy.data import get_sphere
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.reconst.utils import (
-    find_order_from_nb_coeff, get_b_matrix, get_maximas)
 from scilpy.reconst.multi_process import peaks_from_sh, maps_from_sh
 
 
@@ -156,22 +153,22 @@ def main():
     sphere = get_sphere(args.sphere)
 
     # Computing peaks
-    peak_dirs, peak_values, peak_indices = peaks_from_sh(data,
-                                                        sphere,
-                                                        mask=mask,
-                                                        relative_peak_threshold=.5,
-                                                        absolute_threshold=args.at,
-                                                        min_separation_angle=25,
-                                                        normalize_peaks=True,
-                                                        sh_basis_type=args.sh_basis,
-                                                        nbr_processes=args.nbr_processes)
+    peak_dirs, peak_values, \
+        peak_indices = peaks_from_sh(data,
+                                     sphere,
+                                     mask=mask,
+                                     relative_peak_threshold=.5,
+                                     absolute_threshold=args.at,
+                                     min_separation_angle=25,
+                                     normalize_peaks=True,
+                                     sh_basis_type=args.sh_basis,
+                                     nbr_processes=args.nbr_processes)
 
     # Computing maps
-    nufo_map, afd_map, afd_sum \
-        ,rgb_map, gfa_map, qa_map = maps_from_sh(data, peak_dirs,
-                                                 peak_values, peak_indices,
-                                                 sphere,
-                                                 nbr_processes=args.nbr_processes)
+    nufo_map, afd_map, afd_sum, rgb_map, \
+        gfa_map, qa_map = maps_from_sh(data, peak_dirs,
+                                       peak_values, peak_indices,
+                                       sphere, nbr_processes=args.nbr_processes)
 
     # Save result
     if args.nufo:
