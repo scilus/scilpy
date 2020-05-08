@@ -95,17 +95,6 @@ def main():
                          'your data to ensure everything is correct. '
                          'Value found: {1}'.format(b0_threshold, bvals_min))
 
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
-
-    acqparams = create_acqparams(gtab, args.readout, args.encoding_direction,
-                                 keep_all_b0s=False)
-
-    if not os.path.exists(args.out_directory):
-        os.makedirs(args.out_directory)
-
-    acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
-    np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
-
     rev_b0_img = nib.load(args.in_reverse_b0)
     rev_b0 = rev_b0_img.get_fdata(dtype=np.float32)
 
@@ -113,6 +102,8 @@ def main():
         logging.warning("Reverse B0 is 4D. To speed up Topup, the mean of all "
                         "reverse B0 will be taken.")
         rev_b0 = np.mean(rev_b0, axis=3)
+
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
     dwi_image = nib.load(args.in_dwi)
     dwi = dwi_image.get_fdata(dtype=np.float32)
@@ -132,6 +123,14 @@ def main():
     nib.save(nib.Nifti1Image(fused_b0s,
                              rev_b0_img.affine),
              fused_b0s_path)
+
+    acqparams = create_acqparams(args.readout, args.encoding_direction)
+
+    if not os.path.exists(args.out_directory):
+        os.makedirs(args.out_directory)
+
+    acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
+    np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
 
     output_path = os.path.join(args.out_directory, args.out_prefix)
     fout_path = os.path.join(args.out_directory, "correction_field")
