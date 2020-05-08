@@ -76,7 +76,8 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_reverse_b0]
+    required_args = [args.in_dwi, args.in_bvals, args.in_bvecs,
+                     args.in_reverse_b0]
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, [], args.out_b0s)
