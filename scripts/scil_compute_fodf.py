@@ -29,7 +29,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
 from scilpy.reconst.multi_processes import (fit_from_model, peaks_from_sh,
-                                          convert_sh_basis)
+                                            convert_sh_basis)
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
 
