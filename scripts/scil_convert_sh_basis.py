@@ -13,7 +13,7 @@ from dipy.data import get_sphere
 import nibabel as nib
 import numpy as np
 
-from scilpy.reconst.multi_process import convert_sh_basis
+from scilpy.reconst.multi_processes import convert_sh_basis
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist)
