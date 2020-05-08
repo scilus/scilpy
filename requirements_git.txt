@@ -1,0 +1,3 @@
+-e git://github.com/daducci/COMMIT.git@17b92e2#egg=commit
+-e git://github.com/daducci/AMICO.git@6611618#egg=amico
+-e git://github.com/aestrivex/bctpy.git@1973df9#egg=bctpy
