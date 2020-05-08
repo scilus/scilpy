@@ -26,5 +26,3 @@ nilearn==0.6.1
 pytest==5.3.5
 pytest_console_scripts==0.2.0
 spams==2.6.1
--e git://github.com/daducci/COMMIT.git@a33cf36f#egg=commit
--e git://github.com/aestrivex/bctpy.git@1973df9#egg=bctpy

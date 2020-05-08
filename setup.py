@@ -49,4 +49,8 @@ opts['ext_modules'] = cythonize(extensions)
 
 
 if __name__ == '__main__':
+    with open('requirements.txt', 'r') as req_file:
+        lines = req_file.readlines()
+        for line in lines:
+            os.system('pip install {}'.format(line))
     setup(**opts)
