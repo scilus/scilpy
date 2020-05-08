@@ -167,7 +167,7 @@ def main():
     if args.fodf:
         shm_coeff = csd_fit.shm_coeff
         if args.sh_basis == 'tournier07':
-            shm_coeff = convert_sh_basis(shm_coeff, sphere, args.sh_basis,
+            shm_coeff = convert_sh_basis(shm_coeff, peaks_sphere, args.sh_basis,
                                          mask=mask, nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
