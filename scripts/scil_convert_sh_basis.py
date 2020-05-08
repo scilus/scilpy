@@ -47,7 +47,7 @@ def main():
     data = img.get_fdata(dtype=np.float32)
 
     new_data = convert_sh_basis(data, sphere,
-                                args.sh_basis,
+                                sh_basis_type=args.sh_basis,
                                 nbr_processes=args.nbr_processes)
 
     nib.save(nib.Nifti1Image(new_data, img.affine, img.header), args.output_name)

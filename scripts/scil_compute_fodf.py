@@ -103,11 +103,13 @@ def main():
                                  args.frf_file])
     assert_outputs_exist(parser, args, arglist)
 
+    # Loading data
     full_frf = np.loadtxt(args.frf_file)
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
+    # Checking mask
     if args.mask is None:
         mask = None
     else:
@@ -167,8 +169,8 @@ def main():
     if args.fodf:
         shm_coeff = csd_fit.shm_coeff
         if args.sh_basis == 'tournier07':
-            shm_coeff = convert_sh_basis(shm_coeff, peaks_sphere, args.sh_basis,
-                                         mask=mask, nbr_processes=args.nbr_processes)
+            shm_coeff = convert_sh_basis(shm_coeff, peaks_sphere, mask=mask,
+                                         nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
                                  vol.affine), args.fodf)
 

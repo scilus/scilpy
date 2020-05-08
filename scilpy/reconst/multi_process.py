@@ -22,8 +22,7 @@ def fit_from_model_parallel(args):
     return chunk_id, sub_fit_array
 
 
-def fit_from_model(model, data, mask=None,
-                   nbr_processes=None):
+def fit_from_model(model, data, mask=None, nbr_processes=None):
     """Fit the model to data
 
     Parameters
@@ -31,13 +30,13 @@ def fit_from_model(model, data, mask=None,
     model : a model instance
         `model` will be used to fit the data.
     data : np.ndarray (4d)
-        diffusion data.
-    mask : array, optional
-        If `mask` is provided, voxels that are False in `mask` are skipped and
-        no peaks are returned.
-    nbr_processes: int
+        Diffusion data.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    nbr_processes : int, optional
         The number of subprocesses to use.
-        Default: cpu_count().
+        Default: multiprocessing.cpu_count()
 
     Returns
     -------
@@ -96,7 +95,7 @@ def peaks_from_sh_parallel(args):
         dirs, peaks, ind = peak_directions(odf, sphere,
                                              relative_peak_threshold,
                                              min_separation_angle)
-        # Calculate peak metrics
+
         if peaks.shape[0] != 0:
             n = min(npeaks, peaks.shape[0])
 
@@ -115,7 +114,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                    absolute_threshold=0, min_separation_angle=25,
                    normalize_peaks=False, npeaks=5,
                    sh_basis_type='descoteaux07', nbr_processes=None):
-    """Fit the model to data and computes peaks and metrics
+    """Computes peaks from given spherical harmonic coefficients
 
     Parameters
     ----------
@@ -123,31 +122,42 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         Spherical harmonic coefficients
     sphere : Sphere
         The Sphere providing discrete directions for evaluation.
-    mask : array, optional
-        If `mask` is provided, voxels that are False in `mask` are skipped and
-        no peaks are returned.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
     relative_peak_threshold : float, optional
         Only return peaks greater than ``relative_peak_threshold * m`` where m
         is the largest peak.
-    Add absolute_threshold!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        Default: 0.5
+    absolute_threshold : float, optional
+        Absolute threshold on fODF amplitude. This value should be set to
+        approximately 1.5 to 2 times the maximum fODF amplitude in isotropic
+        voxels (ex. ventricles). The script `compute_fodf_max_in_ventricles.py`
+        can be used to find the maximal value.
+        Default: 0
     min_separation_angle : float in [0, 90], optional
-        The minimum distance between
-        directions. If two peaks are too close only the larger of the two is
-        returned.
+        The minimum distance between directions. If two peaks are too close
+        only the larger of the two is returned.
+        Default: 25
     normalize_peaks : bool, optional
         If true, all peak values are calculated relative to `max(odf)`.
     npeaks : int, optional
         Maximum number of peaks found (default 5 peaks).
-    nbr_processes: int
-        If `parallel` is True, the number of subprocesses to use
-        (default multiprocessing.cpu_count()).
+    sh_basis_type : str, optional
+        Type of spherical harmonic basis used for `shm_coeff`. Either
+        `descoteaux07` or `tournier07`.
+        Default: `descoteaux07`
+    nbr_processes: int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
 
     Returns
     -------
     tuple of np.ndarray
         peak_dirs, peak_values, peak_indices
     """
-    B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
+    sh_order = order_from_ncoef(shm_coeff.shape[-1])
+    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
     if mask is not None:
@@ -191,9 +201,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
 
 def maps_from_sh_parallel(args):
     shm_coeff = args[0]
-    peaks_dirs = args[1]
-    peaks_values = args[2]
-    peaks_indices = args[3]
+    peak_dirs = args[1]
+    peak_values = args[2]
+    peak_indices = args[3]
     B = args[4]
     sphere = args[5]
     gfa_thr = args[6]
@@ -204,9 +214,8 @@ def maps_from_sh_parallel(args):
     afd_map = np.zeros(data_shape)
     afd_sum = np.zeros(data_shape)
     rgb_map = np.zeros((data_shape, 3))
-
     gfa_map = np.zeros(data_shape)
-    qa_map = np.zeros((data_shape, peaks_values.shape[1]))
+    qa_map = np.zeros((data_shape, peak_values.shape[1]))
 
     max_odf = 0
     global_max = -np.inf
@@ -223,12 +232,12 @@ def maps_from_sh_parallel(args):
             gfa_map[idx] = gfa(odf)
             if gfa_map[idx] < gfa_thr:
                 global_max = max(global_max, odf.max())
-            elif np.sum(peaks_indices[idx] > -1):
-                nufo_map[idx] = np.sum(peaks_indices[idx] > -1)
-                afd_map[idx] = peaks_values[idx].max()
+            elif np.sum(peak_indices[idx] > -1):
+                nufo_map[idx] = np.sum(peak_indices[idx] > -1)
+                afd_map[idx] = peak_values[idx].max()
                 afd_sum[idx] = np.sqrt(np.dot(shm_coeff[idx], shm_coeff[idx]))
-                qa_map = peaks_values[idx] - odf.min()
-                global_max = max(global_max, peaks_values[idx][0])
+                qa_map = peak_values[idx] - odf.min()
+                global_max = max(global_max, peak_values[idx][0])
 
     rgb_map /= max_odf
     rgb_map *= 255
@@ -237,40 +246,73 @@ def maps_from_sh_parallel(args):
     return chunk_id, nufo_map, afd_map, afd_sum, rgb_map, gfa_map, qa_map
 
 
-def maps_from_sh(shm_coeff, peaks_dirs, peaks_values, peaks_indices,
-                 sphere, mask=None,
-                 sh_basis_type='descoteaux07', gfa_thr=0,
+def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
+                 mask=None, gfa_thr=0, sh_basis_type='descoteaux07',
                  nbr_processes=None):
-    B, _ = sh_to_sf_matrix(sphere, order_from_ncoef(shm_coeff.shape[-1]), sh_basis_type)
+    """Computes metrics from given SH coefficients and peaks
+
+    Parameters
+    ----------
+    shm_coeff : np.ndarray
+        Spherical harmonic coefficients
+    peak_dirs : np.ndarray
+        Peak directions
+    peak_values : np.ndarray
+        Peak values
+    peak_indices : np.ndarray
+        Peak indices
+    sphere : Sphere
+        The Sphere providing discrete directions for evaluation.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    gfa_thr : float, optional
+        Voxels with gfa less than `gfa_thr` are skipped for all metrics, except
+        `rgb_map`.
+        Default: 0
+    sh_basis_type : str, optional
+        Type of spherical harmonic basis used for `shm_coeff`. Either
+        `descoteaux07` or `tournier07`.
+        Default: `descoteaux07`
+    nbr_processes: int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    tuple of np.ndarray
+        nufo_map, afd_map, afd_sum, rgb_map, gfa, qa
+    """
+    sh_order = order_from_ncoef(shm_coeff.shape[-1])
+    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
     if mask is not None:
         shm_coeff = applymask(shm_coeff, mask)
-        peaks_dirs = applymask(peaks_dirs, mask)
-        peaks_values = applymask(peaks_values, mask)
-        peaks_indices = applymask(peaks_indices, mask)
+        peak_dirs = applymask(peak_dirs, mask)
+        peak_values = applymask(peak_values, mask)
+        peak_indices = applymask(peak_indices, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
 
-    # In the script : need to make sure that shm and peaks have the same data_shape
-    npeaks = peaks_values.shape[3]
+    npeaks = peak_values.shape[3]
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
-    peaks_dirs = peaks_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
-    peaks_values = peaks_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
-    peaks_indices = peaks_indices.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
+    peak_dirs = peak_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
+    peak_values = peak_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
+    peak_indices = peak_indices.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
-    peaks_dirs_chunks = np.array_split(peaks_dirs, nbr_processes)
-    peaks_values_chunks = np.array_split(peaks_values, nbr_processes)
-    peaks_indices_chunks = np.array_split(peaks_indices, nbr_processes)
+    peak_dirs_chunks = np.array_split(peak_dirs, nbr_processes)
+    peak_values_chunks = np.array_split(peak_values, nbr_processes)
+    peak_indices_chunks = np.array_split(peak_indices, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
 
     pool = multiprocessing.Pool(nbr_processes)
     results = pool.map(maps_from_sh_parallel,
                        zip(shm_coeff_chunks,
-                           peaks_dirs_chunks,
-                           peaks_values_chunks,
-                           peaks_indices_chunks,
+                           peak_dirs_chunks,
+                           peak_values_chunks,
+                           peak_indices_chunks,
                            itertools.repeat(B),
                            itertools.repeat(sphere),
                            itertools.repeat(gfa_thr),
@@ -313,11 +355,37 @@ def convert_sh_basis_parallel(args):
         if sh[idx].any():
             sf = np.dot(sh[idx], B_in)
             sh[idx] = np.dot(sf, invB_out)
+
     return chunk_id, sh
 
 
-def convert_sh_basis(shm_coeff, sphere, sh_basis, mask=None, nbr_processes=None):
-    input_basis = sh_basis
+def convert_sh_basis(shm_coeff, sphere, mask=None,
+                     sh_basis_type='descoteaux07', nbr_processes=None):
+    """Converts spherical harmonic coefficients between two bases
+
+    Parameters
+    ----------
+    shm_coeff : np.ndarray
+        Spherical harmonic coefficients
+    sphere : Sphere
+        The Sphere providing discrete directions for evaluation.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    sh_basis_type : str, optional
+        Type of spherical harmonic basis used for `shm_coeff`. Either
+        `descoteaux07` or `tournier07`.
+        Default: `descoteaux07`
+    nbr_processes: int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    shm_coeff_array : np.ndarray
+        Spherical harmonic coefficients in the desired basis.
+    """
+    input_basis = sh_basis_type
     output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])

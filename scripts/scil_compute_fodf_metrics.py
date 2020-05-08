@@ -53,7 +53,7 @@ def _build_arg_parser():
         'at', metavar='a_threshold', type=float,
         help='WARNING!!! EXTREMELY IMPORTANT PARAMETER, VARIABLE '
              'ACROSS DATASETS!!!\nAbsolute threshold on fODF amplitude.\nThis '
-             'value should set to approximately 1.5 to 2 times the maximum\n'
+             'value should be set to approximately 1.5 to 2 times the maximum\n'
              'fODF amplitude in isotropic voxels (ex. ventricles).\n'
              'compute_fodf_max_in_ventricles.py can be used to find the '
              'maximal value.\nSee [Dell\'Acqua et al HBM 2013].')
