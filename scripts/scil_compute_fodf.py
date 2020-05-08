@@ -60,7 +60,7 @@ def _build_arg_parser():
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
-    add_processes_arg
+    add_processes_arg(p)
 
     g = p.add_argument_group(title='File flags')
 
