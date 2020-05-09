@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 
+from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
@@ -40,20 +41,18 @@ def _build_arg_parser():
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute the bundle profiles on.')
     p.add_argument('in_metrics', nargs='+',
-                   help='Nifti metric(s) on which to compute '
-                        'the bundle profiles.')
+                   help='Metric(s) on which to compute the bundle profiles.')
 
     g = p.add_mutually_exclusive_group()
     g.add_argument('--in_centroid',
                    help='If provided it will be used to make sure all '
-                        'streamlines go in the same direction. \nOtherwise, a '
-                        'centroid will be automatically computed.\n'
-                        'Number of point per streamline will be set according'
-                        ' to centroid.')
+                        'streamlines go in the same direction. \n'
+                        'Also, number of points per streamline will be '
+                        'set according to centroid.')
     g.add_argument('--nb_pts_per_streamline',
                    type=int, default=20,
-                   help='Subsample each streamline to this number of points '
-                        '[%(default)s].')
+                   help='If centroid not provided, resample each streamline to'
+                        ' this number of points [%(default)s].')
 
     add_json_args(p)
     add_reference_arg(p)
@@ -72,10 +71,10 @@ def main():
         parser.error('--nb_pts_per_streamline {} needs to be greater than '
                      '1'.format(args.nb_pts_per_streamline))
 
-    assert_same_resolution(args.in_metrics)
-    metrics = [nib.load(m) for m in args.in_metrics]
-
+    assert_same_resolution(args.in_metrics + [args.in_bundle])
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+
+    metrics = [nib.load(m) for m in args.in_metrics]
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
     stats = {}
@@ -86,6 +85,7 @@ def main():
 
     # Centroid - will be use as reference to reorient each streamline
     if args.in_centroid:
+        is_header_compatible(args.in_bundle, args.in_centroid)
         sft_centroid = load_tractogram_with_reference(parser, args,
                                                       args.in_centroid)
         centroid_streamlines = sft_centroid.streamlines[0]
@@ -100,7 +100,7 @@ def main():
     # Make sure all streamlines go in the same direction. We want to make
     # sure point #1 / args.nb_pts_per_streamline of streamline A is matched
     # with point #1 / 20 of streamline B and so on
-    num_streamlines = len(resampled_sft.streamlines)
+    num_streamlines = len(resampled_sft)
 
     for s in np.arange(num_streamlines):
         streamline = resampled_sft.streamlines[s]

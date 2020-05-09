@@ -21,8 +21,8 @@ def assert_same_resolution(images):
         raise Exception("Can't check if images are of the same "
                         "resolution/affine. No image has been given")
 
-    for i in images[1:]:
-        if not is_header_compatible(images[0], images[1]):
+    for curr_image in images[1:]:
+        if not is_header_compatible(images[0], curr_image):
             raise Exception("Images are not of the same resolution/affine")
 
 
