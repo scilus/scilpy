@@ -56,18 +56,19 @@ def main():
 
     # Load files and data. TRKs can have 'same' as reference
     # Can handle streamlines outside of bbox
-    tractogram = load_tractogram(args.tractogram_filename, 'same',
-                                 bbox_valid_check=False)
+    sft = load_tractogram(args.tractogram_filename, 'same',
+                          bbox_valid_check=False)
     # Streamlines are saved in RASMM but seeds are saved in VOX
     # This might produce weird behavior with non-iso
-    tractogram.to_vox()
-    if 'seeds' in tractogram.data_per_streamline:
-        seeds = tractogram.data_per_streamline['seeds']
+    sft.to_vox()
+    sft.to_corner()
+    if 'seeds' in sft.data_per_streamline:
+        seeds = sft.data_per_streamline['seeds']
     else:
         parser.error('Tractogram does not contain seeds')
 
     # Create seed density map
-    _, shape, _, _ = tractogram.space_attributes
+    _, shape, _, _ = sft.space_attributes
     seed_density = np.zeros(shape, dtype=np.int32)
     for seed in seeds:
         # Set value at mask, either binary or increment
@@ -79,7 +80,7 @@ def main():
 
     # Save seed density map
     dm_img = Nifti1Image(seed_density.astype(np.int32),
-                         tractogram.affine)
+                         sft.affine)
     dm_img.to_filename(args.seed_density_filename)
 
 
