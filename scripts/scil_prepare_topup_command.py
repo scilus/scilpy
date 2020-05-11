@@ -43,11 +43,14 @@ def _build_arg_parser():
                         'to b0_thr are considered as b0s i.e. without ' +
                         'diffusion weighting')
 
-    p.add_argument('--encoding_direction', default='y', choices=['x', 'y', 'z'],
-                   help='acquisition direction, default is AP-PA [%(default)s].')
+    p.add_argument('--encoding_direction', default='y',
+                   choices=['x', 'y', 'z'],
+                   help='acquisition direction, default is AP-PA '
+                        '[%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata [%(default)s].')
+                   help='total readout time from the DICOM metadata '
+                        '[%(default)s].')
 
     p.add_argument('--out_b0s', default='fused_b0s.nii.gz',
                    help='output fused b0 file [%(default)s].')

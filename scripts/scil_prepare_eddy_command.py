@@ -13,8 +13,9 @@ from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist)
-from scilpy.preprocessing.distortion_correction import create_acqparams, \
-    create_index, create_non_zero_norm_bvecs
+from scilpy.preprocessing.distortion_correction import (create_acqparams,
+                                                        create_index,
+                                                        create_non_zero_norm_bvecs)
 
 
 def _build_arg_parser():
@@ -48,11 +49,14 @@ def _build_arg_parser():
                         'to b0_thr are considered\nas b0s i.e. without ' +
                         'diffusion weighting')
 
-    p.add_argument('--encoding_direction', default='y', choices=['x', 'y', 'z'],
-                   help='acquisition direction, default is AP-PA [%(default)s].')
+    p.add_argument('--encoding_direction', default='y',
+                   choices=['x', 'y', 'z'],
+                   help='acquisition direction, default is AP-PA '
+                        '[%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata [%(default)s].')
+                   help='total readout time from the DICOM metadata '
+                        '[%(default)s].')
 
     p.add_argument('--slice_drop_correction', action='store_true',
                    help="if set, will activate eddy's outlier correction,\n"
