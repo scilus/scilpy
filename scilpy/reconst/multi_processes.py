@@ -91,7 +91,7 @@ def peaks_from_sh_parallel(args):
 
     for idx in range(len(shm_coeff)):
         odf = np.dot(shm_coeff[idx], B)
-        odf[np.nonzero(odf < absolute_threshold)] = 0.
+        odf[odf < absolute_threshold] = 0.
         dirs, peaks, ind = peak_directions(odf, sphere,
                                            relative_peak_threshold,
                                            min_separation_angle)
@@ -132,7 +132,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     absolute_threshold : float, optional
         Absolute threshold on fODF amplitude. This value should be set to
         approximately 1.5 to 2 times the maximum fODF amplitude in isotropic
-        voxels (ex. ventricles). The script `compute_fodf_max_in_ventricles.py`
+        voxels (ex. ventricles). `scil_compute_fodf_max_in_ventricles.py`
         can be used to find the maximal value.
         Default: 0
     min_separation_angle : float in [0, 90], optional
@@ -360,7 +360,7 @@ def convert_sh_basis_parallel(args):
 
 
 def convert_sh_basis(shm_coeff, sphere, mask=None,
-                     sh_basis_type='descoteaux07', nbr_processes=None):
+                     input_basis='descoteaux07', nbr_processes=None):
     """Converts spherical harmonic coefficients between two bases
 
     Parameters
@@ -372,7 +372,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     mask : np.ndarray, optional
         If `mask` is provided, only the data inside the mask will be
         used for computations.
-    sh_basis_type : str, optional
+    input_basis : str, optional
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
@@ -385,7 +385,6 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     shm_coeff_array : np.ndarray
         Spherical harmonic coefficients in the desired basis.
     """
-    input_basis = sh_basis_type
     output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
