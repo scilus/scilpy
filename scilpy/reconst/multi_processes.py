@@ -52,6 +52,8 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes
 
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
     data = data.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
     chunks = np.array_split(data, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in chunks])
@@ -64,11 +66,12 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     pool.close()
     pool.join()
 
+    # Re-assemble the chunk together in the original shape.
     fit_array = np.zeros((np.prod(data_shape[0:3]),), dtype='object')
     for i, fit in results:
         fit_array[chunk_len[i]:chunk_len[i+1]] = fit
-
     fit_array = MultiVoxelFit(model, fit_array.reshape(data_shape[0:3]), mask)
+
     return fit_array
 
 
@@ -166,6 +169,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
 
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
     chunks = np.array_split(shm_coeff, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in chunks])
@@ -184,6 +189,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     pool.close()
     pool.join()
 
+    # Re-assemble the chunk together in the original shape.
     peak_dirs_array = np.zeros((np.prod(data_shape[0:3]), npeaks, 3))
     peak_values_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
     peak_indices_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
@@ -191,7 +197,6 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
         peak_dirs_array[chunk_len[i]:chunk_len[i+1], :] = peak_dirs
         peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
         peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
-
     peak_dirs_array = peak_dirs_array.reshape(data_shape[0:3]+(npeaks, 3))
     peak_values_array = peak_values_array.reshape(data_shape[0:3]+(npeaks,))
     peak_indices_array = peak_indices_array.reshape(data_shape[0:3]+(npeaks,))
@@ -297,6 +302,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         or nbr_processes < 0 else nbr_processes
 
     npeaks = peak_values.shape[3]
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
     peak_dirs = peak_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
     peak_values = peak_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
@@ -320,6 +327,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     pool.close()
     pool.join()
 
+    # Re-assemble the chunk together in the original shape.
     nufo_map_array = np.zeros((np.prod(data_shape[0:3])))
     afd_map_array = np.zeros((np.prod(data_shape[0:3])))
     afd_sum_array = np.zeros((np.prod(data_shape[0:3])))
@@ -333,7 +341,6 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
         gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
         qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
-
     nufo_map_array = nufo_map_array.reshape(data_shape[0:3])
     afd_map_array = afd_map_array.reshape(data_shape[0:3])
     afd_sum_array = afd_sum_array.reshape(data_shape[0:3])
@@ -398,6 +405,8 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
 
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
     shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
@@ -411,9 +420,10 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     pool.close()
     pool.join()
 
+    # Re-assemble the chunk together in the original shape.
     shm_coeff_array = np.zeros((np.prod(data_shape[0:3]), data_shape[3]))
     for i, new_shm_coeff in results:
         shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
-
     shm_coeff_array = shm_coeff_array.reshape(data_shape[0:3]+(data_shape[3],))
+
     return shm_coeff_array
