@@ -1,11 +1,11 @@
 import itertools
 import multiprocessing
+
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 from dipy.segment.mask import applymask
-
 import numpy as np
 
 
