@@ -10,8 +10,6 @@ from dipy.io.utils import get_reference_info
 import nibabel as nib
 import numpy as np
 
-from scilpy.utils.nibabel_tools import get_data
-
 
 def transform_anatomy(transfo, reference, moving, filename_to_save,
                       interp='linear'):
@@ -33,9 +31,10 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     """
     grid2world, dim, _, _ = get_reference_info(reference)
-    static_data = get_data(reference)
+    static_data = nib.load(reference).get_fdata(dtype=np.float32)
 
-    moving_data, nib_file = get_data(moving, return_object=True)
+    nib_file = nib.load(moving)
+    moving_data = nib_file.get_fdata(dtype=np.float32)
     moving_affine = nib_file.affine
 
     if moving_data.ndim == 3 and isinstance(moving_data[0, 0, 0],
