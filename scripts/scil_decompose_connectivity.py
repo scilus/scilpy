@@ -151,11 +151,11 @@ def build_arg_parser():
     post_proc.add_argument('--no_pruning', action='store_true',
                            help='If set, will NOT prune on length.\n'
                                 'Length criteria in --min_length, '
-                                '--max_length')
+                                '--max_length.')
     post_proc.add_argument('--no_remove_loops', action='store_true',
                            help='If set, will NOT remove streamlines making '
                                 'loops.\nAngle criteria based on '
-                                '--loop_max_angle')
+                                '--loop_max_angle.')
     post_proc.add_argument('--no_remove_outliers', action='store_true',
                            help='If set, will NOT remove outliers using QB.\n'
                                 'Criteria based on --outlier_threshold.')
@@ -186,14 +186,14 @@ def build_arg_parser():
                    help='Output directory for the streamlines representation.')
     s.add_argument('--save_raw_connections', action='store_true',
                    help='If set, will save all raw cut connections in a '
-                        'subdirectory')
+                        'subdirectory.')
     s.add_argument('--save_intermediate', action='store_true',
                    help='If set, will save the intermediate results of '
-                        'filtering')
+                        'filtering.')
     s.add_argument('--save_discarded', action='store_true',
                    help='If set, will save discarded streamlines in '
                         'subdirectories.\n'
-                        'Includes loops, outliers and qb_loops')
+                        'Includes loops, outliers and qb_loops.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'

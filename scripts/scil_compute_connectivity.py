@@ -238,7 +238,7 @@ def main():
             # This is necessary to support more than one map for weighting
             measures_to_compute.append(in_name)
             dict_metrics_out_name[in_name] = out_name
-            measures_to_compute.append(in_name)
+            measures_output_filename.append(out_name)
 
     assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
