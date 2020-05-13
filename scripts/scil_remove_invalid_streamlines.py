@@ -66,10 +66,13 @@ def main():
                 indices.append(i)
 
     indices = np.setdiff1d(range(len(sft)), indices)
-    new_sft = StatefulTractogram.from_sft(
-        sft.streamlines[indices], sft,
-        data_per_point=sft.data_per_point[indices],
-        data_per_streamline=sft.data_per_streamline[indices])
+    if len(indices):
+        new_sft = StatefulTractogram.from_sft(
+            sft.streamlines[indices], sft,
+            data_per_point=sft.data_per_point[indices],
+            data_per_streamline=sft.data_per_streamline[indices])
+    else:
+        new_sft = sft
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(new_sft)))
     save_tractogram(new_sft, args.out_tractogram)

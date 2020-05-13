@@ -76,9 +76,8 @@ def _validate_arrays(*arrays):
     """Make sure that all inputs are arrays, and that their shapes match."""
     ref_array = arrays[0]
     for array in arrays:
-        if not isinstance(array, np.ndarray):
-            raise ValueError('All inputs must be arrays!')
-        if not np.all(ref_array.shape == array.shape):
+        if isinstance(array, np.ndarray) and \
+                not np.all(ref_array.shape == array.shape):
             raise ValueError('Not all inputs have the same shape!')
 
 
