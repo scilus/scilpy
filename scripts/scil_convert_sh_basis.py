@@ -50,7 +50,8 @@ def main():
                                 sh_basis_type=args.sh_basis,
                                 nbr_processes=args.nbr_processes)
 
-    nib.save(nib.Nifti1Image(new_data, img.affine, img.header), args.output_name)
+    nib.save(nib.Nifti1Image(new_data, img.affine, header=img.header),
+             args.output_name)
 
 
 if __name__ == "__main__":
