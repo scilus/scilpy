@@ -165,7 +165,7 @@ def main():
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps
-    nufo_map, afd_map, afd_sum, rgb_map, \
+    nufo_map, afd_max, afd_sum, rgb_map, \
         gfa_map, qa_map = maps_from_sh(data, peak_dirs,
                                        peak_values, peak_indices,
                                        sphere, nbr_processes=args.nbr_processes)
@@ -175,7 +175,7 @@ def main():
         save(nufo_map, affine, args.nufo)
 
     if args.afd:
-        save(afd_map, affine, args.afd)
+        save(afd_max, affine, args.afd)
 
     if args.afd_total:
         # this is the analytical afd total
