@@ -34,13 +34,18 @@ import tempfile
 
 import commit
 from commit import trk2dictionary
+from dipy.io.stateful_tractogram import (Origin, Space,
+                                         StatefulTractogram)
+from dipy.io.streamline import save_tractogram
+from dipy.io.utils import is_header_compatible
+from dipy.io.gradients import read_bvals_bvecs
+import h5py
 import numpy as np
 import nibabel as nib
 from nibabel.streamlines import Tractogram
-from dipy.io.utils import is_header_compatible
-from dipy.io.gradients import read_bvals_bvecs
 
-from scilpy.io.streamlines import lazy_streamlines_count
+from scilpy.io.streamlines import (lazy_streamlines_count,
+                                   reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
@@ -54,7 +59,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram (.trk or .tck).')
+                   help='Input tractogram (.trk or .tck or .h5).')
     p.add_argument('in_dwi',
                    help='Diffusion from which the fodf were computed.')
     p.add_argument('in_bvals',
@@ -140,11 +145,12 @@ def main():
             'Cannot use more than one --isotropic_diff with ball&stick.')
 
     # If it is a trk, check compatibility of header since COMMIT does not do it
+    dwi_img = nib.load(args.in_dwi)
     _, ext = os.path.splitext(args.in_tractogram)
     if ext == '.trk' and not is_header_compatible(args.in_tractogram,
-                                                  args.in_dwi):
+                                                  dwi_img):
         parser.error('{} does not have a compatible header with {}'.format(
-            args.in_tractogram, args.args.in_dwi))
+            args.in_tractogram, args.in_dwi))
 
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
@@ -157,6 +163,27 @@ def main():
         redirect_stdout_c()
 
     tmp_dir = tempfile.TemporaryDirectory()
+    if ext == '.h5':
+        logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
+            args.in_tractogram))
+        streamlines = []
+        len_list = [0]
+        hdf5_file = h5py.File(args.in_tractogram, 'a')
+        if not np.allclose(hdf5_file.attrs['affine'], dwi_img.affine):
+            parser.error('{} does not have a compatible header with {}'.format(
+                args.in_tractogram, args.in_dwi))
+        hdf5_keys = hdf5_file.keys()
+        for key in hdf5_keys:
+            tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
+                                                                key)
+            len_list.append(len(tmp_streamlines))
+            streamlines.extend(tmp_streamlines)
+        sft = StatefulTractogram(streamlines, args.in_dwi,
+                                 Space.VOX, origin=Origin.TRACKVIS)
+        tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
+        save_tractogram(sft, tmp_tractogram_filename)
+        args.in_tractogram = tmp_tractogram_filename
+
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
     shells_centroids, _ = identify_shells(bvals)
@@ -226,8 +253,14 @@ def main():
     commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
     commit_weights = commit_output_dict[2][:nbr_streamlines]
-    np.savetxt(os.path.join(commit_results_dir, 'streamlines_weights.txt'),
+    np.savetxt(os.path.join(commit_results_dir,
+                            'streamlines_commit_weights.txt'),
                commit_weights)
+    if ext == '.h5':
+        logging.debug('Writing commit_weights to hdf5.')
+        for i, key in enumerate(hdf5_keys):
+            group.create_dataset('commit_weights',
+                                 data=commit_weights[len_list[i]:len_list[i+1]])
 
     files = os.listdir(commit_results_dir)
     for f in files:
