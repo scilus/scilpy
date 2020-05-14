@@ -169,20 +169,28 @@ def main():
         streamlines = []
         len_list = [0]
         hdf5_file = h5py.File(args.in_tractogram, 'a')
-        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine) \
-            and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
+        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
+                and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
                 args.in_tractogram, args.in_dwi))
-        hdf5_keys = hdf5_file.keys()
+
+        # Keep track of the order of connections/streamlines in relation to the
+        # tractogram as well as the number of streamlines for each connection.
+        hdf5_keys = list(hdf5_file.keys())
         for key in hdf5_keys:
             tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
                                                                 key)
             len_list.append(len(tmp_streamlines))
             streamlines.extend(tmp_streamlines)
+        len_list = np.cumsum(len_list)
+
         sft = StatefulTractogram(streamlines, args.in_dwi,
                                  Space.VOX, origin=Origin.TRACKVIS)
         tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
+
+        # Keeping the input variable, saving trk file for COMMIT internal use
         save_tractogram(sft, tmp_tractogram_filename)
+        initial_hdf5_filename = args.in_tractogram
         args.in_tractogram = tmp_tractogram_filename
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
@@ -228,6 +236,7 @@ def main():
             mit.model.set(parallel_diff, perpendicular_diff, isotropc_diff)
 
         # The kernels are, by default, set to be in the current directory
+        # Depending on the choice, manually change the saving location
         if args.save_kernels:
             kernels_dir = os.path.join(args.save_kernels)
             regenerate_kernels = True
@@ -237,8 +246,8 @@ def main():
         else:
             kernels_dir = os.path.join(tmp_dir.name, 'kernels', mit.model.id)
             regenerate_kernels = True
-
         mit.set_config('ATOMS_path', kernels_dir)
+
         mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
         mit.load_kernels()
         mit.load_dictionary(tmp_dir.name)
@@ -257,20 +266,28 @@ def main():
     np.savetxt(os.path.join(commit_results_dir,
                             'commit_weights.txt'),
                commit_weights)
+
     if ext == '.h5':
-        logging.debug('Writing commit_weights to hdf5.')
+        # Assign the weights into the hdf5, while respecting the ordering of
+        # connections/streamlines
+        logging.debug('Addint commit weights to {}.'.format(
+            initial_hdf5_filename))
         for i, key in enumerate(hdf5_keys):
+            group = hdf5_file[key]
+            tmp_commit_weights = commit_weights[len_list[i]:len_list[i+1]]
+            if 'commit_weights' in group:
+                del group['commit_weights']
             group.create_dataset('commit_weights',
-                                 data=commit_weights[len_list[i]:len_list[i+1]])
+                                 data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
         shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
-    tmp_dir.cleanup()
 
     # Save split tractogram (valid/invalid) and/or saving the tractogram with
     # data_per_streamline updated
     if args.assign_weights or args.threshold_weights:
+        # Reload is needed because of COMMIT handling its file by itself
         tractogram_file = nib.streamlines.load(args.in_tractogram)
         tractogram = tractogram_file.tractogram
         tractogram.data_per_streamline['commit_weights'] = commit_weights
@@ -312,6 +329,10 @@ def main():
             logging.debug('Saving tractogram with weights as {}'.format(
                 output_filename))
             nib.streamlines.save(tractogram_file, output_filename)
+
+    # Cleanup the temporary directory
+    hdf5_file.close()
+    tmp_dir.cleanup()
 
 
 if __name__ == "__main__":

@@ -137,6 +137,7 @@ def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None):
 
     return reconstruct_streamlines(data, offsets, lengths, indices=indices)
 
+
 def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
     if isinstance(hdf5_filename, str):
         hdf5_file = h5py.File(hdf5_filename, 'r')
@@ -155,6 +156,7 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
     lengths = np.array(group['lengths'])
 
     return reconstruct_streamlines(data, offsets, lengths)
+
 
 def reconstruct_streamlines(data, offsets, lengths, indices=None):
     if indices is None:
