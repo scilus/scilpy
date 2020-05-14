@@ -1,4 +1,5 @@
 import itertools
+import logging
 import multiprocessing
 
 from dipy.direction.peaks import peak_directions
@@ -348,6 +349,9 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     rgb_map_array = rgb_map_array.reshape(data_shape[0:3] + (3,))
     gfa_map_array = gfa_map_array.reshape(data_shape[0:3])
     qa_map_array = qa_map_array.reshape(data_shape[0:3] + (npeaks,))
+
+    if np.all(np.max(afd_max_array, 1) == 1):
+        logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
     return(nufo_map_array, afd_max_array, afd_sum_array,
            rgb_map_array, gfa_map_array, qa_map_array)
