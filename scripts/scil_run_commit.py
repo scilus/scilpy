@@ -169,7 +169,8 @@ def main():
         streamlines = []
         len_list = [0]
         hdf5_file = h5py.File(args.in_tractogram, 'a')
-        if not np.allclose(hdf5_file.attrs['affine'], dwi_img.affine):
+        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine) \
+            and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
                 args.in_tractogram, args.in_dwi))
         hdf5_keys = hdf5_file.keys()
@@ -254,7 +255,7 @@ def main():
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
     commit_weights = commit_output_dict[2][:nbr_streamlines]
     np.savetxt(os.path.join(commit_results_dir,
-                            'streamlines_commit_weights.txt'),
+                            'commit_weights.txt'),
                commit_weights)
     if ext == '.h5':
         logging.debug('Writing commit_weights to hdf5.')
