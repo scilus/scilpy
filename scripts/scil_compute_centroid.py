@@ -9,16 +9,13 @@ import argparse
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import ResampleFeature
-from dipy.segment.metric import AveragePointwiseEuclideanMetric
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_reference_arg)
-import numpy as np
+from scilpy.tractanalysis.features import get_streamlines_centroid
 
 
 def _build_arg_parser():
@@ -39,17 +36,6 @@ def _build_arg_parser():
     return p
 
 
-def get_centroid_streamline(streamlines, nb_points):
-    resample_feature = ResampleFeature(nb_points=nb_points)
-    quick_bundle = QuickBundles(
-        threshold=np.inf,
-        metric=AveragePointwiseEuclideanMetric(resample_feature))
-    clusters = quick_bundle.cluster(streamlines)
-    centroid_streamlines = clusters.centroids
-
-    return centroid_streamlines
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -63,8 +49,8 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
-    centroid_streamlines = get_centroid_streamline(sft.streamlines,
-                                                   args.nb_points)
+    centroid_streamlines = get_streamlines_centroid(sft.streamlines,
+                                                    args.nb_points)
 
     sft = StatefulTractogram.from_sft(centroid_streamlines, sft)
 
