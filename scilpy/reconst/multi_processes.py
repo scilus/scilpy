@@ -93,22 +93,23 @@ def peaks_from_sh_parallel(args):
     peak_indices.fill(-1)
 
     for idx in range(len(shm_coeff)):
-        odf = np.dot(shm_coeff[idx], B)
-        odf[odf < absolute_threshold] = 0.
-        dirs, peaks, ind = peak_directions(odf, sphere,
-                                           relative_peak_threshold,
-                                           min_separation_angle)
+        if shm_coeff[idx].any():
+            odf = np.dot(shm_coeff[idx], B)
+            odf[odf < absolute_threshold] = 0.
+            dirs, peaks, ind = peak_directions(odf, sphere,
+                                            relative_peak_threshold,
+                                            min_separation_angle)
 
-        if peaks.shape[0] != 0:
-            n = min(npeaks, peaks.shape[0])
+            if peaks.shape[0] != 0:
+                n = min(npeaks, peaks.shape[0])
 
-            peak_dirs[idx][:n] = dirs[:n]
-            peak_indices[idx][:n] = ind[:n]
-            peak_values[idx][:n] = peaks[:n]
+                peak_dirs[idx][:n] = dirs[:n]
+                peak_indices[idx][:n] = ind[:n]
+                peak_values[idx][:n] = peaks[:n]
 
-            if normalize_peaks:
-                peak_values[idx][:n] /= peaks[0]
-                peak_dirs[idx] *= peak_values[idx][:, None]
+                if normalize_peaks:
+                    peak_values[idx][:n] /= peaks[0]
+                    peak_dirs[idx] *= peak_values[idx][:, None]
 
     return chunk_id, peak_dirs, peak_values, peak_indices
 
@@ -225,7 +226,7 @@ def maps_from_sh_parallel(args):
     max_odf = 0
     global_max = -np.inf
     for idx in range(len(shm_coeff)):
-        if not np.isnan(shm_coeff[idx]).any():
+        if shm_coeff[idx].any():
             odf = np.dot(shm_coeff[idx], B)
             odf = odf.clip(min=0)
             sum_odf = np.sum(odf)
