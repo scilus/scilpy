@@ -2,13 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to load and transform cortical surface (vtk or freesurfer),
+Script to load and transform a surface (FreeSurfer or VTK supported),
 This script is using ANTs transform (affine.txt, warp.nii.gz).
 
-Best usage for with ANTs from T1 to b0:
+Best usage with ANTs from T1 to b0:
 > ConvertTransformFile 3 output0GenericAffine.mat vtk_transfo.txt --hm
 > scil_transform_surface.py lh_white_lps.vtk affine.txt lh_white_b0.vtk\\
     --ants_warp warp.nii.gz
+
+The input surface needs to be in *T1 world LPS* coordinates
+(aligned over the T1 in MI-Brain).
+The resulting surface should be aligned *b0 world LPS* coordinates
+(aligned over the b0 in MI-Brain).
 """
 
 import argparse
@@ -31,39 +36,39 @@ References:
 """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('surface',
-                   help='Input surface (FreeSurfer or supported by VTK).')
+    p.add_argument('in_surface',
+                   help='Input surface (.vtk).')
 
     p.add_argument('ants_affine',
                    help='Affine transform from ANTs (.txt).')
 
     p.add_argument('out_surface',
-                   help='Output surface (formats supported by VTK).')
+                   help='Output surface (.vtk).')
 
     p.add_argument('--ants_warp',
-                   help='Warp image from ANTs.')
+                   help='Warp image from ANTs (NIfTI format).')
 
     add_overwrite_arg(p)
     return p
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.surface, args.ants_affine],
+    assert_inputs_exist(parser, [args.in_surface, args.ants_affine],
                         args.ants_warp)
     assert_outputs_exist(parser, args, args.out_surface)
 
     # Load mesh
-    mesh = load_mesh_from_file(args.surface)
+    mesh = load_mesh_from_file(args.in_surface)
 
     # Affine transformation
-    if args.ants_affine is not None:
+    if args.ants_affine:
         # Load affine
         affine = np.loadtxt(args.ants_affine)
         inv_affine = np.linalg.inv(affine)
@@ -75,10 +80,10 @@ def main():
         if mesh.is_transformation_flip(inv_affine):
             mesh.set_triangles(mesh.triangles_face_flip())
 
-    if args.ants_warp is not None:
+    if args.ants_warp:
         # Load warp
         warp_img = nib.load(args.ants_warp)
-        warp = np.squeeze(warp_img.get_data())
+        warp = np.squeeze(warp_img.get_fdata())
 
         # Get vertices translation in voxel space, from the warp image
         vts_vox = vtk_u.vtk_to_vox(mesh.get_vertices(), warp_img)
