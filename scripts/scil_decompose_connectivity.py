@@ -29,6 +29,7 @@ from dipy.io.stateful_tractogram import (Origin, Space,
                                          StatefulTractogram,
                                          set_sft_logger_level)
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import get_reference_info
 from dipy.tracking.streamlinespeed import length
 import h5py
 import nibabel as nib
@@ -106,6 +107,8 @@ def _save_if_needed(streamlines, hdf5_file, args,
                                                      dtype=np.float32))
         group.create_dataset('offsets', data=streamlines._offsets)
         group.create_dataset('lengths', data=streamlines._lengths)
+
+
 
     if args.out_dir:
         saving_options = _get_saving_options(args)
@@ -299,6 +302,12 @@ def main():
 
     iteration_counter = 0
     hdf5_file = h5py.File(args.out_hdf5, 'w')
+    affine, dimensions, voxel_sizes, voxel_order = get_reference_info(sft)
+    hdf5_file.attrs['affine'] = affine
+    hdf5_file.attrs['dimensions'] = dimensions
+    hdf5_file.attrs['voxel_sizes'] = voxel_sizes
+    hdf5_file.attrs['voxel_order'] = voxel_order
+
     for in_label, out_label in comb_list:
         if iteration_counter > 0 and iteration_counter % 100 == 0:
             logging.info('Split {} nodes out of {}'.format(iteration_counter,
