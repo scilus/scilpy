@@ -195,6 +195,10 @@ def main():
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
 
     if args.peaks:
+        peak_values = np.divide(peak_values, peak_values[..., 0, None],
+                                out=np.zeros_like(peak_values),
+                                where=peak_values[..., 0, None]!=0)
+        peak_dirs[...] *= peak_values[..., :, None]
         nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
                                  affine), args.peaks)
 
