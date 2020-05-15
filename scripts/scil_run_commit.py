@@ -168,7 +168,7 @@ def main():
             args.in_tractogram))
         streamlines = []
         len_list = [0]
-        hdf5_file = h5py.File(args.in_tractogram, 'a')
+        hdf5_file = h5py.File(args.in_tractogram, 'r')
         if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
                 and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
@@ -190,7 +190,6 @@ def main():
 
         # Keeping the input variable, saving trk file for COMMIT internal use
         save_tractogram(sft, tmp_tractogram_filename)
-        initial_hdf5_filename = args.in_tractogram
         args.in_tractogram = tmp_tractogram_filename
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
@@ -268,10 +267,14 @@ def main():
                commit_weights)
 
     if ext == '.h5':
+        new_filename = os.path.join(commit_results_dir,
+                                    'decompose_commit.h5')
+        shutil.copy(args.in_hdf5, new_filename)
+        hdf5_file = h5py.File(new_filename, 'a')
+
         # Assign the weights into the hdf5, while respecting the ordering of
         # connections/streamlines
-        logging.debug('Addint commit weights to {}.'.format(
-            initial_hdf5_filename))
+        logging.debug('Adding commit weights to {}.'.format(new_filename))
         for i, key in enumerate(hdf5_keys):
             group = hdf5_file[key]
             tmp_commit_weights = commit_weights[len_list[i]:len_list[i+1]]
