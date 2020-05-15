@@ -160,7 +160,7 @@ def main():
                                      relative_peak_threshold=.5,
                                      absolute_threshold=args.at,
                                      min_separation_angle=25,
-                                     normalize_peaks=True,
+                                     normalize_peaks=False,
                                      sh_basis_type=args.sh_basis,
                                      nbr_processes=args.nbr_processes)
 
