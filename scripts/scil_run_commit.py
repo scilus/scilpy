@@ -190,6 +190,7 @@ def main():
 
         # Keeping the input variable, saving trk file for COMMIT internal use
         save_tractogram(sft, tmp_tractogram_filename)
+        initial_hdf5_filename = args.in_tractogram
         args.in_tractogram = tmp_tractogram_filename
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
@@ -269,7 +270,7 @@ def main():
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
-        shutil.copy(args.in_hdf5, new_filename)
+        shutil.copy(initial_hdf5_filename, new_filename)
         hdf5_file = h5py.File(new_filename, 'a')
 
         # Assign the weights into the hdf5, while respecting the ordering of
