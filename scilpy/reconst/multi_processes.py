@@ -350,7 +350,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     gfa_map_array = gfa_map_array.reshape(data_shape[0:3])
     qa_map_array = qa_map_array.reshape(data_shape[0:3] + (npeaks,))
 
-    if np.all(np.max(afd_max_array, 1, axis=-1) == 1):
+    afd_unique = np.unique(afd_max_array)
+    if np.allclose(afd_unique, [0, 1]) or np.allclose(afd_unique, [1]):
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
     return(nufo_map_array, afd_max_array, afd_sum_array,
