@@ -7,9 +7,11 @@ Compute a connectivity matrix from a tractogram and a parcellation.
 Current strategy is to keep the longest streamline segment connecting
 2 regions. If the streamline crosses other gray matter regions before
 reaching its final connected region, the kept connection is still the
-longest.
+longest. This is robust to compressed streamlines.
 
-This is robust to compressed streamlines.
+The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
+group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
+The 'data' is stored in VOX/CORNER for simplicity and efficiency.
 
 NOTE: this script can take a while to run. Please be patient.
 Example: on a tractogram with 1.8M streamlines, running on a SSD:
@@ -108,8 +110,6 @@ def _save_if_needed(streamlines, hdf5_file, args,
         group.create_dataset('offsets', data=streamlines._offsets)
         group.create_dataset('lengths', data=streamlines._lengths)
 
-
-
     if args.out_dir:
         saving_options = _get_saving_options(args)
         out_paths = _get_output_paths(args)
@@ -148,7 +148,7 @@ def build_arg_parser():
                    help='Labels file name (nifti). Labels must have 0 as '
                         'background.')
     p.add_argument('out_hdf5',
-                   help='Output directory path.')
+                   help='Output hdf5 file (.h5).')
 
     post_proc = p.add_argument_group('Post-processing options')
     post_proc.add_argument('--no_pruning', action='store_true',
@@ -186,7 +186,8 @@ def build_arg_parser():
 
     s = p.add_argument_group('Saving options')
     s.add_argument('--out_dir',
-                   help='Output directory for the streamlines representation.')
+                   help='Output directory for each connection as separate '
+                        'file (.trk).')
     s.add_argument('--save_raw_connections', action='store_true',
                    help='If set, will save all raw cut connections in a '
                         'subdirectory.')
@@ -255,6 +256,10 @@ def main():
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
+
+    if not is_header_compatible(sft, img_labels):
+        raise IOError('{} and {}do not have a compatible header'.format(
+            args.in_tractogram, args.in_labels))
 
     logging.info('*** Filtering streamlines ***')
     original_len = len(sft)

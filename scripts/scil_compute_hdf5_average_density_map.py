@@ -2,16 +2,21 @@
 # encoding: utf-8
 
 """
-Compute a density map for each edges of a connection from a HDF5 file.
+Compute a density map for each connection from a hdf5 file.
 Typically use after scil_decompose_connectivity.py in order to obtain the
-average density map of each connections to enable the use of --similarity
+average density map of each connection to allow the use of --similarity
 in scil_compute_connectivity.py.
 
-This script is parallelize, but will run much slower on non-SSD if too many
-processes are used.
-
-This script correctly handles compressed streamlines.
+This script is parallelized, but will run much slower on non-SSD if too many
+processes are used. The output is a directory containing the thousands of
+connections:
+out_dir/
+    ├── LABEL1_LABEL1.nii.gz
+    ├── LABEL1_LABEL2.nii.gz
+    ├── [...]
+    └── LABEL90_LABEL90.nii.gz
 """
+
 import argparse
 import itertools
 import multiprocessing
@@ -33,11 +38,8 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_hdf5', nargs='+',
-                   help='List of HDF5 filenames (.h5) containing streamlines '
-                        'data, offsets and lengths.')
-    p.add_argument('population_template',
-                   help='Reference anatomy for the streamlines '
-                        '(.nii or .nii.gz).')
+                   help='List of HDF5 filenames (.h5) from '
+                        'scil_decompose_connectivity.py.')
     p.add_argument('out_dir',
                    help='Path of the output directory.')
 
@@ -52,16 +54,23 @@ def _build_arg_parser():
 def average_wrapper(args):
     hdf5_filenames = args[0]
     key = args[1]
-    template_img = args[2]
-    binary = args[3]
-    out_dir = args[4]
+    binary = args[2]
+    out_dir = args[3]
 
-    density_data = np.zeros(template_img.shape, dtype=np.float32)
+    hdf5_file_ref = h5py.File(hdf5_filenames[0], 'r')
+    affine = hdf5_file_ref.attrs['affine']
+    dimensions = hdf5_file_ref.attrs['dimensions']
+    density_data = np.zeros(dimensions, dtype=np.float32)
     for hdf5_filename in hdf5_filenames:
         hdf5_file = h5py.File(hdf5_filename, 'r')
+
+        if not (np.allclose(hdf5_file.attrs['affine'], affine)
+                and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+            raise raise IOError('{} do not have a compatible header'.format(
+                hdf5_filename))
         # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-        density = compute_tract_counts_map(streamlines, template_img.shape)
+        density = compute_tract_counts_map(streamlines, dimensions)
         hdf5_file.close()
 
         if binary:
@@ -72,7 +81,7 @@ def average_wrapper(args):
     if np.max(density_data) > 0:
         density_data /= len(hdf5_filenames)
 
-        nib.save(nib.Nifti1Image(density_data, template_img.affine),
+        nib.save(nib.Nifti1Image(density_data, affine),
                  os.path.join(out_dir, '{}.nii.gz'.format(key)))
 
 
@@ -80,7 +89,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_hdf5+[args.population_template])
+    assert_inputs_exist(parser, args.in_hdf5)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
@@ -90,12 +99,10 @@ def main():
         keys.extend(curr_file.keys())
         curr_file.close()
 
-    template_img = nib.load(args.population_template)
     pool = multiprocessing.Pool(args.nbr_processes)
     _ = pool.map(average_wrapper,
                  zip(itertools.repeat(args.in_hdf5),
                      keys,
-                     itertools.repeat(template_img),
                      itertools.repeat(args.binary),
                      itertools.repeat(args.out_dir)))
     pool.close()

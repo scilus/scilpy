@@ -80,8 +80,12 @@ def _processing_wrapper(args):
         return
     streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
 
-    _, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
+    affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
+
+    if not (np.allclose(hdf5_file.attrs['affine'], affine)
+            and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+        raise ValueError('Provided hdf5 have incompatible headers.')
 
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:
@@ -156,7 +160,8 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter,)
     p.add_argument('in_hdf5',
-                   help='Input filename for the hdf5 container (.h5).')
+                   help='Input filename for the hdf5 container (.h5).\n'
+                        'Obtained from scil_decompose_connectivity.py.')
     p.add_argument('in_labels',
                    help='Labels file name (nifti).\n'
                         'This generates a NxN connectivity matrix.')
