@@ -5,6 +5,8 @@ from itertools import count, takewhile
 import logging
 
 from dipy.segment.clustering import Cluster, QuickBundles, qbx_and_merge
+from dipy.segment.metric import ResampleFeature
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
 import numpy as np
 
@@ -20,39 +22,38 @@ def remove_loops_and_sharp_turns(streamlines,
     ----------
     streamlines: list of ndarray
         The list of streamlines from which to remove loops and sharp turns.
+    max_angle: float
+        Maximal winding angle a streamline can have before
+        being classified as a loop.
     use_qb: bool
         Set to True if the additional QuickBundles pass is done.
         This will help remove sharp turns. Should only be used on
         bundled streamlines, not on whole-brain tractograms.
-    max_angle: float
-        Maximal winding angle a streamline can have before
-        being classified as a loop.
     qb_threshold: float
         Quickbundles distance threshold, only used if use_qb is True.
+    qb_seed: int
+        Seed to initialize randomness in QuickBundles
 
     Returns
     -------
-    A tuple containing
-        list of ndarray: the clean streamlines
-        list of ndarray: the list of removed streamlines, if any
+    list: the ids of clean streamlines
+        Only the ids are returned so proper filtering can be done afterwards
     """
 
-    loops = []
     streamlines_clean = []
-    for s in streamlines:
-        if tm.winding(s) >= max_angle:
-            loops.append(s)
-        else:
+    ids = []
+    for i, s in enumerate(streamlines):
+        if tm.winding(s) < max_angle:
+            ids.append(i)
             streamlines_clean.append(s)
 
     if use_qb:
         if len(streamlines_clean) > 1:
-            streamlines = streamlines_clean
             curvature = []
-            streamlines_clean = []
 
             rng = np.random.RandomState(qb_seed)
-            clusters = qbx_and_merge(streamlines, [40, 30, 20, qb_threshold],
+            clusters = qbx_and_merge(streamlines_clean,
+                                     [40, 30, 20, qb_threshold],
                                      rng=rng, verbose=False)
 
             for cc in clusters.centroids:
@@ -60,18 +61,13 @@ def remove_loops_and_sharp_turns(streamlines,
             mean_curvature = sum(curvature)/len(curvature)
 
             for i in range(len(clusters.centroids)):
-                if tm.mean_curvature(clusters.centroids[i]) > mean_curvature:
-                    for indice in clusters[i].indices:
-                        loops.append(streamlines[indice])
-                else:
-                    for indice in clusters[i].indices:
-                        streamlines_clean.append(streamlines[indice])
+                if tm.mean_curvature(clusters.centroids[i]) <= mean_curvature:
+                    ids.extend(clusters[i].indices)
         else:
             logging.debug("Impossible to use the use_qb option because " +
                           "not more than one streamline left from the\n" +
                           "input file.")
-
-    return streamlines_clean, loops
+    return ids
 
 
 def get_streamlines_bounding_box(streamlines):
@@ -219,3 +215,28 @@ def remove_outliers(streamlines, threshold):
                                refdata=streamlines)
 
     return no_outliers_strl, outliers_strl
+
+
+def get_streamlines_centroid(streamlines, nb_points):
+    """
+    Compute centroid from streamlines using QuickBundles.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which we compute the centroid.
+    nb_points: int
+        Number of points defining the centroid streamline.
+
+    Returns
+    -------
+    centroid as ndarray
+    """
+    resample_feature = ResampleFeature(nb_points=nb_points)
+    quick_bundle = QuickBundles(
+        threshold=np.inf,
+        metric=AveragePointwiseEuclideanMetric(resample_feature))
+    clusters = quick_bundle.cluster(streamlines)
+    centroid_streamlines = clusters.centroids
+
+    return centroid_streamlines

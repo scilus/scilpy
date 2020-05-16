@@ -19,6 +19,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -31,7 +32,7 @@ EPILOG = """
     """
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
@@ -64,7 +65,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     image_files = []
@@ -95,7 +96,7 @@ def main():
     for i in range(len(image_files)):
         # Load images
         volume_nib = nib.load(image_files[i])
-        data = np.round(volume_nib.get_data()).astype(np.int)
+        data = get_data_as_label(volume_nib)
         data_list.append(data)
         assert (is_header_compatible(first_img, image_files[i]))
 
@@ -122,7 +123,7 @@ def main():
     elif args.group_in_m:
         m_list = []
         for i in range(len(filtered_ids_per_vol)):
-            prefix = i * 1000000
+            prefix = i * 10000
             m_list.append(prefix + np.asarray(filtered_ids_per_vol[i]))
         out_labels = np.hstack(m_list)
     else:
@@ -134,7 +135,7 @@ def main():
 
     # Create the resulting volume
     current_id = 0
-    resulting_labels = (np.ones_like(data_list[0], dtype=np.int)
+    resulting_labels = (np.ones_like(data_list[0], dtype=np.uint16)
                         * args.background)
     for i in range(len(image_files)):
         # Add Given labels for each volume
@@ -147,8 +148,9 @@ def main():
                 logging.warning("Label {} was not in the volume".format(index))
 
     # Save final combined volume
-    nii = nib.Nifti1Image(resulting_labels, first_img.affine, first_img.header)
-    nib.save(nii, args.output)
+    nib.save(nib.Nifti1Image(resulting_labels, first_img.affine,
+                             header=first_img.header),
+             args.output)
 
 
 if __name__ == "__main__":

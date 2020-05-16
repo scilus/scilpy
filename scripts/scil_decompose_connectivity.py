@@ -30,9 +30,10 @@ from dipy.io.stateful_tractogram import (Origin, Space,
                                          set_sft_logger_level)
 from dipy.io.streamline import save_tractogram
 from dipy.tracking.streamlinespeed import length
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg,
@@ -102,6 +103,7 @@ def _save_if_needed(streamlines, args,
                                                    out_label))
         sft = StatefulTractogram(streamlines, args.in_tractogram,
                                  Space.VOX, origin=Origin.TRACKVIS)
+
         save_tractogram(sft, out_name)
 
 
@@ -118,17 +120,16 @@ def _prune_segments(segments, min_length, max_length, vox_size):
     return valid, invalid
 
 
-def build_args_parser():
+def build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
-    p.add_argument('labels',
-                   help='Labels file name (nifti). Labels must be consecutive '
-                        'from 0 to N, with 0 the background. '
-                        'This generates a NxN connectivity matrix.')
+    p.add_argument('in_labels',
+                   help='Labels file name (nifti). Labels must have 0 as '
+                        'background.')
     p.add_argument('output_dir',
                    help='Output directory path.')
 
@@ -156,14 +157,14 @@ def build_args_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.3,
+    og.add_argument('--outlier_threshold', type=float, default=0.5,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
-    og.add_argument('--loop_max_angle', type=float, default=360.,
+    og.add_argument('--loop_max_angle', type=float, default=330.,
                     help='Maximal winding angle over which a streamline is '
                          'considered as looping. [%(default)s]')
     og.add_argument('--curv_qb_distance', type=float, default=10.,
-                    help='Maximal distance to a centroid for loop / turn '
+                    help='Maximal distance to a centroid for curvature '
                          'filtering with QB. [%(default)s]')
 
     s = p.add_argument_group('Saving options')
@@ -178,18 +179,22 @@ def build_args_parser():
                         'subdirectories.\n'
                         'Includes loops, outliers and qb_loops')
 
-    add_overwrite_arg(p)
+    p.add_argument('--out_labels_list', metavar='OUT_FILE',
+                   help='Save the labels list as text file.\n'
+                        'Needed for scil_compute_connectivity.py and others.')
+
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
 
 def main():
-    parser = build_args_parser()
+    parser = build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
 
     if os.path.abspath(args.output_dir) == os.getcwd():
         parser.error('Do not use the current path as output directory.')
@@ -204,9 +209,12 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
-    img_labels = nb.load(args.labels)
-    data_labels = img_labels.get_data()
+    img_labels = nib.load(args.in_labels)
+    data_labels = get_data_as_label(img_labels)
     real_labels = np.unique(data_labels)[1:]
+    if args.out_labels_list:
+        np.savetxt(args.out_labels_list, real_labels, fmt='%i')
+
     if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
         parser.error("Label image should contain integers for labels.")
 
@@ -223,37 +231,35 @@ def main():
         len(sft), round(time2 - time1, 2)))
 
     logging.info('*** Filtering streamlines ***')
-    data_mask=np.zeros(data_labels.shape)
-    data_mask[data_labels > 0]=1
-
-    original_len=len(sft)
-    time1=time.time()
+    original_len = len(sft)
+    time1 = time.time()
 
     sft.to_vox()
     sft.to_corner()
     sft.remove_invalid_streamlines()
-    time2=time.time()
-    logging.info('    Discarded {} streamlines from filtering in {} sec.'.format(
-        original_len - len(sft), round(time2 - time1, 2)))
+    time2 = time.time()
+    logging.info(
+        '    Discarded {} streamlines from filtering in {} sec.'.format(
+            original_len - len(sft), round(time2 - time1, 2)))
     logging.info('    Number of streamlines to process: {}'.format(len(sft)))
 
     # Get all streamlines intersection indices
     logging.info('*** Computing streamlines intersection ***')
-    time1=time.time()
+    time1 = time.time()
 
-    indices, points_to_idx=uncompress(sft.streamlines, return_mapping=True)
+    indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
 
-    time2=time.time()
+    time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))
 
     # Compute the connectivity mapping
     logging.info('*** Computing connectivity information ***')
-    time1=time.time()
-    con_info=compute_connectivity(indices,
-                                    img_labels.get_data(), real_labels,
+    time1 = time.time()
+    con_info = compute_connectivity(indices,
+                                    data_labels, real_labels,
                                     extract_longest_segments_from_profile)
-    time2=time.time()
+    time2 = time.time()
     logging.info('    Connectivity computation took {} sec.'.format(
         round(time2 - time1, 2)))
 
@@ -262,19 +268,20 @@ def main():
 
     logging.info('*** Starting connection post-processing and saving. ***')
     logging.info('    This can be long, be patient.')
-    time1=time.time()
+    time1 = time.time()
 
     # Saving will be done from streamlines already in the right space
-    comb_list=list(itertools.combinations(real_labels, r=2))
+    comb_list = list(itertools.combinations(real_labels, r=2))
+    comb_list.extend(zip(real_labels, real_labels))
 
-    iteration_counter=0
+    iteration_counter = 0
     for in_label, out_label in comb_list:
         if iteration_counter > 0 and iteration_counter % 100 == 0:
             logging.info('Split {} nodes out of {}'.format(iteration_counter,
-                          len(comb_list)))
+                                                           len(comb_list)))
         iteration_counter += 1
 
-        pair_info=[]
+        pair_info = []
         if in_label not in con_info:
             continue
         elif out_label in con_info[in_label]:
@@ -288,10 +295,10 @@ def main():
         if not len(pair_info):
             continue
 
-        connecting_streamlines=[]
+        connecting_streamlines = []
         for connection in pair_info:
-            strl_idx=connection['strl_idx']
-            curr_streamlines=compute_streamline_segment(
+            strl_idx = connection['strl_idx']
+            curr_streamlines = compute_streamline_segment(
                 sft.streamlines[strl_idx],
                 indices[strl_idx],
                 connection['in_idx'],
@@ -304,16 +311,17 @@ def main():
 
         # Doing all post-processing
         if not args.no_pruning:
-            valid_length, invalid_length=_prune_segments(connecting_streamlines,
-                                                           args.min_length,
-                                                           args.max_length,
-                                                           vox_sizes[0])
+            valid_length, invalid_length = _prune_segments(
+                connecting_streamlines,
+                args.min_length,
+                args.max_length,
+                vox_sizes[0])
 
             _save_if_needed(invalid_length, args,
                             'discarded', 'invalid_length',
                             in_label, out_label)
         else:
-            valid_length=connecting_streamlines
+            valid_length = connecting_streamlines
 
         if not len(valid_length):
             continue
@@ -322,12 +330,17 @@ def main():
                         'intermediate', 'valid_length', in_label, out_label)
 
         if not args.no_remove_loops:
-            no_loops, loops=remove_loops_and_sharp_turns(valid_length,
-                                                           args.loop_max_angle)
+            no_loop_ids = remove_loops_and_sharp_turns(valid_length,
+                                                       args.loop_max_angle)
+            no_loops = [valid_length[i] for i in no_loop_ids]
+
+            loop_ids = np.setdiff1d(np.arange(len(valid_length)), no_loop_ids)
+            loops = [valid_length[i] for i in loop_ids]
+
             _save_if_needed(loops, args,
                             'discarded', 'loops', in_label, out_label)
         else:
-            no_loops=valid_length
+            no_loops = valid_length
 
         if not len(no_loops):
             continue
@@ -336,12 +349,12 @@ def main():
                         'intermediate', 'no_loops', in_label, out_label)
 
         if not args.no_remove_outliers:
-            inliers, outliers=remove_outliers(no_loops,
+            inliers, outliers = remove_outliers(no_loops,
                                                 args.outlier_threshold)
             _save_if_needed(outliers, args,
                             'discarded', 'outliers', in_label, out_label)
         else:
-            inliers=no_loops
+            inliers = no_loops
 
         if not len(inliers):
             continue
@@ -350,22 +363,29 @@ def main():
                         'intermediate', 'inliers', in_label, out_label)
 
         if not args.no_remove_curv_dev:
-            no_qb_curv, qb_curv=remove_loops_and_sharp_turns(
+            no_qb_curv_ids = remove_loops_and_sharp_turns(
                 inliers,
                 args.loop_max_angle,
-                True,
-                args.curv_qb_distance)
+                use_qb=True,
+                qb_threshold=args.curv_qb_distance)
+            no_qb_curv = [inliers[i] for i in no_qb_curv_ids]
+
+            qb_curv_ids = np.setdiff1d(
+                np.arange(len(inliers)), no_qb_curv_ids)
+            qb_curv = [inliers[i] for i in qb_curv_ids]
+
             _save_if_needed(qb_curv, args,
                             'discarded', 'qb_curv', in_label, out_label)
         else:
-            no_qb_curv=inliers
+            no_qb_curv = inliers
 
         _save_if_needed(no_qb_curv, args,
                         'final', 'final', in_label, out_label)
 
-    time2=time.time()
-    logging.info('    Connections post-processing and saving took {} sec.'.format(
-        round(time2 - time1, 2)))
+    time2 = time.time()
+    logging.info(
+        '    Connections post-processing and saving took {} sec.'.format(
+            round(time2 - time1, 2)))
 
 
 if __name__ == "__main__":

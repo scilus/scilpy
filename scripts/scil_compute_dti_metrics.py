@@ -22,8 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging
@@ -41,6 +39,7 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               radial_diffusivity, lower_triangular)
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
@@ -55,7 +54,7 @@ def _get_min_nonzero_signal(data):
     return np.min(data[data > 0])
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -138,7 +137,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if not args.not_all:
@@ -170,12 +169,12 @@ def main():
     assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
-    data = img.get_data()
+    data = img.get_fdata(dtype=np.float32)
     affine = img.get_affine()
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))

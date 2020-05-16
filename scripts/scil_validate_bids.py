@@ -14,7 +14,7 @@ import json
 from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
@@ -221,7 +221,7 @@ def get_data(nSub, dwi, t1s, associations, default_readout):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_outputs_exist(parser, args, args.output_json)

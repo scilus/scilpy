@@ -8,8 +8,6 @@ A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
 """
 
-from __future__ import division
-
 import argparse
 import logging
 
@@ -17,7 +15,8 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
+from scilpy.io.utils import (add_force_b0_arg,
+                             add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_ssst_frf
 
@@ -74,9 +73,7 @@ def _build_arg_parser():
              'roi_radius. [center of the 3D volume]')
 
     add_overwrite_arg(p)
-
-    p.add_argument('--verbose', '-v', action='store_true',
-                   help='Produce verbose output.')
+    add_verbose_arg(p)
 
     return p
 

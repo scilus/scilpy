@@ -2,8 +2,11 @@
 
 from functools import reduce
 import itertools
+import logging
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -62,8 +65,8 @@ def intersection(left, right):
     return {k: v for k, v in left.items() if k in right}
 
 
-def subtraction(left, right):
-    """Subtraction of two streamlines dict (see hash_streamlines)"""
+def difference(left, right):
+    """Difference of two streamlines dict (see hash_streamlines)"""
     return {k: v for k, v in left.items() if k not in right}
 
 
@@ -85,7 +88,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
 
     A valid operation is any function that takes two streamlines dict as input
     and produces a new streamlines dict (see hash_streamlines). Union,
-    subtraction, and intersection are valid examples of operations.
+    difference, and intersection are valid examples of operations.
 
     Parameters
     ----------
@@ -122,7 +125,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def warp_streamlines(sft, deformation_data, source):
+def warp_streamlines(sft, deformation_data, source='ants'):
     """ Warp tractogram using a deformation map. Apply warp in-place.
     Support Ants and Dipy deformation map.
 
@@ -186,3 +189,99 @@ def warp_streamlines(sft, deformation_data, source):
         nb_iteration -= 1
 
         return streamlines
+
+
+def filter_tractogram_data(tractogram, streamline_ids):
+    """ Filter tractogram according to streamline ids and keep the data
+
+    Parameters:
+    -----------
+    tractogram: StatefulTractogram
+        Tractogram containing the data to be filtered
+    streamline_ids: array_like
+        List of streamline ids the data corresponds to
+
+    Returns:
+    --------
+    new_tractogram: Tractogram or StatefulTractogram
+        Returns a new tractogram with only the selected streamlines
+        and data
+    """
+
+    streamline_ids = np.asarray(streamline_ids, dtype=np.int)
+
+    assert np.all(
+        np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
+    ), "Received ids outside of streamline range"
+
+    new_streamlines = tractogram.streamlines[streamline_ids]
+    new_data_per_streamline = tractogram.data_per_streamline[streamline_ids]
+    new_data_per_point = tractogram.data_per_point[streamline_ids]
+
+    # Could have been nice to deepcopy the tractogram modify the attributes in
+    # place instead of creating a new one, but tractograms cant be subsampled
+    # if they have data
+
+    return StatefulTractogram.from_sft(
+        new_streamlines,
+        tractogram,
+        data_per_point=new_data_per_point,
+        data_per_streamline=new_data_per_streamline)
+
+
+def compress_sft(sft, tol_error=0.01):
+    """ Compress a stateful tractogram. Uses Dipy's compress_streamlines, but
+    deals with space better.
+
+    Dipy's description:
+    The compression consists in merging consecutive segments that are
+    nearly collinear. The merging is achieved by removing the point the two
+    segments have in common.
+
+    The linearization process [Presseau15]_ ensures that every point being
+    removed are within a certain margin (in mm) of the resulting streamline.
+    Recommendations for setting this margin can be found in [Presseau15]_
+    (in which they called it tolerance error).
+
+    The compression also ensures that two consecutive points won't be too far
+    from each other (precisely less or equal than `max_segment_length`mm).
+    This is a tradeoff to speed up the linearization process [Rheault15]_. A low
+    value will result in a faster linearization but low compression, whereas
+    a high value will result in a slower linearization but high compression.
+
+    [Presseau C. et al., A new compression format for fiber tracking datasets,
+    NeuroImage, no 109, 73-83, 2015.]
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to compress.
+    tol_error: float (optional)
+        Tolerance error in mm (default: 0.01). A rule of thumb is to set it
+        to 0.01mm for deterministic streamlines and 0.1mm for probabilitic
+        streamlines.
+
+    Returns
+    -------
+    compressed_sft : StatefulTractogram
+    """
+    # Go to world space
+    orig_space = sft.space
+    sft.to_rasmm()
+
+    # Compress streamlines
+    compressed_streamlines = compress_streamlines(sft.streamlines,
+                                                  tol_error=tol_error)
+    if sft.data_per_point is not None:
+        logging.warning("Initial stateful tractogram contained data_per_point. "
+                        "This information will not be carried in the final"
+                        "tractogram.")
+
+    compressed_sft = StatefulTractogram.from_sft(
+        compressed_streamlines, sft,
+        data_per_streamline=sft.data_per_streamline)
+
+    # Return to original space
+    compressed_sft.to_space(orig_space)
+
+    return compressed_sft

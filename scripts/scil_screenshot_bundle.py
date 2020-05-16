@@ -36,7 +36,7 @@ from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -53,7 +53,7 @@ def _build_args_parser():
     sub_color.add_argument('--local_coloring', action='store_true',
                            help='Color streamlines local segments orientation.')
     sub_color.add_argument('--uniform_coloring', nargs=3,
-                           metavar=('R', 'G', 'B'), type=int,
+                           metavar=('R', 'G', 'B'), type=float,
                            help='Color streamlines with uniform coloring.')
     sub_color.add_argument('--reference_coloring',
                            metavar='COLORBAR',
@@ -134,7 +134,7 @@ def plot_glass_brain(args, sft, img, output_filenames):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
     required = [args.in_bundle, args.in_anat]
     assert_inputs_exist(parser, required, args.target_template)

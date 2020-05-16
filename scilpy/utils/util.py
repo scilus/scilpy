@@ -47,3 +47,12 @@ def str_to_index(axis):
         return axes[axis]
 
     return None
+
+
+def is_float(value):
+    """Returns True if the argument can be casted to a float."""
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False

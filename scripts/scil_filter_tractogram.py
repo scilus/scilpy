@@ -24,6 +24,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label, get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -36,7 +37,7 @@ from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
                                         filter_grid_roi)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
@@ -82,22 +83,29 @@ def _build_args_parser():
 
 def prepare_filtering_list(parser, args):
     roi_opt_list = []
+    only_filtering_list = True
     if args.drawn_roi:
+        only_filtering_list = False
         for roi_opt in args.drawn_roi:
             roi_opt_list.append(['drawn_roi'] + roi_opt)
     if args.atlas_roi:
+        only_filtering_list = False
         for roi_opt in args.atlas_roi:
             roi_opt_list.append(['atlas_roi'] + roi_opt)
     if args.bdo:
+        only_filtering_list = False
         for roi_opt in args.bdo:
             roi_opt_list.append(['bdo'] + roi_opt)
     if args.x_plane:
+        only_filtering_list = False
         for roi_opt in args.x_plane:
             roi_opt_list.append(['x_plane'] + roi_opt)
     if args.y_plane:
+        only_filtering_list = False
         for roi_opt in args.y_plane:
             roi_opt_list.append(['y_plane'] + roi_opt)
     if args.z_plane:
+        only_filtering_list = False
         for roi_opt in args.z_plane:
             roi_opt_list.append(['z_plane'] + roi_opt)
     if args.filtering_list:
@@ -121,11 +129,11 @@ def prepare_filtering_list(parser, args):
             parser.error('{} is not a valid option for filter_criteria'.format(
                 filter_criteria))
 
-    return roi_opt_list
+    return roi_opt_list, only_filtering_list
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
@@ -133,20 +141,28 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    roi_opt_list = prepare_filtering_list(parser, args)
+    roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
+    o_dict = {}
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # Streamline count before filtering
-    sc_bf = len(sft.streamlines)
+    o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
 
     for i, roi_opt in enumerate(roi_opt_list):
+        curr_dict = {}
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
             filter_type, filter_arg, filter_arg_2, \
                 filter_mode, filter_criteria = roi_opt
         else:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
+
+        curr_dict['filename'] = os.path.abspath(filter_arg)
+        curr_dict['type'] = filter_type
+        curr_dict['mode'] = filter_mode
+        curr_dict['criteria'] = filter_criteria
+
         is_exclude = False if filter_criteria == 'include' else True
 
         if filter_type == 'drawn_roi' or filter_type == 'atlas_roi':
@@ -155,9 +171,9 @@ def main():
                 parser.error('Headers from the tractogram and the mask are '
                              'not compatible.')
             if filter_type == 'drawn_roi':
-                mask = img.get_data().astype(np.uint16)
+                mask = get_data_as_mask(img)
             else:
-                atlas = img.get_data().astype(np.uint16)
+                atlas = get_data_as_label(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
                 mask[atlas == int(filter_arg_2)] = 1
             filtered_sft, indexes = filter_grid_roi(sft, mask,
@@ -211,6 +227,16 @@ def main():
 
         sft = filtered_sft
 
+        if only_filtering_list:
+            filtering_Name = 'Filter_' + str(i)
+            curr_dict['streamline_count_after_filtering'] = len(sft.streamlines)
+            o_dict[filtering_Name] = curr_dict
+
+    # Streamline count after filtering
+    o_dict['streamline_count_final_filtering'] = len(sft.streamlines)
+    if args.display_counts:
+        print(json.dumps(o_dict, indent=args.indent))
+
     if not filtered_sft:
         if args.no_empty:
             logging.debug("The file {} won't be written (0 streamline)".format(
@@ -222,13 +248,6 @@ def main():
             args.out_tractogram))
 
     save_tractogram(sft, args.out_tractogram)
-
-    # Streamline count after filtering
-    sc_af = len(sft.streamlines)
-    if args.display_counts:
-        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
-                          'streamline_count_after_filtering': int(sc_af)},
-                         indent=args.indent))
 
 
 if __name__ == "__main__":
