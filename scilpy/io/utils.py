@@ -158,9 +158,9 @@ def assert_inputs_exist(parser, required, optional=None):
     parser: argparse.ArgumentParser object
         Parser.
     required: string or list of paths
-        Paths to be checked.
+        Required paths to be checked.
     optional: string or list of paths
-        Each element will be ignored if None.
+        Optional paths to be checked.
     """
     def check(path):
         if not os.path.isfile(path):
@@ -191,9 +191,9 @@ def assert_outputs_exist(parser, args, required, optional=None):
     args: list
         Argument list.
     required: string or list of paths
-        Paths to be checked.
+        Required paths to be checked.
     optional: string or list of paths
-        Each element will be ignored if None.
+        Optional paths to be checked.
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
@@ -223,10 +223,10 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    args: list
+    args: argparse namespace
         Argument list.
     dirs: list
-        Paths to be checked.
+        Required directory paths to be checked.
     """
     for cur_dir in dirs:
         if not os.path.isdir(cur_dir):
