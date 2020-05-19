@@ -15,7 +15,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_reference_arg)
-from scilpy.utils.streamlines import get_centroid_streamline
+from scilpy.tractanalysis.features import get_streamlines_centroid
 
 
 def _build_arg_parser():
@@ -48,8 +48,8 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 
-    centroid_streamlines = get_centroid_streamline(sft.streamlines,
-                                                   args.nb_points)
+    centroid_streamlines = get_streamlines_centroid(sft.streamlines,
+                                                    args.nb_points)
 
     sft = StatefulTractogram.from_sft(centroid_streamlines, sft)
 

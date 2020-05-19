@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist,
                              assert_inputs_exist)
-from scilpy.utils.streamlines import get_centroid_streamline
+from scilpy.tractanalysis.features import get_streamlines_centroid
 
 
 def _build_arg_parser():
@@ -68,7 +68,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     axis = ['x', 'y', 'z']
     if args.auto:
-        centroid = get_centroid_streamline(sft.streamlines, 20)[0]
+        centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
         main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
         main_dir_displacement = np.argmax(np.abs(np.sum(np.gradient(centroid,
                                                                     axis=0),

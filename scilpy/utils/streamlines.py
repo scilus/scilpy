@@ -128,30 +128,6 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def get_centroid_streamline(streamlines, nb_points):
-    """ Compute a single centroid from streamlines.
-
-    Parameters
-    ----------
-    streamlines: list or ArraySequence
-        Streamlines as loaded by the nibabel API (RASMM)
-    nb_points: int
-        Number of points defining the centroid streamline
-
-    Returns:
-    --------
-    centroids: List of np.ndarray
-        List of length one, containing a np.ndarray of shape (nb_points, 3)
-    """
-    resample_feature = ResampleFeature(nb_points=nb_points)
-    quick_bundle = QuickBundles(
-        threshold=np.inf,
-        metric=AveragePointwiseEuclideanMetric(resample_feature))
-    clusters = quick_bundle.cluster(streamlines)
-
-    return clusters.centroids
-
-
 def warp_streamlines(sft, deformation_data, source='ants'):
     """ Warp tractogram using a deformation map. Apply warp in-place.
     Support Ants and Dipy deformation map.
