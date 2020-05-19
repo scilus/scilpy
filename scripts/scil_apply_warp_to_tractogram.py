@@ -7,7 +7,7 @@ Warp tractogram using a non linear deformation from an ANTs deformation field.
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
-Applying deformation field to tractogram can lead to invalid streamlines (out
+Applying a deformation field to tractogram can lead to invalid streamlines (out
 of the bounding box), three strategies are available:
 1) default, crash at saving if invalid streamlines are present
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
@@ -36,11 +36,11 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_moving_tractogram',
-                   help='Path of the tractogram to be transformed.')
+                   help='Path to the tractogram to be transformed.')
     p.add_argument('in_target_file',
-                   help='Path of the reference target file (trk or nii).')
+                   help='Path to the reference target file (trk or nii).')
     p.add_argument('in_deformation',
-                   help='Path of the file containing deformation field.')
+                   help='Path to the file containing a deformation field.')
     p.add_argument('out_tractogram',
                    help='Output filename of the transformed tractogram.')
 
