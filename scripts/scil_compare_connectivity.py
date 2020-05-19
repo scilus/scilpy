@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs a network-based statistical comparison for populations G1 and G2. The
+Performs a network-based statistical comparison for populations g1 and g2. The
 output is a matrix of the same size as the input connectivity matrices, with
-p-values at each coordinates.
+p-values at each edge.
 All input matrices must have the same shape (NxN). For paired t-test, both
-groups must have the same number of observation.
+groups must have the same number of observations.
 
 For example, if you have streamline count weighted matrices for a MCI and a
-control group and you want to investiguate difference in their connectomme:
+control group and you want to investiguate differences in their connectomes:
 >>> scil_compare_connectivity.py pval.npy --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
 
---filtering_mask will simply multiply the binary mask to with all input
+--filtering_mask will simply multiply the binary mask to all input
 matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
 """
@@ -57,7 +57,7 @@ def _build_arg_parser():
                    help='Enables specification of an alternative hypothesis:\n'
                         'left: mean of g1 < mean of g2,\n'
                         'right: mean of g2 < mean of g1,\n'
-                        'both: both means are unequal (default).')
+                        'both: both means are not equal (default).')
     p.add_argument('--paired', action='store_true',
                    help='Use paired sample t-test instead of population t-test.\n'
                         '--in_g1 and --in_g2 must be ordered the same way.')
@@ -65,12 +65,12 @@ def _build_arg_parser():
     fwe = p.add_mutually_exclusive_group()
     fwe.add_argument('--fdr', action='store_true',
                      help='Perform a false discovery rate (FDR) correction '
-                          'for the p-values.\nUses the number of non-zeros '
+                          'for the p-values.\nUses the number of non-zero '
                           'edges as number of tests (value between 0.01 and '
                           '0.1).')
     fwe.add_argument('--bonferroni', action='store_true',
                      help='Perform a Bonferroni correction for the p-values.\n'
-                          'Uses the number of non-zeros edges as number of '
+                          'Uses the number of non-zero edges as number of '
                           'tests.')
 
     p.add_argument('--p_threshold', nargs=2, metavar=('THRESH', 'OUT_FILE'),
