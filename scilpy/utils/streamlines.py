@@ -289,7 +289,22 @@ def compress_sft(sft, tol_error=0.01):
 
 
 def cut_invalid_streamlines(sft):
-    """ Cut streamlines so their longest segment are within the bounding box """
+    """ Cut streamlines so their longest segment are within the bounding box.
+    This function keeps the data_per_point and data_per_streamline.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove invalid points from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the invalid points removed from each streamline.
+    cutting_counter : int
+        Number of streamlines that were cut.
+    """
+
     sft.to_vox()
     sft.to_corner()
 
@@ -302,6 +317,7 @@ def cut_invalid_streamlines(sft):
     for key in sft.data_per_point.keys():
         new_data_per_point[key] = []
 
+    cutting_counter = 0
     for ind in range(len(sft.streamlines)):
         # No reason to try to cut if all points are within the volume
         if ind in indices_to_remove:
@@ -317,6 +333,7 @@ def cut_invalid_streamlines(sft):
             if not best_pos == [0, 0]:
                 new_streamlines.append(
                     sft.streamlines[ind][best_pos[0]:best_pos[1]])
+                cutting_counter += 1
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][best_pos[0]:best_pos[1]])
@@ -330,4 +347,4 @@ def cut_invalid_streamlines(sft):
                                           data_per_streamline=sft.data_per_streamline,
                                           data_per_point=new_data_per_point)
 
-    return new_sft
+    return new_sft, cutting_counter

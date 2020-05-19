@@ -22,6 +22,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.streamlines import cut_invalid_streamlines
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -58,7 +59,8 @@ def main():
                                          bbox_check=False)
     ori_len = len(sft)
     if args.cut_invalid:
-        sft = cut_invalid_streamlines(sft)
+        sft, cutting_counter = cut_invalid_streamlines(sft)
+        logging.warning('Cut {} invalid streamlines.'.format(cutting_counter))
     else:
         sft.remove_invalid_streamlines()
 
