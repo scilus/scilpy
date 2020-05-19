@@ -129,6 +129,20 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
 
 
 def get_centroid_streamline(streamlines, nb_points):
+    """ Compute a single centroid from streamlines.
+
+    Parameters
+    ----------
+    streamlines: list or ArraySequence
+        Streamlines as loaded by the nibabel API (RASMM)
+    nb_points: int
+        Number of points defining the centroid streamline
+
+    Returns:
+    --------
+    centroids: List of np.ndarray
+        List of length one, containing a np.ndarray of shape (nb_points, 3)
+    """
     resample_feature = ResampleFeature(nb_points=nb_points)
     quick_bundle = QuickBundles(
         threshold=np.inf,

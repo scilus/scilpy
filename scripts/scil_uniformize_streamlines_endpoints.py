@@ -81,11 +81,9 @@ def main():
 
     axis_pos = axis.index(args.axis)
     for i in range(len(sft.streamlines)):
-        if sft.streamlines[i][0][axis_pos] > sft.streamlines[i][-1][axis_pos]:
-            sft.streamlines[i] = sft.streamlines[i][::-1]
-            for key in sft.data_per_point[i]:
-                sft.data_per_point[key][i] = sft.data_per_point[key][i][::-1]
-        if args.swap:
+        # Bitwise XOR
+        if bool(sft.streamlines[i][0][axis_pos] > sft.streamlines[i][-1][axis_pos]) \
+            ^ bool(args.swap):
             sft.streamlines[i] = sft.streamlines[i][::-1]
             for key in sft.data_per_point[i]:
                 sft.data_per_point[key][i] = sft.data_per_point[key][i][::-1]

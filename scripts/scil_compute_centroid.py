@@ -28,7 +28,8 @@ def _build_arg_parser():
     p.add_argument('out_centroid',
                    help='Output centroid streamline filename.')
     p.add_argument('--nb_points', type=int, default=20,
-                   help='Number of points defining the centroid streamline.')
+                   help='Number of points defining the centroid streamline'
+                        '[%(default)s].')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
