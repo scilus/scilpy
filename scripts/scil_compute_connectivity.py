@@ -60,7 +60,7 @@ def load_node_nifti(directory, in_label, out_label, ref_img):
         if not is_header_compatible(in_filename, ref_img):
             raise IOError('{} do not have a compatible header'.format(
                 in_filename))
-        return nib.load(in_filename).get_fdata()
+        return nib.load(in_filename).get_fdata(dtype=np.float64)
 
     return None
 
