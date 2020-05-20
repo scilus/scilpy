@@ -335,7 +335,8 @@ def main():
             nib.streamlines.save(tractogram_file, output_filename)
 
     # Cleanup the temporary directory
-    hdf5_file.close()
+    if ext == '.h5':
+        hdf5_file.close()
     tmp_dir.cleanup()
 
 
