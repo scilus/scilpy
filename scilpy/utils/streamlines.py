@@ -312,8 +312,8 @@ def cut_invalid_streamlines(sft):
     sft.to_corner()
 
     copy_sft = copy.deepcopy(sft)
-    indices_to_remove, indices_to_keep = copy_sft.remove_invalid_streamlines()
     epsilon = 0.001
+    indices_to_remove, indices_to_keep = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
     new_data_per_point = {}
@@ -328,7 +328,7 @@ def cut_invalid_streamlines(sft):
             best_pos = [0, 0]
             cur_pos = [0, 0]
             for pos, point in enumerate(sft.streamlines[ind]):
-                if (point < epsilon).any() or (point >= sft.dimensions).any():
+                if (point < epsilon).any() or (point >= sft.dimensions - epsilon).any():
                     cur_pos = [pos+1, pos+1]
                 if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
                     best_pos = cur_pos
@@ -336,7 +336,7 @@ def cut_invalid_streamlines(sft):
 
             if not best_pos == [0, 0]:
                 new_streamlines.append(
-                    sft.streamlines[ind][best_pos[0]:best_pos[1]])
+                    sft.streamlines[ind][best_pos[0]:best_pos[1]-1])
                 cutting_counter += 1
                 for key in sft.data_per_streamline.keys():
                     new_data_per_streamline[key].append(
