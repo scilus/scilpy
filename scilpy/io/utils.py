@@ -6,6 +6,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from scipy.io import loadmat
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -399,6 +400,20 @@ def load_matrix_in_any_format(filepath):
         data = np.loadtxt(filepath)
     elif ext == '.npy':
         data = np.load(filepath)
+    elif ext == '.mat':
+        # .mat are actually dictionnary. This function support .mat from
+        # antsRegistration that encode a 4x4 transformation matrix.
+        transfo_dict = loadmat(filepath)
+        lps2ras = np.diag([-1, -1, 1])
+
+        rot = transfo_dict['AffineTransform_double_3_3'][0:9].reshape((3, 3))
+        trans = transfo_dict['AffineTransform_double_3_3'][9:12]
+        offset = transfo_dict['fixed']
+        r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
+
+        data = np.eye(4)
+        data[0:3, 3] = r_trans
+        data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
 

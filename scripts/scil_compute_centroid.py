@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute bundle centroid.
+Compute a single bundle centroid.
 """
 
 import argparse
@@ -27,9 +27,9 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('out_centroid',
                    help='Output centroid streamline filename.')
-    p.add_argument('--nb_points',
-                   type=int, default=20,
-                   help='Number of points defining the centroid streamline.')
+    p.add_argument('--nb_points', type=int, default=20,
+                   help='Number of points defining the centroid streamline'
+                        '[%(default)s].')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -44,8 +44,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_centroid)
 
     if args.nb_points < 2:
-        parser.error('--nb_points {} should be >= 2'
-                     .format(args.nb_points))
+        parser.error('--nb_points {} should be >= 2'.format(args.nb_points))
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
 

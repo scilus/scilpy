@@ -170,10 +170,7 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
         List of streamlines.
     """
 
-    if isinstance(hdf5_filename, str):
-        hdf5_file = h5py.File(hdf5_filename, 'r')
-    else:
-        hdf5_file = hdf5_filename
+    hdf5_file = hdf5_filename
 
     if key is not None:
         if key not in hdf5_file:
