@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import transform_anatomy
 
@@ -24,13 +24,13 @@ def _build_arg_parser():
     p.add_argument('in_file',
                    help='Path of the file to be transformed (nii or nii.gz)')
 
-    p.add_argument('ref_file',
-                   help='Path of the reference file (the static \n'
-                   'file from registration), must be in the Nifti format.')
+    p.add_argument('in_target_file',
+                   help='Path of the reference target file (the static \n'
+                        'file from registration), must be in the Nifti format.')
 
-    p.add_argument('transformation',
+    p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
-                   'transformation, matrix (*.npy).')
+                        'transformation, matrix (.txt, .npy or .mat).')
 
     p.add_argument('out_name',
                    help='Output filename of the transformed data.')
@@ -47,22 +47,22 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_file, args.ref_file,
-                                 args.transformation])
+    assert_inputs_exist(parser, [args.in_file, args.in_target_file,
+                                 args.in_transfo])
     assert_outputs_exist(parser, args, args.out_name)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
-    _, ref_extension = split_name_with_nii(args.ref_file)
+    _, ref_extension = split_name_with_nii(args.in_target_file)
     _, in_extension = split_name_with_nii(args.in_file)
     if ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is an unsupported format.'.format(args.ref_file))
+        parser.error('{} is an unsupported format.'.format(args.in_target_file))
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
-    transform_anatomy(transfo, args.ref_file, args.in_file,
+    transform_anatomy(transfo, args.in_target_file, args.in_file,
                       args.out_name)
 
 
