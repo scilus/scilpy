@@ -7,8 +7,8 @@ Warp tractogram using a non linear deformation from an ANTs deformation field.
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
-Applying transformation to tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
+Applying a deformation field to tractogram can lead to invalid streamlines (out
+of the bounding box), three strategies are available:
 1) default, crash at saving if invalid streamlines are present
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_remove_invalid_streamlines.py if needed.
@@ -35,12 +35,12 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('moving_tractogram',
-                   help='Path of the tractogram to be transformed.')
-    p.add_argument('target_file',
-                   help='Path of the reference file (trk or nii).')
-    p.add_argument('deformation',
-                   help='Path of the file containing deformation field.')
+    p.add_argument('in_moving_tractogram',
+                   help='Path to the tractogram to be transformed.')
+    p.add_argument('in_target_file',
+                   help='Path to the reference target file (trk or nii).')
+    p.add_argument('in_deformation',
+                   help='Path to the file containing a deformation field.')
     p.add_argument('out_tractogram',
                    help='Output filename of the transformed tractogram.')
 
@@ -65,14 +65,14 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.moving_tractogram, args.target_file,
-                                 args.deformation])
+    assert_inputs_exist(parser, [args.in_moving_tractogram, args.in_target_file,
+                                 args.in_deformation])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    sft = load_tractogram_with_reference(parser, args, args.moving_tractogram,
+    sft = load_tractogram_with_reference(parser, args, args.in_moving_tractogram,
                                          bbox_check=False)
 
-    deformation = nib.load(args.deformation)
+    deformation = nib.load(args.in_deformation)
     deformation_data = np.squeeze(deformation.get_fdata())
 
     if not is_header_compatible(sft, deformation):
@@ -81,7 +81,7 @@ def main():
 
     # Warning: Apply warp in-place
     moved_streamlines = warp_streamlines(sft, deformation_data)
-    new_sft = StatefulTractogram(moved_streamlines, args.target_file,
+    new_sft = StatefulTractogram(moved_streamlines, args.in_target_file,
                                  Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)

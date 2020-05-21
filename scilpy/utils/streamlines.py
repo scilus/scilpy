@@ -6,6 +6,9 @@ import itertools
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.segment.clustering import QuickBundles
+from dipy.segment.metric import ResampleFeature
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -314,6 +317,7 @@ def cut_invalid_streamlines(sft):
 
     new_streamlines = []
     new_data_per_point = {}
+    new_data_per_streamline = {}
     for key in sft.data_per_point.keys():
         new_data_per_point[key] = []
 
@@ -334,6 +338,9 @@ def cut_invalid_streamlines(sft):
                 new_streamlines.append(
                     sft.streamlines[ind][best_pos[0]:best_pos[1]])
                 cutting_counter += 1
+                for key in sft.data_per_streamline.keys():
+                    new_data_per_streamline[key].append(
+                        sft.data_per_streamline[key][ind])
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
                         sft.data_per_point[key][ind][best_pos[0]:best_pos[1]])
@@ -341,10 +348,13 @@ def cut_invalid_streamlines(sft):
                 logging.warning('Streamlines entirely out of the volume.')
         else:
             new_streamlines.append(sft.streamlines[ind])
+            for key in sft.data_per_streamline.keys():
+                new_data_per_streamline[key].append(
+                    sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
                 new_data_per_point[key].append(sft.data_per_point[key][ind])
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
-                                          data_per_streamline=sft.data_per_streamline,
+                                          data_per_streamline=new_data_per_streamline,
                                           data_per_point=new_data_per_point)
 
     return new_sft, cutting_counter
