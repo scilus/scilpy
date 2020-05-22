@@ -44,6 +44,8 @@ def _build_arg_parser():
                    help='Path of the bvecs file, in FSL format.')
     p.add_argument('frf_file',
                    help='Path of the FRF file')
+    p.add_argument('fodf',
+                   help='Output path for the fiber ODF coefficients.')
 
     p.add_argument(
         '--sh_order', metavar='int', default=8, type=int,
@@ -52,9 +54,6 @@ def _build_arg_parser():
         '--mask', metavar='',
         help='Path to a binary mask. Only the data inside the mask will be '
              'used for computations and reconstruction.')
-    p.add_argument(
-        '--fodf', metavar='file', default='fodf.nii.gz',
-        help='Output filename for the fiber ODF coefficients.')
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
