@@ -10,7 +10,7 @@ kiwisolver==1.0.1
 matplotlib==2.2.2
 nibabel==3.0.1
 nilearn==0.6.1
-numpy==1.16.2
+numpy==1.18.4
 Pillow==6.2.2
 pybids==0.9.1
 pyparsing==2.2.0
