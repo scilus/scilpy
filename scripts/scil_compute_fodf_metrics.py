@@ -118,7 +118,7 @@ def main():
     if not args.not_all:
         args.afd = args.afd or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
-        args.afd_sum = args.afd_sum or 'afd_sum.nii.gz''
+        args.afd_sum = args.afd_sum or 'afd_sum.nii.gz'
         args.gfa = args.gfa or 'gfa.nii.gz'
         args.nufo = args.nufo or 'nufo.nii.gz
         args.qa = args.qa or 'qa.nii.gz'
