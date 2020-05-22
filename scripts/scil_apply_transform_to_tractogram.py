@@ -26,11 +26,9 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.streamlines import (assert_inputs_exist,
-                                      assert_outputs_exist,
-                                      cut_invalid_streamlines,
-                                      load_matrix_in_any_format)
+                             assert_inputs_exist, assert_outputs_exist,
+                             load_matrix_in_any_format)
+from scilpy.utils.streamlines import cut_invalid_streamlines
 
 
 def _build_arg_parser():
