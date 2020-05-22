@@ -46,14 +46,6 @@ def _build_arg_parser():
     p.add_argument(
         'input', metavar='fODFs',
         help='Path of the fODF volume in spherical harmonics (SH).')
-    p.add_argument(
-        'at', metavar='a_threshold', type=float,
-        help='WARNING!!! EXTREMELY IMPORTANT PARAMETER, VARIABLE '
-             'ACROSS DATASETS!!!\nAbsolute threshold on fODF amplitude.\nThis '
-             'value should be set to approximately 1.5 to 2 times the maximum\n'
-             'fODF amplitude in isotropic voxels (ex. ventricles).\n'
-             'compute_fodf_max_in_ventricles.py can be used to find the '
-             'maximal value.\nSee [Dell\'Acqua et al HBM 2013].')
 
     p.add_argument(
         '--sphere', metavar='string', default='repulsion724',
@@ -64,17 +56,21 @@ def _build_arg_parser():
         help='Path to a binary mask. Only the data inside the mask will be '
              'used for computations and reconstruction [%(default)s].')
     p.add_argument(
+        '--at', dest='a_threshold', type=float, default='0.0',
+        help='WARNING!!! EXTREMELY IMPORTANT PARAMETER, VARIABLE '
+             'ACROSS DATASETS!!!\nAbsolute threshold on fODF amplitude.\nThis '
+             'value should be set to approximately 1.5 to 2 times the maximum\n'
+             'fODF amplitude in isotropic voxels (ex. ventricles).\n'
+             'compute_fodf_max_in_ventricles.py can be used to find the '
+             'maximal value.\nSee [Dell\'Acqua et al HBM 2013] '
+             '[%(default)s].')
+    p.add_argument(
         '--rt', dest='r_threshold', type=float, default='0.1',
         help='Relative threshold on fODF amplitude in percentage  '
              '[%(default)s].')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     add_processes_arg(p)
-    p.add_argument(
-        '--vis', dest='visu', action='store_true',
-        help='Export map for better visualization in FiberNavigator.\n'
-             '!WARNING! these maps should not be used to compute statistics  '
-             '[%(default)s].')
     p.add_argument(
         '--not_all', action='store_true',
         help='If set, only saves the files specified using the file flags  '
@@ -106,18 +102,13 @@ def _build_arg_parser():
     g.add_argument(
         '--peaks', metavar='file', default='',
         help='Output filename for the extracted peaks.')
+    g.add_argument(
+        '--peak_values', metavar='file', default='',
+        help='Output filename for the extracted peaks values.')
+    g.add_argument(
+        '--peak_indices', metavar='file', default='',
+        help='Output filename for the generated peaks indices on the sphere.')
     return p
-
-
-def save(data, affine, output, visu=False):
-    if visu:
-        img = nib.Nifti1Image(np.array(data, 'uint8'),  affine)
-        filename, extension1 = os.path.splitext(output)
-        filename, extension2 = os.path.splitext(filename)
-        nib.save(img, filename+'_fibernav' + extension2 + extension1)
-    else:
-        img = nib.Nifti1Image(np.array(data, 'float32'),  affine)
-        nib.save(img, output)
 
 
 def main():
@@ -127,11 +118,18 @@ def main():
     if not args.not_all:
         args.afd = args.afd or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
-        args.afd_sum = args.afd_sum or 'afd_sum.nii.gz'
-        args.nufo = args.nufo or 'nufo.nii.gz'
+        args.afd_sum = args.afd_sum or 'afd_sum.nii.gz''
+        args.gfa = args.gfa or 'gfa.nii.gz'
+        args.nufo = args.nufo or 'nufo.nii.gz
+        args.qa = args.qa or 'qa.nii.gz'
+        args.rgb = args.rgb or 'rgb.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
+        args.peak_values = args.peak_values or 'peak_values.nii.gz'
+        args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
 
-    arglist = [args.afd, args.afd_total, args.afd_sum, args.nufo, args.peaks]
+    arglist = [args.afd, args.afd_total, args.afd_sum, args.nufo, args.gfa,
+               args.qa, args.rgb, args.peaks, args.peak_values,
+               args.peak_indices]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
@@ -157,7 +155,7 @@ def main():
         peak_indices = peaks_from_sh(data,
                                      sphere,
                                      mask=mask,
-                                     relative_peak_threshold=.5,
+                                     relative_peak_threshold=args.rt,
                                      absolute_threshold=args.at,
                                      min_separation_angle=25,
                                      normalize_peaks=False,
@@ -172,48 +170,47 @@ def main():
 
     # Save result
     if args.nufo:
-        save(nufo_map, affine, args.nufo)
+        nib.save(nib.Nifti1Image(nufo_map.astype(np.float32),
+                                 affine), args.nufo)
 
     if args.afd:
-        save(afd_max, affine, args.afd)
+        nib.save(nib.Nifti1Image(afd_max.astype(np.float32),
+                                 affine), args.afd)
 
     if args.afd_total:
         # this is the analytical afd total
         afd_tot = data[:, :, :, 0]
-        save(afd_tot, affine, args.afd_total)
+        nib.save(nib.Nifti1Image(afd_tot.astype(np.float32),
+                                 affine), args.afd_total)
 
     if args.afd_sum:
-        save(afd_sum, affine, args.afd_sum)
+        nib.save(nib.Nifti1Image(afd_sum.astype(np.float32),
+                                 affine), args.afd_sum)
 
     if args.gfa:
-        nib.save(nib.Nifti1Image(gfa_map, affine), args.gfa)
+        nib.save(nib.Nifti1Image(gfa_map.astype(np.float32),
+                                 affine), args.gfa)
 
     if args.qa:
-        nib.save(nib.Nifti1Image(qa_map, affine), args.qa)
+        nib.save(nib.Nifti1Image(qa_map.astype(np.float32),
+                                 affine), args.qa)
 
     if args.rgb:
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
 
-    if args.peaks:
+    if args.peaks or args.peak_values:
         peak_values = np.divide(peak_values, peak_values[..., 0, None],
                                 out=np.zeros_like(peak_values),
                                 where=peak_values[..., 0, None]!=0)
         peak_dirs[...] *= peak_values[..., :, None]
-        nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
-                                 affine), args.peaks)
+        if args.peaks:
+            nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
+                                     affine), args.peaks)
+        if args.peak_values:
+            nib.save(nib.Nifti1Image(peak_values, vol.affine), args.peak_values)
 
-    if args.visu:
-        if nufo_map.max() > nufo_map.min():
-            nufo_map = (255 * (nufo_map - nufo_map.min()) / (nufo_map.max() -
-                                                             nufo_map.min()))
-
-        if afd_map.max() > afd_map.min():
-            afd_map = (255 * (afd_map - afd_map.min()) / (afd_map.max() -
-                                                          afd_map.min()))
-
-        save(nufo_map, affine, args.nufo, True)
-        save(afd_map, affine, args.afd, True)
-
+    if args.peak_indices:
+        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
 
 if __name__ == "__main__":
     main()
