@@ -23,11 +23,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('input_sh',
+    p.add_argument('in_sh',
                    help='Input SH filename. (nii or nii.gz)')
 
-    p.add_argument('output_name',
-                   help='Name of the output file.')
+    p.add_argument('out_sh',
+                   help='Output SH filename. (nii or nii.gz)')
 
     add_sh_basis_args(p, mandatory=True)
     add_processes_arg(p)
@@ -39,11 +39,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input_sh)
-    assert_outputs_exist(parser, args, args.output_name)
+    assert_inputs_exist(parser, args.in_sh)
+    assert_outputs_exist(parser, args, args.out_sh)
 
     sphere = get_sphere('repulsion724').subdivide(1)
-    img = nib.load(args.input_sh)
+    img = nib.load(args.in_sh)
     data = img.get_fdata(dtype=np.float32)
 
     new_data = convert_sh_basis(data, sphere,
@@ -51,7 +51,7 @@ def main():
                                 nbr_processes=args.nbr_processes)
 
     nib.save(nib.Nifti1Image(new_data, img.affine, header=img.header),
-             args.output_name)
+             args.out_sh)
 
 
 if __name__ == "__main__":

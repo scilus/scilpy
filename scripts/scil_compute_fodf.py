@@ -44,7 +44,7 @@ def _build_arg_parser():
                    help='Path of the bvecs file, in FSL format.')
     p.add_argument('frf_file',
                    help='Path of the FRF file')
-    p.add_argument('fodf',
+    p.add_argument('out_fODFs',
                    help='Output path for the fiber ODF coefficients.')
 
     p.add_argument(
@@ -69,7 +69,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
-                                 args.frf_file])
+                                 args.frf_file, args.out_fODFs])
     assert_outputs_exist(parser, args, arglist)
 
     # Loading data
@@ -129,7 +129,7 @@ def main():
         shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                         nbr_processes=args.nbr_processes)
     nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                vol.affine), args.fodf)
+                                vol.affine), args.out_fODFs)
 
 if __name__ == "__main__":
     main()
