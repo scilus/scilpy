@@ -20,7 +20,6 @@ import logging
 from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.direction.peaks import reshape_peaks_for_visualization
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
@@ -28,8 +27,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
-from scilpy.reconst.multi_processes import (fit_from_model, peaks_from_sh,
-                                            convert_sh_basis)
+from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
 
@@ -55,29 +53,12 @@ def _build_arg_parser():
         help='Path to a binary mask. Only the data inside the mask will be '
              'used for computations and reconstruction.')
     p.add_argument(
-        '--not_all', action='store_true',
-        help='If set, only saves the files specified using the file flags. '
-             '(Default: False)')
+        '--fodf', metavar='file', default='fodf.nii.gz',
+        help='Output filename for the fiber ODF coefficients.')
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
-
-    g = p.add_argument_group(title='File flags')
-
-    g.add_argument(
-        '--fodf', metavar='file', default='',
-        help='Output filename for the fiber ODF coefficients.')
-    g.add_argument(
-        '--peaks', metavar='file', default='',
-        help='Output filename for the extracted peaks.')
-    g.add_argument(
-        '--peak_values', metavar='file', default='',
-        help='Output filename for the extracted peaks values.')
-    g.add_argument(
-        '--peak_indices', metavar='file', default='',
-        help='Output filename for the generated peaks indices on the sphere.')
-
     add_overwrite_arg(p)
 
     return p
@@ -87,17 +68,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
-
-    if not args.not_all:
-        args.fodf = args.fodf or 'fodf.nii.gz'
-        args.peaks = args.peaks or 'peaks.nii.gz'
-        args.peak_values = args.peak_values or 'peak_values.nii.gz'
-        args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
-
-    arglist = [args.fodf, args.peaks, args.peak_values, args.peak_indices]
-    if args.not_all and not any(arglist):
-        parser.error('When using --not_all, you need to specify at least '
-                     'one file to output.')
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
                                  args.frf_file])
@@ -141,9 +111,8 @@ def main():
     frf = full_frf[0:3]
     mean_b0_val = full_frf[3]
 
-    # Loading the spheres
+    # Loading the sphere
     reg_sphere = get_sphere('symmetric362')
-    peaks_sphere = get_sphere('symmetric724')
 
     # Computing CSD
     csd_model = ConstrainedSphericalDeconvModel(
@@ -155,36 +124,13 @@ def main():
     csd_fit = fit_from_model(csd_model, data,
                              mask=mask, nbr_processes=args.nbr_processes)
 
-    if args.peaks or args.peak_values or args.peak_indices:
-        # Computing peaks
-        peak_dirs, peak_values, \
-            peak_indices = peaks_from_sh(csd_fit.shm_coeff,
-                                         peaks_sphere,
-                                         mask=mask,
-                                         relative_peak_threshold=.5,
-                                         min_separation_angle=25,
-                                         normalize_peaks=True,
-                                         nbr_processes=args.nbr_processes)
-
     # Saving results
-    if args.fodf:
-        shm_coeff = csd_fit.shm_coeff
-        if args.sh_basis == 'tournier07':
-            shm_coeff = convert_sh_basis(shm_coeff, peaks_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                 vol.affine), args.fodf)
-
-    if args.peaks:
-        nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
-                                 vol.affine), args.peaks)
-
-    if args.peak_values:
-        nib.save(nib.Nifti1Image(peak_values, vol.affine), args.peak_values)
-
-    if args.peak_indices:
-        nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
-
+    shm_coeff = csd_fit.shm_coeff
+    if args.sh_basis == 'tournier07':
+        shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+                                        nbr_processes=args.nbr_processes)
+    nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
+                                vol.affine), args.fodf)
 
 if __name__ == "__main__":
     main()
