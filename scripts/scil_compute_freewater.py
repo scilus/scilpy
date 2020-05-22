@@ -10,16 +10,11 @@ import os
 import shutil
 import tempfile
 
-try:
-    import amico
-except ImportError as e:
-    e.args += ("AMICO not installed and configured. "
-               "Could use a precompiled container.",)
-    raise e
+import amico
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 
 amico.core.setup()
 
@@ -37,23 +32,23 @@ def _build_arg_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=EPILOG)
 
-    p.add_argument('dwi',
-                   help='DWI file')
+    p.add_argument('in_dwi',
+                   help='DWI file.')
 
     p.add_argument('--mask',
-                   help='Mask filename')
+                   help='Mask filename.')
 
     g1 = p.add_argument_group('Gradients / scheme')
     g1.add_argument('--bval',
-                    help='Bval filename, in FSL format')
+                    help='Bval filename, in FSL format.')
     g1.add_argument('--bvec',
-                    help='Bvec filename, in FSL format')
+                    help='Bvec filename, in FSL format.')
     g1.add_argument('--scheme_file',
                     help='AMICO scheme file, '
                          'can replace --bval/--bvec.')
     g1.add_argument('--bstep', type=int, nargs='+',
                     help='List of unique bvals in your data. It prevents '
-                         ' errors when each bval is around the actual bval')
+                         ' errors when each bval is around the actual bval.')
 
     p.add_argument('--para_diff', type=float, default=1.5e-3,
                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
@@ -76,10 +71,7 @@ def _build_arg_parser():
                    help='Output directory for the Free Water results. '
                         '[current_directory]')
 
-    p.add_argument('--processes', type=int, default=1,
-                   help='Number of processes used to compute Free Water. '
-                        'Right now, better performance with 1. [%(default)s]')
-
+    add_processes_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -89,7 +81,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required_in = [args.dwi]
+    required_in = [args.in_dwi]
 
     use_scheme_file = False
 
@@ -123,13 +115,13 @@ def main():
 
     assert_outputs_exist(parser, args, out_files)
 
-    if args.processes <= 0:
+    if args.nbr_processes <= 0:
         parser.error('Number of processes cannot be <= 0.')
-    elif args.processes > 1:
+    elif args.nbr_processes > 1:
         import multiprocessing
-        if args.processes > multiprocessing.cpu_count():
+        if args.nbr_processes > multiprocessing.cpu_count():
             parser.error('Max number of processes is {}. Got {}.'.format(
-                multiprocessing.cpu_count(), args.processes))
+                multiprocessing.cpu_count(), args.nbr_processes))
 
     # Load the data
     ae = amico.Evaluation('./', './')
@@ -143,10 +135,13 @@ def main():
                                            dir='././')
         scheme_filename = scheme_filename[1]
         bstep = args.bstep
-        amico.util.fsl2scheme(args.bval, args.bvec, scheme_filename, bstep)
+        amico.util.fsl2scheme(args.bval,
+                              args.bvec,
+                              scheme_filename,
+                              bStep=bstep)
 
     # Load the data
-    ae.load_data(dwi_filename=args.dwi,
+    ae.load_data(dwi_filename=args.in_dwi,
                  scheme_filename=scheme_filename,
                  mask_filename=args.mask)
 
@@ -173,7 +168,7 @@ def main():
 
     # Set number of processes
     solver_params = ae.get_config('solver_params')
-    solver_params['numThreads'] = args.processes
+    solver_params['numThreads'] = args.nbr_processes
     ae.set_config('solver_params', solver_params)
 
     ae.set_config('doNormalizeSignal', True)

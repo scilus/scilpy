@@ -29,11 +29,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('fa',
+    p.add_argument('in_FA',
                    help='Path to the FA volume.')
-    p.add_argument('ad',
+    p.add_argument('in_AD',
                    help='Path to the axial diffusivity (AD) volume.')
-    p.add_argument('md',
+    p.add_argument('in_MD',
                    help='Path to the mean diffusivity (MD) volume.')
 
     g1 = p.add_argument_group('Metrics options')
@@ -88,7 +88,7 @@ def _build_arg_parser():
 
 def load(path):
     img = nib.load(path)
-    return img.get_fdata(), img.affine, img.header.get_zooms()[:3]
+    return img.get_fdata(dtype=np.float32), img.affine, img.header.get_zooms()[:3]
 
 
 def save(data, affine, output):

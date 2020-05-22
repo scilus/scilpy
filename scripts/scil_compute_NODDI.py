@@ -10,12 +10,7 @@ import os
 import shutil
 import tempfile
 
-try:
-    import amico
-except ImportError as e:
-    e.args += ("AMICO not installed and configured. "
-               "Could use a precompiled container.",)
-    raise e
+import amico
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -37,7 +32,7 @@ def _build_arg_parser():
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    p.add_argument('dwi',
+    p.add_argument('in_dwi',
                    help='DWI file acquired with a NODDI compatible protocol')
 
     p.add_argument('--mask',
@@ -81,7 +76,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required_in = [args.dwi]
+    required_in = [args.in_dwi]
 
     use_scheme_file = False
 
@@ -139,7 +134,7 @@ def main():
         amico.util.fsl2scheme(args.bval, args.bvec, scheme_filename, bstep)
 
     # Load the data
-    ae.load_data(dwi_filename=args.dwi,
+    ae.load_data(dwi_filename=args.in_dwi,
                  scheme_filename=scheme_filename,
                  mask_filename=args.mask)
 
