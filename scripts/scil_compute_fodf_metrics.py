@@ -3,8 +3,9 @@
 
 """
 Script to compute the maximum Apparent Fiber Density (AFD), the fiber ODFs
-orientations (peaks) and the Number of Fiber Orientations (NuFO) maps from
-fiber ODFs.
+orientations, values and indices (peaks, peak_values, peak_indices), the Number
+of Fiber Orientations (NuFO) maps from fiber ODFs, the RGB map, the Generalized
+Fractional Anisotropy (GFA) and the Quantitative Anisotropy (QA).
 
 AFD_max map is the maximal fODF amplitude for each voxel.
 
