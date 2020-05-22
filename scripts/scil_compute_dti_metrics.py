@@ -22,8 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from __future__ import division, print_function
-
 from builtins import range
 import argparse
 import logging
@@ -41,6 +39,7 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               radial_diffusivity, lower_triangular)
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
@@ -55,7 +54,7 @@ def _get_min_nonzero_signal(data):
     return np.min(data[data > 0])
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
@@ -70,14 +69,14 @@ def _build_args_parser():
     p.add_argument(
         '--mask',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
-             'for computations and reconstruction. (Default: None)')
+             'for computations and reconstruction. (Default: %(default)s)')
     p.add_argument(
         '--method', dest='method', metavar='method_name', default='WLS',
         choices=['WLS', 'LS', 'NLLS', 'restore'],
         help='Tensor fit method.\nWLS for weighted least squares' +
              '\nLS for ordinary least squares' +
              '\nNLLS for non-linear least-squares' +
-             '\nrestore for RESTORE robust tensor fitting. (Default: WLS)')
+             '\nrestore for RESTORE robust tensor fitting. (Default: %(default)s)')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
@@ -138,7 +137,7 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if not args.not_all:
@@ -170,22 +169,22 @@ def main():
     assert_outputs_exist(parser, args, outputs)
 
     img = nib.load(args.input)
-    data = img.get_data()
+    data = img.get_fdata(dtype=np.float32)
     affine = img.get_affine()
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     # Validate bvals and bvecs
-    logging.info('Tensor estimation with the %s method...', args.method)
+    logging.info('Tensor estimation with the {} method...'.format(args.method))
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args, bvals.min())
+    check_b0_threshold(args.force_b0_threshold, bvals.min())
     gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
 
     # Get tensors
@@ -327,9 +326,7 @@ def main():
             nib.save(std_img, add_filename_suffix(args.pulsation, '_std_b0'))
 
     if args.residual:
-        if args.mask is None:
-            logger.info("Outlier detection will not be performed, since no "
-                        "mask was provided.")
+        # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
         data_p = tenfit.predict(gtab, S0)
         R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
@@ -341,26 +338,52 @@ def main():
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 
-        R_k = np.zeros(data.shape[-1])  # mean residual per DWI
+        # Each volume's residual statistics
+        if args.mask is None:
+            logger.info("Outlier detection will not be performed, since no "
+                        "mask was provided.")
+        stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi', 'whishi',
+                                'whislo', 'fliers', 'q1', 'med', 'q3'], [])
+                 for i in range(data.shape[-1])]  # stats with format for boxplots
+        # Note that stats will be computed manually and plotted using bxp
+        # but could be computed using stats = cbook.boxplot_stats
+        # or pyplot.boxplot(x)
+        R_k = np.zeros(data.shape[-1])    # mean residual per DWI
         std = np.zeros(data.shape[-1])  # std residual per DWI
-        q1 = np.zeros(data.shape[-1])   # first quartile
-        q3 = np.zeros(data.shape[-1])   # third quartile
-        iqr = np.zeros(data.shape[-1])  # interquartile
-        for i in range(data.shape[-1]):
-            x = np.abs(data_p[..., i] - data[..., i])[mask]
-            R_k[i] = np.mean(x)
-            std[i] = np.std(x)
-            q3[i], q1[i] = np.percentile(x, [75, 25])
-            iqr[i] = q3[i] - q1[i]
+        q1 = np.zeros(data.shape[-1])   # first quartile per DWI
+        q3 = np.zeros(data.shape[-1])   # third quartile per DWI
+        iqr = np.zeros(data.shape[-1])  # interquartile per DWI
+        percent_outliers = np.zeros(data.shape[-1])
+        nb_voxels = np.count_nonzero(mask)
+        for k in range(data.shape[-1]):
+            x = np.abs(data_p[..., k] - data[..., k])[mask]
+            R_k[k] = np.mean(x)
+            std[k] = np.std(x)
+            q3[k], q1[k] = np.percentile(x, [75, 25])
+            iqr[k] = q3[k] - q1[k]
+            stats[k]['med'] = (q1[k] + q3[k]) / 2
+            stats[k]['mean'] = R_k[k]
+            stats[k]['q1'] = q1[k]
+            stats[k]['q3'] = q3[k]
+            stats[k]['whislo'] = q1[k] - 1.5 * iqr[k]
+            stats[k]['whishi'] = q3[k] + 1.5 * iqr[k]
+            stats[k]['label'] = k
 
             # Outliers are observations that fall below Q1 - 1.5(IQR) or
-            # above Q3 + 1.5(IQR) We check if a volume is an outlier only if
+            # above Q3 + 1.5(IQR) We check if a voxel is an outlier only if
             # we have a mask, else we are biased.
-            if args.mask is not None and R_k[i] < (q1[i] - 1.5 * iqr[i]) \
-                    or R_k[i] > (q3[i] + 1.5 * iqr[i]):
-                logger.warning('WARNING: Diffusion-Weighted Image i=%s is an '
-                               'outlier', i)
+            if args.mask is not None:
+                outliers = (x < stats[k]['whislo']) | (x > stats[k]['whishi'])
+                percent_outliers[k] = np.sum(outliers)/nb_voxels*100
+                # What would be our definition of too many outliers?
+                # Maybe mean(all_means)+-3SD?
+                # Or we let people choose based on the figure.
+                # if percent_outliers[k] > ???? :
+                #    logger.warning('   Careful! Diffusion-Weighted Image'
+                #                   ' i=%s has %s %% outlier voxels',
+                #                   k, percent_outliers[k])
 
+        # Saving all statistics as npy values
         residual_basename, _ = split_name_with_nii(args.residual)
         res_stats_basename = residual_basename + ".npy"
         np.save(add_filename_suffix(
@@ -370,14 +393,32 @@ def main():
         np.save(add_filename_suffix(res_stats_basename, "_iqr_residuals"), iqr)
         np.save(add_filename_suffix(res_stats_basename, "_std_residuals"), std)
 
-        # To do: I would like to have an error bar with q1 and q3.
-        # Now, q1 acts as a std
-        dwi = np.arange(R_k[~gtab.b0s_mask].shape[0])
-        plt.bar(dwi, R_k[~gtab.b0s_mask], 0.75,
-                color='y', yerr=q1[~gtab.b0s_mask])
-        plt.xlabel('DW image')
-        plt.ylabel('Mean residuals +- q1')
-        plt.title('Residuals')
+        # Showing results in graph
+        if args.mask is None:
+            fig, axe = plt.subplots(nrows=1, ncols=1, squeeze=False)
+        else:
+            fig, axe = plt.subplots(nrows=1, ncols=2, squeeze=False,
+                                    figsize=[10, 4.8])
+            # Default is [6.4, 4.8]. Increasing width to see better.
+
+        medianprops = dict(linestyle='-', linewidth=2.5, color='firebrick')
+        meanprops = dict(linestyle='-', linewidth=2.5, color='green')
+        axe[0, 0].bxp(stats, showmeans=True, meanline=True, showfliers=False,
+                      medianprops=medianprops, meanprops=meanprops)
+        axe[0, 0].set_xlabel('DW image')
+        axe[0, 0].set_ylabel('Residuals per DWI volume. Red is median,\n'
+                             'green is mean. Whiskers are 1.5*interquartile')
+        axe[0, 0].set_title('Residuals')
+        axe[0, 0].set_xticks(range(0, q1.shape[0], 5))
+        axe[0, 0].set_xticklabels(range(0, q1.shape[0], 5))
+
+        if args.mask is not None:
+            axe[0, 1].plot(range(data.shape[-1]), percent_outliers)
+            axe[0, 1].set_xticks(range(0, q1.shape[0], 5))
+            axe[0, 1].set_xticklabels(range(0, q1.shape[0], 5))
+            axe[0, 1].set_xlabel('DW image')
+            axe[0, 1].set_ylabel('Percentage of outlier voxels')
+            axe[0, 1].set_title('Outliers')
         plt.savefig(residual_basename + '_residuals_stats.png')
 
 

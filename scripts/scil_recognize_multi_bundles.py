@@ -2,11 +2,32 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute RecobundlesX (multi-atlas & multi-parameters).
-    The model needs to be cleaned and lightweight.
-    Transform should come from ANTs: (using the --inverse flag)
-    AntsRegistration -m MODEL_REF -f SUBJ_REF
-    ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+Compute RecobundlesX (multi-atlas & multi-parameters).
+The model needs to be cleaned and lightweight.
+Transform should come from ANTs: (using the --inverse flag)
+AntsRegistration -m MODEL_REF -f SUBJ_REF
+ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+
+The next two arguments are multi-parameters related:
+--multi_parameters must be lower than len(model_clustering_thr) *
+len(bundle_pruning_thr) * len(tractogram_clustering_thr)
+
+--seeds can be more than one value. Multiple values will result in
+a overall multiplicative factor of len(seeds) * '--multi_parameters'
+
+The number of folder provided by 'models_directories' will further multiply
+the total number of run. Meaning that the total number of Recobundle
+execution will be len(seeds) * '--multi_parameters' * len(models_directories)
+
+--minimal_vote_ratio is a value between 0 and 1. The actual number of vote
+required will be '--minimal_vote_ratio' * len(seeds) * '--multi_parameters'
+* len(models_directories).
+
+Example: 5 atlas, 9 multi-parameters, 2 seeds with a minimal vote_ratio
+of 0.50 will results in 90 executions (for each bundle in the config file)
+and a minimal vote of 45 / 90.
+
+Example data and usage available at: https://zenodo.org/deposit/3613688
 """
 
 import argparse
@@ -14,16 +35,17 @@ import logging
 import json
 import os
 import random
-import shutil
 
 import coloredlogs
 import numpy as np
 
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty,
+                             load_matrix_in_any_format)
 from scilpy.segment.voting_scheme import VotingScheme
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
@@ -33,38 +55,38 @@ def _build_args_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
-    p.add_argument('config_file',
-                   help='Path of the config file (json)')
-    p.add_argument('models_directories', nargs='+',
+                   help='Input tractogram filename (.trk or .tck).')
+    p.add_argument('in_config_file',
+                   help='Path of the config file (.json)')
+    p.add_argument('in_models_directories', nargs='+',
                    help='Path for the directories containing model.')
-    p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
+    p.add_argument('in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
 
-    p.add_argument('--output_dir', default='voting_results/',
-                   help='Path for the output directory.')
+    p.add_argument('--output', default='voting_results/',
+                   help='Path for the output directory [%(default)s].')
     p.add_argument('--log_level', default='INFO',
                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                   help='Log level of the logging class')
+                   help='Log level of the logging class.')
 
     p.add_argument('--multi_parameters', type=int, default=1,
                    help='Pick parameters from the potential combinations\n'
-                   'Will multiply the number of time Recobundles is ran.\n'
-                   'Enough parameter choices are necessary, see config file')
+                        'Will multiply the number of time Recobundles is ran.\n'
+                        'See the documentation [%(default)s].')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
-                   help='Streamlines will only be considered for saving if\n '
-                   'recognized often enough.')
+                   help='Streamlines will only be considered for saving if\n'
+                        'recognized often enough [%(default)s].')
 
     p.add_argument('--tractogram_clustering_thr',
                    type=int, default=[12], nargs='+',
-                   help='Input tractogram clustering thresholds '
-                   '[%(default)smm].')
+                   help='Input tractogram clustering thresholds %(default)smm.')
 
     p.add_argument('--processes', type=int, default=1,
                    help='Number of thread used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
-                   help='Random number generator seed [%(default)s]\n'
-                   'Will multiply the number of time Recobundles is ran.')
+                   help='Random number generator seed %(default)s\n'
+                        'Will multiply the number of time Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 
@@ -74,43 +96,36 @@ def _build_args_parser():
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram,
-                                 args.config_file,
-                                 args.transformation])
+                                 args.in_config_file,
+                                 args.in_transfo])
 
-    for directory in args.models_directories:
+    for directory in args.in_models_directories:
         if not os.path.isdir(directory):
             parser.error('Input folder {0} does not exist'.format(directory))
 
-    if args.output_dir:
-        if not os.path.isdir(args.output_dir):
-            os.mkdir(args.output_dir)
-        elif args.overwrite:
-            shutil.rmtree(args.output_dir)
-            os.mkdir(args.output_dir)
-        else:
-            parser.error('Output folder {0} exists. Use -f to force '
-                         'overwriting'.format(args.output_dir))
+    assert_output_dirs_exist_and_empty(parser, args, args.output)
 
-    logging.basicConfig(filename=os.path.join(args.output_dir, 'logfile.txt'),
+    logging.basicConfig(filename=os.path.join(args.output, 'logfile.txt'),
                         filemode='w',
                         format='%(asctime)s, %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S', level=args.log_level)
 
     coloredlogs.install(level=args.log_level)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.transformation))
+        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
 
-    with open(args.config_file) as json_data:
+    with open(args.in_config_file) as json_data:
         config = json.load(json_data)
 
-    voting = VotingScheme(config, args.models_directories,
-                          transfo, args.output_dir,
+    voting = VotingScheme(config, args.in_models_directories,
+                          transfo, args.output,
+                          tractogram_clustering_thr=args.tractogram_clustering_thr,
                           minimal_vote_ratio=args.minimal_vote_ratio,
                           multi_parameters=args.multi_parameters)
 
@@ -119,8 +134,8 @@ def main():
     else:
         seeds = args.seeds
 
-    voting.multi_recognize(args.in_tractogram, args.tractogram_clustering_thr,
-                           nbr_processes=args.processes, seeds=seeds)
+    voting(args.in_tractogram,
+           nbr_processes=args.processes, seeds=seeds)
 
 
 if __name__ == '__main__':

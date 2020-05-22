@@ -17,7 +17,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.utils import add_verbose_arg, assert_inputs_exist
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
@@ -46,8 +46,7 @@ def _build_arg_parser():
                             'the output file')
     group.add_argument('--mean', action='store_true', help='Extract mean b0')
 
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help='Produce verbose output.')
+    add_verbose_arg(parser)
 
     return parser
 
@@ -104,27 +103,26 @@ def main():
 
     b0_threshold = args.b0_thr
     if b0_threshold < 0 or b0_threshold > 20:
-            raise ValueError('Invalid --b0_thr value (<0 or >20). This is '
-                             'highly suspicious. Value found: {}'
-                             .format(b0_threshold))
+        raise ValueError('Invalid --b0_thr value (<0 or >20). This is highly '
+                         'suspicious. Value found: {}'.format(b0_threshold))
 
     if not np.isclose(bvals_min, 0.0):
         b0_threshold = b0_threshold if b0_threshold > bvals_min else bvals_min
-        logging.warning('No b=0 image. Setting b0_threshold to %s',
-                        b0_threshold)
+        logging.warning('No b=0 image. Setting b0_threshold to {}'.format(
+                        b0_threshold))
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
 
-    logger.info('Number of b0 images in the data: %s', len(b0_idx))
+    logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))
 
     if args.mean:
-        logger.info('Using mean of indices %s for b0', b0_idx)
+        logger.info('Using mean of indices {} for b0'.format(b0_idx))
         _mean_in_time(args.dwi, b0_idx, args.output)
     else:
         if not args.all:
             b0_idx = [b0_idx[0]]
-        logger.info("Keeping %s for b0", b0_idx)
+        logger.info("Keeping {} for b0".format(b0_idx))
         _keep_time_step(args.dwi, b0_idx, args.output)
 
 

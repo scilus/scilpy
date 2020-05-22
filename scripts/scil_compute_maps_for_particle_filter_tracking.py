@@ -11,8 +11,6 @@ References: Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M.
 biases. Neuroimage.
 """
 
-from __future__ import division
-
 import argparse
 import logging
 
@@ -37,7 +35,7 @@ def _build_arg_parser():
         help='Grey matter PVE map (nifti). From normal FAST output, has a '
              'PVE_1 name suffix.')
     p.add_argument(
-        'csf', action='store',
+        'csf',
         help='Cerebrospinal fluid PVE map (nifti). From normal FAST output, '
              'has a PVE_0 name suffix.')
 
@@ -68,7 +66,7 @@ def main():
 
     assert_inputs_exist(parser, [args.wm, args.gm, args.csf])
     assert_outputs_exist(parser, args,
-                          [args.include, args.exclude, args.interface])
+                         [args.include, args.exclude, args.interface])
 
     wm_pve = nib.load(args.wm)
     logging.info('"{0}" loaded as WM PVE map.'.format(args.wm))

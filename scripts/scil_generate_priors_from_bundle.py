@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Generation of priors and enhanced-FOD from an example/template bundle.
+The bundle must have been cleaned thorougly before use. The E-FOD can then
+be used for bundle-specific tractography, but not for FOD metrics.
+"""
+
 import argparse
 import logging
 import os
@@ -19,12 +25,6 @@ from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
 
-DESCRIPTION = """
-    Generation of priors and enhanced-FOD from an example/template bundle.
-    The bundle must have been cleaned thorougly before use. The E-FOD can then
-    be used for bundle-specific tractography, but not for FOD metrics.
-"""
-
 EPILOG = """
     References:
         [1] Rheault, Francois, et al. "Bundle-specific tractography with
@@ -35,7 +35,7 @@ EPILOG = """
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION, epilog=EPILOG,)
+                                description=__doc__, epilog=EPILOG,)
     p.add_argument('bundle_filename',
                    help='Input bundle filename.')
 
@@ -87,7 +87,7 @@ def main():
         os.mkdir(args.output_dir)
 
     img_sh = nib.load(args.fod_filename)
-    sh_shape = img_sh.get_shape()
+    sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
     img_mask = nib.load(args.mask_filename)
 

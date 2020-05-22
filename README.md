@@ -1,4 +1,5 @@
 # Scilpy
+[![Build Status](https://travis-ci.org/scilus/scilpy.svg?branch=master)](https://travis-ci.org/scilus/scilpy)
 
 **Scilpy** is the main library supporting research and development at the Sherbrooke Connectivity Imaging Lab
 ([SCIL]).
@@ -19,6 +20,7 @@ pip install -r requirements-git.txt
 Following this, the library and scripts can be installed locally by using
 
 ```
+python setup.py build_ext --inplace
 python setup.py install
 python setup.py install_scripts
 ```

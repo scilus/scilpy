@@ -14,7 +14,7 @@ import json
 from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 
 
-def _build_args_parser():
+def _build_arg_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
@@ -25,7 +25,7 @@ def _build_args_parser():
     parser.add_argument("output_json",
                         help="Output json file.")
 
-    parser.add_argument("--readout", type=int, default=0.062,
+    parser.add_argument("--readout", type=float, default=0.062,
                         help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(parser)
@@ -92,7 +92,10 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     # Associate field maps
     for fmap in fmaps:
         metadata = get_metadata(fmap)
-        intended = [metadata.get('IntendedFor', '')]
+        if isinstance(metadata.get('IntendedFor', ''), list):
+            intended = metadata.get('IntendedFor', '')
+        else:
+            intended = [metadata.get('IntendedFor', '')]
         for target in intended:
             dwi_filename = os.path.basename(target)
             if dwi_filename not in associations.keys():
@@ -105,7 +108,7 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
+def get_data(nSub, dwi, t1s, associations, default_readout):
     """ Return subject data
 
     Parameters
@@ -122,16 +125,20 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
     associations : Dictionnary
         Dictionnary containing files associated to the DWI
 
-    nRun : int
-        Run index
+    default_readout : Float
+        Default readout time
 
     Returns
     -------
     Dictionnary containing the metadata
     """
-    nSess = ''
+    nSess = 0
     if 'session' in dwi.get_entities().keys():
         nSess = dwi.get_entities()['session']
+
+    nRun = 0
+    if 'run' in dwi.get_entities().keys():
+        nRun = dwi.get_entities()['run']
 
     fmaps = []
     bval_path = ''
@@ -158,27 +165,31 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
 
     # Find b0 for topup, take the first one
     revb0_path = ''
-    totalreadout = ''
-    for nfmap in fmaps:
-        nfmap_metadata = get_metadata(nfmap)
-        if 'PhaseEncodingDirection' in nfmap_metadata:
-            fmap_PE = nfmap_metadata['PhaseEncodingDirection']
-            fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
-            if fmap_PE == dwi_revPE:
-                if 'TotalReadoutTime' in dwi_metadata:
-                    if 'TotalReadoutTime' in nfmap_metadata:
-                        dwi_RT = dwi_metadata['TotalReadoutTime']
-                        fmap_RT = nfmap_metadata['TotalReadoutTime']
-                        if dwi_RT != fmap_RT and totalreadout == '':
-                            totalreadout = 'error'
-                            revb0_path = 'error'
-                        elif dwi_RT == fmap_RT:
-                            revb0_path = nfmap.path
-                            totalreadout = dwi_RT
-                            break
-                else:
-                    revb0_path = nfmap.path
-                    totalreadout = default_readout
+    totalreadout = default_readout
+    if len(fmaps) == 0:
+        if 'TotalReadoutTime' in dwi_metadata:
+            totalreadout = dwi_metadata['TotalReadoutTime']
+    else:
+        for nfmap in fmaps:
+            nfmap_metadata = get_metadata(nfmap)
+            if 'PhaseEncodingDirection' in nfmap_metadata:
+                fmap_PE = nfmap_metadata['PhaseEncodingDirection']
+                fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
+                if fmap_PE == dwi_revPE:
+                    if 'TotalReadoutTime' in dwi_metadata:
+                        if 'TotalReadoutTime' in nfmap_metadata:
+                            dwi_RT = dwi_metadata['TotalReadoutTime']
+                            fmap_RT = nfmap_metadata['TotalReadoutTime']
+                            if dwi_RT != fmap_RT and totalreadout == '':
+                                totalreadout = 'error_readout'
+                                revb0_path = 'error_readout'
+                            elif dwi_RT == fmap_RT:
+                                revb0_path = nfmap.path
+                                totalreadout = dwi_RT
+                                break
+                    else:
+                        revb0_path = nfmap.path
+                        totalreadout = default_readout
 
     t1_path = 'todo'
     t1_nSess = []
@@ -194,7 +205,7 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
         t1_path = t1_nSess[0].path
     elif 'run' in dwi.path:
         for t1 in t1_nSess:
-            if 'run-' + str(nRun + 1) in t1.path:
+            if 'run-' + str(nRun) in t1.path:
                 t1_path = t1.path
 
     return {'subject': nSub,
@@ -210,7 +221,7 @@ def get_data(nSub, dwi, t1s, associations, nRun, default_readout):
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_outputs_exist(parser, args, args.output_json)
@@ -239,9 +250,8 @@ def main():
         associations = get_dwi_associations(fmaps, bvals, bvecs)
 
         # Get the data for each run of DWIs
-        for nRun, dwi in enumerate(dwis):
-            data.append(get_data(nSub, dwi, t1s, associations, nRun,
-                                 args.readout))
+        for dwi in dwis:
+            data.append(get_data(nSub, dwi, t1s, associations, args.readout))
 
     with open(args.output_json, 'w') as outfile:
         json.dump(data,

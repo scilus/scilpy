@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute a simple Recobundles (single-atlas & single-parameters).
-    The model need to be cleaned and lightweight.
-    Transform should come from ANTs: (using the --inverse flag)
-    AntsRegistration -m MODEL_REF -f SUBJ_REF
-    ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+Compute a simple Recobundles (single-atlas & single-parameters).
+The model need to be cleaned and lightweight.
+Transform should come from ANTs: (using the --inverse flag)
+AntsRegistration -m MODEL_REF -f SUBJ_REF
+ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
 """
 
 import argparse
@@ -20,12 +20,15 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
@@ -35,26 +38,24 @@ def _build_args_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
+                   help='Input tractogram filename.')
     p.add_argument('in_model',
-                   help='Model to use for recognition (trk or tck).')
-    p.add_argument('transformation',
-                   help='4x4 transformation to bring the model onto \n'
-                   'the input tractogram')
-    p.add_argument('output_name',
+                   help='Model to use for recognition.')
+    p.add_argument('in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
+    p.add_argument('out_tractogram',
                    help='Output tractogram filename.')
 
-    add_reference(p)
-
-    p.add_argument('--wb_clustering_thr', type=float, default=8,
+    p.add_argument('--tractogram_clustering_thr', type=float, default=8,
                    help='Clustering threshold used for the whole brain '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--model_clustering_thr', type=float, default=4,
                    help='Clustering threshold used for the model '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
     p.add_argument('--pruning_thr', type=float, default=6,
                    help='MDF threshold used for final streamlines selection '
-                   '[%(default)smm].')
+                        '[%(default)smm].')
 
     p.add_argument('--slr_threads', type=int, default=None,
                    help='Number of threads for SLR [all].')
@@ -68,35 +69,34 @@ def _build_args_parser():
     group = p.add_mutually_exclusive_group()
     group.add_argument('--input_pickle',
                        help='Input pickle clusters map file.\n'
-                       'Will override the wb_clustering_thr parameter.')
+                            'Will override the tractogram_clustering_thr parameter.')
     group.add_argument('--output_pickle',
                        help='Output pickle clusters map file.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
-
     add_overwrite_arg(p)
 
     return p
 
 
 def main():
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
-    assert_outputs_exist(parser, args, args.output_name)
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo])
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines
     model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
     # Default transformation source is expected to be ANTs
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.transformation))
+        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
 
-    model_streamlines = ArraySequence(
-        transform_streamlines(model_file.streamlines, transfo))
+    model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
     if args.input_pickle:
@@ -108,14 +108,14 @@ def main():
                                verbose=args.verbose)
     else:
         reco_obj = RecoBundles(wb_streamlines,
-                               clust_thr=args.wb_clustering_thr,
+                               clust_thr=args.tractogram_clustering_thr,
                                rng=rng,
                                verbose=args.verbose)
 
     if args.output_pickle:
         with open(args.output_pickle, 'wb') as outfile:
             pickle.dump(reco_obj.cluster_map, outfile)
-    _, indices = reco_obj.recognize(model_streamlines,
+    _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
                                     slr_num_threads=args.slr_threads)
@@ -127,7 +127,7 @@ def main():
         sft = StatefulTractogram(new_streamlines, wb_file, Space.RASMM,
                                  data_per_streamline=new_data_per_streamlines,
                                  data_per_point=new_data_per_points)
-        save_tractogram(sft, args.output_name)
+        save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == '__main__':

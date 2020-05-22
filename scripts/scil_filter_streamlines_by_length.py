@@ -1,60 +1,89 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
 
-from nibabel.streamlines import load, save, Tractogram
+"""
+Script to filter streamlines based on their lengths.
+"""
+
+import argparse
+import json
+import logging
+
+from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_overwrite_arg)
+from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
-def _build_args_parser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description='Filter streamlines by length.')
-    p.add_argument('in_tractogram', type=str,
+        formatter_class=argparse.RawTextHelpFormatter, description=__doc__)
+
+    p.add_argument('in_tractogram',
                    help='Streamlines input file name.')
-    p.add_argument('out_tractogram', type=str,
+    p.add_argument('out_tractogram',
                    help='Streamlines output file name.')
     p.add_argument('--minL', default=0., type=float,
-                   help='Minimum length of streamlines. [%(default)s]')
-    p.add_argument('--maxL', default=0., type=float,
-                   help='Maximum length of streamlines. [%(default)s]')
+                   help='Minimum length of streamlines, in mm. [%(default)s]')
+    p.add_argument('--maxL', default=np.inf, type=float,
+                   help='Maximum length of streamlines, in mm. [%(default)s]')
+    p.add_argument('--no_empty', action='store_true',
+                   help='Do not write file if there is no streamline.')
+    p.add_argument('--display_counts', action='store_true',
+                   help='Print streamline count before and after filtering')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
+    add_json_args(p)
 
     return p
 
 
 def main():
 
-    parser = _build_args_parser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    tractogram_file = load(args.in_tractogram)
-    streamlines = list(tractogram_file.streamlines)
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
-    data_per_point = tractogram_file.tractogram.data_per_point
-    data_per_streamline = tractogram_file.tractogram.data_per_streamline
+    if args.minL == 0 and np.isinf(args.maxL):
+        logging.debug("You have not specified minL nor maxL. Output will "
+                      "simply be a copy of your input!")
 
-    new_streamlines, new_per_point, new_per_streamline = filter_streamlines_by_length(
-                                                             streamlines,
-                                                             data_per_point,
-                                                             data_per_streamline,
-                                                             args.minL,
-                                                             args.maxL)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
-    new_tractogram = Tractogram(new_streamlines,
-                                data_per_streamline=new_per_streamline,
-                                data_per_point=new_per_point,
-                                affine_to_rasmm=np.eye(4))
+    new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
-    save(new_tractogram, args.out_tractogram, header=tractogram_file.header)
+    if args.display_counts:
+        sc_bf = len(sft.streamlines)
+        sc_af = len(new_sft.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                         'streamline_count_after_filtering': int(sc_af)},
+                         indent=args.indent))
+
+    if len(new_sft.streamlines) == 0:
+        if args.no_empty:
+            logging.debug("The file {} won't be written "
+                          "(0 streamline).".format(args.out_tractogram))
+
+            return
+
+        logging.debug('The file {} contains 0 streamline'.format(
+            args.out_tractogram))
+
+    save_tractogram(new_sft, args.out_tractogram)
 
 
 if __name__ == "__main__":

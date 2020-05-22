@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+    Convert a SH file between the two commonly used bases
+    ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
+    input data basis.
+"""
+
 import argparse
 
 from dipy.data import get_sphere
@@ -12,16 +18,10 @@ from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)
 
-DESCRIPTION = """
-    Convert a SH file between the two commonly used bases
-    ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
-    input data basis.
-"""
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=DESCRIPTION)
+                                description=__doc__)
 
     p.add_argument('input_sh',
                    help='Input SH filename. (nii or nii.gz)')

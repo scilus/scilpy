@@ -8,23 +8,17 @@ A DTI fit is made, and voxels containing a single fiber population are
 found using a threshold on the FA.
 """
 
-from __future__ import division
-
-from builtins import str
 import argparse
 import logging
 
-from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.csdeconv import auto_response
-from dipy.segment.mask import applymask
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import (
-    check_b0_threshold, normalize_bvecs, is_normalized_bvecs)
+from scilpy.io.utils import (add_force_b0_arg,
+                             add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.reconst.frf import compute_ssst_frf
 
 
 def _build_arg_parser():
@@ -79,9 +73,7 @@ def _build_arg_parser():
              'roi_radius. [center of the 3D volume]')
 
     add_overwrite_arg(p)
-
-    p.add_argument('--verbose', '-v', action='store_true',
-                   help='Produce verbose output.')
+    add_verbose_arg(p)
 
     return p
 
@@ -103,65 +95,21 @@ def main():
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
-
-    check_b0_threshold(args, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
-
-    if args.min_fa_thresh < 0.4:
-        logging.warn(
-            'Minimal FA threshold ({}) seems really small. Make sure it '
-            'makes sense for this dataset.'.format(args.min_fa_thresh))
-
+    mask = None
     if args.mask:
-        mask = nib.load(args.mask).get_data().astype(np.bool)
-        data = applymask(data, mask)
+        mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
 
+    mask_wm = None
     if args.mask_wm:
-        wm_mask = nib.load(args.mask_wm).get_data().astype('bool')
-    else:
-        wm_mask = np.ones_like(data[..., 0], dtype=np.bool)
-        logging.warn(
-            'No white matter mask specified! mask_data will be used instead, '
-            'if it has been supplied. \nBe *VERY* careful about the '
-            'estimation of the fiber response function to ensure no invalid '
-            'voxel was used.')
+        mask_wm = np.asanyarray(nib.load(args.mask_wm).dataobj).astype(np.bool)
 
-    data_in_wm = applymask(data, wm_mask)
-
-    fa_thresh = args.fa_thresh
-    # Iteratively trying to fit at least 300 voxels. Lower the FA threshold
-    # when it doesn't work. Fail if the fa threshold is smaller than
-    # the min_threshold.
-    # We use an epsilon since the -= 0.05 might incurs numerical imprecision.
-    nvox = 0
-    while nvox < args.min_nvox and fa_thresh >= args.min_fa_thresh - 0.00001:
-        response, ratio, nvox = auto_response(gtab, data_in_wm,
-                                              roi_center=args.roi_center,
-                                              roi_radius=args.roi_radius,
-                                              fa_thr=fa_thresh,
-                                              return_number_of_voxels=True)
-
-        logging.debug(
-            'Number of indices is %s with threshold of %s', nvox, fa_thresh)
-        fa_thresh -= 0.05
-
-    if nvox < args.min_nvox:
-        raise ValueError(
-            "Could not find at least {} voxels with sufficient FA "
-            "to estimate the FRF!".format(args.min_nvox))
-
-    logging.debug("Found %i voxels with FA threshold %f for FRF estimation",
-                  nvox, fa_thresh + 0.05)
-    logging.debug("FRF eigenvalues: %s", str(response[0]))
-    logging.debug("Ratio for smallest to largest eigen value is %f", ratio)
-    logging.debug("Mean of the b=0 signal for voxels used for FRF: %f",
-                  response[1])
-
-    full_response = np.array([response[0][0], response[0][1],
-                              response[0][2], response[1]])
+    full_response = compute_ssst_frf(data, bvals, bvecs, mask=mask,
+                                     mask_wm=mask_wm, fa_thresh=args.fa_thresh,
+                                     min_fa_thresh=args.min_fa_thresh,
+                                     min_nvox=args.min_nvox,
+                                     roi_radius=args.roi_radius,
+                                     roi_center=args.roi_center,
+                                     force_b0_threshold=args.force_b0_threshold)
 
     np.savetxt(args.frf_file, full_response)
 
