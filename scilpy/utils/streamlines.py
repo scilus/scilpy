@@ -343,7 +343,7 @@ def cut_invalid_streamlines(sft):
                         sft.data_per_streamline[key][ind])
                 for key in sft.data_per_point.keys():
                     new_data_per_point[key].append(
-                        sft.data_per_point[key][ind][best_pos[0]:best_pos[1]])
+                        sft.data_per_point[key][ind][best_pos[0]:best_pos[1]-1])
             else:
                 logging.warning('Streamlines entirely out of the volume.')
         else:
