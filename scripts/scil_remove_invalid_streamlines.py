@@ -6,7 +6,7 @@ Removal of streamlines that are out of the volume bounding box. In voxel space
 no negative coordinate and no above volume dimension coordinate are possible.
 Any streamline that do not respect these two conditions are removed.
 
-The --cut_invalid option will cut streamlines so their longest segment are
+The --cut_invalid option will cut streamlines so that their longest segment are
 within the bounding box
 """
 
