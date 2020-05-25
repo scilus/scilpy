@@ -45,7 +45,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument(
-        'in_fODFs', metavar='fODFs',
+        'in_fODF',
         help='Path of the fODF volume in spherical harmonics (SH).')
 
     p.add_argument(
@@ -138,7 +138,7 @@ def main():
     assert_inputs_exist(parser, [])
     assert_outputs_exist(parser, args, arglist)
 
-    vol = nib.load(args.in_fODFs)
+    vol = nib.load(args.in_fODF)
     data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
 
