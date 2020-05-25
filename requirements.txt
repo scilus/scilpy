@@ -21,7 +21,10 @@ scipy==1.0.1
 setuptools==39.0.1
 six==1.11.0
 vtk==8.1.2
+trimeshpy==0.0.2
 coloredlogs==10.0
 nilearn==0.6.1
 pytest==5.3.5
 pytest_console_scripts==0.2.0
+statsmodels==0.11.1
+-e git://github.com/aestrivex/bctpy.git@1973df9#egg=bctpy

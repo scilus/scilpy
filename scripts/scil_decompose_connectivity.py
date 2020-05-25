@@ -7,9 +7,11 @@ Compute a connectivity matrix from a tractogram and a parcellation.
 Current strategy is to keep the longest streamline segment connecting
 2 regions. If the streamline crosses other gray matter regions before
 reaching its final connected region, the kept connection is still the
-longest.
+longest. This is robust to compressed streamlines.
 
-This is robust to compressed streamlines.
+The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
+group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
+The 'data' is stored in VOX/CORNER for simplicity and efficiency.
 
 NOTE: this script can take a while to run. Please be patient.
 Example: on a tractogram with 1.8M streamlines, running on a SSD:
@@ -29,14 +31,20 @@ from dipy.io.stateful_tractogram import (Origin, Space,
                                          StatefulTractogram,
                                          set_sft_logger_level)
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import get_reference_info
 from dipy.tracking.streamlinespeed import length
+import h5py
 import nibabel as nib
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg,
                              assert_inputs_exist,
+                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.features import (remove_outliers,
                                            remove_loops_and_sharp_turns)
@@ -44,11 +52,10 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
                                         compute_streamline_segment,
                                         extract_longest_segments_from_profile)
 from scilpy.tractanalysis.uncompress import uncompress
-from scilpy.io.streamlines import load_tractogram_with_reference
 
 
 def _get_output_paths(args):
-    root_dir = args.output_dir
+    root_dir = args.out_dir
     paths = {'raw': os.path.join(root_dir, 'raw_connections/'),
              'final': os.path.join(root_dir, 'final_connections/'),
              'invalid_length': os.path.join(root_dir, 'invalid_length/'),
@@ -72,6 +79,8 @@ def _get_saving_options(args):
 
 
 def _create_required_output_dirs(args):
+    if not args.out_dir:
+        return
     out_paths = _get_output_paths(args)
     os.mkdir(out_paths['final'])
 
@@ -90,20 +99,29 @@ def _create_required_output_dirs(args):
         os.mkdir(out_paths['valid_length'])
 
 
-def _save_if_needed(streamlines, args,
+def _save_if_needed(streamlines, hdf5_file, args,
                     save_type, step_type,
                     in_label, out_label):
-    saving_options = _get_saving_options(args)
-    out_paths = _get_output_paths(args)
+    if step_type == 'final':
+        streamlines = ArraySequence(streamlines)
+        group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
+        group.create_dataset('data', data=np.asarray(streamlines.get_data(),
+                                                     dtype=np.float32))
+        group.create_dataset('offsets', data=streamlines._offsets)
+        group.create_dataset('lengths', data=streamlines._lengths)
 
-    if saving_options[save_type] and len(streamlines):
-        out_name = os.path.join(out_paths[step_type],
-                                '{}_{}.trk'.format(in_label,
-                                                   out_label))
-        sft = StatefulTractogram(streamlines, args.in_tractogram,
-                                 Space.VOX, origin=Origin.TRACKVIS)
+    if args.out_dir:
+        saving_options = _get_saving_options(args)
+        out_paths = _get_output_paths(args)
 
-        save_tractogram(sft, out_name)
+        if saving_options[save_type] and len(streamlines):
+            out_name = os.path.join(out_paths[step_type],
+                                    '{}_{}.trk'.format(in_label,
+                                                       out_label))
+            sft = StatefulTractogram(streamlines, args.in_tractogram,
+                                     Space.VOX, origin=Origin.TRACKVIS)
+
+            save_tractogram(sft, out_name)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):
@@ -126,22 +144,21 @@ def build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
-    p.add_argument('labels',
-                   help='Labels file name (nifti).\nLabels must be consecutive '
-                        'from 0 to N, with 0 the background.\n'
-                        'This generates a NxN connectivity matrix.')
-    p.add_argument('output_dir',
-                   help='Output directory path.')
+    p.add_argument('in_labels',
+                   help='Labels file name (nifti). Labels must have 0 as '
+                        'background.')
+    p.add_argument('out_hdf5',
+                   help='Output hdf5 file (.h5).')
 
     post_proc = p.add_argument_group('Post-processing options')
     post_proc.add_argument('--no_pruning', action='store_true',
                            help='If set, will NOT prune on length.\n'
                                 'Length criteria in --min_length, '
-                                '--max_length')
+                                '--max_length.')
     post_proc.add_argument('--no_remove_loops', action='store_true',
                            help='If set, will NOT remove streamlines making '
                                 'loops.\nAngle criteria based on '
-                                '--loop_max_angle')
+                                '--loop_max_angle.')
     post_proc.add_argument('--no_remove_outliers', action='store_true',
                            help='If set, will NOT remove outliers using QB.\n'
                                 'Criteria based on --outlier_threshold.')
@@ -157,7 +174,7 @@ def build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.6,
+    og.add_argument('--outlier_threshold', type=float, default=0.5,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
     og.add_argument('--loop_max_angle', type=float, default=330.,
@@ -168,16 +185,19 @@ def build_arg_parser():
                          'filtering with QB. [%(default)s]')
 
     s = p.add_argument_group('Saving options')
+    s.add_argument('--out_dir',
+                   help='Output directory for each connection as separate '
+                        'file (.trk).')
     s.add_argument('--save_raw_connections', action='store_true',
                    help='If set, will save all raw cut connections in a '
-                        'subdirectory')
+                        'subdirectory.')
     s.add_argument('--save_intermediate', action='store_true',
                    help='If set, will save the intermediate results of '
-                        'filtering')
+                        'filtering.')
     s.add_argument('--save_discarded', action='store_true',
                    help='If set, will save discarded streamlines in '
                         'subdirectories.\n'
-                        'Includes loops, outliers and qb_loops')
+                        'Includes loops, outliers and qb_loops.')
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
@@ -194,13 +214,23 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
+    assert_outputs_exist(parser, args, args.out_hdf5)
 
-    if os.path.abspath(args.output_dir) == os.getcwd():
-        parser.error('Do not use the current path as output directory.')
+    # HDF5 will not overwrite the file
+    if os.path.isfile(args.out_hdf5):
+        os.remove(args.out_hdf5)
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output_dir,
-                                       create_dir=True)
+    if (args.save_raw_connections or args.save_intermediate
+            or args.save_discarded) and not args.out_dir:
+        parser.error('To save outputs in the streamlines form, provide the '
+                     'output directory using --out_dir.')
+
+    if args.out_dir:
+        if os.path.abspath(args.out_dir) == os.getcwd():
+            parser.error('Do not use the current path as output directory.')
+        assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
+                                           create_dir=True)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -209,14 +239,11 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
-    img_labels = nib.load(args.labels)
-    data_labels = img_labels.get_fdata().astype(np.int16)
+    img_labels = nib.load(args.in_labels)
+    data_labels = get_data_as_label(img_labels)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')
-
-    if not np.issubdtype(img_labels.get_data_dtype().type, np.integer):
-        parser.error("Label image should contain integers for labels.")
 
     # Voxel size must be isotropic, for speed/performance considerations
     vox_sizes = img_labels.header.get_zooms()
@@ -230,10 +257,11 @@ def main():
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
 
-    logging.info('*** Filtering streamlines ***')
-    data_mask = np.zeros(data_labels.shape)
-    data_mask[data_labels > 0] = 1
+    if not is_header_compatible(sft, img_labels):
+        raise IOError('{} and {}do not have a compatible header'.format(
+            args.in_tractogram, args.in_labels))
 
+    logging.info('*** Filtering streamlines ***')
     original_len = len(sft)
     time1 = time.time()
 
@@ -278,6 +306,13 @@ def main():
     comb_list.extend(zip(real_labels, real_labels))
 
     iteration_counter = 0
+    hdf5_file = h5py.File(args.out_hdf5, 'w')
+    affine, dimensions, voxel_sizes, voxel_order = get_reference_info(sft)
+    hdf5_file.attrs['affine'] = affine
+    hdf5_file.attrs['dimensions'] = dimensions
+    hdf5_file.attrs['voxel_sizes'] = voxel_sizes
+    hdf5_file.attrs['voxel_order'] = voxel_order
+
     for in_label, out_label in comb_list:
         if iteration_counter > 0 and iteration_counter % 100 == 0:
             logging.info('Split {} nodes out of {}'.format(iteration_counter,
@@ -309,8 +344,8 @@ def main():
                 points_to_idx[strl_idx])
             connecting_streamlines.append(curr_streamlines)
 
-        _save_if_needed(connecting_streamlines, args, 'raw',
-                        'raw', in_label, out_label)
+        _save_if_needed(connecting_streamlines, hdf5_file, args,
+                        'raw', 'raw', in_label, out_label)
 
         # Doing all post-processing
         if not args.no_pruning:
@@ -320,7 +355,7 @@ def main():
                 args.max_length,
                 vox_sizes[0])
 
-            _save_if_needed(invalid_length, args,
+            _save_if_needed(invalid_length, hdf5_file, args,
                             'discarded', 'invalid_length',
                             in_label, out_label)
         else:
@@ -329,7 +364,7 @@ def main():
         if not len(valid_length):
             continue
 
-        _save_if_needed(valid_length, args,
+        _save_if_needed(valid_length, hdf5_file, args,
                         'intermediate', 'valid_length', in_label, out_label)
 
         if not args.no_remove_loops:
@@ -340,7 +375,7 @@ def main():
             loop_ids = np.setdiff1d(np.arange(len(valid_length)), no_loop_ids)
             loops = [valid_length[i] for i in loop_ids]
 
-            _save_if_needed(loops, args,
+            _save_if_needed(loops, hdf5_file, args,
                             'discarded', 'loops', in_label, out_label)
         else:
             no_loops = valid_length
@@ -348,13 +383,13 @@ def main():
         if not len(no_loops):
             continue
 
-        _save_if_needed(no_loops, args,
+        _save_if_needed(no_loops, hdf5_file, args,
                         'intermediate', 'no_loops', in_label, out_label)
 
         if not args.no_remove_outliers:
             inliers, outliers = remove_outliers(no_loops,
                                                 args.outlier_threshold)
-            _save_if_needed(outliers, args,
+            _save_if_needed(outliers, hdf5_file, args,
                             'discarded', 'outliers', in_label, out_label)
         else:
             inliers = no_loops
@@ -362,7 +397,7 @@ def main():
         if not len(inliers):
             continue
 
-        _save_if_needed(inliers, args,
+        _save_if_needed(inliers, hdf5_file, args,
                         'intermediate', 'inliers', in_label, out_label)
 
         if not args.no_remove_curv_dev:
@@ -377,14 +412,15 @@ def main():
                 np.arange(len(inliers)), no_qb_curv_ids)
             qb_curv = [inliers[i] for i in qb_curv_ids]
 
-            _save_if_needed(qb_curv, args,
+            _save_if_needed(qb_curv, hdf5_file, args,
                             'discarded', 'qb_curv', in_label, out_label)
         else:
             no_qb_curv = inliers
 
-        _save_if_needed(no_qb_curv, args,
+        _save_if_needed(no_qb_curv, hdf5_file, args,
                         'final', 'final', in_label, out_label)
 
+    hdf5_file.close()
     time2 = time.time()
     logging.info(
         '    Connections post-processing and saving took {} sec.'.format(

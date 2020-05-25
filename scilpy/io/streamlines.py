@@ -2,12 +2,12 @@
 
 from itertools import islice
 import os
+import tempfile
 
 from dipy.io.streamline import load_tractogram
+import h5py
 import nibabel as nib
-from nibabel.streamlines import Tractogram
-from nibabel.streamlines.trk import get_affine_trackvis_to_rasmm
-import six
+import numpy as np
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -27,26 +27,6 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
     if not ext_1 == ext_2:
         parser.error(
             'Input and output tractogram files must use the same format.')
-
-
-def save_from_voxel_space(streamlines, anat, ref_tracts, out_name):
-    if isinstance(ref_tracts, six.string_types):
-        nib_object = nib.streamlines.load(ref_tracts, lazy_load=True)
-    else:
-        nib_object = ref_tracts
-
-    if isinstance(anat, six.string_types):
-        anat = nib.load(anat)
-
-    affine_to_rasmm = get_affine_trackvis_to_rasmm(nib_object.header)
-
-    tracto = Tractogram(streamlines=streamlines,
-                        affine_to_rasmm=affine_to_rasmm)
-
-    spacing = anat.header['pixdim'][1:4]
-    tracto.streamlines._data *= spacing
-
-    nib.streamlines.save(tracto, out_name, header=nib_object.header)
 
 
 def ichunk(sequence, n):
@@ -102,3 +82,73 @@ def load_tractogram_with_reference(parser, args, filepath,
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
+
+
+def streamlines_to_memmap(input_streamlines):
+    """
+    Function to decompose on disk the array_sequence into its components.
+    Parameters
+    ----------
+    input_streamlines : ArraySequence
+        All streamlines of the tractogram to segment.
+    Returns
+    -------
+    tmp_obj : tuple
+        Temporary directory and tuple of filenames for the data, offsets
+        and lengths.
+    """
+    tmp_dir = tempfile.TemporaryDirectory()
+    data_filename = os.path.join(tmp_dir.name, 'data.dat')
+    data = np.memmap(data_filename, dtype='float32', mode='w+',
+                     shape=input_streamlines._data.shape)
+    data[:] = input_streamlines._data[:]
+
+    offsets_filename = os.path.join(tmp_dir.name, 'offsets.dat')
+    offsets = np.memmap(offsets_filename, dtype='int64', mode='w+',
+                        shape=input_streamlines._offsets.shape)
+    offsets[:] = input_streamlines._offsets[:]
+
+    lengths_filename = os.path.join(tmp_dir.name, 'lengths.dat')
+    lengths = np.memmap(lengths_filename, dtype='int32', mode='w+',
+                        shape=input_streamlines._lengths.shape)
+    lengths[:] = input_streamlines._lengths[:]
+
+    return tmp_dir, (data_filename, offsets_filename, lengths_filename)
+
+
+def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None):
+    data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
+    offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
+    lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
+
+    return reconstruct_streamlines(data, offsets, lengths, indices=indices)
+
+def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
+    if isinstance(hdf5_filename, str):
+        hdf5_file = h5py.File(hdf5_filename, 'r')
+    else:
+        hdf5_file = hdf5_filename
+
+    if key is not None:
+        if key not in hdf5_file:
+            return []
+        group = hdf5_file[key]
+    else:
+        group = hdf5_file
+
+    data = np.array(group['data']).flatten()
+    offsets = np.array(group['offsets'])
+    lengths = np.array(group['lengths'])
+
+    return reconstruct_streamlines(data, offsets, lengths)
+
+def reconstruct_streamlines(data, offsets, lengths, indices=None):
+    if indices is None:
+        indices = np.arange(len(offsets))
+
+    streamlines = []
+    for i in indices:
+        streamline = data[offsets[i]*3:offsets[i]*3 + lengths[i]*3]
+        streamlines.append(streamline.reshape((lengths[i], 3)))
+
+    return streamlines

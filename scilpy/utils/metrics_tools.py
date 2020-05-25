@@ -10,7 +10,60 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def weighted_mean_stddev(weights, data):
+def get_bundle_metrics_profiles(sft, metrics_files):
+    """
+    Returns the profile of each metric along each streamline from a sft.
+    This is used to create tract profiles.
+
+    Parameters
+    ------------
+    sft : StatefulTractogram
+        Input bundle under which to compute profile.
+    metrics_files : sequence
+        list of nibabel objects representing the metrics files
+
+    Returns
+    ---------
+    profiles_values : list
+        list of profiles for each streamline, per metric given
+
+    """
+
+    sft.to_vox()
+    sft.to_corner()
+    streamlines = sft.streamlines
+
+    def _get_profile_one_streamline(streamline, metrics_files):
+        x_ind = np.floor(streamline[:, 0]).astype(np.int)
+        y_ind = np.floor(streamline[:, 1]).astype(np.int)
+        z_ind = np.floor(streamline[:, 2]).astype(np.int)
+
+        return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
+                    metrics_files))
+
+    # We preload the data to avoid loading it for each streamline
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(),
+                        metrics_files))
+
+    # The root list has S elements, where S == the number of streamlines.
+    # Each element from S is a sublist with N elements, where N is the number
+    # of metrics. Each element from N is a list of the metric values
+    # encountered along the current streamline.
+    metrics_per_strl =\
+        list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
+             streamlines))
+
+    converted = []
+    # Here, the zip gives us a list of N tuples, so one tuple for each metric.
+    # Each tuple has S elements, where S is the number of streamlines.
+    # We then convert each tuple to a numpy array
+    for metric_values in zip(*metrics_per_strl):
+        converted.append(np.asarray(metric_values))
+
+    return converted
+
+
+def weighted_mean_std(weights, data):
     """
     Returns the weighted mean and standard deviation of the data.
 
@@ -18,7 +71,6 @@ def weighted_mean_stddev(weights, data):
     ------------
     weights : ndarray
         a ndarray containing the weighting factor
-
     data : ndarray
         the ndarray containing the data for which the stats are desired
 
@@ -67,9 +119,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
         weights = weights > 0
 
     return map(lambda metric_file:
-               weighted_mean_stddev(
-                    weights,
-                    metric_file.get_data().astype(np.float64)),
+               weighted_mean_std(weights,
+                                 metric_file.get_fdata()),
                metrics_files)
 
 
@@ -212,3 +263,30 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     plt.close(fig)
     return fig
+
+
+def get_roi_metrics_mean_std(density_map, metrics_files):
+    """
+    Returns the mean and standard deviation of each metric, using the
+    provided density map. This can be a binary mask,
+    or contain weighted values between 0 and 1.
+
+    Parameters
+    ------------
+    density_map : ndarray
+        3D numpy array containing a density map.
+    metrics_files : sequence
+        list of nibabel objects representing the metrics files.
+
+    Returns
+    ---------
+    stats : list
+        list of tuples where the first element of the tuple is the mean
+        of a metric, and the second element is the standard deviation.
+
+    """
+
+    return map(lambda metric_file:
+               weighted_mean_std(density_map,
+                                 metric_file.get_fdata()),
+               metrics_files)

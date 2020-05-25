@@ -7,13 +7,9 @@ Compute a density map of seeds saved in .trk file.
 
 import argparse
 
+from dipy.io.streamline import load_tractogram
 from nibabel import Nifti1Image
-from nibabel.affines import apply_affine
-from nibabel.streamlines import (
-    detect_format,
-    Field,
-    load,
-    TckFile)
+from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
 from scilpy.io.utils import (
     add_overwrite_arg,
@@ -35,8 +31,6 @@ def _build_arg_parser():
                         'intersected voxels, creating a binary map.\nWhen set '
                         'without a value, 1 is used.\n If a value is given, '
                         'will be used as the stored value.')
-    p.add_argument('--lazy_load', action='store_true',
-                   help='Load the file in lazy-loading')
     add_overwrite_arg(p)
 
     return p
@@ -50,7 +44,7 @@ def main():
     assert_outputs_exist(parser, args, [args.seed_density_filename])
 
     tracts_format = detect_format(args.tractogram_filename)
-    if tracts_format is TckFile:
+    if tracts_format is not TrkFile:
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk): {0}".format(args.tractogram_filename))
 
@@ -60,26 +54,23 @@ def main():
                      'must be greater than 0 and smaller or equal to {}'
                      .format(args.binary, max_))
 
-    # Load tractogram and load seeds
-    tracts_file = load(args.tractogram_filename, args.lazy_load)
-    if 'seeds' in tracts_file.tractogram.data_per_streamline:
-        seeds = tracts_file.tractogram.data_per_streamline['seeds']
+    # Load files and data. TRKs can have 'same' as reference
+    # Can handle streamlines outside of bbox
+    sft = load_tractogram(args.tractogram_filename, 'same',
+                          bbox_valid_check=False)
+    # Streamlines are saved in RASMM but seeds are saved in VOX
+    # This might produce weird behavior with non-iso
+    sft.to_vox()
+    sft.to_corner()
+    if 'seeds' in sft.data_per_streamline:
+        seeds = sft.data_per_streamline['seeds']
     else:
         parser.error('Tractogram does not contain seeds')
 
-    # Transform seeds if they're all in memory
-    if not args.lazy_load:
-        seeds = apply_affine(np.linalg.inv(tracts_file.affine), seeds)
-
     # Create seed density map
-    shape = tracts_file.header[Field.DIMENSIONS]
+    _, shape, _, _ = sft.space_attributes
     seed_density = np.zeros(shape, dtype=np.int32)
     for seed in seeds:
-        # If seeds are lazily loaded, we have to transform them
-        # as they get loaded
-        if args.lazy_load:
-            seed = apply_affine(np.linalg.inv(tracts_file.affine), seed)
-
         # Set value at mask, either binary or increment
         seed_voxel = np.round(seed).astype(np.int)
         if args.binary is not None:
@@ -89,7 +80,7 @@ def main():
 
     # Save seed density map
     dm_img = Nifti1Image(seed_density.astype(np.int32),
-                         tracts_file.affine)
+                         sft.affine)
     dm_img.to_filename(args.seed_density_filename)
 
 

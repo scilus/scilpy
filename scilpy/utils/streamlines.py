@@ -5,6 +5,9 @@ import itertools
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.segment.clustering import QuickBundles
+from dipy.segment.metric import ResampleFeature
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
