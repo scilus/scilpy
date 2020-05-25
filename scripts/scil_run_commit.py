@@ -2,24 +2,31 @@
 # -*- coding: utf-8 -*-
 
 """
-Estimate the fit between a provided tractogram and DWI. Assign a weight to each
-streamline that represent how well they explain the signal.
-Default is stick-zeppelin-ball for multi-shells data.
+Convex Optimization Modeling for Microstructure Informed Tractography (COMMIT)
+estimates, globally, how a given tractogram explains the DWI in terms of signal
+fit, assuming a certain forward microstructure model. It assigns a weight to
+each streamline, which represents how well it explains the DWI signal globally.
+The default forward microstructure model is stick-zeppelin-ball, which required
+multi-shell data. It is possible to use the ball-and-stick model for
+single-shell data.
 
-The real output from COMMIT is:
+The output from COMMIT is:
 - fit_NRMSE.nii.gz
     fiting error (Normalized Root Mean Square Error)
 - fit_RMSE.nii.gz
     fiting error (Root Mean Square Error)
 - results.pickle
     Dictionary containing the experiment parameters and final weights
-- compartment_EC.nii.gz
-- compartment_IC.nii.gz
-- compartment_ISO.nii.gz
+- compartment_EC.nii.gz (Extra-Cellular)
+- compartment_IC.nii.gz (Intra-Cellular)
+- compartment_ISO.nii.gz (isotropic volume fraction (freewater comportment))
     Each of COMMIT compartments
 
 This script can divide the input tractogram in two using a threshold to apply
-on the streamlines' weight.
+on the streamlines' weight. Typically, the threshold should be 0, keeping only
+streamlines that have non-zero weight and that contribute to explain the DWI
+signal. Streamlines with 0 weight are essentially not necessary according to
+COMMIT.
 """
 
 import argparse
@@ -61,7 +68,7 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck or .h5).')
     p.add_argument('in_dwi',
-                   help='Diffusion from which the fodf were computed.')
+                   help='Diffusion-weighted images used by COMMIT.')
     p.add_argument('in_bvals',
                    help='Bvals in the FSL format.')
     p.add_argument('in_bvecs',
@@ -71,8 +78,14 @@ def _build_arg_parser():
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
 
+    p.add_argument('--nbr_dir', type=int, default=500,
+                   help='Number of directions, on the half of the sphere,\n'
+                        'representing the possible orientations of the response '
+                        'functions [%(default)s].')
+    p.add_argument('--nbr_iter', type=int, default=500,
+                   help='Maximum number of iterations.')
     p.add_argument('--tracking_mask',
-                   help='Binary mask were tratography was allowed.\n'
+                   help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
 
@@ -82,28 +95,32 @@ def _build_arg_parser():
                          'Disable the zeppelin compartment for single-shell.')
     g1.add_argument('--parallel_diff', type=float,
                     help='Parallel diffusivity in mm^2/s.\n'
-                    'Default for ball_stick: 1.7E-3\n'
-                    'Default for stick_zeppelin_ball: 1.7E-3')
+                         'Default for ball_stick: 1.7E-3\n'
+                         'Default for stick_zeppelin_ball: 1.7E-3')
     g1.add_argument('--perpendicular_diff', nargs='+', type=float,
                     help='Perpendicular diffusivity in mm^2/s.\n'
-                    'Default for ball_stick: None\n'
-                    'Default for stick_zeppelin_ball: '
-                    '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
+                         'Default for ball_stick: None\n'
+                         'Default for stick_zeppelin_ball: '
+                         '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
     g1.add_argument('--isotropic_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
-                    'Default for ball_stick: 2.0E-3\n'
-                    'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
+                         'Default for ball_stick: 2.0E-3\n'
+                         'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
 
     g2 = p.add_argument_group(title='Tractogram options')
     g2.add_argument('--assign_weights', action='store_true',
                     help='Store the streamlines weights in the '
-                    'data_per_streamline.')
+                         'data_per_streamline.')
     g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
-                    help='Split the tractogram in two. Valid and invalid, '
-                    'based on the provided threshold.')
+                    help='Split the tractogram in two. essential and\n'
+                         'nonessential, based on the provided threshold.')
 
     g3 = p.add_argument_group(title='Kernels options')
     kern = g3.add_mutually_exclusive_group()
+    kern.add_argument('--regenerate_kernels', action='store_false',
+                      help='Regenerate the kernel (default).\n'
+                           'If false, load existing kernel in the output '
+                           'directory')
     kern.add_argument('--save_kernels', metavar='DIRECTORY',
                       help='Output directory for the COMMIT kernels.')
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
@@ -136,6 +153,15 @@ def main():
                                        optional=args.save_kernels)
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
+
+    if args.load_kernels and args.regenerate_kernels:
+        parser.error('Cannot load kernels if they need to be regenerated.')
+
+    if args.load_kernels and args.save_kernels:
+        parser.error('Cannot load and save kernels at the same time.')
+
+    if not args.load_kernels and not args.regenerate_kernels:
+        args.load_kernels = os.path.join(args.out_dir, 'kernels')
 
     if args.ball_stick and args.perpendicular_diff:
         parser.error('Cannot use --perpendicular_diff with ball&stick.')
@@ -211,12 +237,12 @@ def main():
                            filename_peaks=args.in_peaks,
                            peaks_use_affine=False,
                            filename_mask=args.tracking_mask,
-                           ndirs=500,
+                           ndirs=args.nbr_dir,
                            gen_trk=False,
                            path_out=tmp_dir.name)
 
         # Preparation for fitting
-        commit.core.setup(ndirs=500)
+        commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
         mit.load_data(args.in_dwi, tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
@@ -238,7 +264,7 @@ def main():
         # The kernels are, by default, set to be in the current directory
         # Depending on the choice, manually change the saving location
         if args.save_kernels:
-            kernels_dir = os.path.join(args.save_kernels)
+            # kernels_dir = os.path.join(args.save_kernels)
             regenerate_kernels = True
         elif args.load_kernels:
             kernels_dir = os.path.join(args.load_kernels)
@@ -253,7 +279,7 @@ def main():
         mit.load_dictionary(tmp_dir.name)
         mit.set_threads(args.nbr_processes)
         mit.build_operator()
-        mit.fit(tol_fun=1e-3, max_iter=500, verbose=0)
+        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
 
     # Simplifying output for streamlines and cleaning output directory
@@ -288,7 +314,10 @@ def main():
     for f in files:
         shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
 
-    # Save split tractogram (valid/invalid) and/or saving the tractogram with
+    # Copy the kernel where the user wanted it
+    shutil.copy(os.path.join(args.out_dir, 'kernels'), args.save_kernels)
+
+    # Save split tractogram (essential/nonessential) and/or saving the tractogram with
     # data_per_streamline updated
     if args.assign_weights or args.threshold_weights:
         # Reload is needed because of COMMIT handling its file by itself
@@ -297,37 +326,37 @@ def main():
         tractogram.data_per_streamline['commit_weights'] = commit_weights
 
         if args.threshold_weights:
-            valid_ind = np.where(
+            essential_ind = np.where(
                 commit_weights >= args.threshold_weights)[0]
-            invalid_ind = np.where(
+            nonessential_ind = np.where(
                 commit_weights < args.threshold_weights)[0]
-            logging.debug('{} valid streamlines were kept at threshold {}'.format(
-                len(valid_ind), args.threshold_weights))
-            logging.debug('{} invalid streamlines were kept at threshold {}'.format(
-                len(invalid_ind), args.threshold_weights))
+            logging.debug('{} essential streamlines were kept at threshold {}'.format(
+                len(essential_ind), args.threshold_weights))
+            logging.debug('{} nonessential streamlines were kept at threshold {}'.format(
+                len(nonessential_ind), args.threshold_weights))
 
-            valid_streamlines = tractogram.streamlines[valid_ind]
-            valid_data_per_streamline = tractogram.data_per_streamline[valid_ind]
-            valid_data_per_point = tractogram.data_per_point[valid_ind]
-            valid_tractogram = Tractogram(valid_streamlines,
-                                          data_per_point=valid_data_per_point,
-                                          data_per_streamline=valid_data_per_streamline,
-                                          affine_to_rasmm=np.eye(4))
+            essential_streamlines = tractogram.streamlines[essential_ind]
+            essential_data_per_streamline = tractogram.data_per_streamline[essential_ind]
+            essential_data_per_point = tractogram.data_per_point[essential_ind]
+            essential_tractogram = Tractogram(essential_streamlines,
+                                              data_per_point=essential_data_per_point,
+                                              data_per_streamline=essential_data_per_streamline,
+                                              affine_to_rasmm=np.eye(4))
 
-            invalid_streamlines = tractogram.streamlines[invalid_ind]
-            invalid_data_per_streamline = tractogram.data_per_streamline[invalid_ind]
-            invalid_data_per_point = tractogram.data_per_point[invalid_ind]
-            invalid_tractogram = Tractogram(invalid_streamlines,
-                                            data_per_point=invalid_data_per_point,
-                                            data_per_streamline=invalid_data_per_streamline,
-                                            affine_to_rasmm=np.eye(4))
+            nonessential_streamlines = tractogram.streamlines[nonessential_ind]
+            nonessential_data_per_streamline = tractogram.data_per_streamline[nonessential_ind]
+            nonessential_data_per_point = tractogram.data_per_point[nonessential_ind]
+            nonessential_tractogram = Tractogram(nonessential_streamlines,
+                                                 data_per_point=nonessential_data_per_point,
+                                                 data_per_streamline=nonessential_data_per_streamline,
+                                                 affine_to_rasmm=np.eye(4))
 
-            nib.streamlines.save(valid_tractogram,
+            nib.streamlines.save(essential_tractogram,
                                  os.path.join(args.out_dir,
-                                              'valid_tractogram.trk'))
-            nib.streamlines.save(invalid_tractogram,
+                                              'essential_tractogram.trk'))
+            nib.streamlines.save(nonessential_tractogram,
                                  os.path.join(args.out_dir,
-                                              'invalid_tractogram.trk'))
+                                              'nonessential_tractogram.trk'))
         if args.assign_weights:
             output_filename = os.path.join(args.out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
