@@ -68,7 +68,7 @@ def flip_points_in_x(sft, points):
 
 def dist_to_plane(normal, plane_point, points):
     # Normal must always be normalized
-    plane_normal /= np.linalg.norm(plane_normal)
+    normal /= np.linalg.norm(normal)
 
     # To support entire streamline
     if points.ndim == 2:
