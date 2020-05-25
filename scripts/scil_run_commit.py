@@ -78,6 +78,10 @@ def _build_arg_parser():
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
 
+    p.add_argument('--b0_thr', type=float, default=0.0,
+                   help='All b-values with values less than or equal '
+                        'to b0_thr are considered as b0s i.e. without '
+                        'diffusion weighting')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
                         'representing the possible orientations of the response '
@@ -117,10 +121,6 @@ def _build_arg_parser():
 
     g3 = p.add_argument_group(title='Kernels options')
     kern = g3.add_mutually_exclusive_group()
-    kern.add_argument('--regenerate_kernels', action='store_false',
-                      help='Regenerate the kernel (default).\n'
-                           'If false, load existing kernel in the output '
-                           'directory')
     kern.add_argument('--save_kernels', metavar='DIRECTORY',
                       help='Output directory for the COMMIT kernels.')
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
@@ -151,24 +151,19 @@ def main():
                                  args.in_peaks], args.tracking_mask)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
+
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
 
-    if args.load_kernels and args.regenerate_kernels:
-        parser.error('Cannot load kernels if they need to be regenerated.')
-
     if args.load_kernels and args.save_kernels:
         parser.error('Cannot load and save kernels at the same time.')
-
-    if not args.load_kernels and not args.regenerate_kernels:
-        args.load_kernels = os.path.join(args.out_dir, 'kernels')
 
     if args.ball_stick and args.perpendicular_diff:
         parser.error('Cannot use --perpendicular_diff with ball&stick.')
 
     if args.ball_stick and args.isotropic_diff and len(args.isotropic_diff) > 1:
-        parser.error(
-            'Cannot use more than one --isotropic_diff with ball&stick.')
+        parser.error('Cannot use more than one --isotropic_diff with '
+                     'ball&stick.')
 
     # If it is a trk, check compatibility of header since COMMIT does not do it
     dwi_img = nib.load(args.in_dwi)
@@ -244,7 +239,7 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
-        mit.load_data(args.in_dwi, tmp_scheme_filename)
+        mit.load_data(args.in_dwi, tmp_scheme_filename, b0_thr=args.b0_thr)
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:
@@ -264,7 +259,7 @@ def main():
         # The kernels are, by default, set to be in the current directory
         # Depending on the choice, manually change the saving location
         if args.save_kernels:
-            # kernels_dir = os.path.join(args.save_kernels)
+            kernels_dir = os.path.join(args.save_kernels)
             regenerate_kernels = True
         elif args.load_kernels:
             kernels_dir = os.path.join(args.load_kernels)
@@ -313,9 +308,6 @@ def main():
     files = os.listdir(commit_results_dir)
     for f in files:
         shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
-
-    # Copy the kernel where the user wanted it
-    shutil.copy(os.path.join(args.out_dir, 'kernels'), args.save_kernels)
 
     # Save split tractogram (essential/nonessential) and/or saving the tractogram with
     # data_per_streamline updated
