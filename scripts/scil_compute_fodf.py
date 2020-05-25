@@ -24,6 +24,7 @@ from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
@@ -82,7 +83,7 @@ def main():
     if args.mask is None:
         mask = None
     else:
-        mask = np.asanyarray(nib.load(args.mask).dataobj).astype(np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
