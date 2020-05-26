@@ -97,16 +97,16 @@ def _build_arg_parser():
     g1.add_argument('--ball_stick', action='store_true',
                     help='Use the ball&Stick model.\n'
                          'Disable the zeppelin compartment for single-shell.')
-    g1.add_argument('--parallel_diff', type=float,
+    g1.add_argument('--para_diff', type=float,
                     help='Parallel diffusivity in mm^2/s.\n'
                          'Default for ball_stick: 1.7E-3\n'
                          'Default for stick_zeppelin_ball: 1.7E-3')
-    g1.add_argument('--perpendicular_diff', nargs='+', type=float,
+    g1.add_argument('--perp_diff', nargs='+', type=float,
                     help='Perpendicular diffusivity in mm^2/s.\n'
                          'Default for ball_stick: None\n'
                          'Default for stick_zeppelin_ball: '
                          '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
-    g1.add_argument('--isotropic_diff', nargs='+', type=float,
+    g1.add_argument('--iso_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
                          'Default for ball_stick: [2.0E-3]\n'
                          'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
@@ -158,14 +158,14 @@ def main():
     if args.load_kernels and args.save_kernels:
         parser.error('Cannot load and save kernels at the same time.')
 
-    if args.ball_stick and args.perpendicular_diff:
-        parser.error('Cannot use --perpendicular_diff with ball&stick.')
+    if args.ball_stick and args.perp_diff:
+        parser.error('Cannot use --perp_diff with ball&stick.')
 
     if not args.ball_stick and not args.in_peaks:
         parser.error('Stick Zeppelin Ball model requires --in_peaks')
 
-    if args.ball_stick and args.isotropic_diff and len(args.isotropic_diff) > 1:
-        parser.error('Cannot use more than one --isotropic_diff with '
+    if args.ball_stick and args.iso_diff and len(args.iso_diff) > 1:
+        parser.error('Cannot use more than one --iso_diff with '
                      'ball&stick.')
 
     # If it is a trk, check compatibility of header since COMMIT does not do it
@@ -247,17 +247,17 @@ def main():
 
         if args.ball_stick:
             logging.debug('Disabled zeppelin, using the Ball & Stick model.')
-            parallel_diff = args.parallel_diff or 1.7E-3
-            perpendicular_diff = []
-            isotropc_diff = args.isotropic_diff or [2.0E-3]
-            mit.model.set(parallel_diff, perpendicular_diff, isotropc_diff)
+            para_diff = args.para_diff or 1.7E-3
+            perp_diff = []
+            isotropc_diff = args.iso_diff or [2.0E-3]
+            mit.model.set(para_diff, perp_diff, isotropc_diff)
         else:
             logging.debug('Using the Stick Zeppelin Ball model.')
-            parallel_diff = args.parallel_diff or 1.7E-3
-            perpendicular_diff = args.perpendicular_diff or \
+            para_diff = args.para_diff or 1.7E-3
+            perp_diff = args.perp_diff or \
                 [1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]
-            isotropc_diff = args.isotropic_diff or [1.7E-3, 3.0E-3]
-            mit.model.set(parallel_diff, perpendicular_diff, isotropc_diff)
+            isotropc_diff = args.iso_diff or [1.7E-3, 3.0E-3]
+            mit.model.set(para_diff, perp_diff, isotropc_diff)
 
         # The kernels are, by default, set to be in the current directory
         # Depending on the choice, manually change the saving location
