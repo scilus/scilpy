@@ -73,8 +73,6 @@ def _build_arg_parser():
                    help='Bvals in the FSL format.')
     p.add_argument('in_bvecs',
                    help='Bvecs in the FSL format..')
-    p.add_argument('in_peaks',
-                   help='Peaks extracted from the fodf.')
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
 
@@ -88,7 +86,9 @@ def _build_arg_parser():
                         'functions [%(default)s].')
     p.add_argument('--nbr_iter', type=int, default=500,
                    help='Maximum number of iterations.')
-    p.add_argument('--tracking_mask',
+    p.add_argument('--in_peaks',
+                   help='Peaks extracted from the fodf.')
+    p.add_argument('--in_tracking_mask',
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
@@ -108,7 +108,7 @@ def _build_arg_parser():
                          '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
     g1.add_argument('--isotropic_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
-                         'Default for ball_stick: 2.0E-3\n'
+                         'Default for ball_stick: [2.0E-3]\n'
                          'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
 
     g2 = p.add_argument_group(title='Tractogram options')
@@ -147,8 +147,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_dwi,
-                                 args.in_bvals, args.in_bvecs,
-                                 args.in_peaks], args.tracking_mask)
+                                 args.in_bvals, args.in_bvecs],
+                        [args.in_peaks, args.in_tracking_mask])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
 
@@ -160,6 +160,9 @@ def main():
 
     if args.ball_stick and args.perpendicular_diff:
         parser.error('Cannot use --perpendicular_diff with ball&stick.')
+
+    if not args.ball_stick and not args.in_peaks:
+        parser.error('Stick Zeppelin Ball model requires --in_peaks')
 
     if args.ball_stick and args.isotropic_diff and len(args.isotropic_diff) > 1:
         parser.error('Cannot use more than one --isotropic_diff with '
@@ -222,16 +225,16 @@ def main():
         len(shells_centroids),
         shells_centroids))
 
-    if len(shells_centroids) == 2 and not args.disable_zeppelin:
+    if len(shells_centroids) == 2 and not args.ball_stick:
         parser.error('The DWI data appears to be single-shell.\n'
-                     'Use --disable_zeppelin for single-shell.')
+                     'Use --ball_stick for single-shell.')
 
     with redirected_stdout:
         # Setting up the tractogram and nifti files
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
                            peaks_use_affine=False,
-                           filename_mask=args.tracking_mask,
+                           filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
                            gen_trk=False,
                            path_out=tmp_dir.name)
@@ -327,6 +330,7 @@ def main():
             logging.debug('{} nonessential streamlines were kept at threshold {}'.format(
                 len(nonessential_ind), args.threshold_weights))
 
+            # TODO PR when Dipy 1.2 is out with sft slicing
             essential_streamlines = tractogram.streamlines[essential_ind]
             essential_data_per_streamline = tractogram.data_per_streamline[essential_ind]
             essential_data_per_point = tractogram.data_per_point[essential_ind]
