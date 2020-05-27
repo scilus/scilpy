@@ -3,8 +3,8 @@ import glob
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 0
 _version_minor = 2
-_version_micro = 0
-_version_extra = ''
+_version_micro = ''
+_version_extra = 'dev'
 
 # Construct full version string from these.
 _ver = [_version_major, _version_minor]
@@ -27,7 +27,6 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
 description = "Scilpy: diffusion MRI tools and utilities"
 # Long description will go up on the pypi page
 long_description = """
-
 Scilpy
 ========
 Scilpy is a small library mainly containing small tools and utilities

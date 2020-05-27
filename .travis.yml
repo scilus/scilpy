@@ -7,6 +7,7 @@ python:
 before_install:
   - sudo apt-get update
   - sudo apt-get install build-essential libblas-dev liblapack-dev
+  - sed -i '41s/./backend : Agg/' /usr/local/lib/python*/dist-packages/matplotlib/mpl-data/matplotlibrc
 
 script:
   - python setup.py develop
