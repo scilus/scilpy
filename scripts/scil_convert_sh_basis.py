@@ -46,6 +46,7 @@ def main():
     img = nib.load(args.in_sh)
     data = img.get_fdata(dtype=np.float32)
 
+    data = data.reshape((1,1,1,)+data.shape)
     new_data = convert_sh_basis(data, sphere,
                                 input_basis=args.sh_basis,
                                 nbr_processes=args.nbr_processes)
