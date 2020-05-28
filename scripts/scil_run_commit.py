@@ -116,6 +116,7 @@ def _build_arg_parser():
                     help='Store the streamlines weights in the '
                          'data_per_streamline.')
     g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
+                    default=None,
                     help='Split the tractogram in two. essential and\n'
                          'nonessential, based on the provided threshold.')
 
@@ -314,17 +315,17 @@ def main():
 
     # Save split tractogram (essential/nonessential) and/or saving the tractogram with
     # data_per_streamline updated
-    if args.assign_weights or args.threshold_weights:
+    if args.assign_weights or args.threshold_weights is not None:
         # Reload is needed because of COMMIT handling its file by itself
         tractogram_file = nib.streamlines.load(args.in_tractogram)
         tractogram = tractogram_file.tractogram
         tractogram.data_per_streamline['commit_weights'] = commit_weights
 
-        if args.threshold_weights:
+        if args.threshold_weights is not None:
             essential_ind = np.where(
-                commit_weights >= args.threshold_weights)[0]
+                commit_weights > args.threshold_weights)[0]
             nonessential_ind = np.where(
-                commit_weights < args.threshold_weights)[0]
+                commit_weights <= args.threshold_weights)[0]
             logging.debug('{} essential streamlines were kept at threshold {}'.format(
                 len(essential_ind), args.threshold_weights))
             logging.debug('{} nonessential streamlines were kept at threshold {}'.format(
