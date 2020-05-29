@@ -51,7 +51,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
     ori_len = len(sft)
-    sft.remove_invalid_streamlines(epsilon=0.001)
+    sft.remove_invalid_streamlines()
 
     indices = []
     if args.remove_single_point:
