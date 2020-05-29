@@ -24,6 +24,13 @@ The output from COMMIT is:
 - compartment_IC.nii.gz (Intra-Cellular)
 - compartment_ISO.nii.gz (isotropic volume fraction (freewater comportment))
     Each of COMMIT compartments
+- commit_weights.txt
+    Text file containing the commit weights for each streamline of the
+    input tractogram.
+- essential.trk / non_essential.trk
+    Tractograms containing the streamlines below or equal (essential) and
+    above (non_essential) the --threshold_weights argument.
+
 
 This script can divide the input tractogram in two using a threshold to apply
 on the streamlines' weight. Typically, the threshold should be 0, keeping only
@@ -81,7 +88,7 @@ def _build_arg_parser():
 
     p.add_argument('--b0_thr', type=float, default=0.0,
                    help='All b-values with values less than or equal '
-                        'to b0_thr are considered as b0s.')
+                        'to b0_thr are\n considered as b0s [%(default)s].')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
                         'representing the possible orientations of the response '
@@ -90,7 +97,7 @@ def _build_arg_parser():
                    help='Maximum number of iterations [%(default)s].')
     p.add_argument('--in_peaks',
                    help='Peaks file representing principal direction(s) '
-                        'locally,\ntypically coming from fODFs. This file is '
+                        'locally,\n typically coming from fODFs. This file is '
                         'mandatory for the default\n stick-zeppelin-ball model, '
                         'when used with multi-shell data.')
     p.add_argument('--in_tracking_mask',
@@ -118,11 +125,11 @@ def _build_arg_parser():
 
     g2 = p.add_argument_group(title='Tractogram options')
     g2.add_argument('--keep_whole_tractogram', action='store_true',
-                    help='Save a tractogram copy streamlines weights in the '
+                    help='Save a tractogram copy with streamlines weights in the '
                          'data_per_streamline\n[default: False].')
     g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
                     default=0.,
-                    help='Split the tractogram in two. essential and\n'
+                    help='Split the tractogram in two; essential and\n'
                          'nonessential, based on the provided threshold '
                          '[%(default)s].\n Use None to skip this step.')
 
