@@ -6,9 +6,12 @@ Convex Optimization Modeling for Microstructure Informed Tractography (COMMIT)
 estimates, globally, how a given tractogram explains the DWI in terms of signal
 fit, assuming a certain forward microstructure model. It assigns a weight to
 each streamline, which represents how well it explains the DWI signal globally.
-The default forward microstructure model is stick-zeppelin-ball, which required
-multi-shell data. It is possible to use the ball-and-stick model for
-single-shell data.
+The default forward microstructure model is stick-zeppelin-ball, which requires
+multi-shell data and a peak file (principal fiber directions in each voxel,
+typically from a field of fODFs).
+
+It is possible to use the ball-and-stick model for single-shell data. In this
+case, the peak file is not mandatory.
 
 The output from COMMIT is:
 - fit_NRMSE.nii.gz
@@ -78,16 +81,18 @@ def _build_arg_parser():
 
     p.add_argument('--b0_thr', type=float, default=0.0,
                    help='All b-values with values less than or equal '
-                        'to b0_thr are considered as b0s i.e. without '
-                        'diffusion weighting')
+                        'to b0_thr are considered as b0s.')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
                         'representing the possible orientations of the response '
                         'functions [%(default)s].')
     p.add_argument('--nbr_iter', type=int, default=500,
-                   help='Maximum number of iterations.')
+                   help='Maximum number of iterations [%(default)s].')
     p.add_argument('--in_peaks',
-                   help='Peaks extracted from the fodf.')
+                   help='Peaks file representing principal direction(s) '
+                        'locally,\ntypically coming from fODFs. This file is '
+                        'mandatory for the default\n stick-zeppelin-ball model, '
+                        'when used with multi-shell data.')
     p.add_argument('--in_tracking_mask',
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
@@ -95,8 +100,8 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
-                    help='Use the ball&Stick model.\n'
-                         'Disable the zeppelin compartment for single-shell.')
+                    help='Use the ball&Stick model.\nDisable '
+                         'the zeppelin compartment for single-shell data.')
     g1.add_argument('--para_diff', type=float,
                     help='Parallel diffusivity in mm^2/s.\n'
                          'Default for ball_stick: 1.7E-3\n'
@@ -112,13 +117,14 @@ def _build_arg_parser():
                          'Default for stick_zeppelin_ball: [1.7E-3, 3.0E-3]')
 
     g2 = p.add_argument_group(title='Tractogram options')
-    g2.add_argument('--assign_weights', action='store_true',
-                    help='Store the streamlines weights in the '
-                         'data_per_streamline.')
+    g2.add_argument('--keep_whole_tractogram', action='store_true',
+                    help='Save a tractogram copy streamlines weights in the '
+                         'data_per_streamline\n[default: False].')
     g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
-                    default=None,
+                    default=0.,
                     help='Split the tractogram in two. essential and\n'
-                         'nonessential, based on the provided threshold.')
+                         'nonessential, based on the provided threshold '
+                         '[%(default)s].\n Use None to skip this step.')
 
     g3 = p.add_argument_group(title='Kernels options')
     kern = g3.add_mutually_exclusive_group()
@@ -315,7 +321,7 @@ def main():
 
     # Save split tractogram (essential/nonessential) and/or saving the tractogram with
     # data_per_streamline updated
-    if args.assign_weights or args.threshold_weights is not None:
+    if args.keep_whole_tractogram or args.threshold_weights is not None:
         # Reload is needed because of COMMIT handling its file by itself
         tractogram_file = nib.streamlines.load(args.in_tractogram)
         tractogram = tractogram_file.tractogram
@@ -350,11 +356,13 @@ def main():
 
             nib.streamlines.save(essential_tractogram,
                                  os.path.join(args.out_dir,
-                                              'essential_tractogram.trk'))
+                                              'essential_tractogram.trk'),
+                                 header=tractogram_file.header)
             nib.streamlines.save(nonessential_tractogram,
                                  os.path.join(args.out_dir,
-                                              'nonessential_tractogram.trk'))
-        if args.assign_weights:
+                                              'nonessential_tractogram.trk'),
+                                 header=tractogram_file.header,)
+        if args.keep_whole_tractogram:
             output_filename = os.path.join(args.out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
                 output_filename))
