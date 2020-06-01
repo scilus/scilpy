@@ -48,7 +48,7 @@ def _build_arg_parser():
 
     p.add_argument('--data_type',
                    help='Data type of the output image. Use the format: '
-                        'uint8, float16, int32.')
+                        'uint8, int16, int/float32, int/float64.')
     p.add_argument('--exclude_background', action='store_true',
                    help='Does not affect the background of the original image.')
 
