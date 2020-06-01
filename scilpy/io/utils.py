@@ -127,7 +127,7 @@ def add_json_args(parser):
 
 def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
-                        metavar='NBR', type=int,
+                        metavar='NBR', type=int, default=1,
                         help='Number of sub-processes to start. \n'
                         'Default: CPU count')
 

@@ -3,20 +3,28 @@
 
 """
 Compute NODDI [1] maps using AMICO.
+Multi-shell DWI necessary.
 """
 
 import argparse
+from contextlib import redirect_stdout
+import io
+import logging
 import os
-import shutil
 import tempfile
+import sys
 
 import amico
+from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty,
                              assert_outputs_exist)
-
-amico.core.setup()
+from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 EPILOG = """
 Reference:
@@ -33,152 +41,135 @@ def _build_arg_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
-                   help='DWI file acquired with a NODDI compatible protocol')
+                   help='DWI file acquired with a NODDI compatible protocol '
+                        '(single-shell data not suited).')
+    p.add_argument('in_bval',
+                   help='b-values filename, in FSL format (.bval).')
+    p.add_argument('in_bvec',
+                   help='b-vectors filename, in FSL format (.bvec).')
 
-    p.add_argument('--mask',
-                   help='Mask filename')
+    p.add_argument('--in_mask',
+                   help='Brain mask filename.')
 
-    g = p.add_argument_group('Gradients / scheme')
-    g.add_argument('--bval',
-                   help='Bval filename, in FSL format')
-    g.add_argument('--bvec',
-                   help='Bvec filename, in FSL format')
-    g.add_argument('--scheme_file',
-                   help='AMICO scheme file '
-                        'can replace --bval/--bvec.')
-    g.add_argument('--bstep', type=int, nargs='+',
-                   help='List of unique bvals in your data. It prevents errors'
-                        ' when each bval is around the actual bval')
-
-    p.add_argument('--para_diff', type=float, default=1.7e-3,
-                   help='Axial diffusivity (AD) in the CC. [%(default)s]')
-    p.add_argument('--iso_diff', type=float, default=3e-3,
-                   help='Mean diffusivity (MD) in ventricles. [%(default)s]')
-    p.add_argument('--lambda1', type=float, default=2,
-                   help='First regularization parameter. [%(default)s]')
-    p.add_argument('--lambda2', type=float, default=1e-3,
-                   help='Second regularization parameter. [%(default)s]')
-
-    p.add_argument('--output_dir',
+    p.add_argument('--out_dir', default="results",
                    help='Output directory for the NODDI results. '
                         '[%(default)s]')
 
-    p.add_argument('--processes', type=int, default=1,
-                   help='Number of processes used to compute NODDI. Right now,'
-                        'better performance with 1. [%(default)s]')
+    g1 = p.add_argument_group(title='Model options')
+    g1.add_argument('--para_diff', type=float, default=1.7e-3,
+                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
+    g1.add_argument('--iso_diff', type=float, default=3e-3,
+                    help='Mean diffusivity (MD) in ventricles. [%(default)s]')
+    g1.add_argument('--lambda1', type=float, default=2,
+                    help='First regularization parameter. [%(default)s]')
+    g1.add_argument('--lambda2', type=float, default=1e-3,
+                    help='Second regularization parameter. [%(default)s]')
 
+    g2 = p.add_argument_group(title='Kernels options')
+    kern = g2.add_mutually_exclusive_group()
+    kern.add_argument('--save_kernels', metavar='DIRECTORY',
+                      help='Output directory for the COMMIT kernels.')
+    kern.add_argument('--load_kernels', metavar='DIRECTORY',
+                      help='Input directory where the COMMIT kernels are '
+                           'located.')
+
+    add_processes_arg(p)
     add_overwrite_arg(p)
-
+    add_verbose_arg(p)
     return p
+
+
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required_in = [args.in_dwi]
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
+                        args.in_mask)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       os.path.join(args.out_dir, 'NODDI'),
+                                       optional=args.save_kernels)
 
-    use_scheme_file = False
-
-    if not any([args.bval, args.bvec, args.scheme_file]):
-        parser.error('Need to provide either [--bval, --bvec] or '
-                     '--scheme_file.')
-
-    if not args.scheme_file:
-        if not all([args.bval, args.bvec, args.bstep]):
-            parser.error('Need to specify both bvec, bval and bstep.')
-        required_in.extend([args.bval, args.bvec])
-    elif any([args.bval, args.bvec, args.bstep]):
-        parser.error('Can only provide [--bval, --bvec, --bstep] or '
-                     '--scheme_file.')
+    # COMMIT has some c-level stdout and non-logging print that cannot
+    # be easily stopped. Manual redirection of all printed output
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+        redirected_stdout = redirect_stdout(sys.stdout)
     else:
-        required_in.append(args.scheme_file)
-        use_scheme_file = True
+        f = io.StringIO()
+        redirected_stdout = redirect_stdout(f)
+        redirect_stdout_c()
 
-    assert_inputs_exist(parser,
-                        required_in,
-                        args.mask)
-
-    out_dir = ''
-    if args.output_dir:
-        if not os.path.isdir(args.output_dir):
-            parser.error("Output directory doesn't exist.")
-        out_dir = args.output_dir
-
-    basic_out_files = ['FIT_dir.nii.gz', 'FIT_ICVF.nii.gz',
-                       'FIT_ISOVF.nii.gz', 'FIT_OD.nii.gz']
-    out_files = [os.path.join(out_dir, f) for f in basic_out_files]
-
-    assert_outputs_exist(parser, args, out_files)
-
-    if args.processes <= 0:
-        parser.error('Number of processes cannot be <= 0.')
-    elif args.processes > 1:
-        import multiprocessing
-        if args.processes > multiprocessing.cpu_count():
-            parser.error('Max number of processes is {}. Got {}.'.format(
-                multiprocessing.cpu_count(), args.processes))
-
-    # Load the data
-    ae = amico.Evaluation('./', './')
+    out_dir = args.out_dir
 
     # Generage a scheme file from the bvals and bvecs files
-    if use_scheme_file:
-        scheme_filename = args.scheme_file
-    else:
-        scheme_filename = tempfile.mkstemp(suffix='.scheme',
-                                           text=True,
-                                           dir='././')
-        scheme_filename = scheme_filename[1]
-        bstep = args.bstep
-        amico.util.fsl2scheme(args.bval, args.bvec, scheme_filename, bstep)
+    tmp_dir = tempfile.TemporaryDirectory()
+    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    shells_centroids, _ = identify_shells(bvals)
+    fsl2mrtrix(args.in_bval, args.in_bvec, tmp_scheme_filename)
+    logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
+        len(shells_centroids),
+        shells_centroids))
 
-    # Load the data
-    ae.load_data(dwi_filename=args.in_dwi,
-                 scheme_filename=scheme_filename,
-                 mask_filename=args.mask)
+    with redirected_stdout:
+        # Load the data
+        amico.core.setup()
+        ae = amico.Evaluation('.', '.')
+        ae.load_data(args.in_dwi,
+                     tmp_scheme_filename,
+                     mask_filename=args.in_mask)
+        # Compute the response functions
+        ae.set_model("NODDI")
 
-    # Compute the response functions
-    ae.set_model("NODDI")
+        intra_vol_frac = np.linspace(0.1, 0.99, 12)
+        intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
+                                        np.linspace(0.09, 0.99, 10)))
 
-    intra_vol_frac = np.linspace(0.1, 0.99, 12)
-    intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
-                                    np.linspace(0.09, 0.99, 10)))
+        ae.model.set(args.para_diff,
+                     args.iso_diff,
+                     intra_vol_frac,
+                     intra_orient_distr,
+                     False)
+        ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
 
-    ae.model.set(args.para_diff, args.iso_diff,
-                 intra_vol_frac, intra_orient_distr, False)
-    ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
+        # The kernels are, by default, set to be in the current directory
+        # Depending on the choice, manually change the saving location
+        if args.save_kernels:
+            kernels_dir = os.path.join(args.save_kernels)
+            regenerate_kernels = True
+        elif args.load_kernels:
+            kernels_dir = os.path.join(args.load_kernels)
+            regenerate_kernels = False
+        else:
+            kernels_dir = os.path.join(tmp_dir.name, 'kernels', ae.model.id)
+            regenerate_kernels = True
 
-    ae.generate_kernels(regenerate=True)
+        ae.set_config('ATOMS_path', kernels_dir)
+        out_model_dir = os.path.join(args.out_dir, ae.model.id)
+        ae.set_config('OUTPUT_path', out_model_dir)
+        ae.generate_kernels(regenerate=regenerate_kernels)
+        ae.load_kernels()
 
-    # Load the precomputed kernels at high resolution
-    ae.load_kernels()
+        # Set number of processes
+        solver_params = ae.get_config('solver_params')
+        solver_params['numThreads'] = args.nbr_processes
+        ae.set_config('solver_params', solver_params)
 
-    # Set number of processes
-    solver_params = ae.get_config('solver_params')
-    solver_params['numThreads'] = args.processes
-    ae.set_config('solver_params', solver_params)
+        # Model fit
+        ae.fit()
+        # Save the results
+        ae.save_results()
 
-    # Model fit
-    ae.fit()
-
-    # Save the results
-    ae.save_results()
-
-    # Copy the output files
-    amico_def_out = [os.path.join('AMICO/NODDI/', f) for f in basic_out_files]
-
-    for in_f, out_f in zip(amico_def_out, out_files):
-        shutil.move(in_f, out_f)
-
-    if args.output_dir != "AMICO":
-        shutil.rmtree("./AMICO")
-
-    # Moving back to the original directory
-    if not use_scheme_file:
-        os.unlink(scheme_filename)
-
-    shutil.rmtree("./kernels")
+    tmp_dir.cleanup()
 
 
 if __name__ == "__main__":

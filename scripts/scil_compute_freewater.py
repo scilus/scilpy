@@ -3,20 +3,28 @@
 
 """
 Compute Free Water maps [1] using AMICO.
+This script supports both single and multi-shell data.
 """
 
 import argparse
+from contextlib import redirect_stdout
+import io
+import logging
 import os
-import shutil
 import tempfile
+import sys
 
 import amico
+from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_output_dirs_exist_and_empty)
+from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
-amico.core.setup()
 
 EPILOG = """
 Reference:
@@ -34,169 +42,145 @@ def _build_arg_parser():
 
     p.add_argument('in_dwi',
                    help='DWI file.')
+    p.add_argument('in_bval',
+                   help='b-values filename, in FSL format (.bval).')
+    p.add_argument('in_bvec',
+                   help='b-vectors filename, in FSL format (.bvec).')
 
-    p.add_argument('--mask',
-                   help='Mask filename.')
+    p.add_argument('--in_mask',
+                   help='Brain mask filename.')
+    p.add_argument('--out_dir', default="results",
+                   help='Output directory for the Free Water results. '
+                        '[current_directory]')
 
-    g1 = p.add_argument_group('Gradients / scheme')
-    g1.add_argument('--bval',
-                    help='Bval filename, in FSL format.')
-    g1.add_argument('--bvec',
-                    help='Bvec filename, in FSL format.')
-    g1.add_argument('--scheme_file',
-                    help='AMICO scheme file, '
-                         'can replace --bval/--bvec.')
-    g1.add_argument('--bstep', type=int, nargs='+',
-                    help='List of unique bvals in your data. It prevents '
-                         ' errors when each bval is around the actual bval.')
+    g1 = p.add_argument_group(title='Model options')
+    g1.add_argument('--para_diff', type=float, default=1.5e-3,
+                    help='Axial diffusivity (AD) in the CC. [%(default)s]')
+    g1.add_argument('--iso_diff', type=float, default=3e-3,
+                    help='Mean diffusivity (MD) in ventricles. [%(default)s]')
+    g1.add_argument('--perp_diff_min', type=float, default=0.1e-3,
+                    help='Radial diffusivity (RD) minimum. [%(default)s]')
+    g1.add_argument('--perp_diff_max', type=float, default=0.7e-3,
+                    help='Radial diffusivity (RD) maximum. [%(default)s]')
+    g1.add_argument('--lambda1', type=float, default=0.0,
+                    help='First regularization parameter. [%(default)s]')
+    g1.add_argument('--lambda2', type=float, default=1e-3,
+                    help='Second regularization parameter. [%(default)s]')
 
-    p.add_argument('--para_diff', type=float, default=1.5e-3,
-                   help='Axial diffusivity (AD) in the CC. [%(default)s]')
-    p.add_argument('--iso_diff', type=float, default=3e-3,
-                   help='Mean diffusivity (MD) in ventricles. [%(default)s]')
-    p.add_argument('--perp_diff_min', type=float, default=0.1e-3,
-                   help='Radial diffusivity (RD) minimum. [%(default)s]')
-    p.add_argument('--perp_diff_max', type=float, default=0.7e-3,
-                   help='Radial diffusivity (RD) maximum. [%(default)s]')
-
-    p.add_argument('--lambda1', type=float, default=0.0,
-                   help='First regularization parameter. [%(default)s]')
-    p.add_argument('--lambda2', type=float, default=1e-3,
-                   help='Second regularization parameter. [%(default)s]')
+    g2 = p.add_argument_group(title='Kernels options')
+    kern = g2.add_mutually_exclusive_group()
+    kern.add_argument('--save_kernels', metavar='DIRECTORY',
+                      help='Output directory for the COMMIT kernels.')
+    kern.add_argument('--load_kernels', metavar='DIRECTORY',
+                      help='Input directory where the COMMIT kernels are '
+                           'located.')
 
     p.add_argument('--mouse', action='store_true',
                    help='If set, use mouse fitting profile.')
 
-    p.add_argument('--output_dir',
-                   help='Output directory for the Free Water results. '
-                        '[current_directory]')
-
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
+
+
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required_in = [args.in_dwi]
+    assert_inputs_exist(parser, args.in_dwi, args.in_mask)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       os.path.join(args.out_dir, 'FreeWater'),
+                                       optional=args.save_kernels)
 
-    use_scheme_file = False
-
-    if not any([args.bval, args.bvec, args.scheme_file]):
-        parser.error('Need to provide either [--bval, --bvec] or '
-                     '--scheme_file.')
-
-    if not args.scheme_file:
-        if not all([args.bval, args.bvec, args.bstep]):
-            parser.error('Need to specify both bvec, bval and bstep.')
-        required_in.extend([args.bval, args.bvec])
-    elif any([args.bval, args.bvec, args.bstep]):
-        parser.error('Can only provide [--bval, --bvec, --bstep] or '
-                     '--scheme_file.')
+    # COMMIT has some c-level stdout and non-logging print that cannot
+    # be easily stopped. Manual redirection of all printed output
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+        redirected_stdout = redirect_stdout(sys.stdout)
     else:
-        required_in.append(args.scheme_file)
-        use_scheme_file = True
-
-    assert_inputs_exist(parser, required_in, args.mask)
-
-    out_dir = ''
-    if args.output_dir:
-        if not os.path.isdir(args.output_dir):
-            parser.error("Output directory doesn't exist.")
-        out_dir = args.output_dir
-
-    basic_out_files = ['dwi_fw_corrected.nii.gz', 'FIT_dir.nii.gz',
-                       'FIT_FiberVolume.nii.gz', 'FIT_FW.nii.gz',
-                       'FIT_nrmse.nii.gz']
-    out_files = [os.path.join(out_dir, f) for f in basic_out_files]
-
-    assert_outputs_exist(parser, args, out_files)
-
-    if args.nbr_processes <= 0:
-        parser.error('Number of processes cannot be <= 0.')
-    elif args.nbr_processes > 1:
-        import multiprocessing
-        if args.nbr_processes > multiprocessing.cpu_count():
-            parser.error('Max number of processes is {}. Got {}.'.format(
-                multiprocessing.cpu_count(), args.nbr_processes))
-
-    # Load the data
-    ae = amico.Evaluation('./', './')
+        f = io.StringIO()
+        redirected_stdout = redirect_stdout(f)
+        redirect_stdout_c()
 
     # Generage a scheme file from the bvals and bvecs files
-    if use_scheme_file:
-        scheme_filename = args.scheme_file
-    else:
-        scheme_filename = tempfile.mkstemp(suffix='.scheme',
-                                           text=True,
-                                           dir='././')
-        scheme_filename = scheme_filename[1]
-        bstep = args.bstep
-        amico.util.fsl2scheme(args.bval,
-                              args.bvec,
-                              scheme_filename,
-                              bStep=bstep)
+    tmp_dir = tempfile.TemporaryDirectory()
+    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    shells_centroids, _ = identify_shells(bvals)
+    fsl2mrtrix(args.in_bval, args.in_bvec, tmp_scheme_filename)
+    logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
+        len(shells_centroids),
+        shells_centroids))
 
-    # Load the data
-    ae.load_data(dwi_filename=args.in_dwi,
-                 scheme_filename=scheme_filename,
-                 mask_filename=args.mask)
+    with redirected_stdout:
+        amico.core.setup()
+        # Load the data
+        ae = amico.Evaluation('.', '.')
+        # Load the data
+        ae.load_data(args.in_dwi,
+                     scheme_filename=tmp_scheme_filename,
+                     mask_filename=args.in_mask)
 
-    # Compute the response functions
-    ae.set_model("FreeWater")
+        # Compute the response functions
+        ae.set_model("FreeWater")
+        model_type = 'Human'
+        if args.mouse:
+            model_type = 'Mouse'
 
-    model_type = 'Human'
-    if args.mouse:
-        model_type = 'Mouse'
+        ae.model.set(args.para_diff,
+                     np.linspace(args.perp_diff_min,
+                                 args.perp_diff_max,
+                                 10),
+                     [args.iso_diff],
+                     model_type)
 
-    ae.model.set(args.para_diff,
-                 np.linspace(args.perp_diff_min,
-                             args.perp_diff_max,
-                             10),
-                 [args.iso_diff],
-                 model_type)
+        ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
 
-    ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
+        # The kernels are, by default, set to be in the current directory
+        # Depending on the choice, manually change the saving location
+        if args.save_kernels:
+            kernels_dir = os.path.join(args.save_kernels)
+            regenerate_kernels = True
+        elif args.load_kernels:
+            kernels_dir = os.path.join(args.load_kernels)
+            regenerate_kernels = False
+        else:
+            kernels_dir = os.path.join(tmp_dir.name, 'kernels', ae.model.id)
+            regenerate_kernels = True
 
-    ae.generate_kernels(regenerate=True)
+        ae.set_config('ATOMS_path', kernels_dir)
+        out_model_dir = os.path.join(args.out_dir, ae.model.id)
+        ae.set_config('OUTPUT_path', out_model_dir)
+        ae.generate_kernels(regenerate=regenerate_kernels)
+        ae.load_kernels()
 
-    # Load the precomputed kernels at high resolution
-    ae.load_kernels()
+        # Set number of processes
+        solver_params = ae.get_config('solver_params')
+        solver_params['numThreads'] = args.nbr_processes
+        ae.set_config('solver_params', solver_params)
 
-    # Set number of processes
-    solver_params = ae.get_config('solver_params')
-    solver_params['numThreads'] = args.nbr_processes
-    ae.set_config('solver_params', solver_params)
+        ae.set_config('doNormalizeSignal', True)
+        ae.set_config('doKeepb0Intact', False)
+        ae.set_config('doComputeNRMSE', True)
+        ae.set_config('doSaveCorrectedDWI', True)
 
-    ae.set_config('doNormalizeSignal', True)
-    ae.set_config('doKeepb0Intact', False)
-    ae.set_config('doComputeNRMSE', True)
-    ae.set_config('doSaveCorrectedDWI', True)
+        # Model fit
+        ae.fit()
+        # Save the results
+        ae.save_results()
 
-    # Model fit
-    ae.fit()
-
-    # Save the results
-    ae.save_results()
-
-    # Copy the output files
-    amico_def_out = [os.path.join('AMICO/FreeWater/', f)
-                     for f in basic_out_files]
-
-    for in_f, out_f in zip(amico_def_out, out_files):
-        shutil.move(in_f, out_f)
-
-    if args.output_dir != "AMICO":
-        shutil.rmtree("./AMICO")
-
-    # Moving back to the original directory
-    if not use_scheme_file:
-        os.unlink(scheme_filename)
-
-    shutil.rmtree("./kernels")
+    tmp_dir.cleanup()
 
 
 if __name__ == "__main__":

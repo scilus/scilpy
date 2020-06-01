@@ -11,10 +11,12 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_verbose_arg)
+
 
 EPILOG = """
 Reference:
@@ -86,40 +88,37 @@ def _build_arg_parser():
     return p
 
 
-def load(path):
-    img = nib.load(path)
-    return img.get_fdata(dtype=np.float32), img.affine, img.header.get_zooms()[:3]
-
-
-def save(data, affine, output):
-    img = nib.Nifti1Image(np.array(data, 'float32'),  affine)
-    nib.save(img, output)
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.ad, args.fa, args.md])
+    assert_inputs_exist(parser, [args.in_AD, args.in_FA, args.in_MD])
     assert_outputs_exist(parser, args, [],
                          [args.mask_output_1fiber,
                          args.mask_output_ventricles,
                          args.output_ventricles,
                          args.output_1fiber])
 
+    assert_same_resolution([args.in_AD, args.in_FA, args.in_MD])
+
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
-    fa, aff, hdr = load(args.fa)
-    md, _, _ = load(args.md)
-    ad, _, _ = load(args.ad)
+    fa_img = nib.load(args.in_FA)
+    fa_data = fa_img.get_fdata(dtype=np.float32)
+    affine = fa_img.affine
 
-    mask_cc = np.zeros(fa.shape)
-    mask_vent = np.zeros(fa.shape)
+    md_data = nib.load(args.in_MD).get_fdata(dtype=np.float32)
+    ad_data = nib.load(args.in_AD).get_fdata(dtype=np.float32)
+
+    mask_cc = np.zeros(fa_data.shape, dtype=np.uint8)
+    mask_vent = np.zeros(fa_data.shape, dtype=np.uint8)
 
     # center
     if args.roi_center is None:
-        ci, cj, ck = np.array(fa.shape[:3]) // 2
+        ci, cj, ck = np.array(fa_data.shape[:3]) // 2
     else:
         if len(args.roi_center) != 3:
             parser.error("roi_center needs to receive 3 values")
@@ -129,13 +128,15 @@ def main():
             ci, cj, ck = args.roi_center
 
     w = args.roi_radius
-    square = (np.arange(max(int(ci - w), 0), max(int(ci + w), 0)),
-              np.arange(max(int(cj - w), 0), max(int(cj + w), 0)),
-              np.arange(max(int(ck - w), 0), max(int(ck + w), 0)))
-
-    roi_ad = ad[square]
-    roi_md = md[square]
-    roi_fa = fa[square]
+    roi_ad = ad_data[int(ci - w): int(ci + w),
+                int(cj - w): int(cj + w),
+                int(ck - w): int(ck + w)]
+    roi_md = md_data[int(ci - w): int(ci + w),
+                int(cj - w): int(cj + w),
+                int(ck - w): int(ck + w)]
+    roi_fa = fa_data[int(ci - w): int(ci + w),
+                int(cj - w): int(cj + w),
+                int(ck - w): int(ck + w)]
 
     logging.debug('fa_min, fa_max, md_min: {}, {}, {}'.format(
         args.fa_min, args.fa_max, args.md_min))
@@ -167,10 +168,12 @@ def main():
     mask_vent[indices] = 1
 
     if args.mask_output_ventricles:
-        save(mask_vent, aff, args.mask_output_ventricles)
+        img = nib.Nifti1Image(np.array(mask_vent, 'float32'), affine)
+        nib.save(img, args.mask_output_ventricles)
 
     if args.mask_output_1fiber:
-        save(mask_cc, aff, args.mask_output_1fiber)
+        img = nib.Nifti1Image(np.array(mask_cc, 'float32'), affine)
+        nib.save(img, args.mask_output_1fiber)
 
     if args.output_1fiber:
         with open(args.output_1fiber, "w") as text_file:
