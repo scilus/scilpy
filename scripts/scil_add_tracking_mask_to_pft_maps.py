@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Modify PFT maps to allow PFT tracking in given mask.
+Modify PFT maps to allow PFT tracking in given mask (e.g edema).
 """
 
 import argparse
@@ -16,7 +16,7 @@ from scilpy.io.utils import (
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('map_include',
                         help='PFT map include.')
     parser.add_argument('map_exclude',

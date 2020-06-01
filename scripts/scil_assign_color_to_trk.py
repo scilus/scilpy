@@ -5,6 +5,8 @@
 Assign an hexadecimal RGB color to a Trackvis TRK tractogram.
 The hexadecimal RGB color should be formatted as 0xRRGGBB or
 "#RRGGBB".
+
+Saves the value in the data_per_point (color_x, color_y, color_z).
 """
 
 import argparse
@@ -23,7 +25,7 @@ from scilpy.io.utils import (assert_inputs_exist,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
                    help='Tractogram.')

@@ -18,7 +18,7 @@ from scilpy.io.utils import add_json_args, assert_inputs_exist
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
     add_json_args(p)

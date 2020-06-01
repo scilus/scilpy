@@ -30,12 +30,11 @@ from scilpy.tractanalysis.uncompress import uncompress
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
-    p.add_argument('metrics',
-                   nargs='+',
+    p.add_argument('metrics', nargs='+',
                    help='Nifti metric(s) to compute statistics on.')
     p.add_argument('output_folder',
                    help='Folder where to save endpoints metric.')

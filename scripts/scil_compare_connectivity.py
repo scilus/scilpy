@@ -43,7 +43,7 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
         epilog=EPILOG)
 
     p.add_argument('out_pval_matrix',
