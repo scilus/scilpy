@@ -5,8 +5,6 @@
 # http://www.flipcode.com/archives/Raytracing_Topics_Techniques-Part_4_Spatial_Subdivisions.shtml
 
 
-from __future__ import division
-
 cimport cython
 import numpy as np
 cimport numpy as np

@@ -40,7 +40,6 @@ therein.
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
-from builtins import range
 import argparse
 import logging
 

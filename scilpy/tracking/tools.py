@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 
+import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
