@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the maximum fODF in the ventricles.
+Script to compute the maximum fODF in the ventricles. The ventricules are
+estimated from a MD and FA threshold.
+
+This allows to clip the noise of fODF using an absolute thresold.
 """
 
 from builtins import str
