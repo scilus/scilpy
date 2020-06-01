@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize seeds where streamlines originate from in a tractogram.
+Visualize seeds where streamlines originate from a tractogram.
 
 The tractogram must have been generated from scil_compute_local/pft_tracking.py
 with the --save_seeds option.
@@ -27,7 +27,7 @@ def _build_arg_parser():
                    help='Tractogram file (must be trk)')
     p.add_argument('--save',
                    help='If set, save a screenshot of the result in the '
-                   'specified filename')
+                        'specified filename')
     add_overwrite_arg(p)
 
     return p

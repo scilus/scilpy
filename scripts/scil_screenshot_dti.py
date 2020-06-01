@@ -4,7 +4,7 @@
 """
 Register DWI to a template for screenshots.
 The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009
-s
+
 For quick quality control, the MNI template can be downsampled to 2mm iso.
 Axial, coronal and sagittal slices are captured.
 """

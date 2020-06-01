@@ -31,7 +31,7 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
-    p.add_argument('metrics', nargs='+',
+    p.add_argument('in_metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
 
@@ -50,11 +50,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle] + args.metrics,
+    assert_inputs_exist(parser, [args.in_bundle] + args.in_metrics,
                         optional=args.reference)
 
-    assert_same_resolution(args.metrics)
-    metrics = [nib.load(metric) for metric in args.metrics]
+    assert_same_resolution(args.in_metrics)
+    metrics = [nib.load(metric) for metric in args.in_metrics]
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()

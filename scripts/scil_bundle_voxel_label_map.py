@@ -33,7 +33,7 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
-    p.add_argument('output_map',
+    p.add_argument('out_map',
                    help='Nifti image with corresponding labels.')
     p.add_argument('--upsample', type=float, default=1,
                    help='Upsample reference grid by this factor. '
@@ -53,7 +53,7 @@ def main():
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
                         optional=args.reference)
-    assert_outputs_exist(parser, args, args.output_map)
+    assert_outputs_exist(parser, args, args.out_map)
 
     sft_bundle = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft_centroid = load_tractogram_with_reference(parser, args,
@@ -95,7 +95,7 @@ def main():
     labels_img = nib.Nifti1Image(labels_mask, rescaled_affine)
     upsampled_spacing = sft_bundle.voxel_sizes / args.upsample
     labels_img.header.set_zooms(upsampled_spacing)
-    nib.save(labels_img, args.output_map)
+    nib.save(labels_img, args.out_map)
 
 
 if __name__ == '__main__':
