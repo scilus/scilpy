@@ -73,7 +73,8 @@ class TrackOrientationDensityImaging(object):
 
         sph_ids = todi_u.get_dir_to_sphere_id(pts_dir, self.sphere.vertices)
 
-        # Get voxel indices for each point
+        # Get voxel indices for each point (works because voxels
+        # are of unit size and streamlines are scaled accordingly)
         pts_unmasked_vox = todi_u.get_indices_1d(self.img_shape, pts_pos)
 
         # Generate mask from streamlines vertices
@@ -82,12 +83,13 @@ class TrackOrientationDensityImaging(object):
 
         mask_vox_lut = np.cumsum(self.mask) - 1
         nb_voxel_with_pts = mask_vox_lut[-1] + 1
-        pts_vox = mask_vox_lut[pts_unmasked_vox]
+        pts_vox = mask_vox_lut[pts_unmasked_vox] # Continuous indexes of voxels
 
         # Bincount of each direction at each voxel position
         todi_bin_shape = (nb_voxel_with_pts, self.nb_sphere_vts)
         todi_bin_len = np.prod(todi_bin_shape)
 
+        # Count number of direction for each voxel containing streamlines
         todi_bin_1d = np.bincount(
             np.ravel_multi_index(np.stack((pts_vox, sph_ids)), todi_bin_shape),
             weights=pts_norm, minlength=todi_bin_len)
