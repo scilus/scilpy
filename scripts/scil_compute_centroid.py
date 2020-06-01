@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a single bundle centroid, using an 'infite' QuickBundles threshold.
+Compute a single bundle centroid, using an 'infinite' QuickBundles threshold.
 """
 
 import argparse

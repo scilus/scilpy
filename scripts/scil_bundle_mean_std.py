@@ -5,7 +5,7 @@
 Compute mean and std for the whole bundle for each metric. This is achieved by
 averaging the metrics value of all voxels occupied by the bundle.
 
-Density weighting modify the contribution of voxel with lower/higher
+Density weighting modifies the contribution of voxel with lower/higher
 streamline count to reduce influence of spurious streamlines.
 """
 
