@@ -128,15 +128,16 @@ def main():
             ci, cj, ck = args.roi_center
 
     w = args.roi_radius
-    roi_ad = ad_data[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
-    roi_md = md_data[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
-    roi_fa = fa_data[int(ci - w): int(ci + w),
-                int(cj - w): int(cj + w),
-                int(ck - w): int(ck + w)]
+    fa_shape = fa_data.shape
+    roi_ad = ad_data[max(int(ci - w), 0): min(int(ci + w), fa_shape[0]),
+                     max(int(cj - w), 0): min(int(cj + w), fa_shape[1]),
+                     max(int(ck - w), 0): min(int(ck + w), fa_shape[2])]
+    roi_md = md_data[max(int(ci - w), 0): min(int(ci + w), fa_shape[0]),
+                     max(int(cj - w), 0): min(int(cj + w), fa_shape[1]),
+                     max(int(ck - w), 0): min(int(ck + w), fa_shape[2])]
+    roi_fa = fa_data[max(int(ci - w), 0): min(int(ci + w), fa_shape[0]),
+                     max(int(cj - w), 0): min(int(cj + w), fa_shape[1]),
+                     max(int(ck - w), 0): min(int(ck + w), fa_shape[2])]
 
     logging.debug('fa_min, fa_max, md_min: {}, {}, {}'.format(
         args.fa_min, args.fa_max, args.md_min))
