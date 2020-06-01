@@ -30,6 +30,18 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
 
 
 def lazy_streamlines_count(in_tractogram_path):
+    """ Gets the number of streamlines as written in the tractogram header.
+
+    Parameters
+    ----------
+    in_tractogram_path: str
+        Tractogram filepath, must be .trk or .tck.
+
+    Return
+    ------
+    count: int
+        Number of streamlines present in the tractogram.
+    """
     _, ext = os.path.splitext(in_tractogram_path)
     if ext == '.trk':
         key = 'nb_streamlines'

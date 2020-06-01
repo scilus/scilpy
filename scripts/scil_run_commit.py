@@ -78,11 +78,11 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram (.trk or .tck or .h5).')
     p.add_argument('in_dwi',
-                   help='Diffusion-weighted images used by COMMIT.')
+                   help='Diffusion-weighted images used by COMMIT (.nii.gz).')
     p.add_argument('in_bvals',
-                   help='Bvals in the FSL format.')
+                   help='b-values in the FSL format (.bval).')
     p.add_argument('in_bvecs',
-                   help='Bvecs in the FSL format..')
+                   help='b-vectors in the FSL format (.bvec).')
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
 
