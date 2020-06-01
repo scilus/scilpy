@@ -63,7 +63,7 @@ def main():
             logging.warning("Label {} was not in the volume".format(index))
 
     # Save final volume
-    nii = nib.Nifti1Image(labels_volume, volume_img.affine, volume_img.header)
+    nii = nib.Nifti1Image(labels_volume, label_img.affine, label_img.header)
     nib.save(nii, args.out_labels)
 
 

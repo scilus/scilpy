@@ -29,7 +29,7 @@ def _build_arg_parser():
                    help='If set, save a screenshot of the result in the '
                    'specified filename')
     add_overwrite_arg(p)
-    
+
     return p
 
 

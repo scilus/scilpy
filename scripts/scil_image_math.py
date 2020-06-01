@@ -1,6 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Performs an operation on a list of images. The supported operations are
+listed below.
+
+This script is loading all images in memory, will often crash after a few
+hundred images.
+
+Some operations such as multiplication or addition accept float value as
+parameters instead of images.
+> scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
+"""
+
 import argparse
 import logging
 import os
@@ -17,25 +29,13 @@ from scilpy.utils.util import is_float
 
 OPERATIONS = get_image_ops()
 
-DESCRIPTION = """
-Performs an operation on a list of images. The supported operations are
-listed below.
-
-This script is loading all images in memory, will often crash after a few
-hundred images.
-
-Some operations such as multiplication or addition accept float value as
-parameters instead of images.
-> scil_image_math.py multiplication img.nii.gz 10 mult_10.nii.gz
-"""
-
-DESCRIPTION += get_operations_doc(OPERATIONS)
+__doc__ += get_operations_doc(OPERATIONS)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('operation',
                    choices=OPERATIONS.keys(),

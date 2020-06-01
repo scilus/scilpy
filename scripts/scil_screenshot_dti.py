@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Register DWI to a template for screenshots.
+The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009
+s
+For quick quality control, the MNI template can be downsampled to 2mm iso.
+Axial, coronal and sagittal slices are captured.
+"""
+
 import argparse
 import os
 
@@ -17,17 +26,10 @@ from scilpy.utils.bvec_bval_tools import normalize_bvecs, get_shell_indices
 from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
 
-DESCRIPTION = """
-Register DWI to a template for screenshots.
-The templates are on http://www.bic.mni.mcgill.ca/ServicesAtlases/ICBM152NLin2009
-For quick quality control, the MNI template can be downsampled to 2mm iso.
-Axial, coronal and sagittal slices are captured.
-"""
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=DESCRIPTION,
+        description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('dwi',
                    help='Path of the input diffusion volume.')

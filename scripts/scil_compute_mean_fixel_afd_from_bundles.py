@@ -75,10 +75,10 @@ def main():
                                                           args.length_weighting)
 
     nib.Nifti1Image(afd_mean_map.astype(np.float32),
-                   fodf_img.affine).to_filename(args.afd_mean_map)
+                    fodf_img.affine).to_filename(args.afd_mean_map)
 
     nib.Nifti1Image(rd_mean_map.astype(np.float32),
-                   fodf_img.affine).to_filename(args.rd_mean_map)
+                    fodf_img.affine).to_filename(args.rd_mean_map)
 
 
 if __name__ == '__main__':

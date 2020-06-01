@@ -83,7 +83,7 @@ def main():
     for i in range(len(sft.streamlines)):
         # Bitwise XOR
         if bool(sft.streamlines[i][0][axis_pos] > sft.streamlines[i][-1][axis_pos]) \
-            ^ bool(args.swap):
+                ^ bool(args.swap):
             sft.streamlines[i] = sft.streamlines[i][::-1]
             for key in sft.data_per_point[i]:
                 sft.data_per_point[key][i] = sft.data_per_point[key][i][::-1]

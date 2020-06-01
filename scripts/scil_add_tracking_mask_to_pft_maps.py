@@ -38,7 +38,7 @@ def main():
     assert_inputs_exist(parser, [args.map_include, args.map_exclude,
                                  args.additional_mask])
     assert_outputs_exist(parser, args, [args.map_include_corr,
-                                         args.map_exclude_corr])
+                                        args.map_exclude_corr])
 
     map_inc = nib.load(args.map_include)
     map_inc_data = map_inc.get_data()

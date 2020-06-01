@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Performs an operation on a list of matrices. The supported operations are
+listed below.
+
+Some operations such as multiplication or addition accept float value as
+parameters instead of matrices.
+> scil_connectivity_math.py multiplication mat.npy 10 mult_10.npy
+"""
+
 import argparse
 import logging
 import os
@@ -17,25 +26,16 @@ from scilpy.utils.util import is_float
 
 OPERATIONS = get_array_ops()
 
-DESCRIPTION = """
-Performs an operation on a list of matrices. The supported operations are
-listed below.
-
-Some operations such as multiplication or addition accept float value as
-parameters instead of matrices.
-> scil_connectivity_math.py multiplication mat.npy 10 mult_10.npy
-"""
-
 ADDED_DOC = get_operations_doc(OPERATIONS).replace('images', 'matrices')
 ADDED_DOC = ADDED_DOC.replace('image', 'matrix')
 ADDED_DOC = ADDED_DOC.replace('IMG', 'MAT')
-DESCRIPTION += ADDED_DOC
+__doc__ += ADDED_DOC
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('operation',
                    choices=OPERATIONS.keys(),
