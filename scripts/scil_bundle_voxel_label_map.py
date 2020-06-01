@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute (upsampled) Nifti label image from bundle and centroid.
+Compute label image (Nifti) from bundle and centroid.
 Each voxel will have the label of its nearest centroid point.
+
+The number of label will be the same as the centroid's number of point.
 """
 
 import argparse
@@ -25,7 +27,7 @@ from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
@@ -33,8 +35,7 @@ def _build_arg_parser():
                    help='Centroid streamline corresponding to bundle.')
     p.add_argument('output_map',
                    help='Nifti image with corresponding labels.')
-    p.add_argument('--upsample',
-                   type=float, default=2,
+    p.add_argument('--upsample', type=float, default=1,
                    help='Upsample reference grid by this factor. '
                         '[%(default)s]')
 

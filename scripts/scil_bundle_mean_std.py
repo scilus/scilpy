@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute mean and std for the whole bundle for each metric.
+Compute mean and std for the whole bundle for each metric. This is achieved by
+averaging the metrics value of all voxels occupied by the bundle.
+
+Density weighting modify the contribution of voxel with lower/higher
+streamline count to reduce influence of spurious streamlines.
 """
 
 import argparse
@@ -23,7 +27,7 @@ from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')

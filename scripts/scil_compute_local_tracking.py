@@ -44,73 +44,66 @@ from scilpy.tracking.tools import get_theta
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p._optionals.title = 'Generic options'
     p.add_argument('sh_file',
                    help='Spherical harmonic file. \n'
-                   '(isotropic resolution, nifti, see --basis).')
+                        '(isotropic resolution, nifti, see --basis).')
     p.add_argument('seed_file',
                    help='Seeding mask (isotropic resolution, nifti).')
     p.add_argument('mask_file',
                    help='Seeding mask(isotropic resolution, nifti).\n' +
-                   'Tracking will stop outside this mask.')
+                        'Tracking will stop outside this mask.')
     p.add_argument('output_file',
                    help='Streamline output file (must be trk or tck).')
 
     track_g = p.add_argument_group('Tracking options')
-    track_g.add_argument(
-        '--algo', default='prob', choices=['det', 'prob'],
-        help='Algorithm to use (must be "det" or "prob"). [%(default)s]')
-    track_g.add_argument(
-        '--step', dest='step_size', type=float, default=0.5,
-        help='Step size in mm. [%(default)s]')
-    track_g.add_argument(
-        '--min_length', type=float, default=10.,
-        help='Minimum length of a streamline in mm. [%(default)s]')
-    track_g.add_argument(
-        '--max_length', type=float, default=300.,
-        help='Maximum length of a streamline in mm. [%(default)s]')
-    track_g.add_argument(
-        '--theta', type=float,
-        help='Maximum angle between 2 steps. ["eudx"=60, det"=45, "prob"=20]')
-    track_g.add_argument(
-        '--sfthres', dest='sf_threshold', type=float, default=0.1,
-        help='Spherical function relative threshold. [%(default)s]')
+    track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
+                         help='Algorithm to use (must be "det" or "prob") '
+                              '[%(default)s].')
+    track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
+                         help='Step size in mm. [%(default)s]')
+    track_g.add_argument('--min_length', type=float, default=10.,
+                         help='Minimum length of a streamline in mm '
+                              '[%(default)s].')
+    track_g.add_argument('--max_length', type=float, default=300.,
+                         help='Maximum length of a streamline in mm '
+                              '[%(default)s].')
+    track_g.add_argument('--theta', type=float,
+                         help='Maximum angle between 2 steps '
+                              '["eudx"=60, det"=45, "prob"=20].')
+    track_g.add_argument('--sfthres', dest='sf_threshold',
+                         type=float, default=0.1,
+                         help='Spherical function relative threshold '
+                              '[%(default)s].')
     add_sh_basis_args(track_g)
 
-    seed_group = p.add_argument_group(
-        'Seeding options',
-        'When no option is provided, uses --npv 1.')
+    seed_group = p.add_argument_group('Seeding options',
+                                      'When no option is provided, uses --npv 1.')
     seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
-    seed_sub_exclusive.add_argument(
-        '--npv', type=int,
-        help='Number of seeds per voxel.')
-    seed_sub_exclusive.add_argument(
-        '--nt', type=int,
-        help='Total number of seeds to use.')
+    seed_sub_exclusive.add_argument('--npv', type=int,
+                                    help='Number of seeds per voxel.')
+    seed_sub_exclusive.add_argument('--nt', type=int,
+                                    help='Total number of seeds to use.')
 
-    p.add_argument(
-        '--sphere', choices=sorted(SPHERE_FILES.keys()),
-        default='symmetric724',
-        help='Set of directions to be used for tracking.')
+    p.add_argument('--sphere', choices=sorted(SPHERE_FILES.keys()),
+                   default='symmetric724',
+                   help='Set of directions to be used for tracking.')
 
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument(
-        '--compress', type=float,
-        help='If set, will compress streamlines. The parameter\nvalue is the '
-             'distance threshold. A rule of thumb\nis to set it to 0.1mm for '
-             'deterministic\nstreamlines and 0.2mm for probabilitic '
-             'streamlines.')
-    out_g.add_argument(
-        '--seed', type=int,
-        help='Random number generator seed.')
+    out_g.add_argument('--compress', metavar='DIST_THRESH', type=float,
+                       help='If set, will compress streamlines.\nA rule of '
+                            'thumb is to set it to 0.1mm for deterministic\n'
+                            'and 0.2mm for probabilitic streamlines.')
+    out_g.add_argument('--seed', type=int,
+                       help='Random number generator seed.')
     add_overwrite_arg(out_g)
 
-    out_g.add_argument(
-        '--save_seeds', action='store_true',
-        help='If set, save the seeds used for the tracking in the '
-             'data_per_streamline property of the tractogram.')
+    out_g.add_argument('--save_seeds', action='store_true',
+                       help='If set, save the seeds used for the tracking in\n'
+                            'the data_per_streamline property of the '
+                            'tractogram.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
