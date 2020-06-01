@@ -5,6 +5,7 @@
 Local streamline HARDI tractography.
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
+
 Algo 'eudx': the peak from the spherical function (SF) most closely aligned
 to the previous direction.
 Algo 'det': the maxima of the spherical function (SF) the most closely aligned
