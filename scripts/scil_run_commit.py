@@ -86,9 +86,10 @@ def _build_arg_parser():
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
 
-    p.add_argument('--b0_thr', type=float, default=0.0,
-                   help='All b-values with values less than or equal '
-                        'to b0_thr are\n considered as b0s [%(default)s].')
+    p.add_argument('--b_thr', type=int, default=40,
+                   help='Limit value to consider that a b-value is on an '
+                        'existing shell. Above this limit, the b-value is '
+                        'placed on a new shell. This includes b0s values.')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
                         'representing the possible orientations of the response '
@@ -232,9 +233,14 @@ def main():
         args.in_tractogram = tmp_tractogram_filename
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
-    shells_centroids, _ = identify_shells(bvals)
-    fsl2mrtrix(args.in_bvals, args.in_bvecs, tmp_scheme_filename)
+    shells_centroids, indices_shells = identify_shells(bvals,
+                                                       args.b_thr,
+                                                       roundCentroids=True)
+    np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
+               newline=' ', fmt='%i')
+    fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
     logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
         len(shells_centroids),
         shells_centroids))
@@ -256,7 +262,7 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
-        mit.load_data(args.in_dwi, tmp_scheme_filename, b0_thr=args.b0_thr)
+        mit.load_data(args.in_dwi, tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:

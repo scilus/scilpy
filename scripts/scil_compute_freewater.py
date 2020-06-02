@@ -52,9 +52,10 @@ def _build_arg_parser():
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the Free Water results. '
                         '[current_directory]')
-    p.add_argument('--b0_thr', type=float, default=0.0,
-                   help='All b-values with values less than or equal '
-                        'to b0_thr are\n considered as b0s [%(default)s].')
+    p.add_argument('--b_thr', type=int, default=40,
+                   help='Limit value to consider that a b-value is on an '
+                        'existing shell. Above this limit, the b-value is '
+                        'placed on a new shell. This includes b0s values.')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,
@@ -119,9 +120,14 @@ def main():
     # Generage a scheme file from the bvals and bvecs files
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    shells_centroids, _ = identify_shells(bvals)
-    fsl2mrtrix(args.in_bval, args.in_bvec, tmp_scheme_filename)
+    shells_centroids, indices_shells = identify_shells(bvals,
+                                                       args.b_thr,
+                                                       roundCentroids=True)
+    np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
+               newline=' ', fmt='%i')
+    fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
     logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
         len(shells_centroids),
         shells_centroids))
@@ -133,8 +139,7 @@ def main():
         # Load the data
         ae.load_data(args.in_dwi,
                      scheme_filename=tmp_scheme_filename,
-                     mask_filename=args.in_mask,
-                     b0_thr=args.b0_thr)
+                     mask_filename=args.in_mask)
 
         # Compute the response functions
         ae.set_model("FreeWater")
