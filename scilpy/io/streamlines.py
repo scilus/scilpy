@@ -29,6 +29,32 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
             'Input and output tractogram files must use the same format.')
 
 
+def lazy_streamlines_count(in_tractogram_path):
+    """ Gets the number of streamlines as written in the tractogram header.
+
+    Parameters
+    ----------
+    in_tractogram_path: str
+        Tractogram filepath, must be .trk or .tck.
+
+    Return
+    ------
+    count: int
+        Number of streamlines present in the tractogram.
+    """
+    _, ext = os.path.splitext(in_tractogram_path)
+    if ext == '.trk':
+        key = 'nb_streamlines'
+    elif ext == '.tck':
+        key = 'count'
+    else:
+        raise IOError('{} is not supported for lazy loading'.format(ext))
+
+    tractogram_file = nib.streamlines.load(in_tractogram_path,
+                                           lazy_load=True)
+    return tractogram_file.header[key]
+
+
 def ichunk(sequence, n):
     """ Yield successive n-sized chunks from sequence.
 
@@ -117,17 +143,46 @@ def streamlines_to_memmap(input_streamlines):
 
 
 def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None):
+    """
+    Function to reconstruct streamlines from memmaps, mainly to facilitate
+    multiprocessing and decrease RAM usage.
+
+    ----------
+    memmap_filenames : tuple
+        Tuple of 3 filepath to numpy memmap (data, offsets, lengths).
+    indices : list
+        List of int representing the indices to reconstruct.
+
+    Returns
+    -------
+    streamlines : list of np.ndarray
+        List of streamlines.
+    """
+
     data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
     offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
     lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
 
     return reconstruct_streamlines(data, offsets, lengths, indices=indices)
 
+
 def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
-    if isinstance(hdf5_filename, str):
-        hdf5_file = h5py.File(hdf5_filename, 'r')
-    else:
-        hdf5_file = hdf5_filename
+    """
+    Function to reconstruct streamlines from hdf5, mainly to facilitate
+    decomposition into thousand of connections and decrease I/O usage.
+    ----------
+    hdf5_filename : str
+        Filepath to the hdf5 file.
+    key : str
+        Key of the connection of interest (LABEL1_LABEL2).
+
+    Returns
+    -------
+    streamlines : list of np.ndarray
+        List of streamlines.
+    """
+
+    hdf5_file = hdf5_filename
 
     if key is not None:
         if key not in hdf5_file:
@@ -142,7 +197,28 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
 
     return reconstruct_streamlines(data, offsets, lengths)
 
+
 def reconstruct_streamlines(data, offsets, lengths, indices=None):
+    """
+    Function to reconstruct streamlines from its data, offsets and lengths
+    (from the nibabel tractogram object).
+
+    ----------
+    data : np.ndarray
+        Nx3 array representing all points of the streamlines.
+    offsets : np.ndarray
+        Nx1 array representing the cumsum of length array.
+    lengths : np.ndarray
+        Nx1 array representing the length of each streamline.
+    indices : list
+        List of int representing the indices to reconstruct.
+
+    Returns
+    -------
+    streamlines : list of np.ndarray
+        List of streamlines.
+    """
+
     if indices is None:
         indices = np.arange(len(offsets))
 
