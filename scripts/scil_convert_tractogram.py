@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Conversion of '.tck', '.trk', '.fib', '.vtk' and 'dpy' files using updated file
