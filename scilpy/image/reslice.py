@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # THIS FILE IS TEMPORARY. THIS FILE WILL BE DELETED AFTER THE PR IN DIPY
 
 from multiprocessing import Pool, cpu_count

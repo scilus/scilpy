@@ -11,18 +11,7 @@ from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
 import numpy as np
 
-
-def _reconstruct_streamlines(memmap_filenames, indices):
-    data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
-    offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
-    lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
-
-    streamlines = []
-    for i in indices:
-        streamline = data[offsets[i]*3:offsets[i]*3 + lengths[i]*3]
-        streamlines.append(streamline.reshape((lengths[i], 3)))
-
-    return streamlines
+from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
 
 
 class RecobundlesX(object):
@@ -135,7 +124,7 @@ class RecobundlesX(object):
         self.model_centroids = model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
-            logging.warning('Model {0} simplified at threshod '
+            logging.warning('Model {0} simplified at threshold '
                             '{1}mm with {2} centroids'.format(identifier,
                                                               str(model_clust_thr),
                                                               str(len_centroids)))
@@ -160,8 +149,8 @@ class RecobundlesX(object):
         for i in close_clusters_indices:
             self.neighb_indices.extend(self.wb_clusters_indices[i])
         self.neighb_indices = np.array(self.neighb_indices, dtype=np.int32)
-        self.neighb_streamlines = _reconstruct_streamlines(self.memmap_filenames,
-                                                           self.neighb_indices)
+        self.neighb_streamlines = reconstruct_streamlines_from_memmap(
+            self.memmap_filenames, self.neighb_indices)
 
         self.neighb_centroids = [self.centroids[i]
                                  for i in close_clusters_indices]

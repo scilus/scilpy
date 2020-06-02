@@ -6,7 +6,6 @@ import logging
 import multiprocessing
 import os
 import random
-import tempfile
 from time import time
 
 from dipy.segment.clustering import qbx_and_merge
@@ -15,39 +14,8 @@ import nibabel as nib
 import numpy as np
 from scipy.sparse import lil_matrix
 
+from scilpy.io.streamlines import streamlines_to_memmap
 from scilpy.segment.recobundlesx import RecobundlesX
-
-
-def streamlines_to_memmap(input_streamlines):
-    """
-    Function to decompose on disk the array_sequence into its components.
-    Parameters
-    ----------
-    input_streamlines : ArraySequence
-        All streamlines of the tractogram to segment.
-    Returns
-    -------
-    tmp_obj : tuple
-        Temporary directory and tuple of filenames for the data, offsets
-        and lengths.
-    """
-    tmp_dir = tempfile.TemporaryDirectory()
-    data_filename = os.path.join(tmp_dir.name, 'data.dat')
-    data = np.memmap(data_filename, dtype='float32', mode='w+',
-                     shape=input_streamlines._data.shape)
-    data[:] = input_streamlines._data[:]
-
-    offsets_filename = os.path.join(tmp_dir.name, 'offsets.dat')
-    offsets = np.memmap(offsets_filename, dtype='int64', mode='w+',
-                        shape=input_streamlines._offsets.shape)
-    offsets[:] = input_streamlines._offsets[:]
-
-    lengths_filename = os.path.join(tmp_dir.name, 'lengths.dat')
-    lengths = np.memmap(lengths_filename, dtype='int32', mode='w+',
-                        shape=input_streamlines._lengths.shape)
-    lengths[:] = input_streamlines._lengths[:]
-
-    return tmp_dir, (data_filename, offsets_filename, lengths_filename)
 
 
 class VotingScheme(object):

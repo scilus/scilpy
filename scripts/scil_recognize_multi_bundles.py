@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -40,7 +40,8 @@ import coloredlogs
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             load_matrix_in_any_format)
 from scilpy.segment.voting_scheme import VotingScheme
 
 
@@ -54,13 +55,14 @@ def _build_arg_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
-    p.add_argument('config_file',
-                   help='Path of the config file (json)')
-    p.add_argument('models_directories', nargs='+',
+                   help='Input tractogram filename (.trk or .tck).')
+    p.add_argument('in_config_file',
+                   help='Path of the config file (.json)')
+    p.add_argument('in_models_directories', nargs='+',
                    help='Path for the directories containing model.')
-    p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
+    p.add_argument('in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
 
     p.add_argument('--output', default='voting_results/',
                    help='Path for the output directory [%(default)s].')
@@ -98,10 +100,10 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram,
-                                 args.config_file,
-                                 args.transformation])
+                                 args.in_config_file,
+                                 args.in_transfo])
 
-    for directory in args.models_directories:
+    for directory in args.in_models_directories:
         if not os.path.isdir(directory):
             parser.error('Input folder {0} does not exist'.format(directory))
 
@@ -114,14 +116,14 @@ def main():
 
     coloredlogs.install(level=args.log_level)
 
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.transformation))
+        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
 
-    with open(args.config_file) as json_data:
+    with open(args.in_config_file) as json_data:
         config = json.load(json_data)
 
-    voting = VotingScheme(config, args.models_directories,
+    voting = VotingScheme(config, args.in_models_directories,
                           transfo, args.output,
                           tractogram_clustering_thr=args.tractogram_clustering_thr,
                           minimal_vote_ratio=args.minimal_vote_ratio,
