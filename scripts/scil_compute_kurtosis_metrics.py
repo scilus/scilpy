@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -40,7 +40,6 @@ therein.
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
-from builtins import range
 import argparse
 import logging
 

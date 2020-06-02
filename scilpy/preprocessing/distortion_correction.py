@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from builtins import range
-
 import numpy as np
 
 
