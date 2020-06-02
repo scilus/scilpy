@@ -5,23 +5,23 @@
 Performs an operation on a list of streamline files. The supported
 operations are:
 
-    difference:  Keep the streamlines from the first file that are not in
-                 any of the following files.
+difference:  Keep the streamlines from the first file that are not in
+                any of the following files.
 
-    intersection: Keep the streamlines that are present in all files.
+intersection: Keep the streamlines that are present in all files.
 
-    union:        Keep all streamlines while removing duplicates.
+union:        Keep all streamlines while removing duplicates.
 
-    concatenate:  Keep all streamlines with duplicates.
+concatenate:  Keep all streamlines with duplicates.
 
-If a file 'duplicate.trk' have identical streamlines calling the script using
+If a file 'duplicate.trk' have identical streamlines, calling the script using
 the difference/intersection/union with a single input will remove these
 duplicated streamlines.
 
 To allow a soft match, use the --precision option to increase the allowed
-threshold for similarity. A precision of 1 represent 10**(-1), so a
-maximum distance of 0.1mm  is allowed. If the streamlines are identical, the
-default value of 3 or 0.001mm distance) should work. If there is a 0.5mm shift,
+threshold for similarity. A precision of 1 represents 10**(-1), so a
+maximum distance of 0.1mm is allowed. If the streamlines are identical, the
+default value of 3 (or 0.001mm distance) should work. If there is a 0.5mm shift,
 use a precision of 0 (or 1mm distance) should work, but slightly slower.
 
 The metadata (data per point, data per streamline) of the streamlines that
