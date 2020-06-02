@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -53,7 +53,7 @@ def _build_arg_parser():
     sub_color.add_argument('--local_coloring', action='store_true',
                            help='Color streamlines local segments orientation.')
     sub_color.add_argument('--uniform_coloring', nargs=3,
-                           metavar=('R', 'G', 'B'), type=int,
+                           metavar=('R', 'G', 'B'), type=float,
                            help='Color streamlines with uniform coloring.')
     sub_color.add_argument('--reference_coloring',
                            metavar='COLORBAR',

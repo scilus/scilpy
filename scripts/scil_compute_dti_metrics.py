@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -22,7 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from builtins import range
 import argparse
 import logging
 
@@ -174,7 +173,7 @@ def main():
     if args.mask is None:
         mask = None
     else:
-        mask = get_data_as_mask(nib.load(args.mask))
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))

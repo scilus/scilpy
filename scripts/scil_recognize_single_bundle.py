@@ -1,12 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Compute a simple Recobundles (single-atlas & single-parameters).
 The model need to be cleaned and lightweight.
+
 Transform should come from ANTs: (using the --inverse flag)
-AntsRegistration -m MODEL_REF -f SUBJ_REF
-ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
 """
 
 import argparse
@@ -23,7 +23,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -36,12 +37,13 @@ def _build_arg_parser():
         clustering. NeuroImage, 170, 283-295.""")
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
+                   help='Input tractogram filename.')
     p.add_argument('in_model',
-                   help='Model to use for recognition (trk or tck).')
-    p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
-    p.add_argument('output_name',
+                   help='Model to use for recognition.')
+    p.add_argument('in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
+    p.add_argument('out_tractogram',
                    help='Output tractogram filename.')
 
     p.add_argument('--tractogram_clustering_thr', type=float, default=8,
@@ -82,17 +84,17 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
-    assert_outputs_exist(parser, args, args.output_name)
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo])
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    wb_streamlines = wb_file.streamlines
+    wb_sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    wb_streamlines = wb_sft.streamlines
     model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
     # Default transformation source is expected to be ANTs
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.transformation))
+        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
 
     model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
@@ -119,7 +121,7 @@ def main():
                                     slr_num_threads=args.slr_threads)
 
     if not args.no_empty or len(indices):
-        save_tractogram(wb_file[indices], args.output_name)
+        save_tractogram(wb_sft[indices], args.output_name)
 
 
 if __name__ == '__main__':
