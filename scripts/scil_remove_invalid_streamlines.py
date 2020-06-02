@@ -5,6 +5,9 @@
 Removal of streamlines that are out of the volume bounding box. In voxel space
 no negative coordinate and no above volume dimension coordinate are possible.
 Any streamline that do not respect these two conditions are removed.
+
+The --cut_invalid option will cut streamlines so that their longest segment are
+within the bounding box
 """
 
 import argparse
@@ -17,6 +20,7 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.utils.streamlines import cut_invalid_streamlines
 
 
 def _build_arg_parser():
@@ -30,6 +34,9 @@ def _build_arg_parser():
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
 
+    p.add_argument('--cut_invalid', action='store_true',
+                   help='Cut invalid streamlines rather than removing them.\n'
+                        'Keep the longest segment only.')
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
@@ -51,7 +58,11 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
     ori_len = len(sft)
-    sft.remove_invalid_streamlines()
+    if args.cut_invalid:
+        sft, cutting_counter = cut_invalid_streamlines(sft)
+        logging.warning('Cut {} invalid streamlines.'.format(cutting_counter))
+    else:
+        sft.remove_invalid_streamlines()
 
     indices = []
     if args.remove_single_point:
