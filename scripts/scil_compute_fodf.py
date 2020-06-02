@@ -4,14 +4,7 @@
 """
 Script to compute Constrained Spherical Deconvolution (CSD) fiber ODFs.
 
-By default, will output all possible files, using default names. Specific names
-can be specified using the file flags specified in the "File flags" section.
-
-If --not_all is set, only the files specified explicitly by the flags
-will be output.
-
-See [Tournier et al. NeuroImage 2007] and [Cote et al Tractometer MedIA 2013]
-for quantitative comparisons with Sharpening Deconvolution Transform (SDT)
+See [Tournier et al. NeuroImage 2007]
 """
 
 import argparse
