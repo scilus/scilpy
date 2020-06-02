@@ -49,10 +49,12 @@ def _build_arg_parser():
 
     p.add_argument('--in_mask',
                    help='Brain mask filename.')
-
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the NODDI results. '
                         '[%(default)s]')
+    p.add_argument('--b0_thr', type=float, default=0.0,
+                   help='All b-values with values less than or equal '
+                        'to b0_thr are\n considered as b0s [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.7e-3,
@@ -123,7 +125,8 @@ def main():
         ae = amico.Evaluation('.', '.')
         ae.load_data(args.in_dwi,
                      tmp_scheme_filename,
-                     mask_filename=args.in_mask)
+                     mask_filename=args.in_mask,
+                     b0_thr=args.b0_thr)
         # Compute the response functions
         ae.set_model("NODDI")
 

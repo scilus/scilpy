@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute the axial and mean diffusivity priors for NODDI.
+Compute the axial (para_diff) and mean (iso_diff) diffusivity priors for NODDI.
 """
 
 import argparse
