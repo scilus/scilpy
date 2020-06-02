@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize seeds where streamlines originate from a tractogram.
+Visualize seeds used to generate the tractogram or bundle.
+When tractography was run, each streamline produced by the tracking algorithm
+saved its seeding point (its origin).
 
 The tractogram must have been generated from scil_compute_local/pft_tracking.py
 with the --save_seeds option.

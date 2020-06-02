@@ -21,9 +21,17 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
 
+EPILOG = """
+[1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more
+    information than fiber orientations? Hindrance modulated orientational
+    anisotropy, a true‐tract specific index to characterize white matter
+    diffusion." Human brain mapping 34.10 (2013): 2464-2483.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                description=__doc__, epilog=EPILOG)
 
     p.add_argument('input',  metavar='fODFs',
                    help='Path of the fODF volume in spherical harmonics (SH).')

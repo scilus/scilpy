@@ -5,7 +5,7 @@
 Compute label image (Nifti) from bundle and centroid.
 Each voxel will have the label of its nearest centroid point.
 
-The number of label will be the same as the centroid's number of point.
+The number of labels will be the same as the centroid's number of point.
 """
 
 import argparse

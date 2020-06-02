@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute bundle volume in mm³. This script support anisotropic voxel resolution.
-Volume is estimated by counting the number of voxel occupied by the bundle and
-multiplying it by the volume of a single voxel.
+Compute bundle volume in mm³. This script supports anisotropic voxels
+resolution. Volume is estimated by counting the number of voxel occupied by
+the bundle and multiplying it by the volume of a single voxel.
 
-This estimation is typically perform at resolution around 1mm³.
+This estimation is typically performed at resolution around 1mm³.
 """
 
 import argparse

@@ -4,8 +4,8 @@
 Clean a bundle (inliers/outliers) using hiearchical clustering.
 http://archive.ismrm.org/2015/2844.html
 
-If spurious streamlines are dense it is possible they will not be recognized as
-outliers. Manual cleaning may be required to overcome this limitation.
+If spurious streamlines are dense, it is possible they will not be recognized
+as outliers. Manual cleaning may be required to overcome this limitation.
 """
 
 import argparse

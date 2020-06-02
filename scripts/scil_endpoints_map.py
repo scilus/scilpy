@@ -5,7 +5,7 @@
 Computes the endpoint map of a bundle. The endpoint map is simply a count of
 the number of streamlines that start or end in each voxel.
 
-The idea is to estimate the cortical areas affected by the bundle (assuming
+The idea is to estimate the cortical area affected by the bundle (assuming
 streamlines start/end in the cortex).
 
 Note: If the streamlines are not ordered the head/tail are random and not
