@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -28,6 +28,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              load_matrix_in_any_format)
+from scilpy.utils.streamlines import cut_invalid_streamlines
 
 
 def _build_arg_parser():
@@ -49,6 +50,9 @@ def _build_arg_parser():
                    help='Apply the inverse transformation.')
 
     invalid = p.add_mutually_exclusive_group()
+    invalid.add_argument('--cut_invalid', action='store_true',
+                         help='Cut invalid streamlines rather than removing them.\n'
+                         'Keep the longest segment only.')
     invalid.add_argument('--remove_invalid', action='store_true',
                          help='Remove the streamlines landing out of the '
                               'bounding box.')
@@ -85,7 +89,10 @@ def main():
                                  data_per_point=moving_sft.data_per_point,
                                  data_per_streamline=moving_sft.data_per_streamline)
 
-    if args.remove_invalid:
+    if args.cut_invalid:
+        new_sft = cut_invalid_streamlines(new_sft)
+        save_tractogram(new_sft, args.out_tractogram)
+    elif args.remove_invalid:
         ori_len = len(new_sft)
         new_sft.remove_invalid_streamlines()
         logging.warning('Removed {} invalid streamlines.'.format(

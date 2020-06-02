@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -22,7 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from builtins import range
 import argparse
 import logging
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,9 +8,6 @@ estimated from a MD and FA threshold.
 This allows to clip the noise of fODF using an absolute thresold.
 """
 
-from builtins import str
-from builtins import range
-from past.utils import old_div
 import argparse
 import logging
 
@@ -90,7 +87,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
     # Hence, we multiply by the volume of a voxel
     vol = (zoom[0] * zoom[1] * zoom[2])
     if vol != 0:
-        max_number_of_voxels = old_div(1000 * 8, vol)
+        max_number_of_voxels = 1000 * 8 // vol
     else:
         max_number_of_voxels = 1000
 
