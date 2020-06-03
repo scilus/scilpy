@@ -15,11 +15,11 @@ len(bundle_pruning_thr) * len(tractogram_clustering_thr)
 --seeds can be more than one value. Multiple values will result in
 a overall multiplicative factor of len(seeds) * '--multi_parameters'
 
-The number of folder provided by 'models_directories' will further multiply
-the total number of run. Meaning that the total number of Recobundle
+The number of folders provided by 'models_directories' will further multiply
+the total number of runs. Meaning that the total number of Recobundles
 execution will be len(seeds) * '--multi_parameters' * len(models_directories)
 
---minimal_vote_ratio is a value between 0 and 1. The actual number of vote
+--minimal_vote_ratio is a value between 0 and 1. The actual number of votes
 required will be '--minimal_vote_ratio' * len(seeds) * '--multi_parameters'
 * len(models_directories).
 
@@ -72,7 +72,7 @@ def _build_arg_parser():
 
     p.add_argument('--multi_parameters', type=int, default=1,
                    help='Pick parameters from the potential combinations\n'
-                        'Will multiply the number of time Recobundles is ran.\n'
+                        'Will multiply the number of times Recobundles is ran.\n'
                         'See the documentation [%(default)s].')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
                    help='Streamlines will only be considered for saving if\n'
@@ -83,10 +83,10 @@ def _build_arg_parser():
                    help='Input tractogram clustering thresholds %(default)smm.')
 
     p.add_argument('--processes', type=int, default=1,
-                   help='Number of thread used for computation [%(default)s].')
+                   help='Number of threads used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
                    help='Random number generator seed %(default)s\n'
-                        'Will multiply the number of time Recobundles is ran.')
+                        'Will multiply the number of times Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 

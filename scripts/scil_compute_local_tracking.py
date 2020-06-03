@@ -3,7 +3,6 @@
 
 """
 Local streamline HARDI tractography.
-
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
 
@@ -44,17 +43,17 @@ from scilpy.tracking.tools import get_theta
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p._optionals.title = 'Generic options'
     p.add_argument('sh_file',
                    help='Spherical harmonic file. \n'
-                   '(isotropic resolution, nifti, see --basis).')
+                        '(isotropic resolution, nifti, see --basis).')
     p.add_argument('seed_file',
                    help='Seeding mask (isotropic resolution, nifti).')
     p.add_argument('mask_file',
                    help='Seeding mask(isotropic resolution, nifti).\n' +
-                   'Tracking will stop outside this mask.')
+                        'Tracking will stop outside this mask.')
     p.add_argument('output_file',
                    help='Streamline output file (must be trk or tck).')
 
