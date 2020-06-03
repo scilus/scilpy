@@ -4,8 +4,7 @@
 """
 Script to compute the maximum Apparent Fiber Density (AFD), the fiber ODFs
 orientations, values and indices (peaks, peak_values, peak_indices), the Number
-of Fiber Orientations (NuFO) maps from fiber ODFs, the RGB map, the Generalized
-Fractional Anisotropy (GFA) and the Quantitative Anisotropy (QA).
+of Fiber Orientations (NuFO) maps from fiber ODFs and the RGB map.
 
 AFD_max map is the maximal fODF amplitude for each voxel.
 
@@ -90,14 +89,8 @@ def _build_arg_parser():
         help='Output filename for the sum of all peak contributions (sum of '
              'fODF lobes on the sphere).')
     g.add_argument(
-        '--gfa', metavar='file', default='',
-        help='Output filename for the GFA map.')
-    g.add_argument(
         '--nufo', metavar='file', default='',
         help='Output filename for the NuFO map.')
-    g.add_argument(
-        '--qa', metavar='file', default='',
-        help='Output filename for the QA map.')
     g.add_argument(
         '--rgb', metavar='file', default='',
         help='Output filename for the RGB map.')
@@ -121,16 +114,14 @@ def main():
         args.afd = args.afd or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
         args.afd_sum = args.afd_sum or 'afd_sum.nii.gz'
-        args.gfa = args.gfa or 'gfa.nii.gz'
         args.nufo = args.nufo or 'nufo.nii.gz'
-        args.qa = args.qa or 'qa.nii.gz'
         args.rgb = args.rgb or 'rgb.nii.gz'
         args.peaks = args.peaks or 'peaks.nii.gz'
         args.peak_values = args.peak_values or 'peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
 
-    arglist = [args.afd, args.afd_total, args.afd_sum, args.nufo, args.gfa,
-               args.qa, args.rgb, args.peaks, args.peak_values,
+    arglist = [args.afd, args.afd_total, args.afd_sum, args.nufo,
+               args.rgb, args.peaks, args.peak_values,
                args.peak_indices]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
@@ -166,7 +157,7 @@ def main():
 
     # Computing maps
     nufo_map, afd_max, afd_sum, rgb_map, \
-        gfa_map, qa_map = maps_from_sh(data, peak_dirs,
+        _, _ = maps_from_sh(data, peak_dirs,
                                        peak_values, peak_indices,
                                        sphere, nbr_processes=args.nbr_processes)
 
@@ -188,14 +179,6 @@ def main():
     if args.afd_sum:
         nib.save(nib.Nifti1Image(afd_sum.astype(np.float32),
                                  affine), args.afd_sum)
-
-    if args.gfa:
-        nib.save(nib.Nifti1Image(gfa_map.astype(np.float32),
-                                 affine), args.gfa)
-
-    if args.qa:
-        nib.save(nib.Nifti1Image(qa_map.astype(np.float32),
-                                 affine), args.qa)
 
     if args.rgb:
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
