@@ -314,7 +314,7 @@ def main():
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
-    # Saving the matrices separatly with the specified name
+    # Saving the matrices separatly with the specified name or dps
     for i, measure in enumerate(measures_ordering):
         if measure == 'volume':
             matrix_basename = args.volume
