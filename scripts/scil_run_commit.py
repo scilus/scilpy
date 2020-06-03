@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -79,9 +79,9 @@ def _build_arg_parser():
                    help='Input tractogram (.trk or .tck or .h5).')
     p.add_argument('in_dwi',
                    help='Diffusion-weighted images used by COMMIT (.nii.gz).')
-    p.add_argument('in_bvals',
+    p.add_argument('in_bval',
                    help='b-values in the FSL format (.bval).')
-    p.add_argument('in_bvecs',
+    p.add_argument('in_bvec',
                    help='b-vectors in the FSL format (.bvec).')
     p.add_argument('out_dir',
                    help='Output directory for the COMMIT maps.')
@@ -162,7 +162,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_dwi,
-                                 args.in_bvals, args.in_bvecs],
+                                 args.in_bval, args.in_bvec],
                         [args.in_peaks, args.in_tracking_mask])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
@@ -234,7 +234,7 @@ def main():
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
-    bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
                                                        args.b_thr,
                                                        roundCentroids=True)

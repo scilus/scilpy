@@ -129,7 +129,7 @@ def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
                         metavar='NBR', type=int, default=1,
                         help='Number of sub-processes to start. \n'
-                        'Default: CPU count')
+                        'Default: [%(default)s]')
 
 
 def add_reference_arg(parser, arg_name=None):

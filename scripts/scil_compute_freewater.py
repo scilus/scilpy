@@ -128,7 +128,7 @@ def main():
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-    logging.debug('Lauching COMMIT on {} shells at found at {}.'.format(
+    logging.debug('Compute FreeWater with AMICO on {} shells at found at {}.'.format(
         len(shells_centroids),
         shells_centroids))
 
