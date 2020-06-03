@@ -156,7 +156,8 @@ def _processing_wrapper(args):
     if include_dps:
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
-                measures_to_return[dps_key] = np.average(hdf5_file[key][dps_key])
+                measures_to_return[dps_key] = np.average(
+                    hdf5_file[key][dps_key])
 
     return {(in_label, out_label): measures_to_return}
 
@@ -198,6 +199,8 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', action="store_true",
                    help='Save matrices from data_per_streamline.')
+    p.add_argument('--force_labels_list', metavar='FILE',
+                   help='Use a fixed labels list in case of missing labels.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -210,7 +213,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_labels)
+    assert_inputs_exist(parser, [in_hdf5, args.in_labels],
+                        args.force_labels_list)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -262,7 +266,10 @@ def main():
 
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
-    labels_list = np.unique(data_labels)[1:].tolist()
+    if not args.force_labels_list:
+        labels_list = np.unique(data_labels)[1:].tolist()
+    else:
+        labels_list = np.loadtxt(args.force_labels_list)
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
