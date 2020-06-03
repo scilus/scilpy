@@ -165,8 +165,9 @@ def main():
                 filename, args.in_volume))
 
     output_dir = os.path.dirname(args.out_image)
-    assert_output_dirs_exist_and_empty(parser, args, output_dir,
-                                       create_dir=True)
+    if output_dir:
+        assert_output_dirs_exist_and_empty(parser, args, output_dir,
+                                        create_dir=True)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
