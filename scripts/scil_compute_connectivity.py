@@ -197,7 +197,7 @@ def _build_arg_parser():
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', action="store_true",
-                   help='Save matrices from data_per_streamlines.')
+                   help='Save matrices from data_per_streamline.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
