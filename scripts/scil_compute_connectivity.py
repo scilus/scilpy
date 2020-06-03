@@ -295,6 +295,7 @@ def main():
         for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
+
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
