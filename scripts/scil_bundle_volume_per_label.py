@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute bundle volume per label.
+Compute bundle volume per label in mm³. This script supports anisotropic voxels
+resolution. Volume is estimated by counting the number of voxel occupied by
+each label and multiplying it by the volume of a single voxel.
+
+This estimation is typically performed at resolution around 1mm³.
 """
 
 import argparse
@@ -19,7 +23,7 @@ from scilpy.io.utils import (add_json_args,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('voxel_label_map',
                    help='Fiber bundle file.')

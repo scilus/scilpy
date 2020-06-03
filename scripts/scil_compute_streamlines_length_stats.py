@@ -21,7 +21,7 @@ from scilpy.io.utils import (add_json_args,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file.')
