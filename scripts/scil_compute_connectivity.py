@@ -264,6 +264,9 @@ def main():
     logging.info('The following measures will be computed and save: {}'.format(
         measures_to_compute))
 
+    if args.include_dps:
+        logging.info('data_per_streamline weighting is activated.')
+
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
     if not args.force_labels_list:
@@ -308,6 +311,7 @@ def main():
     for in_label, out_label in measures_dict:
         curr_node_dict = measures_dict[(in_label, out_label)]
         measures_ordering = list(curr_node_dict.keys())
+
         for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
@@ -328,6 +332,8 @@ def main():
             matrix_basename = dict_metrics_out_name[measure]
         elif measure in dict_maps_out_name:
             matrix_basename = dict_maps_out_name[measure]
+        else:
+            matrix_basename = measure
 
         np.save(matrix_basename, matrix[:, :, i])
 
