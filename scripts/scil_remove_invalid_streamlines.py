@@ -68,9 +68,10 @@ def main():
     if args.remove_single_point:
         # Will try to do a PR in Dipy
         indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) <= 1]
+        remaining_indices = np.setdiff1d(range(len(sft)), indices)
 
     if args.remove_overlapping_points:
-        for i in range(len(sft)):
+        for i in remaining_indices:
             norm = np.linalg.norm(np.gradient(sft.streamlines[i],
                                               axis=0), axis=1)
             if (norm < 0.001).any():
