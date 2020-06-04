@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Computes the endpoint map of a bundle. The endpoint map
-is simply a count of the number of streamlines that
-start or end in each voxel. The idea is to estimate the
-cortical areas affected by the bundle (assuming
+Computes the endpoint map of a bundle. The endpoint map is simply a count of
+the number of streamlines that start or end in each voxel.
+
+The idea is to estimate the cortical area affected by the bundle (assuming
 streamlines start/end in the cortex).
-Note: If the streamlines are not aligned in X, Y or Z directions
-the head/tail are random and not really two coherent groups.
+
+Note: If the streamlines are not ordered the head/tail are random and not
+really two coherent groups. Use the following script to order streamlines:
+scil_uniformize_streamlines_endpoints.py
 """
 
 
@@ -31,7 +33,7 @@ from scilpy.io.utils import (add_json_args,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle filename.')
