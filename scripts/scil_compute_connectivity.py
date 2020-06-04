@@ -213,7 +213,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [in_hdf5, args.in_labels],
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
                         args.force_labels_list)
 
     log_level = logging.WARNING
