@@ -199,8 +199,9 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', action="store_true",
                    help='Save matrices from data_per_streamline.')
-    p.add_argument('--force_labels_list', metavar='FILE',
-                   help='Use a fixed labels list in case of missing labels.')
+    p.add_argument('--force_labels_list',
+                   help='Path to a labels list (.txt) to in case of missing '
+                        'labels in the atlas.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
