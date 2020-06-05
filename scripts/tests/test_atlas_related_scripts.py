@@ -71,8 +71,3 @@ def test_math_dilate(script_runner):
                             'atlas_freesurfer_v2_single_brainstem_dil.nii.gz',
                             '--processes', '1', '--distance', '2')
     return ret.success
-
-
-# Needed in order to clean /tmp/ only after all tests are finished
-def test_cleanup():
-    tmp_dir.cleanup()
