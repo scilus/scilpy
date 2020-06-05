@@ -63,8 +63,8 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
-                                 args.frf_file, args.out_fODFs])
-    assert_outputs_exist(parser, args, arglist)
+                                 args.frf_file])
+    assert_outputs_exist(parser, args, args.out_fODF)
 
     # Loading data
     full_frf = np.loadtxt(args.frf_file)

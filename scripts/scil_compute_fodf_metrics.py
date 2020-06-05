@@ -127,7 +127,7 @@ def main():
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
 
-    assert_inputs_exist(parser, [])
+    assert_inputs_exist(parser, args.in_fODF)
     assert_outputs_exist(parser, args, arglist)
 
     vol = nib.load(args.in_fODF)
