@@ -27,15 +27,19 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
 
+EPILOG = """
+Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+Descoteaux, M. (2018). Recognition of white matter
+bundles using local and global streamline-based registration and
+clustering. NeuroImage, 170, 283-295.
+"""
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
-        epilog="""Garyfallidis, E., Côté, M. A., Rheault, F., ... &
-        Descoteaux, M. (2018). Recognition of white matter
-        bundles using local and global streamline-based registration and
-        clustering. NeuroImage, 170, 283-295.""")
+        epilog=EPILOG)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename.')

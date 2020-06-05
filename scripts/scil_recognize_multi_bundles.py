@@ -39,20 +39,26 @@ import random
 import coloredlogs
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format)
 from scilpy.segment.voting_scheme import VotingScheme
+
+EPILOG = """
+Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+Descoteaux, M. (2018). Recognition of white matter
+bundles using local and global streamline-based registration and
+clustering. NeuroImage, 170, 283-295.
+"""
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
-        epilog="""Garyfallidis, E., Côté, M. A., Rheault, F., ... &
-        Descoteaux, M. (2018). Recognition of white matter
-        bundles using local and global streamline-based registration and
-        clustering. NeuroImage, 170, 283-295.""")
+        epilog=EPILOG)
 
     p.add_argument('in_tractogram',
                    help='Input tractogram filename (.trk or .tck).')
@@ -64,7 +70,7 @@ def _build_arg_parser():
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
 
-    p.add_argument('--output', default='voting_results/',
+    p.add_argument('--out_dir', default='voting_results',
                    help='Path for the output directory [%(default)s].')
     p.add_argument('--log_level', default='INFO',
                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
@@ -82,14 +88,13 @@ def _build_arg_parser():
                    type=int, default=[12], nargs='+',
                    help='Input tractogram clustering thresholds %(default)smm.')
 
-    p.add_argument('--processes', type=int, default=1,
-                   help='Number of threads used for computation [%(default)s].')
     p.add_argument('--seeds', type=int, default=[None], nargs='+',
                    help='Random number generator seed %(default)s\n'
                         'Will multiply the number of times Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 
+    add_processes_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -107,9 +112,9 @@ def main():
         if not os.path.isdir(directory):
             parser.error('Input folder {0} does not exist'.format(directory))
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output)
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
-    logging.basicConfig(filename=os.path.join(args.output, 'logfile.txt'),
+    logging.basicConfig(filename=os.path.join(args.out_dir, 'logfile.txt'),
                         filemode='w',
                         format='%(asctime)s, %(name)s %(levelname)s %(message)s',
                         datefmt='%H:%M:%S', level=args.log_level)
@@ -124,7 +129,7 @@ def main():
         config = json.load(json_data)
 
     voting = VotingScheme(config, args.in_models_directories,
-                          transfo, args.output,
+                          transfo, args.out_dir,
                           tractogram_clustering_thr=args.tractogram_clustering_thr,
                           minimal_vote_ratio=args.minimal_vote_ratio,
                           multi_parameters=args.multi_parameters)
@@ -134,8 +139,7 @@ def main():
     else:
         seeds = args.seeds
 
-    voting(args.in_tractogram,
-           nbr_processes=args.processes, seeds=seeds)
+    voting(args.in_tractogram, nbr_processes=args.nbr_processes, seeds=seeds)
 
 
 if __name__ == '__main__':
