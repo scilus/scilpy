@@ -71,10 +71,10 @@ def _build_arg_parser():
                    help='Do not write file if there is no streamline.')
 
     group = p.add_mutually_exclusive_group()
-    group.add_argument('--input_pickle',
+    group.add_argument('--in_pickle',
                        help='Input pickle clusters map file.\n'
                             'Will override the tractogram_clustering_thr parameter.')
-    group.add_argument('--output_pickle',
+    group.add_argument('--out_pickle',
                        help='Output pickle clusters map file.')
 
     add_reference_arg(p)
@@ -103,8 +103,8 @@ def main():
     model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
-    if args.input_pickle:
-        with open(args.input_pickle, 'rb') as infile:
+    if args.in_pickle:
+        with open(args.in_pickle, 'rb') as infile:
             cluster_map = pickle.load(infile)
         reco_obj = RecoBundles(wb_streamlines,
                                cluster_map=cluster_map,
@@ -116,8 +116,8 @@ def main():
                                rng=rng,
                                verbose=args.verbose)
 
-    if args.output_pickle:
-        with open(args.output_pickle, 'wb') as outfile:
+    if args.out_pickle:
+        with open(args.out_pickle, 'wb') as outfile:
             pickle.dump(reco_obj.cluster_map, outfile)
     _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
