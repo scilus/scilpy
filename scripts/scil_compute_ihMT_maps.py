@@ -15,22 +15,24 @@ import scipy.ndimage
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
-
+# @Arnaud :ici j'ai un probleme avec le --resolution avec le type pour la ligne 298
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=args.RawTextHelpFormatter)
-    p.add_argument('input', metavar='input',
+                                formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('input',
                    help='Path of the ihMT maps from bids folder')
-    p.add_argument('output', metavar='output',
+    p.add_argument('output',
                    help='Path to output folder')
-    p.add_argument('subjid', metavar='subjid',
+    p.add_argument('subjid',
                    help='Id of subject from BIDS folder')
-    p.add_argument('brainmask', metavar='input',
+    p.add_argument('brainmask',
                    help='Path to T1 binary brainmask.'
                         'Generate by BET or other tools')
-    p.add_argument('--resolution', action='store_true', metavar='string',
-                   help="ihMT sequences resolution as set in BIDSFile object:"
-                         "ex. 'highres' or 'lowres'. Default is None.")
+    p.add_argument('--resolution', type=str,
+                   help="Use this option when 2 or most resolution is acquired"
+                        "name of ihMT sequences resolution as set in"
+                        "BIDSFile object, ex:['highres','lowres']."
+                        "Default is None.")
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing,'
                         'sigma set at 0.5. Not recommanded.'
@@ -51,11 +53,9 @@ def merge_ihMT_array(images):
     """
     Function to concatenate n 3D-array matrix of the same size
     along the 4th dimension.
-
     Parameters
     ----------
     images       list of echo path. Must be nii image.
-
     Returns
     -------
     Return a matrix (x,y,z,n) for n matrices (x,y,z) as input
@@ -88,13 +88,11 @@ def py_fspecial_gauss(shape, sigma):
     Returns a rotationally symmetric Gaussian lowpass filter of
     shape size with standard deviation sigma.
     see https://www.mathworks.com/help/images/ref/fspecial.html
-
     Parameters
     ----------
     shape    vector to specify the size of square matrix (rows, columns).
              ex.: (3, 3)
     sigma    Standard deviation (0.5 is recommanded).
-
     Returns
     -------
     Return two-dimensional Gaussian filter h of specified size.
@@ -115,7 +113,6 @@ def compute_ihMT_contrast(contrast_maps, ref_image, output_path, output_name,
                           resolution=None, filtering=None):
     """
     Compute contrasts maps : more description details !
-
     Parameters
     ----------
     contrast_maps   List of BIDSFile object : list of echos image path
@@ -154,7 +151,6 @@ def compute_ihMT_contrast(contrast_maps, ref_image, output_path, output_name,
 def compute_ihMT_map(contrast_maps, acq_parameters):
     """
     Compute ihMT maps : more description details !
-
     Parameters
     ----------
     contrast_maps:      List of BIDSFile object : list of all contrast maps
@@ -186,7 +182,6 @@ def compute_ihMT_map(contrast_maps, acq_parameters):
 def compute_MT_map(computed_maps, acq_parameters):
     """
     Compute MT maps : more description details !
-
     Parameters
     ----------
     contrast_maps:      List of BIDSFile object : list of all contrast maps
@@ -210,8 +205,7 @@ def compute_MT_map(computed_maps, acq_parameters):
             (acq_parameters[0][1]*cPD1))-((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
     T1app = ((cPD1/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
              (2*acq_parameters[1][0])-(cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
-    MTsat = ((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app)/cPD2)-(acq_parameters[0][0]/T1app)-
-            (acq_parameters[0][1]**2)/2
+    MTsat = ((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app)/cPD2)-(acq_parameters[0][0]/T1app)-(acq_parameters[0][1]**2)/2
 
     return MTR, MTsat
 
@@ -223,7 +217,6 @@ def threshold_ihMT_maps(computed_map, contrast_maps, brainmask,
        - max and min threshold value
        - brainmask
        - combination of specific contrasts maps
-
     Parameters
     ----------
     computed_map        ihmt or non-ihmt computed maps
@@ -260,7 +253,6 @@ def threshold_ihMT_maps(computed_map, contrast_maps, brainmask,
 def save_ihMT_maps(ref_image, image_to_save, output_path, output_name,
                    resolution, filtering=None):
     """ Save matrix into nii images
-
     Parameters
     ----------
     ref_image       Reference volume to set image parameter
@@ -289,32 +281,31 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    # Verify existence of input and output
+    Verify existence of input and output
     assert_inputs_exist(parser, [args.input,
                                  args.brainmask,
                                  args.subjid])
     assert_outputs_exist(parser, [args.output])
 
-# a voir pour utiliser glob.glob pour créer structure fichier
+
     # Select contrasts files
     maps = []
     layout = BIDSLayout(args.input, validate=False)
     acquisition = layout.get_acquisition()
 
+    # regler le probleme du if else avec la resolution + depassement ligne 302
     if args.resolution:
         acquisition = acquisition[0::len(args.resolution)]
-
-# !!! attention resoudre le problème du if
-    for acq in acquisition:
-        maps.append(layout.get(subject=args.subjid,
+        for acq in acquisition:
+            maps.append(layout.get(subject=args.subjid,
                                    datatype='anat', suffix='ihmt',
-                                   aquisition=(acq.replace(arg.resolution[0], ''))
+                                   aquisition=(acq.replace(args.resolution[0], ''))
                                                            + args.resolution,
                                    extension='nii.gz', return_type='file'))
-        else:
-            maps.append(layout.get(subject=args.subjid, datatype='anat',
-                                   suffix='ihmt', aquisition=acq,
-                                   extension='nii.gz', return_type='file'))
+    else:
+        maps.append(layout.get(subject=args.subjid, datatype='anat',
+                               suffix='ihmt', aquisition=acq,
+                               extension='nii.gz', return_type='file'))
 
     # Set TR and FlipAngle parameters for ihmt and t1w images
     parameters = []
@@ -324,7 +315,7 @@ def main():
     # Fix issue from the presence of NaN into array
     np.seterr(divide='ignore', invalid='ignore')
 
-    # Compute contrasts maps   !! a revoir avec ces fichus conditions !!
+    # Compute contrasts maps !! a revoir avec ces fichus conditions !!
     computed_maps = []
     outname = ['altnp', 'altpn', 'reference', 'negative', 'positive', 'T1w']
     for idx, curr_map in enumerate(maps):
@@ -353,15 +344,14 @@ def main():
     ihMTR_list = ['positive', 'negative', 'altPN', 'reference']
     ihMTR = threshold_ihMT_maps(ihMTR, arg.brainmask, 0, 100,
                                 ihMTR_list)
-    save_ihMT_maps(maps[4][0], ihMTR, 'ihMTR', args.resolution)
+    save_ihMT_maps(maps[4][0], ihMTR, args.output, 'ihMTR', args.resolution)
 
     # Compue ihMTsat map
     ihMTsat_list = ['positive', 'negative', 'altPN', 'altNP']
     ihMTsat = threshold_ihMT_maps(ihMTsat, arg.brainmask, 0, 10,
                                   ihMTsat_list)
-    save_ihMT_maps(maps[4][0], ihMTsat, 'ihMT_dR1sat',
+    save_ihMT_maps(maps[4][0], ihMTsat, args.output, 'ihMT_dR1sat',
                    args.resolution)
-
 
     # Compute non-ihMT maps
     MT_maps = []
@@ -371,9 +361,9 @@ def main():
         curr_map = threshold_ihMT_maps(curr_map, arg.brainmask, 0, 100,
                                        MT_list)
         # save images
-        save_ihMT_maps(maps[4][0], MT_maps[0][0], 'MTR',
+        save_ihMT_maps(maps[4][0], MT_maps[0][0], args.output, 'MTR',
                        args.resolution)
-        save_ihMT_maps(maps[4][0], MT_maps[0][1], 'MTsat',
+        save_ihMT_maps(maps[4][0], MT_maps[0][1], args.output, 'MTsat',
                        args.resolution)
 
 
