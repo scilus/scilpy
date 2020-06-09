@@ -46,7 +46,7 @@ def _rescale_dwi(in_data, bc_data):
     bc_min = np.amin(bc_data)
     bc_max = np.amax(bc_data)
 
-    slope = (in_max - in_min) // (bc_max - bc_min)
+    slope = (in_max - in_min) / (bc_max - bc_min)
 
     chunk = np.arange(0, len(in_data), 100000)
     chunk = np.append(chunk, len(in_data)-1)
