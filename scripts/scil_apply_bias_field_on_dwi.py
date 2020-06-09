@@ -75,7 +75,7 @@ def main():
 
     if args.mask:
         mask_img = nib.load(args.mask)
-        nz_mask_data = np.nonzero(get_data_as_mask(mask_img).ravel())
+        nz_mask_data = np.nonzero(get_data_as_mask(mask_img))
     else:
         nz_mask_data = np.nonzero(np.average(dwi_data, axis=-1))
 
