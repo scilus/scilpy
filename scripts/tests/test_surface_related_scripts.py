@@ -20,7 +20,7 @@ def test_convert_fib(script_runner):
                             'fa.nii.gz')
     ret = script_runner.run('scil_convert_tractogram.py', input_fib,
                             'gyri_fanning.trk', '--reference', input_fa)
-    return ret.success
+    assert ret.success
 
 
 def test_convert_surface(script_runner):
@@ -29,19 +29,18 @@ def test_convert_surface(script_runner):
                               'lhpialt.vtk')
     ret = script_runner.run('scil_convert_surface.py', input_surf,
                             'rhpialt.ply')
-    return ret.success
+    assert ret.success
 
 
-def test_compress_fib(script_runner):
+def test_compress_trk(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     input_fib = os.path.join(get_home(), 'surface_vtk_fib',
                              'gyri_fanning.fib')
     input_fa = os.path.join(get_home(), 'surface_vtk_fib',
                             'fa.nii.gz')
-    ret = script_runner.run('scil_compress_streamlines.py', input_fib,
-                            'gyri_fanning_c.trk', '-e', '0.1',
-                            '--reference', input_fa)
-    return ret.success
+    ret = script_runner.run('scil_compress_streamlines.py', 'gyri_fanning.trk',
+                            'gyri_fanning_c.trk', '-e', '0.1')
+    assert ret.success
 
 
 def test_flip_surface(script_runner):
@@ -52,7 +51,7 @@ def test_flip_surface(script_runner):
                               'lhpialt.vtk')
     ret = script_runner.run('scil_flip_surface.py', input_surf, 'rhpialt.vtk',
                             'x')
-    return ret.success
+    assert ret.success
 
 
 def test_flip_volume(script_runner):
@@ -61,7 +60,7 @@ def test_flip_volume(script_runner):
                             'fa.nii.gz')
     ret = script_runner.run('scil_flip_volume.py', input_fa, 'fa_flip.nii.gz',
                             'x')
-    return ret.success
+    assert ret.success
 
 
 def test_flip_streamlines(script_runner):
@@ -72,7 +71,7 @@ def test_flip_streamlines(script_runner):
                             'fa.nii.gz')
     ret = script_runner.run('scil_flip_streamlines.py', input_fib,
                             'gyri_fanning.tck', 'x', '--reference', input_fa)
-    return ret.success
+    assert ret.success
 
 
 def test_smooth_surface(script_runner):
@@ -81,7 +80,7 @@ def test_smooth_surface(script_runner):
                               'lhpialt.vtk')
     ret = script_runner.run('scil_smooth_surface.py', input_surf,
                             'lhpialt_smooth.vtk', '-n', '5', '-s', '1')
-    return ret.success
+    assert ret.success
 
 
 def test_transform_surface(script_runner):
@@ -92,4 +91,4 @@ def test_transform_surface(script_runner):
                              'affine.txt')
     ret = script_runner.run('scil_transform_surface.py', input_surf, input_aff,
                             'lhpialt_lin.vtk')
-    return ret.success
+    assert ret.success
