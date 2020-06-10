@@ -15,7 +15,7 @@ import scipy.ndimage
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
-# @Arnaud :ici j'ai un probleme avec le --resolution avec le type pour la ligne 298
+# @Arnaud :ici j'ai un probleme avec le --resolution avec le type pour la ligne 305
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -150,27 +150,34 @@ def compute_ihMT_contrast(contrast_maps, ref_image, output_path, output_name,
 
 def compute_ihMT_map(contrast_maps, acq_parameters):
     """
-    Compute ihMT maps : more description details !
+    Compute ihMT maps : More details
+    Use of both single frequency irradiation positive and negative,
+    compensates efficiently for MT asymmetry
+
+    see Varma et al., 2015
+    https://www.sciencedirect.com/science/article/pii/S1090780715001998
+
     Parameters
     ----------
     contrast_maps:      List of BIDSFile object : list of all contrast maps
-    acq_parameters:     Lists of parameters for ihMT and T1w
+    acq_parameters:     Lists of parameters for ihMT and T1w images
                         [TR and Flipangle]
     Returns
     -------
     ihMT ratio and saturation Maps in Nifti format.
+
     """
     # Compute ihMTratio map
     ihMTR = 100*(computed_maps[4]+computed_maps[3]-computed_maps[1]
                  - computed_maps[0])/computed_maps[2]
 
-# flake8 to fix: longueur ligne ... jamais content !
+# flake8 to fix: longueur ligne ... jamais content ! Je ne sais où "couper"
     # Compute ihMTsat map
     # Compute an dR1sat image (Varma et al. ISMRM 2015)
     cPD1a = (computed_maps[4]+computed_maps[3])/2
     cPD1b = (computed_maps[1]-computed_maps[0])/2
     cT1 = computed_maps[5]
-    T1appa = ((cPD1a/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
+    T1appa = ((cPD1a/acq_para"emeters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
              (2*acq_parameters[1][0]/1000)-(cPD1a*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
     T1appb = ((cPD1b/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
              (2*acq_parameters[1][0]/1000)-(cPD1b*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
