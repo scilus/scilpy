@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -24,25 +24,31 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_matrix_in_any_format)
+
+EPILOG = """
+Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+Descoteaux, M. (2018). Recognition of white matter
+bundles using local and global streamline-based registration and
+clustering. NeuroImage, 170, 283-295.
+"""
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
-        epilog="""Garyfallidis, E., Côté, M. A., Rheault, F., ... &
-        Descoteaux, M. (2018). Recognition of white matter
-        bundles using local and global streamline-based registration and
-        clustering. NeuroImage, 170, 283-295.""")
+        epilog=EPILOG)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram filename (trk or tck).')
+                   help='Input tractogram filename.')
     p.add_argument('in_model',
-                   help='Model to use for recognition (trk or tck).')
-    p.add_argument('transformation',
-                   help='Path for the transformation to model space.')
-    p.add_argument('output_name',
+                   help='Model to use for recognition.')
+    p.add_argument('in_transfo',
+                   help='Path for the transformation to model space '
+                        '(.txt, .npy or .mat).')
+    p.add_argument('out_tractogram',
                    help='Output tractogram filename.')
 
     p.add_argument('--tractogram_clustering_thr', type=float, default=8,
@@ -65,10 +71,10 @@ def _build_arg_parser():
                    help='Do not write file if there is no streamline.')
 
     group = p.add_mutually_exclusive_group()
-    group.add_argument('--input_pickle',
+    group.add_argument('--in_pickle',
                        help='Input pickle clusters map file.\n'
                             'Will override the tractogram_clustering_thr parameter.')
-    group.add_argument('--output_pickle',
+    group.add_argument('--out_pickle',
                        help='Output pickle clusters map file.')
 
     add_reference_arg(p)
@@ -82,23 +88,23 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.transformation])
-    assert_outputs_exist(parser, args, args.output_name)
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo])
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines
     model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
     # Default transformation source is expected to be ANTs
-    transfo = np.loadtxt(args.transformation)
+    transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.transformation))
+        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
 
     model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
-    if args.input_pickle:
-        with open(args.input_pickle, 'rb') as infile:
+    if args.in_pickle:
+        with open(args.in_pickle, 'rb') as infile:
             cluster_map = pickle.load(infile)
         reco_obj = RecoBundles(wb_streamlines,
                                cluster_map=cluster_map,
@@ -110,8 +116,8 @@ def main():
                                rng=rng,
                                verbose=args.verbose)
 
-    if args.output_pickle:
-        with open(args.output_pickle, 'wb') as outfile:
+    if args.out_pickle:
+        with open(args.out_pickle, 'wb') as outfile:
             pickle.dump(reco_obj.cluster_map, outfile)
     _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
@@ -125,7 +131,7 @@ def main():
         sft = StatefulTractogram(new_streamlines, wb_file, Space.RASMM,
                                  data_per_streamline=new_data_per_streamlines,
                                  data_per_point=new_data_per_points)
-        save_tractogram(sft, args.output_name)
+        save_tractogram(sft, args.out_tractogram)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,8 +7,8 @@ Warp tractogram using a non linear deformation from an ANTs deformation field.
 For more information on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
-Applying transformation to tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
+Applying a deformation field to tractogram can lead to invalid streamlines (out
+of the bounding box), three strategies are available:
 1) default, crash at saving if invalid streamlines are present
 2) --keep_invalid, save invalid streamlines. Leave it to the user to run
     scil_remove_invalid_streamlines.py if needed.
@@ -28,23 +28,26 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.streamlines import warp_streamlines
+from scilpy.utils.streamlines import warp_streamlines, cut_invalid_streamlines
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('moving_tractogram',
-                   help='Path of the tractogram to be transformed.')
-    p.add_argument('target_file',
-                   help='Path of the reference file (trk or nii).')
-    p.add_argument('deformation',
-                   help='Path of the file containing deformation field.')
+    p.add_argument('in_moving_tractogram',
+                   help='Path to the tractogram to be transformed.')
+    p.add_argument('in_target_file',
+                   help='Path to the reference target file (trk or nii).')
+    p.add_argument('in_deformation',
+                   help='Path to the file containing a deformation field.')
     p.add_argument('out_tractogram',
                    help='Output filename of the transformed tractogram.')
 
     invalid = p.add_mutually_exclusive_group()
+    invalid.add_argument('--cut_invalid', action='store_true',
+                         help='Cut invalid streamlines rather than removing them.\n'
+                         'Keep the longest segment only.')
     invalid.add_argument('--remove_invalid', action='store_true',
                          help='Remove the streamlines landing out of the '
                               'bounding box.')
@@ -62,14 +65,14 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.moving_tractogram, args.target_file,
-                                 args.deformation])
+    assert_inputs_exist(parser, [args.in_moving_tractogram, args.in_target_file,
+                                 args.in_deformation])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    sft = load_tractogram_with_reference(parser, args, args.moving_tractogram,
+    sft = load_tractogram_with_reference(parser, args, args.in_moving_tractogram,
                                          bbox_check=False)
 
-    deformation = nib.load(args.deformation)
+    deformation = nib.load(args.in_deformation)
     deformation_data = np.squeeze(deformation.get_fdata())
 
     if not is_header_compatible(sft, deformation):
@@ -78,12 +81,15 @@ def main():
 
     # Warning: Apply warp in-place
     moved_streamlines = warp_streamlines(sft, deformation_data)
-    new_sft = StatefulTractogram(moved_streamlines, args.target_file,
+    new_sft = StatefulTractogram(moved_streamlines, args.in_target_file,
                                  Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
 
-    if args.remove_invalid:
+    if args.cut_invalid:
+        new_sft, _ = cut_invalid_streamlines(new_sft)
+        save_tractogram(new_sft, args.out_tractogram)
+    elif args.remove_invalid:
         ori_len = len(new_sft)
         new_sft.remove_invalid_streamlines()
         logging.warning('Removed {} invalid streamlines.'.format(

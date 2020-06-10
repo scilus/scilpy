@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -23,7 +23,7 @@ from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle', help='Fiber bundle file')
     p.add_argument('in_centroid',
                    help='Centroid streamline associated to input fiber bundle')

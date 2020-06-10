@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -119,7 +119,7 @@ def main():
             if (np.array(indices_1) > matrix.shape[0]).any() \
                     or (indices_2 > np.array(matrix.shape[1])).any():
                 raise ValueError('Indices from config higher than matrix size, '
-                                 'maybe you need a labels list?'.format(key))
+                                 'maybe you need a labels list?')
             tmp_matrix = matrix[tuple(indices_1), :]
             tmp_matrix = tmp_matrix[:, tuple(indices_2)]
             save_matrix_in_any_format(out_filenames[i], tmp_matrix)

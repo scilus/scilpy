@@ -1,8 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Compute mean and std for the whole bundle for each metric.
+Compute mean and std for the whole bundle for each metric. This is achieved by
+averaging the metrics value of all voxels occupied by the bundle.
+
+Density weighting modifies the contribution of voxel with lower/higher
+streamline count to reduce influence of spurious streamlines.
 """
 
 import argparse
@@ -23,11 +27,11 @@ from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on')
-    p.add_argument('metrics', nargs='+',
+    p.add_argument('in_metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
 
@@ -46,11 +50,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle] + args.metrics,
+    assert_inputs_exist(parser, [args.in_bundle] + args.in_metrics,
                         optional=args.reference)
 
-    assert_same_resolution(args.metrics)
-    metrics = [nib.load(metric) for metric in args.metrics]
+    assert_same_resolution(args.in_metrics)
+    metrics = [nib.load(metric) for metric in args.in_metrics]
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()

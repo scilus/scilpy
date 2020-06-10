@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from builtins import range
 from itertools import count, takewhile
 import logging
 
-from dipy.segment.clustering import Cluster, QuickBundles, qbx_and_merge
+from dipy.segment.clustering import QuickBundles, qbx_and_merge
+from dipy.segment.metric import ResampleFeature
+from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
 import numpy as np
 
@@ -206,10 +207,31 @@ def remove_outliers(streamlines, threshold):
         list: streamlines considered outliers
     """
     summary = outliers_removal_using_hierarchical_quickbundles(streamlines)
-    outliers, outliers_removed = prune(streamlines,
-                                       threshold, summary)
-    outliers_strl = Cluster(indices=outliers, refdata=streamlines)
-    no_outliers_strl = Cluster(indices=outliers_removed,
-                               refdata=streamlines)
+    outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
-    return no_outliers_strl, outliers_strl
+    return outliers_ids, inliers_ids
+
+
+def get_streamlines_centroid(streamlines, nb_points):
+    """
+    Compute centroid from streamlines using QuickBundles.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which we compute the centroid.
+    nb_points: int
+        Number of points defining the centroid streamline.
+
+    Returns
+    -------
+    List of length one, containing a np.ndarray of shape (nb_points, 3)
+    """
+    resample_feature = ResampleFeature(nb_points=nb_points)
+    quick_bundle = QuickBundles(
+        threshold=np.inf,
+        metric=AveragePointwiseEuclideanMetric(resample_feature))
+    clusters = quick_bundle.cluster(streamlines)
+    centroid_streamlines = clusters.centroids
+
+    return centroid_streamlines

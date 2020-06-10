@@ -6,6 +6,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from scipy.io import loadmat
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -126,9 +127,9 @@ def add_json_args(parser):
 
 def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
-                        metavar='NBR', type=int,
+                        metavar='NBR', type=int, default=1,
                         help='Number of sub-processes to start. \n'
-                        'Default: CPU count')
+                        'Default: [%(default)s]')
 
 
 def add_reference_arg(parser, arg_name=None):
@@ -163,8 +164,13 @@ def add_verbose_arg(parser):
 
 def add_sh_basis_args(parser, mandatory=False):
     """Add spherical harmonics (SH) bases argument.
-    :param parser: argparse.ArgumentParser object
-    :param mandatory: should this argument be mandatory
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    mandatory: bool
+        Whether this argument is mandatory.
     """
     choices = ['descoteaux07', 'tournier07']
     def_val = 'descoteaux07'
@@ -237,12 +243,16 @@ def validate_sh_basis_choice(sh_basis):
 
 
 def assert_inputs_exist(parser, required, optional=None):
-    """
-    Assert that all inputs exist. If not, print parser's usage and exit.
-    :param parser: argparse.ArgumentParser object
-    :param required: string or list of paths
-    :param optional: string or list of paths.
-                     Each element will be ignored if None
+    """Assert that all inputs exist. If not, print parser's usage and exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    required: string or list of paths
+        Required paths to be checked.
+    optional: string or list of paths
+        Optional paths to be checked.
     """
     def check(path):
         if not os.path.isfile(path):
@@ -262,18 +272,23 @@ def assert_inputs_exist(parser, required, optional=None):
 
 
 def assert_outputs_exist(parser, args, required, optional=None,
-                         check_dir_exists=False):
+                         check_dir_exists=True):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
-    :param parser: argparse.ArgumentParser object
-    :param args: argparse namespace
-    :param required: string or list of paths
-    :param optional: string or list of paths.
-                     Each element will be ignored if None
-    :param check_dir_exists: bool
-                             Test if output directory exists
 
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    args: list
+        Argument list.
+    required: string or list of paths
+        Required paths to be checked.
+    optional: string or list of paths
+        Optional paths to be checked.
+    check_dir_exists: bool
+        Test if output directory exists.
     """
     def check(path):
         if os.path.isfile(path) and not args.overwrite:
@@ -295,35 +310,42 @@ def assert_outputs_exist(parser, args, required, optional=None,
     for required_file in required:
         check(required_file)
     for optional_file in optional or []:
-        if optional_file is not None:
+        if optional_file:
             check(optional_file)
 
 
-def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
+def assert_output_dirs_exist_and_empty(parser, args, required,
+                                       optional=None, create_dir=True):
     """
     Assert that all output directories exist.
     If not, print parser's usage and exit.
     If exists and not empty, and -f used, delete dirs.
-    :param parser: argparse.ArgumentParser object
-    :param args: argparse namespace
-    :param dirs: list of paths
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    args: argparse namespace
+        Argument list.
+    dirs: list
+        Required directory paths to be checked.
     """
-    for cur_dir in dirs:
-        if not os.path.isdir(cur_dir):
+    def check(path):
+        if not os.path.isdir(path):
             if not create_dir:
                 parser.error(
-                    'Output directory {} doesn\'t exist.'.format(cur_dir))
+                    'Output directory {} doesn\'t exist.'.format(path))
             else:
-                os.makedirs(cur_dir, exist_ok=True)
-        if os.listdir(cur_dir):
+                os.makedirs(path, exist_ok=True)
+        if os.listdir(path):
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
                     'overwritten. Use -f option if you want to continue.'
-                    .format(cur_dir))
+                    .format(path))
             else:
-                for the_file in os.listdir(cur_dir):
-                    file_path = os.path.join(cur_dir, the_file)
+                for the_file in os.listdir(path):
+                    file_path = os.path.join(path, the_file)
                     try:
                         if os.path.isfile(file_path):
                             os.unlink(file_path)
@@ -331,6 +353,17 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
                             shutil.rmtree(file_path)
                     except Exception as e:
                         print(e)
+
+    if isinstance(required, str):
+        required = [required]
+    if isinstance(optional, str):
+        optional = [optional]
+
+    for cur_dir in required:
+        check(cur_dir)
+    for opt_dir in optional or []:
+        if opt_dir:
+            check(opt_dir)
 
 
 def read_info_from_mb_bdo(filename):
@@ -367,6 +400,20 @@ def load_matrix_in_any_format(filepath):
         data = np.loadtxt(filepath)
     elif ext == '.npy':
         data = np.load(filepath)
+    elif ext == '.mat':
+        # .mat are actually dictionnary. This function support .mat from
+        # antsRegistration that encode a 4x4 transformation matrix.
+        transfo_dict = loadmat(filepath)
+        lps2ras = np.diag([-1, -1, 1])
+
+        rot = transfo_dict['AffineTransform_double_3_3'][0:9].reshape((3, 3))
+        trans = transfo_dict['AffineTransform_double_3_3'][9:12]
+        offset = transfo_dict['fixed']
+        r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
+
+        data = np.eye(4)
+        data[0:3, 3] = r_trans
+        data[:3, :3] = np.dot(np.dot(lps2ras, rot), lps2ras)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
 

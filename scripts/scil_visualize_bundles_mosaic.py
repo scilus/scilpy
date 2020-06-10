@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Visualize bundles from a list.
-The script will output a mosaic (image) with screenshots,
-6 views per bundle in the list.
+Visualize bundles from a list. The script will output a mosaic (image) with
+screenshots, 6 views per bundle in the list.
 """
 
 import argparse

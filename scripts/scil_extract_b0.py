@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -26,7 +26,7 @@ logger = logging.getLogger(__file__)
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('dwi',
                         help='DWI Nifti image')
     parser.add_argument('bvals',

@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Modify PFT maps to allow PFT tracking in given mask.
+Modify PFT maps to allow PFT tracking in given mask (e.g edema).
 """
 
 import argparse
@@ -16,7 +16,7 @@ from scilpy.io.utils import (
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('map_include',
                         help='PFT map include.')
     parser.add_argument('map_exclude',
@@ -38,7 +38,7 @@ def main():
     assert_inputs_exist(parser, [args.map_include, args.map_exclude,
                                  args.additional_mask])
     assert_outputs_exist(parser, args, [args.map_include_corr,
-                                         args.map_exclude_corr])
+                                        args.map_exclude_corr])
 
     map_inc = nib.load(args.map_include)
     map_inc_data = map_inc.get_data()

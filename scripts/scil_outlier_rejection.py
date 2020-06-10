@@ -1,8 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Clean a bundle (inliers/outliers) using hiearchical clustering.
 http://archive.ismrm.org/2015/2844.html
+
+If spurious streamlines are dense, it is possible they will not be recognized
+as outliers. Manual cleaning may be required to overcome this limitation.
 """
 
 import argparse
@@ -24,7 +27,7 @@ from scilpy.tractanalysis.features import (
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('in_bundle',
                         help='Fiber bundle file to remove outliers from.')
     parser.add_argument('out_bundle',
