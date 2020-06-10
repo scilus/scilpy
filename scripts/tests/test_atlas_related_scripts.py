@@ -18,7 +18,7 @@ def test_remove_labels(script_runner):
     ret = script_runner.run('scil_remove_labels.py', input_atlas,
                             'atlas_freesurfer_v2_no_brainstem.nii.gz',
                             '-i', '173', '174', '175')
-    return ret.success
+    assert ret.success
 
 
 def test_split_label(script_runner):
@@ -27,14 +27,15 @@ def test_split_label(script_runner):
                                'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run('scil_split_volume_by_ids.py', input_atlas,
                             '--out_prefix', 'brainstem', '-r', '173-175')
-    return ret.success
+    assert ret.success
 
 
 def test_math_add(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     ret = script_runner.run('scil_image_math.py', 'addition',
-                            'brainstem_17*', 'brainstem.nii.gz')
-    return ret.success
+                            'brainstem_173.nii.gz', 'brainstem_174.nii.gz',
+                            'brainstem_175.nii.gz', 'brainstem.nii.gz')
+    assert ret.success
 
 
 def test_math_low_thresh(script_runner):
@@ -42,7 +43,7 @@ def test_math_low_thresh(script_runner):
     ret = script_runner.run('scil_image_math.py', 'lower_threshold',
                             'brainstem.nii.gz', '1',
                             'brainstem_bin.nii.gz')
-    return ret.success
+    assert ret.success
 
 
 def test_math_low_mult(script_runner):
@@ -50,7 +51,7 @@ def test_math_low_mult(script_runner):
     ret = script_runner.run('scil_image_math.py', 'multiplication',
                             'brainstem.nii.gz', '16',
                             'brainstem_unified.nii.gz')
-    return ret.success
+    assert ret.success
 
 
 def test_math_combine(script_runner):
@@ -59,9 +60,10 @@ def test_math_combine(script_runner):
                                'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run('scil_combine_labels.py',
                             'atlas_freesurfer_v2_single_brainstem.nii.gz',
-                            '-v', input_atlas, '{1..2035}',
+                            '-v', input_atlas, '8', '47', '251', '252',
+                            '253', '254', '1022', '1024', '2022', '2024',
                             '-v', 'brainstem.nii.gz', '16')
-    return ret.success
+    assert ret.success
 
 
 def test_math_dilate(script_runner):
@@ -70,4 +72,4 @@ def test_math_dilate(script_runner):
                             'atlas_freesurfer_v2_single_brainstem.nii.gz',
                             'atlas_freesurfer_v2_single_brainstem_dil.nii.gz',
                             '--processes', '1', '--distance', '2')
-    return ret.success
+    assert ret.success
