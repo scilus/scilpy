@@ -75,7 +75,7 @@ def merge_ihMT_array(images):
     # j'ai vue qu'il y avait parser.error mais fctne que pour parser non ?
 
     # Assert the goodness of fit of 4D merged file
-    if (str(merge_array.shape) == orig_shape) == False:
+    if (str(merge_array.shape) == orig_shape) is not True:
         print('Error: the number of 4th dimension does '
                      'not correspond to the number of echoes')
 
