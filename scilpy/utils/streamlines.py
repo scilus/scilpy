@@ -350,7 +350,7 @@ def cut_invalid_streamlines(sft):
                 logging.warning('Streamlines entirely out of the volume.')
         else:
             new_streamlines.append(sft.streamlines[ind])
-            for key_dps in sft.data_per_streamline.keys():
+            for key in sft.data_per_streamline.keys():
                 new_data_per_streamline[key].append(
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():
