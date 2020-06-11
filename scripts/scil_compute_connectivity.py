@@ -70,9 +70,10 @@ def _processing_wrapper(args):
     labels_img = args[1]
     in_label, out_label = args[2]
     measures_to_compute = copy.copy(args[3])
-    weighted = args[4]
-    if args[5] is not None:
-        similarity_directory = args[5][0]
+    if args[4] is not None:
+        similarity_directory = args[4][0]
+    weighted = args[5]
+    include_dps = args[6]
 
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
@@ -152,6 +153,12 @@ def _processing_wrapper(args):
 
             measures_to_return[metric_filename] = np.average(voxels_value)
 
+    if include_dps:
+        for dps_key in hdf5_file[key].keys():
+            if dps_key not in ['data', 'offsets', 'lengths']:
+                measures_to_return[dps_key] = np.average(
+                    hdf5_file[key][dps_key])
+
     return {(in_label, out_label): measures_to_return}
 
 
@@ -190,6 +197,11 @@ def _build_arg_parser():
                    help='Use density-weighting for the metric weighted matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
+    p.add_argument('--include_dps', action="store_true",
+                   help='Save matrices from data_per_streamline.')
+    p.add_argument('--force_labels_list',
+                   help='Path to a labels list (.txt) in case of missing '
+                        'labels in the atlas.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -202,7 +214,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_labels)
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
+                        args.force_labels_list)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -252,9 +265,16 @@ def main():
     logging.info('The following measures will be computed and save: {}'.format(
         measures_to_compute))
 
+    if args.include_dps:
+        logging.info('data_per_streamline weighting is activated.')
+
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
-    labels_list = np.unique(data_labels)[1:].tolist()
+    if not args.force_labels_list:
+        labels_list = np.unique(data_labels)[1:].tolist()
+    else:
+        labels_list = np.loadtxt(
+            args.force_labels_list, dtype=np.int16).tolist()
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
@@ -266,8 +286,9 @@ def main():
                                       itertools.repeat(img_labels),
                                       comb_list,
                                       itertools.repeat(measures_to_compute),
+                                      itertools.repeat(args.similarity),
                                       itertools.repeat(args.density_weighting),
-                                      itertools.repeat(args.similarity)))
+                                      itertools.repeat(args.include_dps)))
 
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
@@ -287,18 +308,19 @@ def main():
         total_elem, results_elem))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
-    nbr_of_measures = len(measures_to_compute)
+    nbr_of_measures = len(list(measures_dict.values())[0])
     matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
     for in_label, out_label in measures_dict:
         curr_node_dict = measures_dict[(in_label, out_label)]
         measures_ordering = list(curr_node_dict.keys())
+
         for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
-    # Saving the matrices separatly with the specified name
+    # Saving the matrices separatly with the specified name or dps
     for i, measure in enumerate(measures_ordering):
         if measure == 'volume':
             matrix_basename = args.volume
@@ -312,6 +334,8 @@ def main():
             matrix_basename = dict_metrics_out_name[measure]
         elif measure in dict_maps_out_name:
             matrix_basename = dict_maps_out_name[measure]
+        else:
+            matrix_basename = measure
 
         np.save(matrix_basename, matrix[:, :, i])
 

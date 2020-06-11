@@ -87,7 +87,7 @@ def main():
                                  data_per_streamline=sft.data_per_streamline)
 
     if args.cut_invalid:
-        new_sft = cut_invalid_streamlines(new_sft)
+        new_sft, _ = cut_invalid_streamlines(new_sft)
         save_tractogram(new_sft, args.out_tractogram)
     elif args.remove_invalid:
         ori_len = len(new_sft)
