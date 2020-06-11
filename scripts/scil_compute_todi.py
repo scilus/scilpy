@@ -65,6 +65,9 @@ def _build_arg_parser():
     p.add_argument('--smooth', action='store_true',
                    help='Smooth todi (angular and spatial).')
 
+    p.add_argument('--asymmetric', action='store_true', default = False,
+                   help='Compute asymmetric TODI')
+
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     return p
@@ -96,13 +99,18 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.tract_filename)
     affine, data_shape, _, _ = sft.space_attributes
     sft.to_vox()
+    
+    # Make sure the origin of voxel is at the corner and not at the center
+    # sft.to_corner()
 
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
-    todi_obj.compute_todi(sft.streamlines, length_weights=True)
+    todi_obj.compute_todi(sft.streamlines, length_weights=True, asymmetric=args.asymmetric)
 
     if args.smooth:
         logging.info('Smoothing ...')
+        if args.asymmetric:
+            logging.warning('Smooting of asymmetric TODI renders it symmetric!')
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial()
 

@@ -172,7 +172,7 @@ def add_sh_basis_args(parser, mandatory=False):
     mandatory: bool
         Whether this argument is mandatory.
     """
-    choices = ['descoteaux07', 'tournier07']
+    choices = ['descoteaux07', 'tournier07', 'descoteaux07_full']
     def_val = 'descoteaux07'
     help_msg = 'Spherical harmonics basis used for the SH coefficients.\nMust ' +\
                'be either \'descoteaux07\' or \'tournier07\' [%(default)s]:\n' +\
