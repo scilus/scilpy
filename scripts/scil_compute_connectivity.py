@@ -199,8 +199,9 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', action="store_true",
                    help='Save matrices from data_per_streamline.')
-    p.add_argument('--force_labels_list', metavar='FILE',
-                   help='Use a fixed labels list in case of missing labels.')
+    p.add_argument('--force_labels_list',
+                   help='Path to a labels list (.txt) in case of missing '
+                        'labels in the atlas.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -272,7 +273,8 @@ def main():
     if not args.force_labels_list:
         labels_list = np.unique(data_labels)[1:].tolist()
     else:
-        labels_list = np.loadtxt(args.force_labels_list)
+        labels_list = np.loadtxt(
+            args.force_labels_list, dtype=np.int16).tolist()
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
