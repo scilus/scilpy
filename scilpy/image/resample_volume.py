@@ -45,7 +45,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
     resampled_image: nib.Nifti1Image
         Resampled image.
     """
-    data = img.get_fdata()
+    data = img.get_fdata(dtype=np.float32)
     affine = img.get_affine()
     original_zooms = img.get_header().get_zooms()[:3]
 
