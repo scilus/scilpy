@@ -197,10 +197,10 @@ def setup(app):
     path_src = os.path.abspath(".")
     path = os.path.abspath("../scripts")
     print(path, path_src)
-    if os.path.isdir(os.path.join(path_src, "source/scripts")):
-        shutil.rmtree(os.path.join(path_src, "source/scripts"))
-    os.mkdir(os.path.join(path_src, "source/scripts"))
-    with open("source/scripts/modules.rst", "w") as m:
+    if os.path.isdir(os.path.join(path_src, "scripts")):
+        shutil.rmtree(os.path.join(path_src, "scripts"))
+    os.mkdir(os.path.join(path_src, "scripts"))
+    with open(os.path.join(path_src, "scripts/modules.rst"), "w") as m:
         m.write("Scripts\n")
         m.write("==============\n\n")
         m.write(".. toctree::\n    :maxdepth: 4\n\n")
@@ -210,7 +210,7 @@ def setup(app):
                     name, _ = i.split(".")
                     m.write("    " + name + "\n")
                     script = __import__(name)
-                    with open("source/scripts/" + name + ".rst", "w") as s:
+                    with open(os.path.join(path_src, "source/scripts/" + name + ".rst"), "w") as s:
                         s.write(i + "\n")
                         s.write("==============\n\n")
                         text = script._build_arg_parser().format_help().replace("sphinx-build", i)
