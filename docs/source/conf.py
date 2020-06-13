@@ -205,17 +205,23 @@ def setup(app):
     if os.path.isdir(os.path.join(path_src, "scripts")):
         shutil.rmtree(os.path.join(path_src, "scripts"))
     os.mkdir(os.path.join(path_src, "scripts"))
+    for f in os.listdir(os.path.join(path_src, "fake_files")):
+        shutil.copyfile(os.path.join(path_src, "fake_files", f), os.path.join(path, "../scilpy/tractanalysis/", f))
+
     with open(os.path.join(path_src, "scripts/modules.rst"), "w") as m:
         m.write("Scripts\n")
         m.write("==============\n\n")
         m.write(".. toctree::\n    :maxdepth: 4\n\n")
         for i in os.listdir(path):
-            if i != "tests":
-                name, _ = i.split(".")
-                m.write("    " + name + "\n")
-                script = __import__(name)
-                with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
-                    s.write(i + "\n")
-                    s.write("==============\n\n")
-                    text = script._build_arg_parser().format_help().replace("sphinx-build", i)
-                    s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
+            if not os.path.isdir(os.path.join(path, i)):
+                name, ext = i.split(".")
+                try:
+                    m.write("    " + name + "\n")
+                    script = __import__(name)
+                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
+                        s.write(i + "\n")
+                        s.write("==============\n\n")
+                        text = script._build_arg_parser().format_help().replace("sphinx-build", i)
+                        s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
+                except:
+                    print("Error :" + i)
