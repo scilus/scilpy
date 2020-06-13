@@ -220,39 +220,37 @@ def setup(app):
         m.write("Scripts\n")
         m.write("==============\n\n")
         m.write(".. toctree::\n    :maxdepth: 4\n\n")
-        for i in os.listdir(path):
+        for i in sorted(os.listdir(path)):
             if not os.path.isdir(os.path.join(path, i)):
                 name, ext = i.split(".")
                 try:
                     if i in commit_scripts:
-                        name = "tmp"
                         with open(os.path.join(path, i), "r") as p:
                             data = p.readlines()
-                        with open("tmp", "w") as p:
+                        with open(os.path.join(path, i), "w") as p:
                             for l in data:
                                 if "commit" in l and "import" in l:
                                     p.write("from mock import Mock\n")
-                                    p.write("sys.module['commit'] = Mock()\n")
+                                    p.write("sys.modules['commit'] = Mock()\n")
                                 else:
                                     p.write(l)
                     elif i in amico_scripts:
-                        name = "tmp"
                         with open(os.path.join(path, i), "r") as p:
                             data = p.readlines()
-                        with open("tmp", "w") as p:
+                        with open(os.path.join(path, i), "w") as p:
                             for l in data:
                                 if "amico" in l and "import" in l:
                                     p.write("from mock import Mock\n")
-                                    p.write("sys.module['amico'] = Mock()\n")
+                                    p.write("sys.modules['amico'] = Mock()\n")
                                 else:
                                     p.write(l)
-                    else:
-                        m.write("    " + name + "\n")
-                        script = __import__(name)
-                        with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
-                            s.write(i + "\n")
-                            s.write("==============\n\n")
-                            text = script._build_arg_parser().format_help().replace("sphinx-build", i)
-                            s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
+                    m.write("    " + name + "\n")
+                    script = __import__(name)
+                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
+                        s.write(i + "\n")
+                        s.write("==============\n\n")
+                        text = script._build_arg_parser().format_help().replace("sphinx-build", i)
+                        s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
                 except:
-                    print("Error :" + i)
+                    print("Error :" + name)
+
