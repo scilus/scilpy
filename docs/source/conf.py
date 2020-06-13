@@ -202,11 +202,19 @@ import os
 def setup(app):
     path_src = os.path.abspath(os.path.dirname(__file__))
     path = os.path.abspath(os.path.join(path_src, "../../scripts"))
+
+    # Create script folder
     if os.path.isdir(os.path.join(path_src, "scripts")):
         shutil.rmtree(os.path.join(path_src, "scripts"))
     os.mkdir(os.path.join(path_src, "scripts"))
+
+    # Fake c files
     for f in os.listdir(os.path.join(path_src, "fake_files")):
         shutil.copyfile(os.path.join(path_src, "fake_files", f), os.path.join(path, "../scilpy/tractanalysis/", f))
+
+    commit_scripts = ["scil_run_commit.py"]
+
+    amico_scripts = ["scil_compute_NODDI.py", "scil_compute_freewater.py"]
 
     with open(os.path.join(path_src, "scripts/modules.rst"), "w") as m:
         m.write("Scripts\n")
@@ -216,12 +224,35 @@ def setup(app):
             if not os.path.isdir(os.path.join(path, i)):
                 name, ext = i.split(".")
                 try:
-                    m.write("    " + name + "\n")
-                    script = __import__(name)
-                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
-                        s.write(i + "\n")
-                        s.write("==============\n\n")
-                        text = script._build_arg_parser().format_help().replace("sphinx-build", i)
-                        s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
+                    if i in commit_scripts:
+                        name = "tmp"
+                        with open(os.path.join(path, i), "r") as p:
+                            data = p.readlines()
+                        with open("tmp", "w") as p:
+                            for l in data:
+                                if "commit" in l and "import" in l:
+                                    p.write("from mock import Mock\n")
+                                    p.write("sys.module['commit'] = Mock()\n")
+                                else:
+                                    p.write(l)
+                    elif i in amico_scripts:
+                        name = "tmp"
+                        with open(os.path.join(path, i), "r") as p:
+                            data = p.readlines()
+                        with open("tmp", "w") as p:
+                            for l in data:
+                                if "amico" in l and "import" in l:
+                                    p.write("from mock import Mock\n")
+                                    p.write("sys.module['amico'] = Mock()\n")
+                                else:
+                                    p.write(l)
+                    else:
+                        m.write("    " + name + "\n")
+                        script = __import__(name)
+                        with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
+                            s.write(i + "\n")
+                            s.write("==============\n\n")
+                            text = script._build_arg_parser().format_help().replace("sphinx-build", i)
+                            s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
                 except:
                     print("Error :" + i)
