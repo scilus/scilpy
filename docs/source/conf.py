@@ -194,9 +194,8 @@ import shutil
 import os
 
 def setup(app):
-    path_src = os.path.abspath(".")
-    path = os.path.abspath("../scripts")
-    print(path, path_src)
+    path_src = os.path.abspath(os.path.dirname(__file__))
+    path = os.path.abspath(os.path.join(path_src, "../../scripts"))
     if os.path.isdir(os.path.join(path_src, "scripts")):
         shutil.rmtree(os.path.join(path_src, "scripts"))
     os.mkdir(os.path.join(path_src, "scripts"))
@@ -210,7 +209,7 @@ def setup(app):
                     name, _ = i.split(".")
                     m.write("    " + name + "\n")
                     script = __import__(name)
-                    with open(os.path.join(path_src, "source/scripts/" + name + ".rst"), "w") as s:
+                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
                         s.write(i + "\n")
                         s.write("==============\n\n")
                         text = script._build_arg_parser().format_help().replace("sphinx-build", i)
