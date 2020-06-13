@@ -12,10 +12,13 @@
 #
 import os
 import sys
-path_src = os.path.abspath(os.path.dirname(__file__))
-path = os.path.abspath(os.path.join(path_src, "../.."))
-print(path)
-sys.path.insert(0, os.path.abspath(path))
+sys.path.insert(0, os.path.abspath("../.."))
+
+import mock
+
+MOCK_MODULES = ['numpy', 'dipy', 'fury', 'nibabel']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
 
 
 # -- Project information -----------------------------------------------------
