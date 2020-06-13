@@ -14,6 +14,7 @@ import os
 import sys
 path_src = os.path.abspath(os.path.dirname(__file__))
 path = os.path.abspath(os.path.join(path_src, "../.."))
+print(path)
 sys.path.insert(0, os.path.abspath(path))
 
 
@@ -211,6 +212,7 @@ def setup(app):
                     name, _ = i.split(".")
                     m.write("    " + name + "\n")
                     script = __import__(name)
+                    print(os.listdir(path_src), os.path.join(path_src, "scripts/" + name + ".rst"))
                     with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
                         s.write(i + "\n")
                         s.write("==============\n\n")
