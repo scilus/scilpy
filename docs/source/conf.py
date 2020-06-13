@@ -214,11 +214,11 @@ def setup(app):
                     name, _ = i.split(".")
                     m.write("    " + name + "\n")
                     script = __import__(name)
-                    print(os.listdir(path_src), os.path.join(path_src, "scripts/" + name + ".rst"))
                     with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
                         s.write(i + "\n")
                         s.write("==============\n\n")
                         text = script._build_arg_parser().format_help().replace("sphinx-build", i)
                         s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
                 except:
+                    print(os.listdir(path_src), os.path.join(path_src, "scripts/" + name + ".rst"))
                     print("Error: " + i)
