@@ -20,3 +20,4 @@ trimeshpy==0.0.*
 coloredlogs==10.0.*
 statsmodels==0.11.*
 bctpy==0.5.*
+mock==4.0.*
