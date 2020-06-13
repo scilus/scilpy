@@ -14,7 +14,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath("../.."))
 
-autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "scilpy"]
+autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy"]
 
 # -- Project information -----------------------------------------------------
 
