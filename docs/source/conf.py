@@ -195,10 +195,10 @@ import os
 
 def setup(app):
     path_src = os.path.abspath(".")
-    shutil.rmtree(os.path.join(path_src, "source/scripts"))
-    os.mkdir(os.path.join(path_src, "source/scripts"))
     path = os.path.abspath("../scripts")
     print(path, path_src)
+    shutil.rmtree(os.path.join(path_src, "source/scripts"))
+    os.mkdir(os.path.join(path_src, "source/scripts"))
     with open("source/scripts/modules.rst", "w") as m:
         m.write("Scripts\n")
         m.write("==============\n\n")
