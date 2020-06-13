@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath("../.."))
-sys.path.insert(0, os.path.abspath("../../scripts"))
+sys.path.insert(1, os.path.abspath("../../scripts"))
 
 autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "h5py",
                         "scilpy.tractanalysis.grid_intersections",
@@ -211,15 +211,11 @@ def setup(app):
         m.write(".. toctree::\n    :maxdepth: 4\n\n")
         for i in os.listdir(path):
             if i != "tests":
-                try:
-                    name, _ = i.split(".")
-                    m.write("    " + name + "\n")
-                    script = __import__(name)
-                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
-                        s.write(i + "\n")
-                        s.write("==============\n\n")
-                        text = script._build_arg_parser().format_help().replace("sphinx-build", i)
-                        s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
-                except:
-                    print(os.listdir(path_src), os.path.join(path_src, "scripts/" + name + ".rst"))
-                    print("Error: " + i)
+                name, _ = i.split(".")
+                m.write("    " + name + "\n")
+                script = __import__(name)
+                with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
+                    s.write(i + "\n")
+                    s.write("==============\n\n")
+                    text = script._build_arg_parser().format_help().replace("sphinx-build", i)
+                    s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
