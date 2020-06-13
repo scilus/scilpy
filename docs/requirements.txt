@@ -19,5 +19,4 @@ vtk==8.1.*
 trimeshpy==0.0.*
 coloredlogs==10.0.*
 statsmodels==0.11.*
-dmri-commit==1.3.*
 bctpy==0.5.*
