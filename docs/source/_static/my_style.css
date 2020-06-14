@@ -1,0 +1,10 @@
+/*
+"fix screen width.
+*/
+.wy-nav-content {
+    max-width: 100%;
+}
+
+.strike {
+  text-decoration: line-through;
+}
