@@ -11,6 +11,8 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+from os.path import join, abspath, dirname, isdir
+import shutil
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -187,10 +189,6 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
-import shutil
-from os.path import join, abspath, dirname, isdir
-
-
 def setup(app):
     path_src = abspath(dirname(__file__))
     path_script = abspath(join(path_src, "../../scripts"))
@@ -227,22 +225,22 @@ def setup(app):
                         with open(join(path_script, i), "r") as f:
                             data = f.readlines()
                         with open(join(path_script, i), "w") as f:
-                            for l in data:
-                                if "commit" in l and "import" in l:
+                            for line in data:
+                                if "commit" in line and "import" in line:
                                     f.write("from mock import Mock\n")
                                     f.write("sys.modules['commit'] = Mock()\n")
                                 else:
-                                    f.write(l)
+                                    f.write(line)
                     elif i in amico_scripts:
                         with open(join(path_script, i), "r") as f:
                             data = f.readlines()
                         with open(join(path_script, i), "w") as f:
-                            for l in data:
-                                if "amico" in l and "import" in l:
+                            for line in data:
+                                if "amico" in line and "import" in line:
                                     f.write("from mock import Mock\n")
                                     f.write("sys.modules['amico'] = Mock()\n")
                                 else:
-                                    f.write(l)
+                                    f.write(line)
                     m.write("    {}\n".format(name))
                     script = __import__(name)
                     with open(join(path_src, "scripts", "{}.rst".format(name)),
@@ -253,5 +251,5 @@ def setup(app):
                             .replace("sphinx-build", i)
                         s.write("::\n\n\t")
                         s.write("\t".join(help_text.splitlines(True)))
-                except:
-                    print("Error :" + name)
+                except Exception as e:
+                    print(e)
