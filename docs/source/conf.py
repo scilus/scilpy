@@ -12,6 +12,7 @@
 #
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(1, os.path.abspath("../../scripts"))
 
@@ -27,12 +28,10 @@ project = 'scilpy'
 copyright = '2020, The SCIL developers'
 author = 'The SCIL developers'
 
-
 # The short X.Y version
 version = u''
 # The full version, including alpha/beta/rc tags
 release = u''
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -77,7 +76,6 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -124,7 +122,6 @@ html_context = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'scilpydoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
@@ -153,7 +150,6 @@ latex_documents = [
      u'SCIL', 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -162,7 +158,6 @@ man_pages = [
     (master_doc, 'scilpy', u'scilpy Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -174,7 +169,6 @@ texinfo_documents = [
      author, 'scilpy', 'One line description of project.',
      'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -193,64 +187,73 @@ epub_title = project
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
 
-
 # -- Extension configuration -------------------------------------------------
 
 import shutil
-import os
+from os.path import join, abspath, dirname, isdir
+
 
 def setup(app):
-    path_src = os.path.abspath(os.path.dirname(__file__))
-    path = os.path.abspath(os.path.join(path_src, "../../scripts"))
+    path_src = abspath(dirname(__file__))
+    path_script = abspath(join(path_src, "../../scripts"))
 
     # Create script folder
-    if os.path.isdir(os.path.join(path_src, "scripts")):
-        shutil.rmtree(os.path.join(path_src, "scripts"))
-    os.mkdir(os.path.join(path_src, "scripts"))
+    if isdir(join(path_src, "scripts")):
+        shutil.rmtree(join(path_src, "scripts"))
+    os.mkdir(join(path_src, "scripts"))
 
     # Fake c files
-    for f in os.listdir(os.path.join(path_src, "fake_files")):
-        shutil.copyfile(os.path.join(path_src, "fake_files", f), os.path.join(path, "../scilpy/tractanalysis/", f))
+    for f in os.listdir(join(path_src, "fake_files")):
+        shutil.copyfile(join(path_src, "fake_files", f),
+                        join(path_script, "../scilpy/tractanalysis/", f))
 
     commit_scripts = ["scil_run_commit.py"]
 
     amico_scripts = ["scil_compute_NODDI.py", "scil_compute_freewater.py"]
 
-    with open(os.path.join(path_src, "scripts/modules.rst"), "w") as m:
+    with open(join(path_src, "scripts/modules.rst"), "w") as m:
+
+        # Create header
         m.write("Scripts\n")
         m.write("==============\n\n")
         m.write(".. toctree::\n    :maxdepth: 4\n\n")
-        for i in sorted(os.listdir(path)):
-            if not os.path.isdir(os.path.join(path, i)):
+
+        # Loop over scripts
+        for i in sorted(os.listdir(path_script)):
+            if not isdir(join(path_script, i)):
                 name, ext = i.split(".")
+
+                # To be safe, ignore fails
                 try:
                     if i in commit_scripts:
-                        with open(os.path.join(path, i), "r") as p:
-                            data = p.readlines()
-                        with open(os.path.join(path, i), "w") as p:
+                        with open(join(path_script, i), "r") as f:
+                            data = f.readlines()
+                        with open(join(path_script, i), "w") as f:
                             for l in data:
                                 if "commit" in l and "import" in l:
-                                    p.write("from mock import Mock\n")
-                                    p.write("sys.modules['commit'] = Mock()\n")
+                                    f.write("from mock import Mock\n")
+                                    f.write("sys.modules['commit'] = Mock()\n")
                                 else:
-                                    p.write(l)
+                                    f.write(l)
                     elif i in amico_scripts:
-                        with open(os.path.join(path, i), "r") as p:
-                            data = p.readlines()
-                        with open(os.path.join(path, i), "w") as p:
+                        with open(join(path_script, i), "r") as f:
+                            data = f.readlines()
+                        with open(join(path_script, i), "w") as f:
                             for l in data:
                                 if "amico" in l and "import" in l:
-                                    p.write("from mock import Mock\n")
-                                    p.write("sys.modules['amico'] = Mock()\n")
+                                    f.write("from mock import Mock\n")
+                                    f.write("sys.modules['amico'] = Mock()\n")
                                 else:
-                                    p.write(l)
-                    m.write("    " + name + "\n")
+                                    f.write(l)
+                    m.write("    {}\n".format(name))
                     script = __import__(name)
-                    with open(os.path.join(path_src, "scripts/" + name + ".rst"), "w") as s:
+                    with open(join(path_src, "scripts", "{}.rst".format(name)),
+                              "w") as s:
                         s.write(i + "\n")
                         s.write("==============\n\n")
-                        text = script._build_arg_parser().format_help().replace("sphinx-build", i)
-                        s.write("::\n\n\t" + "\t".join(text.splitlines(True)))
+                        help_text = script._build_arg_parser().format_help() \
+                            .replace("sphinx-build", i)
+                        s.write("::\n\n\t")
+                        s.write("\t".join(help_text.splitlines(True)))
                 except:
                     print("Error :" + name)
-
