@@ -189,6 +189,7 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+
 def setup(app):
     path_src = abspath(dirname(__file__))
     path_script = abspath(join(path_src, "../../scripts"))
