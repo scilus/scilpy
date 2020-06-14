@@ -97,8 +97,6 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 
 # To get full width:
-# Tried https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs
-# Found final solution here https://github.com/readthedocs/sphinx_rtd_theme/issues/117
 html_static_path = ['_static']
 html_context = {
     'css_files': [
