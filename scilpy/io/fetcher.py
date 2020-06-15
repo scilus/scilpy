@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import os
 import logging
+import os
 import shutil
 import zipfile
 
@@ -111,13 +111,13 @@ def fetch_data(files_dict, keys=None):
     if not os.path.exists(scilpy_home):
         os.makedirs(scilpy_home)
 
-    to_dezip = {}
+    to_unzip = {}
     if keys is None:
         keys = files_dict.keys()
     elif isinstance(keys, str):
         keys = [keys]
     for f in keys:
-        to_dezip[f] = False
+        to_unzip[f] = False
         url, md5 = files_dict[f]
         full_path = os.path.join(scilpy_home, f)
 
@@ -126,7 +126,7 @@ def fetch_data(files_dict, keys=None):
             continue
 
         # If we re-download, we re-extract
-        to_dezip[f] = True
+        to_unzip[f] = True
         logging.info('Downloading {} to {}'.format(f, scilpy_home))
         gdd.download_file_from_google_drive(file_id=url,
                                             dest_path=full_path,
@@ -139,7 +139,7 @@ def fetch_data(files_dict, keys=None):
                                                    os.path.basename(f)))[0]
 
         if os.path.isdir(target_dir):
-            if to_dezip[f]:
+            if to_unzip[f]:
                 shutil.rmtree(target_dir)
                 _unzip(target_zip, scilpy_home)
             else:
