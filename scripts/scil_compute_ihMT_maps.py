@@ -3,37 +3,36 @@
 Computing ihMT and non-ihMT maps
 Make a more details description !
 """
-# Verifier si import dans le bon ordre...
-import argparse
-from bids import BIDSLayout
-import math
 
-import numpy as np
+import argparse
+
+from bids import BIDSLayout
 import nibabel as nib
+import numpy as np
 import scipy.ndimage
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg)
 
-# @Arnaud :ici j'ai un probleme avec le --resolution avec le type pour la ligne 305
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input',
+    p.add_argument('in_bids_folder',
                    help='Path of the ihMT maps from bids folder')
-    p.add_argument('output',
+    p.add_argument('out_dir',
                    help='Path to output folder')
-    p.add_argument('subjid',
-                   help='Id of subject from BIDS folder')
-    p.add_argument('brainmask',
+    p.add_argument('in_participant',
+                   help='Id of subject from BIDS folder. Ex)
+    p.add_argument('in_mask',
                    help='Path to T1 binary brainmask.'
                         'Generate by BET or other tools')
-    p.add_argument('--resolution', type=str,
-                   help="Use this option when 2 or most resolution is acquired"
-                        "name of ihMT sequences resolution as set in"
+    p.add_argument('--resolution', default = None,
+                   help="Use this option when 2 or most resolution are acquired."
+                        "Name of ihMT sequences resolution must be as set in"
                         "BIDSFile object, ex:['highres','lowres']."
                         "Default is None.")
-    p.add_argument('--filtering', action='store_true',
+    p.add_argument('--filtering', default = None,
                    help='Gaussian filtering to remove Gibbs ringing,'
                         'sigma set at 0.5. Not recommanded.'
                         'Default is None')
@@ -45,40 +44,32 @@ def _build_arg_parser():
 
 def set_acq_parameters(image):
     TR = (layout.get_metadata(image)['RepetitionTime'])*1000
-    FlipAngle = ((layout.get_metadata(image)['FlipAngle'])*math.pi/180)
+    FlipAngle = ((layout.get_metadata(image)['FlipAngle'])*np.pi/180)
     return TR, FlipAngle
 
 
-def merge_ihMT_array(images):
+def merge_ihMT_array(echo_images):
     """
     Function to concatenate n 3D-array matrix of the same size
     along the 4th dimension.
+
     Parameters
     ----------
-    images       list of echo path. Must be nii image.
+    images       List of BIDSFile object : list of echo(s) path for each
+                 contrasts in Bids folder. Ex :
+                 ['path/to/echo-1_acq-poshighres',
+                  'path/to/echo-2_acq-poshighres',
+                  'path/to/echo-3_acq-poshighres']
+
     Returns
     -------
     Return a matrix (x,y,z,n) for n matrices (x,y,z) as input
     """
     merge_array = []
-    for echo in range(len(images)):
-        nii_image = nib.load(images[echo])
-        merge_array.append(np.array(nii_image.dataobj))
+    for echo in range(len(echo_images)):
+        nii_image = nib.load(echo_images[echo])
+        merge_array.append(np.array(nii_image.dataobj)) #get_fdata(dtype=np.float32)
     merge_array = np.stack(merge_array, axis=-1)
-
-    # @Arnaud : p-e un moyen  plus simple de le faire ?
-    orig_shape = str(np.array(nii_image.dataobj).shape).replace(')', ', ' +
-                     str(len(images)) + ')')
-
-    # @Arnaud : je ne suis pas certaine de la fct à utiliser pour
-    # stopper en cas d'erreur : exit ? break ?
-    # j'ai vue qu'il y avait parser.error mais fctne que pour parser non ?
-
-    # Assert the goodness of fit of 4D merged file
-    if (str(merge_array.shape) == orig_shape) is not True:
-        print('Error: the number of 4th dimension does '
-                     'not correspond to the number of echoes')
-
     return merge_array
 
 
@@ -88,11 +79,13 @@ def py_fspecial_gauss(shape, sigma):
     Returns a rotationally symmetric Gaussian lowpass filter of
     shape size with standard deviation sigma.
     see https://www.mathworks.com/help/images/ref/fspecial.html
+
     Parameters
     ----------
-    shape    vector to specify the size of square matrix (rows, columns).
-             ex.: (3, 3)
-    sigma    Standard deviation (0.5 is recommanded).
+    shape    Vector to specify the size of square matrix (rows, columns).
+             Ex.: (3, 3)
+    sigma    Value for standard deviation (0.5 is recommanded).
+
     Returns
     -------
     Return two-dimensional Gaussian filter h of specified size.
@@ -107,76 +100,66 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-# @Arnaud : comment faire en sorte que le resolution soit None/opt
-#           pour resolution et filtering ?
-def compute_ihMT_contrast(contrast_maps, ref_image, output_path, output_name,
-                          resolution=None, filtering=None):
+def compute_contrasts_maps(echo_images, filtering=None):
     """
-    Compute contrasts maps : more description details !
+    Load echo images and compute contrasts maps : more description details !
+
     Parameters
     ----------
-    contrast_maps   List of BIDSFile object : list of echos image path
-    ref_image       Reference volume to set header
-    resolution      Resolution of ihMT sequences as set in BIDSFile object:
-                    ex. 'highres' or 'lowres', (default: None).
+    echo_images     List of BIDSFile object : list of echo(s) path for each
+                    contrasts in Bids folder
     filtering       Apply Gaussian filtering to remove Gibbs ringing
                     (default: None).
+
     Returns
     -------
-    Contrast Map in NxN array and save contrast Map in Nifti format.
+    Returns 5 contrast Maps in 3D-Array : Altnp, Atlpn, Reference, Negative,
+                                          Positive and T1weighted.
     """
 
-    # Merged different echo image into 4D-array
-    merged_map = merge_ihMT_array(contrast_maps)
+    # Merged the 3 echo images into 4D-array
+    merged_map = merge_ihMT_array(echo_images)
 
     # Compute the sum of contrast map
     contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
 
     # Apply gaussian filtering if needed
-    if filtering is not None:
+    if filtering :
         h = py_fspecial_gauss((3, 3), 0.5)
-        contrast_map = scipy.ndimage.convolve(contrasts, h).astype(float)
-
-    # Save contrast maps in nii.gz format
-    if resolution is not None:
-        save_ihMT_maps(ref_image, contrast_map, output_path,
-                       output_name, resolution)
-    else:
-        save_ihMT_maps(ref_image, contrast_map, output_path,
-                       output_name, resolution=None)
+        contrast_map = scipy.ndimage.convolve(contrast_map, h).astype(np.float32)
 
     return contrast_map
 
 
-def compute_ihMT_map(contrast_maps, acq_parameters):
+def compute_ihMT_maps(contrast_maps, acq_parameters):
     """
     Compute ihMT maps : More details
     Use of both single frequency irradiation positive and negative,
-    compensates efficiently for MT asymmetry
+    compensates efficiently for MT asymmetry (finir de modifier)
 
     see Varma et al., 2015
     https://www.sciencedirect.com/science/article/pii/S1090780715001998
 
     Parameters
     ----------
-    contrast_maps:      List of BIDSFile object : list of all contrast maps
-    acq_parameters:     Lists of parameters for ihMT and T1w images
+    contrast_maps:      List of constrats : list of all contrast maps computed
+                                            with compute_ihMT_contrasts
+    acq_parameters:     Lists of parameters for ihMT and T1w
                         [TR and Flipangle]
     Returns
     -------
-    ihMT ratio and saturation Maps in Nifti format.
+    ihMT maps in 3D-Array : ihMT ratio and saturation Maps.
 
     """
-    # Compute ihMTratio map
-    ihMTR = 100*(computed_maps[4]+computed_maps[3]-computed_maps[1]
-                 - computed_maps[0])/computed_maps[2]
+    # Compute ihMT ratio map
+    ihMTR = 100*(contrast_maps[4]+contrast_maps[3]-contrast_maps[1]
+                 - contrast_maps[0])/contrast_maps[2]
 
-# flake8 to fix: longueur ligne ... jamais content ! Je ne sais où "couper"
-    # Compute ihMTsat map
-    # Compute an dR1sat image (Varma et al. ISMRM 2015)
-    cPD1a = (computed_maps[4]+computed_maps[3])/2
-    cPD1b = (computed_maps[1]-computed_maps[0])/2
-    cT1 = computed_maps[5]
+# flake8 to fix: longueur ligne jamais content ! Je ne sais pas où "couper"
+    # Compute an dR1sat image
+    cPD1a = (contrast_maps[4]+contrast_maps[3])/2
+    cPD1b = (contrast_maps[1]-contrast_maps[0])/2
+    cT1 = contrast_maps[5]
     T1appa = ((cPD1a/acq_para"emeters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
              (2*acq_parameters[1][0]/1000)-(cPD1a*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
     T1appb = ((cPD1b/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1]) /
@@ -186,27 +169,29 @@ def compute_ihMT_map(contrast_maps, acq_parameters):
     return ihMTR, ihMTsat
 
 
-def compute_MT_map(computed_maps, acq_parameters):
+def compute_MT_maps(contrast_maps, acq_parameters):
     """
     Compute MT maps : more description details !
+
     Parameters
     ----------
-    contrast_maps:      List of BIDSFile object : list of all contrast maps
+    contrast_maps:      List of constrats : list of all contrast maps computed
+                                            with compute_ihMT_contrasts
     acq_parameters:     Lists of parameters for ihMT and T1w
                         [TR and Flipangle]
     Returns
     -------
-    Non-ihMT maps : MT ratio and saturation Maps in Nifti format.
+    Non-ihMT maps in 3D-Array : ratio and saturation MT Maps.
     """
-    # Compute MTR map
-    MTR = ((computed_maps[2]-(computed_maps[4]+computed_maps[3])/2) /
-           computed_maps[2])*100
+    # Compute MT Ratio map
+    MTR = ((contrast_maps[2]-(contrast_maps[4]+contrast_maps[3])/2) /
+           contrast_maps[2])*100
 
-# flake8 to fix: longueur ligne ... jamais content !
-    # Compute MTsat maps
-    cPD1 = computed_maps[2]
-    cPD2 = (computed_maps[4]+computed_maps[3])/2
-    cT1 = computed_maps[5]
+# flake8 to fix: longueur ligne où couper ???
+    # Compute MT sat maps
+    cPD1 = contrast_maps[2]
+    cPD2 = (contrast_maps[4]+contrast_maps[3])/2
+    cT1 = contrast_maps[5]
     Aapp = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2))-(2*acq_parameters[1][0] /
             (acq_parameters[1][1]**2)))/(((2*acq_parameters[0][0]) /
             (acq_parameters[0][1]*cPD1))-((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
@@ -217,24 +202,29 @@ def compute_MT_map(computed_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_ihMT_maps(computed_map, contrast_maps, brainmask,
-                        lower_threshold, upper_threshold, contrast_maps_list):
+def threshold_ihMT_maps(computed_map, contrast_maps, in_mask, lower_threshold,
+                        upper_threshold, idx_contrast_list):
     """
     Remove NaN and Apply different threshold based on
        - max and min threshold value
        - brainmask
        - combination of specific contrasts maps
+
     Parameters
     ----------
-    computed_map        ihmt or non-ihmt computed maps
-    brainmask           Path to T1 binary brainmask
+    computed_map        3D-Array data.
+                        Myelin map (ihMT or non-ihMT computed maps)
+    contrast_maps       List of 3D-Array. File containing the 5 contrast Maps.
+    in_mask             Path to binary brainmask
     lower_threshold     Value for low thresold <int>
     upper_thresold      Value for up thresold <int>
-    contrast_maps_list  List of contrasts maps
-                        ex.: ['positive', 'negative', 'reference']
+    idx_contrast_list   List of indice contrasts maps in order corresponding to
+                        contrast_maps input ex.: [1, 2, 3]
+                        Altnp = 0; Atlpn = 1; Reference = 2; Negative = 3;
+                        Positive = 4; T1weighted = 5
     Returns
     ----------
-    Thresholded map  NxN array
+    Thresholded map     3D-array
     """
 
     # Remove NaN and apply thresold based on lower and upper value
@@ -244,77 +234,41 @@ def threshold_ihMT_maps(computed_map, contrast_maps, brainmask,
     computed_map[computed_map > upper_threshold] = 0
 
     # Load and apply brainmasks on maps
-    mask_image = nib.load(brainmask)
-    mask = np.array(mask_image.dataobj)
-    computed_map = computed_map*mask
+    mask_image = nib.load(in_mask)
+    mask_data = get_data_as_mask(mask_image)
+    computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrasts maps
-    for idx in contrast_maps_list:
-        computed_map[contrast_maps[int(idx)] == 0] = 0
+    for idx in idx_contrast_list:
+        computed_map[contrast_maps[idx] == 0] = 0
 
     return computed_map
-
-
-# @Arnaud : toujours cette question sur les opt en function
-# adapter le resolution == 1
-def save_ihMT_maps(ref_image, image_to_save, output_path, output_name,
-                   resolution, filtering=None):
-    """ Save matrix into nii images
-    Parameters
-    ----------
-    ref_image       Reference volume to set image parameter
-    image_to_save   Matrix array to save in Nifti image.
-    output_path     Path to save image
-    output_name     Image filename
-    resoltuion      Resolution of ihMT sequences as set in BIDSFile object:
-                    ex. 'highres' or 'lowres', (default: None).
-    """
-    ref_img = nib.load(ref_image)
-    if resolution:
-        nib.save(nib.Nifti1Image(image_to_save.astype(np.float64),
-                                 ref_img.affine, ref_img.header),
-                 os.path.join(output_path, output_name + '_' +
-                              resolution + '.nii'))
-
-    else:
-        nib.save(nib.Nifti1Image(image_to_save.astype(np.float64),
-                                 ref_img.affine, ref_img.header),
-                 os.path.join(output_path, output_name + '.nii'))
-
-#    if filetring ...?
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    Verify existence of input and output
-    assert_inputs_exist(parser, [args.input,
-                                 args.brainmask,
-                                 args.subjid])
-    assert_outputs_exist(parser, [args.output])
-
-
-    # Select contrasts files
+    # Select contrasts files from Bids folder
     maps = []
-    layout = BIDSLayout(args.input, validate=False)
+    layout = BIDSLayout(args.in_bids_folder, validate=False)
     acquisition = layout.get_acquisition()
 
-    # regler le probleme du if else avec la resolution + depassement ligne 302
     if args.resolution:
         acquisition = acquisition[0::len(args.resolution)]
         for acq in acquisition:
-            maps.append(layout.get(subject=args.subjid,
+            maps.append(layout.get(subject=args.in_participant,
                                    datatype='anat', suffix='ihmt',
                                    aquisition=(acq.replace(args.resolution[0], ''))
                                                            + args.resolution,
                                    extension='nii.gz', return_type='file'))
     else:
-        maps.append(layout.get(subject=args.subjid, datatype='anat',
-                               suffix='ihmt', aquisition=acq,
-                               extension='nii.gz', return_type='file'))
+        for acq in acquisition:
+            maps.append(layout.get(subject=args.in_participant, datatype='anat',
+                                   suffix='ihmt', aquisition=acq,
+                                   extension='nii.gz', return_type='file'))
 
-    # Set TR and FlipAngle parameters for ihmt and t1w images
+    # Set TR and FlipAngle parameters for ihMT and T1w images
     parameters = []
     parameters.append(set_acq_parameters(maps[4][0]))
     parameters.append(set_acq_parameters(maps[5][0]))
@@ -322,56 +276,80 @@ def main():
     # Fix issue from the presence of NaN into array
     np.seterr(divide='ignore', invalid='ignore')
 
-    # Compute contrasts maps !! a revoir avec ces fichus conditions !!
-    computed_maps = []
+    # Define reference image for saving ihMT files
+    ref_img = nib.load(maps[4][0])
+
+    # Compute contrasts maps
+    computed_contrasts = []
     outname = ['altnp', 'altpn', 'reference', 'negative', 'positive', 'T1w']
     for idx, curr_map in enumerate(maps):
         if args.resolution and args.filtering:
-            computed_maps.append(compute_ihMT_contrast(curr_map, maps[4][0],
-                                                       args.output,
-                                                       outname[idx],
-                                                       args.resolution,
-                                                       filtering))
+            computed_contrasts.append(compute_contrasts_maps(curr_map, filtering))
+            nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     outname[idx] + '_' + resolution + '_filter.nii'))
 
-        if args.resolution:
-            computed_maps.append(compute_ihMT_contrast(curr_map, maps[4][0],
-                                                       args.output,
-                                                       outname[idx],
-                                                       args.resolution))
-        if args.filtering:
-            computed_maps.append(compute_ihMT_contrast(curr_map, maps[4][0],
-                                                       args.output,
-                                                       outname[idx],
-                                                       filtering))
+        elif args.resolution:
+            computed_contrasts.append(compute_contrasts_maps(curr_map))
+            nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     outname[idx] + '_' + resolution + '.nii'))
+        elif args.filtering:
+            computed_contrasts.append(compute_contrasts_maps(curr_map, filtering))
+            nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     outname[idx] + '_filter.nii'))
+        else:
+            computed_contrasts.append(compute_contrasts_maps(curr_map))
+            nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     outname[idx] + '.nii'))
+
+    # Compute and thresold ihMT maps
+    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
+    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, arg.in_mask, 0, 100,
+                                [4, 3, 1, 2])
+    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, arg.in_mask,
+                                  0, 10, [4, 3, 1, 0])
 
 
-    # Compute ihMT maps
-    # Compue ihMTratio map
-    ihMTR, ihMTsat = compute_ihMT_map(computed_maps, parameters)
-    ihMTR_list = ['positive', 'negative', 'altPN', 'reference']
-    ihMTR = threshold_ihMT_maps(ihMTR, arg.brainmask, 0, 100,
-                                ihMTR_list)
-    save_ihMT_maps(maps[4][0], ihMTR, args.output, 'ihMTR', args.resolution)
+    # Compute and thresold non-ihMT maps
+    MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
+    for curr_map in MTR, MTsat:
+        curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
+                                       arg.in_mask, 0, 100, [4, 2])
 
-    # Compue ihMTsat map
-    ihMTsat_list = ['positive', 'negative', 'altPN', 'altNP']
-    ihMTsat = threshold_ihMT_maps(ihMTsat, arg.brainmask, 0, 10,
-                                  ihMTsat_list)
-    save_ihMT_maps(maps[4][0], ihMTsat, args.output, 'ihMT_dR1sat',
-                   args.resolution)
+    # Save ihMT and MT images as Nifti format
+    img_data = ihMTR, ihMTsat, MTR, MTsat
+    img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
 
-    # Compute non-ihMT maps
-    MT_maps = []
-    MT_maps.append(compute_MTR(computed_maps, parameters))
-    MT_list = ['positive', 'reference']
-    for curr_map in MT_maps:
-        curr_map = threshold_ihMT_maps(curr_map, arg.brainmask, 0, 100,
-                                       MT_list)
-        # save images
-        save_ihMT_maps(maps[4][0], MT_maps[0][0], args.output, 'MTR',
-                       args.resolution)
-        save_ihMT_maps(maps[4][0], MT_maps[0][1], args.output, 'MTsat',
-                       args.resolution)
+    for img_to_save, name in zip(img_data, img_name):
+        if args.resolution and args.filtering:
+            nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+                                    ref_img.affine, ref_img.header),
+                                    os.path.join(args.out_dir,
+                                    name + '_' + resolution + '_filter.nii'))
+
+        elif args.resolution:
+            nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     name + '_' + resolution + '.nii'))
+
+        elif args.filtering:
+            nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     name + '_filter.nii'))
+        else:
+            nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+                                     ref_img.affine, ref_img.header),
+                                     os.path.join(args.out_dir,
+                                     name + '.nii'))
 
 
 if __name__ == '__main__':

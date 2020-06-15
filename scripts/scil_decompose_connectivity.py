@@ -315,7 +315,7 @@ def main():
     hdf5_file.attrs['voxel_order'] = voxel_order
 
     # Each connections is processed independently. Multiprocessing would be
-    # a burden on the I/O of most SSD/HD
+    # a burden on the I/O of most SSD/HD 
     for in_label, out_label in comb_list:
         if iteration_counter > 0 and iteration_counter % 100 == 0:
             logging.info('Split {} nodes out of {}'.format(iteration_counter,
