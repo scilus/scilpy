@@ -156,7 +156,8 @@ def _processing_wrapper(args):
     if include_dps:
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
-                measures_to_return[dps_key] = np.average(
+                out_file = os.path.join(include_dps, dps_key)
+                measures_to_return[out_file] = np.average(
                     hdf5_file[key][dps_key])
 
     return {(in_label, out_label): measures_to_return}
@@ -197,8 +198,9 @@ def _build_arg_parser():
                    help='Use density-weighting for the metric weighted matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
-    p.add_argument('--include_dps', action="store_true",
-                   help='Save matrices from data_per_streamline.')
+    p.add_argument('--include_dps', metavar='OUT_DIR',
+                   help='Save matrices from data_per_streamline in the output '
+                        'directory.\nWill always overwrite files.')
     p.add_argument('--force_labels_list',
                    help='Path to a labels list (.txt) in case of missing '
                         'labels in the atlas.')
@@ -266,6 +268,8 @@ def main():
         measures_to_compute))
 
     if args.include_dps:
+        if not os.path.isdir(args.include_dps):
+            os.makedirs(args.include_dps)
         logging.info('data_per_streamline weighting is activated.')
 
     img_labels = nib.load(args.in_labels)
