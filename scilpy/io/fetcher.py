@@ -21,34 +21,34 @@ def get_home():
 def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
     return {'atlas.zip':
-            ['1UbB5rCA074LpTWxjpyhT1JBE5BjpSdUl',
+            ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
              '2ba8fec24611b817d860c414463a98ee'],
             'bst.zip':
-            ['1et0Kth9NHbYr-H4VeReNTYe3mx2Nq625',
+            ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
              'f187fe6a1157455236e1d0310c13a454'],
             'bundles.zip':
-            ['1LTiiTadXW9nuQt60XHIUcMpwtdnlmPvr',
+            ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
              '2039ca8c901d00769f49fd15e25eb6ef'],
             'connectivity.zip':
-            ['1cz6sc_9xqnEgyv5EzJ4FGhQej3GX3XLT',
+            ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              'b7795fe362b71a861e6bb1144a171f52'],
             'filtering.zip':
-            ['14n9Ay7ILl9adoXdLzWYP0mpZGIaddVqg',
+            ['1yzHSL4tBtmm_aeI1i0qJhrA9z040k0im',
              'e0c04a98552ef20e16977b6fd13e546e'],
             'others.zip':
-            ['11k7IZFcuehEaEsPnXG3KcClDW4FIgeVj',
+            ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
              '5b21a05807265ae61d01f95f7f600992'],
             'processing.zip':
-            ['1aqGNEMQReY4W5vru4ZdOiVu9ySuTLjrU',
+            ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
              'da98bcf85a01f2a539a6e628de2114dd'],
             'surface_vtk_fib.zip':
-            ['1JtnHZ5XYvPcYnWOdai8YCnI-IUO3oyMp',
+            ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '839a54adadeb1977edb2a41bc8c88c11'],
             'tracking.zip':
-            ['1rDTD3f05rUxWY5Wz_UWNCjgwajHzKrg2',
+            ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
              'd40e054bab9380233f3776f092ae0b0b'],
             'tractometry.zip':
-            ['1-GtunE2y_z83p3YangCBCje_KP1nT9IH',
+            ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              'c99f4617dcbdea5f7a666b33682218de']}
 
 

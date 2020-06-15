@@ -1,12 +1,7 @@
-bz2file==0.98.*
-coloredlogs==10.0.*
-cycler==0.10.*
-Cython==0.29.*
-dipy>=1.1.0
+dipy>=1.1
 fury==0.2.*
 future==0.17.*
 h5py==2.9.*
-kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
 nilearn==0.6.*
@@ -23,11 +18,6 @@ six==1.15.*
 vtk==8.1.*
 trimeshpy==0.0.*
 coloredlogs==10.0.*
-nilearn==0.6.*
-pytest==5.3.*
-pytest_console_scripts==0.2.*
-googledrivedownloader==0.*
-requests==2.23.*
-bctpy==0.5.*
 statsmodels==0.11.*
-dmri-commit==1.3.*
+bctpy==0.5.*
+mock==4.0.*
