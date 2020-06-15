@@ -65,7 +65,7 @@ def _build_arg_parser():
                         'for the sagittal plane.')
     p.add_argument('--anat_opacity', type=float, default=0.3,
                    help='Set the opacity for the anatomy, use 0 for complete \n'
-                        'transparency, 1 for opaque.')
+                        'transparency, 1 for opaque. [%(default)s]')
     p.add_argument('--output_suffix',
                    help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--output_dir', default='',
