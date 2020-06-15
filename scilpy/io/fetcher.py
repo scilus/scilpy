@@ -22,7 +22,7 @@ def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
     return {'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
-             '2ba8fec24611b817d860c414463a98ee'],
+             '0c1d3da231d1a8b837b5d756c9170b08'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
              'f187fe6a1157455236e1d0310c13a454'],
@@ -90,7 +90,7 @@ def _unzip(zip_file, folder):
     logging.info('Files successfully extracted')
 
 
-def fetch_data(files_dict):
+def fetch_data(files_dict, keys=None):
     """ Downloads files to folder and checks their md5 checksums
 
     Parameters
@@ -112,7 +112,11 @@ def fetch_data(files_dict):
         os.makedirs(scilpy_home)
 
     to_dezip = {}
-    for f in files_dict:
+    if keys is None:
+        keys = files_dict.keys()
+    elif isinstance(keys, str):
+        keys = [keys]
+    for f in keys:
         to_dezip[f] = False
         url, md5 = files_dict[f]
         full_path = os.path.join(scilpy_home, f)
@@ -129,7 +133,7 @@ def fetch_data(files_dict):
                                             unzip=False)
         check_md5(full_path, md5)
 
-    for f in files_dict:
+    for f in keys:
         target_zip = os.path.join(scilpy_home, f)
         target_dir = os.path.splitext(os.path.join(scilpy_home,
                                                    os.path.basename(f)))[0]
