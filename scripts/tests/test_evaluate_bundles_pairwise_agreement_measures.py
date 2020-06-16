@@ -13,16 +13,21 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_evaluate_bundles_pairwise_agreement_measures.py', '--help')
+    ret = script_runner.run('scil_evaluate_bundles_pairwise_agreement_measures.py',
+                            '--help')
     assert ret.success
 
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
+    input_1 = os.path.join(get_home(), 'bundles',
+                           'bundle_0_reco.tck')
+    input_2 = os.path.join(get_home(), 'bundles', 'voting_results',
+                           'bundle_0.trk')
     input_ref = os.path.join(get_home(), 'bundles',
                              'avg_dwi.nii.gz')
     ret = script_runner.run('scil_evaluate_bundles_pairwise_agreement_measures.py',
-                            'bundle_0_reco.tck', 'voting_results/bundle_0.trk',
-                            'AF_L_similarity.json', '--streamline_dice',
-                            '--reference', input_ref, '--processes', '1')
+                            input_1, input_2, 'AF_L_similarity.json',
+                            '--streamline_dice', '--reference', input_ref,
+                            '--processes', '1')
     assert ret.success
