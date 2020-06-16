@@ -14,8 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_label
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             add_json_args)
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -30,13 +29,12 @@ def _build_arg_parser():
     p.add_argument('seed_maps',
                    help='Path of the input seeding file')
 
-
     add_overwrite_arg(p)
 
     return p
 
-def main():
 
+def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
@@ -67,9 +65,9 @@ def main():
 
             mean_seed = np.sum(curr_data)/nb_seed_vx
             max_seed = np.max(curr_data)
-            std_seed = np.sqrt(np.mean(abs(curr_data[curr_data!=0] - mean_seed)**2))
+            std_seed = np.sqrt(np.mean(abs(curr_data[curr_data != 0] - mean_seed)**2))
             if nb_seed_vx != 0:
-                print(json.dumps({'ROI-idx':(label),'ROI-name':str(name),'nb-vx-roi': int(nb_vx_roi), 'nb-vx-seed': int(nb_seed_vx),'max':int(max_seed),'mean': float(mean_seed),'std': float(std_seed)}))
+                print(json.dumps({'ROI-idx': label, 'ROI-name': str(name), 'nb-vx-roi': int(nb_vx_roi), 'nb-vx-seed': int(nb_seed_vx), 'max': int(max_seed), 'mean': float(mean_seed), 'std': float(std_seed)}))
 
 
 if __name__ == "__main__":
