@@ -21,19 +21,17 @@ def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     input_tractogram = os.path.join(get_home(), 'bundles',
                                     'bundle_all_1mm.trk')
-    input_conf = os.path.join(get_home(), 'bundles', 'fake_atlas',
+    input_conf = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
                               'default_config_sim.json')
-    input_model_1 = os.path.join(get_home(), 'bundles', 'fake_atlas',
+    input_model_1 = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
                                  'subj_1/')
-    input_model_2 = os.path.join(get_home(), 'bundles', 'fake_atlas',
+    input_model_2 = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
                                  'subj_2/')
-    input_model_3 = os.path.join(get_home(), 'bundles', 'fake_atlas',
-                                 'subj_3/')
     input_aff = os.path.join(get_home(), 'bundles',
                              'affine.txt')
     ret = script_runner.run('scil_recognize_multi_bundles.py', input_tractogram,
                             input_conf, input_model_1, input_model_2,
-                            input_model_3, input_aff, '--inverse',
+                            input_aff, '--inverse',
                             '--tractogram_clustering_thr', '15',
                             '--processes', '1', '--log', 'WARNING')
     assert ret.success

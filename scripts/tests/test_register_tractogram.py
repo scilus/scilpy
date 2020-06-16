@@ -24,7 +24,7 @@ def test_execution_bundles(script_runner):
     input_static = os.path.join(get_home(), 'bundles', 'voting_results',
                                 'bundle_0.trk')
     input_ref = os.path.join(get_home(), 'bundles',
-                             'avg_dwi.nii.gz')
+                             'bundle_all_1mm.nii.gz')
     ret = script_runner.run('scil_register_tractogram.py', input_moving,
                             input_static, '--only_rigid',
                             '--moving_tractogram_ref', input_ref)
