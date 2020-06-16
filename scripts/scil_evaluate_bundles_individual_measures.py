@@ -94,19 +94,13 @@ def main():
     assert_outputs_exist(parser, args, args.out_json)
 
     nbr_cpu = validate_nbr_processes(parser, args)
+    pool = multiprocessing.Pool(nbr_cpu)
     bundles_references_tuple_extended = link_bundles_and_reference(
         parser, args, args.in_bundles)
-
-    if nbr_cpu == 1:
-        all_measures_dict = []
-        for i in bundles_references_tuple_extended:
-            all_measures_dict.append(compute_measures(i))
-    else:
-        pool = multiprocessing.Pool(nbr_cpu)
-        all_measures_dict = pool.map(compute_measures,
-                                     bundles_references_tuple_extended)
-        pool.close()
-        pool.join()
+    all_measures_dict = pool.map(compute_measures,
+                                 bundles_references_tuple_extended)
+    pool.close()
+    pool.join()
 
     output_measures_dict = {}
     for measure_dict in all_measures_dict:
