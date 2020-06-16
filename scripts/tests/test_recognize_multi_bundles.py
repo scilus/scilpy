@@ -29,8 +29,9 @@ def test_execution_bundles(script_runner):
                                  'subj_2/')
     input_aff = os.path.join(get_home(), 'bundles',
                              'affine.txt')
-    ret = script_runner.run('scil_recognize_multi_bundles.py', input_tractogram,
-                            input_conf, input_model_1, input_model_2,
+    ret = script_runner.run('scil_recognize_multi_bundles.py',
+                            input_tractogram, input_conf,
+                            input_model_1, input_model_2,
                             input_aff, '--inverse',
                             '--tractogram_clustering_thr', '15',
                             '--processes', '1', '--log', 'WARNING')

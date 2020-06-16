@@ -32,6 +32,7 @@ def test_execution_bundles(script_runner):
                                'subj_1', 'bundle_0.trk')
     ret = script_runner.run('scil_evaluate_bundles_binary_classification_measures.py',
                             input_1, input_2, 'AF_L_binary.json',
-                            '--streamlines_measures', input_model, input_tractogram,
-                            '--processes', '1', '--reference', input_ref)
+                            '--streamlines_measures', input_model,
+                            input_tractogram, '--processes', '1',
+                            '--reference', input_ref)
     assert ret.success

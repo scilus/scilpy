@@ -30,6 +30,6 @@ def test_execution_bundles(script_runner):
     ret = script_runner.run('scil_recognize_single_bundle.py', input_tractogram,
                             input_model, input_aff, 'bundle_0_reco.tck',
                             '--inverse', '--tractogram_clustering_thr', '12',
-                            '--slr_threads', '1', '--out_pickle', 'clusters.pkl',
-                            '--reference', input_ref)
+                            '--slr_threads', '1', '--out_pickle',
+                            'clusters.pkl', '--reference', input_ref)
     assert ret.success
