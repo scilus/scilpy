@@ -2,7 +2,7 @@ bz2file==0.98.*
 coloredlogs==10.0.*
 cycler==0.10.*
 Cython==0.29.*
-dipy>=1.1
+dipy>=1.1.0
 fury==0.2.*
 future==0.17.*
 h5py==2.9.*
@@ -26,6 +26,8 @@ coloredlogs==10.0.*
 nilearn==0.6.*
 pytest==5.3.*
 pytest_console_scripts==0.2.*
+googledrivedownloader==0.*
+requests==2.23.*
 bctpy==0.5.*
 statsmodels==0.11.*
 dmri-commit==1.3.*
