@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import os
 import logging
+import os
 import shutil
 import zipfile
 
@@ -22,7 +22,7 @@ def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
     return {'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
-             '2ba8fec24611b817d860c414463a98ee'],
+             '0c1d3da231d1a8b837b5d756c9170b08'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
              'f187fe6a1157455236e1d0310c13a454'],
@@ -90,7 +90,7 @@ def _unzip(zip_file, folder):
     logging.info('Files successfully extracted')
 
 
-def fetch_data(files_dict):
+def fetch_data(files_dict, keys=None):
     """ Downloads files to folder and checks their md5 checksums
 
     Parameters
@@ -111,9 +111,13 @@ def fetch_data(files_dict):
     if not os.path.exists(scilpy_home):
         os.makedirs(scilpy_home)
 
-    to_dezip = {}
-    for f in files_dict:
-        to_dezip[f] = False
+    to_unzip = {}
+    if keys is None:
+        keys = files_dict.keys()
+    elif isinstance(keys, str):
+        keys = [keys]
+    for f in keys:
+        to_unzip[f] = False
         url, md5 = files_dict[f]
         full_path = os.path.join(scilpy_home, f)
 
@@ -122,20 +126,20 @@ def fetch_data(files_dict):
             continue
 
         # If we re-download, we re-extract
-        to_dezip[f] = True
+        to_unzip[f] = True
         logging.info('Downloading {} to {}'.format(f, scilpy_home))
         gdd.download_file_from_google_drive(file_id=url,
                                             dest_path=full_path,
                                             unzip=False)
         check_md5(full_path, md5)
 
-    for f in files_dict:
+    for f in keys:
         target_zip = os.path.join(scilpy_home, f)
         target_dir = os.path.splitext(os.path.join(scilpy_home,
                                                    os.path.basename(f)))[0]
 
         if os.path.isdir(target_dir):
-            if to_dezip[f]:
+            if to_unzip[f]:
                 shutil.rmtree(target_dir)
                 _unzip(target_zip, scilpy_home)
             else:
