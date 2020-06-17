@@ -26,7 +26,7 @@ def _build_arg_parser():
                    help='Id of subject from BIDS folder. Ex : "01"')
     p.add_argument('in_mask',
                    help='Path to T1 probability brainmask.'
-                        'Could the sum of 3 brain compartments')
+                        'Could the sum of 3 (WM+GM+CSF) brain compartments.')
     p.add_argument('--resolution', default=None, nargs='+',
                    help="Name of ihMT sequences resolution. Use this option"
                         "when 2 or most resolution are acquired."
@@ -272,7 +272,7 @@ def main():
     ref_img = nib.load(maps[4][0])
     ref_img = np.array(ref_img.dataobj)
 
-    # Create Output contrasts maps folers
+    # Create contrasts maps folers
     if not os.path.isdir(os.path.join(args.out_dir, 'Contrats_maps')):
         os.mkdir(os.path.join(args.out_dir, 'Contrats_maps'))
 
@@ -309,7 +309,7 @@ def main():
                      os.path.join(args.out_dir, 'Contrats_maps',
                                   outname[idx] + '.nii'))
 
-    # Create Output ihMT and non-ihMT maps folers
+    # Create ihMT and non-ihMT maps folers
     if not os.path.isdir(os.path.join(args.out_dir, 'ihMT_native_maps')):
         os.mkdir(os.path.join(args.out_dir, 'ihMT_native_maps'))
 
