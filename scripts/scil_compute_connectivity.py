@@ -47,7 +47,8 @@ from scilpy.io.image import get_data_as_label
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
@@ -284,15 +285,30 @@ def main():
     if not args.no_self_connection:
         comb_list.extend(zip(labels_list, labels_list))
 
-    pool = multiprocessing.Pool(args.nbr_processes)
-    measures_dict_list = pool.map(_processing_wrapper,
-                                  zip(itertools.repeat(args.in_hdf5),
-                                      itertools.repeat(img_labels),
-                                      comb_list,
-                                      itertools.repeat(measures_to_compute),
-                                      itertools.repeat(args.similarity),
-                                      itertools.repeat(args.density_weighting),
-                                      itertools.repeat(args.include_dps)))
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    measures_dict_list = []
+    if nbr_cpu == 1:
+        for comb in comb_list:
+            measures_dict_list.append(_processing_wrapper([args.in_hdf5,
+                                                           img_labels, comb,
+                                                           measures_to_compute,
+                                                           args.similarity,
+                                                           args.density_weighting,
+                                                           args.include_dps]))
+    else:
+        pool = multiprocessing.Pool(nbr_cpu)
+        measures_dict_list = pool.map(_processing_wrapper,
+                                      zip(itertools.repeat(args.in_hdf5),
+                                          itertools.repeat(img_labels),
+                                          comb_list,
+                                          itertools.repeat(
+                                              measures_to_compute),
+                                          itertools.repeat(args.similarity),
+                                          itertools.repeat(
+                                          args.density_weighting),
+                                          itertools.repeat(args.include_dps)))
+        pool.close()
+        pool.join()
 
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
