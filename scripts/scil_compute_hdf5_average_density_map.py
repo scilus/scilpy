@@ -107,10 +107,10 @@ def main():
     else:
         pool = multiprocessing.Pool(nbr_cpu)
         _ = pool.map(_average_wrapper,
-                    zip(itertools.repeat(args.in_hdf5),
-                        keys,
-                        itertools.repeat(args.binary),
-                        itertools.repeat(args.out_dir)))
+                     zip(itertools.repeat(args.in_hdf5),
+                         keys,
+                         itertools.repeat(args.binary),
+                         itertools.repeat(args.out_dir)))
         pool.close()
         pool.join()
 
