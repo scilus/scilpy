@@ -270,7 +270,6 @@ def main():
 
     # Define reference image for saving ihMT files
     ref_img = nib.load(maps[4][0])
-    ref_img = np.array(ref_img.dataobj)
 
     # Create contrasts maps folers
     if not os.path.isdir(os.path.join(args.out_dir, 'Contrats_maps')):
