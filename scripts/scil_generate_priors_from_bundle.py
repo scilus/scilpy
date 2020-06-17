@@ -17,7 +17,6 @@ from dipy.reconst.shm import sf_to_sh, sh_to_sf
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_inputs_exist,
@@ -54,10 +53,10 @@ def _build_arg_parser():
                    help='Relative threshold for sf masking (0.0-1.0).')
     p.add_argument('--output_prefix', default='',
                    help='Add a prefix to all output filename, \n'
-                        'default is no prefix.')
+                   'default is no prefix.')
     p.add_argument('--output_dir', default='./',
                    help='Output directory for all generated files,\n'
-                        'default is current directory.')
+                   'default is current directory.')
 
     add_overwrite_arg(p)
 
@@ -81,12 +80,11 @@ def main():
     out_endpoints_mask = os.path.join(args.output_dir,
                                       '{0}endpoints_mask.nii.gz'.format(
                                           args.output_prefix))
+    required = [out_efod, out_priors, out_todi_mask, out_endpoints_mask]
+    assert_outputs_exist(parser, args, required)
 
     if args.output_dir and not os.path.isdir(args.output_dir):
         os.mkdir(args.output_dir)
-
-    required = [out_efod, out_priors, out_todi_mask, out_endpoints_mask]
-    assert_outputs_exist(parser, args, required)
 
     img_sh = nib.load(args.fod_filename)
     sh_shape = img_sh.shape
@@ -108,7 +106,7 @@ def main():
         todi_obj.smooth_todi_spatial(sigma=args.todi_sigma)
 
         # Fancy masking of 1d indices to limit spatial dilation to WM
-        sub_mask_3d = np.logical_and(get_data_as_mask(img_mask),
+        sub_mask_3d = np.logical_and(img_mask.get_data(),
                                      todi_obj.reshape_to_3d(todi_obj.get_mask()))
         sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
         todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
@@ -127,7 +125,7 @@ def main():
     nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
     del priors_3d
 
-    input_sh_3d = img_sh.get_fdata().astype(dtype=np.float32)
+    input_sh_3d = img_sh.get_data().astype(np.float)
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
                            sphere, sh_order=sh_order, basis_type=args.sh_basis)
 
@@ -154,7 +152,7 @@ def main():
 
     endpoints_mask = np.zeros(img_mask.shape, dtype=np.int16)
     for streamline in streamlines:
-        if get_data_as_mask(img_mask)[tuple(streamline[0].astype(np.int16))]:
+        if img_mask.get_data()[tuple(streamline[0].astype(np.int16))]:
             endpoints_mask[tuple(streamline[0].astype(np.int16))] = 1
             endpoints_mask[tuple(streamline[-1].astype(np.int16))] = 1
     nib.save(nib.Nifti1Image(endpoints_mask,
