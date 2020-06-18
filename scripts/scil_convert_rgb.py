@@ -23,8 +23,8 @@ import argparse
 
 from dipy.io.utils import decfa, decfa_to_float
 import nibabel as nib
+import numpy as np
 
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -67,7 +67,7 @@ def main():
     elif original_im.ndim == 3:
         converted_im_float = decfa_to_float(original_im)
 
-        converted_data_int = get_data_as_mask(converted_im_float)
+        converted_data_int = np.asanyarray(converted_im_float.dataobj).astype(np.uint8)
         converted_im = nib.Nifti1Image(converted_data_int,
                                        converted_im_float.affine)
 
