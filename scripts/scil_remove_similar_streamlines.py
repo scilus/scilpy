@@ -141,7 +141,7 @@ def main():
             for split in split_streamlines_list:
                 resulting_streamlines.append(multiprocess_subsampling(
                     [split, args.min_distance, args.clustering_thr,
-                    args.min_cluster_size, args.avg_similar]))
+                     args.min_cluster_size, args.avg_similar]))
         else:
             resulting_streamlines = pool.map(multiprocess_subsampling,
                                              zip(split_streamlines_list,
