@@ -50,7 +50,6 @@ import numpy as np
 from sklearn.neighbors import KDTree
 
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
-from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -131,7 +130,7 @@ def main():
         assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
 
         atlas_img = nib.load(atlas_filepath)
-        atlas_data = get_data_as_label(atlas_img)
+        atlas_data = atlas_img.get_fdata().astype(np.int)
 
         voxels_size = atlas_img.header.get_zooms()[:3]
         if voxels_size[0] != voxels_size[1] or voxels_size[0] != voxels_size[2]:

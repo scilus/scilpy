@@ -33,7 +33,6 @@ import nibabel as nib
 import numpy as np
 from numpy.random import RandomState
 
-from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
@@ -113,8 +112,9 @@ def load_data_tmp_saving(filename, reference, init_only=False,
         # If initilization, loading the data is useless
         if init_only:
             return None
-        density = get_data_as_label(nib.load(tmp_density_filename))
-        endpoints_density = get_data_as_label(nib.load(tmp_endpoints_filename))
+        density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
+        endpoints_density = nib.load(
+            tmp_endpoints_filename).get_fdata().astype(np.uint16)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
