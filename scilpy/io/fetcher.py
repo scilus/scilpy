@@ -25,7 +25,7 @@ def get_testing_files_dict():
              '0c1d3da231d1a8b837b5d756c9170b08'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
-             'f187fe6a1157455236e1d0310c13a454'],
+             '5b92f8041dd748bf59470e8d8429c693'],
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
              '5fbf5c8eaabff2648ad509e06b003e67'],
