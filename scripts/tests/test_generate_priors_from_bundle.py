@@ -27,6 +27,6 @@ def test_execution_bst(script_runner):
                               'mask.nii.gz')
     ret = script_runner.run('scil_generate_priors_from_bundle.py',
                             input_bundle, input_fodf, input_mask,
-                            '--todi_sigma', '1', '--output_prefix', 'rpt_m',
+                            '--todi_sigma', '1', '--out_prefix', 'rpt_m',
                             '--sh_basis', 'descoteaux07')
     assert ret.success
