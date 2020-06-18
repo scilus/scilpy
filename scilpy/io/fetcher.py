@@ -31,7 +31,7 @@ def get_testing_files_dict():
              '5fbf5c8eaabff2648ad509e06b003e67'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
-             'b7795fe362b71a861e6bb1144a171f52'],
+             '1010d01cc31e94c24916267649531e26'],
             'filtering.zip':
             ['1yzHSL4tBtmm_aeI1i0qJhrA9z040k0im',
              'dbe796fb75c3e1e5559fad3308982769'],
