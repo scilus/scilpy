@@ -28,13 +28,13 @@ def get_testing_files_dict():
              'f187fe6a1157455236e1d0310c13a454'],
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
-             '2039ca8c901d00769f49fd15e25eb6ef'],
+             '5fbf5c8eaabff2648ad509e06b003e67'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
-             'b7795fe362b71a861e6bb1144a171f52'],
+             '1010d01cc31e94c24916267649531e26'],
             'filtering.zip':
             ['1yzHSL4tBtmm_aeI1i0qJhrA9z040k0im',
-             'e0c04a98552ef20e16977b6fd13e546e'],
+             'dbe796fb75c3e1e5559fad3308982769'],
             'others.zip':
             ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
              '5b21a05807265ae61d01f95f7f600992'],
@@ -43,7 +43,7 @@ def get_testing_files_dict():
              'da98bcf85a01f2a539a6e628de2114dd'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
-             '839a54adadeb1977edb2a41bc8c88c11'],
+             '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
              'd40e054bab9380233f3776f092ae0b0b'],

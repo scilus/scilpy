@@ -84,12 +84,12 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
     # Load and prepare the data
     reference_img = nib.load(reference_filename)
-    reference_data = reference_img.get_fdata(dtype=np.float32)
+    reference_data = reference_img.get_fdata()
     reference_affine = reference_img.affine
 
     if target_template_filename:
         target_template_img = nib.load(target_template_filename)
-        target_template_data = target_template_img.get_fdata(dtype=np.float32)
+        target_template_data = target_template_img.get_fdata()
         target_template_affine = target_template_img.affine
 
         # Register the DWI data to the template

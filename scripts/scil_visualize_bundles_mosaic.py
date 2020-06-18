@@ -255,7 +255,7 @@ def main():
                 nbr_of_elem = np.count_nonzero(roi)
 
             # Render
-            ren = window.Renderer()
+            ren = window.Scene()
             zoom = args.zoom
             opacity = args.opacity_background
 

@@ -73,7 +73,7 @@ def main():
                                          bbox_check=False)
 
     deformation = nib.load(args.in_deformation)
-    deformation_data = np.squeeze(deformation.get_fdata())
+    deformation_data = np.squeeze(deformation.get_fdata(dtype=np.float32))
 
     if not is_header_compatible(sft, deformation):
         parser.error('Input tractogram/reference do not have the same spatial '

@@ -83,7 +83,7 @@ def main():
     if args.ants_warp:
         # Load warp
         warp_img = nib.load(args.ants_warp)
-        warp = np.squeeze(warp_img.get_fdata(dtype=np.float32))
+        warp = np.squeeze(warp_img.get_fdata())
 
         # Get vertices translation in voxel space, from the warp image
         vts_vox = vtk_u.vtk_to_vox(mesh.get_vertices(), warp_img)
