@@ -35,10 +35,12 @@ from nibabel.streamlines import ArraySequence
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.models import subsample_clusters
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              add_verbose_arg,
                              add_reference_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             validate_nbr_processes)
 from dipy.segment.clustering import qbx_and_merge
 
 
@@ -87,10 +89,9 @@ def _build_arg_parser():
                    help='Average similar streamlines rather than removing them '
                         '[%(default)s]. Requires a small min_distance. '
                         'Allows for some smoothing.')
-    p.add_argument('--processes', type=int, default=1,
-                   help='Number of desired processes [%(default)s].')
 
     add_reference_arg(p)
+    add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
@@ -114,31 +115,44 @@ def main():
     original_length = len(streamlines)
     logging.debug('Loaded {} streamlines...'.format(original_length))
 
-    pool = multiprocessing.Pool(args.processes)
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    pool = multiprocessing.Pool(nbr_cpu)
     timer = time()
 
-    logging.debug('Lauching subsampling on {} processes.'.format(args.processes))
+    logging.debug(
+        'Lauching subsampling on {} processes.'.format(args.nbr_processes))
     last_iteration = False
     while True:
         if len(streamlines) < 1000:
             logging.warning('Subsampling less than 1000 streamlines is risky.')
             break
         current_iteration_length = len(streamlines)
-        skip = int(len(streamlines) / args.processes) + 1
+        skip = int(len(streamlines) / args.nbr_processes) + 1
 
         # Cheap trick to avoid duplication in memory, the pop removes from
         # one list to append it to the other, slower but allows bigger bundles
         split_streamlines_list = []
-        for i in range(args.processes):
+        for i in range(args.nbr_processes):
             split_streamlines_list.append(streamlines[0:skip])
             del streamlines[0:skip]
 
-        resulting_streamlines = pool.map(multiprocess_subsampling,
-                                         zip(split_streamlines_list,
-                                             repeat(args.min_distance),
-                                             repeat(args.clustering_thr),
-                                             repeat(args.min_cluster_size),
-                                             repeat(args.avg_similar)))
+        if nbr_cpu == 1:
+            resulting_streamlines = []
+            for split in split_streamlines_list:
+                resulting_streamlines.append(multiprocess_subsampling(
+                    [split, args.min_distance, args.clustering_thr,
+                    args.min_cluster_size, args.avg_similar]))
+        else:
+            resulting_streamlines = pool.map(multiprocess_subsampling,
+                                             zip(split_streamlines_list,
+                                                 repeat(args.min_distance),
+                                                 repeat(
+                                                     args.clustering_thr),
+                                                 repeat(
+                                                     args.min_cluster_size),
+                                                 repeat(args.avg_similar)))
+            pool.close()
+            pool.join()
 
         # Fused all subprocesses' result together
         streamlines = list(chain(*resulting_streamlines))
@@ -149,14 +163,14 @@ def main():
         if last_iteration and difference_length < args.convergence:
             logging.debug('Before ({})-> After ({}),'
                           'total runtime of {} sec.'.format(
-                           original_length, len(streamlines),
-                           round(time() - timer, 3)))
+                              original_length, len(streamlines),
+                              round(time() - timer, 3)))
             break
         elif difference_length < args.convergence:
             logging.debug('The smart-subsampling converged, below {} '
                           'different streamlines. Adding single-thread'
                           'iteration.'.format(args.convergence))
-            args.processes = 1
+            args.nbr_processes = 1
             last_iteration = True
         else:
             logging.debug('Threshold of convergence was not achieved.'
@@ -166,7 +180,7 @@ def main():
             # Once the streamlines reached a low enough amount, switch to
             # single thread for full comparison
             if len(streamlines) < 10000:
-                args.processes = 1
+                args.nbr_processes = 1
             random.shuffle(streamlines)
 
     # After convergence, we can simply save the output
