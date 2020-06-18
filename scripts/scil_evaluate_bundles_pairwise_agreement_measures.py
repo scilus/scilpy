@@ -110,9 +110,8 @@ def load_data_tmp_saving(args):
         # If initilization, loading the data is useless
         if init_only:
             return None
-        density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
-        endpoints_density = nib.load(
-            tmp_endpoints_filename).get_fdata().astype(np.uint16)
+        density = nib.load(tmp_density_filename).get_fdata(dtype=np.float32)
+        endpoints_density = nib.load(tmp_endpoints_filename).get_fdata(dtype=np.float32)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
