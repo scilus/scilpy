@@ -79,20 +79,20 @@ def main():
 
     exclude_map = csf_pve.get_fdata(dtype=np.float32)
 
-    interface = np.zeros(gm_pve.shape, dtype=np.float32)
+    interface = np.zeros(gm_pve.shape, dtype=np.uint8)
     interface[gm_pve.get_fdata(dtype=np.float32) >= args.int_thres] = 1
     interface[wm_pve.get_fdata(dtype=np.float32) < args.int_thres] = 0
 
     logging.info('The interface "{0}" contains {1} voxels.'.format(
         args.interface, int(np.sum(interface))))
 
-    nib.save(nib.Nifti1Image(include_map, gm_pve.affine, gm_pve.header),
+    nib.save(nib.Nifti1Image(include_map, gm_pve.affine),
              args.include)
 
-    nib.save(nib.Nifti1Image(exclude_map, gm_pve.affine, gm_pve.header),
+    nib.save(nib.Nifti1Image(exclude_map, gm_pve.affine),
              args.exclude)
 
-    nib.save(nib.Nifti1Image(interface, gm_pve.affine, gm_pve.header),
+    nib.save(nib.Nifti1Image(interface, gm_pve.affine),
              args.interface)
 
 
