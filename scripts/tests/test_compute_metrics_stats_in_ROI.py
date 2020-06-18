@@ -21,7 +21,7 @@ def test_execution_tractometry(script_runner):
     input_mask = os.path.join(get_home(), 'tractometry',
                               'IFGWM.nii.gz')
     input_ref = os.path.join(get_home(), 'tractometry',
-                              'mni_masked.nii.gz')
+                             'mni_masked.nii.gz')
     ret = script_runner.run('scil_compute_metrics_stats_in_ROI.py',
                             input_mask, '--metrics', input_ref)
     assert ret.success
