@@ -7,12 +7,8 @@ import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info
-from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import ResampleFeature
-from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
-import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -199,7 +195,7 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
             # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
             final_points = np.array([-1*x_def, -1*y_def, z_def])
             final_points += np.array(points).T
-            
+
             streamlines._data[cur_position:max_position] = final_points.T
             cur_position = max_position
             nb_iteration -= 1
