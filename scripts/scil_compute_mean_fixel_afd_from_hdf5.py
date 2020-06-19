@@ -23,7 +23,6 @@ import multiprocessing
 import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import create_nifti_header
 import h5py
 import nibabel as nib
@@ -55,11 +54,12 @@ def _afd_rd_wrapper(args):
     length_weighting = args[4]
 
     in_hdf5_file = h5py.File(in_hdf5_filename, 'r')
-    print(key)
     affine = in_hdf5_file.attrs['affine']
     dimensions = in_hdf5_file.attrs['dimensions']
     voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
     streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+    in_hdf5_file.close()
+
     header = create_nifti_header(affine, dimensions, voxel_sizes)
     sft = StatefulTractogram(streamlines, header, Space.VOX,
                              origin=Origin.TRACKVIS)
@@ -108,13 +108,14 @@ def main():
 
     nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     in_hdf5_file = h5py.File(args.in_hdf5, 'r')
-    keys = list(in_hdf5_file.keys())
+    keys = list(in_hdf5_file.keys())[0:6]
+    in_hdf5_file.close()
     if nbr_cpu == 1:
         results_list = []
         for key in keys:
             results_list.append(_afd_rd_wrapper([args.in_hdf5, key, fodf_img,
-                                                args.sh_basis,
-                                                args.length_weighting]))
+                                                 args.sh_basis,
+                                                 args.length_weighting]))
 
     else:
         pool = multiprocessing.Pool(nbr_cpu)
@@ -127,17 +128,16 @@ def main():
         pool.close()
         pool.join()
 
-    in_hdf5_file.close()
     shutil.copy(args.in_hdf5, args.out_hdf5)
     out_hdf5_file = h5py.File(args.out_hdf5, 'a')
     for key, afd_fixel, rd_fixel in results_list:
         group = out_hdf5_file[key]
         if 'afd_fixel' in group:
             del group['afd_fixel']
-        group.create_dataset('afd_fixel', data=np.array[afd_fixel])
+        group.create_dataset('afd_fixel', data=afd_fixel)
         if 'rd_fixel' in group:
             del group['rd_fixel']
-        group.create_dataset('rd_fixel', data=np.array[rd_fixel])
+        group.create_dataset('rd_fixel', data=rd_fixel)
     out_hdf5_file.close()
 
 

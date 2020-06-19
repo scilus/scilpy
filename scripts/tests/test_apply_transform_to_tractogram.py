@@ -29,5 +29,6 @@ def test_execution_bst(script_runner):
                               'output1InverseWarp.nii.gz')
     ret = script_runner.run('scil_apply_transform_to_tractogram.py',
                             input_model, input_fa, input_aff, 'rpt_m_warp.trk',
-                            '--inverse', '--in_deformation', input_warp, '--cut')
+                            '--inverse', '--in_deformation', input_warp,
+                            '--cut')
     assert ret.success
