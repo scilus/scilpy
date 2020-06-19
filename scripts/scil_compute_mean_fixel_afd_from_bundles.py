@@ -41,7 +41,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
-    p.add_argument('in_fODF',
+    p.add_argument('in_fodf',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('afd_mean_map',
                    help='Path of the output mean AFD map.')
@@ -62,12 +62,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_fODF])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf])
     assert_outputs_exist(parser, args, [args.afd_mean_map, args.rd_mean_map])
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-
-    fodf_img = nib.load(args.in_fODF)
+    fodf_img = nib.load(args.in_fodf)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft,
                                                           fodf_img,

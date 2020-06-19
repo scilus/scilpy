@@ -18,6 +18,7 @@ the bounding box), three strategies are available:
 
 import argparse
 import logging
+import os
 import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
@@ -78,6 +79,10 @@ def main():
                                  args.in_transfo], args.in_deformation)
     assert_outputs_exist(parser, args, args.out_hdf5)
 
+    # HDF5 will not overwrite the file
+    if os.path.isfile(args.out_hdf5):
+        os.remove(args.out_hdf5)
+
     in_hdf5_file = h5py.File(args.in_hdf5, 'r')
     shutil.copy(args.in_hdf5, args.out_hdf5)
     out_hdf5_file = h5py.File(args.out_hdf5, 'a')
@@ -119,7 +124,9 @@ def main():
         group.create_dataset('offsets', data=new_sft.streamlines._offsets)
         del group['lengths']
         group.create_dataset('lengths', data=new_sft.streamlines._lengths)
+
     in_hdf5_file.close()
+    out_hdf5_file.close()
 
 
 if __name__ == "__main__":
