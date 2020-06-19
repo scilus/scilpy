@@ -37,7 +37,7 @@ def get_testing_files_dict():
              'dbe796fb75c3e1e5559fad3308982769'],
             'others.zip':
             ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
-             '5b21a05807265ae61d01f95f7f600992'],
+             '075deda4532042192c4103df4371ecb4'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
              'da98bcf85a01f2a539a6e628de2114dd'],
@@ -46,7 +46,7 @@ def get_testing_files_dict():
              '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
-             'd40e054bab9380233f3776f092ae0b0b'],
+             '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              'c322114c09767199e91a41cc11794d16']}

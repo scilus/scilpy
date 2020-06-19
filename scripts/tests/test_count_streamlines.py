@@ -8,7 +8,7 @@ from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
 
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['tractometry.zip'])
+fetch_data(get_testing_files_dict(), keys=['others.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -17,9 +17,9 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
+def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM_uni_c.trk')
+    input_bundle = os.path.join(get_home(), 'others',
+                                'IFGWM_sub.trk')
     ret = script_runner.run('scil_count_streamlines.py', input_bundle)
     assert ret.success
