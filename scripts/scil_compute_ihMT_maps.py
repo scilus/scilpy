@@ -147,6 +147,7 @@ def compute_contrasts_maps(echo_images, filtering=None):
     # Apply gaussian filtering if needed
     if filtering:
         h = py_fspecial_gauss((3, 3), 0.5)
+        h = h[:, :, None]
         contrast_map = scipy.ndimage.convolve(contrast_map, h).astype(np.float32)
 
     return contrast_map
