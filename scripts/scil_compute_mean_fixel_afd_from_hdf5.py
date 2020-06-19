@@ -127,9 +127,9 @@ def main():
         pool.close()
         pool.join()
 
+    in_hdf5_file.close()
     shutil.copy(args.in_hdf5, args.out_hdf5)
     out_hdf5_file = h5py.File(args.out_hdf5, 'a')
-
     for key, afd_fixel, rd_fixel in results_list:
         group = out_hdf5_file[key]
         if 'afd_fixel' in group:
@@ -138,8 +138,6 @@ def main():
         if 'rd_fixel' in group:
             del group['rd_fixel']
         group.create_dataset('rd_fixel', data=np.array[rd_fixel])
-
-    in_hdf5_file.close()
     out_hdf5_file.close()
 
 
