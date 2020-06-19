@@ -46,7 +46,7 @@ def get_testing_files_dict():
              '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
-             'd40e054bab9380233f3776f092ae0b0b'],
+             '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              'c99f4617dcbdea5f7a666b33682218de']}
