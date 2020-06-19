@@ -329,7 +329,7 @@ def cut_invalid_streamlines(sft):
 
     copy_sft = copy.deepcopy(sft)
     epsilon = 0.001
-    indices_to_remove, indices_to_keep = copy_sft.remove_invalid_streamlines()
+    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
     new_data_per_point = {}
@@ -366,7 +366,7 @@ def cut_invalid_streamlines(sft):
                 logging.warning('Streamlines entirely out of the volume.')
         else:
             new_streamlines.append(sft.streamlines[ind])
-            for key_dps in sft.data_per_streamline.keys():
+            for key in sft.data_per_streamline.keys():
                 new_data_per_streamline[key].append(
                     sft.data_per_streamline[key][ind])
             for key in sft.data_per_point.keys():

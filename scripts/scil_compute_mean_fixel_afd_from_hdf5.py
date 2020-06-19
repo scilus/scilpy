@@ -93,12 +93,12 @@ def main():
         rd_mean = np.average(rd_mean_map[rd_mean_map > 0])
 
         group = out_hdf5_file[key]
-        if 'afd_mean' in group:
-            del group['afd_mean']
-        group.create_dataset('afd_mean', data=np.ones(len(sft)) * afd_mean)
-        if 'rd_mean' in group:
-            del group['rd_mean']
-        group.create_dataset('rd_mean', data=np.ones(len(sft)) * rd_mean)
+        if 'afd_fixel' in group:
+            del group['afd_fixel']
+        group.create_dataset('afd_fixel', data=afd_mean)
+        if 'rd_fixel' in group:
+            del group['rd_fixel']
+        group.create_dataset('rd_fixel', data=rd_mean)
 
     in_hdf5_file.close()
 
