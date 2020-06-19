@@ -162,8 +162,10 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
     sft.to_center()
     if inverse:
         linear_transfo = np.linalg.inv(linear_transfo)
+
     streamlines = transform_streamlines(sft.streamlines,
                                         linear_transfo)
+
     if deformation_data is not None:
         affine, _, _, _ = get_reference_info(target)
 
@@ -204,7 +206,7 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
     if cut_invalid:
-        new_sft, _ = cut_invalid_streamlines(sft)
+        new_sft, _ = cut_invalid_streamlines(new_sft)
     elif remove_invalid:
         new_sft.remove_invalid_streamlines()
 

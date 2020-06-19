@@ -108,7 +108,7 @@ def main():
 
     nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     in_hdf5_file = h5py.File(args.in_hdf5, 'r')
-    keys = list(in_hdf5_file.keys())[0:6]
+    keys = list(in_hdf5_file.keys())
     in_hdf5_file.close()
     if nbr_cpu == 1:
         results_list = []

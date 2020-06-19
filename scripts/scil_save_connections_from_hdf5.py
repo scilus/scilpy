@@ -60,7 +60,6 @@ def main():
         header = create_nifti_header(affine, dimensions, voxel_sizes)
         sft = StatefulTractogram(streamlines, header, Space.VOX,
                                  origin=Origin.TRACKVIS)
-
         if args.include_dps:
             for dps_key in hdf5_file[key].keys():
                 if dps_key not in ['data', 'offsets', 'lengths']:
