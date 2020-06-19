@@ -5,12 +5,14 @@ from functools import reduce
 import itertools
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
+from dipy.io.utils import get_reference_info
 from dipy.segment.clustering import QuickBundles
 from dipy.segment.metric import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
+import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -129,70 +131,88 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     return streamlines, indices
 
 
-def warp_streamlines(sft, deformation_data, source='ants'):
-    """ Warp tractogram using a deformation map. Apply warp in-place.
-    Support Ants and Dipy deformation map.
+def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
+                               deformation_data=None,
+                               remove_invalid=True, cut_invalid=False):
+    """ Transform tractogram using a affine Subsequently apply a warp from
+    antsRegistration (optional).
+    Remove/Cut invalid streamlines to preserve sft validity.
 
     Parameters
     ----------
     streamlines: list or ArraySequence
         Streamlines as loaded by the nibabel API (RASMM)
-    transfo: numpy.ndarray
-        Transformation matrix to bring streamlines from RASMM to Voxel space
-    deformation_data: numpy.ndarray
-        4D numpy array containing a 3D displacement vector in each voxel
-    source: str
-        Source of the deformation map [ants, dipy]
+    linear_transfo: numpy.ndarray
+        Linear transformation matrix to apply to the tractogram.
+    target: Nifti filepath, image object, header
+        Final reference for the tractogram after registration.
+    inverse: boolean
+        Apply the inverse linear transformation.
+    deformation_data: np.ndarray
+        4D array containing a 3D displacement vector in each voxel.
+
+    remove_invalid: boolean
+        Remove the streamlines landing out of the bounding box.
+    cut_invalid: boolean
+        Cut invalid streamlines rather than removing them. Keep the longest
+        segment only.
+
+    Return
+    ----------
+    new_sft : StatefulTractogram
+
     """
     sft.to_rasmm()
     sft.to_center()
-    streamlines = sft.streamlines
-    transfo = sft.affine
-    if source == 'ants':
-        flip = [-1, -1, 1]
-    elif source == 'dipy':
-        flip = [1, 1, 1]
+    if inverse:
+        linear_transfo = np.linalg.inv(linear_transfo)
+    streamlines = transform_streamlines(sft.streamlines,
+                                        linear_transfo)
+    if deformation_data is not None:
+        affine, _, _, _ = get_reference_info(target)
 
-    # Because of duplication, an iteration over chunks of points is necessary
-    # for a big dataset (especially if not compressed)
-    streamlines = ArraySequence(streamlines)
-    nb_points = len(streamlines._data)
-    cur_position = 0
-    chunk_size = 1000000
-    nb_iteration = int(np.ceil(nb_points/chunk_size))
-    inv_transfo = np.linalg.inv(transfo)
+        # Because of duplication, an iteration over chunks of points is necessary
+        # for a big dataset (especially if not compressed)
+        streamlines = ArraySequence(streamlines)
+        nb_points = len(streamlines._data)
+        cur_position = 0
+        chunk_size = 1000000
+        nb_iteration = int(np.ceil(nb_points/chunk_size))
+        inv_affine = np.linalg.inv(affine)
 
-    while nb_iteration > 0:
-        max_position = min(cur_position + chunk_size, nb_points)
-        points = streamlines._data[cur_position:max_position]
+        while nb_iteration > 0:
+            max_position = min(cur_position + chunk_size, nb_points)
+            points = streamlines._data[cur_position:max_position]
 
-        # To access the deformation information, we need to go in voxel space
-        # No need for corner shift since we are doing interpolation
-        cur_points_vox = np.array(transform_streamlines(points,
-                                                        inv_transfo)).T
+            # To access the deformation information, we need to go in voxel space
+            # No need for corner shift since we are doing interpolation
+            cur_points_vox = np.array(transform_streamlines(points,
+                                                            inv_affine)).T
 
-        x_def = map_coordinates(deformation_data[..., 0],
-                                cur_points_vox.tolist(), order=1)
-        y_def = map_coordinates(deformation_data[..., 1],
-                                cur_points_vox.tolist(), order=1)
-        z_def = map_coordinates(deformation_data[..., 2],
-                                cur_points_vox.tolist(), order=1)
+            x_def = map_coordinates(deformation_data[..., 0],
+                                    cur_points_vox.tolist(), order=1)
+            y_def = map_coordinates(deformation_data[..., 1],
+                                    cur_points_vox.tolist(), order=1)
+            z_def = map_coordinates(deformation_data[..., 2],
+                                    cur_points_vox.tolist(), order=1)
 
-        # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
-        final_points = np.array([flip[0]*x_def, flip[1]*y_def, flip[2]*z_def])
-
-        # The Ants deformation is relative to world space
-        if source == 'ants':
+            # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
+            final_points = np.array([-1*x_def, -1*y_def, z_def])
             final_points += np.array(points).T
-        # Dipy transformation is relative to vox space
-        elif source == 'dipy':
-            final_points += cur_points_vox
-            transform_streamlines(final_points, transfo, in_place=True)
-        streamlines._data[cur_position:max_position] = final_points.T
-        cur_position = max_position
-        nb_iteration -= 1
+            
+            streamlines._data[cur_position:max_position] = final_points.T
+            cur_position = max_position
+            nb_iteration -= 1
 
-        return streamlines
+    new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
+                                 data_per_point=sft.data_per_point,
+                                 data_per_streamline=sft.data_per_streamline)
+    if cut_invalid:
+        new_sft, _ = cut_invalid_streamlines(sft)
+    elif remove_invalid:
+        new_sft.remove_invalid_streamlines()
+
+    return new_sft
 
 
 def filter_tractogram_data(tractogram, streamline_ids):

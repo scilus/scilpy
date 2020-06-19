@@ -18,12 +18,17 @@ the bounding box), three strategies are available:
 
 import argparse
 import logging
+import shutil
 
+from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import create_nifti_header, get_reference_info
+import h5py
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -37,7 +42,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('in_moving_tractogram',
+    p.add_argument('in_hdf5',
                    help='Path of the tractogram to be transformed.')
     p.add_argument('in_target_file',
                    help='Path of the reference target file (trk or nii).')
@@ -45,7 +50,7 @@ def _build_arg_parser():
                    help='Path of the file containing the 4x4 \n'
                         'transformation, matrix (.txt, .npy or .mat).\n'
                         'See the script description for more information.')
-    p.add_argument('out_tractogram',
+    p.add_argument('out_hdf5',
                    help='Output tractogram filename (transformed data).')
 
     p.add_argument('--inverse', action='store_true',
@@ -56,13 +61,8 @@ def _build_arg_parser():
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--cut_invalid', action='store_true',
                          help='Cut invalid streamlines rather than removing '
-                              'them.\nKeep the longest segment only.')
-    invalid.add_argument('--remove_invalid', action='store_true',
-                         help='Remove the streamlines landing out of the '
-                              'bounding box.')
-    invalid.add_argument('--keep_invalid', action='store_true',
-                         help='Keep the streamlines landing out of the '
-                              'bounding box.')
+                              'them.\nKeep the longest segment only.\n'
+                              'By default, invalid streamline are removed.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -74,33 +74,52 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_moving_tractogram, args.in_target_file,
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_target_file,
                                  args.in_transfo], args.in_deformation)
-    assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_outputs_exist(parser, args, args.out_hdf5)
 
-    moving_sft = load_tractogram_with_reference(parser, args,
-                                                args.in_moving_tractogram,
-                                                bbox_check=False)
-
+    in_hdf5_file = h5py.File(args.in_hdf5, 'r')
+    shutil.copy(args.in_hdf5, args.out_hdf5)
+    out_hdf5_file = h5py.File(args.out_hdf5, 'a')
     transfo = load_matrix_in_any_format(args.in_transfo)
+
     deformation_data = None
     if args.in_deformation is not None:
         deformation_data = np.squeeze(nib.load(
             args.in_deformation).get_fdata(dtype=np.float32))
+    target_img = nib.load(args.in_target_file)
 
-    new_sft = transform_warp_streamlines(moving_sft, transfo,
-                                         args.in_target_file,
-                                         inverse=args.inverse,
-                                         deformation_data=deformation_data,
-                                         remove_invalid=args.remove_invalid,
-                                         cut_invalid=args.cut_invalid)
+    for key in in_hdf5_file.keys():
+        affine = in_hdf5_file.attrs['affine']
+        dimensions = in_hdf5_file.attrs['dimensions']
+        voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
+        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+        header = create_nifti_header(affine, dimensions, voxel_sizes)
+        moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
+                                        origin=Origin.TRACKVIS)
 
-    if args.keep_invalid:
-        if not new_sft.is_bbox_in_vox_valid():
-            logging.warning('Saving tractogram with invalid streamlines.')
-        save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
-    else:
-        save_tractogram(new_sft, args.out_tractogram)
+        new_sft = transform_warp_streamlines(moving_sft, transfo, target_img,
+                                             inverse=args.inverse,
+                                             deformation_data=deformation_data,
+                                             remove_invalid=not args.cut_invalid,
+                                             cut_invalid=args.cut_invalid)
+        new_sft.to_vox()
+        new_sft.to_corner()
+
+        affine, dimensions, voxel_sizes, voxel_order = get_reference_info(target_img)
+        out_hdf5_file.attrs['affine'] = affine
+        out_hdf5_file.attrs['dimensions'] = dimensions
+        out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
+        out_hdf5_file.attrs['voxel_order'] = voxel_order
+
+        group = out_hdf5_file[key]
+        del group['data']
+        group.create_dataset('data', data=new_sft.streamlines.get_data())
+        del group['offsets']
+        group.create_dataset('offsets', data=new_sft.streamlines._offsets)
+        del group['lengths']
+        group.create_dataset('lengths', data=new_sft.streamlines._lengths)
+    in_hdf5_file.close()
 
 
 if __name__ == "__main__":

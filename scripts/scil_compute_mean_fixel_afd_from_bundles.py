@@ -49,7 +49,7 @@ def _build_arg_parser():
                    help='Path of the output mean radfODF map.')
 
     p.add_argument('--length_weighting', action='store_true',
-                   help='if set, will weigh the AFD values according to '
+                   help='If set, will weigh the AFD values according to '
                         'segment lengths. [%(default)s]')
 
     add_reference_arg(p)
