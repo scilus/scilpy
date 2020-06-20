@@ -130,21 +130,22 @@ def _processing_wrapper(args):
         measures_to_compute.remove('similarity')
 
     for measure in measures_to_compute:
-        if os.path.isdir(measure):
+        if isinstance(measure, str) and os.path.isdir(measure):
             map_dirname = measure
             map_data = load_node_nifti(map_dirname,
                                        in_label, out_label,
                                        labels_img)
             measures_to_return[map_dirname] = np.average(
                 map_data[map_data > 0])
-        elif os.path.isfile(measure):
-            metric_filename = measure
-            if not is_header_compatible(metric_filename, labels_img):
+        elif isinstance(measure, tuple) and os.path.isfile(measure[0]):
+            metric_filename = measure[0]
+            metric_img = measure[1]
+            if not is_header_compatible(metric_img, labels_img):
                 logging.error('{} do not have a compatible header'.format(
                     metric_filename))
                 raise IOError
 
-            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float64)
+            metric_data = metric_img.get_fdata(dtype=np.float64)
             if weighted:
                 density = density / np.max(density)
                 voxels_value = metric_data * density
@@ -257,7 +258,7 @@ def main():
                               'header'.format(args.metrics[0][0], in_name))
 
             # This is necessary to support more than one map for weighting
-            measures_to_compute.append(in_name)
+            measures_to_compute.append((in_name, nib.load(in_name)))
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
@@ -265,8 +266,9 @@ def main():
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing '
                      'to compute.')
+
     logging.info('The following measures will be computed and save: {}'.format(
-        measures_to_compute))
+        measures_output_filename))
 
     if args.include_dps:
         if not os.path.isdir(args.include_dps):
