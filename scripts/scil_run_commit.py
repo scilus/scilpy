@@ -141,9 +141,6 @@ def _build_arg_parser():
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
                       help='Input directory where the COMMIT kernels are '
                            'located.')
-    kern.add_argument('--build_dir', metavar='DIRECTORY',
-                      help='Build directory where the COMMIT operator are '
-                           'build\n(Only for singularity usage).')
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -300,8 +297,8 @@ def main():
         mit.load_kernels()
         mit.load_dictionary(tmp_dir.name)
         mit.set_threads(args.nbr_processes)
-        build_dir = args.build_dir if args.build_dir is not None else tmp_dir.name
-        mit.build_operator(build_dir=build_dir)
+
+        mit.build_operator(build_dir=tmp_dir.name)
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
 
