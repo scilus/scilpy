@@ -165,8 +165,7 @@ def main():
                                  args.in_bval, args.in_bvec],
                         [args.in_peaks, args.in_tracking_mask])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
-                                       optional=[args.save_kernels,
-                                                 args.build_dir])
+                                       optional=args.save_kernels)
 
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
