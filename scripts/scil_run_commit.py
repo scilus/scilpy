@@ -296,7 +296,7 @@ def main():
         mit.load_kernels()
         mit.load_dictionary(tmp_dir.name)
         mit.set_threads(args.nbr_processes)
-        mit.build_operator()
+        mit.build_operator(build_dir=tmp_dir.name)
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
 

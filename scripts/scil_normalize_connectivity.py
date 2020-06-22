@@ -178,8 +178,9 @@ def main():
 
         for pos_1, pos_2 in all_comb:
             factor = factor_list[pos_1] + factor_list[pos_2]
-            out_matrix[pos_1, pos_2] /= factor
-            out_matrix[pos_2, pos_1] /= factor
+            if abs(factor) > 0.001:
+                out_matrix[pos_1, pos_2] /= factor
+                out_matrix[pos_2, pos_1] /= factor
 
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:

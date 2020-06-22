@@ -79,14 +79,12 @@ def _build_arg_parser():
     return p
 
 
-def load_data_tmp_saving_wrapper(args):
-    load_data_tmp_saving(args[0][0], args[0][1],
-                         init_only=args[1],
-                         disable_centroids=args[2])
+def load_data_tmp_saving(args):
+    filename = args[0]
+    reference = args[1]
+    init_only = args[2]
+    disable_centroids = args[3]
 
-
-def load_data_tmp_saving(filename, reference, init_only=False,
-                         disable_centroids=False):
     # Since data is often re-use when comparing multiple bundles, anything
     # that can be computed once is saved temporarily and simply loaded on demand
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
@@ -112,9 +110,8 @@ def load_data_tmp_saving(filename, reference, init_only=False,
         # If initilization, loading the data is useless
         if init_only:
             return None
-        density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
-        endpoints_density = nib.load(
-            tmp_endpoints_filename).get_fdata().astype(np.uint16)
+        density = nib.load(tmp_density_filename).get_fdata(dtype=np.float32)
+        endpoints_density = nib.load(tmp_endpoints_filename).get_fdata(dtype=np.float32)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
@@ -157,18 +154,16 @@ def compute_all_measures(args):
         raise ValueError('{} and {} have incompatible headers'.format(
             filename_1, filename_2))
 
-    data_tuple_1 = load_data_tmp_saving(
-        filename_1, reference_1,
-        disable_centroids=disable_streamline_distance)
+    data_tuple_1 = load_data_tmp_saving([filename_1, reference_1, False,
+                                         disable_streamline_distance])
     if data_tuple_1 is None:
         return None
 
     density_1, endpoints_density_1, bundle_1, \
         centroids_1 = data_tuple_1
 
-    data_tuple_2 = load_data_tmp_saving(
-        filename_2, reference_2,
-        disable_centroids=disable_streamline_distance)
+    data_tuple_2 = load_data_tmp_saving([filename_2, reference_2, False,
+                                         disable_streamline_distance])
     if data_tuple_2 is None:
         return None
 
@@ -271,8 +266,6 @@ def main():
     if not os.path.isdir('tmp_measures/'):
         os.mkdir('tmp_measures/')
 
-    pool = multiprocessing.Pool(nbr_cpu)
-
     if args.single_compare:
         # Move the single_compare only once, at the end.
         if args.single_compare in args.in_bundles:
@@ -291,20 +284,38 @@ def main():
         bundles_references_tuple = link_bundles_and_reference(parser,
                                                               args,
                                                               bundles_list)
-        pool.map(load_data_tmp_saving_wrapper,
-                 zip(bundles_references_tuple,
-                     itertools.repeat(True),
-                     itertools.repeat(args.disable_streamline_distance)))
+
+        # This approach is only so pytest can run
+        if nbr_cpu == 1:
+            for i in range(len(bundles_references_tuple)):
+                load_data_tmp_saving([bundles_references_tuple[i][0],
+                                      bundles_references_tuple[i][1],
+                                      True, args.disable_streamline_distance])
+        else:
+            pool = multiprocessing.Pool(nbr_cpu)
+            pool.map(load_data_tmp_saving,
+                     zip([tup[0] for tup in bundles_references_tuple],
+                         [tup[1] for tup in bundles_references_tuple],
+                         itertools.repeat(True),
+                         itertools.repeat(args.disable_streamline_distance)))
 
         comb_dict_keys = list(itertools.combinations(
             bundles_references_tuple, r=2))
 
-    all_measures_dict = pool.map(compute_all_measures,
-                                 zip(comb_dict_keys,
-                                     itertools.repeat(args.streamline_dice),
-                                     itertools.repeat(args.disable_streamline_distance)))
-    pool.close()
-    pool.join()
+    if nbr_cpu == 1:
+        all_measures_dict = []
+        for i in comb_dict_keys:
+            all_measures_dict.append(compute_all_measures([
+                i, args.streamline_dice, args.disable_streamline_distance]))
+    else:
+        all_measures_dict = pool.map(
+            compute_all_measures,
+            zip(comb_dict_keys,
+                itertools.repeat(
+                    args.streamline_dice),
+                itertools.repeat(args.disable_streamline_distance)))
+        pool.close()
+        pool.join()
 
     output_measures_dict = {}
     for measure_dict in all_measures_dict:

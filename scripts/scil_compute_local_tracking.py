@@ -34,6 +34,7 @@ import numpy as np
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
@@ -46,16 +47,16 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p._optionals.title = 'Generic options'
-    p.add_argument('sh_file',
+    p.add_argument('in_sh',
                    help='Spherical harmonic file. \n'
                         '(isotropic resolution, nifti, see --basis).')
-    p.add_argument('seed_file',
+    p.add_argument('in_seed',
                    help='Seeding mask (isotropic resolution, nifti).')
-    p.add_argument('mask_file',
+    p.add_argument('in_mask',
                    help='Seeding mask(isotropic resolution, nifti).\n' +
                         'Tracking will stop outside this mask.')
-    p.add_argument('output_file',
-                   help='Streamline output file (must be trk or tck).')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be trk or tck).')
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument(
@@ -118,7 +119,7 @@ def _build_arg_parser():
 
 
 def _get_direction_getter(args, mask_data):
-    sh_data = nib.load(args.sh_file).get_fdata()
+    sh_data = nib.load(args.in_sh).get_fdata(dtype=np.float32)
     sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
     theta = get_theta(args.theta, args.algo)
 
@@ -171,12 +172,12 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    assert_inputs_exist(parser, [args.sh_file, args.seed_file, args.mask_file])
-    assert_outputs_exist(parser, args, args.output_file)
+    assert_inputs_exist(parser, [args.in_sh, args.in_seed, args.in_mask])
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not nib.streamlines.is_supported(args.output_file):
+    if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.output_file))
+                     'tck): {0}'.format(args.out_tractogram))
 
     if not args.min_length > 0:
         parser.error('minL must be > 0, {}mm was provided.'
@@ -199,13 +200,13 @@ def main():
     if args.nt and args.nt <= 0:
         parser.error('Total number of seeds must be > 0.')
 
-    mask_img = nib.load(args.mask_file)
-    mask_data = mask_img.get_fdata()
+    mask_img = nib.load(args.in_mask)
+    mask_data = get_data_as_mask(mask_img, dtype=np.bool)
 
     # Make sure the mask is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results.
-    fodf_sh_img = nib.load(args.sh_file)
+    fodf_sh_img = nib.load(args.in_sh)
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
                        fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
         parser.error(
@@ -223,9 +224,9 @@ def main():
 
     voxel_size = fodf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.seed_file)
+    seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_fdata(),
+        seed_img.get_fdata(dtype=np.float32),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
@@ -266,12 +267,12 @@ def main():
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
-    filetype = nib.streamlines.detect_format(args.output_file)
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
     reference = get_reference_info(seed_img)
     header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.output_file, header=header)
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
 if __name__ == '__main__':
