@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Transform tractogram using an affine/rigid transformation.
+Transform tractogram using an affine/rigid transformation and nonlinear
+deformation (optional).
 
-For more information on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file
+For more information on how to use the registration script, follow this link:
+https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Applying transformation to tractogram can lead to invalid streamlines (out of
 the bounding box), three strategies are available:
@@ -14,6 +15,7 @@ the bounding box), three strategies are available:
     scil_remove_invalid_streamlines.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines.
+4) --cut_invalid, automatically cut invalid streamlines before saving.
 """
 
 import argparse
@@ -29,8 +31,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import (transform_warp_streamlines,
-                                      cut_invalid_streamlines)
+from scilpy.utils.streamlines import transform_warp_streamlines
 
 
 def _build_arg_parser():
@@ -74,7 +75,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_moving_tractogram, args.in_target_file,
+    assert_inputs_exist(parser, [args.in_moving_tractogram,
+                                 args.in_target_file,
                                  args.in_transfo], args.in_deformation)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
