@@ -138,10 +138,8 @@ def main():
         intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
                                         np.linspace(0.09, 0.99, 10)))
 
-        ae.model.set(args.para_diff,
-                     args.iso_diff,
-                     intra_vol_frac,
-                     intra_orient_distr,
+        ae.model.set(args.para_diff, args.iso_diff,
+                     intra_vol_frac, intra_orient_distr,
                      False)
         ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
 

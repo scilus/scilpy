@@ -88,7 +88,7 @@ def _build_arg_parser():
 
     p.add_argument('--b_thr', type=int, default=40,
                    help='Limit value to consider that a b-value is on an '
-                        'existing shell. Above this limit, the b-value is '
+                        'existing shell.\nAbove this limit, the b-value is '
                         'placed on a new shell. This includes b0s values.')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
@@ -234,7 +234,7 @@ def main():
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
                                                        args.b_thr,
                                                        roundCentroids=True)
