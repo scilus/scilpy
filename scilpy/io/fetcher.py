@@ -25,10 +25,13 @@ def get_testing_files_dict():
              '0c1d3da231d1a8b837b5d756c9170b08'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
-             '5b92f8041dd748bf59470e8d8429c693'],
+             'c0551a28dcefcd7cb53f572b1794b3e8'],
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
              '5fbf5c8eaabff2648ad509e06b003e67'],
+            'commit_amico.zip':
+            ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
+             '4a0ac321fb7353f9bba5315e529706f6'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '1010d01cc31e94c24916267649531e26'],
@@ -40,7 +43,7 @@ def get_testing_files_dict():
              '075deda4532042192c4103df4371ecb4'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
-             'da98bcf85a01f2a539a6e628de2114dd'],
+             'ffaddcbe7f6d67e83ed82c4a148b0c6a'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '946beb4271b905a2bd69ad2d80136ca9'],
@@ -49,7 +52,7 @@ def get_testing_files_dict():
              '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
-             'c99f4617dcbdea5f7a666b33682218de']}
+             'c322114c09767199e91a41cc11794d16']}
 
 
 def _get_file_md5(filename):
@@ -76,10 +79,9 @@ def check_md5(filename, stored_md5=None):
     """
     if stored_md5 is not None:
         computed_md5 = _get_file_md5(filename)
-        print(computed_md5)
         if stored_md5 != computed_md5:
-            raise ValueError(
-                '{} does not have the expected md5'.format(filename))
+            return False
+    return True
 
 
 def _unzip(zip_file, folder):
@@ -117,21 +119,31 @@ def fetch_data(files_dict, keys=None):
     elif isinstance(keys, str):
         keys = [keys]
     for f in keys:
-        to_unzip[f] = False
-        url, md5 = files_dict[f]
-        full_path = os.path.join(scilpy_home, f)
+        tryout = 0
+        while tryout < 3:
+            to_unzip[f] = False
+            url, md5 = files_dict[f]
+            full_path = os.path.join(scilpy_home, f)
 
-        # Zip file already exists and has the right md5sum
-        if os.path.exists(full_path) and (_get_file_md5(full_path) == md5):
-            continue
+            # Zip file already exists and has the right md5sum
+            if os.path.exists(full_path) and (_get_file_md5(full_path) == md5):
+                break
+            elif os.path.exists(full_path):
+                if tryout > 0:
+                    logging.error('Wrong md5sum after {} attemps for {}'.format(
+                        tryout+1, full_path))
+                os.remove(full_path)
 
-        # If we re-download, we re-extract
-        to_unzip[f] = True
-        logging.info('Downloading {} to {}'.format(f, scilpy_home))
-        gdd.download_file_from_google_drive(file_id=url,
-                                            dest_path=full_path,
-                                            unzip=False)
-        check_md5(full_path, md5)
+            # If we re-download, we re-extract
+            to_unzip[f] = True
+            logging.info('Downloading {} to {}'.format(f, scilpy_home))
+            gdd.download_file_from_google_drive(file_id=url,
+                                                dest_path=full_path,
+                                                unzip=False)
+            if check_md5(full_path, md5):
+                break
+            else:
+                tryout += 1
 
     for f in keys:
         target_zip = os.path.join(scilpy_home, f)

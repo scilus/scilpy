@@ -31,21 +31,21 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('dwi',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bval',
+    p.add_argument('in_bval',
                    help='Path of the bval file, in FSL format.')
-    p.add_argument('bvec',
+    p.add_argument('in_bvec',
                    help='Path of the bvec file, in FSL format.')
-    p.add_argument('target_template',
+    p.add_argument('in_template',
                    help='Path to the target MNI152 template for registration,\n'
                         'use the one provided online.')
     p.add_argument('--shells', type=int, nargs='+',
                    help='Shells to use for DTI fit (usually below 1200), '
                         'b0 must be listed.')
-    p.add_argument('--output_suffix',
+    p.add_argument('--out_suffix',
                    help='Add a suffix to the output, else the axis name is used.')
-    p.add_argument('--output_dir', default='',
+    p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
     add_overwrite_arg(p)
 
@@ -140,27 +140,27 @@ def prepare_slices_mask(mask_data, x_slice, y_slice, z_slice):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    required = [args.dwi, args.bval, args.bvec, args.target_template]
+    required = [args.in_dwi, args.in_bval, args.in_bvec, args.in_template]
     assert_inputs_exist(parser, required)
 
     output_filenames = []
     for axis_name in ['sagittal', 'coronal', 'axial']:
-        if args.output_suffix:
-            output_filenames.append(os.path.join(args.output_dir,
+        if args.out_suffix:
+            output_filenames.append(os.path.join(args.out_dir,
                                                  '{0}_{1}.png'.format(
                                                      axis_name,
-                                                     args.output_suffix)))
+                                                     args.out_suffix)))
         else:
-            output_filenames.append(os.path.join(args.output_dir,
+            output_filenames.append(os.path.join(args.out_dir,
                                                  '{0}.png'.format(axis_name)))
+
+    if args.out_dir and not os.path.isdir(args.out_dir):
+        os.mkdir(args.out_dir)
 
     assert_outputs_exist(parser, args, output_filenames)
 
-    if args.output_dir and not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
-
     # Get the relevant slices from the template
-    target_template_img = nib.load(args.target_template)
+    target_template_img = nib.load(args.in_template)
     zooms = 1 / float(target_template_img.header.get_zooms()[0])
 
     x_slice = int(target_template_img.shape[0] / 2 + zooms*30)
@@ -168,19 +168,19 @@ def main():
     z_slice = int(target_template_img.shape[2] / 2)
     slices_choice = (x_slice, y_slice, z_slice)
 
-    FA, evals, evecs = prepare_data_for_actors(args.dwi, args.bval, args.bvec,
-                                               args.target_template,
+    FA, evals, evecs = prepare_data_for_actors(args.in_dwi, args.in_bval, args.in_bvec,
+                                               args.in_template,
                                                slices_choice,
                                                shells=args.shells)
 
     # Create actors from each dataset for Dipy
     volume_actor = actor.slicer(FA,
-                                affine=nib.load(args.target_template).affine,
+                                affine=nib.load(args.in_template).affine,
                                 opacity=0.3,
                                 interpolation='nearest')
     peaks_actor = actor.peak_slicer(evecs,
                                     affine=nib.load(
-                                        args.target_template).affine,
+                                        args.in_template).affine,
                                     peaks_values=evals,
                                     colors=None, linewidth=1)
 
