@@ -29,7 +29,6 @@ def test_execution_commit_amico(script_runner):
     ret = script_runner.run('scil_compute_freewater.py', in_dwi,
                             in_bval, in_bvec, '--in_mask', in_mask,
                             '--out_dir', 'freewater/', '--b_thr', '30',
-                            '--save_kernels', 'kernels_freewater/',
                             '--para_diff', '0.0015',
                             '--perp_diff_min', '0.0001',
                             '--perp_diff_max', '0.0007',

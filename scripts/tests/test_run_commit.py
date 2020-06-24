@@ -32,7 +32,6 @@ def test_execution_commit_amico(script_runner):
                             'peaks.nii.gz')
     ret = script_runner.run('scil_run_commit.py', in_tracking, in_dwi,
                             in_bval, in_bvec, 'results_bzs/',
-                            '--save_kernel', 'kernels_commit/',
                             '--b_thr', '30', '--nbr_dir', '500',
                             '--nbr_iter', '500', '--in_peaks', in_peaks,
                             '--in_tracking_mask', in_mask,

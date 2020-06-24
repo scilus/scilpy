@@ -62,7 +62,7 @@ def _build_arg_parser():
                     help='Axial diffusivity (AD) in the CC. [%(default)s]')
     g1.add_argument('--iso_diff', type=float, default=3e-3,
                     help='Mean diffusivity (MD) in ventricles. [%(default)s]')
-    g1.add_argument('--lambda1', type=float, default=2,
+    g1.add_argument('--lambda1', type=float, default=5e-1,
                     help='First regularization parameter. [%(default)s]')
     g1.add_argument('--lambda2', type=float, default=1e-3,
                     help='Second regularization parameter. [%(default)s]')
