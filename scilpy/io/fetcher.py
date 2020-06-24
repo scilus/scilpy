@@ -134,11 +134,8 @@ def fetch_data(files_dict, keys=None):
                                                 dest_path=full_path,
                                                 unzip=False)
             if check_md5(full_path, md5):
-                print(tryout)
                 break
             else:
-                os.remove(full_path)
-                print('das', full_path)
                 tryout += 1
 
     for f in keys:
