@@ -29,9 +29,6 @@ def get_testing_files_dict():
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
              '5fbf5c8eaabff2648ad509e06b003e67'],
-            'commit_amico.zip':
-            ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
-             '4a0ac321fb7353f9bba5315e529706f6'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '1010d01cc31e94c24916267649531e26'],
