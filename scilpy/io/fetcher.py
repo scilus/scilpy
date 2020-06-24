@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import shutil
+import sys
 import zipfile
 
 from google_drive_downloader import GoogleDriveDownloader as gdd
@@ -76,10 +77,9 @@ def check_md5(filename, stored_md5=None):
     """
     if stored_md5 is not None:
         computed_md5 = _get_file_md5(filename)
-        print(computed_md5)
         if stored_md5 != computed_md5:
-            raise ValueError(
-                '{} does not have the expected md5'.format(filename))
+            return False
+    return True
 
 
 def _unzip(zip_file, folder):
@@ -117,21 +117,29 @@ def fetch_data(files_dict, keys=None):
     elif isinstance(keys, str):
         keys = [keys]
     for f in keys:
-        to_unzip[f] = False
-        url, md5 = files_dict[f]
-        full_path = os.path.join(scilpy_home, f)
+        tryout = 0
+        while tryout < 3:
+            to_unzip[f] = False
+            url, md5 = files_dict[f]
+            full_path = os.path.join(scilpy_home, f)
 
-        # Zip file already exists and has the right md5sum
-        if os.path.exists(full_path) and (_get_file_md5(full_path) == md5):
-            continue
+            # Zip file already exists and has the right md5sum
+            if os.path.exists(full_path) and (_get_file_md5(full_path) == md5):
+                break
 
-        # If we re-download, we re-extract
-        to_unzip[f] = True
-        logging.info('Downloading {} to {}'.format(f, scilpy_home))
-        gdd.download_file_from_google_drive(file_id=url,
-                                            dest_path=full_path,
-                                            unzip=False)
-        check_md5(full_path, md5)
+            # If we re-download, we re-extract
+            to_unzip[f] = True
+            logging.info('Downloading {} to {}'.format(f, scilpy_home))
+            gdd.download_file_from_google_drive(file_id=url,
+                                                dest_path=full_path,
+                                                unzip=False)
+            if check_md5(full_path, md5):
+                print(tryout)
+                break
+            else:
+                os.remove(full_path)
+                print('das', full_path)
+                tryout += 1
 
     for f in keys:
         target_zip = os.path.join(scilpy_home, f)
