@@ -17,7 +17,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_bst(script_runner):
+def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
                           'dwi_crop.nii.gz')
