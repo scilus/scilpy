@@ -31,7 +31,7 @@ def get_testing_files_dict():
              '5fbf5c8eaabff2648ad509e06b003e67'],
             'commit_amico.zip':
             ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
-             '0dba275727a1cc3aead7280c37969350'],
+             '4a0ac321fb7353f9bba5315e529706f6'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '1010d01cc31e94c24916267649531e26'],
