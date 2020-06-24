@@ -126,9 +126,13 @@ def fetch_data(files_dict, keys=None):
             # Zip file already exists and has the right md5sum
             if os.path.exists(full_path) and (_get_file_md5(full_path) == md5):
                 break
+            else:
+                logging.error('Wrong md5sum after 3 attemps for {}'.format(
+                    full_path))
+                os.remove(full_path)
 
             # If we re-download, we re-extract
-            to_unzip[f] = True
+            to_unzip[f]=True
             logging.info('Downloading {} to {}'.format(f, scilpy_home))
             gdd.download_file_from_google_drive(file_id=url,
                                                 dest_path=full_path,
@@ -139,8 +143,8 @@ def fetch_data(files_dict, keys=None):
                 tryout += 1
 
     for f in keys:
-        target_zip = os.path.join(scilpy_home, f)
-        target_dir = os.path.splitext(os.path.join(scilpy_home,
+        target_zip=os.path.join(scilpy_home, f)
+        target_dir=os.path.splitext(os.path.join(scilpy_home,
                                                    os.path.basename(f)))[0]
 
         if os.path.isdir(target_dir):
