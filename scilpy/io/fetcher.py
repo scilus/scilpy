@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import shutil
+from time import sleep
 import zipfile
 
 from google_drive_downloader import GoogleDriveDownloader as gdd
@@ -120,7 +121,7 @@ def fetch_data(files_dict, keys=None):
         keys = [keys]
     for f in keys:
         tryout = 0
-        while tryout < 3:
+        while tryout < 5:
             to_unzip[f] = False
             url, md5 = files_dict[f]
             full_path = os.path.join(scilpy_home, f)
@@ -144,6 +145,7 @@ def fetch_data(files_dict, keys=None):
                 break
             else:
                 tryout += 1
+                sleep(10)
 
     for f in keys:
         target_zip = os.path.join(scilpy_home, f)
