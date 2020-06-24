@@ -79,7 +79,7 @@ def _build_arg_parser():
 
     g = p.add_argument_group(title='File flags')
     g.add_argument(
-        '--afd', metavar='file', default='',
+        '--afd_max', metavar='file', default='',
         help='Output filename for the AFD_max map.')
     g.add_argument(
         '--afd_total', metavar='file', default='',
@@ -111,7 +111,7 @@ def main():
     args = parser.parse_args()
 
     if not args.not_all:
-        args.afd = args.afd or 'afd_max.nii.gz'
+        args.afd_max = args.afd_max or 'afd_max.nii.gz'
         args.afd_total = args.afd_total or 'afd_total_sh0.nii.gz'
         args.afd_sum = args.afd_sum or 'afd_sum.nii.gz'
         args.nufo = args.nufo or 'nufo.nii.gz'
@@ -120,7 +120,7 @@ def main():
         args.peak_values = args.peak_values or 'peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'peak_indices.nii.gz'
 
-    arglist = [args.afd, args.afd_total, args.afd_sum, args.nufo,
+    arglist = [args.afd_max, args.afd_total, args.afd_sum, args.nufo,
                args.rgb, args.peaks, args.peak_values,
                args.peak_indices]
     if args.not_all and not any(arglist):
@@ -166,9 +166,9 @@ def main():
         nib.save(nib.Nifti1Image(nufo_map.astype(np.float32),
                                  affine), args.nufo)
 
-    if args.afd:
+    if args.afd_max:
         nib.save(nib.Nifti1Image(afd_max.astype(np.float32),
-                                 affine), args.afd)
+                                 affine), args.afd_max)
 
     if args.afd_total:
         # this is the analytical afd total
