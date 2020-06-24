@@ -20,7 +20,7 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(get_home(), 'processing',
-                           '1000.b')
+                               '1000.b')
     ret = script_runner.run('scil_convert_gradients_mrtrix_to_fsl.py',
                             in_encoding, '1000.bval', '1000.bvec')
     assert ret.success

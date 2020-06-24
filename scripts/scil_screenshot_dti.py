@@ -168,7 +168,8 @@ def main():
     z_slice = int(target_template_img.shape[2] / 2)
     slices_choice = (x_slice, y_slice, z_slice)
 
-    FA, evals, evecs = prepare_data_for_actors(args.in_dwi, args.in_bval, args.in_bvec,
+    FA, evals, evecs = prepare_data_for_actors(args.in_dwi, args.in_bval,
+                                               args.in_bvec,
                                                args.in_template,
                                                slices_choice,
                                                shells=args.shells)

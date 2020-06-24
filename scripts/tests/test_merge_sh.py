@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_sh_1 = os.path.join(get_home(), 'processing',
-                          'sh_1000.nii.gz')
+                           'sh_1000.nii.gz')
     in_sh_2 = os.path.join(get_home(), 'processing',
-                          'sh_3000.nii.gz')
+                           'sh_3000.nii.gz')
     ret = script_runner.run('scil_merge_sh.py', in_sh_1, in_sh_2, 'sh.nii.gz')
     assert ret.success

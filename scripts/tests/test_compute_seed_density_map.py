@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracking = os.path.join(get_home(), 'processing',
-                         'tracking.trk')
+                               'tracking.trk')
     ret = script_runner.run('scil_compute_seed_density_map.py', in_tracking,
                             'seeds_density.nii.gz')
     assert ret.success
