@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_transform_surface.py', '--help')
+    ret = script_runner.run('scil_apply_transform_to_surface.py', '--help')
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_surface_vtk_fib(script_runner):
                               'lhpialt.vtk')
     input_aff = os.path.join(get_home(), 'surface_vtk_fib',
                              'affine.txt')
-    ret = script_runner.run('scil_transform_surface.py', input_surf, input_aff,
-                            'lhpialt_lin.vtk')
+    ret = script_runner.run('scil_apply_transform_to_surface.py', input_surf,
+                            input_aff, 'lhpialt_lin.vtk')
     assert ret.success
