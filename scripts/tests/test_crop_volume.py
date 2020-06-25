@@ -4,11 +4,10 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
-
+from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['others.zip'])
+fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -17,9 +16,9 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_others(script_runner):
+def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_img = os.path.join(get_home(), 'others',
-                             't1.nii.gz')
-    ret = script_runner.run('scil_crop_volume.py', input_img, 't1_crop.nii.gz')
+    in_dwi = os.path.join(get_home(), 'processing',
+                          'dwi.nii.gz')
+    ret = script_runner.run('scil_crop_volume.py', in_dwi, 'dwi_crop.nii.gz')
     assert ret.success

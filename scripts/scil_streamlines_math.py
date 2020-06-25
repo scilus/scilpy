@@ -64,31 +64,33 @@ def _build_arg_parser():
 
     p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
                    help='The type of operation to be performed on the '
-                   'streamlines. Must\nbe one of the following: '
-                   '%(choices)s.')
+                        'streamlines. Must\nbe one of the following: '
+                        '%(choices)s.')
 
     p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
-                   'streamlines to operate on.')
+                        'streamlines to operate on.')
 
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
-                   'are saved.')
+                        'are saved.')
 
     p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
                    help='The precision used when comparing streamlines.')
-
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
 
     p.add_argument('--save_metadata_indices', '-m', action='store_true',
                    help='Save streamline indices to metadata. Has no '
-                   'effect if --no-data\nis present. Will '
-                   'overwrite \'ids\' metadata if already present.')
-
+                        'effect if --no-data\nis present. Will '
+                        'overwrite \'ids\' metadata if already present.')
     p.add_argument('--save_indices', '-s', metavar='OUTPUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
-                   'json file.')
+                        'json file.')
+
+    p.add_argument('--ignore_invalid', action='store_true',
+                   help='If set, does not crash because of invalid '
+                        'streamlines.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -98,9 +100,9 @@ def _build_arg_parser():
 
 
 def load_data(parser, args, path):
-    logging.info(
-        'Loading streamlines from {0}.'.format(path))
-    sft = load_tractogram_with_reference(parser, args, path)
+    logging.info('Loading streamlines from {0}.'.format(path))
+    sft = load_tractogram_with_reference(parser, args, path,
+                                         bbox_check=not args.ignore_invalid)
     streamlines = list(sft.streamlines)
     data_per_streamline = sft.data_per_streamline
     data_per_point = sft.data_per_point
@@ -176,7 +178,7 @@ def main():
     sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM,
                              data_per_streamline=new_data_per_streamline,
                              data_per_point=new_data_per_point)
-    save_tractogram(sft, args.output)
+    save_tractogram(sft, args.output, bbox_valid_check=not args.ignore_invalid)
 
 
 if __name__ == "__main__":
