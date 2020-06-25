@@ -374,7 +374,7 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_json',
-                   help='File containing the json stats')
+                   help='File containing the json stats.')
 
     p.add_argument('out_xlsx',
                    help='Output Excel file for the stats.')
@@ -387,11 +387,11 @@ def _build_arg_parser():
 
     p.add_argument('--ignore_bundles', metavar='FILE',
                    help='Path to a text file containing a list of bundles '
-                        'to ignore')
+                        'to ignore.')
 
     p.add_argument('--stats_over_population', action='store_true',
                    help='If set, consider the input stats to be over an '
-                        'entire population and not subject-based')
+                        'entire population and not subject-based.')
 
     add_overwrite_arg(p)
 
