@@ -44,7 +44,7 @@ def get_testing_files_dict():
              '075deda4532042192c4103df4371ecb4'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
-             'da98bcf85a01f2a539a6e628de2114dd'],
+             '57aee810f2f5c687df48de65935bb527'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '946beb4271b905a2bd69ad2d80136ca9'],
@@ -121,7 +121,7 @@ def fetch_data(files_dict, keys=None):
         keys = [keys]
     for f in keys:
         tryout = 0
-        while tryout < 5:
+        while tryout < 3:
             to_unzip[f] = False
             url, md5 = files_dict[f]
             full_path = os.path.join(scilpy_home, f)

@@ -25,8 +25,10 @@ def test_execution_bst(script_runner):
                             'fa.nii.gz')
     input_aff = os.path.join(get_home(), 'bst',
                              'output0GenericAffine.mat')
-    script_runner._save_and_reset_logger()
+    input_warp = os.path.join(get_home(), 'bst',
+                              'output1InverseWarp.nii.gz')
     ret = script_runner.run('scil_apply_transform_to_tractogram.py',
-                            input_model, input_fa, input_aff, 'rpt_m_lin.trk',
-                            '--inverse', '--cut')
+                            input_model, input_fa, input_aff, 'rpt_m_warp.trk',
+                            '--inverse', '--in_deformation', input_warp,
+                            '--cut')
     assert ret.success
