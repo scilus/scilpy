@@ -14,8 +14,6 @@ import pandas as pd
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
-DESCRIPTION = ''
-
 
 def _get_all_bundle_names(stats):
     bnames = set()
