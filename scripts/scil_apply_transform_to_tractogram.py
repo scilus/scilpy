@@ -44,8 +44,7 @@ def _build_arg_parser():
                    help='Path of the reference target file (trk or nii).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (.txt, .npy or .mat).\n'
-                        'See the script description for more information.')
+                        'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_tractogram',
                    help='Output tractogram filename (transformed data).')
 

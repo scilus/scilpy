@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Transform tractogram using an affine/rigid transformation.
+Transform connectivity hdf5 (.h5) using an affine/rigid transformation and
+nonlinear deformation (optional).
 
-For more information on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file
+For more information on how to use the registration script, follow this link:
+https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Applying transformation to tractogram can lead to invalid streamlines (out of
 the bounding box), three strategies are available:
@@ -14,29 +15,26 @@ the bounding box), three strategies are available:
     scil_remove_invalid_streamlines.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines.
+4) --cut_invalid, automatically cut invalid streamlines before saving.
 """
 
 import argparse
-import logging
 import os
 import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import create_nifti_header, get_reference_info
 import h5py
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.streamlines import (load_tractogram_with_reference,
-                                   reconstruct_streamlines_from_hdf5)
+from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import (transform_warp_streamlines,
-                                      cut_invalid_streamlines)
+from scilpy.utils.streamlines import transform_warp_streamlines
 
 
 def _build_arg_parser():
@@ -46,11 +44,10 @@ def _build_arg_parser():
     p.add_argument('in_hdf5',
                    help='Path of the tractogram to be transformed.')
     p.add_argument('in_target_file',
-                   help='Path of the reference target file (trk or nii).')
+                   help='Path of the reference target file (.trk or .nii).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (.txt, .npy or .mat).\n'
-                        'See the script description for more information.')
+                        'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_hdf5',
                    help='Output tractogram filename (transformed data).')
 

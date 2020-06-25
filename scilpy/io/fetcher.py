@@ -4,7 +4,6 @@ import hashlib
 import logging
 import os
 import shutil
-import sys
 import zipfile
 
 from google_drive_downloader import GoogleDriveDownloader as gdd

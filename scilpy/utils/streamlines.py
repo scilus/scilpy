@@ -136,8 +136,8 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
 
     Parameters
     ----------
-    streamlines: list or ArraySequence
-        Streamlines as loaded by the nibabel API (RASMM)
+    sft: StatefulTractogram
+        Stateful tractogram object containing the streamlines to transform.
     linear_transfo: numpy.ndarray
         Linear transformation matrix to apply to the tractogram.
     target: Nifti filepath, image object, header
@@ -169,8 +169,8 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
     if deformation_data is not None:
         affine, _, _, _ = get_reference_info(target)
 
-        # Because of duplication, an iteration over chunks of points is necessary
-        # for a big dataset (especially if not compressed)
+        # Because of duplication, an iteration over chunks of points is
+        # necessary for a big dataset (especially if not compressed)
         streamlines = ArraySequence(streamlines)
         nb_points = len(streamlines._data)
         cur_position = 0
@@ -182,7 +182,7 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
             max_position = min(cur_position + chunk_size, nb_points)
             points = streamlines._data[cur_position:max_position]
 
-            # To access the deformation information, we need to go in voxel space
+            # To access the deformation information, we need to go in VOX space
             # No need for corner shift since we are doing interpolation
             cur_points_vox = np.array(transform_streamlines(points,
                                                             inv_affine)).T
@@ -267,9 +267,10 @@ def compress_sft(sft, tol_error=0.01):
 
     The compression also ensures that two consecutive points won't be too far
     from each other (precisely less or equal than `max_segment_length`mm).
-    This is a tradeoff to speed up the linearization process [Rheault15]_. A low
-    value will result in a faster linearization but low compression, whereas
-    a high value will result in a slower linearization but high compression.
+    This is a tradeoff to speed up the linearization process [Rheault15]_. A
+    low value will result in a faster linearization but low compression,
+    whereas a high value will result in a slower linearization but high
+    compression.
 
     [Presseau C. et al., A new compression format for fiber tracking datasets,
     NeuroImage, no 109, 73-83, 2015.]
@@ -295,7 +296,7 @@ def compress_sft(sft, tol_error=0.01):
     compressed_streamlines = compress_streamlines(sft.streamlines,
                                                   tol_error=tol_error)
     if sft.data_per_point is not None:
-        logging.warning("Initial stateful tractogram contained data_per_point. "
+        logging.warning("Initial StatefulTractogram contained data_per_point. "
                         "This information will not be carried in the final"
                         "tractogram.")
 
@@ -348,7 +349,8 @@ def cut_invalid_streamlines(sft):
             best_pos = [0, 0]
             cur_pos = [0, 0]
             for pos, point in enumerate(sft.streamlines[ind]):
-                if (point < epsilon).any() or (point >= sft.dimensions - epsilon).any():
+                if (point < epsilon).any() or \
+                        (point >= sft.dimensions - epsilon).any():
                     cur_pos = [pos+1, pos+1]
                 if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
                     best_pos = cur_pos
