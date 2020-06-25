@@ -44,7 +44,7 @@ def _build_arg_parser():
                    help='Input surface (.vtk).')
 
     p.add_argument('ants_affine',
-                   help='Affine transform from ANTs (.txt).')
+                   help='Affine transform from ANTs (.txt or .mat).')
 
     p.add_argument('out_surface',
                    help='Output surface (.vtk).')
