@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import shutil
+from time import sleep
 import zipfile
 
 from google_drive_downloader import GoogleDriveDownloader as gdd
@@ -29,6 +30,9 @@ def get_testing_files_dict():
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
              '5fbf5c8eaabff2648ad509e06b003e67'],
+            'commit_amico.zip':
+            ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
+             '12e901e899ee48bdf31b25f22d39ee48'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '1010d01cc31e94c24916267649531e26'],
@@ -141,6 +145,7 @@ def fetch_data(files_dict, keys=None):
                 break
             else:
                 tryout += 1
+                sleep(10)
 
     for f in keys:
         target_zip = os.path.join(scilpy_home, f)
