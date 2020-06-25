@@ -346,7 +346,7 @@ def _create_xlsx_from_json(json_path, xlsx_path,
                            sort_subs=True, sort_bundles=True,
                            ignored_bundles_fpath=None,
                            stats_over_population=False):
-    with open(json_path, 'rb') as json_file:
+    with open(json_path, 'r') as json_file:
         stats = json.load(json_file)
 
     subs = list(stats.keys())
