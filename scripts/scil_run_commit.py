@@ -301,7 +301,8 @@ def main():
         if args.compute_only:
             return
         mit.load_kernels()
-        mit.load_dictionary(tmp_dir.name)
+        mit.load_dictionary(tmp_dir.name,
+                            use_mask=args.in_tracking_mask is not None)
         mit.set_threads(args.nbr_processes)
 
         mit.build_operator(build_dir=tmp_dir.name)
