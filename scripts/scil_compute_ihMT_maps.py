@@ -138,7 +138,6 @@ def compute_contrasts_maps(echo_images, filtering=None):
     """
 
     # Merged the 3 echo images into 4D-array
-    # merged_map = merge_ihMT_array(echo_images)
     merged_map = np.stack(echo_images, axis=-1)
 
     # Compute the sum of contrast map
