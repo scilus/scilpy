@@ -58,9 +58,9 @@ def _get_labels(stats):
 
 def _find_stat_name(stats):
     first_sub_stats = stats[list(stats.keys())[0]]
-    first_bundle_stats = first_sub_stats[first_sub_stats.keys()[0]]
+    first_bundle_stats = first_sub_stats[list(first_sub_stats.keys())[0]]
 
-    return first_bundle_stats.keys()[0]
+    return list(first_bundle_stats.keys())[0]
 
 
 def _get_stats_parse_function(stats, stats_over_population):
@@ -374,21 +374,20 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_json',
-                   help='File containing the json stats.')
+                   help='File containing the json stats (.json).')
 
     p.add_argument('out_xlsx',
-                   help='Output Excel file for the stats.')
+                   help='Output Excel file for the stats (.xlsx).')
 
     p.add_argument('--no_sort_subs', action='store_false',
                    help='If set, subjects won\'t be sorted alphabetically.')
 
     p.add_argument('--no_sort_bundles', action='store_false',
                    help='If set, bundles won\'t be sorted alphabetically.')
-
     p.add_argument('--ignore_bundles', metavar='FILE',
                    help='Path to a text file containing a list of bundles '
-                        'to ignore.')
-
+                        'to ignore (.txt).\nOne bundle, corresponding to keys '
+                        'in the json, per line.')
     p.add_argument('--stats_over_population', action='store_true',
                    help='If set, consider the input stats to be over an '
                         'entire population and not subject-based.')

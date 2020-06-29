@@ -42,9 +42,9 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_json', nargs='+',
-                   help='List of json files to merge.')
+                   help='List of json files to merge (.json).')
     p.add_argument('out_json',
-                   help='Output json file.')
+                   help='Output json file (.json).')
 
     p.add_argument('--keep_separate', action='store_true',
                    help='Merge entries as separate keys.')
