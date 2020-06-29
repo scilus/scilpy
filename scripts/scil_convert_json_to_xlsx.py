@@ -47,7 +47,7 @@ def _get_labels(stats):
 
     for bundles in iter(stats.values()):
         for lab in iter(bundles.values()):
-            if type(lab[lab.keys()[0]]) is dict:
+            if type(lab[list(lab.keys())[0]]) is dict:
                 for vals in iter(lab.values()):
                     labels |= set(vals.keys())
             else:
@@ -76,7 +76,7 @@ def _get_stats_parse_function(stats, stats_over_population):
             set(['min_length', 'max_length', 'mean_length', 'std_length']):
         return _parse_lengths
     elif type(first_bundle_substat) is dict:
-        sub_keys = first_bundle_substat.keys()
+        sub_keys = list(first_bundle_substat.keys())
         if set(sub_keys) == set(['mean', 'std']):
             if stats_over_population:
                 return _parse_per_label_population_stats
