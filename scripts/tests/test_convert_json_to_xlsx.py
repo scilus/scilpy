@@ -20,8 +20,8 @@ def test_help_option(script_runner):
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(get_home(), 'tractometry',
-                           'metric_label.json')
+                           'length_stats_1.json')
     ret = script_runner.run('scil_convert_json_to_xlsx.py', in_json,
-                            'metric_label.xlsx')
+                            'length_stats.xlsx')
 
     assert ret.success
