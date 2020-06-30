@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM.trk')
+                             'IFGWM.trk')
     in_ref = os.path.join(get_home(), 'tractometry',
-                             'mni_masked.nii.gz')
+                          'mni_masked.nii.gz')
     ret = script_runner.run('scil_bundle_mean_std.py', in_bundle, in_ref,
                             '--density_weighting')
     assert ret.success
