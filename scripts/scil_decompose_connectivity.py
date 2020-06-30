@@ -413,7 +413,7 @@ def main():
                             'discarded', 'loops', in_label, out_label)
         else:
             no_loops = valid_length
-            no_loops = range(len(valid_length))
+            no_loop_ids = range(len(valid_length))
 
         if not len(no_loops):
             continue
