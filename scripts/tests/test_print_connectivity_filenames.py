@@ -19,10 +19,10 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_sc = os.path.join(get_home(), 'connectivity',
-                            'sc_norm.npy')
-    input_labels_list = os.path.join(get_home(), 'connectivity',
-                                     'labels_list.txt')
-    ret = script_runner.run('scil_print_connectivity_filenames.py', input_sc,
-                            input_labels_list, 'success.txt')
+    in_sc = os.path.join(get_home(), 'connectivity',
+                         'sc_norm.npy')
+    in_labels_list = os.path.join(get_home(), 'connectivity',
+                                  'labels_list.txt')
+    ret = script_runner.run('scil_print_connectivity_filenames.py', in_sc,
+                            in_labels_list, 'success.txt')
     assert ret.success

@@ -53,7 +53,7 @@ def get_testing_files_dict():
              '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
-             'c322114c09767199e91a41cc11794d16']}
+             '32f938ae33a6c185346d2574240ebf3b']}
 
 
 def _get_file_md5(filename):

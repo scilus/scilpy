@@ -19,11 +19,11 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_sc = os.path.join(get_home(), 'connectivity',
-                            'sc_norm.npy')
-    input_len = os.path.join(get_home(), 'connectivity',
-                             'len.npy')
-    ret = script_runner.run('scil_evaluate_connectivity_measures.py', input_sc,
-                            input_len, 'gtm.json', '--avg_node_wise',
+    in_sc = os.path.join(get_home(), 'connectivity',
+                         'sc_norm.npy')
+    in_len = os.path.join(get_home(), 'connectivity',
+                          'len.npy')
+    ret = script_runner.run('scil_evaluate_connectivity_measures.py', in_sc,
+                            in_len, 'gtm.json', '--avg_node_wise',
                             '--small_world')
     assert ret.success

@@ -20,8 +20,8 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM.trk')
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
     ret = script_runner.run('scil_uniformize_streamlines_endpoints.py',
-                            input_bundle, 'IFGWM_uni.trk', '--auto')
+                            in_bundle, 'IFGWM_uni.trk', '--auto')
     assert ret.success

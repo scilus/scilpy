@@ -19,9 +19,9 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_json = os.path.join(get_home(), 'tractometry',
-                              'metric_label.json')
-    ret = script_runner.run('scil_plot_mean_std_per_point.py', input_json,
+    in_json = os.path.join(get_home(), 'tractometry',
+                           'metric_label.json')
+    ret = script_runner.run('scil_plot_mean_std_per_point.py', in_json,
                             'out/')
 
     assert ret.success

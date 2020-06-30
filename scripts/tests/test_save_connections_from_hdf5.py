@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_h5 = os.path.join(get_home(), 'connectivity',
-                            'decompose.h5')
+    in_h5 = os.path.join(get_home(), 'connectivity',
+                         'decompose.h5')
     ret = script_runner.run('scil_save_connections_from_hdf5.py',
-                            input_h5, 'save_trk/')
+                            in_h5, 'save_trk/')
     assert ret.success

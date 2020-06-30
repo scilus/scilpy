@@ -19,20 +19,20 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_h5 = os.path.join(get_home(), 'connectivity',
-                            'decompose.h5')
-    input_atlas = os.path.join(get_home(), 'connectivity',
-                               'endpoints_atlas.nii.gz')
-    input_avg = os.path.join(get_home(), 'connectivity',
-                             'avg_density_maps/')
-    input_afd = os.path.join(get_home(), 'connectivity',
-                             'afd_max.nii.gz')
-    ret = script_runner.run('scil_compute_connectivity.py', input_h5,
-                            input_atlas, '--volume', 'vol.npy',
+    in_h5 = os.path.join(get_home(), 'connectivity',
+                         'decompose.h5')
+    in_atlas = os.path.join(get_home(), 'connectivity',
+                            'endpoints_atlas.nii.gz')
+    in_avg = os.path.join(get_home(), 'connectivity',
+                          'avg_density_maps/')
+    in_afd = os.path.join(get_home(), 'connectivity',
+                          'afd_max.nii.gz')
+    ret = script_runner.run('scil_compute_connectivity.py', in_h5,
+                            in_atlas, '--volume', 'vol.npy',
                             '--streamline_count', 'sc.npy',
                             '--length', 'len.npy',
-                            '--similarity', input_avg, 'sim.npy',
-                            '--metrics', input_afd, 'afd_max.npy',
+                            '--similarity', in_avg, 'sim.npy',
+                            '--metrics', in_afd, 'afd_max.npy',
                             '--density_weighting', '--no_self_connection',
                             '--processes', '1')
     assert ret.success

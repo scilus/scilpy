@@ -19,9 +19,9 @@ def test_help_option(script_runner):
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'others',
-                                'IFGWM.trk')
-    ret = script_runner.run('scil_remove_similar_streamlines.py', input_bundle,
+    in_bundle = os.path.join(get_home(), 'others',
+                             'IFGWM.trk')
+    ret = script_runner.run('scil_remove_similar_streamlines.py', in_bundle,
                             '2', 'IFGWM_sub.trk', '--min_cluster_size', '2',
                             '--clustering_thr', '8', '--avg_similar',
                             '--processes', '1')
