@@ -121,7 +121,7 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
     return map(lambda metric_file:
                weighted_mean_std(weights,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)
 
 
@@ -173,7 +173,7 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     # Get stats
     stats = {bundle_name: {}}
     for metric in metrics:
-        metric_data = metric.get_fdata()
+        metric_data = metric.get_fdata(dtype=np.float64)
         current_metric_fname, _ = split_name_with_nii(
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}
