@@ -13,16 +13,14 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_hdf5_average_density_map.py',
-                            '--help')
+    ret = script_runner.run('scil_save_connections_from_hdf5.py', '--help')
     assert ret.success
 
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_h5 = os.path.join(get_home(), 'connectivity',
+    input_h5 = os.path.join(get_home(), 'connectivity',
                             'decompose.h5')
-    ret = script_runner.run('scil_compute_hdf5_average_density_map.py',
-                            in_h5, 'avg_density_maps/', '--binary',
-                            '--processes', '1')
+    ret = script_runner.run('scil_save_connections_from_hdf5.py',
+                            input_h5, 'save_trk/')
     assert ret.success
