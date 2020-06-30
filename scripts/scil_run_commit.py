@@ -141,6 +141,8 @@ def _build_arg_parser():
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
                       help='Input directory where the COMMIT kernels are '
                            'located.')
+    g2.add_argument('--compute_only', action='store_true',
+                    help='Compute kernels only, --save_kernels must be used.')
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -169,6 +171,9 @@ def main():
 
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
+
+    if args.compute_only and not args.save_kernels:
+        parser.error('--compute_only must be used with --save_kernels.')
 
     if args.load_kernels and args.save_kernels:
         parser.error('Cannot load and save kernels at the same time.')
@@ -293,8 +298,11 @@ def main():
         mit.set_config('ATOMS_path', kernels_dir)
 
         mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
+        if args.compute_only:
+            return
         mit.load_kernels()
-        mit.load_dictionary(tmp_dir.name)
+        mit.load_dictionary(tmp_dir.name,
+                            use_mask=args.in_tracking_mask is not None)
         mit.set_threads(args.nbr_processes)
 
         mit.build_operator(build_dir=tmp_dir.name)
