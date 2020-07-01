@@ -7,7 +7,6 @@ Make a more details description !
 import argparse
 import os
 
-import glob
 import json
 import nibabel as nib
 import numpy as np
@@ -20,16 +19,39 @@ from scilpy.io.utils import (add_overwrite_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument("in_folder",
-                   help='Path to the subject ihMT maps folder')
-    p.add_argument('in_mask',
-                   help='Path to subject T1 probability mask'
-                        'Must be the sum of 3 (WM+GM+CSF) brain compartments.')
+    p.add_argument('in_echoes', type=int,
+                   help='Number of echoes by contrasts')
+    p.add_argument('id_subj',
+                   help='Subject name for saving maps')
     p.add_argument('out_dir',
-                   help='Path to subject output folder')
+                   help='Path to output folder')
+    p.add_argument('in_segment_tissue', nargs='+',
+                   help='Path to tissue probability maps from T1 segmentation')
     p.add_argument('--filtering', default=None,
-                   help='Gaussian filtering to remove Gibbs ringing.'
-                        'Not recommanded.')
+                   help='Gaussian filtering to remove Gibbs ringing'
+                        'Not recommanded')
+
+    g = p.add_argument_group(title='ihMT contrasts')
+    g.add_argument('--in_altnp', nargs='+',
+                   help='Path to all echoes corresponding to altnp images'
+                        'alternation of Negative and Positive'
+                        'frequency saturation pulse')
+    g.add_argument('--in_altpn', nargs='+',
+                   help='Path to all echoes corresponding to the'
+                        'alternation of Positive and Negative '
+                        'frequency saturation pulse')
+    g.add_argument("--in_mtoff", nargs='+',
+                   help='Path to all echoes corresponding to the'
+                        'No frequency saturation pulse (reference image).')
+    g.add_argument("--in_negative", nargs='+',
+                   help='Path to all echoes corresponding to the'
+                        'Negative frequency saturation pulse')
+    g.add_argument("--in_positive", nargs='+',
+                   help='Path to all echoes corresponding to the'
+                        'Positive frequency saturation pulse')
+    g.add_argument("--in_t1w", nargs='+',
+                   help='Path to all echoes corresponding to the'
+                        'T1weigthed images')
 
     add_overwrite_arg(p)
 
@@ -38,7 +60,7 @@ def _build_arg_parser():
 
 def set_acq_parameters(json_path):
     """
-    Function to extract Repetition Time and Flip Angle.
+    Function to extract Repetition Time and Flip Angle from json file.
 
     Parameters
     ----------
@@ -55,27 +77,26 @@ def set_acq_parameters(json_path):
     return RT, FlipAngle
 
 
-def merge_images(echo_images):
+def merge_images(echoes_image):
     """
-    Function to load each echos images into list of 3D-array matrix and
+    Function to load each echo in a 3D-array matrix and
     concatenate each of them along the 4th dimension.
 
     Parameters
     ----------
-    in_maps          List of images path : list of echos path for each
-                     contrasts in subject folder. Ex.
+    echo_images      List : list of echoes path for each contrasts. Ex.
                      ['path/to/echo-1_acq-pos',
                       'path/to/echo-2_acq-pos',
                       'path/to/echo-3_acq-pos']
 
     Returns
     ----------
-    Return a list of 4D-array (x, y, z, n) matrix of n 3D-array (x, y, z)
-    matrices as input. N represented the number of echo.
+    Return a 4D-array matrix of size x, y, z, n where n represented
+    the number of echoes.
     """
     merge_array = []
-    for echo in range(len(echo_images)):
-        load_image = nib.load(echo_images[echo])
+    for echo in range(len(echoes_image)):
+        load_image = nib.load(echoes_image[echo])
         merge_array.append(load_image.get_fdata(dtype=np.float32))
     merge_array = np.stack(merge_array, axis=-1)
     return merge_array
@@ -96,7 +117,7 @@ def py_fspecial_gauss(shape, sigma):
 
     Returns
     -------
-    Return two-dimensional Gaussian filter h of specified size.
+    Two-dimensional Gaussian filter h of specified size.
     """
     m, n = [(ss-1.)/2. for ss in shape]
     y, x = np.ogrid[-m:m+1, -n:n+1]
@@ -108,9 +129,9 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-def compute_contrasts_maps(echo_images, filtering=False):
+def compute_contrasts_maps(echoes_image, filtering=False):
     """
-    Load echo images and compute contrasts maps : more description details !
+    Load echoes and calculate contrast maps : more description details soon !
 
     Parameters
     ----------
@@ -121,11 +142,11 @@ def compute_contrasts_maps(echo_images, filtering=False):
 
     Returns
     -------
-    Returns contrast map in 3D-Array.
+    Contrast map in 3D-Array.
     """
 
     # Merged the 3 echo images into 4D-array
-    merged_map = merge_images(echo_images)
+    merged_map = merge_images(echoes_image)
 
     # Compute the sum of contrast map
     contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
@@ -134,15 +155,14 @@ def compute_contrasts_maps(echo_images, filtering=False):
     if filtering:
         h = py_fspecial_gauss((3, 3), 0.5)
         h = h[:, :, None]
-        contrast_map = scipy.ndimage.convolve(contrast_map, h).astype(np.float32)
+        contrast_map = scipy.ndimage.convolve(contrast_map,
+                                              h).astype(np.float32)
     return contrast_map
 
 
 def compute_ihMT_maps(contrast_maps, acq_parameters):
     """
     Compute ihMT maps : More description details coming soon !
-    Use of both single frequency irradiation positive and negative,
-    compensates efficiently for MT asymmetry (finir de modifier)
 
     see Varma et al., 2015
     https://www.sciencedirect.com/science/article/pii/S1090780715001998
@@ -150,12 +170,12 @@ def compute_ihMT_maps(contrast_maps, acq_parameters):
     Parameters
     ----------
     contrast_maps:      List of constrats : list of all contrast maps computed
-                                            with compute_ihMT_contrasts
-    acq_parameters:     Lists of RT and Flipangle for ihMT and T1w
+                                            with compute_contrasts_maps
+    acq_parameters:     List of RT and Flipangle values for ihMT and T1w images
                         [RT, Flipangle]
     Returns
     -------
-    ihMT maps in 3D-Array : ihMT ratio and saturation Maps.
+    ihMT ratio and ihMT saturation matrices in 3D-array.
 
     """
     # Compute ihMT ratio map
@@ -179,13 +199,13 @@ def compute_MT_maps(contrast_maps, acq_parameters):
 
     Parameters
     ----------
-    contrast_maps:      List of constrats matrices : list of all contrast maps
-                        computed with compute_ihMT_contrasts
+    contrast_maps:      List of 3D-array constrats matrices : list of all
+                        contrast maps computed with compute_ihMT_contrasts
     acq_parameters:     Lists of RT and Flipangle for ihMT and T1w
                         [RT, Flipangle]
     Returns
     -------
-    Non-ihMT maps in 3D-Array : MT ratio and saturation Maps.
+    MT ratio and MT saturation matrice in 3D-array.
     """
     # Compute MT Ratio map
     MTR = 100*((contrast_maps[2]-(contrast_maps[4]+contrast_maps[3])/2)/contrast_maps[2])
@@ -202,30 +222,31 @@ def compute_MT_maps(contrast_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_ihMT_maps(computed_map, contrast_maps, in_mask, lower_threshold,
-                        upper_threshold, idx_contrast_list):
+def threshold_ihMT_maps(computed_map, contrast_maps, segment_tissue,
+                        lower_threshold, upper_threshold, idx_contrast_list):
     """
-    Remove NaN, apply different threshold based on
+    Remove NaN and apply different threshold based on
        - maximum and minimum threshold value
        - combination of specific contrasts maps
-    Multiple data by probability T1 mask (GM+WM+CSF)
+    Multiple data by sum of T1 probability maps (GM+WM+CSF)
 
     Parameters
     ----------
     computed_map        3D-Array data.
-                        Myelin map (ihMT or non-ihMT computed maps)
+                        Myelin map (ihMT or non-ihMT maps)
     contrast_maps       List of 3D-Array. File must containing the
-                        5 contrasts maps.
-    in_mask             Path to probability T1 map
+                        6 contrasts maps.
+    segment_tissue      List of path to tissue probability maps from
+                        T1 segmentation
     lower_threshold     Value for low thresold <int>
     upper_thresold      Value for up thresold <int>
-    idx_contrast_list   List of indice contrasts maps in order corresponding to
-                        contrast_maps input ex.: [1, 2, 3]
+    idx_contrast_list   List of indexes of contrast maps corresponding to
+                        that of input contrast_maps ex.: [0, 2, 5]
                         Altnp = 0; Atlpn = 1; Reference = 2; Negative = 3;
                         Positive = 4; T1weighted = 5
     Returns
     ----------
-    Thresholded matrice in 3D-array.
+    Thresholded matrix in 3D-array.
     """
     # Remove NaN and apply thresold based on lower and upper value
     computed_map[np.isnan(computed_map)] = 0
@@ -233,9 +254,12 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask, lower_threshold,
     computed_map[computed_map < lower_threshold] = 0
     computed_map[computed_map > upper_threshold] = 0
 
-    # Load and apply probability masks on maps
-    mask_image = nib.load(in_mask)
-    mask_data = mask_image.get_fdata(dtype=np.float32)
+    # Load and apply sum of T1 probability maps on myelin maps
+    mask = []
+    for img in segment_tissue:
+        load_image = nib.load(img)
+        mask.append(load_image.get_fdata(dtype=np.float64))
+    mask_data = mask[0]+mask[1]+mask[2]
     computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrasts maps
@@ -249,20 +273,35 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_output_dirs_exist_and_empty(parser, args, os.path.join(args.out_dir, 'Contrats_MT_maps'),
-                                       os.path.join(args.out_dir, 'ihMT_native_maps'),
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       os.path.join(args.out_dir,
+                                                    'Contrats_MT_maps'),
+                                       os.path.join(args.out_dir,
+                                                    'ihMT_native_maps'),
                                        create_dir=True)
 
-    # Select contrasts files from input folder
-    maps = []
-    acquisitions = ['altnp', 'altpn', 'mtoff', 'neg', 'pos', 'T1w']
-    for acquisition in acquisitions:
-        maps.append(sorted(glob.glob(os.path.join(args.in_folder,
-                                                  '*' + acquisition + '*gz'))))
+    # Merged all echoes path in a list
+    maps = [args.in_altnp, args.in_altpn, args.in_mtoff, args.in_negative,
+            args.in_positive, args.in_t1w]
 
-    # Set RT and FlipAngle parameters for ihMT and T1w images
-    parameters = [set_acq_parameters(maps[4][0].replace('_warped.nii.gz', '.json')),
-                  set_acq_parameters(maps[5][0].replace('_warped.nii.gz', '.json'))]
+    # Check the number of echoes for each contrast and json file
+    for contrast in maps:
+        if len(contrast) != args.in_echoes:
+            parser.error('The number of images for {} '
+                         'must correspond to the number of echoes provide as '
+                         'input : {}'.format(os.path.basename(contrast[0]),
+                                             args.in_echoes))
+        json_file = contrast[0].replace('_warped.nii.gz', '.json')
+        if not os.path.isfile(os.path.join(json_file)):
+            parser.error('No json file was found for {}'
+                         .format(os.path.basename(contrast[0])))
+
+    # Set RT and FlipAngle parameters for ihMT (positive contrast)
+    # and T1w images
+    parameters = [set_acq_parameters(maps[4][0].replace('_warped.nii.gz',
+                                                        '.json')),
+                  set_acq_parameters(maps[5][0].replace('_warped.nii.gz',
+                                                        '.json'))]
 
     # Fix issue from the presence of NaN into array
     np.seterr(divide='ignore', invalid='ignore')
@@ -271,49 +310,49 @@ def main():
     ref_img = nib.load(maps[4][0])
 
     # Define contrasts maps names
+    contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
+                      'T1w']
     if args.filtering:
-        contrasts_name = ['altnp_filter', 'altpn_filter', 'reference_filter',
-                          'negative_filter', 'positive_filter', 'T1w_filter']
-    else:
-        contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
-                          'T1w']
+        contrasts_name = [curr_name + '_filter'
+                          for curr_name in contrasts_name]
 
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_maps(curr_map,
-                                                         filtering=args.filtering))
+        computed_contrasts.append(compute_contrasts_maps(
+                                  curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'Contrats_MT_maps',
-                              contrasts_name[idx]))
+                              args.id_subj + '_' + contrasts_name[idx]
+                              + 'nii.gz'))
 
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
-    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask, 0, 100,
+    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts,
+                                args.in_segment_tissue, 0, 100,
                                 [4, 3, 1, 0, 2])
-    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
-                                  0, 10, [4, 3, 1, 0])
+    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts,
+                                  args.in_segment_tissue, 0, 10, [4, 3, 1, 0])
 
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
         curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
-                                       args.in_mask, 0, 100, [4, 2])
+                                       args.in_segment_tissue, 0, 100, [4, 2])
 
     # Save ihMT and MT images as Nifti format
+    img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
     if args.filtering:
-        img_name = ['ihMTR_filter', 'ihMTsat_filter', 'MTR_filter',
-                    'MTsat_filter']
-    else:
-        img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
+        img_name = [curr_name + '_filter' for curr_name in img_name]
 
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
                                  ref_img.affine, ref_img.header),
-                 os.path.join(args.out_dir, 'ihMT_native_maps', name))
+                 os.path.join(args.out_dir, 'ihMT_native_maps',
+                              args.id_subj + '_' + name + '.nii.gz'))
 
 
 if __name__ == '__main__':
