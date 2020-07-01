@@ -19,11 +19,11 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM.trk')
-    input_centroid = os.path.join(get_home(), 'tractometry',
-                                  'IFGWM_uni_c_10.trk')
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
+    in_centroid = os.path.join(get_home(), 'tractometry',
+                               'IFGWM_uni_c_10.trk')
     ret = script_runner.run('scil_bundle_voxel_label_map.py',
-                            input_bundle, input_centroid,
+                            in_bundle, in_centroid,
                             'IFGWM_labels_map.nii.gz')
     assert ret.success

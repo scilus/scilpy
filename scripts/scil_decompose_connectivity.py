@@ -355,6 +355,8 @@ def main():
         #   3. loops pass  -> outlier detection pass/fail
         #   4. outlier detection pass -> qb curvature pass/fail
         #   5. qb curvature pass == final connections
+        connecting_streamlines = ArraySequence(connecting_streamlines)
+
         raw_sft = StatefulTractogram.from_sft(
             connecting_streamlines, sft,
             data_per_streamline=sft.data_per_streamline[connecting_ids],
@@ -370,10 +372,8 @@ def main():
                 args.max_length,
                 vox_sizes[0])
 
-            valid_length = ArraySequence(connecting_streamlines)[
-                valid_length_ids]
-            invalid_length = ArraySequence(connecting_streamlines)[
-                invalid_length_ids]
+            valid_length = connecting_streamlines[valid_length_ids]
+            invalid_length = connecting_streamlines[invalid_length_ids]
             invalid_length_sft = StatefulTractogram.from_sft(
                 invalid_length, raw_sft,
                 data_per_streamline=raw_sft.data_per_streamline[invalid_length_ids],

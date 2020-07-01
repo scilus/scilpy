@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_fib = os.path.join(get_home(), 'surface_vtk_fib',
-                             'gyri_fanning.trk')
-    ret = script_runner.run('scil_compress_streamlines.py', input_fib,
+    in_fib = os.path.join(get_home(), 'surface_vtk_fib',
+                          'gyri_fanning.trk')
+    ret = script_runner.run('scil_compress_streamlines.py', in_fib,
                             'gyri_fanning_c.trk', '-e', '0.1')
     assert ret.success

@@ -19,14 +19,14 @@ def test_help_option(script_runner):
 
 def test_execution_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tractogram = os.path.join(get_home(), 'filtering',
-                                    'bundle_all_1mm_inliers.trk')
-    input_roi = os.path.join(get_home(), 'filtering',
-                             'mask.nii.gz')
-    input_bdo = os.path.join(get_home(), 'filtering',
-                             'sc.bdo')
-    ret = script_runner.run('scil_filter_tractogram.py', input_tractogram,
+    in_tractogram = os.path.join(get_home(), 'filtering',
+                                 'bundle_all_1mm_inliers.trk')
+    in_roi = os.path.join(get_home(), 'filtering',
+                          'mask.nii.gz')
+    in_bdo = os.path.join(get_home(), 'filtering',
+                          'sc.bdo')
+    ret = script_runner.run('scil_filter_tractogram.py', in_tractogram,
                             'bundle_4.trk', '--display_counts',
-                            '--drawn_roi', input_roi, 'any', 'include',
-                            '--bdo', input_bdo, 'any', 'include')
+                            '--drawn_roi', in_roi, 'any', 'include',
+                            '--bdo', in_bdo, 'any', 'include')
     assert ret.success

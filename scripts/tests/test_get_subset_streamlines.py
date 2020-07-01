@@ -18,8 +18,8 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tracto = os.path.join(get_home(), 'tracking',
-                                'union_shuffle.trk')
-    ret = script_runner.run('scil_get_subset_streamlines.py', input_tracto,
+    in_tracto = os.path.join(get_home(), 'tracking',
+                             'union_shuffle.trk')
+    ret = script_runner.run('scil_get_subset_streamlines.py', in_tracto,
                             '1000', 'union_shuffle_sub.trk')
     assert ret.success

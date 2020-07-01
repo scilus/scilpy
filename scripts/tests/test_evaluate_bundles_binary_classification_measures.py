@@ -20,19 +20,19 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_1 = os.path.join(get_home(), 'bundles',
-                           'bundle_0_reco.tck')
-    input_2 = os.path.join(get_home(), 'bundles', 'voting_results',
-                           'bundle_0.trk')
-    input_ref = os.path.join(get_home(), 'bundles',
-                             'bundle_all_1mm.nii.gz')
-    input_tractogram = os.path.join(get_home(), 'bundles',
-                                    'bundle_all_1mm.trk')
-    input_model = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
-                               'subj_1', 'bundle_0.trk')
+    in_1 = os.path.join(get_home(), 'bundles',
+                        'bundle_0_reco.tck')
+    in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
+                        'bundle_0.trk')
+    in_ref = os.path.join(get_home(), 'bundles',
+                          'bundle_all_1mm.nii.gz')
+    in_tractogram = os.path.join(get_home(), 'bundles',
+                                 'bundle_all_1mm.trk')
+    in_model = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
+                            'subj_1', 'bundle_0.trk')
     ret = script_runner.run('scil_evaluate_bundles_binary_classification_measures.py',
-                            input_1, input_2, 'AF_L_binary.json',
-                            '--streamlines_measures', input_model,
-                            input_tractogram, '--processes', '1',
-                            '--reference', input_ref)
+                            in_1, in_2, 'AF_L_binary.json',
+                            '--streamlines_measures', in_model,
+                            in_tractogram, '--processes', '1',
+                            '--reference', in_ref)
     assert ret.success

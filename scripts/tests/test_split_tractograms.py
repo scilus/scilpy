@@ -18,8 +18,8 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tracto = os.path.join(get_home(), 'tracking',
-                                'local.trk')
-    ret = script_runner.run('scil_split_tractograms.py', input_tracto,
+    in_tracto = os.path.join(get_home(), 'tracking',
+                             'local.trk')
+    ret = script_runner.run('scil_split_tractograms.py', in_tracto,
                             'local_split.trk', '--nb_chunk', '3')
     assert ret.success

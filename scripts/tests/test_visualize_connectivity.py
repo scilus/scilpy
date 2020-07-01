@@ -19,13 +19,13 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_sc = os.path.join(get_home(), 'connectivity',
-                            'sc_norm.npy')
-    input_labels_list = os.path.join(get_home(), 'connectivity',
-                                     'labels_list.txt')
-    ret = script_runner.run('scil_visualize_connectivity.py', input_sc,
+    in_sc = os.path.join(get_home(), 'connectivity',
+                         'sc_norm.npy')
+    in_labels_list = os.path.join(get_home(), 'connectivity',
+                                  'labels_list.txt')
+    ret = script_runner.run('scil_visualize_connectivity.py', in_sc,
                             'sc_norm.png', '--log', '--display_legend',
-                            '--labels_list', input_labels_list,
+                            '--labels_list', in_labels_list,
                             '--histogram', 'hist.png', '--nb_bins', '50',
                             '--exclude_zeros')
     assert ret.success

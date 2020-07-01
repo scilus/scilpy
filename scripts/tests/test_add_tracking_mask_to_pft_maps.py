@@ -18,14 +18,14 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_include = os.path.join(get_home(), 'tracking',
-                                 'map_include.nii.gz')
-    input_exclude = os.path.join(get_home(), 'tracking',
-                                 'map_exclude.nii.gz')
-    input_mask = os.path.join(get_home(), 'tracking',
-                              'seeding_mask.nii.gz')
+    in_include = os.path.join(get_home(), 'tracking',
+                              'map_include.nii.gz')
+    in_exclude = os.path.join(get_home(), 'tracking',
+                              'map_exclude.nii.gz')
+    in_mask = os.path.join(get_home(), 'tracking',
+                           'seeding_mask.nii.gz')
     ret = script_runner.run('scil_add_tracking_mask_to_pft_maps.py',
-                            input_include, input_exclude, input_mask,
+                            in_include, in_exclude, in_mask,
                             'map_include_corr.nii.gz',
                             'map_exclude_corr.nii.gz')
     assert ret.success

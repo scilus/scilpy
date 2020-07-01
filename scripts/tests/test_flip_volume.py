@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_fa = os.path.join(get_home(), 'surface_vtk_fib',
-                            'fa.nii.gz')
-    ret = script_runner.run('scil_flip_volume.py', input_fa, 'fa_flip.nii.gz',
+    in_fa = os.path.join(get_home(), 'surface_vtk_fib',
+                         'fa.nii.gz')
+    ret = script_runner.run('scil_flip_volume.py', in_fa, 'fa_flip.nii.gz',
                             'x')
     assert ret.success
