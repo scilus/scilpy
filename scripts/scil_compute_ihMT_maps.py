@@ -257,11 +257,8 @@ def threshold_ihMT_maps(computed_map, contrast_maps, segment_tissue,
     computed_map[computed_map > upper_threshold] = 0
 
     # Load and apply sum of T1 probability maps on myelin maps
-    mask = []
-    for img in segment_tissue:
-        load_image = nib.load(img)
-        mask.append(load_image.get_fdata(dtype=np.float64))
-    mask_data = mask[0]+mask[1]+mask[2]
+    mask_image = nib.load(in_mask)
+    mask_data = mask_image.get_fdata(dtype=np.float64)
     computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrasts maps
