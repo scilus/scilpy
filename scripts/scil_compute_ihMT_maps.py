@@ -27,7 +27,7 @@ def _build_arg_parser():
                    help='Path to the probability brain mask. Must be the sum '
                         'of the three tissue probability maps '
                         'from T1 segmentation (GM+WM+CSF).')
-    p.add_argument('--filtering', action_store=True,
+    p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing.'
                         'Not recommanded.')
 
@@ -224,7 +224,7 @@ def compute_MT_maps(contrast_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_ihMT_maps(computed_map, contrast_maps, segment_tissue,
+def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
                         lower_threshold, upper_threshold, idx_contrast_list):
     """
     Remove NaN and apply different threshold based on
@@ -238,7 +238,7 @@ def threshold_ihMT_maps(computed_map, contrast_maps, segment_tissue,
                         Myelin map (ihMT or non-ihMT maps)
     contrast_maps       List of 3D-Array. File must containing the
                         6 contrasts maps.
-    segment_tissue      List of path to tissue probability maps from
+    in_mask                   List of path to tissue probability maps from
                         T1 segmentation
     lower_threshold     Value for low thresold <int>
     upper_thresold      Value for up thresold <int>
