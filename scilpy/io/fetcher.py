@@ -35,7 +35,7 @@ def get_testing_files_dict():
              '12e901e899ee48bdf31b25f22d39ee48'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
-             '2fed405d8241b9b5fc43e6d640008ae9'],
+             'c5e68da9d60c7ebff920144ba602ad66'],
             'filtering.zip':
             ['1yzHSL4tBtmm_aeI1i0qJhrA9z040k0im',
              'dbe796fb75c3e1e5559fad3308982769'],
@@ -53,7 +53,7 @@ def get_testing_files_dict():
              '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
-             '32f938ae33a6c185346d2574240ebf3b']}
+             '3e27625a1e7f2484b7fa5028c95324cc']}
 
 
 def _get_file_md5(filename):

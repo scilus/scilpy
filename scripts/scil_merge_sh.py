@@ -14,6 +14,7 @@ Based on [1].
 
 import argparse
 
+# TODO switch to nib
 import nibabel as nb
 import numpy as np
 
@@ -24,10 +25,10 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 
 EPILOG = """
 Reference:
-    [1] Garyfallidis, E., Zucchelli, M., Houde, J-C., Descoteaux, M.
-        How to perform best ODF reconstruction from the Human Connectome
-        Project sampling scheme?
-        ISMRM 2014.
+[1] Garyfallidis, E., Zucchelli, M., Houde, J-C., Descoteaux, M.
+    How to perform best ODF reconstruction from the Human Connectome
+    Project sampling scheme?
+    ISMRM 2014.
 """
 
 
@@ -35,6 +36,8 @@ def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__, epilog=EPILOG,
         formatter_class=argparse.RawTextHelpFormatter)
+    # TODO Rename argparse p
+    # TODO Rename variable in_*
     parser.add_argument('sh_files', nargs="+",
                         help='List of SH files.')
     parser.add_argument('out_sh',
@@ -54,15 +57,16 @@ def main():
     assert_same_resolution(args.sh_files)
 
     first_im = nb.load(args.sh_files[0])
-    out_coeffs = first_im.get_data()
+    out_coeffs = first_im.get_fdata(dtype=np.float32)
 
     for sh_file in args.sh_files[1:]:
         im = nb.load(sh_file)
-        im_dat = im.get_data()
+        im_dat = im.get_fdata(dtype=np.float32)
 
         out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
                               im_dat, out_coeffs)
 
+    # TODO remove header or add optional argument name
     nb.save(nb.Nifti1Image(out_coeffs, first_im.affine, first_im.header),
             args.out_sh)
 
