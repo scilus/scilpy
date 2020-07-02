@@ -2,6 +2,9 @@
 """
 Computing ihMT and non-ihMT maps
 Make a more details description !
+
+Compute the
++++++ FAIRE LE PETIT TEST !!!  ++++++++
 """
 
 import argparse
@@ -12,7 +15,8 @@ import nibabel as nib
 import numpy as np
 import scipy.ndimage
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
 
@@ -23,7 +27,7 @@ def _build_arg_parser():
                    help='Subject name for saving maps.')
     p.add_argument('out_dir',
                    help='Path to output folder.')
-    p.add_argument('in_mask', nargs='+',
+    p.add_argument('in_mask',
                    help='Path to the probability brain mask. Must be the sum '
                         'of the three tissue probability maps '
                         'from T1 segmentation (GM+WM+CSF).')
@@ -171,7 +175,7 @@ def compute_ihMT_maps(contrast_maps, acq_parameters):
 
     Parameters
     ----------
-    contrast_maps:      List of constrats : list of all contrast maps computed
+    contrast_maps:      List of matrices : list of all contrast maps computed
                                             with compute_contrasts_maps
     acq_parameters:     List of RT and Flipangle values for ihMT and T1w images
                         [RT, Flipangle]
@@ -181,15 +185,24 @@ def compute_ihMT_maps(contrast_maps, acq_parameters):
 
     """
     # Compute ihMT ratio map
-    ihMTR = 100*(contrast_maps[4]+contrast_maps[3]-contrast_maps[1] - contrast_maps[0])/contrast_maps[2]
+    ihMTR = 100*(contrast_maps[4]+contrast_maps[3]-
+                 contrast_maps[1]-contrast_maps[0])/contrast_maps[2]
 
-# flake8 to fix: longueur ligne jamais content ! Je ne sais pas où "couper"
     # Compute an dR1sat image
     cPD1a = (contrast_maps[4]+contrast_maps[3])/2
     cPD1b = (contrast_maps[1]+contrast_maps[0])/2
     cT1 = contrast_maps[5]
-    T1appa = ((cPD1a/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-(cPD1a*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
-    T1appb = ((cPD1b/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-(cPD1b*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
+
+    pa_num = ((cPD1a/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
+    pa_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-
+              (cPD1a*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
+    T1appa = pa_num/pa_den
+
+    pb_num = ((cPD1b/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
+    pb_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-
+              (cPD1b*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
+    T1appb = pb_num/pb_den
+
     ihMTsat = (1/T1appb)-(1/T1appa)
 
     return ihMTR, ihMTsat
@@ -210,16 +223,27 @@ def compute_MT_maps(contrast_maps, acq_parameters):
     MT ratio and MT saturation matrice in 3D-array.
     """
     # Compute MT Ratio map
-    MTR = 100*((contrast_maps[2]-(contrast_maps[4]+contrast_maps[3])/2)/contrast_maps[2])
+    MTR = 100*((contrast_maps[2]-
+               (contrast_maps[4]+contrast_maps[3])/2)/contrast_maps[2])
 
-# flake8 to fix: meme rangaine longueur ligne où couper ???
     # Compute MT sat maps
     cPD1 = contrast_maps[2]
     cPD2 = (contrast_maps[4]+contrast_maps[3])/2
     cT1 = contrast_maps[5]
-    Aapp = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2))-(2*acq_parameters[1][0]/(acq_parameters[1][1]**2)))/(((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1))-((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
-    T1app = ((cPD1/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))/((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0])-(cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app)/cPD2)-(acq_parameters[0][0]/T1app)-(acq_parameters[0][1]**2)/2)
+
+    Aapp_num = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2))-
+                (2*acq_parameters[1][0]/(acq_parameters[1][1]**2)))
+    Aapp_den = (((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1))-
+                ((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
+    Aapp = Aapp_num/Aapp_den
+
+    T1app_num =((cPD1/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
+    T1app_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0])-
+                 (cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
+    T1app = T1app_num/T1app_den
+
+    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app)/cPD2)-
+                 (acq_parameters[0][0]/T1app)-(acq_parameters[0][1]**2)/2)
 
     return MTR, MTsat
 
@@ -257,8 +281,8 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
     computed_map[computed_map > upper_threshold] = 0
 
     # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask[0])
-    mask_data = mask_image.get_fdata(dtype=np.float64)
+    mask_image = nib.load(in_mask)
+    mask_data = get_data_as_mask(mask_image)
     computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrasts maps
@@ -274,7 +298,7 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args,
                                        os.path.join(args.out_dir,
-                                                    'Contrats_MT_maps'),
+                                                    'Contrasts_ihMT_maps'),
                                        os.path.join(args.out_dir,
                                                     'ihMT_native_maps'),
                                        create_dir=True)
@@ -282,18 +306,15 @@ def main():
     # Merge all echos path into a list
     maps = [args.in_altnp, args.in_altpn, args.in_mtoff, args.in_negative,
             args.in_positive, args.in_t1w]
-    jsons = [curr_map[0].replace('.nii.gz', '.json') for curr_map in maps]
 
-    # assert_inputs_exist(parser, [maps, jsons])
+    jsons = [curr_map.replace('.nii.gz', '.json')
+             for curr_map in sum(maps, [])]
 
     # check data
-    length = len(maps[0])
+    assert_inputs_exist(parser, jsons + sum(maps, []))
     for list in maps:
-        if len(list) != length:
+        if len(list) != len(maps[0]):
             parser.error('Not the same number of echoes per contrast')
-    # Ca fonctionne pas sur une ligne ...
-    # if (len(list) != length for list in maps):
-    #    parser.error('Not the same number of echoes per contrast')
 
     # Set RT and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
@@ -321,7 +342,7 @@ def main():
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
                                  ref_img.affine, ref_img.header),
-                 os.path.join(args.out_dir, 'Contrats_MT_maps',
+                 os.path.join(args.out_dir, 'Contrasts_ihMT_maps',
                               args.id_subj + '_' + contrasts_name[idx]
                               + '.nii.gz'))
 
@@ -338,7 +359,7 @@ def main():
         curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
                                        args.in_mask, 0, 100, [4, 2])
 
-    # Save ihMT and MT images as Nifti format
+    # Save ihMT and MT images
     if args.filtering:
         img_name = ['ihMTR_filter', 'ihMTsat_filter', 'MTR_filter',
                     'MTsat_filter']
