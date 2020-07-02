@@ -19,39 +19,41 @@ from scilpy.io.utils import (add_overwrite_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_echoes', type=int,
-                   help='Number of echoes by contrasts')
     p.add_argument('id_subj',
-                   help='Subject name for saving maps')
+                   help='Subject name for saving maps.')
     p.add_argument('out_dir',
-                   help='Path to output folder')
-    p.add_argument('in_segment_tissue', nargs='+',
-                   help='Path to tissue probability maps from T1 segmentation')
-    p.add_argument('--filtering', default=None,
-                   help='Gaussian filtering to remove Gibbs ringing'
-                        'Not recommanded')
+                   help='Path to output folder.')
+    p.add_argument('in_mask', nargs='+',
+                   help='Path to the probability brain mask. Must be the sum '
+                        'of the three tissue probability maps '
+                        'from T1 segmentation (GM+WM+CSF).')
+    p.add_argument('--filtering', action_store=True,
+                   help='Gaussian filtering to remove Gibbs ringing.'
+                        'Not recommanded.')
 
-    g = p.add_argument_group(title='ihMT contrasts')
+    g = p.add_argument_group(title='ihMT contrasts', description='Path to '
+                             'echoes corresponding to contrasts images. All '
+                             'constrat must have the same number of echos.')
     g.add_argument('--in_altnp', nargs='+',
-                   help='Path to all echoes corresponding to altnp images'
+                   help='Path to all echoes corresponding to altnp images '
                         'alternation of Negative and Positive'
-                        'frequency saturation pulse')
+                        'frequency saturation pulse.')
     g.add_argument('--in_altpn', nargs='+',
-                   help='Path to all echoes corresponding to the'
+                   help='Path to all echoes corresponding to the '
                         'alternation of Positive and Negative '
-                        'frequency saturation pulse')
+                        'frequency saturation pulse.')
     g.add_argument("--in_mtoff", nargs='+',
-                   help='Path to all echoes corresponding to the'
-                        'No frequency saturation pulse (reference image).')
+                   help='Path to all echoes corresponding to the '
+                        'no frequency saturation pulse (reference image).')
     g.add_argument("--in_negative", nargs='+',
-                   help='Path to all echoes corresponding to the'
-                        'Negative frequency saturation pulse')
+                   help='Path to all echoes corresponding to the '
+                        'Negative frequency saturation pulse.')
     g.add_argument("--in_positive", nargs='+',
-                   help='Path to all echoes corresponding to the'
-                        'Positive frequency saturation pulse')
+                   help='Path to all echoes corresponding to the '
+                        'Positive frequency saturation pulse.')
     g.add_argument("--in_t1w", nargs='+',
-                   help='Path to all echoes corresponding to the'
-                        'T1weigthed images')
+                   help='Path to all echoes corresponding to the '
+                        'T1weigthed images.')
 
     add_overwrite_arg(p)
 
@@ -291,16 +293,16 @@ def main():
                          'must correspond to the number of echoes provide as '
                          'input : {}'.format(os.path.basename(contrast[0]),
                                              args.in_echoes))
-        json_file = contrast[0].replace('_warped.nii.gz', '.json')
+        json_file = contrast[0].replace('.nii.gz', '.json')
         if not os.path.isfile(os.path.join(json_file)):
             parser.error('No json file was found for {}'
                          .format(os.path.basename(contrast[0])))
 
     # Set RT and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[4][0].replace('_warped.nii.gz',
+    parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz',
                                                         '.json')),
-                  set_acq_parameters(maps[5][0].replace('_warped.nii.gz',
+                  set_acq_parameters(maps[5][0].replace('.nii.gz',
                                                         '.json'))]
 
     # Fix issue from the presence of NaN into array
@@ -331,16 +333,16 @@ def main():
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
     ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts,
-                                args.in_segment_tissue, 0, 100,
+                                args.in_mask, 0, 100,
                                 [4, 3, 1, 0, 2])
     ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts,
-                                  args.in_segment_tissue, 0, 10, [4, 3, 1, 0])
+                                  args.in_mask, 0, 10, [4, 3, 1, 0])
 
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
         curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
-                                       args.in_segment_tissue, 0, 100, [4, 2])
+                                       args.in_mask, 0, 100, [4, 2])
 
     # Save ihMT and MT images as Nifti format
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
