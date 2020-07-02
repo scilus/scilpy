@@ -156,10 +156,10 @@ def main():
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps
-    nufo_map, afd_max, afd_sum, rgb_map, \
-        _, _ = maps_from_sh(data, peak_dirs,
-                                       peak_values, peak_indices,
-                                       sphere, nbr_processes=args.nbr_processes)
+    if args.nufo or args.afd_max or args.afd_total or args.afd_sum or args.rgb:
+        nufo_map, afd_max, afd_sum, rgb_map, \
+            _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
+                                sphere, nbr_processes=args.nbr_processes)
 
     # Save result
     if args.nufo:
@@ -186,7 +186,7 @@ def main():
     if args.peaks or args.peak_values:
         peak_values = np.divide(peak_values, peak_values[..., 0, None],
                                 out=np.zeros_like(peak_values),
-                                where=peak_values[..., 0, None]!=0)
+                                where=peak_values[..., 0, None] != 0)
         peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
             nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
@@ -196,6 +196,7 @@ def main():
 
     if args.peak_indices:
         nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
+
 
 if __name__ == "__main__":
     main()
