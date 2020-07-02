@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_img = os.path.join(get_home(), 'others',
-                             't1_resample.nii.gz')
-    ret = script_runner.run('scil_run_nlmeans.py', input_img,
+    in_img = os.path.join(get_home(), 'others',
+                          't1_resample.nii.gz')
+    ret = script_runner.run('scil_run_nlmeans.py', in_img,
                             't1_denoised.nii.gz',  '4', '--processes', '1')
     assert ret.success

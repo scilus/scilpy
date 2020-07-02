@@ -13,15 +13,15 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_plot_mean_std_per_point.py', '--help')
+    ret = script_runner.run('scil_convert_json_to_xlsx.py', '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(get_home(), 'tractometry',
-                           'metric_label.json')
-    ret = script_runner.run('scil_plot_mean_std_per_point.py', in_json,
-                            'out/')
+                           'length_stats_1.json')
+    ret = script_runner.run('scil_convert_json_to_xlsx.py', in_json,
+                            'length_stats.xlsx')
 
     assert ret.success

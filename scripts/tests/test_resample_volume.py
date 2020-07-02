@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_img = os.path.join(get_home(), 'others',
-                             'fa.nii.gz')
-    ret = script_runner.run('scil_resample_volume.py', input_img,
+    in_img = os.path.join(get_home(), 'others',
+                          'fa.nii.gz')
+    ret = script_runner.run('scil_resample_volume.py', in_img,
                             'fa_resample.nii.gz', '--resolution', '2')
     assert ret.success

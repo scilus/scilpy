@@ -20,12 +20,12 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_fodf = os.path.join(get_home(), 'tracking',
-                              'fodf.nii.gz')
-    input_mask = os.path.join(get_home(), 'tracking',
-                              'seeding_mask.nii.gz')
-    ret = script_runner.run('scil_compute_local_tracking.py', input_fodf,
-                            input_mask, input_mask, 'local.trk', '--nt', '1000',
+    in_fodf = os.path.join(get_home(), 'tracking',
+                           'fodf.nii.gz')
+    in_mask = os.path.join(get_home(), 'tracking',
+                           'seeding_mask.nii.gz')
+    ret = script_runner.run('scil_compute_local_tracking.py', in_fodf,
+                            in_mask, in_mask, 'local.trk', '--nt', '1000',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200')
     assert ret.success

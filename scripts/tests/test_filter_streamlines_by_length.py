@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'filtering',
-                                'bundle_4.trk')
+    in_bundle = os.path.join(get_home(), 'filtering',
+                             'bundle_4.trk')
     ret = script_runner.run('scil_filter_streamlines_by_length.py',
-                            input_bundle,  'bundle_4_filtered.trk',
+                            in_bundle,  'bundle_4_filtered.trk',
                             '--minL', '125', '--maxL', '130')
     assert ret.success

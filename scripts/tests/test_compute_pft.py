@@ -20,16 +20,16 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_fodf = os.path.join(get_home(), 'tracking',
-                              'fodf.nii.gz')
-    input_interface = os.path.join(get_home(), 'tracking',
-                                   'interface.nii.gz')
-    input_include = os.path.join(get_home(), 'tracking',
-                                 'map_include.nii.gz')
-    input_exclude = os.path.join(get_home(), 'tracking',
-                                 'map_exclude.nii.gz')
-    ret = script_runner.run('scil_compute_pft.py', input_fodf,
-                            input_interface, input_include, input_exclude,
+    in_fodf = os.path.join(get_home(), 'tracking',
+                           'fodf.nii.gz')
+    in_interface = os.path.join(get_home(), 'tracking',
+                                'interface.nii.gz')
+    in_include = os.path.join(get_home(), 'tracking',
+                              'map_include.nii.gz')
+    in_exclude = os.path.join(get_home(), 'tracking',
+                              'map_exclude.nii.gz')
+    ret = script_runner.run('scil_compute_pft.py', in_fodf,
+                            in_interface, in_include, in_exclude,
                             'pft.trk', '--nt', '1000', '--compress', '0.1',
                             '--sh_basis', 'descoteaux07', '--min_length', '20',
                             '--max_length', '200')

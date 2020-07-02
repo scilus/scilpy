@@ -19,13 +19,13 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM.trk')
-    input_centroid = os.path.join(get_home(), 'tractometry',
-                                  'IFGWM_uni_c_10.trk')
-    input_ref = os.path.join(get_home(), 'tractometry',
-                             'mni_masked.nii.gz')
-    ret = script_runner.run('scil_compute_bundle_profiles.py', input_bundle,
-                            input_ref, '--in_centroid', input_centroid)
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
+    in_centroid = os.path.join(get_home(), 'tractometry',
+                               'IFGWM_uni_c_10.trk')
+    in_ref = os.path.join(get_home(), 'tractometry',
+                          'mni_masked.nii.gz')
+    ret = script_runner.run('scil_compute_bundle_profiles.py', in_bundle,
+                            in_ref, '--in_centroid', in_centroid)
 
     assert ret.success
