@@ -257,7 +257,7 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
     computed_map[computed_map > upper_threshold] = 0
 
     # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask)
+    mask_image = nib.load(in_mask[0])
     mask_data = mask_image.get_fdata(dtype=np.float64)
     computed_map[np.where(mask_data == 0)] = 0
 
@@ -279,28 +279,26 @@ def main():
                                                     'ihMT_native_maps'),
                                        create_dir=True)
 
-    # Merged all echoes path in a list
+    # Merge all echos path into a list
     maps = [args.in_altnp, args.in_altpn, args.in_mtoff, args.in_negative,
             args.in_positive, args.in_t1w]
+    jsons = [curr_map[0].replace('.nii.gz', '.json') for curr_map in maps]
 
-    # Check the number of echoes for each contrast and json file
-    for contrast in maps:
-        if len(contrast) != args.in_echoes:
-            parser.error('The number of images for {} '
-                         'must correspond to the number of echoes provide as '
-                         'input : {}'.format(os.path.basename(contrast[0]),
-                                             args.in_echoes))
-        json_file = contrast[0].replace('.nii.gz', '.json')
-        if not os.path.isfile(os.path.join(json_file)):
-            parser.error('No json file was found for {}'
-                         .format(os.path.basename(contrast[0])))
+    # assert_inputs_exist(parser, [maps, jsons])
+
+    # check data
+    length = len(maps[0])
+    for list in maps:
+        if len(list) != length:
+            parser.error('Not the same number of echoes per contrast')
+    # Ca fonctionne pas sur une ligne ...
+    # if (len(list) != length for list in maps):
+    #    parser.error('Not the same number of echoes per contrast')
 
     # Set RT and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz',
-                                                        '.json')),
-                  set_acq_parameters(maps[5][0].replace('.nii.gz',
-                                                        '.json'))]
+    parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz', '.json')),
+                  set_acq_parameters(maps[5][0].replace('.nii.gz', '.json'))]
 
     # Fix issue from the presence of NaN into array
     np.seterr(divide='ignore', invalid='ignore')
@@ -325,15 +323,14 @@ def main():
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'Contrats_MT_maps',
                               args.id_subj + '_' + contrasts_name[idx]
-                              + 'nii.gz'))
+                              + '.nii.gz'))
 
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
-    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts,
-                                args.in_mask, 0, 100,
-                                [4, 3, 1, 0, 2])
-    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts,
-                                  args.in_mask, 0, 10, [4, 3, 1, 0])
+    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask,
+                                0, 100, [4, 3, 1, 0, 2])
+    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
+                                  0, 10, [4, 3, 1, 0])
 
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
@@ -342,9 +339,11 @@ def main():
                                        args.in_mask, 0, 100, [4, 2])
 
     # Save ihMT and MT images as Nifti format
-    img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
     if args.filtering:
-        img_name = [curr_name + '_filter' for curr_name in img_name]
+        img_name = ['ihMTR_filter', 'ihMTsat_filter', 'MTR_filter',
+                    'MTsat_filter']
+    else:
+        img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
 
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
