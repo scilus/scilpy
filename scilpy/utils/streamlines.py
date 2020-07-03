@@ -31,7 +31,7 @@ def get_streamline_key(streamline, precision=None):
 
     key.flags.writeable = False
 
-    return key.data.tobytes()
+    return key.get_data().tobytes()
 
 
 def hash_streamlines(streamlines, start_index=0, precision=None):
