@@ -1,10 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-Computing ihMT and non-ihMT maps
-Make a more details description !
+This script computes four myelin indices maps from the Magnetization Transfer
+(MT) and inhomogeneous Magnetization Transfer (ihMT) images. Magnetization
+Transfer is a contrast mechanism in tissue resulting from the proton exchange
+between non-aqueous protons (from macromolecules and their closely associated
+water molecules, the "bound" pool) and protons in the free water pool called
+aqueous protons. This exchange attenuates the MRI signal, introducing
+microstructure-dependent contrast. MT's effect reflects the relative density
+of macromolecules such as proteins and lipids, it has been associated with
+myelin content in white matter of the brain.
 
-Compute the
-+++++ FAIRE LE PETIT TEST !!!  ++++++++
+Different contrasts can be done with an off-resonance pulse prior to image
+acquisition (a prepulse), saturating the protons on non-aqueous molecules,
+by applying different frequency irradiation. The two MT maps and two ihMT maps
+are obtained using five contrasts: single frequency positive or negative and
+dual frequency with an alternation of both positive and negative frequency
+(saturated images); and one unsaturated contrast as reference (T1weighted).
+
+The output consist in two types of images:
+        five contrast images and four (ih)MT maps.
+
+Contrast images :
+    - AltNP : alternating negative and positive frequency pulses
+    - altPN : alternating positive and negative frequency pulses
+    - positive : pulses applied at positive frequency
+    - negative : pulses applied at negative frequency
+    - reference : no pulse
+
+Maps :
+    Magnetization Transfer (MTR) and inhomogeneous (ihMTR) Ratio maps
+          The (ih)MT ratio is a measure reflecting the amount of bound protons.
+    Magnetization Transfer (MTsat) and inhomogeneous (ihMTsat) saturation maps
+          The (ih)MT saturation is a pseudo-quantitative ihMT maps representing
+          the signal change between the bound and free water pools.
+
 """
 
 import argparse
@@ -24,22 +53,24 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('id_subj',
-                   help='Subject name for saving maps.')
+                   help='Name of Subject for saving output files.')
     p.add_argument('out_dir',
                    help='Path to output folder.')
     p.add_argument('in_mask',
-                   help='Path to the probability brain mask. Must be the sum '
-                        'of the three tissue probability maps '
-                        'from T1 segmentation (GM+WM+CSF).')
+                   help='Path to the T1 binary brain mask. Must be the sum '
+                        'of the three tissue probability maps from '
+                        'T1 segmentation (GM+WM+CSF).')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing.'
                         'Not recommanded.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
-                             'constrat must have the same number of echos.')
+                             'constrat must have the same number of echoes '
+                             'and coregistered between them.'
+                             'Use * to include all echoes.')
     g.add_argument('--in_altnp', nargs='+',
-                   help='Path to all echoes corresponding to altnp images '
+                   help='Path to all echoes corresponding to the '
                         'alternation of Negative and Positive'
                         'frequency saturation pulse.')
     g.add_argument('--in_altpn', nargs='+',
@@ -57,7 +88,7 @@ def _build_arg_parser():
                         'Positive frequency saturation pulse.')
     g.add_argument("--in_t1w", nargs='+',
                    help='Path to all echoes corresponding to the '
-                        'T1weigthed images.')
+                        'T1-weigthed.')
 
     add_overwrite_arg(p)
 
@@ -70,7 +101,7 @@ def set_acq_parameters(json_path):
 
     Parameters
     ----------
-    json_path          Path to the json file
+    json_path   Path to the json file
 
     Returns
     ----------
@@ -78,9 +109,9 @@ def set_acq_parameters(json_path):
     """
     with open(json_path) as f:
         data = json.load(f)
-    RT = data['RepetitionTime']*1000
+    TR = data['RepetitionTime']*1000
     FlipAngle = data['FlipAngle']*np.pi/180
-    return RT, FlipAngle
+    return TR, FlipAngle
 
 
 def merge_images(echoes_image):
@@ -90,7 +121,7 @@ def merge_images(echoes_image):
 
     Parameters
     ----------
-    echo_images      List : list of echoes path for each contrasts. Ex.
+    echoes_image     List : list of echoes path for each contrasts. Ex.
                      ['path/to/echo-1_acq-pos',
                       'path/to/echo-2_acq-pos',
                       'path/to/echo-3_acq-pos']
@@ -137,14 +168,13 @@ def py_fspecial_gauss(shape, sigma):
 
 def compute_contrasts_maps(echoes_image, filtering=False):
     """
-    Load echoes and calculate contrast maps : more description details soon !
+    Load echoes and compute corresponding contrast map.
 
     Parameters
     ----------
-    echo_images     List of file path : list of echo(s) path for each
-                    contrasts
+    echoes_image    List of file path : list of echoes path for contrast
     filtering       Apply Gaussian filtering to remove Gibbs ringing
-                    (default is None).
+                    (default is False).
 
     Returns
     -------
@@ -168,82 +198,113 @@ def compute_contrasts_maps(echoes_image, filtering=False):
 
 def compute_ihMT_maps(contrast_maps, acq_parameters):
     """
-    Compute ihMT maps : More description details coming soon !
+    Compute Inhomogenous Magnetization transfer ratio and saturation maps.
+    - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
+    single frequency.
+    - ihMT saturation (ihMTsat) is computed as the difference of longitudinal
+    relaxation rates of bound to macromolecules pool from free water pool
+    saturation. The estimation of the ihMT saturation includes correction for
+    the effects of excitation flip angle and longitudinal relaxation rate, and
+    remove the effect of T1-weighted image.
+        cPD : contrast proton density
+            a : mean of positive and negative proton density
+            b : mean of two dual proton density
+        cT1 : contrast T1-weighted
+        num : numberator
+        den : denumerator
 
     see Varma et al., 2015
-    https://www.sciencedirect.com/science/article/pii/S1090780715001998
+    www.sciencedirect.com/science/article/pii/S1090780715001998
+    see Manning et al., 2017
+    www.sciencedirect.com/science/article/pii/S1090780716302488?via%3Dihub
 
     Parameters
     ----------
     contrast_maps:      List of matrices : list of all contrast maps computed
                                             with compute_contrasts_maps
-    acq_parameters:     List of RT and Flipangle values for ihMT and T1w images
-                        [RT, Flipangle]
+    acq_parameters:     List of TR and Flipangle values for ihMT and T1w images
+                        [TR, Flipangle]
     Returns
     -------
-    ihMT ratio and ihMT saturation matrices in 3D-array.
+    ihMT ratio (ihMTR) and ihMT saturation (ihMTsat) matrices in 3D-array.
 
     """
     # Compute ihMT ratio map
-    ihMTR = 100*(contrast_maps[4]+contrast_maps[3]-
-                 contrast_maps[1]-contrast_maps[0])/contrast_maps[2]
+    ihMTR = 100*(contrast_maps[4] + contrast_maps[3] -
+                 contrast_maps[1] - contrast_maps[0])/contrast_maps[2]
 
-    # Compute an dR1sat image
-    cPD1a = (contrast_maps[4]+contrast_maps[3])/2
-    cPD1b = (contrast_maps[1]+contrast_maps[0])/2
+    # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
+    cPDa = (contrast_maps[4] + contrast_maps[3])/2
+    cPDb = (contrast_maps[1] + contrast_maps[0])/2
     cT1 = contrast_maps[5]
 
-    pa_num = ((cPD1a/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
-    pa_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-
-              (cPD1a*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
-    T1appa = pa_num/pa_den
+    R1appa_num = ((cPDa/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
+    R1appa_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000) -
+                  (cPDa*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
+    freewater_sat = R1appa_num/R1appa_den
 
-    pb_num = ((cPD1b/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
-    pb_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000)-
-              (cPD1b*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
-    T1appb = pb_num/pb_den
+    R1appb_num = ((cPDb/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
+    R1appb_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000) -
+                  (cPDb*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
+    bound_sat = R1appb_num/R1appb_den
 
-    ihMTsat = (1/T1appb)-(1/T1appa)
+    ihMTsat = (1/bound_sat) - (1/freewater_sat)
 
     return ihMTR, ihMTsat
 
 
 def compute_MT_maps(contrast_maps, acq_parameters):
     """
-    Compute MT maps : description details coming soon !
+    Compute Magnetization transfer ratio and saturation maps.
+    MT ratio is computed as the percentage difference of two images, one
+    acquired with off-resonance saturation (MT-on) and one without (MT-off).
+    MT saturation is computed from apparent longitudinal relaxation rate
+    (R1app) and apparent signal amplitude (Aapp). The estimation of the MT
+    saturation includes correction for the effects of excitation flip angle
+    and longitudinal relaxation rate, and remove the effect of T1-weighted
+    image.
+        cPD : contrast proton density
+            1 : reference proton density (MT-off)
+            2 : mean of positive and negative proton density (MT-on)
+        cT1 : contrast T1-weighted
+        num : numberator
+        den : denumerator
+
+    see Helms et al., 2008
+    https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21732
 
     Parameters
     ----------
     contrast_maps:      List of 3D-array constrats matrices : list of all
                         contrast maps computed with compute_ihMT_contrasts
-    acq_parameters:     Lists of RT and Flipangle for ihMT and T1w
-                        [RT, Flipangle]
+    acq_parameters:     List of TR and Flipangle for ihMT and T1w images
+                        [TR, Flipangle]
     Returns
     -------
     MT ratio and MT saturation matrice in 3D-array.
     """
     # Compute MT Ratio map
-    MTR = 100*((contrast_maps[2]-
-               (contrast_maps[4]+contrast_maps[3])/2)/contrast_maps[2])
+    MTR = 100*((contrast_maps[2] -
+               (contrast_maps[4] + contrast_maps[3])/2)/contrast_maps[2])
 
-    # Compute MT sat maps
+    # Compute MT saturation maps
     cPD1 = contrast_maps[2]
-    cPD2 = (contrast_maps[4]+contrast_maps[3])/2
+    cPD2 = (contrast_maps[4] + contrast_maps[3])/2
     cT1 = contrast_maps[5]
 
-    Aapp_num = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2))-
+    Aapp_num = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2)) -
                 (2*acq_parameters[1][0]/(acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1))-
+    Aapp_den = (((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1)) -
                 ((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
     Aapp = Aapp_num/Aapp_den
 
-    T1app_num =((cPD1/acq_parameters[0][1])-(cT1/acq_parameters[1][1]))
-    T1app_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0])-
+    R1app_num = ((cPD1/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
+    R1app_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]) -
                  (cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
-    T1app = T1app_num/T1app_den
+    R1app = R1app_num/R1app_den
 
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app)/cPD2)-
-                 (acq_parameters[0][0]/T1app)-(acq_parameters[0][1]**2)/2)
+    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app)/cPD2)-
+                 (acq_parameters[0][0]/R1app) - (acq_parameters[0][1]**2)/2)
 
     return MTR, MTsat
 
@@ -253,8 +314,8 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
     """
     Remove NaN and apply different threshold based on
        - maximum and minimum threshold value
+       - T1 mask
        - combination of specific contrasts maps
-    Multiple data by sum of T1 probability maps (GM+WM+CSF)
 
     Parameters
     ----------
@@ -262,8 +323,8 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
                         Myelin map (ihMT or non-ihMT maps)
     contrast_maps       List of 3D-Array. File must containing the
                         6 contrasts maps.
-    in_mask                   List of path to tissue probability maps from
-                        T1 segmentation
+    in_mask             Path to binary T1 mask from T1 segmentation.
+                        Must be the sum of GM+WM+CSF.
     lower_threshold     Value for low thresold <int>
     upper_thresold      Value for up thresold <int>
     idx_contrast_list   List of indexes of contrast maps corresponding to
@@ -307,16 +368,19 @@ def main():
     maps = [args.in_altnp, args.in_altpn, args.in_mtoff, args.in_negative,
             args.in_positive, args.in_t1w]
 
+    maps_flat = (args.in_altnp + args.in_altpn + args.in_mtoff +
+                 args.in_negative + args.in_positive + args.in_t1w)
+
     jsons = [curr_map.replace('.nii.gz', '.json')
-             for curr_map in sum(maps, [])]
+             for curr_map in maps_flat]
 
     # check data
-    assert_inputs_exist(parser, jsons + sum(maps, []))
+    assert_inputs_exist(parser, jsons + maps_flat)
     for list in maps:
         if len(list) != len(maps[0]):
             parser.error('Not the same number of echoes per contrast')
 
-    # Set RT and FlipAngle parameters for ihMT (positive contrast)
+    # Set TR and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
     parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz', '.json')),
                   set_acq_parameters(maps[5][0].replace('.nii.gz', '.json'))]
