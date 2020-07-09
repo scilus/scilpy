@@ -168,7 +168,7 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
 
     # Keep data as int to get the underlying voxel
-    bundle_data_int = streamlines.data.astype(np.int)
+    bundle_data_int = streamlines.get_data().astype(np.int16)
 
     # Get stats
     stats = {bundle_name: {}}

@@ -169,7 +169,7 @@ def main():
 
     img = nib.load(args.input)
     data = img.get_fdata(dtype=np.float32)
-    affine = img.get_affine()
+    affine = img.affine
     if args.mask is None:
         mask = None
     else:

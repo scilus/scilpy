@@ -17,6 +17,7 @@ def _build_arg_parser():
 
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
+    # TODO rename to in_*
     p.add_argument('input',
                    help='Path of the input volume (nifti).')
     p.add_argument('output',
@@ -39,8 +40,8 @@ def main():
 
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
-    affine = vol.get_affine()
-    header = vol.get_header()
+    affine = vol.affine
+    header = vol.header
 
     if 'x' in args.axes:
         data = data[::-1, ...]
