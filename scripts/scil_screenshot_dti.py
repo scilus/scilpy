@@ -58,7 +58,7 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
     # Load and prepare the data
     dwi_img = nib.load(dwi_filename)
     dwi_data = dwi_img.get_data()
-    dwi_affine = dwi_img.get_affine()
+    dwi_affine = dwi_img.affine
 
     bvals, bvecs = read_bvals_bvecs(bvals_filename, bvecs_filename)
 
