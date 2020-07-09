@@ -258,7 +258,7 @@ def main():
         # Setting up the tractogram and nifti files
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
-                           peaks_use_affine=False,
+                           peaks_use_affine=True,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
                            gen_trk=False,
@@ -267,6 +267,7 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
+        mit.set_config('doNormalizeSignal', False)
         mit.load_data(args.in_dwi, tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
 
