@@ -8,6 +8,7 @@ Modify PFT maps to allow PFT tracking in given mask (e.g edema).
 import argparse
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
@@ -43,10 +44,10 @@ def main():
                                         args.map_exclude_corr])
 
     map_inc = nib.load(args.map_include)
-    map_inc_data = map_inc.get_fdata()
+    map_inc_data = map_inc.get_fdata(dtype=np.float32)
 
     map_exc = nib.load(args.map_exclude)
-    map_exc_data = map_exc.get_fdata()
+    map_exc_data = map_exc.get_fdata(dtype=np.float32)
 
     additional_mask = nib.load(args.additional_mask)
     additional_mask_data = get_data_as_mask(additional_mask)
