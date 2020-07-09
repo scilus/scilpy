@@ -257,7 +257,7 @@ def main():
         # Setting up the tractogram and nifti files
         trk2dictionary.run(filename_tractogram=args.in_tractogram,
                            filename_peaks=args.in_peaks,
-                           peaks_use_affine=True,
+                           peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
                            gen_trk=False,
@@ -266,8 +266,17 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
-        mit.set_config('doNormalizeSignal', False)
-        mit.load_data(args.in_dwi, tmp_scheme_filename)
+
+        # FIX for very small values during HCP processing
+        # (based on order of magnitude of signal)
+        img = nib.load(args.in_dwi)
+        data = img.get_fdata(dtype=np.float32)
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data))))] = 0
+        nib.save(nib.Nifti1Image(data, img.affine),
+                 os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
+
+        mit.load_data(os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'),
+                      tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:
