@@ -271,7 +271,7 @@ def main():
         # (based on order of magnitude of signal)
         img = nib.load(args.in_dwi)
         data = img.get_fdata(dtype=np.float32)
-        data[data < (0.001*10**np.floor(np.log10(np.mean(data))))] = 0
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
         nib.save(nib.Nifti1Image(data, img.affine),
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 
