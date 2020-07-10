@@ -141,6 +141,7 @@ def fetch_data(files_dict, keys=None):
             gdd.download_file_from_google_drive(file_id=url,
                                                 dest_path=full_path,
                                                 unzip=False)
+
             if check_md5(full_path, md5):
                 break
             else:
