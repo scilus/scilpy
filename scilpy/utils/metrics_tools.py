@@ -43,7 +43,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
                     metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(),
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
                         metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
@@ -289,5 +289,5 @@ def get_roi_metrics_mean_std(density_map, metrics_files):
 
     return map(lambda metric_file:
                weighted_mean_std(density_map,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)
