@@ -376,8 +376,8 @@ def main():
 
     # check data
     assert_inputs_exist(parser, jsons + maps_flat)
-    for list in maps:
-        if len(list) != len(maps[0]):
+    for curr_map in maps[1:]:
+        if len(curr_map) != len(maps[0]):
             parser.error('Not the same number of echoes per contrast')
 
     # Set TR and FlipAngle parameters for ihMT (positive contrast)
@@ -424,11 +424,11 @@ def main():
                                        args.in_mask, 0, 100, [4, 2])
 
     # Save ihMT and MT images
+    img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
+
     if args.filtering:
-        img_name = ['ihMTR_filter', 'ihMTsat_filter', 'MTR_filter',
-                    'MTsat_filter']
-    else:
-        img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
+        contrasts_name = [curr_name + '_filter'
+                          for curr_name in contrasts_name]
 
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
