@@ -22,7 +22,8 @@ from scilpy.utils.filenames import split_name_with_nii
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-
+    # TODO Rename variable in_*
+    # Capital letter, period
     p.add_argument('dwi',
                    help='input dwi file')
 
@@ -35,6 +36,7 @@ def _build_arg_parser():
     p.add_argument('table',
                    help='original table - first line is skipped')
 
+    # TODO no camel case
     p.add_argument('baseName',
                    help='basename output file')
 
@@ -92,7 +94,7 @@ def main():
 
     required_args = [args.dwi, args.bvec, args.bval, args.table]
 
-    baseName, extension = split_name_with_nii(args.dwi)
+    _, extension = split_name_with_nii(args.dwi)
     output_filenames = [args.baseName + extension,
                         args.baseName + '.bval',
                         args.baseName + '.bvec']
@@ -109,7 +111,7 @@ def main():
     bvecs = bvecs[newIndex]
     bvals = bvals[newIndex]
 
-    data = dwis.get_data()
+    data = dwis.get_fdata(dtype=np.float32)
     data = data[:, :, :, newIndex]
 
     nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,

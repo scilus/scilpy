@@ -7,6 +7,7 @@ Flip the volume according to the specified axis.
 import argparse
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -38,7 +39,7 @@ def main():
     assert_outputs_exist(parser, args, args.output)
 
     vol = nib.load(args.input)
-    data = vol.get_data()
+    data = vol.get_fdata(dtype=np.float32)
     affine = vol.affine
     header = vol.header
 
