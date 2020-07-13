@@ -103,7 +103,7 @@ def main():
 
     mask_wm = None
     if args.mask_wm:
-        mask_wm = get_data_as_mask(nib.load(args.wm_mask), dtype=np.bool)
+        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=np.bool)
 
     full_response = compute_ssst_frf(data, bvals, bvecs, mask=mask,
                                      mask_wm=mask_wm, fa_thresh=args.fa_thresh,
