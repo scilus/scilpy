@@ -39,8 +39,15 @@ def _build_arg_parser():
     p.add_argument('--include_dps', action='store_true',
                    help='Include the data_per_streamline the metadata.')
 
-    p.add_argument('--edge_keys', nargs='+',
-                   help='Keys to identify the sub-network of interest.')
+    group = p.add_mutually_exclusive_group()
+    group.add_argument('--edge_keys', nargs='+',
+                       help='Keys to identify the sub-network of interest.')
+
+    group.add_argument('--node_keys', nargs='+',
+                       help='Node keys to identify the sub-network of interest.')
+
+    p.add_argument('--save_empty', action='store_true',
+                   help='Save the empty tractograms.')
 
     add_overwrite_arg(p)
     return p
@@ -55,7 +62,19 @@ def main():
                                        create_dir=True)
 
     hdf5_file = h5py.File(args.in_hdf5, 'r')
-    for key in hdf5_file.keys():
+    keys = hdf5_file.keys()
+    if args.edge_keys is not None:
+        selected_keys = [key for key in keys if key in args.edge_keys]
+    elif args.node_keys is not None:
+        selected_keys = []
+        for node in args.node_keys:
+            selected_keys.extend([key for key in keys
+                                  if key.startswith(node + '_')
+                                  or key.endswith('_' + node)])
+    else:
+        selected_keys = keys
+
+    for key in selected_keys:
         affine = hdf5_file.attrs['affine']
         dimensions = hdf5_file.attrs['dimensions']
         voxel_sizes = hdf5_file.attrs['voxel_sizes']
