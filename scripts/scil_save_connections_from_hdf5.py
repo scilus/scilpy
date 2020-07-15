@@ -39,6 +39,9 @@ def _build_arg_parser():
     p.add_argument('--include_dps', action='store_true',
                    help='Include the data_per_streamline the metadata.')
 
+    p.add_argument('--edge_keys', nargs='+',
+                   help='Keys to identify the sub-network of interest.')
+
     add_overwrite_arg(p)
     return p
 
