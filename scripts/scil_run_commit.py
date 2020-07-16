@@ -117,8 +117,7 @@ def _build_arg_parser():
     g1.add_argument('--perp_diff', nargs='+', type=float,
                     help='Perpendicular diffusivity in mm^2/s.\n'
                          'Default for ball_stick: None\n'
-                         'Default for stick_zeppelin_ball: '
-                         '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
+                         'Default for stick_zeppelin_ball: [0.85E-3, 0.51E-3]')
     g1.add_argument('--iso_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
                          'Default for ball_stick: [2.0E-3]\n'
@@ -267,7 +266,17 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
-        mit.load_data(args.in_dwi, tmp_scheme_filename)
+
+        # FIX for very small values during HCP processing
+        # (based on order of magnitude of signal)
+        img = nib.load(args.in_dwi)
+        data = img.get_fdata(dtype=np.float32)
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
+        nib.save(nib.Nifti1Image(data, img.affine),
+                 os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
+
+        mit.load_data(os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'),
+                      tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:
@@ -279,8 +288,7 @@ def main():
         else:
             logging.debug('Using the Stick Zeppelin Ball model.')
             para_diff = args.para_diff or 1.7E-3
-            perp_diff = args.perp_diff or \
-                [1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]
+            perp_diff = args.perp_diff or [0.85E-3, 0.51E-3]
             isotropc_diff = args.iso_diff or [1.7E-3, 3.0E-3]
             mit.model.set(para_diff, perp_diff, isotropc_diff)
 

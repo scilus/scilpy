@@ -27,6 +27,8 @@ def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
+    # TODO Rename variable p
+    # TODO Rename to in_*
     parser.add_argument('dwi',
                         help='DWI Nifti image')
     parser.add_argument('bvals',
@@ -53,7 +55,7 @@ def _build_arg_parser():
 
 def _keep_time_step(dwi, time, output):
     image = nib.load(dwi)
-    data = image.get_data()
+    data = image.get_fdata(dtype=np.float32)
 
     fname, fext = split_name_with_nii(os.path.basename(output))
 
@@ -71,7 +73,7 @@ def _keep_time_step(dwi, time, output):
 def _mean_in_time(dwi, time, output):
     image = nib.load(dwi)
 
-    data = image.get_data()
+    data = image.get_fdata(dtype=np.float32)
     data = data[..., time]
     data = np.mean(data, axis=3, dtype=data.dtype)
 

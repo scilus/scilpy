@@ -9,18 +9,23 @@ import argparse
 import logging
 import warnings
 
+# TODO Switch to nib
 from dipy.denoise.nlmeans import nlmeans
 from dipy.denoise.noise_estimate import estimate_sigma
 import nibabel as nb
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    # TODO First line argparse
+    # TODO Rename variable in_*
     p.add_argument(
         'input',
         help='Path of the image file to denoise.')
@@ -46,6 +51,8 @@ def _build_arg_parser():
     p.add_argument(
         '--log', dest="logfile",
         help="If supplied, name of the text file to store the logs.")
+
+    # TODO use function for that
     p.add_argument(
         '--processes', dest='nbr_processes', metavar='int', type=int,
         help='Number of sub processes to start. Default: Use all cores.')
@@ -90,11 +97,15 @@ def main():
         log.addHandler(logging.FileHandler(args.logfile, mode='w'))
 
     vol = nb.load(args.input)
-    data = vol.get_data()
+    data = vol.get_fdata(dtype=np.float32)
     if args.mask is None:
-        mask = np.ones(data.shape[:3], dtype=np.bool)
+        mask = np.zeros(data.shape, dtype=np.bool)
+        if data.ndim == 4:
+            mask[np.sum(data, axis=-1) > 0] = 1
+        else:
+            mask[data > 0] = 1
     else:
-        mask = nb.load(args.mask).get_data().astype(np.bool)
+        mask = get_data_as_mask(nb.load(args.mask), dtype=np.bool)
 
     sigma = args.sigma
 
@@ -104,7 +115,7 @@ def main():
         sigma = np.ones(data.shape[:3]) * sigma
     else:
         log.info('Estimating noise')
-        sigma = _get_basic_sigma(vol.get_data(), log)
+        sigma = _get_basic_sigma(vol.get_fdata(dtype=np.float32), log)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)

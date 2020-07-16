@@ -46,8 +46,8 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
         Resampled image.
     """
     data = img.get_fdata(dtype=np.float32)
-    affine = img.get_affine()
-    original_zooms = img.get_header().get_zooms()[:3]
+    affine = img.affine
+    original_zooms = img.header.get_zooms()[:3]
 
     if ref is not None:
         if res is not None or iso_min:

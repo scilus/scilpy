@@ -24,7 +24,10 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('in_bundle', help='Fiber bundle file')
+    # TODO period at the end
+    # TODO rename to out_*
+    p.add_argument('in_bundle',
+                   help='Fiber bundle file')
     p.add_argument('in_centroid',
                    help='Centroid streamline associated to input fiber bundle')
     p.add_argument('output_label',
@@ -66,8 +69,8 @@ def main():
                       .format(args.centroid_streamline))
         raise ValueError
 
-    min_dist_label, min_dist = min_dist_to_centroid(sft_bundle.streamlines.data,
-                                                    sft_centroid.streamlines.data)
+    min_dist_label, min_dist = min_dist_to_centroid(sft_bundle.streamlines.get_data(),
+                                                    sft_centroid.streamlines.get_data())
     min_dist_label += 1
 
     # Save assignment in a compressed numpy file
