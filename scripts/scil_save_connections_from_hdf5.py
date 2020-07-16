@@ -44,10 +44,11 @@ def _build_arg_parser():
                        help='Keys to identify the sub-network of interest.')
 
     group.add_argument('--node_keys', nargs='+',
-                       help='Node keys to identify the sub-network of interest.')
+                       help='Node keys to identify the'
+                            'sub-network of interest.')
 
     p.add_argument('--save_empty', action='store_true',
-                   help='Save the empty tractograms.')
+                   help='If true, save also empty tractograms.')
 
     add_overwrite_arg(p)
     return p
@@ -79,15 +80,16 @@ def main():
         dimensions = hdf5_file.attrs['dimensions']
         voxel_sizes = hdf5_file.attrs['voxel_sizes']
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-        header = create_nifti_header(affine, dimensions, voxel_sizes)
-        sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                 origin=Origin.TRACKVIS)
-        if args.include_dps:
-            for dps_key in hdf5_file[key].keys():
-                if dps_key not in ['data', 'offsets', 'lengths']:
-                    sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
+        if args.save_empty or streamlines:
+            header = create_nifti_header(affine, dimensions, voxel_sizes)
+            sft = StatefulTractogram(streamlines, header, Space.VOX,
+                                    origin=Origin.TRACKVIS)
+            if args.include_dps:
+                for dps_key in hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
 
-        save_tractogram(sft, '{}.trk'.format(os.path.join(args.out_dir, key)))
+            save_tractogram(sft, '{}.trk'.format(os.path.join(args.out_dir, key)))
 
     hdf5_file.close()
 
