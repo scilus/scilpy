@@ -5,6 +5,9 @@
 Save individual connection of an hd5f from scil_decompose_connectivity.py.
 Useful for quality control and visual inspections.
 
+It can either save all connections, individual connections specified with
+edge_keys or connections from specific nodes with node_keys.
+
 The output is a directory containing the thousands of connections:
 out_dir/
     ├── LABEL1_LABEL1.trk
