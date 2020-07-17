@@ -3,8 +3,10 @@
 
 """
 Re-order a connectivity matrix using a text file format.
-The first row are the (x) and the second row the (y), the resulting matrix
-does not have to be square (support unequal number of x and y)
+The first row are the (x) and the second row the (y), must be space separated.
+The resulting matrix does not have to be square (support unequal number of
+x and y).
+
 
 The values refers to the coordinates (starting at 0) in the matrix, but if the
 --labels_list parameter is used, the values will refers to the label which will
@@ -13,14 +15,6 @@ one provided to the scil_decompose_connectivity.py
 
 To subsequently use scil_visualize_connectivity.py with a lookup table, you
 must use a label-based reording json and use --labels_list.
-
-The option bct_reorder_nodes creates its own ordering scheme that will be saved
-and then applied to others.
-We recommand running this option on a population-averaged matrix.
-The results are stochastic due to simulated annealing.
-
-This script is under the GNU GPLv3 license, for more detail please refer to
-https://www.gnu.org/licenses/gpl-3.0.en.html
 """
 
 import argparse
