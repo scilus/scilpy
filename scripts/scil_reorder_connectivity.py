@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Re-order a connectivity matrix using a json file in a format such as:
-    {"temporal": [[1,3,5,7], [0,2,4,6]]}.
-The key is to identify the sub-network, the first list is for the
-column (x) and the second is for the row (y).
+Re-order a connectivity matrix using a text file format.
+The first row are the (x) and the second row the (y), the resulting matrix
+does not have to be square (support unequal number of x and y)
 
 The values refers to the coordinates (starting at 0) in the matrix, but if the
 --labels_list parameter is used, the values will refers to the label which will
@@ -25,16 +24,16 @@ https://www.gnu.org/licenses/gpl-3.0.en.html
 """
 
 import argparse
-import json
+import os
 
-import bct
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 
 
 EPILOG = """
@@ -48,24 +47,20 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG)
 
-    p.add_argument('in_matrix',
+    p.add_argument('in_matrix', nargs='+',
                    help='Connectivity matrix in numpy (.npy) format.')
+    p.add_argument('in_ordering',
+                   help='Json file with the sub-network as keys and x/y '
+                        'lists as value (.txt).')
     p.add_argument('out_prefix',
                    help='Prefix for the output matrix filename.')
 
-    reorder = p.add_mutually_exclusive_group(required=True)
-    reorder.add_argument('--in_json',
-                         help='Json file with the sub-network as keys and x/y '
-                              'lists as value.')
-    reorder.add_argument('--bct_reorder_nodes', metavar='OUT_JSON',
-                         help='Rearranges the nodes so the elements are '
-                              'squeezed along the main diagonal.')
-
-    p.add_argument('--keys', nargs='+',
-                   help='Only generate the specified sub-network.')
+    p.add_argument('--out_dir',
+                   help='Output directory for the Free Water results.')
     p.add_argument('--labels_list',
                    help='List saved by the decomposition script,\n'
-                        'the json must contain labels rather than coordinates.')
+                        'the json must contain labels rather than coordinates '
+                        '(.txt).')
 
     add_overwrite_arg(p)
 
@@ -77,66 +72,50 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_matrix,
-                        [args.labels_list, args.in_json])
+                        [args.labels_list, args.in_ordering])
+    assert_output_dirs_exist_and_empty(parser, args, [], args.out_dir)
+    if args.out_dir is None:
+        args.out_dir = './'
+    out_filenames = []
+    for filename in args.in_matrix:
+        basename, _ = os.path.splitext(filename)
+        basename = os.path.basename(basename)
+        out_filenames.append('{}/{}{}.npy'.format(args.out_dir,
+                                                  args.out_prefix,
+                                                  basename))
 
-    if args.labels_list and args.bct_reorder_nodes:
-        parser.error('Cannot use the bct_reorder_nodes option with a '
-                     'labels_list.')
+    assert_outputs_exist(parser, args, out_filenames)
+    with open(args.in_ordering, 'r') as my_file:
+        lines = my_file.readlines()
+        ordering = [[int(val) for val in lines[0].split()],
+                    [int(val) for val in lines[1].split()]]
 
-    if args.keys and args.bct_reorder_nodes:
-        parser.error('Cannot use the bct_reorder_nodes option with keys.')
+    for filename in args.in_matrix:
+        basename, _ = os.path.splitext(filename)
+        basename = os.path.basename(basename)
+        matrix = load_matrix_in_any_format(filename)
 
-    matrix = load_matrix_in_any_format(args.in_matrix)
-
-    if args.in_json:
-        with open(args.in_json) as json_data:
-            config = json.load(json_data)
-        if args.keys:
-            keys = args.keys
+        if args.labels_list:
+            labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
+            indices_1, indices_2 = [], []
+            for j in ordering[0]:
+                indices_1.append(labels_list.index(j))
+            for j in ordering[1]:
+                indices_2.append(labels_list.index(j))
         else:
-            keys = config.keys()
-        out_filenames = []
-        for key in keys:
-            out_filenames.append('{}_{}.npy'.format(args.out_prefix, key))
-        assert_outputs_exist(parser, args, out_filenames)
+            indices_1 = ordering[0]
+            indices_2 = ordering[1]
 
-        for i, key in enumerate(keys):
-            if args.labels_list:
-                labels_list = np.loadtxt(
-                    args.labels_list, dtype=np.int16).tolist()
-                indices_1, indices_2 = [], []
-                for j in config[key][0]:
-                    indices_1.append(labels_list.index(j))
-                for j in config[key][1]:
-                    indices_2.append(labels_list.index(j))
-            else:
-                if key not in config:
-                    raise ValueError('{} not in config, maybe you need a labels '
-                                     'list?'.format(key))
-                indices_1 = config[key][0]
-                indices_2 = config[key][1]
-
-            if (np.array(indices_1) > matrix.shape[0]).any() \
-                    or (indices_2 > np.array(matrix.shape[1])).any():
-                raise ValueError('Indices from config higher than matrix size, '
-                                 'maybe you need a labels list?')
-            tmp_matrix = matrix[tuple(indices_1), :]
-            tmp_matrix = tmp_matrix[:, tuple(indices_2)]
-            save_matrix_in_any_format(out_filenames[i], tmp_matrix)
-    else:
-        assert_outputs_exist(parser, args, [], args.bct_reorder_nodes)
-
-        out_matrix, out_indices, _ = bct.reorder_matrix(matrix)
-        out_json = args.bct_reorder_nodes
-
-        out_indices = out_indices.tolist()
-        save_matrix_in_any_format('{}_{}.npy'.format(
-            args.out_prefix, 'bct_reorder_nodes'), out_matrix)
-        out_indices_dict = {'bct_reorder_nodes': [out_indices,
-                                                  out_indices]}
-
-        with open(out_json, 'w') as outfile:
-            json.dump(out_indices_dict, outfile, indent=2)
+        if (np.array(indices_1) > matrix.shape[0]).any() \
+                or (indices_2 > np.array(matrix.shape[1])).any():
+            raise ValueError('Indices from config higher than matrix size, '
+                             'maybe you need a labels list?')
+        tmp_matrix = matrix[tuple(indices_1), :]
+        tmp_matrix = tmp_matrix[:, tuple(indices_2)]
+        save_matrix_in_any_format('{}/{}{}.npy'.format(args.out_dir,
+                                                       args.out_prefix,
+                                                       basename),
+                                  tmp_matrix)
 
 
 if __name__ == "__main__":
