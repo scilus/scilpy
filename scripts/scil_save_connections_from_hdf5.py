@@ -5,6 +5,9 @@
 Save individual connection of an hd5f from scil_decompose_connectivity.py.
 Useful for quality control and visual inspections.
 
+It can either save all connections, individual connections specified with
+edge_keys or connections from specific nodes with node_keys.
+
 The output is a directory containing the thousands of connections:
 out_dir/
     ├── LABEL1_LABEL1.trk
@@ -39,6 +42,15 @@ def _build_arg_parser():
     p.add_argument('--include_dps', action='store_true',
                    help='Include the data_per_streamline the metadata.')
 
+    group = p.add_mutually_exclusive_group()
+    group.add_argument('--edge_keys', nargs='+',
+                       help='Keys to identify the edges of '
+                            'interest (LABEL1_LABEL2).')
+
+    group.add_argument('--node_keys', nargs='+',
+                       help='Node keys to identify the '
+                            'sub-network of interest.')
+
     add_overwrite_arg(p)
     return p
 
@@ -52,20 +64,33 @@ def main():
                                        create_dir=True)
 
     hdf5_file = h5py.File(args.in_hdf5, 'r')
-    for key in hdf5_file.keys():
+    keys = hdf5_file.keys()
+    if args.edge_keys is not None:
+        selected_keys = [key for key in keys if key in args.edge_keys]
+    elif args.node_keys is not None:
+        selected_keys = []
+        for node in args.node_keys:
+            selected_keys.extend([key for key in keys
+                                  if key.startswith(node + '_')
+                                  or key.endswith('_' + node)])
+    else:
+        selected_keys = keys
+
+    for key in selected_keys:
         affine = hdf5_file.attrs['affine']
         dimensions = hdf5_file.attrs['dimensions']
         voxel_sizes = hdf5_file.attrs['voxel_sizes']
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
         header = create_nifti_header(affine, dimensions, voxel_sizes)
         sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                 origin=Origin.TRACKVIS)
+                                    origin=Origin.TRACKVIS)
         if args.include_dps:
             for dps_key in hdf5_file[key].keys():
                 if dps_key not in ['data', 'offsets', 'lengths']:
                     sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
 
-        save_tractogram(sft, '{}.trk'.format(os.path.join(args.out_dir, key)))
+        save_tractogram(sft, '{}.trk'
+                        .format(os.path.join(args.out_dir, key)))
 
     hdf5_file.close()
 
