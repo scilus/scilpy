@@ -89,8 +89,8 @@ def main():
                 if dps_key not in ['data', 'offsets', 'lengths']:
                     sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
 
-            save_tractogram(sft, '{}.trk'
-                            .format(os.path.join(args.out_dir, key)))
+        save_tractogram(sft, '{}.trk'
+                        .format(os.path.join(args.out_dir, key)))
 
     hdf5_file.close()
 
