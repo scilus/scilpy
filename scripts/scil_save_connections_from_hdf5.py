@@ -8,6 +8,9 @@ Useful for quality control and visual inspections.
 It can either save all connections, individual connections specified with
 edge_keys or connections from specific nodes with node_keys.
 
+With the option save_empty, a label_lists, as a txt file, must be provided.
+This option saves existing connections and empty connections.
+
 The output is a directory containing the thousands of connections:
 out_dir/
     ├── LABEL1_LABEL1.trk
@@ -54,7 +57,7 @@ def _build_arg_parser():
                             'sub-network of interest.')
 
     p.add_argument('--save_empty', action='store_true',
-                   help='Save the empty tractograms.')
+                   help='Save empty connections.')
 
     p.add_argument('--labels_list',
                    help='A txt file containing a list '
@@ -71,12 +74,10 @@ def main():
     assert_inputs_exist(parser, args.in_hdf5)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
-
-    hdf5_file = h5py.File(args.in_hdf5, 'r')
-    keys = hdf5_file.keys()
-
     if args.save_empty and args.labels_list is None:
         parser.error("The option --save_empty requires --labels_list.")
+
+    hdf5_file = h5py.File(args.in_hdf5, 'r')
 
     if args.save_empty:
         all_labels = np.loadtxt(args.labels_list, dtype='str')
@@ -92,8 +93,8 @@ def main():
         selected_keys = []
         for node in args.node_keys:
             selected_keys.extend([key for key in keys
-                                if key.startswith(node + '_')
-                                or key.endswith('_' + node)])
+                                 if key.startswith(node + '_')
+                                 or key.endswith('_' + node)])
     else:
         selected_keys = keys
 
@@ -104,7 +105,7 @@ def main():
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
         header = create_nifti_header(affine, dimensions, voxel_sizes)
         sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                    origin=Origin.TRACKVIS)
+                                 origin=Origin.TRACKVIS)
         if args.include_dps:
             for dps_key in hdf5_file[key].keys():
                 if dps_key not in ['data', 'offsets', 'lengths']:
