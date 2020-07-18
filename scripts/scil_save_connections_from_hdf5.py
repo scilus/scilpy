@@ -23,6 +23,8 @@ from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import create_nifti_header
 import h5py
+import itertools
+import numpy as np
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
@@ -51,6 +53,13 @@ def _build_arg_parser():
                        help='Node keys to identify the '
                             'sub-network of interest.')
 
+    p.add_argument('--save_empty', action='store_true',
+                   help='Save the empty tractograms.')
+
+    p.add_argument('--labels_list',
+                   help='A txt file containing a list '
+                        'saved by the decomposition script.')
+
     add_overwrite_arg(p)
     return p
 
@@ -65,14 +74,26 @@ def main():
 
     hdf5_file = h5py.File(args.in_hdf5, 'r')
     keys = hdf5_file.keys()
+
+    if args.save_empty and args.labels_list is None:
+        parser.error("The option --save_empty requires --labels_list.")
+
+    if args.save_empty:
+        all_labels = np.loadtxt(args.labels_list, dtype='str')
+        comb_list = list(itertools.combinations(all_labels, r=2))
+        comb_list.extend(zip(all_labels, all_labels))
+        keys = [i[0]+'_'+i[1] for i in comb_list]
+    else:
+        keys = hdf5_file.keys()
+
     if args.edge_keys is not None:
         selected_keys = [key for key in keys if key in args.edge_keys]
     elif args.node_keys is not None:
         selected_keys = []
         for node in args.node_keys:
             selected_keys.extend([key for key in keys
-                                  if key.startswith(node + '_')
-                                  or key.endswith('_' + node)])
+                                if key.startswith(node + '_')
+                                or key.endswith('_' + node)])
     else:
         selected_keys = keys
 
