@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This script computes four myelin indices maps from the Magnetization Transfer
+This script computes two myelin indices maps from the Magnetization Transfer
 (MT) images.
 Magnetization Transfer is a contrast mechanism in tissue resulting from the
 proton exchange between non-aqueous protons (from macromolecules and their
@@ -10,17 +10,19 @@ introducing microstructure-dependent contrast. MT's effect reflects the
 relative density of macromolecules such as proteins and lipids, it has been
 associated with myelin content in white matter of the brain.
 
-Different contrasts can be done with an off-resonance pulse prior to image
-acquisition (a prepulse), saturating the protons on non-aqueous molecules,
-by applying different frequency irradiation. The MTsat map are obtained using
-three contrasts: single frequency positive and negative (saturated images);
-and one unsaturated contrast as reference (T1weighted).
+Different contrasts can be done with an off-resonance pulse to saturating the
+protons on non-aqueous molecules a frequency irradiation. The MT maps are
+obtained using three contrasts: single frequency irradiation (MT-on, saturated
+images) and an unsaturated contrast (MT-off); and a T1weighted image as
+reference.
 
 The output consist in two types of images:
-        MTsat or MTsat_B1 corrected for an empiric B1 correction maps.
+        Three contrasts images : MT-off, MT-on and T1weighted images.
+        MT maps corrected or not for an empiric B1 correction maps.
 
 Return :
-    Magnetization Transfer (MTsat) saturation maps
+    Magnetization Transfer (MT) ratio and saturation maps
+          The MT ratio is a measure reflecting the amount of bound protons.
           The MT saturation is a pseudo-quantitative MT maps representing
           the signal change between the bound and free water pools.
 
@@ -28,8 +30,8 @@ Return :
 
 import argparse
 import os
-
 import json
+
 import nibabel as nib
 import numpy as np
 import scipy.ndimage
@@ -55,7 +57,7 @@ def _build_arg_parser():
 
     g = p.add_argument_group(title='MT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
-                             'constrat must have the same number of echoes '
+                             'constrasts must have the same number of echoes '
                              'and coregistered between them.'
                              'Use * to include all echoes.')
     g.add_argument("--in_mtoff", nargs='+',
@@ -141,7 +143,7 @@ def compute_contrasts_maps(echoes_image):
     return contrast_map
 
 
-def compute_MT_maps(contrast_maps, acq_parameters):
+def compute_MT_maps(contrasts_maps, acq_parameters):
     """
     Compute Magnetization transfer ratio and saturation maps.
     MT ratio is computed as the percentage difference of two images, one
@@ -163,7 +165,7 @@ def compute_MT_maps(contrast_maps, acq_parameters):
 
     Parameters
     ----------
-    contrast_maps:      List of 3D-array constrats matrices : list of all
+    contrasts_maps:      List of 3D-array constrats matrices : list of all
                         contrast maps computed with compute_ihMT_contrasts
     acq_parameters:     List of TR and Flipangle for ihMT and T1w images
                         [TR, Flipangle]
@@ -179,16 +181,16 @@ def compute_MT_maps(contrast_maps, acq_parameters):
     cPD2 = contrast_maps[1]  # mton
     cT1 = contrast_maps[2]
 
-    Aapp_num = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0]/(acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
-    Aapp = Aapp_num/Aapp_den
+    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
+                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
+    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
+                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
+    Aapp = Aapp_num / Aapp_den
 
-    R1app_num = ((cPD1/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
-    R1app = R1app_num/R1app_den
+    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
+                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
+    R1app = R1app_num / R1app_den
 
     MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app)/cPD2)
                  - (acq_parameters[0][0]/R1app) - (acq_parameters[0][1]**2)/2)
@@ -253,7 +255,7 @@ def apply_B1_correction(MT_map, B1_map):
     B1_smooth_map = scipy.ndimage.convolve(B1_img_data,
                                            h).astype(np.float32)
 
-    # Apply an empiric B1 correction via B1 smooth data on MTsat data
+    # Apply an empiric B1 correction via B1 smooth on MT data
     MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
 
     return MT_map_B1_corrected
@@ -284,7 +286,7 @@ def main():
         if len(curr_map) != len(maps[0]):
             parser.error('Not the same number of echoes per contrast')
 
-    # Set TR and FlipAngle parameters for ihMT (positive contrast)
+    # Set TR and FlipAngle parameters for MT (mtoff contrast)
     # and T1w images
     parameters = [set_acq_parameters(maps[0][0].replace('.nii.gz', '.json')),
                   set_acq_parameters(maps[2][0].replace('.nii.gz', '.json'))]
@@ -303,20 +305,20 @@ def main():
     for idx, curr_map in enumerate(maps):
         computed_contrasts.append(compute_contrasts_maps(curr_map))
 
-        nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+        nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'Contrasts_MT_maps',
                               args.id_subj + '_' + contrasts_name[idx]
                               + '.nii.gz'))
 
-    # Compute and thresold MTsat maps
+    # Compute and thresold MT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
         curr_map = threshold_MT_maps(curr_map, args.in_mask, 0, 100)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 
-    # Save ihMT and MT images
+    # Save MT maps
     img_name = ['MTR', 'MTsat']
 
     if args.in_B1_map:
@@ -325,7 +327,7 @@ def main():
 
     img_data = MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
-        nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+        nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'MT_native_maps',
                               args.id_subj + '_' + name + '.nii.gz'))
