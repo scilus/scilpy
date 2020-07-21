@@ -40,18 +40,25 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
+EPILOG = """
+Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
+magnetization transfer with inherent correction for RF inhomogeneity
+and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
+2008;60(6):1396‑407.
+"""
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('id_subj',
-                   help='Name of Subject for saving output files.')
     p.add_argument('out_dir',
                    help='Path to output folder.')
     p.add_argument('in_mask',
                    help='Path to the T1 binary brain mask. Must be the sum '
                         'of the three tissue probability maps from '
                         'T1 segmentation (GM+WM+CSF).')
+    p.add_argument('--out_prefix',
+                   help='Prefix to be used for each output image.')
     p.add_argument('--in_B1_map', action='store_true',
                    help='Path to B1 coregister map to MT contrasts.')
 
@@ -174,12 +181,12 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     MT ratio and MT saturation matrice in 3D-array.
     """
     # Compute MT Ratio map
-    MTR = 100*(contrast_maps[0] - contrast_maps[1])/contrast_maps[0]
+    MTR = 100*(contrasts_maps[0] - contrasts_maps[1]) / contrasts_maps[0]
 
     # Compute MT saturation maps
-    cPD1 = contrast_maps[0]  # mtoff
-    cPD2 = contrast_maps[1]  # mton
-    cT1 = contrast_maps[2]
+    cPD1 = contrasts_maps[0]  # mtoff
+    cPD2 = contrasts_maps[1]  # mton
+    cT1 = contrasts_maps[2]
 
     Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
                 (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
@@ -291,7 +298,7 @@ def main():
     parameters = [set_acq_parameters(maps[0][0].replace('.nii.gz', '.json')),
                   set_acq_parameters(maps[2][0].replace('.nii.gz', '.json'))]
 
-    # Fix issue from the presence of NaN into array
+    # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
     # Define reference image for saving maps
@@ -300,16 +307,19 @@ def main():
     # Define contrasts maps names
     contrasts_name = ['mt_off', 'mt_on', 'T1w']
 
+    if args.out_prefix:
+        contrasts_name = [args.out_prefix + '_' + curr_name
+                          for curr_name in contrasts_name]
+
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
         computed_contrasts.append(compute_contrasts_maps(curr_map))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
-                                 ref_img.affine, ref_img.header),
+                                 ref_img.affine),
                  os.path.join(args.out_dir, 'Contrasts_MT_maps',
-                              args.id_subj + '_' + contrasts_name[idx]
-                              + '.nii.gz'))
+                              contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold MT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
@@ -325,12 +335,16 @@ def main():
         img_name = [curr_name + '_B1_corrected'
                     for curr_name in img_name]
 
+    if args.out_prefix:
+        img_name = [args.out_prefix + '_' + curr_name
+                    for curr_name in img_name]
+
     img_data = MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
-                                 ref_img.affine, ref_img.header),
+                                 ref_img.affine),
                  os.path.join(args.out_dir, 'MT_native_maps',
-                              args.id_subj + '_' + name + '.nii.gz'))
+                              name + '.nii.gz'))
 
 
 if __name__ == '__main__':
