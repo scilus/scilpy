@@ -17,6 +17,13 @@ are obtained using five contrasts: single frequency positive or negative and
 dual frequency with an alternation of both positive and negative frequency
 (saturated images); and one unsaturated contrast as reference (T1weighted).
 
+
+The Input Data :
+  - it is recommended to use dcm2niix (v1.0.20200331) to convert data
+    https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331
+  - all contrasts must have a same number of echoes
+  - all input must have a matching json with the same filename
+
 The output consist in two types of images:
         five contrast images and four (ih)MT maps.
 
@@ -38,8 +45,8 @@ Maps :
 
 import argparse
 import os
-
 import json
+
 import nibabel as nib
 import numpy as np
 import scipy.ndimage
@@ -48,18 +55,34 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
+EPILOG = """
+Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
+Interpretation of magnetization transfer from inhomogeneously broadened lines
+(ihMT) in tissues as a dipolar order effect within motion restricted molecules.
+Journal of Magnetic Resonance. 1 nov 2015;260:67‑76.
+
+Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
+“inhomogeneous” magnetization transfer MRI. Journal of Magnetic Resonance.
+1 janv 2017;274:125‑36.
+
+Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
+magnetization transfer with inherent correction for RF inhomogeneity
+and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
+2008;60(6):1396‑407.
+"""
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('id_subj',
-                   help='Name of Subject for saving output files.')
     p.add_argument('out_dir',
                    help='Path to output folder.')
     p.add_argument('in_mask',
                    help='Path to the T1 binary brain mask. Must be the sum '
                         'of the three tissue probability maps from '
                         'T1 segmentation (GM+WM+CSF).')
+    p.add_argument('--out_prefix',
+                   help='Prefix to be used for each output image.')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing.'
                         'Not recommanded.')
@@ -69,24 +92,24 @@ def _build_arg_parser():
                              'constrat must have the same number of echoes '
                              'and coregistered between them.'
                              'Use * to include all echoes.')
-    g.add_argument('--in_altnp', nargs='+',
+    g.add_argument('--in_altnp', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'alternation of Negative and Positive'
                         'frequency saturation pulse.')
-    g.add_argument('--in_altpn', nargs='+',
+    g.add_argument('--in_altpn', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'alternation of Positive and Negative '
                         'frequency saturation pulse.')
-    g.add_argument("--in_mtoff", nargs='+',
+    g.add_argument("--in_mtoff", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'no frequency saturation pulse (reference image).')
-    g.add_argument("--in_negative", nargs='+',
+    g.add_argument("--in_negative", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'Negative frequency saturation pulse.')
-    g.add_argument("--in_positive", nargs='+',
+    g.add_argument("--in_positive", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'Positive frequency saturation pulse.')
-    g.add_argument("--in_t1w", nargs='+',
+    g.add_argument("--in_t1w", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'T1-weigthed.')
 
@@ -196,7 +219,7 @@ def compute_contrasts_maps(echoes_image, filtering=False):
     return contrast_map
 
 
-def compute_ihMT_maps(contrast_maps, acq_parameters):
+def compute_ihMT_maps(contrasts_maps, acq_parameters):
     """
     Compute Inhomogenous Magnetization transfer ratio and saturation maps.
     - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
@@ -220,7 +243,7 @@ def compute_ihMT_maps(contrast_maps, acq_parameters):
 
     Parameters
     ----------
-    contrast_maps:      List of matrices : list of all contrast maps computed
+    contrasts_maps:      List of matrices : list of all contrast maps computed
                                             with compute_contrasts_maps
     acq_parameters:     List of TR and Flipangle values for ihMT and T1w images
                         [TR, Flipangle]
@@ -230,30 +253,31 @@ def compute_ihMT_maps(contrast_maps, acq_parameters):
 
     """
     # Compute ihMT ratio map
-    ihMTR = 100*(contrast_maps[4] + contrast_maps[3] -
-                 contrast_maps[1] - contrast_maps[0])/contrast_maps[2]
+    ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
+                 contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
 
     # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
-    cPDa = (contrast_maps[4] + contrast_maps[3])/2
-    cPDb = (contrast_maps[1] + contrast_maps[0])/2
-    cT1 = contrast_maps[5]
+    cPDa = (contrasts_maps[4] + contrasts_maps[3]) / 2
+    cPDb = (contrasts_maps[1] + contrasts_maps[0]) / 2
+    cT1 = contrasts_maps[5]
 
-    R1appa_num = ((cPDa/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
-    R1appa_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000) -
-                  (cPDa*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
-    freewater_sat = R1appa_num/R1appa_den
+    R1appa_num = ((cPDa / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    R1appa_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0] / 1000)
+                  - (cPDa*acq_parameters[0][1]) / (2*acq_parameters[0][0]
+                                                   / 1000))
+    freewater_sat = R1appa_num / R1appa_den
 
-    R1appb_num = ((cPDb/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
-    R1appb_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]/1000) -
-                  (cPDb*acq_parameters[0][1])/(2*acq_parameters[0][0]/1000))
-    bound_sat = R1appb_num/R1appb_den
+    R1appb_num = ((cPDb / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    R1appb_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]/1000) -
+                  (cPDb*acq_parameters[0][1]) / (2*acq_parameters[0][0]/1000))
+    bound_sat = R1appb_num / R1appb_den
 
-    ihMTsat = (1/bound_sat) - (1/freewater_sat)
+    ihMTsat = (1 / bound_sat) - (1 / freewater_sat)
 
     return ihMTR, ihMTsat
 
 
-def compute_MT_maps(contrast_maps, acq_parameters):
+def compute_MT_maps(contrasts_maps, acq_parameters):
     """
     Compute Magnetization transfer ratio and saturation maps.
     MT ratio is computed as the percentage difference of two images, one
@@ -275,7 +299,7 @@ def compute_MT_maps(contrast_maps, acq_parameters):
 
     Parameters
     ----------
-    contrast_maps:      List of 3D-array constrats matrices : list of all
+    contrasts_maps:     List of 3D-array constrats matrices : list of all
                         contrast maps computed with compute_ihMT_contrasts
     acq_parameters:     List of TR and Flipangle for ihMT and T1w images
                         [TR, Flipangle]
@@ -284,32 +308,34 @@ def compute_MT_maps(contrast_maps, acq_parameters):
     MT ratio and MT saturation matrice in 3D-array.
     """
     # Compute MT Ratio map
-    MTR = 100*((contrast_maps[2] -
-               (contrast_maps[4] + contrast_maps[3])/2)/contrast_maps[2])
+    MTR = 100*((contrasts_maps[2] -
+               (contrasts_maps[4] + contrasts_maps[3]) / 2)
+               / contrasts_maps[2])
 
     # Compute MT saturation maps
-    cPD1 = contrast_maps[2]
-    cPD2 = (contrast_maps[4] + contrast_maps[3])/2
-    cT1 = contrast_maps[5]
+    cPD1 = contrasts_maps[2]
+    cPD2 = (contrasts_maps[4] + contrasts_maps[3]) / 2
+    cT1 = contrasts_maps[5]
 
-    Aapp_num = ((2*acq_parameters[0][0]/(acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0]/(acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0])/(acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0])/(acq_parameters[1][1]*cT1)))
-    Aapp = Aapp_num/Aapp_den
+    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
+                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
+    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
+                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
+    Aapp = Aapp_num / Aapp_den
 
-    R1app_num = ((cPD1/acq_parameters[0][1]) - (cT1/acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1])/(2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1])/(2*acq_parameters[0][0]))
-    R1app = R1app_num/R1app_den
+    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
+                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
+    R1app = R1app_num / R1app_den
 
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app)/cPD2)-
-                 (acq_parameters[0][0]/R1app) - (acq_parameters[0][1]**2)/2)
+    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app)
+                 / cPD2) - (acq_parameters[0][0] / R1app)
+                 - (acq_parameters[0][1]**2) / 2)
 
     return MTR, MTsat
 
 
-def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
+def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
                         lower_threshold, upper_threshold, idx_contrast_list):
     """
     Remove NaN and apply different threshold based on
@@ -321,14 +347,14 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
     ----------
     computed_map        3D-Array data.
                         Myelin map (ihMT or non-ihMT maps)
-    contrast_maps       List of 3D-Array. File must containing the
+    contrasts_maps      List of 3D-Array. File must containing the
                         6 contrasts maps.
     in_mask             Path to binary T1 mask from T1 segmentation.
                         Must be the sum of GM+WM+CSF.
     lower_threshold     Value for low thresold <int>
     upper_thresold      Value for up thresold <int>
     idx_contrast_list   List of indexes of contrast maps corresponding to
-                        that of input contrast_maps ex.: [0, 2, 5]
+                        that of input contrasts_maps ex.: [0, 2, 5]
                         Altnp = 0; Atlpn = 1; Reference = 2; Negative = 3;
                         Positive = 4; T1weighted = 5
     Returns
@@ -348,7 +374,7 @@ def threshold_ihMT_maps(computed_map, contrast_maps, in_mask,
 
     # Apply threshold based on combination of specific contrasts maps
     for idx in idx_contrast_list:
-        computed_map[contrast_maps[idx] == 0] = 0
+        computed_map[contrasts_maps[idx] == 0] = 0
 
     return computed_map
 
@@ -374,7 +400,7 @@ def main():
     jsons = [curr_map.replace('.nii.gz', '.json')
              for curr_map in maps_flat]
 
-    # check data
+    # check echoes number and jsons
     assert_inputs_exist(parser, jsons + maps_flat)
     for curr_map in maps[1:]:
         if len(curr_map) != len(maps[0]):
@@ -385,7 +411,7 @@ def main():
     parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz', '.json')),
                   set_acq_parameters(maps[5][0].replace('.nii.gz', '.json'))]
 
-    # Fix issue from the presence of NaN into array
+    # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
     # Define reference image for saving maps
@@ -398,17 +424,20 @@ def main():
         contrasts_name = [curr_name + '_filter'
                           for curr_name in contrasts_name]
 
+    if args.out_prefix:
+        contrasts_name = [args.out_prefix + '_' + curr_name
+                          for curr_name in contrasts_name]
+
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
         computed_contrasts.append(compute_contrasts_maps(
                                   curr_map, filtering=args.filtering))
 
-        nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float64),
+        nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'Contrasts_ihMT_maps',
-                              args.id_subj + '_' + contrasts_name[idx]
-                              + '.nii.gz'))
+                              contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
@@ -427,15 +456,19 @@ def main():
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
 
     if args.filtering:
-        contrasts_name = [curr_name + '_filter'
-                          for curr_name in contrasts_name]
+        img_name = [curr_name + '_filter'
+                    for curr_name in img_name]
+
+    if args.out_prefix:
+        img_name = [args.out_prefix + '_' + curr_name
+                    for curr_name in img_name]
 
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
-        nib.save(nib.Nifti1Image(img_to_save.astype(np.float64),
+        nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
                                  ref_img.affine, ref_img.header),
                  os.path.join(args.out_dir, 'ihMT_native_maps',
-                              args.id_subj + '_' + name + '.nii.gz'))
+                              name + '.nii.gz'))
 
 
 if __name__ == '__main__':
