@@ -18,28 +18,41 @@ dual frequency with an alternation of both positive and negative frequency
 (saturated images); and one unsaturated contrast as reference (T1weighted).
 
 
-The Input Data :
+Input Data recommendation:
   - it is recommended to use dcm2niix (v1.0.20200331) to convert data
     https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331
-  - all contrasts must have a same number of echoes
-  - all input must have a matching json with the same filename
+  - dcm2niix conversion will create all echo files for each contrast and
+    corresponding json files
+  - all input must have a matching json file with the same filename
+  - all contrasts must have a same number of echoes and coregistered
+    between them before running the script.
+  - Mask must be coregistered to the echo images
+  - ANTs can be used for the registration steps (http://stnava.github.io/ANTs/)
 
-The output consist in two types of images:
-        five contrast images and four (ih)MT maps.
 
-Contrast images :
-    - AltNP : alternating negative and positive frequency pulses
-    - altPN : alternating positive and negative frequency pulses
-    - positive : pulses applied at positive frequency
-    - negative : pulses applied at negative frequency
-    - reference : no pulse
+The output consist in two types of images in two folders :
+  1. Contrasts_ihMT_maps which contains the 5 contrast images
+      - altnp.nii.gz : alternating negative and positive frequency pulses
+      - altpn.nii.gz : alternating positive and negative frequency pulses
+      - positive.nii.gz : pulses applied at positive frequency
+      - negative.nii.gz : pulses applied at negative frequency
+      - reference.nii.gz : no pulse
 
-Maps :
-    Magnetization Transfer (MTR) and inhomogeneous (ihMTR) Ratio maps
-          The (ih)MT ratio is a measure reflecting the amount of bound protons.
-    Magnetization Transfer (MTsat) and inhomogeneous (ihMTsat) saturation maps
-          The (ih)MT saturation is a pseudo-quantitative ihMT maps representing
-          the signal change between the bound and free water pools.
+  2. ihMT_native_maps which contains the 4 myelin maps
+      - MTR.nii.gz : Magnetization Transfer Ratio map
+      - ihMTR.nii.gz : inhomogeneous Magnetization Transfer Ratio map
+      The (ih)MT ratio is a measure reflecting the amount of bound protons.
+
+      - MTsat.nii.gz : Magnetization Transfer saturation map
+      - ihMTsat.nii.gz : inhomogeneous Magnetization Transfer saturation map
+      The (ih)MT saturation is a pseudo-quantitative maps representing
+      the signal change between the bound and free water pools.
+
+
+>>> scil_compute_ihMT_maps.py path/to/output/directory path/to/mask_bin.nii.gz
+    --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
+    --in_mtoff path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
+    --in_positive path/to/echo*pos.nii.gz --in_t1w path/to/echo*T1w.nii.gz
 
 """
 
@@ -84,13 +97,13 @@ def _build_arg_parser():
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
     p.add_argument('--filtering', action='store_true',
-                   help='Gaussian filtering to remove Gibbs ringing.'
-                        'Not recommanded.')
+                   help='Gaussian filtering to remove Gibbs ringing. '
+                        'Not recommended.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
-                             'constrat must have the same number of echoes '
-                             'and coregistered between them.'
+                             'constrasts must have the same number of echoes '
+                             'and coregistered between them. '
                              'Use * to include all echoes.')
     g.add_argument('--in_altnp', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
@@ -173,7 +186,7 @@ def py_fspecial_gauss(shape, sigma):
     ----------
     shape    Vector to specify the size of square matrix (rows, columns).
              Ex.: (3, 3)
-    sigma    Value for standard deviation (Sigma value of 0.5 is recommanded).
+    sigma    Value for standard deviation (Sigma value of 0.5 is recommended).
 
     Returns
     -------
