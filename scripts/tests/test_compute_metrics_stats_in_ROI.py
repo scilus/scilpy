@@ -18,10 +18,10 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_mask = os.path.join(get_home(), 'tractometry',
-                              'IFGWM.nii.gz')
-    input_ref = os.path.join(get_home(), 'tractometry',
-                             'mni_masked.nii.gz')
+    in_mask = os.path.join(get_home(), 'tractometry',
+                           'IFGWM.nii.gz')
+    in_ref = os.path.join(get_home(), 'tractometry',
+                          'mni_masked.nii.gz')
     ret = script_runner.run('scil_compute_metrics_stats_in_ROI.py',
-                            input_mask, '--metrics', input_ref)
+                            in_mask, '--metrics', in_ref)
     assert ret.success

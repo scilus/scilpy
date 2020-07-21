@@ -62,7 +62,7 @@ def _build_arg_parser():
                     help='Axial diffusivity (AD) in the CC. [%(default)s]')
     g1.add_argument('--iso_diff', type=float, default=3e-3,
                     help='Mean diffusivity (MD) in ventricles. [%(default)s]')
-    g1.add_argument('--lambda1', type=float, default=2,
+    g1.add_argument('--lambda1', type=float, default=5e-1,
                     help='First regularization parameter. [%(default)s]')
     g1.add_argument('--lambda2', type=float, default=1e-3,
                     help='Second regularization parameter. [%(default)s]')
@@ -114,7 +114,7 @@ def main():
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
                                                        args.b_thr,
                                                        roundCentroids=True)
@@ -138,10 +138,8 @@ def main():
         intra_orient_distr = np.hstack((np.array([0.03, 0.06]),
                                         np.linspace(0.09, 0.99, 10)))
 
-        ae.model.set(args.para_diff,
-                     args.iso_diff,
-                     intra_vol_frac,
-                     intra_orient_distr,
+        ae.model.set(args.para_diff, args.iso_diff,
+                     intra_vol_frac, intra_orient_distr,
                      False)
         ae.set_solver(lambda1=args.lambda1, lambda2=args.lambda2)
 

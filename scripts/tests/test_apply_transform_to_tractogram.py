@@ -19,14 +19,16 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_model = os.path.join(get_home(), 'bst', 'template',
-                               'rpt_m.trk')
-    input_fa = os.path.join(get_home(), 'bst',
-                            'fa.nii.gz')
-    input_aff = os.path.join(get_home(), 'bst',
-                             'output0GenericAffine.mat')
-    script_runner._save_and_reset_logger()
+    in_model = os.path.join(get_home(), 'bst', 'template',
+                            'rpt_m.trk')
+    in_fa = os.path.join(get_home(), 'bst',
+                         'fa.nii.gz')
+    in_aff = os.path.join(get_home(), 'bst',
+                          'output0GenericAffine.mat')
+    in_warp = os.path.join(get_home(), 'bst',
+                           'output1InverseWarp.nii.gz')
     ret = script_runner.run('scil_apply_transform_to_tractogram.py',
-                            input_model, input_fa, input_aff, 'rpt_m_lin.trk',
-                            '--inverse', '--cut')
+                            in_model, in_fa, in_aff, 'rpt_m_warp.trk',
+                            '--inverse', '--in_deformation', in_warp,
+                            '--cut')
     assert ret.success

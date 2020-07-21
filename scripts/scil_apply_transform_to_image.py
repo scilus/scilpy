@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-    Transform *.nii or *.nii.gz using an affine/rigid transformation.
-    For more information on how to use the various registration scripts
-    see the doc/tractogram_registration.md readme file
+Transform Nifti (.nii.gz) using an affine/rigid transformation.
+
+For more information on how to use the registration script, follow this link:
+https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 """
 
 import argparse
@@ -23,15 +24,11 @@ def _build_arg_parser():
 
     p.add_argument('in_file',
                    help='Path of the file to be transformed (nii or nii.gz)')
-
     p.add_argument('in_target_file',
-                   help='Path of the reference target file (the static \n'
-                        'file from registration), must be in the Nifti format.')
-
+                   help='Path of the reference target file (.nii.gz).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
                         'transformation, matrix (.txt, .npy or .mat).')
-
     p.add_argument('out_name',
                    help='Output filename of the transformed data.')
 

@@ -64,23 +64,20 @@ def _build_arg_parser():
              'priors. [center of the 3D volume]')
 
     g3 = p.add_argument_group('Outputs')
-    g3.add_argument(
-        '--output_1fiber', metavar='file',
-        help='Output path for the text file containing the single '
-             'fiber average value of AD. If not set, the file will not be '
-             'saved.')
-    g3.add_argument(
-        '--mask_output_1fiber', metavar='file',
-        help='Output path for single fiber mask. If not set, the mask will '
-             'not be saved.')
-    g3.add_argument(
-        '--output_ventricles', metavar='file',
-        help='Output path for the text file containing the ventricles average '
-             'value of MD. If not set, the file will not be saved.')
-    g3.add_argument(
-        '--mask_output_ventricles', metavar='file',
-        help='Output path for the ventricule mask. If not set, the mask will '
-             'not be saved.')
+    g3.add_argument('--out_txt_1fiber', metavar='FILE',
+                    help='Output path for the text file containing the single '
+                         'fiber average value of AD.\nIf not set, the file will not '
+                         'be saved.')
+    g3.add_argument('--out_mask_1fiber', metavar='FILE',
+                    help='Output path for single fiber mask. If not set, the '
+                         'mask will not be saved.')
+    g3.add_argument('--out_txt_ventricles', metavar='FILE',
+                    help='Output path for the text file containing the '
+                         'ventricles average value of MD.\nIf not set, the file '
+                         'will not be saved.')
+    g3.add_argument('--out_mask_ventricles', metavar='FILE',
+                    help='Output path for the ventricule mask.\nIf not set, '
+                         'the mask will not be saved.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -94,10 +91,10 @@ def main():
 
     assert_inputs_exist(parser, [args.in_AD, args.in_FA, args.in_MD])
     assert_outputs_exist(parser, args, [],
-                         [args.mask_output_1fiber,
-                         args.mask_output_ventricles,
-                         args.output_ventricles,
-                         args.output_1fiber])
+                         [args.out_mask_1fiber,
+                          args.out_mask_ventricles,
+                          args.out_txt_ventricles,
+                          args.out_txt_1fiber])
 
     assert_same_resolution([args.in_AD, args.in_FA, args.in_MD])
 
@@ -168,21 +165,17 @@ def main():
     indices[2][:] += ck - w
     mask_vent[indices] = 1
 
-    if args.mask_output_ventricles:
-        img = nib.Nifti1Image(np.array(mask_vent, 'float32'), affine)
-        nib.save(img, args.mask_output_ventricles)
+    if args.out_mask_1fiber:
+        nib.save(nib.Nifti1Image(mask_cc, affine), args.out_mask_1fiber)
 
-    if args.mask_output_1fiber:
-        img = nib.Nifti1Image(np.array(mask_cc, 'float32'), affine)
-        nib.save(img, args.mask_output_1fiber)
+    if args.out_mask_ventricles:
+        nib.save(nib.Nifti1Image(mask_vent, affine), args.out_mask_ventricles)
 
-    if args.output_1fiber:
-        with open(args.output_1fiber, "w") as text_file:
-            text_file.write(str(cc_avg))
+    if args.out_txt_1fiber:
+        np.savetxt(args.out_txt_1fiber, [cc_avg], fmt='%f')
 
-    if args.output_ventricles:
-        with open(args.output_ventricles, "w") as text_file:
-            text_file.write(str(vent_avg))
+    if args.out_txt_ventricles:
+        np.savetxt(args.out_txt_ventricles, [vent_avg], fmt='%f')
 
     logging.info("Average AD in single fiber areas: {} +- {}".format(cc_avg,
                                                                      cc_std))

@@ -36,7 +36,7 @@ def grid_intersections(streamlines):
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
-        cnp.npy_intp max_points = (streamlines.data.size / 6) * 12
+        cnp.npy_intp max_points = (streamlines.get_data().size / 6) * 12
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
     new_array_sequence._lengths.resize(nb_streamlines)

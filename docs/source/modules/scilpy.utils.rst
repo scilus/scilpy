@@ -33,14 +33,6 @@ scilpy.utils.metrics\_tools module
    :undoc-members:
    :show-inheritance:
 
-scilpy.utils.nibabel\_tools module
-----------------------------------
-
-.. automodule:: scilpy.utils.nibabel_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.utils.streamlines module
 -------------------------------
 

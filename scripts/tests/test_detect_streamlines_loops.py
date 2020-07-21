@@ -19,10 +19,10 @@ def test_help_option(script_runner):
 
 def test_execution_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'filtering',
-                                'bundle_4_filtered.trk')
+    in_bundle = os.path.join(get_home(), 'filtering',
+                             'bundle_4_filtered.trk')
     ret = script_runner.run('scil_detect_streamlines_loops.py',
-                            input_bundle, 'bundle_4_filtered_no_loops.trk',
+                            in_bundle, 'bundle_4_filtered_no_loops.trk',
                             '--looping_tractogram',
                             'bundle_4_filtered_loops.trk',
                             '-a', '270', '--qb', '--threshold', '4')

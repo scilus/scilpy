@@ -19,12 +19,12 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'bst',
-                                'rpt_m_warp.trk')
-    input_mask = os.path.join(get_home(), 'bst',
-                              'mask.nii.gz')
-    ret = script_runner.run('scil_compute_todi.py', input_bundle, '--mask',
-                            input_mask, '--out_mask', 'todi_mask.nii.gz',
+    in_bundle = os.path.join(get_home(), 'bst',
+                             'rpt_m_warp.trk')
+    in_mask = os.path.join(get_home(), 'bst',
+                           'mask.nii.gz')
+    ret = script_runner.run('scil_compute_todi.py', in_bundle, '--mask',
+                            in_mask, '--out_mask', 'todi_mask.nii.gz',
                             '--out_lw_tdi', 'out_lw_tdi.nii.gz',
                             '--out_lw_todi_sh', 'lw_todi_sh.nii.gz',
                             '--sh_order', '6', '--sh_normed', '--smooth',

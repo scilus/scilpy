@@ -19,8 +19,8 @@ def test_help_option(script_runner):
 
 def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_surf = os.path.join(get_home(), 'surface_vtk_fib',
-                              'lhpialt.vtk')
-    ret = script_runner.run('scil_convert_surface.py', input_surf,
+    in_surf = os.path.join(get_home(), 'surface_vtk_fib',
+                           'lhpialt.vtk')
+    ret = script_runner.run('scil_convert_surface.py', in_surf,
                             'rhpialt.ply')
     assert ret.success

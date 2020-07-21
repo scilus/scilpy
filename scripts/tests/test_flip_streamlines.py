@@ -19,10 +19,10 @@ def test_help_option(script_runner):
 
 def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_fib = os.path.join(get_home(), 'surface_vtk_fib',
-                             'gyri_fanning.fib')
-    input_fa = os.path.join(get_home(), 'surface_vtk_fib',
-                            'fa.nii.gz')
-    ret = script_runner.run('scil_flip_streamlines.py', input_fib,
-                            'gyri_fanning.tck', 'x', '--reference', input_fa)
+    in_fib = os.path.join(get_home(), 'surface_vtk_fib',
+                          'gyri_fanning.fib')
+    in_fa = os.path.join(get_home(), 'surface_vtk_fib',
+                         'fa.nii.gz')
+    ret = script_runner.run('scil_flip_streamlines.py', in_fib,
+                            'gyri_fanning.tck', 'x', '--reference', in_fa)
     assert ret.success

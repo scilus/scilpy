@@ -20,17 +20,17 @@ def test_help_option(script_runner):
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'others',
-                                'IFGWM.trk')
+    in_bundle = os.path.join(get_home(), 'others',
+                             'IFGWM.trk')
     ret = script_runner.run('scil_compute_streamlines_density_map.py',
-                            input_bundle, 'binary.nii.gz', '--binary')
+                            in_bundle, 'binary.nii.gz', '--binary')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'tractometry',
-                                'IFGWM.trk')
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
     ret = script_runner.run('scil_compute_streamlines_density_map.py',
-                            input_bundle, 'IFGWM.nii.gz', '--binary')
+                            in_bundle, 'IFGWM.nii.gz', '--binary')
     assert ret.success

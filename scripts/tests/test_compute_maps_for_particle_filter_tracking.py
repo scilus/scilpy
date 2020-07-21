@@ -20,12 +20,12 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_wm = os.path.join(get_home(), 'tracking',
-                            'map_wm.nii.gz')
-    input_gm = os.path.join(get_home(), 'tracking',
-                            'map_gm.nii.gz')
-    input_csf = os.path.join(get_home(), 'tracking',
-                             'map_csf.nii.gz')
+    in_wm = os.path.join(get_home(), 'tracking',
+                         'map_wm.nii.gz')
+    in_gm = os.path.join(get_home(), 'tracking',
+                         'map_gm.nii.gz')
+    in_csf = os.path.join(get_home(), 'tracking',
+                          'map_csf.nii.gz')
     ret = script_runner.run('scil_compute_maps_for_particle_filter_tracking.py',
-                            input_wm, input_gm, input_csf)
+                            in_wm, in_gm, in_csf)
     assert ret.success
