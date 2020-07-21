@@ -435,7 +435,7 @@ def main():
                                   curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
-                                 ref_img.affine, ref_img.header),
+                                 ref_img.affine),
                  os.path.join(args.out_dir, 'Contrasts_ihMT_maps',
                               contrasts_name[idx] + '.nii.gz'))
 
@@ -466,7 +466,7 @@ def main():
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
-                                 ref_img.affine, ref_img.header),
+                                 ref_img.affine),
                  os.path.join(args.out_dir, 'ihMT_native_maps',
                               name + '.nii.gz'))
 
