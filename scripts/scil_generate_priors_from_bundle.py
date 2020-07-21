@@ -17,6 +17,7 @@ from dipy.reconst.shm import sf_to_sh, sh_to_sf
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_inputs_exist,
@@ -36,13 +37,13 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG,)
-    p.add_argument('bundle_filename',
+    p.add_argument('in_bundle',
                    help='Input bundle filename.')
 
-    p.add_argument('fod_filename',
+    p.add_argument('in_fodf',
                    help='Input FOD filename.')
 
-    p.add_argument('mask_filename',
+    p.add_argument('in_mask',
                    help='Mask to constrain the TODI spatial smoothing,\n'
                         'for example a WM mask.')
     add_sh_basis_args(p)
@@ -51,12 +52,12 @@ def _build_arg_parser():
                    help='Smooth the orientation histogram.')
     p.add_argument('--sf_threshold', default=0.2, type=float,
                    help='Relative threshold for sf masking (0.0-1.0).')
-    p.add_argument('--output_prefix', default='',
+    p.add_argument('--out_prefix', default='',
                    help='Add a prefix to all output filename, \n'
-                   'default is no prefix.')
-    p.add_argument('--output_dir', default='./',
+                        'default is no prefix.')
+    p.add_argument('--out_dir', default='./',
                    help='Output directory for all generated files,\n'
-                   'default is current directory.')
+                        'default is current directory.')
 
     add_overwrite_arg(p)
 
@@ -68,30 +69,31 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required = [args.bundle_filename, args.fod_filename, args.mask_filename]
+    required = [args.in_bundle, args.in_fodf, args.in_mask]
     assert_inputs_exist(parser, required)
 
-    out_efod = os.path.join(args.output_dir,
-                            '{0}efod.nii.gz'.format(args.output_prefix))
-    out_priors = os.path.join(args.output_dir,
-                              '{0}priors.nii.gz'.format(args.output_prefix))
-    out_todi_mask = os.path.join(args.output_dir,
-                                 '{0}todi_mask.nii.gz'.format(args.output_prefix))
-    out_endpoints_mask = os.path.join(args.output_dir,
+    out_efod = os.path.join(args.out_dir,
+                            '{0}efod.nii.gz'.format(args.out_prefix))
+    out_priors = os.path.join(args.out_dir,
+                              '{0}priors.nii.gz'.format(args.out_prefix))
+    out_todi_mask = os.path.join(args.out_dir,
+                                 '{0}todi_mask.nii.gz'.format(args.out_prefix))
+    out_endpoints_mask = os.path.join(args.out_dir,
                                       '{0}endpoints_mask.nii.gz'.format(
-                                          args.output_prefix))
+                                          args.out_prefix))
+
+    if args.out_dir and not os.path.isdir(args.out_dir):
+        os.mkdir(args.out_dir)
+
     required = [out_efod, out_priors, out_todi_mask, out_endpoints_mask]
     assert_outputs_exist(parser, args, required)
 
-    if args.output_dir and not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
-
-    img_sh = nib.load(args.fod_filename)
+    img_sh = nib.load(args.in_fodf)
     sh_shape = img_sh.shape
     sh_order = find_order_from_nb_coeff(sh_shape)
-    img_mask = nib.load(args.mask_filename)
+    img_mask = nib.load(args.in_mask)
 
-    sft = load_tractogram(args.bundle_filename, args.fod_filename,
+    sft = load_tractogram(args.in_bundle, args.in_fodf,
                           trk_header_check=True)
     sft.to_vox()
     streamlines = sft.streamlines
@@ -106,7 +108,7 @@ def main():
         todi_obj.smooth_todi_spatial(sigma=args.todi_sigma)
 
         # Fancy masking of 1d indices to limit spatial dilation to WM
-        sub_mask_3d = np.logical_and(img_mask.get_data(),
+        sub_mask_3d = np.logical_and(get_data_as_mask(img_mask),
                                      todi_obj.reshape_to_3d(todi_obj.get_mask()))
         sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
         todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
@@ -125,7 +127,7 @@ def main():
     nib.save(nib.Nifti1Image(priors_3d, img_mask.affine), out_priors)
     del priors_3d
 
-    input_sh_3d = img_sh.get_data().astype(np.float)
+    input_sh_3d = img_sh.get_fdata(dtype=np.float32)
     input_sf_1d = sh_to_sf(input_sh_3d[sub_mask_3d],
                            sphere, sh_order=sh_order, basis_type=args.sh_basis)
 
@@ -152,7 +154,7 @@ def main():
 
     endpoints_mask = np.zeros(img_mask.shape, dtype=np.int16)
     for streamline in streamlines:
-        if img_mask.get_data()[tuple(streamline[0].astype(np.int16))]:
+        if get_data_as_mask(img_mask)[tuple(streamline[0].astype(np.int16))]:
             endpoints_mask[tuple(streamline[0].astype(np.int16))] = 1
             endpoints_mask[tuple(streamline[-1].astype(np.int16))] = 1
     nib.save(nib.Nifti1Image(endpoints_mask,

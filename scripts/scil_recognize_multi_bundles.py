@@ -123,7 +123,7 @@ def main():
 
     transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
-        transfo = np.linalg.inv(np.loadtxt(args.in_transfo))
+        transfo = np.linalg.inv(load_matrix_in_any_format(args.in_transfo))
 
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)

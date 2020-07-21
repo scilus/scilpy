@@ -40,6 +40,7 @@ def _build_arg_parser():
     p.add_argument('md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
 
+    # TODO Start one first line
     p.add_argument(
         '--fa_t', dest='fa_threshold',  type=float, default='0.1',
         help='Maximal threshold of FA (voxels under that threshold are '
@@ -64,11 +65,13 @@ def _build_arg_parser():
     return p
 
 
+# TODO Useless functions, to remove
 def load(path):
     img = nib.load(path)
-    return img.get_data(), img.affine, img.header.get_zooms()[:3]
+    return img.get_fdata(dtype=np.float32), img.affine, img.header.get_zooms()[:3]
 
 
+# TODO Useless functions, to remove
 def save(data, affine, output):
     img = nib.Nifti1Image(np.array(data, 'float32'),  affine)
     nib.save(img, output)
