@@ -19,13 +19,13 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_1 = os.path.join(get_home(), 'connectivity',
-                           'sc.npy')
-    input_2 = os.path.join(get_home(), 'connectivity',
-                           'sc_norm.npy')
-    input_mask = os.path.join(get_home(), 'connectivity',
-                              'mask.npy')
+    in_1 = os.path.join(get_home(), 'connectivity',
+                        'sc.npy')
+    in_2 = os.path.join(get_home(), 'connectivity',
+                        'sc_norm.npy')
+    in_mask = os.path.join(get_home(), 'connectivity',
+                           'mask.npy')
     ret = script_runner.run('scil_compare_connectivity.py', 'pval.npy',
-                            '--in_g1', input_1, '--in_g2', input_2,
-                            '--filtering_mask', input_mask)
+                            '--in_g1', in_1, '--in_g2', in_2,
+                            '--filtering_mask', in_mask)
     assert ret.success

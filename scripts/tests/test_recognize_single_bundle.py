@@ -19,17 +19,17 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tractogram = os.path.join(get_home(), 'bundles',
-                                    'bundle_all_1mm.trk')
-    input_model = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
-                               'subj_1', 'bundle_0.trk')
-    input_aff = os.path.join(get_home(), 'bundles',
-                             'affine.txt')
-    input_ref = os.path.join(get_home(), 'bundles',
-                             'bundle_all_1mm.nii.gz')
-    ret = script_runner.run('scil_recognize_single_bundle.py', input_tractogram,
-                            input_model, input_aff, 'bundle_0_reco.tck',
+    in_tractogram = os.path.join(get_home(), 'bundles',
+                                 'bundle_all_1mm.trk')
+    in_model = os.path.join(get_home(), 'bundles', 'fibercup_atlas',
+                            'subj_1', 'bundle_0.trk')
+    in_aff = os.path.join(get_home(), 'bundles',
+                          'affine.txt')
+    in_ref = os.path.join(get_home(), 'bundles',
+                          'bundle_all_1mm.nii.gz')
+    ret = script_runner.run('scil_recognize_single_bundle.py', in_tractogram,
+                            in_model, in_aff, 'bundle_0_reco.tck',
                             '--inverse', '--tractogram_clustering_thr', '12',
                             '--slr_threads', '1', '--out_pickle',
-                            'clusters.pkl', '--reference', input_ref)
+                            'clusters.pkl', '--reference', in_ref)
     assert ret.success

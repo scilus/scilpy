@@ -20,10 +20,10 @@ def test_help_option(script_runner):
 
 def test_execution_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'filtering',
-                                'bundle_all_1mm.trk')
-    input_roi = os.path.join(get_home(), 'filtering',
-                             'mask.nii.gz')
+    in_bundle = os.path.join(get_home(), 'filtering',
+                             'bundle_all_1mm.trk')
+    in_roi = os.path.join(get_home(), 'filtering',
+                          'mask.nii.gz')
     ret = script_runner.run('scil_verify_space_attributes_compatibility.py',
-                            input_bundle, input_roi)
+                            in_bundle, in_roi)
     assert ret.success

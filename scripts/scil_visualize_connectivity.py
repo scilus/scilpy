@@ -194,10 +194,8 @@ def main():
     if args.histogram:
         fig, ax = plt.subplots()
         if args.exclude_zeros:
-            min_value = EPSILON
-        N, bins, patches = ax.hist(matrix.ravel(),
-                                   range=(min_value, matrix.max()),
-                                   bins=args.nb_bins)
+            matrix = matrix[matrix != 0]
+        _, _, patches = ax.hist(matrix.ravel(), bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
         for i in range(0, nbr_bins):

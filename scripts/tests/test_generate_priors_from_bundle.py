@@ -19,14 +19,14 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'bst',
-                                'rpt_m_lin.trk')
-    input_fodf = os.path.join(get_home(), 'bst',
-                              'fodf.nii.gz')
-    input_mask = os.path.join(get_home(), 'bst',
-                              'mask.nii.gz')
+    in_bundle = os.path.join(get_home(), 'bst',
+                             'rpt_m_lin.trk')
+    in_fodf = os.path.join(get_home(), 'bst',
+                           'fodf.nii.gz')
+    in_mask = os.path.join(get_home(), 'bst',
+                           'mask.nii.gz')
     ret = script_runner.run('scil_generate_priors_from_bundle.py',
-                            input_bundle, input_fodf, input_mask,
+                            in_bundle, in_fodf, in_mask,
                             '--todi_sigma', '1', '--out_prefix', 'rpt_m',
                             '--sh_basis', 'descoteaux07')
     assert ret.success

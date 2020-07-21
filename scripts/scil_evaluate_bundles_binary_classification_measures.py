@@ -33,6 +33,7 @@ from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
@@ -211,11 +212,9 @@ def main():
                                                       gs_dimensions)
         tracking_mask_data[tracking_mask_data > 0] = 1
     else:
-        gs_binary_3d = nib.load(
-            args.voxels_measures[0]).get_fdata().astype(np.uint8)
+        gs_binary_3d = get_data_as_mask(nib.load(args.voxels_measures[0]))
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = nib.load(
-            args.voxels_measures[1]).get_fdata().astype(np.uint8)
+        tracking_mask_data = get_data_as_mask(nib.load(args.voxels_measures[1]))
         tracking_mask_data[tracking_mask_data > 0] = 1
 
     if nbr_cpu == 1:

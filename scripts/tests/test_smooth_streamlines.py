@@ -18,9 +18,9 @@ def test_help_option(script_runner):
 
 def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tracto = os.path.join(get_home(), 'tracking',
-                                'union_shuffle_sub.trk')
-    ret = script_runner.run('scil_smooth_streamlines.py', input_tracto,
+    in_tracto = os.path.join(get_home(), 'tracking',
+                             'union_shuffle_sub.trk')
+    ret = script_runner.run('scil_smooth_streamlines.py', in_tracto,
                             'union_shuffle_sub_smooth.trk', '--gaussian', '10',
                             '-e', '0.05')
     assert ret.success

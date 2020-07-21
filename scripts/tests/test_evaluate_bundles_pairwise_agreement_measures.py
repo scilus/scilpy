@@ -20,14 +20,14 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_1 = os.path.join(get_home(), 'bundles',
-                           'bundle_0_reco.tck')
-    input_2 = os.path.join(get_home(), 'bundles', 'voting_results',
-                           'bundle_0.trk')
-    input_ref = os.path.join(get_home(), 'bundles',
-                             'bundle_all_1mm.nii.gz')
+    in_1 = os.path.join(get_home(), 'bundles',
+                        'bundle_0_reco.tck')
+    in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
+                        'bundle_0.trk')
+    in_ref = os.path.join(get_home(), 'bundles',
+                          'bundle_all_1mm.nii.gz')
     ret = script_runner.run('scil_evaluate_bundles_pairwise_agreement_measures.py',
-                            input_1, input_2, 'AF_L_similarity.json',
-                            '--streamline_dice', '--reference', input_ref,
+                            in_1, in_2, 'AF_L_similarity.json',
+                            '--streamline_dice', '--reference', in_ref,
                             '--processes', '1')
     assert ret.success

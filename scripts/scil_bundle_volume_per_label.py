@@ -15,6 +15,7 @@ import json
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              assert_inputs_exist)
@@ -43,7 +44,7 @@ def main():
     assert_inputs_exist(parser, args.voxel_label_map)
 
     voxel_label_map_img = nib.load(args.voxel_label_map)
-    voxel_label_map_data = voxel_label_map_img.get_data()
+    voxel_label_map_data = get_data_as_label(voxel_label_map_img)
     voxel_size = voxel_label_map_img.header['pixdim'][1:4]
 
     labels = np.unique(voxel_label_map_data.astype(np.uint8))[1:]

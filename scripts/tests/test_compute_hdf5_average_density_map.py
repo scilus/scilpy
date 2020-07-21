@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_h5 = os.path.join(get_home(), 'connectivity',
+    in_h5 = os.path.join(get_home(), 'connectivity',
                             'decompose.h5')
     ret = script_runner.run('scil_compute_hdf5_average_density_map.py',
-                            input_h5, 'avg_density_maps/', '--binary',
+                            in_h5, 'avg_density_maps/', '--binary',
                             '--processes', '1')
     assert ret.success

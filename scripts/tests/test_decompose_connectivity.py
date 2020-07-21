@@ -19,12 +19,12 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_bundle = os.path.join(get_home(), 'connectivity',
-                                'bundle_all_1mm.trk')
-    input_atlas = os.path.join(get_home(), 'connectivity',
-                               'endpoints_atlas.nii.gz')
-    ret = script_runner.run('scil_decompose_connectivity.py', input_bundle,
-                            input_atlas, 'decompose.h5',
+    in_bundle = os.path.join(get_home(), 'connectivity',
+                             'bundle_all_1mm.trk')
+    in_atlas = os.path.join(get_home(), 'connectivity',
+                            'endpoints_atlas.nii.gz')
+    ret = script_runner.run('scil_decompose_connectivity.py', in_bundle,
+                            in_atlas, 'decompose.h5',
                             '--min_length', '20', '--max_length', '200',
                             '--outlier_threshold', '0.5',
                             '--loop_max_angle', '330',

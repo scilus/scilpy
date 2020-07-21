@@ -21,8 +21,8 @@ def test_execution_surface_vtk_fib(script_runner):
     # Weird behavior, flip around the origin in RASMM rather than the center of
     # the volume in VOX
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_surf = os.path.join(get_home(), 'surface_vtk_fib',
-                              'lhpialt.vtk')
-    ret = script_runner.run('scil_flip_surface.py', input_surf, 'rhpialt.vtk',
+    in_surf = os.path.join(get_home(), 'surface_vtk_fib',
+                           'lhpialt.vtk')
+    ret = script_runner.run('scil_flip_surface.py', in_surf, 'rhpialt.vtk',
                             'x')
     assert ret.success

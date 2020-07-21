@@ -18,15 +18,15 @@ def test_help_option(script_runner):
 
 def test_execution_img(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_img = os.path.join(get_home(), 'others',
-                             'fa.nii.gz')
-    ret = script_runner.run('scil_print_header.py', input_img)
+    in_img = os.path.join(get_home(), 'others',
+                          'fa.nii.gz')
+    ret = script_runner.run('scil_print_header.py', in_img)
     assert ret.success
 
 
 def test_execution_tractogram(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_tracto = os.path.join(get_home(), 'others',
-                                'IFGWM.trk')
-    ret = script_runner.run('scil_print_header.py', input_tracto)
+    in_tracto = os.path.join(get_home(), 'others',
+                             'IFGWM.trk')
+    ret = script_runner.run('scil_print_header.py', in_tracto)
     assert ret.success

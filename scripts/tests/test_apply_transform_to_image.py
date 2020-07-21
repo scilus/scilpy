@@ -19,13 +19,13 @@ def test_help_option(script_runner):
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_model = os.path.join(get_home(), 'bst', 'template',
-                               'template0.nii.gz')
-    input_fa = os.path.join(get_home(), 'bst',
-                            'fa.nii.gz')
-    input_aff = os.path.join(get_home(), 'bst',
-                             'output0GenericAffine.mat')
+    in_model = os.path.join(get_home(), 'bst', 'template',
+                            'template0.nii.gz')
+    in_fa = os.path.join(get_home(), 'bst',
+                         'fa.nii.gz')
+    in_aff = os.path.join(get_home(), 'bst',
+                          'output0GenericAffine.mat')
     ret = script_runner.run('scil_apply_transform_to_image.py',
-                            input_model, input_fa, input_aff,
+                            in_model, in_fa, in_aff,
                             'template_lin.nii.gz', '--inverse')
     assert ret.success

@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_img = os.path.join(get_home(), 'others',
-                             'rgb.nii.gz')
-    ret = script_runner.run('scil_count_non_zero_voxels.py', input_img)
+    in_img = os.path.join(get_home(), 'others',
+                          'rgb.nii.gz')
+    ret = script_runner.run('scil_count_non_zero_voxels.py', in_img)
     assert ret.success

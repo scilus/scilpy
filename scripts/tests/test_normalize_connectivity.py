@@ -19,15 +19,15 @@ def test_help_option(script_runner):
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_sc = os.path.join(get_home(), 'connectivity',
-                            'sc.npy')
-    input_len = os.path.join(get_home(), 'connectivity',
-                             'len.npy')
-    input_atlas = os.path.join(get_home(), 'connectivity',
-                               'endpoints_atlas.nii.gz')
-    input_labels_list = os.path.join(get_home(), 'connectivity',
-                                     'labels_list.txt')
-    ret = script_runner.run('scil_normalize_connectivity.py', input_sc,
-                            'sc_norm.npy', '--length', input_len,
-                            '--parcel_volume', input_atlas, input_labels_list)
+    in_sc = os.path.join(get_home(), 'connectivity',
+                         'sc.npy')
+    in_len = os.path.join(get_home(), 'connectivity',
+                          'len.npy')
+    in_atlas = os.path.join(get_home(), 'connectivity',
+                            'endpoints_atlas.nii.gz')
+    in_labels_list = os.path.join(get_home(), 'connectivity',
+                                  'labels_list.txt')
+    ret = script_runner.run('scil_normalize_connectivity.py', in_sc,
+                            'sc_norm.npy', '--length', in_len,
+                            '--parcel_volume', in_atlas, in_labels_list)
     assert ret.success

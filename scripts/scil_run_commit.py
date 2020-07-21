@@ -88,19 +88,19 @@ def _build_arg_parser():
 
     p.add_argument('--b_thr', type=int, default=40,
                    help='Limit value to consider that a b-value is on an '
-                        'existing shell. Above this limit, the b-value is '
+                        'existing shell.\nAbove this limit, the b-value is '
                         'placed on a new shell. This includes b0s values.')
     p.add_argument('--nbr_dir', type=int, default=500,
                    help='Number of directions, on the half of the sphere,\n'
-                        'representing the possible orientations of the response '
-                        'functions [%(default)s].')
+                        'representing the possible orientations of the '
+                        'response functions [%(default)s].')
     p.add_argument('--nbr_iter', type=int, default=500,
                    help='Maximum number of iterations [%(default)s].')
     p.add_argument('--in_peaks',
                    help='Peaks file representing principal direction(s) '
                         'locally,\n typically coming from fODFs. This file is '
-                        'mandatory for the default\n stick-zeppelin-ball model, '
-                        'when used with multi-shell data.')
+                        'mandatory for the default\n stick-zeppelin-ball '
+                        'model, when used with multi-shell data.')
     p.add_argument('--in_tracking_mask',
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
@@ -117,8 +117,7 @@ def _build_arg_parser():
     g1.add_argument('--perp_diff', nargs='+', type=float,
                     help='Perpendicular diffusivity in mm^2/s.\n'
                          'Default for ball_stick: None\n'
-                         'Default for stick_zeppelin_ball: '
-                         '[1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]')
+                         'Default for stick_zeppelin_ball: [0.85E-3, 0.51E-3]')
     g1.add_argument('--iso_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
                          'Default for ball_stick: [2.0E-3]\n'
@@ -126,8 +125,8 @@ def _build_arg_parser():
 
     g2 = p.add_argument_group(title='Tractogram options')
     g2.add_argument('--keep_whole_tractogram', action='store_true',
-                    help='Save a tractogram copy with streamlines weights in the '
-                         'data_per_streamline\n[default: False].')
+                    help='Save a tractogram copy with streamlines weights in '
+                         'the data_per_streamline\n[%(default)s].')
     g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
                     default=0.,
                     help='Split the tractogram in two; essential and\n'
@@ -141,6 +140,8 @@ def _build_arg_parser():
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
                       help='Input directory where the COMMIT kernels are '
                            'located.')
+    g2.add_argument('--compute_only', action='store_true',
+                    help='Compute kernels only, --save_kernels must be used.')
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -169,6 +170,9 @@ def main():
 
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
+
+    if args.compute_only and not args.save_kernels:
+        parser.error('--compute_only must be used with --save_kernels.')
 
     if args.load_kernels and args.save_kernels:
         parser.error('Cannot load and save kernels at the same time.')
@@ -234,7 +238,7 @@ def main():
 
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
                                                        args.b_thr,
                                                        roundCentroids=True)
@@ -262,7 +266,17 @@ def main():
         # Preparation for fitting
         commit.core.setup(ndirs=args.nbr_dir)
         mit = commit.Evaluation('.', '.')
-        mit.load_data(args.in_dwi, tmp_scheme_filename)
+
+        # FIX for very small values during HCP processing
+        # (based on order of magnitude of signal)
+        img = nib.load(args.in_dwi)
+        data = img.get_fdata(dtype=np.float32)
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
+        nib.save(nib.Nifti1Image(data, img.affine),
+                 os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
+
+        mit.load_data(os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'),
+                      tmp_scheme_filename)
         mit.set_model('StickZeppelinBall')
 
         if args.ball_stick:
@@ -274,8 +288,7 @@ def main():
         else:
             logging.debug('Using the Stick Zeppelin Ball model.')
             para_diff = args.para_diff or 1.7E-3
-            perp_diff = args.perp_diff or \
-                [1.19E-3, 0.85E-3, 0.51E-3, 0.17E-3]
+            perp_diff = args.perp_diff or [0.85E-3, 0.51E-3]
             isotropc_diff = args.iso_diff or [1.7E-3, 3.0E-3]
             mit.model.set(para_diff, perp_diff, isotropc_diff)
 
@@ -293,9 +306,13 @@ def main():
         mit.set_config('ATOMS_path', kernels_dir)
 
         mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
+        if args.compute_only:
+            return
         mit.load_kernels()
-        mit.load_dictionary(tmp_dir.name)
+        mit.load_dictionary(tmp_dir.name,
+                            use_mask=args.in_tracking_mask is not None)
         mit.set_threads(args.nbr_processes)
+
         mit.build_operator(build_dir=tmp_dir.name)
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
@@ -332,8 +349,8 @@ def main():
     for f in files:
         shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
 
-    # Save split tractogram (essential/nonessential) and/or saving the tractogram with
-    # data_per_streamline updated
+    # Save split tractogram (essential/nonessential) and/or saving the
+    # tractogram with data_per_streamline updated
     if args.keep_whole_tractogram or args.threshold_weights is not None:
         # Reload is needed because of COMMIT handling its file by itself
         tractogram_file = nib.streamlines.load(args.in_tractogram)
@@ -345,26 +362,28 @@ def main():
                 commit_weights > args.threshold_weights)[0]
             nonessential_ind = np.where(
                 commit_weights <= args.threshold_weights)[0]
-            logging.debug('{} essential streamlines were kept at threshold {}'.format(
-                len(essential_ind), args.threshold_weights))
-            logging.debug('{} nonessential streamlines were kept at threshold {}'.format(
-                len(nonessential_ind), args.threshold_weights))
+            logging.debug('{} essential streamlines were kept at '
+                          'threshold {}'.format(len(essential_ind),
+                                                args.threshold_weights))
+            logging.debug('{} nonessential streamlines were kept at '
+                          'threshold {}'.format(len(nonessential_ind),
+                                                args.threshold_weights))
 
             # TODO PR when Dipy 1.2 is out with sft slicing
             essential_streamlines = tractogram.streamlines[essential_ind]
-            essential_data_per_streamline = tractogram.data_per_streamline[essential_ind]
-            essential_data_per_point = tractogram.data_per_point[essential_ind]
+            essential_dps = tractogram.data_per_streamline[essential_ind]
+            essential_dpp = tractogram.data_per_point[essential_ind]
             essential_tractogram = Tractogram(essential_streamlines,
-                                              data_per_point=essential_data_per_point,
-                                              data_per_streamline=essential_data_per_streamline,
+                                              data_per_point=essential_dpp,
+                                              data_per_streamline=essential_dps,
                                               affine_to_rasmm=np.eye(4))
 
             nonessential_streamlines = tractogram.streamlines[nonessential_ind]
-            nonessential_data_per_streamline = tractogram.data_per_streamline[nonessential_ind]
-            nonessential_data_per_point = tractogram.data_per_point[nonessential_ind]
+            nonessential_dps = tractogram.data_per_streamline[nonessential_ind]
+            nonessential_dpp = tractogram.data_per_point[nonessential_ind]
             nonessential_tractogram = Tractogram(nonessential_streamlines,
-                                                 data_per_point=nonessential_data_per_point,
-                                                 data_per_streamline=nonessential_data_per_streamline,
+                                                 data_per_point=nonessential_dpp,
+                                                 data_per_streamline=nonessential_dps,
                                                  affine_to_rasmm=np.eye(4))
 
             nib.streamlines.save(essential_tractogram,

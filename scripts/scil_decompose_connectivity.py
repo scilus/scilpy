@@ -248,7 +248,7 @@ def main():
 
     # Voxel size must be isotropic, for speed/performance considerations
     vox_sizes = img_labels.header.get_zooms()
-    if not np.mean(vox_sizes) == vox_sizes[0]:
+    if not np.allclose(np.mean(vox_sizes), vox_sizes, atol=0.001):
         parser.error('Labels must be isotropic')
 
     logging.info('*** Loading streamlines ***')
@@ -355,6 +355,8 @@ def main():
         #   3. loops pass  -> outlier detection pass/fail
         #   4. outlier detection pass -> qb curvature pass/fail
         #   5. qb curvature pass == final connections
+        connecting_streamlines = ArraySequence(connecting_streamlines)
+
         raw_sft = StatefulTractogram.from_sft(
             connecting_streamlines, sft,
             data_per_streamline=sft.data_per_streamline[connecting_ids],
@@ -370,10 +372,8 @@ def main():
                 args.max_length,
                 vox_sizes[0])
 
-            valid_length = ArraySequence(connecting_streamlines)[
-                valid_length_ids]
-            invalid_length = ArraySequence(connecting_streamlines)[
-                invalid_length_ids]
+            valid_length = connecting_streamlines[valid_length_ids]
+            invalid_length = connecting_streamlines[invalid_length_ids]
             invalid_length_sft = StatefulTractogram.from_sft(
                 invalid_length, raw_sft,
                 data_per_streamline=raw_sft.data_per_streamline[invalid_length_ids],
@@ -413,7 +413,7 @@ def main():
                             'discarded', 'loops', in_label, out_label)
         else:
             no_loops = valid_length
-            no_loops = range(len(valid_length))
+            no_loop_ids = range(len(valid_length))
 
         if not len(no_loops):
             continue
