@@ -100,7 +100,7 @@ def main():
 
     metrics = [nib.load(metric) for metric in args.in_metrics]
     for metric in metrics:
-        data = metric.get_data()
+        data = metric.get_fdata(dtype=np.float32)
         endpoint_metric_map = np.zeros(metric.shape)
         count = np.zeros(metric.shape)
         for cur_min, cur_max, cur_ind, orig_s in zip(mins, maxs,

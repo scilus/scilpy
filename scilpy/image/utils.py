@@ -21,7 +21,7 @@ def count_non_zero_voxels(image):
     else:
         nb_object = image
 
-    data = nb_object.get_data(caching='unchanged')
+    data = nb_object.get_fdata(dtype=np.float32, caching='unchanged')
 
     # Count the number of non-zero voxels.
     if len(data.shape) >= 4:
@@ -52,7 +52,7 @@ def volume_iterator(img, blocksize=1):
     nb_volumes = img.shape[-1]
 
     if blocksize == nb_volumes:
-        yield list(range(nb_volumes)), img.get_fdata()
+        yield list(range(nb_volumes)), img.get_fdata(dtype=np.float32)
     else:
         start, end = 0, 0
         for i in range(0, nb_volumes - blocksize, blocksize):

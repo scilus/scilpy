@@ -43,7 +43,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
                     metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(),
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
                         metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
@@ -121,7 +121,7 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
     return map(lambda metric_file:
                weighted_mean_std(weights,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)
 
 
@@ -168,12 +168,12 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
 
     # Keep data as int to get the underlying voxel
-    bundle_data_int = streamlines.data.astype(np.int)
+    bundle_data_int = streamlines.get_data().astype(np.int16)
 
     # Get stats
     stats = {bundle_name: {}}
     for metric in metrics:
-        metric_data = metric.get_fdata()
+        metric_data = metric.get_fdata(dtype=np.float64)
         current_metric_fname, _ = split_name_with_nii(
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}
@@ -289,5 +289,5 @@ def get_roi_metrics_mean_std(density_map, metrics_files):
 
     return map(lambda metric_file:
                weighted_mean_std(density_map,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)

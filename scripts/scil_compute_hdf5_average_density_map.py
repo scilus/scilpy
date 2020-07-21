@@ -30,7 +30,8 @@ from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             validate_nbr_processes)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
@@ -51,7 +52,7 @@ def _build_arg_parser():
     return p
 
 
-def average_wrapper(args):
+def _average_wrapper(args):
     hdf5_filenames = args[0]
     key = args[1]
     binary = args[2]
@@ -99,14 +100,19 @@ def main():
         keys.extend(curr_file.keys())
         curr_file.close()
 
-    pool = multiprocessing.Pool(args.nbr_processes)
-    _ = pool.map(average_wrapper,
-                 zip(itertools.repeat(args.in_hdf5),
-                     keys,
-                     itertools.repeat(args.binary),
-                     itertools.repeat(args.out_dir)))
-    pool.close()
-    pool.join()
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    if nbr_cpu == 1:
+        for key in keys:
+            _average_wrapper([args.in_hdf5, key, args.binary, args.out_dir])
+    else:
+        pool = multiprocessing.Pool(nbr_cpu)
+        _ = pool.map(_average_wrapper,
+                     zip(itertools.repeat(args.in_hdf5),
+                         keys,
+                         itertools.repeat(args.binary),
+                         itertools.repeat(args.out_dir)))
+        pool.close()
+        pool.join()
 
 
 if __name__ == "__main__":

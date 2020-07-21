@@ -24,7 +24,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
 
-def _build_arg_parser(luts):
+def _build_arg_parser():
+    luts = [os.path.splitext(f)[0] for f in os.listdir(get_lut_dir())]
 
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -53,16 +54,26 @@ def _build_arg_parser(luts):
     return p
 
 
-def main():
+def get_lut_dir():
+    """
+    Return LUT directory in scilpy repository
+
+    Returns
+    -------
+    lut_dir: string
+        LUT path
+    """
     # Get the valid LUT choices.
     module_path = inspect.getfile(scilpy)
 
     lut_dir = os.path.join(os.path.dirname(
-                           os.path.dirname(module_path)) + "/data/LUT/")
+        os.path.dirname(module_path)) + "/data/LUT/")
 
-    luts = [os.path.splitext(f)[0] for f in os.listdir(lut_dir)]
+    return lut_dir
 
-    parser = _build_arg_parser(luts)
+
+def main():
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     required = args.in_label
@@ -72,7 +83,7 @@ def main():
     label_img_data = get_data_as_label(label_img)
 
     if args.scilpy_lut:
-        with open(os.path.join(lut_dir, args.scilpy_lut + '.json')) as f:
+        with open(os.path.join(get_lut_dir(), args.scilpy_lut + '.json')) as f:
             label_dict = json.load(f)
         (label_indices, label_names) = zip(*label_dict.items())
     else:

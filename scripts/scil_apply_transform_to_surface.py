@@ -44,7 +44,7 @@ def _build_arg_parser():
                    help='Input surface (.vtk).')
 
     p.add_argument('ants_affine',
-                   help='Affine transform from ANTs (.txt).')
+                   help='Affine transform from ANTs (.txt or .mat).')
 
     p.add_argument('out_surface',
                    help='Output surface (.vtk).')
@@ -83,7 +83,7 @@ def main():
     if args.ants_warp:
         # Load warp
         warp_img = nib.load(args.ants_warp)
-        warp = np.squeeze(warp_img.get_fdata())
+        warp = np.squeeze(warp_img.get_fdata(dtype=np.float32))
 
         # Get vertices translation in voxel space, from the warp image
         vts_vox = vtk_u.vtk_to_vox(mesh.get_vertices(), warp_img)
