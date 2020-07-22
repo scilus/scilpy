@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import glob
 import os
 import tempfile
 
@@ -67,44 +66,52 @@ def test_execution_ihMT(script_runner):
     # no option
     tmp_dir = tempfile.TemporaryDirectory()
     os.chdir(os.path.expanduser(tmp_dir.name))
-    curr_ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
                             in_mask,
-                            '--in_altnp', in_e1_altnp, in_e2_altnp, in_e3_altnp,
-                            '--in_altpn', in_e1_altpn, in_e2_altpn, in_e3_altpn,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff, in_e3_mtoff,
+                            '--in_altnp', in_e1_altnp, in_e2_altnp,
+                            in_e3_altnp,
+                            '--in_altpn', in_e1_altpn, in_e2_altpn,
+                            in_e3_altpn,
+                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            in_e3_mtoff,
                             '--in_negative', in_e1_neg, in_e2_neg, in_e3_neg,
                             '--in_positive', in_e1_pos, in_e2_pos, in_e3_pos,
                             '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w)
-    successes.append(curr_ret.success)
+    successes.append(ret.success)
 
     # --out_prefix
     tmp_dir = tempfile.TemporaryDirectory()
     os.chdir(os.path.expanduser(tmp_dir.name))
-    curr_ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
                             in_mask,
-                            '--in_altnp', in_e1_altnp, in_e2_altnp, in_e3_altnp,
-                            '--in_altpn', in_e1_altpn, in_e2_altpn, in_e3_altpn,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff, in_e3_mtoff,
+                            '--in_altnp', in_e1_altnp, in_e2_altnp,
+                            in_e3_altnp,
+                            '--in_altpn', in_e1_altpn, in_e2_altpn,
+                            in_e3_altpn,
+                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            in_e3_mtoff,
                             '--in_negative', in_e1_neg, in_e2_neg, in_e3_neg,
                             '--in_positive', in_e1_pos, in_e2_pos, in_e3_pos,
                             '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             '--out_prefix', 'sub_01')
-    successes.append(curr_ret.success)
-
+    successes.append(ret.success)
 
     # --filtering
     tmp_dir = tempfile.TemporaryDirectory()
     os.chdir(os.path.expanduser(tmp_dir.name))
-    curr_ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
                             in_mask,
-                            '--in_altnp', in_e1_altnp, in_e2_altnp, in_e3_altnp,
-                            '--in_altpn', in_e1_altpn, in_e2_altpn, in_e3_altpn,
-                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff, in_e3_mtoff,
+                            '--in_altnp', in_e1_altnp, in_e2_altnp,
+                            in_e3_altnp,
+                            '--in_altpn', in_e1_altpn, in_e2_altpn,
+                            in_e3_altpn,
+                            '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
+                            in_e3_mtoff,
                             '--in_negative', in_e1_neg, in_e2_neg, in_e3_neg,
                             '--in_positive', in_e1_pos, in_e2_pos, in_e3_pos,
                             '--in_t1w', in_e1_t1w, in_e2_t1w, in_e3_t1w,
                             '--out_prefix', 'sub-01',
                             '--filtering')
-    successes.append(curr_ret.success)
+    successes.append(ret.success)
 
     assert all(successes)
