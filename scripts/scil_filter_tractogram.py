@@ -19,7 +19,7 @@ In terms of nifti mask, --drawn_roi MASK.nii.gz all include is
 equivalent to --drawn_roi INVERSE_MASK.nii.gz any exclude
 For example, this allows to find out all streamlines entirely in the WM in 
 one command (without manually inverting the mask first) or 
-to remove any streamlines staying in GM without getting out.`
+to remove any streamlines staying in GM without getting out.
 
 Multiple filtering tuples can be used and options mixed.
 A logical AND is the only behavior available. All theses filtering
