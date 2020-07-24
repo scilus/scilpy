@@ -9,6 +9,18 @@ For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
 
+If any meant any part of the streamline must be in the mask, all means that 
+all part of the streamline must be in the mask.
+
+When used with exclude, it means that a streamline entirely in the mask will
+be excluded. Using all it with x/y/z plane works but makes very little sense.
+
+In terms of nifti mask, --drawn_roi MASK.nii.gz all include is 
+equivalent to --drawn_roi INVERSE_MASK.nii.gz any exclude
+For example, this allows to find out all streamlines entirely in the WM in 
+one command (without manually inverting the mask first) or 
+to remove any streamlines staying in GM without getting out.`
+
 Multiple filtering tuples can be used and options mixed.
 A logical AND is the only behavior available. All theses filtering
 conditions will be sequentially applied.
