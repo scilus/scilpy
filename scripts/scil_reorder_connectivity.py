@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Re-order a connectivity matrix using a text file format.
+Re-order one or many connectivity matrices using a text file format.
 The first row are the (x) and the second row the (y), must be space separated.
 The resulting matrix does not have to be square (support unequal number of
 x and y).
@@ -42,18 +42,18 @@ def _build_arg_parser():
                                 description=__doc__, epilog=EPILOG)
 
     p.add_argument('in_matrix', nargs='+',
-                   help='Connectivity matrix in numpy (.npy) format.')
+                   help='Connectivity matrix or matrices in numpy (.npy) format.')
     p.add_argument('in_ordering',
-                   help='Json file with the sub-network as keys and x/y '
+                   help='Txt file with the sub-network as keys and x/y '
                         'lists as value (.txt).')
     p.add_argument('out_prefix',
                    help='Prefix for the output matrix filename.')
 
     p.add_argument('--out_dir',
-                   help='Output directory for the Free Water results.')
+                   help='Output directory to the re-ordered matrix or matrices.')
     p.add_argument('--labels_list',
                    help='List saved by the decomposition script,\n'
-                        'the json must contain labels rather than coordinates '
+                        'the txt file must contain labels rather than coordinates '
                         '(.txt).')
 
     add_overwrite_arg(p)
