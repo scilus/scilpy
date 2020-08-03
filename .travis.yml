@@ -11,4 +11,4 @@ before_install:
 script:
   - python setup.py develop
   - export MPLBACKEND="agg"
-  - pytest -v scripts/tests/test_compute_kurtosis_metrics.py::test_help_option
+  - pytest -v
