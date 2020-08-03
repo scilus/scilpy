@@ -104,6 +104,9 @@ def main():
     if not args.show_only:
         assert_outputs_exist(parser, args, args.out_png, args.histogram)
 
+    if args.lookup_table and not args.labels_list:
+        parser.error('Lookup table axis naming requires --labels_list.')
+
     matrix = load_matrix_in_any_format(args.in_matrix)
 
     if args.log:
@@ -134,45 +137,45 @@ def main():
         if args.labels_list:
             labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
 
-            if not args.reorder_txt and not args.lookup_table:
-                if len(labels_list) != matrix.shape[0] \
-                        or len(labels_list) != matrix.shape[1]:
-                    logging.warning('The provided matrix not the same size as '
-                                    'the labels list.')
-                x_legend = labels_list[0:matrix.shape[0]]
-                y_legend = labels_list[0:matrix.shape[1]]
-
-            if args.reorder_txt:
-                with open(args.reorder_txt, 'r') as my_file:
-                    lines = my_file.readlines()
-                    x_legend = [int(val) for val in lines[0].split()]
-                    y_legend = [int(val) for val in lines[1].split()]
-
-            if args.lookup_table:
-                logging.warning('Using a lookup table, make sure the reordering '
-                                'json contain labels, not coordinates')
-                with open(args.lookup_table) as json_data:
-                    lut = json.load(json_data)
-
-                x_legend = []
-                y_legend = []
-                if args.reorder_txt:
-                    with open(args.reorder_txt, 'r') as my_file:
-                        lines = my_file.readlines()
-                        x_list = [int(val) for val in lines[0].split()]
-                        y_list = [int(val) for val in lines[1].split()]
-                else:
-                    x_list = labels_list[0:matrix.shape[0]]
-                    y_list = labels_list[0:matrix.shape[1]]
-
-                x_legend = [lut[str(x)] if str(x) in lut else str(x)
-                            for x in x_list]
-                y_legend = [lut[str(x)] if str(x) in lut else str(x)
-                            for x in y_list]
-
+        if args.labels_list and not args.reorder_txt and not args.lookup_table:
+            if len(labels_list) != matrix.shape[0] \
+                    or len(labels_list) != matrix.shape[1]:
+                logging.warning('The provided matrix not the same size as '
+                                'the labels list.')
+            x_legend = labels_list[0:matrix.shape[0]]
+            y_legend = labels_list[0:matrix.shape[1]]
         else:
             x_legend = x_ticks
             y_legend = y_ticks
+
+        if args.reorder_txt:
+            with open(args.reorder_txt, 'r') as my_file:
+                lines = my_file.readlines()
+                x_legend = [int(val) for val in lines[0].split()]
+                y_legend = [int(val) for val in lines[1].split()]
+
+        if args.lookup_table:
+            if args.reorder_txt:
+                logging.warning('Using a lookup table, make sure the reordering '
+                                'json contain labels, not coordinates')
+            with open(args.lookup_table) as json_data:
+                lut = json.load(json_data)
+
+            x_legend = []
+            y_legend = []
+            if args.reorder_txt:
+                with open(args.reorder_txt, 'r') as my_file:
+                    lines = my_file.readlines()
+                    x_list = [int(val) for val in lines[0].split()]
+                    y_list = [int(val) for val in lines[1].split()]
+            else:
+                x_list = labels_list[0:matrix.shape[0]]
+                y_list = labels_list[0:matrix.shape[1]]
+
+            x_legend = [lut[str(x)] if str(x) in lut else str(x)
+                        for x in x_list]
+            y_legend = [lut[str(x)] if str(x) in lut else str(x)
+                        for x in y_list]
 
         if len(x_ticks) != len(x_legend) \
                 or len(y_ticks) != len(y_legend):
