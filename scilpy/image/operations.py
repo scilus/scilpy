@@ -54,6 +54,7 @@ def get_image_ops():
     """Get a dictionary of all functions relating to image operations"""
     image_ops = get_array_ops()
     image_ops.update(OrderedDict([
+        ('concat', concat),
         ('dilation', dilation),
         ('erosion', erosion),
         ('closing', closing),
@@ -81,9 +82,9 @@ def _validate_arrays(*arrays):
             raise ValueError('Not all inputs have the same shape!')
 
 
-def _validate_length(input_list, l, atleast=False):
+def _validate_length(input_list, l, at_least=False):
     """Make sure the the input list has the right number of arguments (l)."""
-    if atleast:
+    if at_least:
         if not len(input_list) >= l:
             logging.error(
                 'This operation requires at least {} operands.'.format(l))
@@ -283,7 +284,7 @@ def addition(input_list):
     addition: IMGs
         Add multiple images together.
     """
-    _validate_length(input_list, 2, atleast=True)
+    _validate_length(input_list, 2, at_least=True)
     _validate_arrays(*input_list)
     ref_array = input_list[0]
 
@@ -310,7 +311,7 @@ def multiplication(input_list):
     multiplication: IMGs
         Multiply multiple images together (danger of underflow and overflow)
     """
-    _validate_length(input_list, 2, atleast=True)
+    _validate_length(input_list, 2, at_least=True)
     _validate_arrays(*input_list)
 
     output_data = input_list[0]
@@ -342,7 +343,7 @@ def mean(input_list):
         Compute the mean of images.
         If a single 4D image is provided, average along the last dimension.
     """
-    _validate_length(input_list, 1, atleast=True)
+    _validate_length(input_list, 1, at_least=True)
     _validate_arrays(*input_list)
     ref_array = input_list[0]
 
@@ -363,7 +364,7 @@ def std(input_list):
         If a single 4D image is provided, compute the STD along the last
         dimension.
     """
-    _validate_length(input_list, 1, atleast=True)
+    _validate_length(input_list, 1, at_least=True)
     _validate_arrays(*input_list)
     ref_array = input_list[0]
 
@@ -430,6 +431,17 @@ def invert(input_list):
 
     return output_data
 
+
+def concat(input_list):
+    """
+    concat: IMGs
+        Concatenate a list of 3D images into a single 4D image.
+    """
+    _validate_arrays(*input_list)
+    if input_list[0].ndim != 3:
+        raise ValueError('Concatenate require 3D arrays.')
+    
+    return np.rollaxis(np.stack(input_list), axis=0, start=4)
 
 def dilation(input_list):
     """
