@@ -82,17 +82,18 @@ def _validate_arrays(*arrays):
             raise ValueError('Not all inputs have the same shape!')
 
 
-def _validate_length(input_list, l, at_least=False):
-    """Make sure the the input list has the right number of arguments (l)."""
+def _validate_length(input_list, length, at_least=False):
+    """Make sure the the input list has the right number of arguments
+    (length)."""
     if at_least:
-        if not len(input_list) >= l:
+        if not len(input_list) >= length:
             logging.error(
-                'This operation requires at least {} operands.'.format(l))
+                'This operation requires at least {} operands.'.format(length))
             raise ValueError
     else:
-        if not len(input_list) == l:
+        if not len(input_list) == length:
             logging.error(
-                'This operation requires exactly {} operands.'.format(l))
+                'This operation requires exactly {} operands.'.format(length))
             raise ValueError
 
 
@@ -440,8 +441,9 @@ def concat(input_list):
     _validate_arrays(*input_list)
     if input_list[0].ndim != 3:
         raise ValueError('Concatenate require 3D arrays.')
-    
+
     return np.rollaxis(np.stack(input_list), axis=0, start=4)
+
 
 def dilation(input_list):
     """
