@@ -62,6 +62,7 @@ import nibabel as nib
 from nibabel.streamlines import Tractogram
 
 from scilpy.io.streamlines import (lazy_streamlines_count,
+                                   reconstruct_streamlines,
                                    reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
@@ -271,7 +272,7 @@ def main():
         # (based on order of magnitude of signal)
         img = nib.load(args.in_dwi)
         data = img.get_fdata(dtype=np.float32)
-        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data > 0]))))] = 0
         nib.save(nib.Nifti1Image(data, img.affine),
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 
@@ -323,7 +324,7 @@ def main():
     pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
     commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
-    commit_weights = commit_output_dict[2][:nbr_streamlines]
+    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
     np.savetxt(os.path.join(commit_results_dir,
                             'commit_weights.txt'),
                commit_weights)
@@ -340,10 +341,29 @@ def main():
         for i, key in enumerate(hdf5_keys):
             group = hdf5_file[key]
             tmp_commit_weights = commit_weights[len_list[i]:len_list[i+1]]
+            if args.threshold_weights is not None:
+                essential_ind = np.where(
+                    tmp_commit_weights > args.threshold_weights)[0]
+                tmp_streamlines = reconstruct_streamlines(group['data'],
+                                                          group['offsets'],
+                                                          group['lengths'],
+                                                          indices=essential_ind)
+                # Replacing the data with the one above the threshold
+                # Safe since this hdf5 was a copy in the first place
+                del group['data']
+                del group['offsets']
+                del group['lengths']
+                group['data'] = tmp_streamlines.get_data()
+                group['offsets'] = tmp_streamlines._offsets
+                group['lengths'] = tmp_streamlines._lengths
+
+                repeat_commit_weights = np.ones((len(tmp_streamlines._offsets))) * \
+                    np.average(tmp_commit_weights)
+
             if 'commit_weights' in group:
                 del group['commit_weights']
             group.create_dataset('commit_weights',
-                                 data=tmp_commit_weights)
+                                 data=repeat_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
