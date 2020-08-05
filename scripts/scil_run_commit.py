@@ -196,7 +196,7 @@ def main():
         parser.error('{} does not have a compatible header with {}'.format(
             args.in_tractogram, args.in_dwi))
 
-    if args.threshold_weights == 'None':
+    if args.threshold_weights == 'None' or args.threshold_weights == 'none':
         args.threshold_weights = None
         if not args.keep_whole_tractogram and ext != '.h5':
             logging.warning('Not thresholding weigth with trk file without '
