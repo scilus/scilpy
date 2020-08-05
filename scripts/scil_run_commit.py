@@ -128,7 +128,7 @@ def _build_arg_parser():
     g2.add_argument('--keep_whole_tractogram', action='store_true',
                     help='Save a tractogram copy with streamlines weights in '
                          'the data_per_streamline\n[%(default)s].')
-    g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
+    g2.add_argument('--threshold_weights', metavar='THRESHOLD',
                     default=0.,
                     help='Split the tractogram in two; essential and\n'
                          'nonessential, based on the provided threshold '
@@ -195,6 +195,13 @@ def main():
                                                   dwi_img):
         parser.error('{} does not have a compatible header with {}'.format(
             args.in_tractogram, args.in_dwi))
+
+    if args.threshold_weights == 'None':
+        args.threshold_weights = None
+        if not args.keep_whole_tractogram and ext != '.h5':
+            logging.warning('Not thresholding weigth with trk file without '
+                            'the --keep_whole_tractogram will not save a '
+                            'tractogram')
 
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
@@ -357,13 +364,13 @@ def main():
                 group['offsets'] = tmp_streamlines._offsets
                 group['lengths'] = tmp_streamlines._lengths
 
-                repeat_commit_weights = np.ones((len(tmp_streamlines._offsets))) * \
+                tmp_commit_weights = np.ones((len(tmp_streamlines._offsets))) * \
                     np.average(tmp_commit_weights)
 
             if 'commit_weights' in group:
                 del group['commit_weights']
             group.create_dataset('commit_weights',
-                                 data=repeat_commit_weights)
+                                 data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
