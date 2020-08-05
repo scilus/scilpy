@@ -202,6 +202,8 @@ def main():
             logging.warning('Not thresholding weigth with trk file without '
                             'the --keep_whole_tractogram will not save a '
                             'tractogram')
+    else:
+        args.threshold_weights = float(args.threshold_weights)
 
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
