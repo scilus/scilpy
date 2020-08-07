@@ -9,8 +9,10 @@ from dipy.tracking.vox2track import _streamlines_in_mask
 from nibabel.affines import apply_affine
 import numpy as np
 
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
-def streamlines_in_mask(sft, target_mask):
+
+def streamlines_in_mask(sft, target_mask, all_in=False):
     """
     Parameters
     ----------
@@ -26,13 +28,25 @@ def streamlines_in_mask(sft, target_mask):
     sft.to_vox()
     sft.to_corner()
     # Copy-Paste from Dipy to get indices
-    target_mask = np.array(target_mask, dtype=np.uint8, copy=True)
+    if all_in:
+        target_mask = np.array(target_mask, dtype=np.bool, copy=True)
+        target_mask = np.invert(target_mask)
+        tractogram_mask = compute_tract_counts_map(sft.streamlines,
+                                                   target_mask.shape)
+        tractogram_mask[tractogram_mask > 0] = 1
+        tmp_mask = tractogram_mask.astype(
+            np.uint8)*target_mask.astype(np.uint8)
+        streamlines_case = _streamlines_in_mask(list(sft.streamlines),
+                                                tmp_mask,
+                                                np.eye(3), [0, 0, 0])
 
-    streamlines_case = _streamlines_in_mask(list(sft.streamlines),
-                                            target_mask, np.eye(3),
-                                            [-0.5, -0.5, -0.5])
-
-    return np.where(streamlines_case == [0, 1][True])[0].tolist()
+        return np.where(streamlines_case == [0, 1][False])[0].tolist()
+    else:
+        target_mask = np.array(target_mask, dtype=np.uint8, copy=True)
+        streamlines_case = _streamlines_in_mask(list(sft.streamlines),
+                                                target_mask,
+                                                np.eye(3), [0, 0, 0])
+        return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
 
 def filter_grid_roi(sft, mask, filter_type, is_exclude):
@@ -44,7 +58,7 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
     target_mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
     filter_type: str
-        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     Returns
@@ -54,8 +68,9 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
         Ids of the streamlines passing through the mask.
     """
     line_based_indices = []
-    if filter_type == 'any':
-        line_based_indices = streamlines_in_mask(sft, mask)
+    if filter_type in ['any', 'all']:
+        line_based_indices = streamlines_in_mask(sft, mask,
+                                                 all_in=filter_type == 'all')
     else:
         sft.to_vox()
         sft.to_corner()
@@ -112,7 +127,7 @@ def pre_filtering_for_geometrical_shape(sft, size,
     center: numpy.ndarray (3)
         Center x/y/z of the ROI.
     filter_type: str
-        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_in_vox: bool
         Value to indicate if the ROI is in voxel space.
     Returns
@@ -161,7 +176,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     ellipsoid_center: numpy.ndarray (3)
         Center x/y/z of the ellipsoid.
     filter_type: str
-        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
@@ -196,17 +211,22 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     ellipsoid_center = np.asarray(ellipsoid_center)
 
     for i, line in enumerate(pre_filtered_streamlines):
-        if filter_type == 'any':
+        if filter_type in ['any', 'all']:
             # Resample to 1/10 of the voxel size
             nb_points = max(int(length(line) / np.average(res) * 10), 2)
             line = set_number_of_points(line, nb_points)
             points_in_ellipsoid = np.sum(
                 ((line - ellipsoid_center) / ellipsoid_radius) ** 2,
                 axis=1)
-            if np.argwhere(points_in_ellipsoid <= 1).any():
-                # If at least one point was in the ellipsoid, we selected
-                # the streamline
+            if filter_type == 'any' \
+                    and np.argwhere(points_in_ellipsoid <= 1).any():
+                # If at least one point was in the ellipsoid
                 selected_by_ellipsoid.append(pre_filtered_indices[i])
+            elif filter_type == 'all' \
+                    and len(np.argwhere(points_in_ellipsoid <= 1)) == len(line):
+                # If all points were in the ellipsoid
+                selected_by_ellipsoid.append(pre_filtered_indices[i])
+
         else:
             points_in_ellipsoid = np.sum(
                 ((line[0] - ellipsoid_center) / ellipsoid_radius) ** 2)
@@ -258,7 +278,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     cuboid_center: numpy.ndarray (3)
         Center x/y/z of the cuboid.
     filter_type: str
-        One of the 3 following choices, 'any', 'either_end', 'both_ends'.
+        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     is_in_vox: bool
@@ -286,17 +306,20 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     cuboid_radius = np.asarray(cuboid_radius)
     cuboid_center = np.asarray(cuboid_center)
     for i, line in enumerate(pre_filtered_streamlines):
-        if filter_type == 'any':
+        if filter_type in ['any', 'all']:
             # Resample to 1/10 of the voxel size
             nb_points = max(int(length(line) / np.average(res) * 10), 2)
             line = set_number_of_points(line, nb_points)
             points_in_cuboid = np.abs(line - cuboid_center) / cuboid_radius
             points_in_cuboid = np.sum(np.where(points_in_cuboid <= 1, 1, 0),
                                       axis=1)
-
-            if np.argwhere(points_in_cuboid == 3).any():
-                # If at least one point was in the cuboid in x/y/z,
-                # we selected that streamline
+            if filter_type == 'any' \
+                    and np.argwhere(points_in_cuboid == 3).any():
+                # If at least one point was in the cuboid in x/y/z
+                selected_by_cuboid.append(pre_filtered_indices[i])
+            elif filter_type == 'all' \
+                    and len(np.argwhere(points_in_cuboid == 3)) == len(line):
+                # If all points were in the cuboid in x/y/z
                 selected_by_cuboid.append(pre_filtered_indices[i])
         else:
             # Faster to do it twice than trying to do in using an array of 2
