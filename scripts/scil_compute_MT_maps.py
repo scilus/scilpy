@@ -20,11 +20,36 @@ The output consist in two types of images:
         Three contrasts images : MT-off, MT-on and T1weighted images.
         MT maps corrected or not for an empiric B1 correction maps.
 
-Return :
-    Magnetization Transfer (MT) ratio and saturation maps
-          The MT ratio is a measure reflecting the amount of bound protons.
-          The MT saturation is a pseudo-quantitative MT maps representing
-          the signal change between the bound and free water pools.
+Input Data recommendation:
+  - it is recommended to use dcm2niix (v1.0.20200331) to convert data
+    https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331
+  - dcm2niix conversion will create all echo files for each contrast and
+    corresponding json files
+  - all input must have a matching json file with the same filename
+  - all contrasts must have a same number of echoes and coregistered
+    between them before running the script.
+  - Mask must be coregistered to the echo images
+  - ANTs can be used for the registration steps (http://stnava.github.io/ANTs/)
+
+
+The output consist in two types of images in two folders :
+  1. Contrasts_MT_maps which contains the 2 contrast images
+      - MT-off.nii.gz : pulses applied at positive frequency
+      - MT-on.nii.gz : pulses applied at negative frequency
+      - T1w.nii.gz : anatomical T1 reference images
+
+
+  2. MT_native_maps which contains the 4 myelin maps
+      - MTR.nii.gz : Magnetization Transfer Ratio map
+      The MT ratio is a measure reflecting the amount of bound protons.
+
+      - MTsat.nii.gz : Magnetization Transfer saturation map
+      The MT saturation is a pseudo-quantitative maps representing
+      the signal change between the bound and free water pools.
+
+>>> scil_compute_ihMT_maps.py path/to/output/directory path/to/mask_bin.nii.gz
+    --in_mtoff path/to/echo*mtoff.nii.gz --in_mton path/to/echo*mton.nii.gz
+    --in_t1w path/to/echo*T1w.nii.gz
 
 """
 
