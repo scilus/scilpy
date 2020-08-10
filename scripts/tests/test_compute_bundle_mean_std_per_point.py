@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_mean_std.py', '--help')
+    ret = script_runner.run('scil_compute_bundle_mean_std.py', '--help')
     assert ret.success
 
 
@@ -27,8 +27,8 @@ def test_execution_tractometry(script_runner):
                                'distance.npz')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_bundle_mean_std_per_point.py', in_bundle,
-                            in_label, in_distance, in_ref,
+    ret = script_runner.run('scil_compute_bundle_mean_std_per_point.py',
+                            in_bundle, in_label, in_distance, in_ref,
                             '--density_weighting', '--distance_weighting',
                             '--out_json', 'metric_label.json')
 

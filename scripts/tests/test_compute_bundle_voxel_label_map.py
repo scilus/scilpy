@@ -13,14 +13,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_volume_per_label.py', '--help')
+    ret = script_runner.run('scil_compute_bundle_voxel_label_map.py', '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_label_map = os.path.join(get_home(), 'tractometry',
-                                'IFGWM_labels_map.nii.gz')
-    ret = script_runner.run('scil_bundle_volume_per_label.py',
-                            in_label_map, 'IFGWM')
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
+    in_centroid = os.path.join(get_home(), 'tractometry',
+                               'IFGWM_uni_c_10.trk')
+    ret = script_runner.run('scil_compute_bundle_voxel_label_map.py',
+                            in_bundle, in_centroid,
+                            'IFGWM_labels_map.nii.gz')
     assert ret.success
