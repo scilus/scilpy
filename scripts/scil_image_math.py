@@ -136,9 +136,10 @@ def main():
 
     try:
         output_data = OPERATIONS[args.operation](input_data)
-    except ValueError:
+    except ValueError as msg:
         logging.error('{} operation failed.'.format(
             args.operation.capitalize()))
+        logging.error(msg)
         return
 
     if args.data_type:

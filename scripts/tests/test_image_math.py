@@ -43,3 +43,17 @@ def test_execution_low_mult(script_runner):
     ret = script_runner.run('scil_image_math.py', 'multiplication',
                             in_img, '16', 'brainstem_unified.nii.gz')
     assert ret.success
+
+
+def test_execution_concat(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_img_1 = os.path.join(get_home(), 'atlas', 'ids', '10.nii.gz')
+    in_img_2 = os.path.join(get_home(), 'atlas', 'ids', '11.nii.gz')
+    in_img_3 = os.path.join(get_home(), 'atlas', 'ids', '12.nii.gz')
+    in_img_4 = os.path.join(get_home(), 'atlas', 'ids', '13.nii.gz')
+    in_img_5 = os.path.join(get_home(), 'atlas', 'ids', '17.nii.gz')
+    in_img_6 = os.path.join(get_home(), 'atlas', 'ids', '18.nii.gz')
+    ret = script_runner.run('scil_image_math.py', 'concat',
+                            in_img_1, in_img_2, in_img_3, in_img_4, in_img_5,
+                            in_img_6, 'concat_ids.nii.gz')
+    assert ret.success
