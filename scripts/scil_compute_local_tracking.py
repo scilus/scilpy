@@ -13,7 +13,7 @@ to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
-For streamlines compression, a rule of thumb is to set it to 0.1mm for the
+For streamline compression, a rule of thumb is to set it to 0.1mm for the
 deterministic algorithm and 0.2mm for probabilitic algorithm.
 
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
@@ -56,7 +56,8 @@ def _build_arg_parser():
 
     p._optionals.title = 'Generic options'
     p.add_argument('in_sh',
-                   help='Spherical harmonic file (.nii.gz).')
+                   help='Spherical harmonic file (.nii.gz) OR \n'
+                        'peaks/evecs (.nii.gz) for EUDX tracking.')
     p.add_argument('in_seed',
                    help='Seeding mask  (.nii.gz).')
     p.add_argument('in_mask',
@@ -79,7 +80,7 @@ def _build_arg_parser():
                               '[%(default)s]')
     track_g.add_argument('--theta', type=float,
                          help='Maximum angle between 2 steps.\n'
-                              '["eudx"=60, det"=45, "prob"=20]')
+                              '["eudx"=60, "det"=45, "prob"=20]')
     track_g.add_argument('--sfthres', dest='sf_threshold',
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '

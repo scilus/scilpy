@@ -19,7 +19,7 @@ to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
-For streamlines compression, a rule of thumb is to set it to 0.1mm for the
+For streamline compression, a rule of thumb is to set it to 0.1mm for the
 deterministic algorithm and 0.2mm for probabilitic algorithm.
 
 All the input nifti files must be in isotropic resolution.
