@@ -21,9 +21,12 @@ def get_home():
 
 def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
-    return {'atlas.zip':
+    return {'ihMT.zip':
+            ['1V0xzvmVrVlL9dRKhc5-7xWESkmof1zyS',
+             '44eee21bcc0597836ba2eb32d41ed98c'],
+            'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
-             '0c1d3da231d1a8b837b5d756c9170b08'],
+             'af15ab98bc1faf2554fa0abb1891f345'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
              'c0551a28dcefcd7cb53f572b1794b3e8'],
@@ -35,13 +38,13 @@ def get_testing_files_dict():
              '12e901e899ee48bdf31b25f22d39ee48'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
-             '2fed405d8241b9b5fc43e6d640008ae9'],
+             '6d13bd076225fa2f786f416fa754623a'],
             'filtering.zip':
             ['1yzHSL4tBtmm_aeI1i0qJhrA9z040k0im',
              'dbe796fb75c3e1e5559fad3308982769'],
             'others.zip':
             ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
-             '075deda4532042192c4103df4371ecb4'],
+             '91117b26d44e7e53d0a00022ed92fb38'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
              '57aee810f2f5c687df48de65935bb527'],
@@ -53,7 +56,7 @@ def get_testing_files_dict():
              '78129871fbefadf5cede7b1c6a7c9cc5'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
-             '32f938ae33a6c185346d2574240ebf3b']}
+             '3e27625a1e7f2484b7fa5028c95324cc']}
 
 
 def _get_file_md5(filename):
@@ -141,6 +144,7 @@ def fetch_data(files_dict, keys=None):
             gdd.download_file_from_google_drive(file_id=url,
                                                 dest_path=full_path,
                                                 unzip=False)
+
             if check_md5(full_path, md5):
                 break
             else:

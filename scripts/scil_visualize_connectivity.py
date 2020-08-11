@@ -12,7 +12,7 @@ This script can either display the axis labels as:
 - Names (using --labels_list and --lookup_table)
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
-provide the json and specify the key (using --reorder_json)
+provide the json and specify the key (using --reorder_txt)
 """
 
 import argparse
@@ -41,9 +41,8 @@ def _build_arg_parser():
     g1.add_argument('--labels_list',
                     help='List saved by the decomposition script,\n'
                          'the json must contain labels rather than coordinates.')
-    g1.add_argument('--reorder_json', nargs=2, metavar=('FILE', 'KEY'),
-                    help='Json file with the sub-network as keys and x/y '
-                         'lists as value AND the key to use.')
+    g1.add_argument('--reorder_txt',
+                    help='Txt file with two rows (x/y) listing the ordering.')
     g1.add_argument('--lookup_table',
                     help='Lookup table with the label number as keys and the '
                          'name as values.')
@@ -135,7 +134,7 @@ def main():
         if args.labels_list:
             labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
 
-            if not args.reorder_json and not args.lookup_table:
+            if not args.reorder_txt and not args.lookup_table:
                 if len(labels_list) != matrix.shape[0] \
                         or len(labels_list) != matrix.shape[1]:
                     logging.warning('The provided matrix not the same size as '
@@ -143,13 +142,11 @@ def main():
                 x_legend = labels_list[0:matrix.shape[0]]
                 y_legend = labels_list[0:matrix.shape[1]]
 
-            if args.reorder_json:
-                filename, key = args.reorder_json
-                with open(filename) as json_data:
-                    config = json.load(json_data)
-
-                    x_legend = config[key][0]
-                    y_legend = config[key][1]
+            if args.reorder_txt:
+                with open(args.reorder_txt, 'r') as my_file:
+                    lines = my_file.readlines()
+                    x_legend = [int(val) for val in lines[0].split()]
+                    y_legend = [int(val) for val in lines[1].split()]
 
             if args.lookup_table:
                 logging.warning('Using a lookup table, make sure the reordering '
@@ -159,9 +156,11 @@ def main():
 
                 x_legend = []
                 y_legend = []
-                if args.reorder_json:
-                    x_list = config[key][0]
-                    y_list = config[key][1]
+                if args.reorder_txt:
+                    with open(args.reorder_txt, 'r') as my_file:
+                        lines = my_file.readlines()
+                        x_list = [int(val) for val in lines[0].split()]
+                        y_list = [int(val) for val in lines[1].split()]
                 else:
                     x_list = labels_list[0:matrix.shape[0]]
                     y_list = labels_list[0:matrix.shape[1]]
@@ -194,10 +193,8 @@ def main():
     if args.histogram:
         fig, ax = plt.subplots()
         if args.exclude_zeros:
-            min_value = EPSILON
-        N, bins, patches = ax.hist(matrix.ravel(),
-                                   range=(min_value, matrix.max()),
-                                   bins=args.nb_bins)
+            matrix = matrix[matrix != 0]
+        _, _, patches = ax.hist(matrix.ravel(), bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
         for i in range(0, nbr_bins):

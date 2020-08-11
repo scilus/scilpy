@@ -21,11 +21,10 @@ def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(get_home(), 'connectivity',
                          'sc_norm.npy')
-    in_json = os.path.join(get_home(), 'connectivity',
-                           'reorder.json')
+    in_txt = os.path.join(get_home(), 'connectivity',
+                          'reorder.txt')
     in_labels_list = os.path.join(get_home(), 'connectivity',
                                   'labels_list.txt')
-    ret = script_runner.run('scil_reorder_connectivity.py', in_sc, 'sc_reo',
-                            '--in_json', in_json,
-                            '--labels_list', in_labels_list)
+    ret = script_runner.run('scil_reorder_connectivity.py', in_sc, in_txt,
+                            'sc_reo_', '--labels_list', in_labels_list)
     assert ret.success

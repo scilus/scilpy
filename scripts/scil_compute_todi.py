@@ -12,6 +12,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args,
@@ -31,12 +32,13 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
-
+    # TODO Rename argument in_bundle
     p.add_argument('tract_filename',
                    help='Input streamlines file.')
 
     add_reference_arg(p)
 
+    # TODO Uniformize argparse
     p.add_argument('--sphere', default='repulsion724',
                    help='sphere used for the angular discretization.')
 
@@ -107,7 +109,7 @@ def main():
         todi_obj.smooth_todi_spatial()
 
     if args.mask:
-        mask = nib.load(args.mask).get_data()
+        mask = get_data_as_mask(nib.load(args.mask))
         todi_obj.mask_todi(mask)
 
     logging.info('Saving Outputs ...')

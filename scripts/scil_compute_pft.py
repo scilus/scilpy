@@ -223,13 +223,13 @@ def main():
     voxel_size = np.average(map_include_img.header['pixdim'][1:4])
 
     if not args.act:
-        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(),
-                                                 map_exclude_img.get_fdata(),
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
+                                                 map_exclude_img.get_fdata(dtype=np.float32),
                                                  step_size=args.step_size,
                                                  average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(),
-                                                 map_exclude_img.get_fdata())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
+                                                 map_exclude_img.get_fdata(dtype=np.float32))
 
     if args.npv:
         nb_seeds = args.npv

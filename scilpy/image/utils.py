@@ -21,7 +21,7 @@ def count_non_zero_voxels(image):
     else:
         nb_object = image
 
-    data = nb_object.get_data(caching='unchanged')
+    data = nb_object.get_fdata(dtype=np.float32, caching='unchanged')
 
     # Count the number of non-zero voxels.
     if len(data.shape) >= 4:

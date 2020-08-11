@@ -18,9 +18,12 @@ from dipy.segment.mask import crop, bounding_box
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.utils.util import voxel_to_world, world_to_voxel
+
+# TODO move that elsewhere
 
 
 class WorldBoundingBox(object):
@@ -33,7 +36,7 @@ class WorldBoundingBox(object):
 def compute_nifti_bounding_box(img):
     """Finds bounding box from data and transforms it in world space for use
     on data with different attributes like voxel size."""
-    data = img.get_data(caching='unchanged')
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
     voxel_size = img.header.get_zooms()[0:3]
 
@@ -49,7 +52,7 @@ def compute_nifti_bounding_box(img):
 def crop_nifti(img, wbbox):
     """Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned."""
-    data = img.get_data(caching='unchanged')
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
 
     voxel_bb_mins = world_to_voxel(wbbox.minimums, affine)
@@ -74,6 +77,9 @@ def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
+    # TODO Rename argparse p
+    # TODO Rename variable in_*
+    # TODO First line argument
     parser.add_argument(
         'input_path', help='Path of the nifti file to crop.')
     parser.add_argument(

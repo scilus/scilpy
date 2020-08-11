@@ -29,7 +29,7 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
-
+    # TODO rename to in_*
     p.add_argument('label_map',
                    help='Label map (.npz) of the corresponding fiber bundle.')
     p.add_argument('distance_map',

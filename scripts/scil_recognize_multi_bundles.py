@@ -27,7 +27,7 @@ Example: 5 atlas, 9 multi-parameters, 2 seeds with a minimal vote_ratio
 of 0.50 will results in 90 executions (for each bundle in the config file)
 and a minimal vote of 45 / 90.
 
-Example data and usage available at: https://zenodo.org/deposit/3613688
+Example data and usage available at: https://zenodo.org/record/3928503
 """
 
 import argparse
