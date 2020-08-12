@@ -13,6 +13,11 @@ The library and scripts can be installed locally by using:
 ```
 pip install -e .
 ```
+On Linux, most likely you will have to install libraries for COMMIT/AMICO
+```
+sudo apt install libblas-dev liblapack-dev
+```
+
 Note that using this technique will make it harder to remove the scripts when changing versions.
 We highly recommend working in a [Python Virtual Environment].
 

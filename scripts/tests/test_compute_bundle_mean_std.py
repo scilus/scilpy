@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_mean_std.py', '--help')
+    ret = script_runner.run('scil_compute_bundle_mean_std.py', '--help')
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_tractometry(script_runner):
                              'IFGWM.trk')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_bundle_mean_std.py', in_bundle, in_ref,
-                            '--density_weighting')
+    ret = script_runner.run('scil_compute_bundle_mean_std.py', in_bundle,
+                            in_ref, '--density_weighting')
     assert ret.success
