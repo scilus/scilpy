@@ -23,7 +23,7 @@ script:
 jobs:
   include:
     - stage: Deploy Docker latest
-      if: (branch IS master AND tag IS blank)
+      if: branch IS master AND tag IS blank
       script:
         - travis_wait 60 docker build -t docker-scilpy containers
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
