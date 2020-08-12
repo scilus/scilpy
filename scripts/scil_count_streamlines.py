@@ -36,7 +36,7 @@ def main():
 
     stats = {
         bundle_name: {
-            'tract_count': int(lazy_streamlines_count(args.in_tractogram))
+            'streamline_count': int(lazy_streamlines_count(args.in_tractogram))
         }
     }
 
