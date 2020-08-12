@@ -76,12 +76,18 @@ def main():
     else:
         selected_keys = keys
 
+
+    affine = hdf5_file.attrs['affine']
+    dimensions = hdf5_file.attrs['dimensions']
+    voxel_sizes = hdf5_file.attrs['voxel_sizes']
+    header = create_nifti_header(affine, dimensions, voxel_sizes)
     for key in selected_keys:
-        affine = hdf5_file.attrs['affine']
-        dimensions = hdf5_file.attrs['dimensions']
-        voxel_sizes = hdf5_file.attrs['voxel_sizes']
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-        header = create_nifti_header(affine, dimensions, voxel_sizes)
+        if len(streamlines) < 3:
+            print(streamlines)
+        print(key, len(streamlines))
+        if len(streamlines) == 0:
+            continue
         sft = StatefulTractogram(streamlines, header, Space.VOX,
                                     origin=Origin.TRACKVIS)
         if args.include_dps:
@@ -91,6 +97,7 @@ def main():
 
         save_tractogram(sft, '{}.trk'
                         .format(os.path.join(args.out_dir, key)))
+        print()
 
     hdf5_file.close()
 

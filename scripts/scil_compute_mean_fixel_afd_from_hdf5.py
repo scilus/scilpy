@@ -58,6 +58,8 @@ def _afd_rd_wrapper(args):
     dimensions = in_hdf5_file.attrs['dimensions']
     voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
     streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+    if len(streamlines) == 0:
+        return key, 0, 0
     in_hdf5_file.close()
 
     header = create_nifti_header(affine, dimensions, voxel_sizes)

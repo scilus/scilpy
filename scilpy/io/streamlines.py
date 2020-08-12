@@ -225,9 +225,13 @@ def reconstruct_streamlines(data, offsets, lengths, indices=None):
     if indices is None:
         indices = np.arange(len(offsets))
 
-    streamlines = []
-    for i in indices:
-        streamline = data[offsets[i]*3:offsets[i]*3 + lengths[i]*3]
-        streamlines.append(streamline.reshape((lengths[i], 3)))
+    streamlines = ArraySequence()
+    streamlines._data = data.reshape((len(data) // 3, 3))
 
-    return ArraySequence(streamlines)
+    streamlines._offsets = offsets
+    streamlines._lengths = lengths
+
+    if indices is None:
+        return streamlines
+    else:
+        return streamlines[indices]

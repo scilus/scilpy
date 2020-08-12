@@ -70,7 +70,11 @@ def _average_wrapper(args):
             raise IOError('{} do not have a compatible header'.format(
                 hdf5_filename))
         # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
+
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+        if len(streamlines) == 0:
+            return
+
         density = compute_tract_counts_map(streamlines, dimensions)
         hdf5_file.close()
 
