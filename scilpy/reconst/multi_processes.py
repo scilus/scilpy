@@ -355,12 +355,12 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         all_time_max_odf = max(all_time_global_max, max_odf)
         all_time_global_max = max(all_time_global_max, global_max)
 
-    tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
-    tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
-    tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
-    tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
-    tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
-    tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
+        tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
+        tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
+        tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
+        tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+        tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
+        tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
 
     nufo_map_array[mask] = tmp_nufo_map_array
     afd_max_array[mask] = tmp_afd_max_array
