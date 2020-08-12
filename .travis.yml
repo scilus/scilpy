@@ -10,7 +10,7 @@ before_install:
 
 jobs:
   include:
-    - stage: Test
+    - stage: Tests
       language: python
       - python: "3.5"
         script:
