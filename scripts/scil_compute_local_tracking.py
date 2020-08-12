@@ -123,7 +123,13 @@ def _get_direction_getter(args, mask_data):
     sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
     theta = get_theta(args.theta, args.algo)
 
+    non_zeros_count = np.count_nonzero(np.sum(sh_data, axis=-1))
+    non_first_val_count = np.count_nonzero(np.argmax(sh_data, axis=-1))
+
     if args.algo in ['det', 'prob']:
+        if non_first_val_count / non_zeros_count > 0.5:
+            logging.warning('Input detected as peaks. Input should be'
+                            'fodf for det/prob, verify input just in case.')
         if args.algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
@@ -136,8 +142,6 @@ def _get_direction_getter(args, mask_data):
         # Code for type EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
         sh_shape_3d = sh_data.shape[:-1]
-        non_zeros_count = np.count_nonzero(np.sum(sh_data, axis=-1))
-        non_first_val_count = np.count_nonzero(np.argmax(sh_data, axis=-1))
         dg = PeaksAndMetrics()
         dg.sphere = sphere
         dg.ang_thr = theta
