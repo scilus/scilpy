@@ -254,7 +254,8 @@ def maps_from_sh_parallel(args):
                 qa_map = peak_values[idx] - odf.min()
                 global_max = max(global_max, peak_values[idx][0])
 
-    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, max_odf, global_max
+    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, \
+        max_odf, global_max
 
 
 def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
@@ -369,9 +370,9 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     gfa_map_array[mask] = tmp_gfa_map_array
     qa_map_array[mask] = tmp_qa_map_array
 
-    rgb_map_array /= max_odf
+    rgb_map_array /= max_odf, global_max
     rgb_map_array *= 255
-    qa_map_array /= global_max
+    qa_map_array /= all_time_global_max
 
     afd_unique = np.unique(afd_max_array)
     if np.array_equal(np.array([0, 1]), afd_unique) \
