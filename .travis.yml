@@ -12,21 +12,21 @@ jobs:
   include:
     - stage: Tests
       language: python
-      - python: "3.5"
-        script:
-          - python setup.py develop
-          - export MPLBACKEND="agg"
-          - pytest -v
-      - python: "3.6"
-        script:
-          - python setup.py develop
-          - export MPLBACKEND="agg"
-          - pytest -v
-      - python: "3.7"
-        script:
-          - python setup.py develop
-          - export MPLBACKEND="agg"
-          - pytest -v
+      python: "3.5"
+      script:
+        - python setup.py develop
+        - export MPLBACKEND="agg"
+        - pytest -v
+      python: "3.6"
+      script:
+        - python setup.py develop
+        - export MPLBACKEND="agg"
+        - pytest -v
+      -python: "3.7"
+      script:
+        - python setup.py develop
+        - export MPLBACKEND="agg"
+        - pytest -v
     - stage: Deploy Docker latest
       if: (branch = master AND tag IS blank)
       script:
