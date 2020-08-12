@@ -32,10 +32,11 @@ jobs:
     - stage: Deploy Docker release
       if: tag IS present
       script:
+        - travis_wait 60 docker build -t docker-scilpy containers
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker tag docker-dmriqc $DOCKER_USERNAME/docker-dmriqc:$TRAVIS_TAG
-        - travis_wait 60 docker push $DOCKER_USERNAME/docker-dmriqc:$TRAVIS_TAG
-    - stage: build Singularity release
+        - docker tag docker-scilpy $DOCKER_USERNAME/docker-scilpy:$TRAVIS_TAG
+        - travis_wait 60 docker push $DOCKER_USERNAME/docker-scilpy:$TRAVIS_TAG
+    - stage: Deploy Singularity release
       if: tag IS present
       script:
         - travis_wait 60 sudo singularity build singularity_scilpy_${TRAVIS_TAG}.img containers/singularity_scilpy.def
