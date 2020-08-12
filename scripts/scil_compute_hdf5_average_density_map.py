@@ -73,7 +73,7 @@ def _average_wrapper(args):
 
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
         if len(streamlines) == 0:
-            return
+            continue
 
         density = compute_tract_counts_map(streamlines, dimensions)
         hdf5_file.close()

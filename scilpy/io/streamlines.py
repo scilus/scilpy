@@ -5,8 +5,8 @@ import os
 import tempfile
 
 from dipy.io.streamline import load_tractogram
+import h5py
 import nibabel as nib
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 
@@ -219,19 +219,12 @@ def reconstruct_streamlines(data, offsets, lengths, indices=None):
         List of streamlines.
     """
 
-    if data.ndim == 2:
-        data = np.array(data).flatten()
-
     if indices is None:
         indices = np.arange(len(offsets))
 
-    streamlines = ArraySequence()
-    streamlines._data = data.reshape((len(data) // 3, 3))
+    streamlines = []
+    for i in indices:
+        streamline = data[offsets[i]*3:offsets[i]*3 + lengths[i]*3]
+        streamlines.append(streamline.reshape((lengths[i], 3)))
 
-    streamlines._offsets = offsets
-    streamlines._lengths = lengths
-
-    if indices is None:
-        return streamlines
-    else:
-        return streamlines[indices]
+    return streamlines
