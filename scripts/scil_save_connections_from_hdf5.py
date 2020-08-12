@@ -58,7 +58,6 @@ def _build_arg_parser():
 
     p.add_argument('--save_empty', action='store_true',
                    help='Save empty connections.')
-
     p.add_argument('--labels_list',
                    help='A txt file containing a list '
                         'saved by the decomposition script.')
@@ -105,10 +104,8 @@ def main():
     header = create_nifti_header(affine, dimensions, voxel_sizes)
     for key in selected_keys:
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-        if len(streamlines) < 3:
-            print(streamlines)
-        print(key, len(streamlines))
-        if len(streamlines) == 0:
+
+        if len(streamlines) == 0 and not args.save_empty:
             continue
         sft = StatefulTractogram(streamlines, header, Space.VOX,
                                  origin=Origin.TRACKVIS)
@@ -119,7 +116,6 @@ def main():
 
         save_tractogram(sft, '{}.trk'
                         .format(os.path.join(args.out_dir, key)))
-        print()
 
     hdf5_file.close()
 
