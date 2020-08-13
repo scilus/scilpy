@@ -20,13 +20,15 @@ QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 """
 
 import argparse
+import json
 import logging
 
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -56,11 +58,15 @@ def _build_arg_parser():
     p.add_argument('-a', dest='angle', default=360, type=float,
                    help='Maximum looping (or turning) angle of\n' +
                         'a streamline in degrees. [%(default)s]')
+    p.add_argument('--display_counts', action='store_true',
+                   help='Print streamline count before and after filtering')
+
 
     add_overwrite_arg(p)
 
     add_reference_arg(p)
 
+    add_json_args(p)
     return p
 
 
@@ -107,6 +113,13 @@ def main():
     else:
         logging.warning(
             'No clean streamlines in {}'.format(args.in_tractogram))
+
+    if args.display_counts:
+        sc_bf = len(tractogram.streamlines)
+        sc_af = len(sft_c.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                         'streamline_count_after_filtering': int(sc_af)},
+                         indent=args.indent))
 
     if len(ids_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
