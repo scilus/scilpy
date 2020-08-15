@@ -370,7 +370,7 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     gfa_map_array[mask] = tmp_gfa_map_array
     qa_map_array[mask] = tmp_qa_map_array
 
-    rgb_map_array /= max_odf, global_max
+    rgb_map_array /= all_time_max_odf
     rgb_map_array *= 255
     qa_map_array /= all_time_global_max
 
