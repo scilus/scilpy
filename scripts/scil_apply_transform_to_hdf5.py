@@ -97,6 +97,9 @@ def main():
         voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
         streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
 
+        if len(streamlines) == 0:
+            continue
+
         header = create_nifti_header(affine, dimensions, voxel_sizes)
         moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
                                         origin=Origin.TRACKVIS)
@@ -109,7 +112,8 @@ def main():
         new_sft.to_vox()
         new_sft.to_corner()
 
-        affine, dimensions, voxel_sizes, voxel_order = get_reference_info(target_img)
+        affine, dimensions, voxel_sizes, voxel_order = get_reference_info(
+            target_img)
         out_hdf5_file.attrs['affine'] = affine
         out_hdf5_file.attrs['dimensions'] = dimensions
         out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
