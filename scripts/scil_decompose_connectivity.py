@@ -103,8 +103,8 @@ def _save_if_needed(sft, hdf5_file, args,
                     in_label, out_label):
     if step_type == 'final':
         group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
-        group.create_dataset('data', data=np.asarray(sft.streamlines.get_data(),
-                                                     dtype=np.float32))
+        group.create_dataset('data', data=sft.streamlines.get_data(),
+                             dtype=np.float32)
         group.create_dataset('offsets', data=sft.streamlines._offsets,
                              dtype=np.int64)
         group.create_dataset('lengths', data=sft.streamlines._lengths,
@@ -460,6 +460,7 @@ def main():
                 args.loop_max_angle,
                 use_qb=True,
                 qb_threshold=args.curv_qb_distance)
+
             no_qb_curv = inliers[no_qb_curv_ids]
             qb_curv_ids = np.setdiff1d(np.arange(len(inliers)),
                                        no_qb_curv_ids)

@@ -97,7 +97,6 @@ def main():
     else:
         selected_keys = keys
 
-
     affine = hdf5_file.attrs['affine']
     dimensions = hdf5_file.attrs['dimensions']
     voxel_sizes = hdf5_file.attrs['voxel_sizes']
@@ -107,6 +106,7 @@ def main():
 
         if len(streamlines) == 0 and not args.save_empty:
             continue
+
         sft = StatefulTractogram(streamlines, header, Space.VOX,
                                  origin=Origin.TRACKVIS)
         if args.include_dps:

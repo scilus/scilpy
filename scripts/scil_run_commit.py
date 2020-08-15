@@ -219,8 +219,7 @@ def main():
     if ext == '.h5':
         logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
-        streamlines = []
-        len_list = [0]
+
         hdf5_file = h5py.File(args.in_tractogram, 'r')
         if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
                 and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
@@ -230,12 +229,15 @@ def main():
         # Keep track of the order of connections/streamlines in relation to the
         # tractogram as well as the number of streamlines for each connection.
         hdf5_keys = list(hdf5_file.keys())
+        streamlines = []
+        offsets_list = [0]
         for key in hdf5_keys:
             tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
                                                                 key)
-            len_list.append(len(tmp_streamlines))
+            offsets_list.append(len(tmp_streamlines))
             streamlines.extend(tmp_streamlines)
-        len_list = np.cumsum(len_list)
+
+        offsets_list = np.cumsum(offsets_list)
 
         sft = StatefulTractogram(streamlines, args.in_dwi,
                                  Space.VOX, origin=Origin.TRACKVIS)
@@ -243,14 +245,13 @@ def main():
 
         # Keeping the input variable, saving trk file for COMMIT internal use
         save_tractogram(sft, tmp_tractogram_filename)
-        initial_hdf5_filename = args.in_tractogram
         args.in_tractogram = tmp_tractogram_filename
 
+    # Writing the scheme file with proper shells
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    shells_centroids, indices_shells = identify_shells(bvals,
-                                                       args.b_thr,
+    shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
                                                        roundCentroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
@@ -341,38 +342,40 @@ def main():
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
-        shutil.copy(initial_hdf5_filename, new_filename)
-        hdf5_file = h5py.File(new_filename, 'a')
-
+        new_hdf5_file = h5py.File(new_filename, 'w')
+        new_hdf5_file.attrs['affine'] = sft.affine
+        new_hdf5_file.attrs['dimensions'] = sft.dimensions
+        new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
+        new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
         # Assign the weights into the hdf5, while respecting the ordering of
         # connections/streamlines
         logging.debug('Adding commit weights to {}.'.format(new_filename))
         for i, key in enumerate(hdf5_keys):
-            group = hdf5_file[key]
-            tmp_commit_weights = commit_weights[len_list[i]:len_list[i+1]]
+            new_group = new_hdf5_file.create_group(key)
+            old_group = hdf5_file[key]
+            tmp_commit_weights = commit_weights[offsets_list[i]
+                :offsets_list[i+1]]
             if args.threshold_weights is not None:
                 essential_ind = np.where(
                     tmp_commit_weights > args.threshold_weights)[0]
-                tmp_streamlines = reconstruct_streamlines(group['data'],
-                                                          group['offsets'],
-                                                          group['lengths'],
+                tmp_streamlines = reconstruct_streamlines(old_group['data'],
+                                                          old_group['offsets'],
+                                                          old_group['lengths'],
                                                           indices=essential_ind)
+
                 # Replacing the data with the one above the threshold
                 # Safe since this hdf5 was a copy in the first place
-                del group['data']
-                del group['offsets']
-                del group['lengths']
-                group['data'] = tmp_streamlines.get_data()
-                group['offsets'] = tmp_streamlines._offsets
-                group['lengths'] = tmp_streamlines._lengths
+                new_group.create_dataset('data', data=tmp_streamlines.get_data(),
+                                     dtype=np.float32)
+                new_group.create_dataset('offsets', data=tmp_streamlines._offsets,
+                                     dtype=np.int64)
+                new_group.create_dataset('lengths', data=tmp_streamlines._lengths,
+                                     dtype=np.int32)
 
-                tmp_commit_weights = np.ones((len(tmp_streamlines._offsets))) * \
-                    np.average(tmp_commit_weights)
-
-            if 'commit_weights' in group:
-                del group['commit_weights']
-            group.create_dataset('commit_weights',
-                                 data=tmp_commit_weights)
+            for dps_key in hdf5_file[key].keys():
+                if dps_key not in ['data', 'offsets', 'lengths']:
+                    new_group.create_dataset(key, data=hdf5_file[key][dps_key])
+            new_group.create_dataset('commit_weights', data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
