@@ -17,6 +17,10 @@ On Linux, most likely you will have to install libraries for COMMIT/AMICO
 ```
 sudo apt install libblas-dev liblapack-dev
 ```
+While on MacOS you will have to use (most likely)
+```
+brew install openblas lapack
+```
 
 Note that using this technique will make it harder to remove the scripts when changing versions.
 We highly recommend working in a [Python Virtual Environment].
