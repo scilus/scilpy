@@ -376,6 +376,7 @@ def main():
                 if dps_key not in ['data', 'offsets', 'lengths']:
                     new_group.create_dataset(key, data=hdf5_file[key][dps_key])
             new_group.create_dataset('commit_weights', data=tmp_commit_weights)
+    new_hdf5_file.close()
 
     files = os.listdir(commit_results_dir)
     for f in files:
