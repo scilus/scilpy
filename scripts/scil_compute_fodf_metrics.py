@@ -27,7 +27,6 @@ definitions.
 """
 
 import argparse
-import os
 import numpy as np
 import nibabel as nib
 
@@ -44,65 +43,53 @@ from scilpy.reconst.multi_processes import peaks_from_sh, maps_from_sh
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument(
-        'in_fODF',
-        help='Path of the fODF volume in spherical harmonics (SH).')
+    p.add_argument('in_fODF',
+                   help='Path of the fODF volume in spherical harmonics (SH).')
 
-    p.add_argument(
-        '--sphere', metavar='string', default='repulsion724',
-        choices=['repulsion100', 'repulsion724'],
-        help='Discrete sphere to use in the processing. [%(default)s].')
-    p.add_argument(
-        '--mask', metavar='',
-        help='Path to a binary mask. Only the data inside the mask will be '
-             'used for computations and reconstruction [%(default)s].')
-    p.add_argument(
-        '--at', dest='a_threshold', type=float, default='0.0',
-        help='WARNING!!! EXTREMELY IMPORTANT PARAMETER, VARIABLE '
-             'ACROSS DATASETS!!!\nAbsolute threshold on fODF amplitude.\nThis '
-             'value should be set to approximately 1.5 to 2 times the maximum\n'
-             'fODF amplitude in isotropic voxels (ex. ventricles).\n'
-             'compute_fodf_max_in_ventricles.py can be used to find the '
-             'maximal value.\nSee [Dell\'Acqua et al HBM 2013] '
-             '[%(default)s].')
-    p.add_argument(
-        '--rt', dest='r_threshold', type=float, default='0.1',
-        help='Relative threshold on fODF amplitude in percentage  '
-             '[%(default)s].')
+    p.add_argument('--sphere', metavar='string', default='repulsion724',
+                   choices=['repulsion100', 'repulsion724'],
+                   help='Discrete sphere to use in the processing '
+                        '[%(default)s].')
+    p.add_argument('--mask', metavar='',
+                   help='Path to a binary mask. Only the data inside the mask\n'
+                        'will beused for computations and reconstruction '
+                        '[%(default)s].')
+    p.add_argument('--at', dest='a_threshold', type=float, default='0.0',
+                   help='Absolute threshold on fODF amplitude. This '
+                        'value should be set to\napproximately 1.5 to 2 times '
+                        'the maximum fODF amplitude in isotropic voxels\n'
+                        '(ie. ventricles).\nUse compute_fodf_max_in_ventricles.py '
+                        'to find the maximal value.\n'
+                        'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
+    p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
+                   help='Relative threshold on fODF amplitude in percentage  '
+                        '[%(default)s].')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     add_processes_arg(p)
-    p.add_argument(
-        '--not_all', action='store_true',
-        help='If set, only saves the files specified using the file flags  '
-             '[%(default)s].')
+    p.add_argument('--not_all', action='store_true',
+                   help='If set, only saves the files specified using the '
+                        'file flags [%(default)s].')
 
     g = p.add_argument_group(title='File flags')
-    g.add_argument(
-        '--afd_max', metavar='file', default='',
-        help='Output filename for the AFD_max map.')
-    g.add_argument(
-        '--afd_total', metavar='file', default='',
-        help='Output filename for the AFD_total map (SH coeff = 0).')
-    g.add_argument(
-        '--afd_sum', metavar='file', default='',
-        help='Output filename for the sum of all peak contributions (sum of '
-             'fODF lobes on the sphere).')
-    g.add_argument(
-        '--nufo', metavar='file', default='',
-        help='Output filename for the NuFO map.')
-    g.add_argument(
-        '--rgb', metavar='file', default='',
-        help='Output filename for the RGB map.')
-    g.add_argument(
-        '--peaks', metavar='file', default='',
-        help='Output filename for the extracted peaks.')
-    g.add_argument(
-        '--peak_values', metavar='file', default='',
-        help='Output filename for the extracted peaks values.')
-    g.add_argument(
-        '--peak_indices', metavar='file', default='',
-        help='Output filename for the generated peaks indices on the sphere.')
+    g.add_argument('--afd_max', metavar='file', default='',
+                   help='Output filename for the AFD_max map.')
+    g.add_argument('--afd_total', metavar='file', default='',
+                   help='Output filename for the AFD_total map (SH coeff = 0).')
+    g.add_argument('--afd_sum', metavar='file', default='',
+                   help='Output filename for the sum of all peak contributions\n'
+                        '(sum of fODF lobes on the sphere).')
+    g.add_argument('--nufo', metavar='file', default='',
+                   help='Output filename for the NuFO map.')
+    g.add_argument('--rgb', metavar='file', default='',
+                   help='Output filename for the RGB map.')
+    g.add_argument('--peaks', metavar='file', default='',
+                   help='Output filename for the extracted peaks.')
+    g.add_argument('--peak_values', metavar='file', default='',
+                   help='Output filename for the extracted peaks values.')
+    g.add_argument('--peak_indices', metavar='file', default='',
+                   help='Output filename for the generated peaks indices on '
+                        'the sphere.')
     return p
 
 
@@ -156,10 +143,10 @@ def main():
                                      nbr_processes=args.nbr_processes)
 
     # Computing maps
-    nufo_map, afd_max, afd_sum, rgb_map, \
-        _, _ = maps_from_sh(data, peak_dirs,
-                                       peak_values, peak_indices,
-                                       sphere, nbr_processes=args.nbr_processes)
+    if args.nufo or args.afd_max or args.afd_total or args.afd_sum or args.rgb:
+        nufo_map, afd_max, afd_sum, rgb_map, \
+            _, _ = maps_from_sh(data, peak_dirs, peak_values, peak_indices,
+                                sphere, nbr_processes=args.nbr_processes)
 
     # Save result
     if args.nufo:
@@ -186,7 +173,7 @@ def main():
     if args.peaks or args.peak_values:
         peak_values = np.divide(peak_values, peak_values[..., 0, None],
                                 out=np.zeros_like(peak_values),
-                                where=peak_values[..., 0, None]!=0)
+                                where=peak_values[..., 0, None] != 0)
         peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
             nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
@@ -196,6 +183,7 @@ def main():
 
     if args.peak_indices:
         nib.save(nib.Nifti1Image(peak_indices, vol.affine), args.peak_indices)
+
 
 if __name__ == "__main__":
     main()
