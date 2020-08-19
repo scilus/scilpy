@@ -423,7 +423,7 @@ def std(input_list, ref_img):
                 img.uncache()
             else:
                 output_data += (img - mean_data) ** 2
-        return np.sqrt(output_data / (len(input_list) - 1))
+        return np.sqrt(output_data / len(input_list))
 
 
 def union(input_list, ref_img):
