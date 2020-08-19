@@ -58,24 +58,27 @@ def _build_arg_parser():
     return p
 
 
-def load_data(arg):
+def load_data(arg, ref):
     if is_float(arg):
-        data = float(arg)
+        img = float(arg)
+        dtype = np.float64
     else:
         if not os.path.isfile(arg):
             raise ValueError('Input file {} does not exist.'.format(arg))
-        data = np.asanyarray(nib.load(arg).dataobj)
+        img = nib.load(arg)
+        shape = img.header.get_data_shape()
+        dtype = img.header.get_data_dtype()
         logging.info('Loaded {} of shape {} and data_type {}.'.format(
-                     arg, data.shape, data.dtype))
+                     arg, shape, dtype))
 
-        if data.ndim > 3:
+        if len(shape) > 3:
             logging.warning('{} has {} dimensions, be careful.'.format(
-                arg, data.ndim))
-        elif data.ndim < 3:
+                arg, len(shape)))
+        elif len(shape) < 3:
             raise ValueError('{} has {} dimensions, not valid.'.format(
-                arg, data.ndim))
+                arg, len(shape)))
 
-    return data
+    return img, dtype
 
 
 def main():
@@ -96,25 +99,31 @@ def main():
 
     # Find at least one image for reference
     for input_arg in args.in_images:
+        found_ref = False
         if not is_float(input_arg):
             ref_img = nib.load(input_arg)
             mask = np.zeros(ref_img.shape)
+            found_ref = True
             break
 
+    if not found_ref:
+        raise ValueError('Requires at least one nifti image.')
+
     # Load all input masks.
-    input_data = []
+    input_img = []
     for input_arg in args.in_images:
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
-        data = load_data(input_arg)
+        img, dtype = load_data(input_arg, ref_img)
 
-        if isinstance(data, np.ndarray) and \
-            data.dtype != ref_img.get_data_dtype() and \
+        if isinstance(img, nib.Nifti1Image) and \
+            dtype != ref_img.get_data_dtype() and \
                 not args.data_type:
             parser.error('Inputs do not have a compatible data type.\n'
                          'Use --data_type to specify output datatype.')
-        if args.operation in binary_op and isinstance(data, np.ndarray):
+        if args.operation in binary_op and isinstance(img, nib.Nifti1Image):
+            data = img.get_fdata(dtype=np.float64)
             unique = np.unique(data)
             if not len(unique) <= 2:
                 parser.error('Binary operations can only be performed with '
@@ -124,18 +133,18 @@ def main():
                 logging.warning('Input data for binary operation are not '
                                 'binary arrays, will be converted.\n'
                                 'Non-zeros will be set to ones.')
-                data[data != 0] = 1
 
-        if isinstance(data, np.ndarray):
-            data = data.astype(np.float64)
+        if isinstance(img, nib.Nifti1Image):
+            data = img.get_fdata(dtype=np.float64)
             mask[data > 0] = 1
-        input_data.append(data)
+            img.uncache()
+        input_img.append(img)
 
     if args.operation == 'convert' and not args.data_type:
         parser.error('Convert operation must be used with --data_type.')
 
     try:
-        output_data = OPERATIONS[args.operation](input_data)
+        output_data = OPERATIONS[args.operation](input_img, ref_img)
     except ValueError as msg:
         logging.error('{} operation failed.'.format(
             args.operation.capitalize()))
@@ -150,7 +159,7 @@ def main():
 
     if args.exclude_background:
         output_data[mask == 0] = 0
-
+    
     new_img = nib.Nifti1Image(output_data, ref_img.affine,
                               header=ref_img.header)
     nib.save(new_img, args.out_image)
