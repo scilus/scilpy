@@ -100,14 +100,21 @@ def main():
     assert_inputs_exist(parser, [args.in_hdf5, args.in_fodf])
     assert_outputs_exist(parser, args, [args.out_hdf5])
 
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):
         os.remove(args.out_hdf5)
 
     fodf_img = nib.load(args.in_fodf)
-
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     in_hdf5_file = h5py.File(args.in_hdf5, 'r')
+    if not (np.allclose(in_hdf5_file.attrs['affine'], fodf_img.affine,
+                        atol=1e-03)
+            and np.array_equal(in_hdf5_file.attrs['dimensions'],
+                                fodf_img.shape[0:3])):
+        parser.error('{} does not have a compatible header with {}'.format(
+            args.in_hdf5, args.in_fodf))
+
     keys = list(in_hdf5_file.keys())
     in_hdf5_file.close()
     if nbr_cpu == 1:
