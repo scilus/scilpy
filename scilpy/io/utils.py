@@ -443,7 +443,7 @@ def save_matrix_in_any_format(filepath, output_data):
         raise ValueError('Extension {} is not supported'.format(ext))
 
 
-def assert_fsl_options_exist(parser, options_args, command='topup'):
+def assert_fsl_options_exist(parser, options_args, command):
     """
     Assert that all options for topup or eddy exist.
     If not, print parser's usage and exit.
