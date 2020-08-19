@@ -15,7 +15,8 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_fsl_options_exist)
 from scilpy.preprocessing.distortion_correction import create_acqparams
 
 
@@ -66,6 +67,9 @@ def _build_arg_parser():
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 
+    p.add_argument('--topup_options',  default=None,
+                   help='Additional options you want to use to run topup.')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
@@ -84,6 +88,7 @@ def main():
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, [], args.out_b0s)
+    assert_fsl_options_exist(parser, args.topup_options)
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
@@ -139,11 +144,16 @@ def main():
     output_path = os.path.join(args.out_directory, args.out_prefix)
     fout_path = os.path.join(args.out_directory, "correction_field")
     iout_path = os.path.join(args.out_directory, "corrected_b0s")
+
+    additional_args = ""
+    if args.topup_options:
+        additional_args = args.topup_options
+
     topup = 'topup --imain={0} --datain={1}'\
             ' --config={2} --verbose --out={3}'\
-            ' --fout={4} --iout={5} --subsamp=1 \n'\
+            ' --fout={4} --iout={5} --subsamp=1 {6}\n'\
         .format(fused_b0s_path, acqparams_path, args.config, output_path,
-                fout_path, iout_path)
+                fout_path, iout_path, additional_args)
 
     if args.out_script:
         with open("topup.sh", 'w') as f:
