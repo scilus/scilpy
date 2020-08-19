@@ -50,7 +50,8 @@ def _build_arg_parser():
                    help='Data type of the output image. Use the format: '
                         'uint8, int16, int/float32, int/float64.')
     p.add_argument('--exclude_background', action='store_true',
-                   help='Does not affect the background of the original image.')
+                   help='Does not affect the background of the original '
+                        'images.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -58,7 +59,7 @@ def _build_arg_parser():
     return p
 
 
-def load_data(arg, ref):
+def load_img(arg, ref):
     if is_float(arg):
         img = float(arg)
         dtype = np.float64
@@ -115,7 +116,7 @@ def main():
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
-        img, dtype = load_data(input_arg, ref_img)
+        img, dtype = load_img(input_arg, ref_img)
 
         if isinstance(img, nib.Nifti1Image) and \
             dtype != ref_img.get_data_dtype() and \
@@ -159,7 +160,7 @@ def main():
 
     if args.exclude_background:
         output_data[mask == 0] = 0
-    
+
     new_img = nib.Nifti1Image(output_data, ref_img.affine,
                               header=ref_img.header)
     nib.save(new_img, args.out_image)

@@ -387,7 +387,8 @@ def mean(input_list, ref_img):
     _validate_length(input_list, 1, at_least=True)
     _validate_imgs(*input_list, ref_img)
 
-    if len(input_list) == 1 and not len(input_list[0].header.get_data_shape()) > 3:
+    if len(input_list) == 1 \
+            and not len(input_list[0].header.get_data_shape()) > 3:
         logging.error('This operation with only one operand requires 4D data.')
         raise ValueError
 
@@ -407,7 +408,8 @@ def std(input_list, ref_img):
     _validate_length(input_list, 1, at_least=True)
     _validate_imgs(*input_list, ref_img)
 
-    if len(input_list) == 1 and not len(input_list[0].header.get_data_shape()) > 3:
+    if len(input_list) == 1 \
+            and not len(input_list[0].header.get_data_shape()) > 3:
         logging.error('This operation with only one operand requires 4D data.')
         raise ValueError
 
