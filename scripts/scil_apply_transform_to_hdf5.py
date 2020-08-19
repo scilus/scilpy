@@ -80,55 +80,57 @@ def main():
     if os.path.isfile(args.out_hdf5):
         os.remove(args.out_hdf5)
 
-    in_hdf5_file = h5py.File(args.in_hdf5, 'r')
-    shutil.copy(args.in_hdf5, args.out_hdf5)
-    out_hdf5_file = h5py.File(args.out_hdf5, 'a')
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    with h5py.File(args.in_hdf5, 'r') as in_hdf5_file:
+        shutil.copy(args.in_hdf5, args.out_hdf5)
+        with h5py.File(args.out_hdf5, 'a') as out_hdf5_file:
+            transfo = load_matrix_in_any_format(args.in_transfo)
 
-    deformation_data = None
-    if args.in_deformation is not None:
-        deformation_data = np.squeeze(nib.load(
-            args.in_deformation).get_fdata(dtype=np.float32))
-    target_img = nib.load(args.in_target_file)
+            deformation_data = None
+            if args.in_deformation is not None:
+                deformation_data = np.squeeze(nib.load(
+                    args.in_deformation).get_fdata(dtype=np.float32))
+            target_img = nib.load(args.in_target_file)
 
-    for key in in_hdf5_file.keys():
-        affine = in_hdf5_file.attrs['affine']
-        dimensions = in_hdf5_file.attrs['dimensions']
-        voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
-        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+            for key in in_hdf5_file.keys():
+                affine = in_hdf5_file.attrs['affine']
+                dimensions = in_hdf5_file.attrs['dimensions']
+                voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
+                streamlines = reconstruct_streamlines_from_hdf5(
+                    in_hdf5_file, key)
 
-        if len(streamlines) == 0:
-            continue
+                if len(streamlines) == 0:
+                    continue
 
-        header = create_nifti_header(affine, dimensions, voxel_sizes)
-        moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                        origin=Origin.TRACKVIS)
+                header = create_nifti_header(affine, dimensions, voxel_sizes)
+                moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
+                                                origin=Origin.TRACKVIS)
 
-        new_sft = transform_warp_streamlines(moving_sft, transfo, target_img,
-                                             inverse=args.inverse,
-                                             deformation_data=deformation_data,
-                                             remove_invalid=not args.cut_invalid,
-                                             cut_invalid=args.cut_invalid)
-        new_sft.to_vox()
-        new_sft.to_corner()
+                new_sft = transform_warp_streamlines(
+                    moving_sft, transfo, target_img,
+                    inverse=args.inverse,
+                    deformation_data=deformation_data,
+                    remove_invalid=not args.cut_invalid,
+                    cut_invalid=args.cut_invalid)
+                new_sft.to_vox()
+                new_sft.to_corner()
 
-        affine, dimensions, voxel_sizes, voxel_order = get_reference_info(
-            target_img)
-        out_hdf5_file.attrs['affine'] = affine
-        out_hdf5_file.attrs['dimensions'] = dimensions
-        out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
-        out_hdf5_file.attrs['voxel_order'] = voxel_order
+                affine, dimensions, voxel_sizes, voxel_order = get_reference_info(
+                    target_img)
+                out_hdf5_file.attrs['affine'] = affine
+                out_hdf5_file.attrs['dimensions'] = dimensions
+                out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
+                out_hdf5_file.attrs['voxel_order'] = voxel_order
 
-        group = out_hdf5_file[key]
-        del group['data']
-        group.create_dataset('data', data=new_sft.streamlines.get_data())
-        del group['offsets']
-        group.create_dataset('offsets', data=new_sft.streamlines._offsets)
-        del group['lengths']
-        group.create_dataset('lengths', data=new_sft.streamlines._lengths)
-
-    in_hdf5_file.close()
-    out_hdf5_file.close()
+                group = out_hdf5_file[key]
+                del group['data']
+                group.create_dataset('data',
+                                     data=new_sft.streamlines.get_data())
+                del group['offsets']
+                group.create_dataset('offsets',
+                                     data=new_sft.streamlines._offsets)
+                del group['lengths']
+                group.create_dataset('lengths',
+                                     data=new_sft.streamlines._lengths)
 
 
 if __name__ == "__main__":

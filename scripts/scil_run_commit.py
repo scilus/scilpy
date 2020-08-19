@@ -342,41 +342,44 @@ def main():
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
-        new_hdf5_file = h5py.File(new_filename, 'w')
-        new_hdf5_file.attrs['affine'] = sft.affine
-        new_hdf5_file.attrs['dimensions'] = sft.dimensions
-        new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
-        new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
-        # Assign the weights into the hdf5, while respecting the ordering of
-        # connections/streamlines
-        logging.debug('Adding commit weights to {}.'.format(new_filename))
-        for i, key in enumerate(hdf5_keys):
-            new_group = new_hdf5_file.create_group(key)
-            old_group = hdf5_file[key]
-            tmp_commit_weights = commit_weights[offsets_list[i]
-                :offsets_list[i+1]]
-            if args.threshold_weights is not None:
-                essential_ind = np.where(
-                    tmp_commit_weights > args.threshold_weights)[0]
-                tmp_streamlines = reconstruct_streamlines(old_group['data'],
-                                                          old_group['offsets'],
-                                                          old_group['lengths'],
-                                                          indices=essential_ind)
+        with h5py.File(new_filename, 'w') as new_hdf5_file:
+            new_hdf5_file.attrs['affine'] = sft.affine
+            new_hdf5_file.attrs['dimensions'] = sft.dimensions
+            new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
+            new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
+            # Assign the weights into the hdf5, while respecting the ordering of
+            # connections/streamlines
+            logging.debug('Adding commit weights to {}.'.format(new_filename))
+            for i, key in enumerate(hdf5_keys):
+                new_group = new_hdf5_file.create_group(key)
+                old_group = hdf5_file[key]
+                tmp_commit_weights = commit_weights[offsets_list[i]:offsets_list[i+1]]
+                if args.threshold_weights is not None:
+                    essential_ind = np.where(
+                        tmp_commit_weights > args.threshold_weights)[0]
+                    tmp_streamlines = reconstruct_streamlines(old_group['data'],
+                                                              old_group['offsets'],
+                                                              old_group['lengths'],
+                                                              indices=essential_ind)
 
-                # Replacing the data with the one above the threshold
-                # Safe since this hdf5 was a copy in the first place
-                new_group.create_dataset('data', data=tmp_streamlines.get_data(),
-                                     dtype=np.float32)
-                new_group.create_dataset('offsets', data=tmp_streamlines._offsets,
-                                     dtype=np.int64)
-                new_group.create_dataset('lengths', data=tmp_streamlines._lengths,
-                                     dtype=np.int32)
+                    # Replacing the data with the one above the threshold
+                    # Safe since this hdf5 was a copy in the first place
+                    new_group.create_dataset('data',
+                                             data=tmp_streamlines.get_data(),
+                                             dtype=np.float32)
+                    new_group.create_dataset('offsets',
+                                             data=tmp_streamlines._offsets,
+                                             dtype=np.int64)
+                    new_group.create_dataset('lengths',
+                                             data=tmp_streamlines._lengths,
+                                             dtype=np.int32)
 
-            for dps_key in hdf5_file[key].keys():
-                if dps_key not in ['data', 'offsets', 'lengths']:
-                    new_group.create_dataset(key, data=hdf5_file[key][dps_key])
-            new_group.create_dataset('commit_weights', data=tmp_commit_weights)
-    new_hdf5_file.close()
+                for dps_key in hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        new_group.create_dataset(key,
+                                                 data=hdf5_file[key][dps_key])
+                new_group.create_dataset('commit_weights',
+                                         data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
@@ -433,9 +436,6 @@ def main():
                 output_filename))
             nib.streamlines.save(tractogram_file, output_filename)
 
-    # Cleanup the temporary directory
-    if ext == '.h5':
-        hdf5_file.close()
     tmp_dir.cleanup()
 
 
