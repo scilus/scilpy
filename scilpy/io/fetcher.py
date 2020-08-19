@@ -53,7 +53,7 @@ def get_testing_files_dict():
              '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
-             '78129871fbefadf5cede7b1c6a7c9cc5'],
+             'eb0d6e7388b8793439857d876a3fd109'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc']}
