@@ -412,7 +412,7 @@ def std(input_list, ref_img):
         raise ValueError
 
     if len(input_list[0].header.get_data_shape()) > 3:
-        return np.average(input_list[0].get_fdata(dtype=np.float64), axis=-1)
+        return np.std(input_list[0].get_fdata(dtype=np.float64), axis=-1)
     else:
         mean_data = mean(input_list, ref_img)
         output_data = np.zeros(input_list[0].header.get_data_shape())
