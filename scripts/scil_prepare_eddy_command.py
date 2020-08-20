@@ -79,7 +79,7 @@ def _build_arg_parser():
                         'Enhances reproducibility.')
 
     p.add_argument('--eddy_options',  default=None,
-                   help='Additional options you want to use to run eddy.'
+                   help='Additional options you want to use to run eddy.\n'
                         'Add these options using quotes (i.e. "--ol_nstd=6'
                         ' --mb=4").')
 
