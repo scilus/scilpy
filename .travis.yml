@@ -4,6 +4,7 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
 
 before_install:
   - sudo wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
@@ -48,4 +49,3 @@ jobs:
         skip_cleanup: true
         on:
           tags: true
-
