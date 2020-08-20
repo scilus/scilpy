@@ -2,6 +2,7 @@
 
 import os
 import multiprocessing
+import re
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -465,7 +466,7 @@ def assert_fsl_options_exist(parser, options_args, command):
         parser.error('{} command is not supported as fsl '
                      'command.'.format(command))
 
-    options = options_args.split()
+    options = re.split(r'[ =\s]\s*', options_args)
     res = [i for i in options if "--" in i]
     res = list(map(lambda x: x.replace('--', ''), res))
 

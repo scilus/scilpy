@@ -68,7 +68,9 @@ def _build_arg_parser():
                         'terminal [%(default)s].')
 
     p.add_argument('--topup_options',  default=None,
-                   help='Additional options you want to use to run topup.')
+                   help='Additional options you want to use to run topup.'
+                        'Add these options using quotes (i.e. "--fwhm=6'
+                        ' --miter=4").')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
