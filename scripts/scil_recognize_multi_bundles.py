@@ -5,8 +5,11 @@
 Compute RecobundlesX (multi-atlas & multi-parameters).
 The model needs to be cleaned and lightweight.
 Transform should come from ANTs: (using the --inverse flag)
-AntsRegistration -m MODEL_REF -f SUBJ_REF
-ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
+
+If you are not sure about the transformation 'direction' you can try
+scil_recognize_single_bundle.py (with the -v option), a warning will popup if
+the provided transformation is not use correctly.
 
 The next two arguments are multi-parameters related:
 --multi_parameters must be lower than len(model_clustering_thr) *
