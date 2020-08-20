@@ -7,7 +7,6 @@ to apply simple operations on nibabel images or numpy arrays.
 """
 
 from collections import OrderedDict
-from copy import copy
 import logging
 
 import nibabel as nib
@@ -230,7 +229,7 @@ def normalize_sum(input_list, ref_img):
     _validate_type(input_list[0], nib.Nifti1Image)
 
     data = input_list[0].get_fdata(dtype=np.float64)
-    return copy(data) / np.sum(data)
+    return data / np.sum(data)
 
 
 def normalize_max(input_list, ref_img):
@@ -242,7 +241,7 @@ def normalize_max(input_list, ref_img):
     _validate_type(input_list[0], nib.Nifti1Image)
 
     data = input_list[0].get_fdata(dtype=np.float64)
-    return copy(data) / np.max(data)
+    return data / np.max(data)
 
 
 def base_10_log(input_list, ref_img):
@@ -285,7 +284,7 @@ def convert(input_list, ref_img):
     _validate_length(input_list, 1)
     _validate_type(input_list[0], nib.Nifti1Image)
 
-    return copy(input_list[0].get_fdata(dtype=np.float64))
+    return input_list[0].get_fdata(dtype=np.float64)
 
 
 def addition(input_list, ref_img):
