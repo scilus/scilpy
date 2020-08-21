@@ -59,7 +59,7 @@ def _build_arg_parser():
     return p
 
 
-def load_img(arg, ref):
+def load_img(arg):
     if is_float(arg):
         img = float(arg)
         dtype = np.float64
@@ -116,7 +116,7 @@ def main():
         if not is_float(input_arg) and \
                 not is_header_compatible(ref_img, input_arg):
             parser.error('Inputs do not have a compatible header.')
-        img, dtype = load_img(input_arg, ref_img)
+        img, dtype = load_img(input_arg)
 
         if isinstance(img, nib.Nifti1Image) and \
             dtype != ref_img.get_data_dtype() and \
