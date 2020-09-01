@@ -208,9 +208,9 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     # Compute MT Ratio map
     MTR = 100*(contrasts_maps[0] - contrasts_maps[1]) / contrasts_maps[0]
 
-    # Compute MT saturation maps
-    cPD1 = contrasts_maps[0]  # mtoff
-    cPD2 = contrasts_maps[1]  # mton
+    # Compute MT saturation maps: cPD1 = mt-off; cPD2 = mt-on
+    cPD1 = contrasts_maps[0]
+    cPD2 = contrasts_maps[1]
     cT1 = contrasts_maps[2]
 
     Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
