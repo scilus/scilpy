@@ -6,8 +6,20 @@ Now supports sequential filtering condition and mixed filtering object.
 For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - ROI_NAME is the filename of a Nifti
 - ID is the integer value in the atlas
-- MODE must be one of these values: 'any', 'either_end', 'both_ends'
+- MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
+
+If any meant any part of the streamline must be in the mask, all means that 
+all part of the streamline must be in the mask.
+
+When used with exclude, it means that a streamline entirely in the mask will
+be excluded. Using all it with x/y/z plane works but makes very little sense.
+
+In terms of nifti mask, --drawn_roi MASK.nii.gz all include is 
+equivalent to --drawn_roi INVERSE_MASK.nii.gz any exclude
+For example, this allows to find out all streamlines entirely in the WM in 
+one command (without manually inverting the mask first) or 
+to remove any streamlines staying in GM without getting out.
 
 Multiple filtering tuples can be used and options mixed.
 A logical AND is the only behavior available. All theses filtering
@@ -122,7 +134,7 @@ def prepare_filtering_list(parser, args):
         if filter_type not in ['x_plane', 'y_plane', 'z_plane']:
             if not os.path.isfile(filter_arg):
                 parser.error('{} does not exist'.format(filter_arg))
-        if filter_mode not in ['any', 'either_end', 'both_ends']:
+        if filter_mode not in ['any', 'all', 'either_end', 'both_ends']:
             parser.error('{} is not a valid option for filter_mode'.format(
                 filter_mode))
         if filter_criteria not in ['include', 'exclude']:
@@ -176,8 +188,8 @@ def main():
                 atlas = get_data_as_label(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
                 mask[atlas == int(filter_arg_2)] = 1
-            filtered_sft, indexes = filter_grid_roi(sft, mask,
-                                                    filter_mode, is_exclude)
+            filtered_sft, _ = filter_grid_roi(sft, mask,
+                                              filter_mode, is_exclude)
 
         # For every case, the input number must be greater or equal to 0 and
         # below the dimension, since this is a voxel space operation
@@ -208,19 +220,19 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
-            filtered_sft, indexes = filter_grid_roi(sft, mask,
-                                                    filter_mode, is_exclude)
+            filtered_sft, _ = filter_grid_roi(sft, mask,
+                                              filter_mode, is_exclude)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
             if geometry == 'Ellipsoid':
-                filtered_sft, indexes = filter_ellipsoid(sft,
-                                                         radius, center,
-                                                         filter_mode, is_exclude)
+                filtered_sft, _ = filter_ellipsoid(sft,
+                                                   radius, center,
+                                                   filter_mode, is_exclude)
             elif geometry == 'Cuboid':
-                filtered_sft, indexes = filter_cuboid(sft,
-                                                      radius, center,
-                                                      filter_mode, is_exclude)
+                filtered_sft, _ = filter_cuboid(sft,
+                                                radius, center,
+                                                filter_mode, is_exclude)
 
         logging.debug('The filtering options {0} resulted in '
                       '{1} streamlines'.format(roi_opt, len(filtered_sft)))
@@ -229,7 +241,8 @@ def main():
 
         if only_filtering_list:
             filtering_Name = 'Filter_' + str(i)
-            curr_dict['streamline_count_after_filtering'] = len(sft.streamlines)
+            curr_dict['streamline_count_after_filtering'] = len(
+                sft.streamlines)
             o_dict[filtering_Name] = curr_dict
 
     # Streamline count after filtering
