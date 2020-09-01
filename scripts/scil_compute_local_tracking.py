@@ -236,7 +236,7 @@ def main():
     # will not yield correct results.
     fodf_sh_img = nib.load(args.in_sh)
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
+                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 

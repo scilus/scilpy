@@ -11,7 +11,7 @@ matplotlib==2.2.*
 nibabel==3.0.*
 nilearn==0.6.*
 numpy==1.18.*
-Pillow==6.2.*
+Pillow==7.1.*
 pybids==0.10.*
 pyparsing==2.2.*
 python-dateutil==2.7.*

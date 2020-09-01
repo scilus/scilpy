@@ -221,8 +221,10 @@ def main():
             args.in_tractogram))
 
         hdf5_file = h5py.File(args.in_tractogram, 'r')
-        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
-                and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
+        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine,
+                            atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'],
+                                   dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
                 args.in_tractogram, args.in_dwi))
 

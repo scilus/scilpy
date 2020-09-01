@@ -63,18 +63,17 @@ def _average_wrapper(args):
         dimensions = hdf5_file_ref.attrs['dimensions']
         density_data = np.zeros(dimensions, dtype=np.float32)
     for hdf5_filename in hdf5_filenames:
-        with h5py.File(hdf5_filename, 'r') as hdf5_file:
-            if not (np.allclose(hdf5_file.attrs['affine'], affine)
-                    and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
-                raise IOError('{} do not have a compatible header'.format(
-                    hdf5_filename))
-
-            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-            if len(streamlines) == 0:
-                continue
-
-            # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
-            density = compute_tract_counts_map(streamlines, dimensions)
+        hdf5_file = h5py.File(hdf5_filename, 'r')
+        if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
+            raise IOError('{} do not have a compatible header'.format(
+                hdf5_filename))
+        # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
+        streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+        if len(streamlines) == 0:
+            continue
+        density = compute_tract_counts_map(streamlines, dimensions)
+        hdf5_file.close()
 
         if binary:
             density_data[density > 0] += 1
