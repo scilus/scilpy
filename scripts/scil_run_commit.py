@@ -212,8 +212,10 @@ def main():
         streamlines = []
         len_list = [0]
         hdf5_file = h5py.File(args.in_tractogram, 'r')
-        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
-                and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
+        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine,
+                            atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'],
+                                   dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
                 args.in_tractogram, args.in_dwi))
 
@@ -271,7 +273,7 @@ def main():
         # (based on order of magnitude of signal)
         img = nib.load(args.in_dwi)
         data = img.get_fdata(dtype=np.float32)
-        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data > 0]))))] = 0
         nib.save(nib.Nifti1Image(data, img.affine),
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 

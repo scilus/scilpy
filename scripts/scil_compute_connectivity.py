@@ -85,8 +85,8 @@ def _processing_wrapper(args):
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
 
-    if not (np.allclose(hdf5_file.attrs['affine'], affine)
-            and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+    if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
+            and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
         raise ValueError('Provided hdf5 have incompatible headers.')
 
     # Precompute to save one transformation, insert later

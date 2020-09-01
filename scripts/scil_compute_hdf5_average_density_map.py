@@ -65,8 +65,8 @@ def _average_wrapper(args):
     for hdf5_filename in hdf5_filenames:
         hdf5_file = h5py.File(hdf5_filename, 'r')
 
-        if not (np.allclose(hdf5_file.attrs['affine'], affine)
-                and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+        if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
             raise IOError('{} do not have a compatible header'.format(
                 hdf5_filename))
         # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
