@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_volume.py', '--help')
+    ret = script_runner.run('scil_compute_bundle_volume.py', '--help')
     assert ret.success
 
 
@@ -21,5 +21,5 @@ def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
                              'IFGWM.trk')
-    ret = script_runner.run('scil_bundle_volume.py', in_bundle)
+    ret = script_runner.run('scil_compute_bundle_volume.py', in_bundle)
     assert ret.success
