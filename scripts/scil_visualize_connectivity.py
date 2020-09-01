@@ -12,7 +12,7 @@ This script can either display the axis labels as:
 - Names (using --labels_list and --lookup_table)
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
-provide the json and specify the key (using --reorder_txt)
+provide the text file(s), using --labels_list and/or --reorder_txt.
 """
 
 import argparse
@@ -40,9 +40,9 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Naming options')
     g1.add_argument('--labels_list',
                     help='List saved by the decomposition script,\n'
-                         'the json must contain labels rather than coordinates.')
+                         'must contain labels rather than coordinates (.txt).')
     g1.add_argument('--reorder_txt',
-                    help='Txt file with two rows (x/y) listing the ordering.')
+                    help='File with two rows (x/y) listing the ordering (.txt).')
     g1.add_argument('--lookup_table',
                     help='Lookup table with the label number as keys and the '
                          'name as values.')
