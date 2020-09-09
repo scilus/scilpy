@@ -13,7 +13,7 @@ If --not_all is set, only the files specified explicitly by the flags
 will be output.
 
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
-deconvolution for improved analysis of multi-shell diffusion 
+deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
 """
 
@@ -154,10 +154,10 @@ def main():
     if not csf_frf.shape[1] == 4:
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
-    msmt_response = multi_shell_fiber_response(sh_order,
-                                               unique_bvals_tolerance(bvals, tol=20),
+    ubvals = unique_bvals_tolerance(bvals, tol=20)
+    msmt_response = multi_shell_fiber_response(sh_order, ubvals,
                                                wm_frf, gm_frf, csf_frf)
-    
+
     # Loading spheres
     reg_sphere = get_sphere('symmetric362')
 
@@ -177,7 +177,7 @@ def main():
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    vol.affine), args.wm_fodf)
+                                 vol.affine), args.wm_fodf)
 
     if args.gm_fodf:
         shm_coeff = msmt_fit.all_shm_coeff[..., 1]
@@ -186,7 +186,7 @@ def main():
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    vol.affine), args.gm_fodf)
+                                 vol.affine), args.gm_fodf)
 
     if args.csf_fodf:
         shm_coeff = msmt_fit.all_shm_coeff[..., 0]
@@ -195,7 +195,7 @@ def main():
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    vol.affine), args.csf_fodf)
+                                 vol.affine), args.csf_fodf)
 
     if args.vf:
         nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
