@@ -34,8 +34,10 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_dwi_shell,
-                                          is_normalized_bvecs, normalize_bvecs)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
+                                          extract_dwi_shell,
+                                          is_normalized_bvecs,
+                                          normalize_bvecs)
 
 
 def buildArgsParser():
@@ -56,7 +58,6 @@ def buildArgsParser():
     p.add_argument('csf_frf',
                    help='Path to the output CSF frf file, in .txt format.')
 
-
     p.add_argument(
         '--mask',
         help='Path to a binary mask. Only the data inside the mask will be '
@@ -74,9 +75,9 @@ def buildArgsParser():
 
     p.add_argument(
         '--thr_fa_wm', default=0.7, type=float,
-        help='If supplied, use this threshold to select single WM fiber voxels '
-             'from the FA inside the WM mask defined by wm_mask. Each voxel '
-             'above this threshold will be selected. [%(default)s]')
+        help='If supplied, use this threshold to select single WM fiber '
+             'voxels from the FA inside the WM mask defined by wm_mask. Each '
+             'voxel above this threshold will be selected. [%(default)s]')
     p.add_argument(
         '--thr_fa_gm', default=0.20, type=float,
         help='If supplied, use this threshold to select GM voxels from the FA '
@@ -84,9 +85,9 @@ def buildArgsParser():
              'threshold will be selected. [%(default)s]')
     p.add_argument(
         '--thr_fa_csf', default=0.10, type=float,
-        help='If supplied, use this threshold to select CSF voxels from the FA '
-             'inside the CSF mask defined by csf_mask. Each voxel below this '
-             'threshold will be selected. [%(default)s]')
+        help='If supplied, use this threshold to select CSF voxels from the '
+             'FA inside the CSF mask defined by csf_mask. Each voxel below '
+             'this threshold will be selected. [%(default)s]')
     p.add_argument(
         '--thr_md_gm', default=0.0007, type=float,
         help='If supplied, use this threshold to select GM voxels from the MD '
@@ -94,14 +95,14 @@ def buildArgsParser():
              'threshold will be selected. [%(default)s]')
     p.add_argument(
         '--thr_md_csf', default=0.002, type=float,
-        help='If supplied, use this threshold to select CSF voxels from the MD '
-             'inside the CSF mask defined by csf_mask. Each voxel below this '
-             'threshold will be selected. [%(default)s]')
+        help='If supplied, use this threshold to select CSF voxels from the '
+             'MD inside the CSF mask defined by csf_mask. Each voxel below '
+             'this threshold will be selected. [%(default)s]')
 
     p.add_argument(
         '--min_nvox', default=100, type=int,
         help='Minimal number of voxels needed for each tissue masks '
-             'in order to proceed to frf estimation. [%(default)s]')                       
+             'in order to proceed to frf estimation. [%(default)s]')                    
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
@@ -185,17 +186,18 @@ def main():
         gtab_dti = gradient_table(np.squeeze(bvals_dti), bvecs_dti)
     else:
         gtab_dti = gradient_table(bvals, bvecs)
-    
+
     gtab = gradient_table(bvals, bvecs)
 
-    mask_wm, mask_gm, mask_csf = mask_for_response_msmt(gtab_dti, data_dti,
-                                                    roi_center=args.roi_center,
-                                                    roi_radii=roi_radii,
-                                                    wm_fa_thr=args.thr_fa_wm,
-                                                    gm_fa_thr=args.thr_fa_gm,
-                                                    csf_fa_thr=args.thr_fa_csf,
-                                                    gm_md_thr=args.thr_md_gm,
-                                                    csf_md_thr=args.thr_md_csf)
+    mask_wm, mask_gm, mask_csf \
+        = mask_for_response_msmt(gtab_dti, data_dti,
+                                 roi_center=args.roi_center,
+                                 roi_radii=roi_radii,
+                                 wm_fa_thr=args.thr_fa_wm,
+                                 gm_fa_thr=args.thr_fa_gm,
+                                 csf_fa_thr=args.thr_fa_csf,
+                                 gm_md_thr=args.thr_md_gm,
+                                 csf_md_thr=args.thr_md_csf)
 
     if args.mask is not None:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
