@@ -102,7 +102,7 @@ def buildArgsParser():
     p.add_argument(
         '--min_nvox', default=100, type=int,
         help='Minimal number of voxels needed for each tissue masks '
-             'in order to proceed to frf estimation. [%(default)s]')                    
+             'in order to proceed to frf estimation. [%(default)s]')                
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
