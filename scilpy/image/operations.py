@@ -417,16 +417,17 @@ def std(input_list, ref_img):
                 'This operation with 4D data only support one operand.')
     else:
         if len(input_list) == 1:
-            raise ValueError('This operation with only one operand requires 4D data.')
+            raise ValueError(
+                'This operation with only one operand requires 4D data.')
 
     if len(input_list[0].header.get_data_shape()) > 3:
         return np.std(input_list[0].get_fdata(dtype=np.float64), axis=-1)
     else:
-        mean_data=mean(input_list, ref_img)
-        output_data=np.zeros(input_list[0].header.get_data_shape())
+        mean_data = mean(input_list, ref_img)
+        output_data = np.zeros(input_list[0].header.get_data_shape())
         for img in input_list:
             if isinstance(img, nib.Nifti1Image):
-                data=img.get_fdata(dtype=np.float64)
+                data = img.get_fdata(dtype=np.float64)
                 output_data += (data - mean_data) ** 2
                 img.uncache()
             else:
@@ -440,8 +441,8 @@ def union(input_list, ref_img):
         Operation on binary image to keep voxels, that are non-zero, in at
         least one file.
     """
-    output_data=addition(input_list, ref_img)
-    output_data[output_data != 0]=1
+    output_data = addition(input_list, ref_img)
+    output_data[output_data != 0] = 1
 
     return output_data
 
@@ -452,8 +453,8 @@ def intersection(input_list, ref_img):
         Operation on binary image to keep the voxels, that are non-zero,
         are present in all files.
     """
-    output_data=multiplication(input_list, ref_img)
-    output_data[output_data != 0]=1
+    output_data = multiplication(input_list, ref_img)
+    output_data[output_data != 0] = 1
 
     return output_data
 
@@ -467,18 +468,18 @@ def difference(input_list, ref_img):
     _validate_length(input_list, 2)
     _validate_imgs(*input_list, ref_img)
 
-    output_data=np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
+    output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     if isinstance(input_list[0], nib.Nifti1Image):
-        data_1=input_list[0].get_fdata(dtype=np.float64)
+        data_1 = input_list[0].get_fdata(dtype=np.float64)
     else:
-        data_1=input_list[0]
+        data_1 = input_list[0]
     if isinstance(input_list[1], nib.Nifti1Image):
-        data_2=input_list[1].get_fdata(dtype=np.float64)
+        data_2 = input_list[1].get_fdata(dtype=np.float64)
     else:
-        data_2=input_list[1]
+        data_2 = input_list[1]
 
-    output_data[data_1 != 0]=1
-    output_data[data_2 != 0]=0
+    output_data[data_1 != 0] = 1
+    output_data[data_2 != 0] = 0
     return output_data
 
 
@@ -490,10 +491,10 @@ def invert(input_list, ref_img):
     _validate_length(input_list, 1)
     _validate_type(input_list[0], nib.Nifti1Image)
 
-    data=input_list[0].get_fdata(dtype=np.float64)
-    output_data=np.zeros(data.shape, dtype=np.float64)
-    output_data[data != 0]=0
-    output_data[data == 0]=1
+    data = input_list[0].get_fdata(dtype=np.float64)
+    output_data = np.zeros(data.shape, dtype=np.float64)
+    output_data[data != 0] = 0
+    output_data[data == 0] = 1
 
     return output_data
 
@@ -507,9 +508,9 @@ def concat(input_list, ref_img):
     if len(input_list[0].header.get_data_shape()) != 3:
         raise ValueError('Concatenate require 3D arrays.')
 
-    input_data=[]
+    input_data = []
     for img in input_list:
-        data=img.get_fdata(dtype=np.float64)
+        data = img.get_fdata(dtype=np.float64)
         input_data.append(data)
         img.uncache()
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
