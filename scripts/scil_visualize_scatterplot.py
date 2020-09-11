@@ -7,9 +7,7 @@ used to threshold the myelin maps. Therefore, the --myelin --in_wm and --in_gm
 options must be added.
 
 For general scatter plot:
->>> scil_visualize_scatterplot.py ihMT_map.nii.gz
-MT_map.nii.gz probability_wm_map.nii.gz probability_gm_map.nii.gz
-out_filename_image.png
+>>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
 
 For Myelin scatter plot:
 >>> scil_visualize_scatterplot.py ihMTR_map.nii.gz MTsat_map.nii.gz
