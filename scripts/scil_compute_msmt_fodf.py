@@ -47,11 +47,11 @@ def _build_arg_parser():
                    help='Path of the bvals file, in FSL format.')
     p.add_argument('bvecs',
                    help='Path of the bvecs file, in FSL format.')
-    p.add_argument('wm_frf',
+    p.add_argument('wm_frf_file',
                    help='Text file of WM response function.')
-    p.add_argument('gm_frf',
+    p.add_argument('gm_frf_file',
                    help='Text file of GM response function.')
-    p.add_argument('csf_frf',
+    p.add_argument('csf_frf_file',
                    help='Text file of CSF response function.')
 
     p.add_argument(
@@ -62,31 +62,30 @@ def _build_arg_parser():
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
 
+    add_force_b0_arg(p)
+    add_sh_basis_args(p)
+    add_processes_arg(p)
+    add_overwrite_arg(p)
+
     p.add_argument(
         '--not_all', action='store_true',
         help='If set, only saves the files specified using the '
              'file flags. (Default: False)')
 
-    add_force_b0_arg(p)
-    add_sh_basis_args(p)
-    add_processes_arg(p)
-
     g = p.add_argument_group(title='File flags')
 
     g.add_argument(
-        '--wm_fodf', metavar='file', default='',
-        help='Output filename for the WM ODF coefficients.')
+        '--wm_out_fODF', metavar='file', default='',
+        help='Output filename for the WM fODF coefficients.')
     g.add_argument(
-        '--gm_fodf', metavar='file', default='',
-        help='Output filename for the GM ODF coefficients.')
+        '--gm_out_fODF', metavar='file', default='',
+        help='Output filename for the GM fODF coefficients.')
     g.add_argument(
-        '--csf_fodf', metavar='file', default='',
-        help='Output filename for the CSF ODF coefficients.')
+        '--csf_out_fODF', metavar='file', default='',
+        help='Output filename for the CSF fODF coefficients.')
     g.add_argument(
         '--vf', metavar='file', default='',
         help='Output filename for the volume fractions map.')
-
-    add_overwrite_arg(p)
 
     return p
 
@@ -97,24 +96,25 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
-        args.wm_fodf = args.wm_fodf or 'wm_fodf.nii.gz'
-        args.gm_fodf = args.gm_fodf or 'gm_fodf.nii.gz'
-        args.csf_fodf = args.csf_fodf or 'csf_fodf.nii.gz'
+        args.wm_out_fODF = args.wm_out_fODF or 'wm_fODF.nii.gz'
+        args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
+        args.csf_out_fODF = args.csf_out_fODF or 'csf_fodf.nii.gz'
         args.vf = args.vf or 'vf.nii.gz'
 
-    arglist = [args.wm_fodf, args.gm_fodf, args.csf_fodf, args.vf]
+    arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF, args.vf]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least ' +
                      'one file to output.')
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
-                                 args.wm_frf, args.gm_frf, args.csf_frf])
+                                 args.wm_frf_file, args.gm_frf_file,
+                                 args.csf_frf_file])
     assert_outputs_exist(parser, args, arglist)
 
     # Loading data
-    wm_frf = np.loadtxt(args.wm_frf)
-    gm_frf = np.loadtxt(args.gm_frf)
-    csf_frf = np.loadtxt(args.csf_frf)
+    wm_frf = np.loadtxt(args.wm_frf_file)
+    gm_frf = np.loadtxt(args.gm_frf_file)
+    csf_frf = np.loadtxt(args.csf_frf_file)
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
@@ -171,31 +171,31 @@ def main():
                               mask=mask, nbr_processes=args.nbr_processes)
 
     # Saving results
-    if args.wm_fodf:
+    if args.wm_out_fODF:
         shm_coeff = msmt_fit.shm_coeff
         if args.sh_basis == 'tournier07':
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                 vol.affine), args.wm_fodf)
+                                 vol.affine), args.wm_out_fODF)
 
-    if args.gm_fodf:
+    if args.gm_out_fODF:
         shm_coeff = msmt_fit.all_shm_coeff[..., 1]
         if args.sh_basis == 'tournier07':
             shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                 vol.affine), args.gm_fodf)
+                                 vol.affine), args.gm_out_fODF)
 
-    if args.csf_fodf:
+    if args.csf_out_fODF:
         shm_coeff = msmt_fit.all_shm_coeff[..., 0]
         if args.sh_basis == 'tournier07':
             shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
             shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                 vol.affine), args.csf_fodf)
+                                 vol.affine), args.csf_out_fODF)
 
     if args.vf:
         nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
