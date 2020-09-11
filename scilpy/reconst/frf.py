@@ -3,7 +3,8 @@
 import logging
 
 from dipy.core.gradients import gradient_table
-from dipy.reconst.csdeconv import auto_response
+from dipy.reconst.csdeconv import (mask_for_response_ssst,
+                                   response_from_mask_ssst)
 from dipy.segment.mask import applymask
 import numpy as np
 
@@ -98,11 +99,12 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     # We use an epsilon since the -= 0.05 might incur numerical imprecision.
     nvox = 0
     while nvox < min_nvox and fa_thresh >= min_fa_thresh - 0.00001:
-        response, ratio, nvox = auto_response(gtab, data,
-                                              roi_center=roi_center,
-                                              roi_radius=roi_radius,
-                                              fa_thr=fa_thresh,
-                                              return_number_of_voxels=True)
+        mask = mask_for_response_ssst(gtab, data,
+                                      roi_center=roi_center,
+                                      roi_radii=roi_radius,
+                                      fa_thr=fa_thresh)
+        nvox = np.sum(mask)
+        response, ratio = response_from_mask_ssst(gtab, data, mask)
 
         logging.debug(
             "Number of indices is {:d} with threshold of {:.2f}".format(
