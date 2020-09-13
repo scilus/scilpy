@@ -4,6 +4,7 @@ import logging
 
 from dipy.core.gradients import gradient_table
 from dipy.reconst.csdeconv import auto_response
+from dipy.reconst.mcsd import mask_for_response_msmt, response_from_mask_msmt
 from dipy.segment.mask import applymask
 import numpy as np
 
@@ -127,7 +128,6 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
                               response[0][2], response[1]])
 
     return full_response
-
 
     def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
                          bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,

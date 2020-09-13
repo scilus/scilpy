@@ -23,9 +23,8 @@ MRI data. Neuroimage (2014)
 import argparse
 import logging
 
-from dipy.core.gradients import gradient_table, unique_bvals_tolerance
+from dipy.core.gradients import unique_bvals_tolerance
 from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.mcsd import mask_for_response_msmt, response_from_mask_msmt
 import nibabel as nib
 import numpy as np
 
@@ -34,10 +33,7 @@ from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_msmt_frf
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
-                                          extract_dwi_shell,
-                                          is_normalized_bvecs,
-                                          normalize_bvecs)
+from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 
 def buildArgsParser():
@@ -232,6 +228,9 @@ def main():
             bvals = list_bvals[1:]
         else:
             bvals = list_bvals
+        response_csf = responses[2]
+        response_gm = responses[1]
+        response_wm = responses[0]
         iso_responses = np.concatenate((response_csf[:, :3],
                                         response_gm[:, :3]), axis=1)
         responses = np.concatenate((iso_responses, response_wm[:, :3]), axis=1)
