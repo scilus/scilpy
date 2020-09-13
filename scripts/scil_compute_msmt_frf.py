@@ -33,6 +33,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.reconst.frf import compute_msmt_frf
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
                                           extract_dwi_shell,
                                           is_normalized_bvecs,
@@ -73,27 +74,27 @@ def buildArgsParser():
         help='Path to the CSF mask file.')
 
     p.add_argument(
-        '--thr_fa_wm', default=0.7, type=float,
+        '--fa_thr_wm', default=0.7, type=float,
         help='If supplied, use this threshold to select single WM fiber '
              'voxels from the FA inside the WM mask defined by mask_wm. Each '
              'voxel above this threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--thr_fa_gm', default=0.20, type=float,
+        '--fa_thr_gm', default=0.2, type=float,
         help='If supplied, use this threshold to select GM voxels from the FA '
              'inside the GM mask defined by mask_gm. Each voxel below this '
              'threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--thr_fa_csf', default=0.10, type=float,
+        '--fa_thr_csf', default=0.1, type=float,
         help='If supplied, use this threshold to select CSF voxels from the '
              'FA inside the CSF mask defined by mask_csf. Each voxel below '
              'this threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--thr_md_gm', default=0.0007, type=float,
+        '--md_thr_gm', default=0.0007, type=float,
         help='If supplied, use this threshold to select GM voxels from the MD '
              'inside the GM mask defined by mask_gm. Each voxel below this '
              'threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--thr_md_csf', default=0.002, type=float,
+        '--md_thr_csf', default=0.002, type=float,
         help='If supplied, use this threshold to select CSF voxels from the '
              'MD inside the CSF mask defined by mask_csf. Each voxel below '
              'this threshold will be selected. [%(default)s]')
@@ -163,6 +164,7 @@ def main():
         parser.error('--roi_radii cannot be of size (2,).')
     else:
         roi_radii = args.roi_radii
+    roi_center = args.roi_center
 
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
@@ -170,77 +172,57 @@ def main():
 
     tol = args.tolerance
 
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
-
-    check_b0_threshold(args.force_b0_threshold, bvals.min())
-
     list_bvals = unique_bvals_tolerance(bvals, tol=tol)
     if not np.all(list_bvals <= 1200):
         outputs = extract_dwi_shell(vol, bvals, bvecs,
                                     list_bvals[list_bvals <= 1200],
                                     tol=tol)
-        indices_dti, data_dti, bvals_dti, bvecs_dti = outputs
-        gtab_dti = gradient_table(np.squeeze(bvals_dti), bvecs_dti)
+        _, data_dti, bvals_dti, bvecs_dti = outputs
     else:
-        gtab_dti = gradient_table(bvals, bvecs)
+        data_dti = None
+        bvals_dti = None
+        bvecs_dti = None
 
-    gtab = gradient_table(bvals, bvecs)
-
-    wm_frf_mask, gm_frf_mask, csf_frf_mask \
-        = mask_for_response_msmt(gtab_dti, data_dti,
-                                 roi_center=args.roi_center,
-                                 roi_radii=roi_radii,
-                                 wm_fa_thr=args.thr_fa_wm,
-                                 gm_fa_thr=args.thr_fa_gm,
-                                 csf_fa_thr=args.thr_fa_csf,
-                                 gm_md_thr=args.thr_md_gm,
-                                 csf_md_thr=args.thr_md_csf)
-
+    mask = None
     if args.mask is not None:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
-        wm_frf_mask *= mask
-        gm_frf_mask *= mask
-        csf_frf_mask *= mask
-
+    mask_wm = None
+    mask_gm = None
+    mask_csf = None
     if args.mask_wm:
         mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
-        wm_frf_mask *= mask_wm
     if args.mask_gm:
         mask_gm = get_data_as_mask(nib.load(args.mask_gm), dtype=bool)
-        gm_frf_mask *= mask_gm
     if args.mask_csf:
         mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool)
-        csf_frf_mask *= mask_csf
 
-    msg = """Could not find at least {0} voxels for the {1} mask. Look at
-    previous warnings or be sure that external tissue masks overlap with the
-    cuboid ROI."""
-    min_nvox = args.min_nvox
+    force_b0_thr = args.force_b0_threshold
+    responses, frf_masks = compute_msmt_frf(data, bvals, bvecs,
+                                            data_dti=data_dti,
+                                            bvals_dti=bvals_dti,
+                                            bvecs_dti=bvecs_dti,
+                                            mask=mask, mask_wm=mask_wm,
+                                            mask_gm=mask_gm, mask_csf=mask_csf,
+                                            fa_thr_wm=args.fa_thr_wm,
+                                            fa_thr_gm=args.fa_thr_gm,
+                                            fa_thr_csf=args.fa_thr_csf,
+                                            md_thr_gm=args.md_thr_gm,
+                                            md_thr_csf=args.md_thr_csf,
+                                            min_nvox=args.min_nvox,
+                                            roi_radii=roi_radii,
+                                            roi_center=roi_center,
+                                            tol=tol,
+                                            force_b0_threshold=force_b0_thr)
 
-    if np.sum(wm_frf_mask) < min_nvox:
-        raise ValueError(msg.format(min_nvox, "WM"))
-    if np.sum(gm_frf_mask) < min_nvox:
-        raise ValueError(msg.format(min_nvox, "GM"))
-    if np.sum(csf_frf_mask) < min_nvox:
-        raise ValueError(msg.format(min_nvox, "CSF"))
-
-    masks = [wm_frf_mask, gm_frf_mask, csf_frf_mask]
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
-    for mask, mask_file in zip(masks, masks_files):
+    for mask, mask_file in zip(frf_masks, masks_files):
         if mask_file:
             nib.save(nib.Nifti1Image(mask.astype(np.uint16), vol.get_affine()),
                      mask_file)
 
-    response_wm, response_gm, response_csf \
-        = response_from_mask_msmt(gtab, data, wm_frf_mask, gm_frf_mask,
-                                  csf_frf_mask, tol=tol)
-
     frf_out = [args.wm_frf_file, args.gm_frf_file, args.csf_frf_file]
-    responses = [response_wm, response_gm, response_csf]
 
     for frf, response in zip(frf_out, responses):
         np.savetxt(frf, response)
