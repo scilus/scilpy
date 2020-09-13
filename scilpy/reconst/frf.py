@@ -14,7 +14,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
 
 def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
                      fa_thresh=0.7, min_fa_thresh=0.5, min_nvox=300,
-                     roi_radius=10, roi_center=None, force_b0_threshold=False):
+                     roi_radii=10, roi_center=None, force_b0_threshold=False):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -47,10 +47,11 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     min_nvox : int, optional
         Minimal number of voxels needing to be identified as single fiber
         voxels in the automatic estimation. Defaults to 300.
-    roi_radius : int, optional
-        Use this radius to select single fibers from the tensor to estimate
-        the FRF. The roi will be a cube spanning from the middle of the volume
-        in each direction. Defaults to 10.
+    roi_radii : int, optional
+        Use those radii to select a cuboid roi to estimate the FRF. The roi
+        will be a cuboid spanning from the middle of the volume in each
+        direction with the different radii. The type is either an int or an
+        array-like (3,) Defaults to 10.
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
@@ -101,7 +102,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     while nvox < min_nvox and fa_thresh >= min_fa_thresh - 0.00001:
         mask = mask_for_response_ssst(gtab, data,
                                       roi_center=roi_center,
-                                      roi_radii=roi_radius,
+                                      roi_radii=roi_radii,
                                       fa_thr=fa_thresh)
         nvox = np.sum(mask)
         response, ratio = response_from_mask_ssst(gtab, data, mask)

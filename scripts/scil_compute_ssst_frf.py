@@ -65,10 +65,12 @@ def _build_arg_parser():
              'fiber voxels in the automatic estimation. [%(default)s]')
 
     p.add_argument(
-        '--roi_radius', default=10, type=int,
-        help='If supplied, use this radius to select single fibers from the '
-             'tensor to estimate the FRF. The roi will be a cube spanning '
-             'from the middle of the volume in each direction. [%(default)s]')
+        '--roi_radii', default=10, type=int,
+        help='If supplied, use those radii to select a cuboid roi '
+             'to estimate the response functions. The roi will be '
+             'a cuboid spanning from the middle of the volume in '
+             'each direction with the different radii. The type is '
+             'either an int or an array-like (3,). [%(default)s]')
     p.add_argument(
         '--roi_center', metavar='tuple(3)',
         help='If supplied, use this center to span the roi of size '
@@ -92,6 +94,13 @@ def main():
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
     assert_outputs_exist(parser, args, args.frf_file)
 
+    if len(args.roi_radii) == 1:
+        roi_radii = args.roi_radii[0]
+    elif len(args.roi_radii) == 2:
+        parser.error('--roi_radii cannot be of size (2,).')
+    else:
+        roi_radii = args.roi_radii
+
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
 
@@ -109,7 +118,7 @@ def main():
                                      mask_wm=mask_wm, fa_thresh=args.fa_thresh,
                                      min_fa_thresh=args.min_fa_thresh,
                                      min_nvox=args.min_nvox,
-                                     roi_radius=args.roi_radius,
+                                     roi_radius=roi_radius,
                                      roi_center=args.roi_center,
                                      force_b0_threshold=args.force_b0_threshold)
 
