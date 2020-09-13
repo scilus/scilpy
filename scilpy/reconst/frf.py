@@ -129,6 +129,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
 
     return full_response
 
+
     def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
                          bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
                          mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
@@ -164,10 +165,11 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     min_nvox : int, optional
         Minimal number of voxels needing to be identified as single fiber
         voxels in the automatic estimation. Defaults to 300.
-    roi_radius : int, optional
-        Use this radius to select single fibers from the tensor to estimate
-        the FRF. The roi will be a cube spanning from the middle of the volume
-        in each direction. Defaults to 10.
+    roi_radii : int, optional
+        Use those radii to select a cuboid roi to estimate the FRF. The roi
+        will be a cuboid spanning from the middle of the volume in each
+        direction with the different radii. The type is either an int or an
+        array-like (3,) Defaults to 10.
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
