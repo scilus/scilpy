@@ -35,9 +35,9 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_x_map',
-                   help='Map in x axis, FA or ihMTR for exemple.')
+                   help='Map in x axis, FA or ihMTR for example.')
     p.add_argument('in_y_map',
-                   help='Map in y axis, MD or MTsat for exemple.')
+                   help='Map in y axis, MD or MTsat for example.')
     p.add_argument('out_png',
                    help='Output filename for the figure.')
     p.add_argument('--in_mask',
@@ -70,7 +70,7 @@ def _build_arg_parser():
                            ' [%(default)s]')
     scat.add_argument('--label_myelin', default='GM Threshold',
                       help='Use the provided info to legend myelin map. '
-                           ' Coudl be add for Myeline scatter plot. '
+                           ' coudl be added for Myeline scatter plot. '
                            '[%(default)s]')
     scat.add_argument('--marker', default='.',
                       help='Use the provided info to marker shape.'
