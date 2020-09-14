@@ -174,6 +174,7 @@ def main():
                                     list_bvals[list_bvals <= 1200],
                                     tol=tol)
         _, data_dti, bvals_dti, bvecs_dti = outputs
+        bvals_dti = np.squeeze(bvals_dti)
     else:
         data_dti = None
         bvals_dti = None
