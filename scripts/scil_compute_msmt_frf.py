@@ -90,7 +90,7 @@ def buildArgsParser():
              'inside the GM mask defined by mask_gm. Each voxel below this '
              'threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--md_thr_csf', default=0.002, type=float,
+        '--md_thr_csf', default=0.003, type=float,
         help='If supplied, use this threshold to select CSF voxels from the '
              'MD inside the CSF mask defined by mask_csf. Each voxel below '
              'this threshold will be selected. [%(default)s]')
