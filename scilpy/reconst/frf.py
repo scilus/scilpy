@@ -130,12 +130,12 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     return full_response
 
 
-    def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
-                         bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
-                         mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
-                         fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.002,
-                         min_nvox=300, roi_radii=10, roi_center=None,
-                         tol=20, force_b0_threshold=False):
+def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
+                     bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
+                     mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
+                     fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.002,
+                     min_nvox=300, roi_radii=10, roi_center=None,
+                     tol=20, force_b0_threshold=False):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
