@@ -57,23 +57,23 @@ def _build_arg_parser():
     scat = p.add_argument_group(title='Scatter plot options')
     scat.add_argument('--title',
                       default='Scatter Plot',
-                      help='Use the provided info to title name. '
+                      help='Use the provided info for the title name. '
                            ' [%(default)s]')
     scat.add_argument('--x_label', default='x',
-                      help='Use the provided info to name x axis. '
+                      help='Use the provided info for the x axis name. '
                            ' [%(default)s]')
     scat.add_argument('--y_label', default='y',
-                      help='Use the provided info to name y axis. '
+                      help='Use the provided info for the y axis name. '
                            ' [%(default)s]')
     scat.add_argument('--label', default=' ',
-                      help='Use the provided info to legend. '
+                      help='Use the provided info for the legend. '
                            ' [%(default)s]')
     scat.add_argument('--label_myelin', default='GM Threshold',
-                      help='Use the provided info to legend myelin map. '
-                           ' coudl be added for Myeline scatter plot. '
+                      help='Use the provided info for the legend myelin map. '
+                           ' Coudl be added for Myeline scatter plot. '
                            '[%(default)s]')
     scat.add_argument('--marker', default='.',
-                      help='Use the provided info to marker shape.'
+                      help='Use the provided info for the marker shape.'
                            ' [%(default)s]')
 
     p.add_argument('--show_only', action='store_true',
@@ -112,6 +112,7 @@ def main():
             curr_map[np.where(mask_data == 0)] = np.nan
 
     if args.myelin:
+        # Load images
         tissue_image = [args.in_wm, args.in_gm]
         tissue_data = load_maps(tissue_image)
         maps_data_gm_thr = copy.deepcopy(maps_data)
