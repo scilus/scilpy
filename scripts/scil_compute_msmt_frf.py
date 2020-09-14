@@ -151,7 +151,7 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
-    assert_outputs_exist(parser, args, [args.wm_frf_file, args.gm_frf,
+    assert_outputs_exist(parser, args, [args.wm_frf_file, args.gm_frf_file,
                                         args.csf_frf_file])
 
     if len(args.roi_radii) == 1:
