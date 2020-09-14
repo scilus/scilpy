@@ -216,6 +216,8 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
         check_b0_threshold(force_b0_threshold, bvals_dti.min())
+        print(bvals_dti.shape)
+        print(bvecs_dti.shape)
         gtab_dti = gradient_table(bvals_dti, bvecs_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
