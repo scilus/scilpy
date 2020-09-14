@@ -133,7 +133,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
 def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
                      bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
                      mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
-                     fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.002,
+                     fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.003,
                      min_nvox=300, roi_radii=10, roi_center=None,
                      tol=20, force_b0_threshold=False):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
@@ -152,16 +152,39 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
     mask : ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
-        computations and reconstruction. Useful if no white matter mask is
-        available.
+        computations and reconstruction.
     mask_wm : ndarray, optional
         3D mask with shape (X,Y,Z)
-        Binary white matter mask. Only the data inside this mask and above the
-        threshold defined by fa_thresh will be used to estimate the fiber
-        response function.
-    fa_thresh : float, optional
-        Use this threshold as the initial threshold to select single fiber
-        voxels. Defaults to 0.7
+        Binary white matter mask. Only the data inside this mask will be used
+        to estimate the fiber response function of WM.
+    mask_gm : ndarray, optional
+        3D mask with shape (X,Y,Z)
+        Binary grey matter mask. Only the data inside this mask will be used
+        to estimate the fiber response function of GM.
+    mask_csf : ndarray, optional
+        3D mask with shape (X,Y,Z)
+        Binary csf mask. Only the data inside this mask will be used to
+        estimate the fiber response function of CSF.
+    fa_thr_wm : float, optional
+        Use this threshold to select single WM fiber voxels from the FA inside
+        the WM mask defined by mask_wm. Each voxel above this threshold will be
+        selected. Defaults to 0.7
+    fa_thr_gm : float, optional
+        Use this threshold to select GM voxels from the FA inside the GM mask
+        defined by mask_gm. Each voxel below this threshold will be selected.
+        Defaults to 0.2
+    fa_thr_csf : float, optional
+        Use this threshold to select CSF voxels from the FA inside the CSF mask
+        defined by mask_csf. Each voxel below this threshold will be selected.
+        Defaults to 0.1
+    md_thr_gm : float, optional
+        Use this threshold to select GM voxels from the MD inside the GM mask
+        defined by mask_gm. Each voxel below this threshold will be selected.
+        Defaults to 0.0007
+    md_thr_csf : float, optional
+        Use this threshold to select CSF voxels from the MD inside the CSF mask
+        defined by mask_csf. Each voxel below this threshold will be selected.
+        Defaults to 0.003
     min_nvox : int, optional
         Minimal number of voxels needing to be identified as single fiber
         voxels in the automatic estimation. Defaults to 300.
@@ -172,6 +195,8 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
+    tol : int
+        tolerance gap for b-values clustering. Defaults to 20
     force_b0_threshold : bool, optional
         If set, will continue even if the minimum bvalue is suspiciously high.
 
@@ -216,8 +241,6 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
         check_b0_threshold(force_b0_threshold, bvals_dti.min())
-        print(bvals_dti.shape)
-        print(bvecs_dti.shape)
         gtab_dti = gradient_table(bvals_dti, bvecs_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
