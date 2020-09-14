@@ -177,8 +177,11 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
 
     Returns
     -------
-    full_reponse : ndarray
-        Fiber Response Function, with shape (4,)
+    reponses : list of ndarray
+        Fiber Response Function of each (3) tissue type, with shape (4, N).
+    frf_masks : list of ndarray
+        Mask where the frf was calculated, for each (3) tissue type, with
+        shape (X, Y, Z).
 
     Raises
     ------
@@ -259,4 +262,4 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
 
     responses = [response_wm, response_gm, response_csf]
 
-    return response, frf_masks
+    return responses, frf_masks
