@@ -35,12 +35,12 @@ def _build_arg_parser():
 
     hist = p.add_argument_group(title='Histogram options')
     hist.add_argument('--title', default='Histogram',
-                      help='Use the provided info to histogram title.'
+                      help='Use the provided info for the histogram title.'
                            ' [%(default)s]')
     hist.add_argument('--x_label',  default='x',
-                      help='Use the provided info to name x axis.')
+                      help='Use the provided info for the x axis name.')
     hist.add_argument('--colors', default='#0504aa',
-                      help='Use the provided a color for bar plot.'
+                      help='Use the provided info for the bars color.'
                            ' [%(default)s]')
 
     p.add_argument('--show_only', action='store_true',
