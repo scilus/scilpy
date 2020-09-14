@@ -47,11 +47,10 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     min_nvox : int, optional
         Minimal number of voxels needing to be identified as single fiber
         voxels in the automatic estimation. Defaults to 300.
-    roi_radii : int, optional
+    roi_radii : int or array-like (3,), optional
         Use those radii to select a cuboid roi to estimate the FRF. The roi
         will be a cuboid spanning from the middle of the volume in each
-        direction with the different radii. The type is either an int or an
-        array-like (3,) Defaults to 10.
+        direction with the different radii. Defaults to 10.
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).

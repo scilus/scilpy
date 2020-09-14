@@ -65,7 +65,7 @@ def _build_arg_parser():
              'fiber voxels in the automatic estimation. [%(default)s]')
 
     p.add_argument(
-        '--roi_radii', default=10, type=int,
+        '--roi_radii', default=[10], nargs='+', type=int,
         help='If supplied, use those radii to select a cuboid roi '
              'to estimate the response functions. The roi will be '
              'a cuboid spanning from the middle of the volume in '
