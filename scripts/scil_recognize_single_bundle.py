@@ -112,7 +112,7 @@ def main():
 
     before, after = compute_distance_barycenters(wb_file, model_file, transfo)
     if after > before:
-        logging.warning('The distance between volume barycenter should be '
+        logging.warning('The distance between volumes barycenter should be '
                         'lower after registration. Maybe try using/removing '
                         '--inverse.')
         logging.info('Distance before: {}, Distance after: {}'.format(
