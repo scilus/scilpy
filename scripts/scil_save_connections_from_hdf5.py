@@ -58,7 +58,6 @@ def _build_arg_parser():
 
     p.add_argument('--save_empty', action='store_true',
                    help='Save empty connections.')
-
     p.add_argument('--labels_list',
                    help='A txt file containing a list '
                         'saved by the decomposition script.')
@@ -77,44 +76,45 @@ def main():
     if args.save_empty and args.labels_list is None:
         parser.error("The option --save_empty requires --labels_list.")
 
-    hdf5_file = h5py.File(args.in_hdf5, 'r')
+    with h5py.File(args.in_hdf5, 'r') as hdf5_file:
+        if args.save_empty:
+            all_labels = np.loadtxt(args.labels_list, dtype='str')
+            comb_list = list(itertools.combinations(all_labels, r=2))
+            comb_list.extend(zip(all_labels, all_labels))
+            keys = [i[0]+'_'+i[1] for i in comb_list]
+        else:
+            keys = hdf5_file.keys()
 
-    if args.save_empty:
-        all_labels = np.loadtxt(args.labels_list, dtype='str')
-        comb_list = list(itertools.combinations(all_labels, r=2))
-        comb_list.extend(zip(all_labels, all_labels))
-        keys = [i[0]+'_'+i[1] for i in comb_list]
-    else:
-        keys = hdf5_file.keys()
+        if args.edge_keys is not None:
+            selected_keys = [key for key in keys if key in args.edge_keys]
+        elif args.node_keys is not None:
+            selected_keys = []
+            for node in args.node_keys:
+                selected_keys.extend([key for key in keys
+                                      if key.startswith(node + '_')
+                                      or key.endswith('_' + node)])
+        else:
+            selected_keys = keys
 
-    if args.edge_keys is not None:
-        selected_keys = [key for key in keys if key in args.edge_keys]
-    elif args.node_keys is not None:
-        selected_keys = []
-        for node in args.node_keys:
-            selected_keys.extend([key for key in keys
-                                 if key.startswith(node + '_')
-                                 or key.endswith('_' + node)])
-    else:
-        selected_keys = keys
-
-    for key in selected_keys:
         affine = hdf5_file.attrs['affine']
         dimensions = hdf5_file.attrs['dimensions']
         voxel_sizes = hdf5_file.attrs['voxel_sizes']
-        streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
         header = create_nifti_header(affine, dimensions, voxel_sizes)
-        sft = StatefulTractogram(streamlines, header, Space.VOX,
-                                 origin=Origin.TRACKVIS)
-        if args.include_dps:
-            for dps_key in hdf5_file[key].keys():
-                if dps_key not in ['data', 'offsets', 'lengths']:
-                    sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
+        for key in selected_keys:
+            streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
 
-        save_tractogram(sft, '{}.trk'
-                        .format(os.path.join(args.out_dir, key)))
+            if len(streamlines) == 0 and not args.save_empty:
+                continue
 
-    hdf5_file.close()
+            sft = StatefulTractogram(streamlines, header, Space.VOX,
+                                     origin=Origin.TRACKVIS)
+            if args.include_dps:
+                for dps_key in hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
+
+            save_tractogram(sft, '{}.trk'
+                            .format(os.path.join(args.out_dir, key)))
 
 
 if __name__ == "__main__":

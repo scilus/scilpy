@@ -16,8 +16,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_label
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 
 
 # Taken from http://stackoverflow.com/a/6512463
@@ -69,7 +70,6 @@ def _build_arg_parser():
 
 
 def main():
-
     parser = _build_arg_parser()
     args = parser.parse_args()
 
@@ -96,12 +96,10 @@ def main():
             else:
                 output_filenames.append(os.path.join(args.out_dir,
                                                      '{0}.nii.gz'.format(
-                                                        name)))
+                                                         name)))
 
+    assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, output_filenames)
-
-    if args.out_dir and not os.path.isdir(args.out_dir):
-        os.mkdir(args.out_dir)
 
     # Extract the voxels that match the label and save them to a file.
     cnt_filename = 0

@@ -58,19 +58,20 @@ def _average_wrapper(args):
     binary = args[2]
     out_dir = args[3]
 
-    hdf5_file_ref = h5py.File(hdf5_filenames[0], 'r')
-    affine = hdf5_file_ref.attrs['affine']
-    dimensions = hdf5_file_ref.attrs['dimensions']
-    density_data = np.zeros(dimensions, dtype=np.float32)
+    with h5py.File(hdf5_filenames[0], 'r') as hdf5_file_ref:
+        affine = hdf5_file_ref.attrs['affine']
+        dimensions = hdf5_file_ref.attrs['dimensions']
+        density_data = np.zeros(dimensions, dtype=np.float32)
     for hdf5_filename in hdf5_filenames:
         hdf5_file = h5py.File(hdf5_filename, 'r')
-
-        if not (np.allclose(hdf5_file.attrs['affine'], affine)
-                and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+        if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
             raise IOError('{} do not have a compatible header'.format(
                 hdf5_filename))
         # scil_decompose_connectivity.py saves the streamlines in VOX/CORNER
         streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+        if len(streamlines) == 0:
+            continue
         density = compute_tract_counts_map(streamlines, dimensions)
         hdf5_file.close()
 
@@ -96,9 +97,8 @@ def main():
 
     keys = []
     for filename in args.in_hdf5:
-        curr_file = h5py.File(filename, 'r')
-        keys.extend(curr_file.keys())
-        curr_file.close()
+        with h5py.File(filename, 'r') as curr_file:
+            keys.extend(curr_file.keys())
 
     nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     if nbr_cpu == 1:
