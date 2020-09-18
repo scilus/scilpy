@@ -5,11 +5,11 @@ import numpy as np
 from numpy.lib.index_tricks import r_ as row
 
 
-def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo=None):
+def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
     """
     Compare the barycenter (center of volume) of two reference object.
-    If a transformation is provided it will tranform the reference #2 and
-    return the distance before transformation and after transformation.
+    The provided transformation will move the reference #2 and
+    return the distance before and after transformation.
 
     Parameters
     ----------
@@ -22,8 +22,8 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo=None):
     Returns
     -------
     distance: float or tuple (2,)
-        Either return the distance between both barycenters or a tuple
-        containing the distance before and after the transformation.
+        return a tuple containing the distance before and after
+        the transformation.
     """
     aff_1, dim_1, _, _ = get_reference_info(ref_1)
     aff_2, dim_2, _, _ = get_reference_info(ref_2)
@@ -32,14 +32,12 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo=None):
     barycenter_2 = voxel_to_world(dim_2 / 2.0, aff_2)
     distance_before = np.linalg.norm(barycenter_1 - barycenter_2)
 
-    if ref_2_transfo is not None:
-        normalized_coord = row[barycenter_2[0:3], 1.0].astype(float)
-        barycenter_2 = np.dot(ref_2_transfo, normalized_coord)[0:3]
+    normalized_coord = row[barycenter_2[0:3], 1.0].astype(float)
+    barycenter_2 = np.dot(ref_2_transfo, normalized_coord)[0:3]
 
-        distance_after = np.linalg.norm(barycenter_1 - barycenter_2)
-        return distance_before, distance_after
+    distance_after = np.linalg.norm(barycenter_1 - barycenter_2)
 
-    return distance_before
+    return distance_before, distance_after
 
 
 def voxel_to_world(coord, affine):
