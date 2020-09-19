@@ -235,7 +235,11 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
                                      csf_fa_thr=fa_thr_csf,
                                      gm_md_thr=md_thr_gm,
                                      csf_md_thr=md_thr_csf)
-    elif data_dti is not None and bvals_dti is not None and bvecs_dti is not None:
+    elif (
+        data_dti is not None and
+        bvals_dti is not None and
+        bvecs_dti is not None
+    ):
         if not is_normalized_bvecs(bvecs_dti):
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
