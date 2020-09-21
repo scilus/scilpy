@@ -103,8 +103,8 @@ def _save_if_needed(sft, hdf5_file, args,
                     in_label, out_label):
     if step_type == 'final':
         group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
-        group.create_dataset('data', data=sft.streamlines.get_data(),
-                             dtype=np.float32)
+        group.create_dataset('data', data=sft.streamlines._data,
+                             dtype=np.float16)
         group.create_dataset('offsets', data=sft.streamlines._offsets,
                              dtype=np.int64)
         group.create_dataset('lengths', data=sft.streamlines._lengths,
@@ -253,7 +253,8 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
+                                         bbox_check=False)
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
@@ -262,24 +263,14 @@ def main():
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_tractogram, args.in_labels))
 
-    logging.info('*** Filtering streamlines ***')
-    original_len = len(sft)
-    time1 = time.time()
-
     sft.to_vox()
     sft.to_corner()
-    time2 = time.time()
-    logging.info(
-        '    Discarded {} streamlines from filtering in {} sec.'.format(
-            original_len - len(sft), round(time2 - time1, 2)))
-    logging.info('    Number of streamlines to process: {}'.format(len(sft)))
-
     # Get all streamlines intersection indices
     logging.info('*** Computing streamlines intersection ***')
     time1 = time.time()
 
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-
+    sft.streamlines._data = sft.streamlines._data.astype(np.float16)
     time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))
