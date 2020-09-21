@@ -356,11 +356,10 @@ def main():
             #   4. outlier detection pass -> qb curvature pass/fail
             #   5. qb curvature pass == final connections
             connecting_streamlines = ArraySequence(connecting_streamlines)
-
-            raw_sft = StatefulTractogram.from_sft(
-                connecting_streamlines, sft,
-                data_per_streamline=sft.data_per_streamline[connecting_ids],
-                data_per_point={})
+            raw_dps = sft.data_per_streamline[connecting_ids]
+            raw_sft = StatefulTractogram.from_sft(connecting_streamlines, sft,
+                                                  data_per_streamline=raw_dps,
+                                                  data_per_point={})
             _save_if_needed(raw_sft, hdf5_file, args,
                             'raw', 'raw', in_label, out_label)
 
@@ -372,13 +371,8 @@ def main():
                     args.max_length,
                     vox_sizes[0])
 
+                invalid_length_sft = raw_sft[invalid_length_ids]
                 valid_length = connecting_streamlines[valid_length_ids]
-                invalid_length = connecting_streamlines[invalid_length_ids]
-                invalid_length_sft = StatefulTractogram.from_sft(
-                    invalid_length, raw_sft,
-                    data_per_streamline=raw_sft.data_per_streamline[invalid_length_ids],
-                    data_per_point={})
-
                 _save_if_needed(invalid_length_sft, hdf5_file, args,
                                 'discarded', 'invalid_length',
                                 in_label, out_label)
@@ -389,27 +383,18 @@ def main():
             if not len(valid_length):
                 continue
 
-            valid_length_sft = StatefulTractogram.from_sft(
-                valid_length, raw_sft,
-                data_per_streamline=raw_sft.data_per_streamline[valid_length_ids],
-                data_per_point={})
-
+            valid_length_sft = raw_sft[valid_length_ids]
             _save_if_needed(valid_length_sft, hdf5_file, args,
                             'intermediate', 'valid_length', in_label, out_label)
 
             if not args.no_remove_loops:
                 no_loop_ids = remove_loops_and_sharp_turns(valid_length,
                                                            args.loop_max_angle)
+                loop_ids = np.setdiff1d(np.arange(len(valid_length)),
+                                        no_loop_ids)
+
+                loops_sft = valid_length_sft[loop_ids]
                 no_loops = valid_length[no_loop_ids]
-                loop_ids = np.setdiff1d(
-                    np.arange(len(valid_length)), no_loop_ids)
-                loops = valid_length[loop_ids]
-
-                loops_sft = StatefulTractogram.from_sft(
-                    loops, valid_length_sft,
-                    data_per_streamline=valid_length_sft.data_per_streamline[loop_ids],
-                    data_per_point={})
-
                 _save_if_needed(loops_sft, hdf5_file, args,
                                 'discarded', 'loops', in_label, out_label)
             else:
@@ -418,26 +403,18 @@ def main():
 
             if not len(no_loops):
                 continue
-
-            no_loops_sft = StatefulTractogram.from_sft(
-                no_loops, valid_length_sft,
-                data_per_streamline=valid_length_sft.data_per_streamline[no_loop_ids],
-                data_per_point={})
-
+            no_loops_sft = valid_length_sft[no_loop_ids]
             _save_if_needed(no_loops_sft, hdf5_file, args,
                             'intermediate', 'no_loops', in_label, out_label)
 
             if not args.no_remove_outliers:
                 outliers_ids, inliers_ids = remove_outliers(no_loops,
-                                                            args.outlier_threshold)
-                outliers = no_loops[outliers_ids]
+                                                            args.outlier_threshold,
+                                                            nb_samplings=10,
+                                                            fast_approx=True)
+
+                outliers_sft = no_loops_sft[outliers_ids]
                 inliers = no_loops[inliers_ids]
-
-                outliers_sft = StatefulTractogram.from_sft(
-                    outliers, no_loops_sft,
-                    data_per_streamline=no_loops_sft.data_per_streamline[outliers_ids],
-                    data_per_point={})
-
                 _save_if_needed(outliers_sft, hdf5_file, args,
                                 'discarded', 'outliers', in_label, out_label)
             else:
@@ -447,11 +424,7 @@ def main():
             if not len(inliers):
                 continue
 
-            inliers_sft = StatefulTractogram.from_sft(
-                inliers, no_loops_sft,
-                data_per_streamline=no_loops_sft.data_per_streamline[inliers_ids],
-                data_per_point={})
-
+            inliers_sft = no_loops_sft[inliers_ids]
             _save_if_needed(inliers_sft, hdf5_file, args,
                             'intermediate', 'inliers', in_label, out_label)
 
@@ -461,28 +434,16 @@ def main():
                     args.loop_max_angle,
                     use_qb=True,
                     qb_threshold=args.curv_qb_distance)
-
-                no_qb_curv = inliers[no_qb_curv_ids]
                 qb_curv_ids = np.setdiff1d(np.arange(len(inliers)),
                                            no_qb_curv_ids)
-                qb_curv = inliers[qb_curv_ids]
 
-                qb_curv_sft = StatefulTractogram.from_sft(
-                    qb_curv, inliers_sft,
-                    data_per_streamline=inliers_sft.data_per_streamline[qb_curv_ids],
-                    data_per_point={})
-
+                qb_curv_sft = inliers_sft[qb_curv_ids]
                 _save_if_needed(qb_curv_sft, hdf5_file, args,
                                 'discarded', 'qb_curv', in_label, out_label)
             else:
-                no_qb_curv = inliers
                 no_qb_curv_ids = range(len(inliers))
 
-            no_qb_curv_sft = StatefulTractogram.from_sft(
-                no_qb_curv, inliers_sft,
-                data_per_streamline=inliers_sft.data_per_streamline[no_qb_curv_ids],
-                data_per_point={})
-
+            no_qb_curv_sft = inliers_sft[no_qb_curv_ids]
             _save_if_needed(no_qb_curv_sft, hdf5_file, args,
                             'final', 'final', in_label, out_label)
 
