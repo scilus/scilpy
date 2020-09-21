@@ -268,7 +268,6 @@ def main():
 
     sft.to_vox()
     sft.to_corner()
-    sft.remove_invalid_streamlines()
     time2 = time.time()
     logging.info(
         '    Discarded {} streamlines from filtering in {} sec.'.format(
