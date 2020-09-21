@@ -270,7 +270,7 @@ def main():
     time1 = time.time()
 
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-    sft.streamlines._data = sft.streamlines._data.astype(np.float16)
+
     time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))
