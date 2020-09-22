@@ -170,31 +170,53 @@ def main():
     msmt_fit = fit_from_model(msmt_model, data,
                               mask=mask, nbr_processes=args.nbr_processes)
 
+    shm_coeff = msmt_fit.all_shm_coeff
+
+    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
+    voxel_count = np.prod(shm_coeff[:-1])
+
+    if nan_count / voxel_count >= 0.05:
+        msg = """There are {} voxels out of {} that could not be solved by
+        the solver, reaching a critical amount of voxels. Make sure to tune the
+        response functions properly, as the solving process is very sensitive
+        to it. Proceeding to fill the problematic voxels by 0.
+        """
+        logging.warning(msg)
+    elif nan_count  > 0:
+        msg = """There are {} voxels out of {} that could not be solved by
+        the solver. Make sure to tune the response functions properly, as the
+        solving process is very sensitive to it. Proceeding to fill the
+        problematic voxels by 0.
+        """
+        logging.warning(msg)
+
+    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
+
     # Saving results
     if args.wm_out_fODF:
-        shm_coeff = msmt_fit.shm_coeff
+        wm_coeff = shm_coeff[..., 2:]
         if args.sh_basis == 'tournier07':
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
+        nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  vol.affine), args.wm_out_fODF)
 
     if args.gm_out_fODF:
-        shm_coeff = msmt_fit.all_shm_coeff[..., 1]
+        gm_coeff = shm_coeff[..., 1]
         if args.sh_basis == 'tournier07':
-            shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
+            gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
+        nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  vol.affine), args.gm_out_fODF)
 
     if args.csf_out_fODF:
-        shm_coeff = msmt_fit.all_shm_coeff[..., 0]
+        csf_coeff = shm_coeff[..., 0]
         if args.sh_basis == 'tournier07':
-            shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
+            csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
+        nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
                                  vol.affine), args.csf_out_fODF)
 
     if args.vf:
