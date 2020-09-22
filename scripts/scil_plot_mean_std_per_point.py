@@ -28,7 +28,7 @@ def _build_arg_parser():
 
     p.add_argument('--fill_color',
                    help='Hexadecimal RGB color filling the region between '
-                        'mean ± std. The hexadecimal RGB color should be '
+                        'mean +/- std. The hexadecimal RGB color should be '
                         'formatted as 0xRRGGBB.')
 
     add_overwrite_arg(p)
@@ -53,7 +53,7 @@ def main():
         for metric, metric_stats in bundle_stats.items():
             nb_points = len(metric_stats)
             num_digits_labels = len(str(nb_points))
-            means = []
+           means = []
             stds = []
             for label_int in range(1, nb_points+1):
                 label = str(label_int).zfill(num_digits_labels)
