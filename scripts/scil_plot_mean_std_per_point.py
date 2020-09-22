@@ -53,7 +53,7 @@ def main():
         for metric, metric_stats in bundle_stats.items():
             nb_points = len(metric_stats)
             num_digits_labels = len(str(nb_points))
-           means = []
+            means = []
             stds = []
             for label_int in range(1, nb_points+1):
                 label = str(label_int).zfill(num_digits_labels)

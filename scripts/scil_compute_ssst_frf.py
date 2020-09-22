@@ -96,10 +96,10 @@ def main():
 
     if len(args.roi_radii) == 1:
         roi_radii = args.roi_radii[0]
-    elif len(args.roi_radii) == 2:
-        parser.error('--roi_radii cannot be of size (2,).')
-    else:
+    elif len(args.roi_radii) == 3:
         roi_radii = args.roi_radii
+    else:
+        parser.error('--roi_radii cannot be of size (2,).')
 
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
@@ -114,13 +114,14 @@ def main():
     if args.mask_wm:
         mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=np.bool)
 
-    full_response = compute_ssst_frf(data, bvals, bvecs, mask=mask,
-                                     mask_wm=mask_wm, fa_thresh=args.fa_thresh,
-                                     min_fa_thresh=args.min_fa_thresh,
-                                     min_nvox=args.min_nvox,
-                                     roi_radii=roi_radii,
-                                     roi_center=args.roi_center,
-                                     force_b0_threshold=args.force_b0_threshold)
+    full_response = compute_ssst_frf(
+        data, bvals, bvecs, mask=mask,
+        mask_wm=mask_wm, fa_thresh=args.fa_thresh,
+        min_fa_thresh=args.min_fa_thresh,
+        min_nvox=args.min_nvox,
+        roi_radii=roi_radii,
+        roi_center=args.roi_center,
+        force_b0_threshold=args.force_b0_threshold)
 
     np.savetxt(args.frf_file, full_response)
 
