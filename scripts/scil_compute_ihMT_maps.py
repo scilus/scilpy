@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This script computes four myelin indices maps from the Magnetization Transfer
@@ -75,7 +76,7 @@ Interpretation of magnetization transfer from inhomogeneously broadened lines
 Journal of Magnetic Resonance. 1 nov 2015;260:67‑76.
 
 Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
-“inhomogeneous” magnetization transfer MRI. Journal of Magnetic Resonance.
+"inhomogeneous" magnetization transfer MRI. Journal of Magnetic Resonance.
 1 janv 2017;274:125‑36.
 
 Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
