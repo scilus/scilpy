@@ -42,7 +42,8 @@ Reference:
     [1] Raffelt, D., Tournier, JD., Rose, S., Ridgway, GR., Henderson, R.,
         Crozier, S., Salvado, O., & Connelly, A. (2012).
         Apparent Fibre Density: a novel measure for the analysis of
-        diffusion-weighted magnetic resonance images. NeuroImage, 59(4), 3976--3994.
+        diffusion-weighted magnetic resonance images. NeuroImage,
+        59(4), 3976--3994.
 """
 
 
@@ -53,12 +54,13 @@ def _afd_rd_wrapper(args):
     sh_basis = args[3]
     length_weighting = args[4]
 
-    in_hdf5_file = h5py.File(in_hdf5_filename, 'r')
-    affine = in_hdf5_file.attrs['affine']
-    dimensions = in_hdf5_file.attrs['dimensions']
-    voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
-    streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
-    in_hdf5_file.close()
+    with h5py.File(in_hdf5_filename, 'r') as in_hdf5_file:
+        affine = in_hdf5_file.attrs['affine']
+        dimensions = in_hdf5_file.attrs['dimensions']
+        voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
+        streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
+        if len(streamlines) == 0:
+            return key, 0, 0
 
     header = create_nifti_header(affine, dimensions, voxel_sizes)
     sft = StatefulTractogram(streamlines, header, Space.VOX,
@@ -100,16 +102,24 @@ def main():
     assert_inputs_exist(parser, [args.in_hdf5, args.in_fodf])
     assert_outputs_exist(parser, args, [args.out_hdf5])
 
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):
         os.remove(args.out_hdf5)
 
     fodf_img = nib.load(args.in_fodf)
-
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     in_hdf5_file = h5py.File(args.in_hdf5, 'r')
+    if not (np.allclose(in_hdf5_file.attrs['affine'], fodf_img.affine,
+                        atol=1e-03)
+            and np.array_equal(in_hdf5_file.attrs['dimensions'],
+                               fodf_img.shape[0:3])):
+        parser.error('{} does not have a compatible header with {}'.format(
+            args.in_hdf5, args.in_fodf))
+
     keys = list(in_hdf5_file.keys())
     in_hdf5_file.close()
+
     if nbr_cpu == 1:
         results_list = []
         for key in keys:
@@ -129,16 +139,15 @@ def main():
         pool.join()
 
     shutil.copy(args.in_hdf5, args.out_hdf5)
-    out_hdf5_file = h5py.File(args.out_hdf5, 'a')
-    for key, afd_fixel, rd_fixel in results_list:
-        group = out_hdf5_file[key]
-        if 'afd_fixel' in group:
-            del group['afd_fixel']
-        group.create_dataset('afd_fixel', data=afd_fixel)
-        if 'rd_fixel' in group:
-            del group['rd_fixel']
-        group.create_dataset('rd_fixel', data=rd_fixel)
-    out_hdf5_file.close()
+    with h5py.File(args.out_hdf5, 'a') as out_hdf5_file:
+        for key, afd_fixel, rd_fixel in results_list:
+            group = out_hdf5_file[key]
+            if 'afd_fixel' in group:
+                del group['afd_fixel']
+            group.create_dataset('afd_fixel', data=afd_fixel)
+            if 'rd_fixel' in group:
+                del group['rd_fixel']
+            group.create_dataset('rd_fixel', data=rd_fixel)
 
 
 if __name__ == '__main__':

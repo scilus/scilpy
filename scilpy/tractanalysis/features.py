@@ -47,6 +47,7 @@ def remove_loops_and_sharp_turns(streamlines,
             streamlines_clean.append(s)
 
     if use_qb:
+        ids = []
         if len(streamlines_clean) > 1:
             curvature = []
 

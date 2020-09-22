@@ -128,7 +128,8 @@ def main():
     new_data_per_points = wb_file.data_per_point[indices]
 
     if not args.no_empty or new_streamlines:
-        sft = StatefulTractogram(new_streamlines, wb_file, Space.RASMM,
+        sft = StatefulTractogram(new_streamlines, wb_file.space_attributes,
+                                 Space.RASMM,
                                  data_per_streamline=new_data_per_streamlines,
                                  data_per_point=new_data_per_points)
         save_tractogram(sft, args.out_tractogram)

@@ -62,6 +62,7 @@ import nibabel as nib
 from nibabel.streamlines import Tractogram
 
 from scilpy.io.streamlines import (lazy_streamlines_count,
+                                   reconstruct_streamlines,
                                    reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
@@ -127,7 +128,7 @@ def _build_arg_parser():
     g2.add_argument('--keep_whole_tractogram', action='store_true',
                     help='Save a tractogram copy with streamlines weights in '
                          'the data_per_streamline\n[%(default)s].')
-    g2.add_argument('--threshold_weights', type=float, metavar='THRESHOLD',
+    g2.add_argument('--threshold_weights', metavar='THRESHOLD',
                     default=0.,
                     help='Split the tractogram in two; essential and\n'
                          'nonessential, based on the provided threshold '
@@ -195,6 +196,15 @@ def main():
         parser.error('{} does not have a compatible header with {}'.format(
             args.in_tractogram, args.in_dwi))
 
+    if args.threshold_weights == 'None' or args.threshold_weights == 'none':
+        args.threshold_weights = None
+        if not args.keep_whole_tractogram and ext != '.h5':
+            logging.warning('Not thresholding weigth with trk file without '
+                            'the --keep_whole_tractogram will not save a '
+                            'tractogram')
+    else:
+        args.threshold_weights = float(args.threshold_weights)
+
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
     if args.verbose:
@@ -209,23 +219,27 @@ def main():
     if ext == '.h5':
         logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
-        streamlines = []
-        len_list = [0]
+
         hdf5_file = h5py.File(args.in_tractogram, 'r')
-        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine)
-                and np.allclose(hdf5_file.attrs['dimensions'], dwi_img.shape[0:3])):
+        if not (np.allclose(hdf5_file.attrs['affine'], dwi_img.affine,
+                            atol=1e-03)
+                and np.array_equal(hdf5_file.attrs['dimensions'],
+                                   dwi_img.shape[0:3])):
             parser.error('{} does not have a compatible header with {}'.format(
                 args.in_tractogram, args.in_dwi))
 
         # Keep track of the order of connections/streamlines in relation to the
         # tractogram as well as the number of streamlines for each connection.
         hdf5_keys = list(hdf5_file.keys())
+        streamlines = []
+        offsets_list = [0]
         for key in hdf5_keys:
             tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
                                                                 key)
-            len_list.append(len(tmp_streamlines))
+            offsets_list.append(len(tmp_streamlines))
             streamlines.extend(tmp_streamlines)
-        len_list = np.cumsum(len_list)
+
+        offsets_list = np.cumsum(offsets_list)
 
         sft = StatefulTractogram(streamlines, args.in_dwi,
                                  Space.VOX, origin=Origin.TRACKVIS)
@@ -233,14 +247,13 @@ def main():
 
         # Keeping the input variable, saving trk file for COMMIT internal use
         save_tractogram(sft, tmp_tractogram_filename)
-        initial_hdf5_filename = args.in_tractogram
         args.in_tractogram = tmp_tractogram_filename
 
+    # Writing the scheme file with proper shells
     tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    shells_centroids, indices_shells = identify_shells(bvals,
-                                                       args.b_thr,
+    shells_centroids, indices_shells = identify_shells(bvals, args.b_thr,
                                                        roundCentroids=True)
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
@@ -271,7 +284,7 @@ def main():
         # (based on order of magnitude of signal)
         img = nib.load(args.in_dwi)
         data = img.get_fdata(dtype=np.float32)
-        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data>0]))))] = 0
+        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data > 0]))))] = 0
         nib.save(nib.Nifti1Image(data, img.affine),
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 
@@ -323,7 +336,7 @@ def main():
     pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
     commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
-    commit_weights = commit_output_dict[2][:nbr_streamlines]
+    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
     np.savetxt(os.path.join(commit_results_dir,
                             'commit_weights.txt'),
                commit_weights)
@@ -331,19 +344,44 @@ def main():
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
-        shutil.copy(initial_hdf5_filename, new_filename)
-        hdf5_file = h5py.File(new_filename, 'a')
+        with h5py.File(new_filename, 'w') as new_hdf5_file:
+            new_hdf5_file.attrs['affine'] = sft.affine
+            new_hdf5_file.attrs['dimensions'] = sft.dimensions
+            new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
+            new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
+            # Assign the weights into the hdf5, while respecting the ordering of
+            # connections/streamlines
+            logging.debug('Adding commit weights to {}.'.format(new_filename))
+            for i, key in enumerate(hdf5_keys):
+                new_group = new_hdf5_file.create_group(key)
+                old_group = hdf5_file[key]
+                tmp_commit_weights = commit_weights[offsets_list[i]:offsets_list[i+1]]
+                if args.threshold_weights is not None:
+                    essential_ind = np.where(
+                        tmp_commit_weights > args.threshold_weights)[0]
+                    tmp_streamlines = reconstruct_streamlines(old_group['data'],
+                                                              old_group['offsets'],
+                                                              old_group['lengths'],
+                                                              indices=essential_ind)
 
-        # Assign the weights into the hdf5, while respecting the ordering of
-        # connections/streamlines
-        logging.debug('Adding commit weights to {}.'.format(new_filename))
-        for i, key in enumerate(hdf5_keys):
-            group = hdf5_file[key]
-            tmp_commit_weights = commit_weights[len_list[i]:len_list[i+1]]
-            if 'commit_weights' in group:
-                del group['commit_weights']
-            group.create_dataset('commit_weights',
-                                 data=tmp_commit_weights)
+                    # Replacing the data with the one above the threshold
+                    # Safe since this hdf5 was a copy in the first place
+                    new_group.create_dataset('data',
+                                             data=tmp_streamlines.get_data(),
+                                             dtype=np.float32)
+                    new_group.create_dataset('offsets',
+                                             data=tmp_streamlines._offsets,
+                                             dtype=np.int64)
+                    new_group.create_dataset('lengths',
+                                             data=tmp_streamlines._lengths,
+                                             dtype=np.int32)
+
+                for dps_key in hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        new_group.create_dataset(key,
+                                                 data=hdf5_file[key][dps_key])
+                new_group.create_dataset('commit_weights',
+                                         data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
     for f in files:
@@ -400,9 +438,6 @@ def main():
                 output_filename))
             nib.streamlines.save(tractogram_file, output_filename)
 
-    # Cleanup the temporary directory
-    if ext == '.h5':
-        hdf5_file.close()
     tmp_dir.cleanup()
 
 
