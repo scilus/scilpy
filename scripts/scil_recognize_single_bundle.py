@@ -28,7 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              load_matrix_in_any_format)
 
 EPILOG = """
-Garyfallidis, E., Côté, M. A., Rheault, F., ... &
+Garyfallidis, E., Cote, M. A., Rheault, F., ... &
 Descoteaux, M. (2018). Recognition of white matter
 bundles using local and global streamline-based registration and
 clustering. NeuroImage, 170, 283-295.

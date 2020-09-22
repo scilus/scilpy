@@ -94,7 +94,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
         else:
             step = 5
 
-    # 1000 works well at 2x2x2 = 8 mm^3
+    # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
     vol = (zoom[0] * zoom[1] * zoom[2])
     if vol != 0:

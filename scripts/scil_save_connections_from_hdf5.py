@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 
 """
 Save individual connection of an hd5f from scil_decompose_connectivity.py.
@@ -13,10 +13,10 @@ This option saves existing connections and empty connections.
 
 The output is a directory containing the thousands of connections:
 out_dir/
-    ├── LABEL1_LABEL1.trk
-    ├── LABEL1_LABEL2.trk
-    ├── [...]
-    └── LABEL90_LABEL90.trk
+    |-- LABEL1_LABEL1.trk
+    |-- LABEL1_LABEL2.trk
+    |-- [...]
+    |-- LABEL90_LABEL90.trk
 """
 
 import argparse
