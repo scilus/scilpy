@@ -130,7 +130,7 @@ def _prune_segments(segments, min_length, max_length, vox_size):
     invalid = []
 
     for i, tuple_zip in enumerate(zip(segments, lengths)):
-        se, le = tuple_zip
+        _, le = tuple_zip
         if min_length <= le <= max_length:
             valid.append(i)
         else:

@@ -164,7 +164,6 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
         thresholds = list(thresholds)
 
     ordering = np.arange(len(streamlines))
-    nb_clusterings = 0
     path_lengths_per_streamline = 0
 
     streamlines_path = np.ones((len(streamlines), len(thresholds),
@@ -181,9 +180,8 @@ def outliers_removal_using_hierarchical_quickbundles(streamlines,
             qb = QuickBundles(metric=metric, threshold=threshold)
             for cluster_ordering in cluster_orderings:
                 clusters = qb.cluster(streamlines, ordering=cluster_ordering)
-                nb_clusterings += 1
 
-                for k, cluster in enumerate(clusters):
+                for _, cluster in enumerate(clusters):
                     streamlines_path[cluster.indices, j, i] = id_cluster
                     id_cluster += 1
                     if len(cluster) > 10:
@@ -221,7 +219,7 @@ def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
         streamlines, nb_points=nb_points, nb_samplings_max=nb_samplings,
         fast_approx=fast_approx)
     if fast_approx:
-        threshold -= 0.1
+        threshold -= 0.05
     outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
     return outliers_ids, inliers_ids
