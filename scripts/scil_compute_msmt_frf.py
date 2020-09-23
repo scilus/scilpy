@@ -41,17 +41,17 @@ def buildArgsParser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path to the input diffusion volume.')
-    p.add_argument('bvals',
-                   help='Path to the bvals file, in FSL format.')
-    p.add_argument('bvecs',
-                   help='Path to the bvecs file, in FSL format.')
-    p.add_argument('wm_frf_file',
+    p.add_argument('in_bval',
+                   help='Path to the bval file, in FSL format.')
+    p.add_argument('in_bvec',
+                   help='Path to the bvec file, in FSL format.')
+    p.add_argument('out_wm_frf',
                    help='Path to the output WM frf file, in .txt format.')
-    p.add_argument('gm_frf_file',
+    p.add_argument('out_gm_frf',
                    help='Path to the output GM frf file, in .txt format.')
-    p.add_argument('csf_frf_file',
+    p.add_argument('out_csf_frf',
                    help='Path to the output CSF frf file, in .txt format.')
 
     p.add_argument(
@@ -150,9 +150,9 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
-    assert_outputs_exist(parser, args, [args.wm_frf_file, args.gm_frf_file,
-                                        args.csf_frf_file])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
+    assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
+                                        args.out_csf_frf])
 
     if len(args.roi_radii) == 1:
         roi_radii = args.roi_radii[0]
@@ -162,9 +162,9 @@ def main():
         roi_radii = args.roi_radii
     roi_center = args.roi_center
 
-    vol = nib.load(args.input)
+    vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     tol = args.tolerance
 
@@ -219,7 +219,7 @@ def main():
             nib.save(nib.Nifti1Image(mask.astype(np.uint16), vol.get_affine()),
                      mask_file)
 
-    frf_out = [args.wm_frf_file, args.gm_frf_file, args.csf_frf_file]
+    frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]
 
     for frf, response in zip(frf_out, responses):
         np.savetxt(frf, response)

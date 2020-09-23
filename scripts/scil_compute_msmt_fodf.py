@@ -41,17 +41,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals',
-                   help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
-                   help='Path of the bvecs file, in FSL format.')
-    p.add_argument('wm_frf_file',
+    p.add_argument('in_bval',
+                   help='Path of the bval file, in FSL format.')
+    p.add_argument('in_bvec',
+                   help='Path of the bvec file, in FSL format.')
+    p.add_argument('in_wm_frf',
                    help='Text file of WM response function.')
-    p.add_argument('gm_frf_file',
+    p.add_argument('in_gm_frf',
                    help='Text file of GM response function.')
-    p.add_argument('csf_frf_file',
+    p.add_argument('in_csf_frf',
                    help='Text file of CSF response function.')
 
     p.add_argument(
@@ -106,18 +106,18 @@ def main():
         parser.error('When using --not_all, you need to specify at least ' +
                      'one file to output.')
 
-    assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
-                                 args.wm_frf_file, args.gm_frf_file,
-                                 args.csf_frf_file])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
+                                 args.in_wm_frf, args.in_gm_frf,
+                                 args.in_csf_frf])
     assert_outputs_exist(parser, args, arglist)
 
     # Loading data
-    wm_frf = np.loadtxt(args.wm_frf_file)
-    gm_frf = np.loadtxt(args.gm_frf_file)
-    csf_frf = np.loadtxt(args.csf_frf_file)
-    vol = nib.load(args.input)
+    wm_frf = np.loadtxt(args.in_wm_frf)
+    gm_frf = np.loadtxt(args.in_gm_frf)
+    csf_frf = np.loadtxt(args.in_csf_frf)
+    vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     # Checking mask
     if args.mask is None:
