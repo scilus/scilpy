@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This script computes four myelin indices maps from the Magnetization Transfer
@@ -72,16 +73,16 @@ EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
 Interpretation of magnetization transfer from inhomogeneously broadened lines
 (ihMT) in tissues as a dipolar order effect within motion restricted molecules.
-Journal of Magnetic Resonance. 1 nov 2015;260:67‑76.
+Journal of Magnetic Resonance. 1 nov 2015;260:67-76.
 
 Manning AP, Chang KL, MacKay AL, Michal CA. The physical mechanism of
-“inhomogeneous” magnetization transfer MRI. Journal of Magnetic Resonance.
-1 janv 2017;274:125‑36.
+"inhomogeneous" magnetization transfer MRI. Journal of Magnetic Resonance.
+1 janv 2017;274:125-36.
 
 Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
 magnetization transfer with inherent correction for RF inhomogeneity
 and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
-2008;60(6):1396‑407.
+2008;60(6):1396-407.
 """
 
 

@@ -2,7 +2,7 @@ bz2file==0.98.*
 coloredlogs==10.0.*
 cycler==0.10.*
 Cython==0.29.*
-dipy==1.1.*
+dipy==1.2.*
 fury==0.2.*
 future==0.17.*
 h5py==2.9.*
@@ -20,7 +20,7 @@ scikit-learn==0.22.*
 scipy==1.4.*
 setuptools==46.1.*
 six==1.15.*
-vtk==8.1.*
+vtk==9.0.1
 trimeshpy==0.0.*
 coloredlogs==10.0.*
 nilearn==0.6.*
