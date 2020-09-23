@@ -28,7 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.streamlines import intersection, union
+from scilpy.utils.streamlines import intersection_robust, union_robust
 
 
 def _build_arg_parser():
@@ -83,7 +83,7 @@ def main():
             raise ValueError('Headers are not compatible.')
         fusion_streamlines.extend(tmp_sft.streamlines)
 
-    fusion_streamlines, _ = union([fusion_streamlines])
+    fusion_streamlines, _ = union_robust([fusion_streamlines])
 
     transformation, dimensions, _, _ = get_reference_info(reference_file)
     volume = np.zeros(dimensions)
@@ -102,7 +102,7 @@ def main():
         volume[binary > 0] += 1
 
         if args.same_tractogram:
-            _, indices = intersection([fusion_streamlines, bundle])
+            _, indices = intersection_robust([fusion_streamlines, bundle])
             streamlines_vote[list(indices), [i]] += 1
 
     if args.same_tractogram:

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-
-import itertools
-import logging
 from copy import deepcopy
+import itertools
+from functools import reduce
+import logging
+
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
@@ -13,52 +14,121 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
-
-def sum_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
-    """ Concatenate a list of StatefulTractogram together """
-    fused_sft = sft_list[0]
-    if erase_metadata:
-        fused_sft.data_per_point = {}
-        fused_sft.data_per_streamline = {}
-
-    for sft in sft_list[1:]:
-        if erase_metadata:
-            sft.data_per_point = {}
-            sft.data_per_streamline = {}
-        elif metadata_fake_init:
-            for dps_key in list(sft.data_per_streamline.keys()):
-                if dps_key not in sft_list[0].data_per_streamline.keys():
-                    del sft.data_per_streamline[dps_key]
-            for dpp_key in list(sft.data_per_point.keys()):
-                if dpp_key not in sft_list[0].data_per_point.keys():
-                    del sft.data_per_point[dpp_key]
-
-            for dps_key in sft_list[0].data_per_streamline.keys():
-                if dps_key not in sft.data_per_streamline:
-                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
-                    arr_shape[0] = len(sft)
-                    sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
-            for dpp_key in sft_list[0].data_per_point.keys():
-                if dpp_key not in sft.data_per_point:
-                    arr_seq = ArraySequence()
-                    arr_seq._data = np.zeros(
-                        sft_list[0].data_per_point[dpp_key]._data.shape)
-                    arr_seq._offsets = sft.streamlines._offsets
-                    arr_seq._lengths = sft.streamlines._lengths
-                    sft.data_per_point[dpp_key] = arr_seq
-
-        if not metadata_fake_init and \
-                not StatefulTractogram.are_compatible(sft, fused_sft):
-            raise ValueError('Incompatible SFT, check space attributes and '
-                             'data_per_point/streamlines.')
-        elif not is_header_compatible(sft, fused_sft):
-            raise ValueError('Incompatible SFT, check space attributes.')
-        fused_sft += sft
-
-    return fused_sft
+MIN_NB_POINTS = 10
+KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
 
 
-def intersection(streamlines_list, precision=3):
+def get_streamline_key(streamline, precision=None):
+    # Use just a few data points as hash key. I could use all the data of
+    # the streamlines, but then the complexity grows with the number of
+    # points.
+    if len(streamline) < MIN_NB_POINTS:
+        key = streamline.copy()
+    else:
+        key = streamline[KEY_INDEX].copy()
+
+    if precision is not None:
+        key = np.round(key, precision)
+
+    key.flags.writeable = False
+
+    return key.data.tobytes()
+
+
+def hash_streamlines(streamlines, start_index=0, precision=None):
+    """Produces a dict from streamlines
+
+    Produces a dict from streamlines by using the points as keys and the
+    indices of the streamlines as values.
+
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines used to produce the dict.
+    start_index: int, optional
+        The index of the first streamline. 0 by default.
+    precision: int, optional
+        The number of decimals to keep when hashing the points of the
+        streamlines. Allows a soft comparison of streamlines. If None, no
+        rounding is performed.
+
+    Returns
+    -------
+    A dict where the keys are streamline points and the values are indices
+    starting at start_index.
+
+    """
+
+    keys = [get_streamline_key(s, precision) for s in streamlines]
+    return {k: i for i, k in enumerate(keys, start_index)}
+
+
+def intersection(left, right):
+    """Intersection of two streamlines dict (see hash_streamlines)"""
+    return {k: v for k, v in left.items() if k in right}
+
+
+def difference(left, right):
+    """Difference of two streamlines dict (see hash_streamlines)"""
+    return {k: v for k, v in left.items() if k not in right}
+
+
+def union(left, right):
+    """Union of two streamlines dict (see hash_streamlines)"""
+
+    # In python 3 : return {**left, **right}
+    result = left.copy()
+    result.update(right)
+    return result
+
+
+def perform_streamlines_operation(operation, streamlines, precision=None):
+    """Peforms an operation on a list of list of streamlines
+
+    Given a list of list of streamlines, this function applies the operation
+    to the first two lists of streamlines. The result in then used recursively
+    with the third, fourth, etc. lists of streamlines.
+
+    A valid operation is any function that takes two streamlines dict as input
+    and produces a new streamlines dict (see hash_streamlines). Union,
+    difference, and intersection are valid examples of operations.
+
+    Parameters
+    ----------
+    operation: callable
+        A callable that takes two streamlines dicts as inputs and preduces a
+        new streamline dict.
+    streamlines: list of list of streamlines
+        The streamlines used in the operation.
+    precision: int, optional
+        The number of decimals to keep when hashing the points of the
+        streamlines. Allows a soft comparison of streamlines. If None, no
+        rounding is performed.
+
+    Returns
+    -------
+    streamlines: list of `nib.streamline.Streamlines`
+        The streamlines obtained after performing the operation on all the
+        input streamlines.
+    indices: list
+        The indices of the streamlines that are used in the output.
+
+    """
+
+    # Hash the streamlines using the desired precision.
+    indices = np.cumsum([0] + [len(s) for s in streamlines[:-1]])
+    hashes = [hash_streamlines(s, i, precision) for
+              s, i in zip(streamlines, indices)]
+
+    # Perform the operation on the hashes and get the output streamlines.
+    to_keep = reduce(operation, hashes)
+    all_streamlines = list(itertools.chain(*streamlines))
+    indices = sorted(to_keep.values())
+    streamlines = [all_streamlines[i] for i in indices]
+    return streamlines, indices
+
+
+def intersection_robust(streamlines_list, precision=3):
     """ Intersection of a list of StatefulTractogram """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
@@ -68,7 +138,7 @@ def intersection(streamlines_list, precision=3):
     return streamlines_fused[indices], indices
 
 
-def difference(streamlines_list, precision=3):
+def difference_robust(streamlines_list, precision=3):
     """ Difference of a list of StatefulTractogram from the first element """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
@@ -78,7 +148,7 @@ def difference(streamlines_list, precision=3):
     return streamlines_fused[indices], indices
 
 
-def union(streamlines_list, precision=3):
+def union_robust(streamlines_list, precision=3):
     """ Union of a list of StatefulTractogram """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
@@ -206,6 +276,50 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     return streamlines, np.where(streamlines_to_keep > 0)[0]
 
 
+def sum_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
+    """ Concatenate a list of StatefulTractogram together """
+    fused_sft = sft_list[0]
+    if erase_metadata:
+        fused_sft.data_per_point = {}
+        fused_sft.data_per_streamline = {}
+
+    for sft in sft_list[1:]:
+        if erase_metadata:
+            sft.data_per_point = {}
+            sft.data_per_streamline = {}
+        elif metadata_fake_init:
+            for dps_key in list(sft.data_per_streamline.keys()):
+                if dps_key not in sft_list[0].data_per_streamline.keys():
+                    del sft.data_per_streamline[dps_key]
+            for dpp_key in list(sft.data_per_point.keys()):
+                if dpp_key not in sft_list[0].data_per_point.keys():
+                    del sft.data_per_point[dpp_key]
+
+            for dps_key in sft_list[0].data_per_streamline.keys():
+                if dps_key not in sft.data_per_streamline:
+                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
+                    arr_shape[0] = len(sft)
+                    sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
+            for dpp_key in sft_list[0].data_per_point.keys():
+                if dpp_key not in sft.data_per_point:
+                    arr_seq = ArraySequence()
+                    arr_seq._data = np.zeros(
+                        sft_list[0].data_per_point[dpp_key]._data.shape)
+                    arr_seq._offsets = sft.streamlines._offsets
+                    arr_seq._lengths = sft.streamlines._lengths
+                    sft.data_per_point[dpp_key] = arr_seq
+
+        if not metadata_fake_init and \
+                not StatefulTractogram.are_compatible(sft, fused_sft):
+            raise ValueError('Incompatible SFT, check space attributes and '
+                             'data_per_point/streamlines.')
+        elif not is_header_compatible(sft, fused_sft):
+            raise ValueError('Incompatible SFT, check space attributes.')
+        fused_sft += sft
+
+    return fused_sft
+
+# TODO rename transform_warp_sft
 def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
                                deformation_data=None,
                                remove_invalid=True, cut_invalid=False):

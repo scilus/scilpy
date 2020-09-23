@@ -43,10 +43,16 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (difference, intersection, union, sum_sft)
+from scilpy.utils.streamlines import (difference_robust, difference,
+                                      union_robust, union,
+                                      intersection_robust, intersection,
+                                      perform_streamlines_operation, sum_sft)
 
 
 OPERATIONS = {
+    'difference_robust': difference_robust,
+    'intersection_robust': intersection_robust,
+    'union_robust': union_robust,
     'difference': difference,
     'intersection': intersection,
     'union': union,
@@ -73,6 +79,9 @@ def _build_arg_parser():
     p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
                    type=int, default=4,
                    help='Precision used to compare streamlines [%(default)s].')
+    p.add_argument('--robust', '-r', action='store_true',
+                   help='Use version robust to small translation/rotation.\n'
+                        'works better combined with --precision 0.')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
@@ -112,8 +121,14 @@ def main():
         indices = range(len(new_sft))
     else:
         streamlines_list = [sft.streamlines for sft in sft_list]
-        _, indices = OPERATIONS[args.operation](streamlines_list,
-                                                precision=args.precision)
+        op_name = args.operation
+        if args.robust:
+            op_name += '_robust'
+            _, indices = OPERATIONS[op_name](streamlines_list,
+                                             precision=args.precision)
+        else:
+            _, indices = perform_streamlines_operation(
+                OPERATIONS[op_name], streamlines_list, precision=args.precision)
 
     # Save the indices to a file if requested.
     if args.save_indices:
