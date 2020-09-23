@@ -20,9 +20,7 @@ from fury import window, actor
 
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-
-# Default background offset when none is specified
-DEFAULT_OFFSET = 0.5
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
@@ -30,28 +28,28 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     # Positional arguments
-    p.add_argument('input_fodf', type=str, help='Input SH image file')
+    p.add_argument('in_fodf', default=None, help='Input SH image file.')
 
-    p.add_argument('slice_index', type=int,
-                   help='Index of the slice to visualize along a given axis')
+    p.add_argument('--slice_index', type=int,
+                   help='Index of the slice to visualize along a given axis.')
 
     # Window configuration options
     p.add_argument('--win_dims', nargs=2, metavar=('WIDTH', 'HEIGHT'),
                    default=[768, 768], type=int,
-                   help='The dimensions for the vtk window')
+                   help='The dimensions for the vtk window.')
 
     p.add_argument('--interactor', default='trackball', type=str,
                    choices={'image', 'trackball'},
-                   help='Specify interactor mode for vtk window')
+                   help='Specify interactor mode for vtk window.')
 
     p.add_argument('--axis_name', default='axial', type=str,
                    choices={'axial', 'coronal', 'sagittal'},
                    help='Name of the axis to visualize.')
 
-    p.add_argument('--silent', default=False, action='store_true',
-                   help='Disable interactive visualization')
+    p.add_argument('--silent', action='store_true',
+                   help='Disable interactive visualization.')
 
-    p.add_argument('--output', type=str, help='Path to output file')
+    p.add_argument('--output', help='Path to output file.')
 
     add_overwrite_arg(p)
 
@@ -61,39 +59,47 @@ def _build_arg_parser():
 
     add_sh_basis_args(p)
 
-    p.add_argument('--full_basis', default=False, action='store_true',
+    p.add_argument('--full_basis', action='store_true',
                    help='Use full SH basis to reconstruct fODF from '
-                   'coefficients')
+                   'coefficients.')
 
     sphere_choices = {'symmetric362', 'symmetric642', 'symmetric724',
                       'repulsion724', 'repulsion100', 'repulsion200'}
     p.add_argument('--sphere', default='symmetric724', choices=sphere_choices,
-                   help='Name of the sphere used to reconstruct SF')
+                   help='Name of the sphere used to reconstruct SF.')
 
     p.add_argument('--sph_subdivide', type=int,
-                   help='Number of subdivisions for given sphere')
+                   help='Number of subdivisions for given sphere.')
 
-    p.add_argument('--mask', help='Optional mask file. Only fODF inside the '
-                                  'mask are displayed')
+    p.add_argument('--mask',
+                   help='Optional mask file. Only fODF inside '
+                        'the mask are displayed.')
+
+    p.add_argument('--colormap', default='jet',
+                   help='Colormap for the ODF slicer.')
 
     p.add_argument('--scale', default=0.5, type=float,
                    help='Scaling factor for FODF.')
 
-    p.add_argument('--radial_scale_off', default=False, action='store_true',
-                   help='Disable radial scale for ODF slicer')
+    p.add_argument('--radial_scale_off', action='store_true',
+                   help='Disable radial scale for ODF slicer.')
 
-    p.add_argument('--norm_off', default=False, action='store_true',
-                   help='Disable normalization of ODF slicer')
+    p.add_argument('--norm_off', action='store_true',
+                   help='Disable normalization of ODF slicer.')
 
     # Background image options
-    p.add_argument('--background', type=str, help='Background image file')
+    p.add_argument('--background',
+                   help='Background image file.')
 
     p.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
                    help='The range of values mapped to range [0, 1] '
-                        'for background image')
+                        'for background image.')
 
-    p.add_argument('--offset', type=float,
-                   help='The offset of the background image')
+    p.add_argument('--bg_offset', type=float,
+                   help='The offset of the background image.')
+
+    p.add_argument('--bg_interpolation', choices={'linear', 'nearest'},
+                   help='Interpolation mode for the background image.')
 
     return p
 
@@ -102,13 +108,13 @@ def _parse_args(parser):
     args = parser.parse_args()
     inputs = []
     output = []
-    inputs.append(args.input_fodf)
+    inputs.append(args.in_fodf)
     if args.output:
         output.append(args.output)
     else:
         if args.silent:
             parser.error('Silent mode is enabled but no output is specified.'
-                         'Specify an output with --output to use silent mode')
+                         'Specify an output with --output to use silent mode.')
     if args.mask:
         inputs.append(args.mask)
     if args.background:
@@ -118,8 +124,12 @@ def _parse_args(parser):
             parser.error('Background range is specified but no background '
                          'image is specified. Specify a background image '
                          'with --background to use this feature.')
-        if args.offset:
+        if args.bg_offset:
             parser.error('Background image offset is specified but no '
+                         'background image is specified. Specify a background '
+                         'image with --background to use this feature.')
+        if args.bg_interpolation:
+            parser.error('Background image interpolation is specified but no '
                          'background image is specified. Specify a background '
                          'image with --background to use this feature.')
 
@@ -134,10 +144,16 @@ def _crop_along_axis(data, index, axis_name):
     Extract a 2-dimensional slice from a 3-dimensional data volume
     """
     if axis_name == 'sagittal':
+        if index is None:
+            return data[data.shape[0]//2, :, :]
         return data[index, :, :]
     elif axis_name == 'coronal':
+        if index is None:
+            return data[:, data.shape[1]//2, :]
         return data[:, index, :]
     elif axis_name == 'axial':
+        if index is None:
+            return data[:, :, data.shape[2]//2]
         return data[:, :, index]
 
 
@@ -146,21 +162,21 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background and fODF.
     """
-    fodf = nib.nifti1.load(args.input_fodf).get_fdata().astype(np.float)
+    fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
     data = {'fodf': _crop_along_axis(fodf, args.slice_index,
                                      args.axis_name)}
     if args.background:
-        bg = nib.nifti1.load(args.background).get_fdata().astype(np.float)
+        bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
         if bg.shape[:3] != fodf.shape[:-1]:
             raise ValueError('Background dimensions {0} do not agree with fODF'
-                             ' dimensions {1}'.format(bg.shape, fodf.shape))
+                             ' dimensions {1}.'.format(bg.shape, fodf.shape))
         data['bg'] = _crop_along_axis(bg, args.slice_index,
                                       args.axis_name)
     if args.mask:
-        mask = nib.nifti1.load(args.mask).get_fdata().astype(np.bool)
+        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
         if mask.shape != fodf.shape[:-1]:
             raise ValueError('Mask dimensions {0} do not agree with fODF '
-                             'dimensions {1}'.format(mask.shape, fodf.shape))
+                             'dimensions {1}.'.format(mask.shape, fodf.shape))
         data['mask'] = _crop_along_axis(mask, args.slice_index,
                                         args.axis_name)
 
@@ -169,7 +185,8 @@ def _get_data_from_inputs(args):
 
 
 def _initialize_odf_slicer(data_dict, sphere, nb_subdivide, sh_order, sh_basis,
-                           full_basis, axis_name, scale, radial_scale, norm):
+                           full_basis, axis_name, scale, radial_scale, norm,
+                           colormap):
     """
     Create a ODF slicer actor displaying fODF in the XY plane. To account for
     the transformation of an initial 2D grid in the plane corresponding to
@@ -207,10 +224,10 @@ def _initialize_odf_slicer(data_dict, sphere, nb_subdivide, sh_order, sh_basis,
         mask = data_dict['mask']
     else:
         mask = np.linalg.norm(fodf, axis=-1) > 0.
-
+    print(norm)
     odf_actor = actor.odf_slicer(fodf[..., None, :], mask=mask[..., None],
                                  radial_scale=radial_scale, norm=norm,
-                                 sphere=hi_res_rot_sph, colormap='jet',
+                                 sphere=hi_res_rot_sph, colormap=colormap,
                                  scale=scale)
 
     odf_actor.display_extent(0, fodf.shape[0] - 1,
@@ -219,12 +236,21 @@ def _initialize_odf_slicer(data_dict, sphere, nb_subdivide, sh_order, sh_basis,
     return odf_actor
 
 
-def _initialize_texture_slicer(texture, value_range=None, offset=0.5):
+def _initialize_texture_slicer(texture, value_range=None,
+                               offset=None, interpolation=None):
     """
     Create a texture displayed behind the fODF. The texture is applied on a
     plane with a given offset for the fODF grid. The texture color values are
     linearly interpolated inside value_range.
     """
+    # offset = None defaults to 0.5
+    if offset is None:
+        offset = 0.5
+
+    # interpolation = None defaults to 'nearest'
+    if interpolation is None:
+        interpolation = 'nearest'
+
     affine = np.array([[1.0, 0.0, 0.0, 0.0],
                        [0.0, 1.0, 0.0, 0.0],
                        [0.0, 0.0, 1.0, offset],
@@ -232,7 +258,7 @@ def _initialize_texture_slicer(texture, value_range=None, offset=0.5):
 
     slicer_actor =\
         actor.slicer(texture[..., None], affine=affine,
-                     value_range=value_range, interpolation='nearest')
+                     value_range=value_range, interpolation=interpolation)
     slicer_actor.display_extent(0, texture.shape[0] - 1,
                                 0, texture.shape[1] - 1, 0, 0)
 
@@ -304,15 +330,15 @@ def main():
                                        args.sh_order, args.sh_basis,
                                        args.full_basis, args.axis_name,
                                        args.scale, not args.radial_scale_off,
-                                       not args.norm_off)
+                                       not args.norm_off, args.colormap)
     actors.append(odf_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:
-        offset = args.offset if args.offset else DEFAULT_OFFSET
-        print(offset)
-        bg_actor = _initialize_texture_slicer(data['bg'], args.axis_name,
-                                              args.bg_range, offset)
+        bg_actor = _initialize_texture_slicer(data['bg'],
+                                              args.bg_range,
+                                              args.bg_offset,
+                                              args.bg_interpolation)
         actors.append(bg_actor)
 
     # Prepare and display the scene
