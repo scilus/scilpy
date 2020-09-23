@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 
 """
 Compute a density map for each connection from a hdf5 file.
@@ -11,10 +11,10 @@ This script is parallelized, but will run much slower on non-SSD if too many
 processes are used. The output is a directory containing the thousands of
 connections:
 out_dir/
-    ├── LABEL1_LABEL1.nii.gz
-    ├── LABEL1_LABEL2.nii.gz
-    ├── [...]
-    └── LABEL90_LABEL90.nii.gz
+    |-- LABEL1_LABEL1.nii.gz
+    |-- LABEL1_LABEL2.nii.gz
+    |-- [...]
+    |-- LABEL90_LABEL90.nii.gz
 """
 
 import argparse
