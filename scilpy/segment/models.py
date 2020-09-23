@@ -3,14 +3,12 @@
 import logging
 
 from dipy.align.bundlemin import distance_matrix_mdf
-from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking.streamline import set_number_of_points
 import numpy as np
 
 
-def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
-    """ Remove similar streamlines, shuffling streamlines will impact the 
+def remove_similar_streamlines(streamlines, threshold=5):
+    """ Remove similar streamlines, shuffling streamlines will impact the
     results.
     Only provide a small set of streamlines (below 2000 if possible).
 
@@ -20,9 +18,6 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
         Input streamlines to remove duplicates from.
     threshold : float
         Distance threshold to consider two streamlines similar, in mm.
-    do_avg : bool
-        Instead of removing similar streamlines, average all similar streamlines
-        as a single smoother streamline.
 
     Returns
     -------
@@ -36,14 +31,10 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
                                           sample_20_streamlines)
 
     current_indice = 0
-    avg_streamlines = []
     while True:
         sim_indices = np.where(distance_matrix[current_indice] < threshold)[0]
 
         pop_count = 0
-        if do_avg:
-            avg_streamline_list = []
-
         # Every streamlines similar to yourself (excluding yourself)
         # should be deleted from the set of desired streamlines
         for ind in sim_indices:
@@ -56,32 +47,16 @@ def remove_similar_streamlines(streamlines, threshold=5, do_avg=False):
                                             axis=1)
                 pop_count += 1
 
-            if do_avg:
-                kicked_out = sample_20_streamlines[ind]
-                avg_streamline_list.append(kicked_out)
-
-        if do_avg:
-            if len(avg_streamline_list) > 1:
-                metric = AveragePointwiseEuclideanMetric()
-                qb = QuickBundles(threshold=100, metric=metric)
-                clusters = qb.cluster(avg_streamline_list)
-                avg_streamlines.append(clusters.centroids[0])
-            else:
-                avg_streamlines.append(avg_streamline_list[0])
-
         current_indice += 1
         # Once you reach the end of the remaining streamlines
         if current_indice >= len(distance_matrix):
             break
 
-    if do_avg:
-        return avg_streamlines
-    else:
-        return streamlines
+    return streamlines
 
 
 def subsample_clusters(cluster_map, streamlines, threshold,
-                       min_cluster_size, average_streamlines=False):
+                       min_cluster_size):
     """ Using a cluster map, remove similar streamlines from all clusters
     independently using chunks of 1000 streamlines at the time to prevent
     infinite computation.
@@ -99,9 +74,6 @@ def subsample_clusters(cluster_map, streamlines, threshold,
     min_cluster_size : int
         Minimal cluster size to be considered. Clusters with less streamlines
         that the provided value will de discarded.
-    average_streamlines : bool
-        Instead of removing similar streamlines, average all similar streamlines
-        as a single smoother streamline.
 
     Returns
     -------
@@ -126,8 +98,7 @@ def subsample_clusters(cluster_map, streamlines, threshold,
             start_id = chunk_count * 1000
             stop_id = (chunk_count + 1) * 1000
             partial_sub_streamlines = remove_similar_streamlines(
-                cluster_streamlines[start_id:stop_id],
-                threshold=threshold, do_avg=average_streamlines)
+                cluster_streamlines[start_id:stop_id])
 
             # Add up the chunk results, update the loop values
             cluster_sub_streamlines.extend(partial_sub_streamlines)
