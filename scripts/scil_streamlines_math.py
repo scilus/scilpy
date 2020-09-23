@@ -85,7 +85,7 @@ def _build_arg_parser():
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
-    p.add_argument('--metadata_fake_init', action='store_true',
+    p.add_argument('--fake_metadata', action='store_true',
                    help='Skip the metadata verification, create fake metadata '
                         'if missing, can lead to unexpected behavior.')
     p.add_argument('--save_indices', '-s', metavar='OUT_INDEX_FILE',
@@ -116,7 +116,7 @@ def main():
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
-    new_sft = sum_sft(sft_list, args.no_metadata, args.metadata_fake_init)
+    new_sft = sum_sft(sft_list, args.no_metadata, args.fake_metadata)
     if args.operation == 'concatenate':
         indices = range(len(new_sft))
     else:
