@@ -98,7 +98,7 @@ def subsample_clusters(cluster_map, streamlines, threshold,
             start_id = chunk_count * 1000
             stop_id = (chunk_count + 1) * 1000
             partial_sub_streamlines = remove_similar_streamlines(
-                cluster_streamlines[start_id:stop_id])
+                cluster_streamlines[start_id:stop_id], threshold=threshold)
 
             # Add up the chunk results, update the loop values
             cluster_sub_streamlines.extend(partial_sub_streamlines)
