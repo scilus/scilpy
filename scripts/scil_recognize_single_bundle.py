@@ -5,11 +5,17 @@
 Compute a simple Recobundles (single-atlas & single-parameters).
 The model need to be cleaned and lightweight.
 Transform should come from ANTs: (using the --inverse flag)
-AntsRegistration -m MODEL_REF -f SUBJ_REF
-ConvertTransformFile 3 0GenericAffine.mat 0GenericAffine.npy --ras --hm
+AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
+
+If you are unsure about the transformation 'direction' use the verbose
+option (-v) and try with and without the --inverse flag. If you are not using
+the right transformation 'direction' a warning will popup. If there is no
+warning in both case it means the transformation is very close to identity and
+both 'direction' will work.
 """
 
 import argparse
+import logging
 import pickle
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
@@ -26,6 +32,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
+from scilpy.utils.util import compute_distance_barycenters
 
 EPILOG = """
 Garyfallidis, E., Cote, M. A., Rheault, F., ... &
@@ -61,8 +68,8 @@ def _build_arg_parser():
                    help='MDF threshold used for final streamlines selection '
                         '[%(default)smm].')
 
-    p.add_argument('--slr_threads', type=int, default=None,
-                   help='Number of threads for SLR [all].')
+    p.add_argument('--slr_threads', type=int, default=1,
+                   help='Number of threads for SLR [%(default)s].')
     p.add_argument('--seed', type=int, default=None,
                    help='Random number generator seed [%(default)s].')
     p.add_argument('--inverse', action='store_true',
@@ -72,8 +79,8 @@ def _build_arg_parser():
 
     group = p.add_mutually_exclusive_group()
     group.add_argument('--in_pickle',
-                       help='Input pickle clusters map file.\n'
-                            'Will override the tractogram_clustering_thr parameter.')
+                       help='Input pickle clusters map file.\nWill override '
+                            'the tractogram_clustering_thr parameter.')
     group.add_argument('--out_pickle',
                        help='Output pickle clusters map file.')
 
@@ -91,15 +98,25 @@ def main():
     assert_inputs_exist(parser, [args.in_tractogram, args.in_transfo])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
+    if args.verbose:
+        log_level = logging.INFO
+        logging.basicConfig(level=log_level)
+
     wb_file = load_tractogram_with_reference(parser, args, args.in_tractogram)
     wb_streamlines = wb_file.streamlines
     model_file = load_tractogram_with_reference(parser, args, args.in_model)
 
-    # Default transformation source is expected to be ANTs
     transfo = load_matrix_in_any_format(args.in_transfo)
     if args.inverse:
         transfo = np.linalg.inv(load_matrix_in_any_format(args.in_transfo))
 
+    before, after = compute_distance_barycenters(wb_file, model_file, transfo)
+    if after > before:
+        logging.warning('The distance between volumes barycenter should be '
+                        'lower after registration. Maybe try using/removing '
+                        '--inverse.')
+        logging.info('Distance before: {}, Distance after: {}'.format(
+            np.round(before, 3), np.round(after, 3)))
     model_streamlines = transform_streamlines(model_file.streamlines, transfo)
 
     rng = np.random.RandomState(args.seed)
