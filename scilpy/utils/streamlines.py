@@ -26,8 +26,6 @@ def sum_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
             sft.data_per_point = {}
             sft.data_per_streamline = {}
         elif metadata_fake_init:
-            print(list(sft_list[0].data_per_point.keys()))
-            print(list(sft.data_per_point.keys()))
             for dps_key in list(sft.data_per_streamline.keys()):
                 if dps_key not in sft_list[0].data_per_streamline.keys():
                     del sft.data_per_streamline[dps_key]
@@ -48,8 +46,7 @@ def sum_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
                     arr_seq._offsets = sft.streamlines._offsets
                     arr_seq._lengths = sft.streamlines._lengths
                     sft.data_per_point[dpp_key] = arr_seq
-            print(list(sft_list[0].data_per_point.keys()))
-            print(list(sft.data_per_point.keys()))
+
         if not metadata_fake_init and \
                 not StatefulTractogram.are_compatible(sft, fused_sft):
             raise ValueError('Incompatible SFT, check space attributes and '
