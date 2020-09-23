@@ -24,7 +24,7 @@ from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 EPILOG = """
 [1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more
     information than fiber orientations? Hindrance modulated orientational
-    anisotropy, a true‐tract specific index to characterize white matter
+    anisotropy, a true-tract specific index to characterize white matter
     diffusion." Human brain mapping 34.10 (2013): 2464-2483.
 """
 
