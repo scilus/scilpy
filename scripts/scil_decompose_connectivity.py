@@ -13,6 +13,13 @@ The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
 group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
 The 'data' is stored in VOX/CORNER for simplicity and efficiency.
 
+For the --outlier_threshold option the default is a recommended good trade-off
+for a freesurfer parcellation. With smaller parcels (brainnetome, glasser) the
+threshold should most likely be reduced.
+Good candidate connections to QC are the brainstem to precentral gyrus
+connection and precentral left to precentral right connection, or equivalent
+in your parcellation."
+
 NOTE: this script can take a while to run. Please be patient.
 Example: on a tractogram with 1.8M streamlines, running on a SSD:
 - 15 minutes without post-processing, only saving final bundles.
@@ -175,7 +182,7 @@ def _build_arg_parser():
                     help='Pruning maximal segment length. [%(default)s]')
 
     og = p.add_argument_group('Outliers and loops options')
-    og.add_argument('--outlier_threshold', type=float, default=0.5,
+    og.add_argument('--outlier_threshold', type=float, default=0.6,
                     help='Outlier removal threshold when using hierarchical '
                          'QB. [%(default)s]')
     og.add_argument('--loop_max_angle', type=float, default=330.,
