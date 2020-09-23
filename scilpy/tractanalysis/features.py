@@ -218,8 +218,6 @@ def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
     summary = outliers_removal_using_hierarchical_quickbundles(
         streamlines, nb_points=nb_points, nb_samplings_max=nb_samplings,
         fast_approx=fast_approx)
-    if fast_approx:
-        threshold -= 0.05
     outliers_ids, inliers_ids = prune(streamlines, threshold, summary)
 
     return outliers_ids, inliers_ids
