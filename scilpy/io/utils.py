@@ -2,6 +2,7 @@
 
 import os
 import multiprocessing
+import re
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -10,6 +11,17 @@ from scipy.io import loadmat
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+
+eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
+                "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
+                "cnr_maps", "residuals", "fep", "interp", "s2v_interp",
+                "resamp", "nvoxhp", "ff", "ol_nstd", "ol_nvox", "ol_type",
+                "ol_pos", "ol_sqr", "dont_sep_offs_move", "dont_peas"]
+
+topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
+                 'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
+                 "minmet", 'splineorder', 'numprec', 'interp', 'scale',
+                 'regrid']
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -430,3 +442,35 @@ def save_matrix_in_any_format(filepath, output_data):
         np.save('{}.npy'.format(filepath), output_data)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
+
+
+def assert_fsl_options_exist(parser, options_args, command):
+    """
+    Assert that all options for topup or eddy exist.
+    If not, print parser's usage and exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    options_args: string
+        Options for fsl command
+    command: string
+        Command used (eddy or topup).
+    """
+    if command == 'eddy':
+        fsl_options = eddy_options
+    elif command == 'topup':
+        fsl_options = topup_options
+    else:
+        parser.error('{} command is not supported as fsl '
+                     'command.'.format(command))
+
+    options = re.split(r'[ =\s]\s*', options_args)
+    res = [i for i in options if "--" in i]
+    res = list(map(lambda x: x.replace('--', ''), res))
+
+    for nOption in res:
+        if nOption not in fsl_options:
+            parser.error('--{} is not a valid option for '
+                         '{} command.'.format(nOption, command))
