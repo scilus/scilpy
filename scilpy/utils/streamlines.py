@@ -2,9 +2,10 @@
 
 import itertools
 import logging
+from copy import deepcopy
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.utils import get_reference_info
+from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -13,7 +14,7 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 
-def sum_sft(sft_list, erase_metadata=False):
+def sum_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
     """ Concatenate a list of StatefulTractogram together """
     fused_sft = sft_list[0]
     if erase_metadata:
@@ -24,9 +25,37 @@ def sum_sft(sft_list, erase_metadata=False):
         if erase_metadata:
             sft.data_per_point = {}
             sft.data_per_streamline = {}
+        elif metadata_fake_init:
+            print(list(sft_list[0].data_per_point.keys()))
+            print(list(sft.data_per_point.keys()))
+            for dps_key in list(sft.data_per_streamline.keys()):
+                if dps_key not in sft_list[0].data_per_streamline.keys():
+                    del sft.data_per_streamline[dps_key]
+            for dpp_key in list(sft.data_per_point.keys()):
+                if dpp_key not in sft_list[0].data_per_point.keys():
+                    del sft.data_per_point[dpp_key]
 
-        if not StatefulTractogram.are_compatible(sft, fused_sft):
-            raise ValueError('Incompatible SFT.')
+            for dps_key in sft_list[0].data_per_streamline.keys():
+                if dps_key not in sft.data_per_streamline:
+                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
+                    arr_shape[0] = len(sft)
+                    sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
+            for dpp_key in sft_list[0].data_per_point.keys():
+                if dpp_key not in sft.data_per_point:
+                    arr_seq = ArraySequence()
+                    arr_seq._data = np.zeros(
+                        sft_list[0].data_per_point[dpp_key]._data.shape)
+                    arr_seq._offsets = sft.streamlines._offsets
+                    arr_seq._lengths = sft.streamlines._lengths
+                    sft.data_per_point[dpp_key] = arr_seq
+            print(list(sft_list[0].data_per_point.keys()))
+            print(list(sft.data_per_point.keys()))
+        if not metadata_fake_init and \
+                not StatefulTractogram.are_compatible(sft, fused_sft):
+            raise ValueError('Incompatible SFT, check space attributes and '
+                             'data_per_point/streamlines.')
+        elif not is_header_compatible(sft, fused_sft):
+            raise ValueError('Incompatible SFT, check space attributes.')
         fused_sft += sft
 
     return fused_sft
