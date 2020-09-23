@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Visualize 2-dimensional fODF slice loaded from disk.
@@ -38,7 +38,7 @@ def _build_arg_parser():
                    default=[768, 768], type=int,
                    help='The dimensions for the vtk window.')
 
-    p.add_argument('--interactor', default='trackball', type=str,
+    p.add_argument('--interactor', default='trackball',
                    choices={'image', 'trackball'},
                    help='Specify interactor mode for vtk window.')
 
@@ -224,7 +224,7 @@ def _initialize_odf_slicer(data_dict, sphere, nb_subdivide, sh_order, sh_basis,
         mask = data_dict['mask']
     else:
         mask = np.linalg.norm(fodf, axis=-1) > 0.
-    print(norm)
+
     odf_actor = actor.odf_slicer(fodf[..., None, :], mask=mask[..., None],
                                  radial_scale=radial_scale, norm=norm,
                                  sphere=hi_res_rot_sph, colormap=colormap,
