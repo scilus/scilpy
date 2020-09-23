@@ -14,7 +14,8 @@ import nibabel as nib
 import numpy as np
 from scipy.sparse import lil_matrix
 
-from scilpy.io.streamlines import streamlines_to_memmap
+from scilpy.io.streamlines import (streamlines_to_memmap,
+                                   reconstruct_streamlines_from_memmap)
 from scilpy.segment.recobundlesx import RecobundlesX
 
 
@@ -290,8 +291,7 @@ class VotingScheme(object):
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
         comb_param_cluster = product(self.tractogram_clustering_thr, seeds)
         all_rbx_dict = pool.map(single_clusterize_and_rbx_init,
-                                zip(repeat(wb_streamlines),
-                                    repeat(tmp_memmap_filenames),
+                                zip(repeat(tmp_memmap_filenames),
                                     comb_param_cluster,
                                     repeat(self.nb_points)))
         pool.close()
@@ -315,7 +315,7 @@ class VotingScheme(object):
             len(bundle_names)
         logging.info('RBx took {0} sec. for a total of '
                      '{1} executions'.format(round(time() - total_timer, 2),
-                                              nb_exec))
+                                             nb_exec))
         logging.debug('{0} tractogram clustering, {1} seeds, '
                       '{2} multi-parameters, {3} sub-model directory, '
                       '{4} bundles'.format(
@@ -345,7 +345,7 @@ class VotingScheme(object):
         self._save_recognized_bundles(tractogram, bundle_names,
                                       bundles_wise_vote,
                                       minimum_vote, extension)
-        logging.info('Saving of {0} files in {1} took {0} sec.'.format(
+        logging.info('Saving of {0} files in {1} took {2} sec.'.format(
             len(bundle_names),
             self.output_directory,
             round(time() - save_timer, 2)))
@@ -376,16 +376,16 @@ def single_clusterize_and_rbx_init(args):
     rbx : dict
         Initialisation of the recobundles class using specific parameters.
     """
-    wb_streamlines = args[0]
-    tmp_memmap_filename = args[1]
-    clustering_thr = args[2][0]
-    seed = args[2][1]
-    nb_points = args[3]
+    tmp_memmap_filename = args[0]
+    clustering_thr = args[1][0]
+    seed = args[1][1]
+    nb_points = args[2]
 
     rbx = {}
     base_thresholds = [45, 35, 25]
     rng = np.random.RandomState(seed)
     cluster_timer = time()
+    wb_streamlines = reconstruct_streamlines_from_memmap(tmp_memmap_filename)
     # If necessary, add an extra layer (more optimal)
     if clustering_thr < 15:
         current_thr_list = base_thresholds + [15, clustering_thr]
