@@ -99,7 +99,8 @@ def main():
     elif len(args.roi_radii) == 3:
         roi_radii = args.roi_radii
     else:
-        parser.error('--roi_radii cannot be of size (2,).')
+        parser.error('Wrong size for --roi_radii, can only be a scalar' +
+                     'or an array of size (3,)')
 
     vol = nib.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
