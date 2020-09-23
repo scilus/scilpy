@@ -23,6 +23,5 @@ def test_execution_others(script_runner):
                              'IFGWM.trk')
     ret = script_runner.run('scil_remove_similar_streamlines.py', in_bundle,
                             '2', 'IFGWM_sub.trk', '--min_cluster_size', '2',
-                            '--clustering_thr', '8', '--avg_similar',
-                            '--processes', '1')
+                            '--clustering_thr', '8', '--processes', '1')
     assert ret.success

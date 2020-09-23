@@ -15,8 +15,9 @@ from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_reference_arg)
+from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 
 
 def _build_arg_parser():
@@ -26,14 +27,16 @@ def _build_arg_parser():
 
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
-    p.add_argument('out_tractogram',
-                   help='Output filename, with extension needed,'
-                   'index will be appended automatically.')
+    p.add_argument('out_prefix',
+                   help='Prefix for the output tractogram,'
+                        'index will be appended automatically.')
+
+    p.add_argument('--out_dir', default='',
+                   help='Put all ouptput tractogram in a specific directory.')
 
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--chunk_size', type=int,
                        help='The maximum number of streamlines per file.')
-
     group.add_argument('--nb_chunk', type=int,
                        help='Divide the file in equal parts.')
 
@@ -48,13 +51,15 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
-    out_basename, out_extension = os.path.splitext(args.out_tractogram)
+    _, out_extension = os.path.splitext(args.in_tractogram)
 
+    assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     # Check only the first potential output filename
-    assert_outputs_exist(parser, args, [out_basename + '_0' + out_extension])
+    assert_outputs_exist(parser, args, os.path.join(args.out_dir,
+                                                    '{}_0{}'.format(args.out_prefix,
+                                                                    out_extension)))
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-
     streamlines_count = len(sft.streamlines)
 
     if args.nb_chunk:
@@ -79,7 +84,9 @@ def main():
                                               data_per_point=data_per_point,
                                               data_per_streamline=data_per_streamline)
 
-        out_name = '{0}_{1}{2}'.format(out_basename, i, out_extension)
+        out_name = os.path.join(args.out_dir,
+                                '{0}_{1}{2}'.format(args.out_prefix, i,
+                                                    out_extension))
         save_tractogram(new_sft, out_name)
 
 

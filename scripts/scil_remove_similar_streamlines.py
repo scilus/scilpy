@@ -31,6 +31,7 @@ from time import time
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import ArraySequence
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.models import subsample_clusters
@@ -49,17 +50,16 @@ def multiprocess_subsampling(args):
     min_distance = args[1]
     cluster_thr = args[2]
     min_cluster_size = args[3]
-    average_streamlines = args[4]
 
     min_cluster_size = max(min_cluster_size, 1)
     thresholds = [40, 30, 20, cluster_thr]
     cluster_map = qbx_and_merge(ArraySequence(streamlines),
-                                thresholds,
-                                nb_pts=20,
+                                thresholds, nb_pts=20,
+                                rng=np.random.RandomState(0),
                                 verbose=False)
 
     return subsample_clusters(cluster_map, streamlines, min_distance,
-                              min_cluster_size, average_streamlines)
+                              min_cluster_size)
 
 
 def _build_arg_parser():
@@ -85,10 +85,6 @@ def _build_arg_parser():
     p.add_argument('--convergence', type=int, default=100,
                    help='Streamlines count difference threshold to stop '
                         're-running the algorithm [%(default)s].')
-    p.add_argument('--avg_similar', action='store_true',
-                   help='Average similar streamlines rather than removing them '
-                        '[%(default)s]. Requires a small min_distance. '
-                        'Allows for some smoothing.')
 
     add_reference_arg(p)
     add_processes_arg(p)
@@ -122,6 +118,7 @@ def main():
     logging.debug(
         'Lauching subsampling on {} processes.'.format(args.nbr_processes))
     last_iteration = False
+    iter_count = 0
     while True:
         if len(streamlines) < 1000:
             logging.warning('Subsampling less than 1000 streamlines is risky.')
@@ -132,7 +129,7 @@ def main():
         # Cheap trick to avoid duplication in memory, the pop removes from
         # one list to append it to the other, slower but allows bigger bundles
         split_streamlines_list = []
-        for i in range(args.nbr_processes):
+        for _ in range(args.nbr_processes):
             split_streamlines_list.append(streamlines[0:skip])
             del streamlines[0:skip]
 
@@ -141,7 +138,7 @@ def main():
             for split in split_streamlines_list:
                 resulting_streamlines.append(multiprocess_subsampling(
                     [split, args.min_distance, args.clustering_thr,
-                     args.min_cluster_size, args.avg_similar]))
+                     args.min_cluster_size]))
         else:
             resulting_streamlines = pool.map(multiprocess_subsampling,
                                              zip(split_streamlines_list,
@@ -149,8 +146,7 @@ def main():
                                                  repeat(
                                                      args.clustering_thr),
                                                  repeat(
-                                                     args.min_cluster_size),
-                                                 repeat(args.avg_similar)))
+                                                     args.min_cluster_size)))
             pool.close()
             pool.join()
 
@@ -166,7 +162,7 @@ def main():
                               original_length, len(streamlines),
                               round(time() - timer, 3)))
             break
-        elif difference_length < args.convergence:
+        elif difference_length < args.convergence or iter_count >= 1000:
             logging.debug('The smart-subsampling converged, below {} '
                           'different streamlines. Adding single-thread'
                           'iteration.'.format(args.convergence))
@@ -175,6 +171,7 @@ def main():
         else:
             logging.debug('Threshold of convergence was not achieved.'
                           ' Need another run...\n')
+            iter_count += 1
             args.min_cluster_size = 1
 
             # Once the streamlines reached a low enough amount, switch to

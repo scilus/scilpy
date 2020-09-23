@@ -53,7 +53,7 @@ def test_execution_concat(script_runner):
     in_img_4 = os.path.join(get_home(), 'atlas', 'ids', '13.nii.gz')
     in_img_5 = os.path.join(get_home(), 'atlas', 'ids', '17.nii.gz')
     in_img_6 = os.path.join(get_home(), 'atlas', 'ids', '18.nii.gz')
-    ret = script_runner.run('scil_image_math.py', 'concat',
+    ret = script_runner.run('scil_image_math.py', 'concatenate',
                             in_img_1, in_img_2, in_img_3, in_img_4, in_img_5,
                             in_img_6, 'concat_ids.nii.gz')
     assert ret.success

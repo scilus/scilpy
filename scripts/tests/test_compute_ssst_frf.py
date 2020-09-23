@@ -16,6 +16,30 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+def test_roi_radii_shape_parameter(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(get_home(), 'processing',
+                          'dwi_crop.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing',
+                           'dwi.bval')
+    in_bvec = os.path.join(get_home(), 'processing',
+                           'dwi.bvec')
+    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+                            '37', '-f')
+    assert ret.success
+
+    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+                            '37', '37', '37', '-f')
+    assert ret.success
+
+    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+                            '37', '37', '37', '37', '37', '-f')
+
+    assert (not ret.success)
+
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
@@ -25,5 +49,5 @@ def test_execution_processing(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
-                            in_bval, in_bvec, 'frf.txt')
+                            in_bval, in_bvec, 'frf.txt', '-f')
     assert ret.success
