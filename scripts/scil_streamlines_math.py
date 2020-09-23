@@ -46,7 +46,8 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.utils.streamlines import (difference_robust, difference,
                                       union_robust, union,
                                       intersection_robust, intersection,
-                                      perform_streamlines_operation, sum_sft)
+                                      perform_streamlines_operation,
+                                      concatenate_sft)
 
 
 OPERATIONS = {
@@ -116,7 +117,7 @@ def main():
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
-    new_sft = sum_sft(sft_list, args.no_metadata, args.fake_metadata)
+    new_sft = concatenate_sft(sft_list, args.no_metadata, args.fake_metadata)
     if args.operation == 'concatenate':
         indices = range(len(new_sft))
     else:
