@@ -41,14 +41,13 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG)
 
-    p.add_argument('in_matrix', nargs='+',
+    p.add_argument('in_matrices', nargs='+',
                    help='Connectivity matrix or matrices in numpy (.npy) format.')
     p.add_argument('in_ordering',
-                   help='Txt file with the sub-network as keys and x/y '
-                        'lists as value (.txt).')
-    p.add_argument('out_prefix',
-                   help='Prefix for the output matrix filename.')
+                   help='Txt file with the first row as x and second row as y.')
 
+    p.add_argument('--out_suffix',
+                   help='Suffix for the output matrix filename.')
     p.add_argument('--out_dir',
                    help='Output directory to the re-ordered matrix or matrices.')
     p.add_argument('--labels_list',
@@ -65,18 +64,20 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_matrix,
+    assert_inputs_exist(parser, args.in_matrices,
                         [args.labels_list, args.in_ordering])
     assert_output_dirs_exist_and_empty(parser, args, [], args.out_dir)
     if args.out_dir is None:
         args.out_dir = './'
+    if args.out_suffix is None:
+        args.out_suffix = ""
     out_filenames = []
-    for filename in args.in_matrix:
+    for filename in args.in_matrices:
         basename, _ = os.path.splitext(filename)
         basename = os.path.basename(basename)
         out_filenames.append('{}/{}{}.npy'.format(args.out_dir,
-                                                  args.out_prefix,
-                                                  basename))
+                                                  basename,
+                                                  args.out_suffix))
 
     assert_outputs_exist(parser, args, out_filenames)
     with open(args.in_ordering, 'r') as my_file:
@@ -84,7 +85,7 @@ def main():
         ordering = [[int(val) for val in lines[0].split()],
                     [int(val) for val in lines[1].split()]]
 
-    for filename in args.in_matrix:
+    for filename in args.in_matrices:
         basename, _ = os.path.splitext(filename)
         basename = os.path.basename(basename)
         matrix = load_matrix_in_any_format(filename)
@@ -107,8 +108,8 @@ def main():
         tmp_matrix = matrix[tuple(indices_1), :]
         tmp_matrix = tmp_matrix[:, tuple(indices_2)]
         save_matrix_in_any_format('{}/{}{}.npy'.format(args.out_dir,
-                                                       args.out_prefix,
-                                                       basename),
+                                                       basename,
+                                                       args.out_suffix),
                                   tmp_matrix)
 
 
