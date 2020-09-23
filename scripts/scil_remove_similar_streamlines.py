@@ -31,6 +31,7 @@ from time import time
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import ArraySequence
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.models import subsample_clusters
@@ -53,8 +54,8 @@ def multiprocess_subsampling(args):
     min_cluster_size = max(min_cluster_size, 1)
     thresholds = [40, 30, 20, cluster_thr]
     cluster_map = qbx_and_merge(ArraySequence(streamlines),
-                                thresholds,
-                                nb_pts=20,
+                                thresholds, nb_pts=20,
+                                rng=np.random.RandomState(0),
                                 verbose=False)
 
     return subsample_clusters(cluster_map, streamlines, min_distance,
