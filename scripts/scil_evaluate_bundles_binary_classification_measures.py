@@ -46,7 +46,7 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
-from scilpy.utils.streamlines import intersection
+from scilpy.utils.streamlines import intersection_robust
 
 
 def _build_arg_parser():
@@ -127,7 +127,7 @@ def compute_streamlines_measures(args):
         logging.info('{} is empty'.format(bundle_filename))
         return None
 
-    streamlines_indices = intersection([wb_streamlines, bundle_streamlines])
+    _, streamlines_indices = intersection_robust([wb_streamlines, bundle_streamlines])
 
     streamlines_binary = binary_classification(streamlines_indices,
                                                gs_streamlines_indices,
@@ -178,7 +178,7 @@ def main():
         _, gs_dimensions, _, _ = gs_sft.space_attributes
 
         # Prepare the gold standard only once
-        _, gs_streamlines_indices = intersection([wb_streamlines, gs_streamlines])
+        _, gs_streamlines_indices = intersection_robust([wb_streamlines, gs_streamlines])
 
         if nbr_cpu == 1:
             streamlines_dict = []
