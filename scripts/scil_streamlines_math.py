@@ -35,6 +35,7 @@ import json
 import logging
 
 from dipy.io.streamline import save_tractogram
+import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
@@ -119,7 +120,7 @@ def main():
     logging.info('Performing operation \'{}\'.'.format(args.operation))
     new_sft = concatenate_sft(sft_list, args.no_metadata, args.fake_metadata)
     if args.operation == 'concatenate':
-        indices = range(len(new_sft))
+        indices = np.arange(len(new_sft), dtype=np.uint32)
     else:
         streamlines_list = [sft.streamlines for sft in sft_list]
         op_name = args.operation
