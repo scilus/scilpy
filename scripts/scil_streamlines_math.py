@@ -82,8 +82,7 @@ def _build_arg_parser():
                    type=int, default=4,
                    help='Precision used to compare streamlines [%(default)s].')
     p.add_argument('--robust', '-r', action='store_true',
-                   help='Use version robust to small translation/rotation.\n'
-                        'works better combined with --precision 0.')
+                   help='Use version robust to small translation/rotation.')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')

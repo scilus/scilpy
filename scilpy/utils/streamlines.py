@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from copy import deepcopy
+import copy
 import itertools
 from functools import reduce
 import logging
@@ -125,7 +125,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     all_streamlines = list(itertools.chain(*streamlines))
     indices = sorted(to_keep.values())
     streamlines = [all_streamlines[i] for i in indices]
-    return streamlines, np.array(indices, np.uint32)
+    return streamlines, np.array(indices)
 
 
 def intersection_robust(streamlines_list, precision=3):
@@ -273,7 +273,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     else:
         logging.info('No matches found.')
 
-    return streamlines, np.where(streamlines_to_keep > 0)[0].astype(np.uint32)
+    return streamlines, np.where(streamlines_to_keep > 0)[0]
 
 
 def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
@@ -302,9 +302,9 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
             for dpp_key in sft_list[0].data_per_point.keys():
                 if dpp_key not in sft.data_per_point:
                     arr_seq = ArraySequence()
-                    arr_seq_shape = sft_list[0].data_per_point[dpp_key]._data.shape
-                    arr_seq_shape[0] = len(
-                        sft.data_per_point[dpp_key]._data.shape)
+                    arr_seq_shape = list(
+                        sft_list[0].data_per_point[dpp_key]._data.shape)
+                    arr_seq_shape[0] = len(sft.streamlines._data)
                     arr_seq._data = np.zeros(arr_seq_shape)
                     arr_seq._offsets = sft.streamlines._offsets
                     arr_seq._lengths = sft.streamlines._lengths
@@ -324,11 +324,12 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
         total_streamlines += len(sft.streamlines._offsets)
         total_points += len(sft.streamlines._data)
         lengths.extend(sft.streamlines._lengths)
-    offsets = np.concatenate(([0], np.cumsum(lengths[:-1])))
+    lengths = np.array(lengths, dtype=np.uint32)
+    offsets = np.concatenate(([0], np.cumsum(lengths[:-1]))).astype(np.uint64)
 
     dpp = {}
     for dpp_key in sft_list[0].data_per_point.keys():
-        arr_seq_shape = sft_list[0].data_per_point[dpp_key]._data.shape
+        arr_seq_shape = list(sft_list[0].data_per_point[dpp_key]._data.shape)
         arr_seq_shape[0] = total_points
         dpp[dpp_key] = ArraySequence()
         dpp[dpp_key]._data = np.zeros(arr_seq_shape)
@@ -337,7 +338,7 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 
     dps = {}
     for dps_key in sft_list[0].data_per_streamline.keys():
-        arr_seq_shape = sft_list[0].data_per_streamline[dps_key].shape
+        arr_seq_shape = list(sft_list[0].data_per_streamline[dps_key].shape)
         arr_seq_shape[0] = total_streamlines
         dps[dps_key] = np.zeros(arr_seq_shape)
 
@@ -348,10 +349,7 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 
     pts_counter = 0
     strs_counter = 0
-    i = 0
     for sft in sft_list:
-        print(i)
-        i += 1
         pts_curr_len = len(sft.streamlines._data)
         strs_curr_len = len(sft.streamlines._offsets)
 
@@ -370,7 +368,6 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
     fused_sft = StatefulTractogram.from_sft(streamlines, sft_list[0],
                                             data_per_point=dpp,
                                             data_per_streamline=dps)
-    print(list(dps.keys()))
     return fused_sft
 
 
