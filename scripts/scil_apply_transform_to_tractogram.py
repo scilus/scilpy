@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Transform tractogram using an affine/rigid transformation.
+Transform tractogram using an affine/rigid transformation and nonlinear
+deformation (optional).
 
-For more information on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file
+For more information on how to use the registration script, follow this link:
+https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Applying transformation to tractogram can lead to invalid streamlines (out of
 the bounding box), three strategies are available:
@@ -14,21 +15,23 @@ the bounding box), three strategies are available:
     scil_remove_invalid_streamlines.py if needed.
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines.
+4) --cut_invalid, automatically cut invalid streamlines before saving.
 """
 
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.tracking.streamline import transform_streamlines
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import cut_invalid_streamlines
+from scilpy.utils.streamlines import transform_warp_streamlines
 
 
 def _build_arg_parser():
@@ -41,18 +44,19 @@ def _build_arg_parser():
                    help='Path of the reference target file (trk or nii).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
-                        'transformation, matrix (.txt, .npy or .mat).\n'
-                        'See the script description for more information.')
+                        'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_tractogram',
                    help='Output tractogram filename (transformed data).')
 
     p.add_argument('--inverse', action='store_true',
-                   help='Apply the inverse transformation.')
+                   help='Apply the inverse linear transformation.')
+    p.add_argument('--in_deformation',
+                   help='Path to the file containing a deformation field.')
 
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--cut_invalid', action='store_true',
-                         help='Cut invalid streamlines rather than removing them.\n'
-                         'Keep the longest segment only.')
+                         help='Cut invalid streamlines rather than removing '
+                              'them.\nKeep the longest segment only.')
     invalid.add_argument('--remove_invalid', action='store_true',
                          help='Remove the streamlines landing out of the '
                               'bounding box.')
@@ -70,8 +74,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_moving_tractogram, args.in_target_file,
-                                 args.in_transfo])
+    assert_inputs_exist(parser, [args.in_moving_tractogram,
+                                 args.in_target_file,
+                                 args.in_transfo], args.in_deformation)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     moving_sft = load_tractogram_with_reference(parser, args,
@@ -79,26 +84,19 @@ def main():
                                                 bbox_check=False)
 
     transfo = load_matrix_in_any_format(args.in_transfo)
-    if args.inverse:
-        transfo = np.linalg.inv(transfo)
+    deformation_data = None
+    if args.in_deformation is not None:
+        deformation_data = np.squeeze(nib.load(
+            args.in_deformation).get_fdata(dtype=np.float32))
 
-    moved_streamlines = transform_streamlines(moving_sft.streamlines,
-                                              transfo)
-    new_sft = StatefulTractogram(moved_streamlines, args.in_target_file,
-                                 Space.RASMM,
-                                 data_per_point=moving_sft.data_per_point,
-                                 data_per_streamline=moving_sft.data_per_streamline)
+    new_sft = transform_warp_streamlines(moving_sft, transfo,
+                                         args.in_target_file,
+                                         inverse=args.inverse,
+                                         deformation_data=deformation_data,
+                                         remove_invalid=args.remove_invalid,
+                                         cut_invalid=args.cut_invalid)
 
-    if args.cut_invalid:
-        new_sft = cut_invalid_streamlines(new_sft)
-        save_tractogram(new_sft, args.out_tractogram)
-    elif args.remove_invalid:
-        ori_len = len(new_sft)
-        new_sft.remove_invalid_streamlines()
-        logging.warning('Removed {} invalid streamlines.'.format(
-            ori_len - len(new_sft)))
-        save_tractogram(new_sft, args.out_tractogram)
-    elif args.keep_invalid:
+    if args.keep_invalid:
         if not new_sft.is_bbox_in_vox_valid():
             logging.warning('Saving tractogram with invalid streamlines.')
         save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)

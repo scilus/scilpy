@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize bundles from a list.
-The script will output a mosaic (image) with screenshots,
-6 views per bundle in the list.
+Visualize bundles from a list. The script will output a mosaic (image) with
+screenshots, 6 views per bundle in the list.
 """
 
 import argparse
@@ -165,8 +164,9 @@ def main():
                 filename, args.in_volume))
 
     output_dir = os.path.dirname(args.out_image)
-    assert_output_dirs_exist_and_empty(parser, args, output_dir,
-                                       create_dir=True)
+    if output_dir:
+        assert_output_dirs_exist_and_empty(parser, args, output_dir,
+                                           create_dir=True)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
@@ -255,7 +255,7 @@ def main():
                 nbr_of_elem = np.count_nonzero(roi)
 
             # Render
-            ren = window.Renderer()
+            ren = window.Scene()
             zoom = args.zoom
             opacity = args.opacity_background
 

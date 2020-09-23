@@ -47,7 +47,8 @@ from scilpy.io.image import get_data_as_label
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
@@ -70,21 +71,23 @@ def _processing_wrapper(args):
     labels_img = args[1]
     in_label, out_label = args[2]
     measures_to_compute = copy.copy(args[3])
-    weighted = args[4]
-    if args[5] is not None:
-        similarity_directory = args[5][0]
+    if args[4] is not None:
+        similarity_directory = args[4][0]
+    weighted = args[5]
+    include_dps = args[6]
 
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
     if key not in hdf5_file:
         return
     streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
-
+    if len(streamlines) == 0:
+        return
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
 
-    if not (np.allclose(hdf5_file.attrs['affine'], affine)
-            and np.allclose(hdf5_file.attrs['dimensions'], dimensions)):
+    if not (np.allclose(hdf5_file.attrs['affine'], affine, atol=1e-03)
+            and np.array_equal(hdf5_file.attrs['dimensions'], dimensions)):
         raise ValueError('Provided hdf5 have incompatible headers.')
 
     # Precompute to save one transformation, insert later
@@ -128,21 +131,22 @@ def _processing_wrapper(args):
         measures_to_compute.remove('similarity')
 
     for measure in measures_to_compute:
-        if os.path.isdir(measure):
+        if isinstance(measure, str) and os.path.isdir(measure):
             map_dirname = measure
             map_data = load_node_nifti(map_dirname,
                                        in_label, out_label,
                                        labels_img)
             measures_to_return[map_dirname] = np.average(
                 map_data[map_data > 0])
-        elif os.path.isfile(measure):
-            metric_filename = measure
-            if not is_header_compatible(metric_filename, labels_img):
+        elif isinstance(measure, tuple) and os.path.isfile(measure[0]):
+            metric_filename = measure[0]
+            metric_img = measure[1]
+            if not is_header_compatible(metric_img, labels_img):
                 logging.error('{} do not have a compatible header'.format(
                     metric_filename))
                 raise IOError
 
-            metric_data = nib.load(metric_filename).get_fdata(dtype=np.float64)
+            metric_data = metric_img.get_fdata(dtype=np.float64)
             if weighted:
                 density = density / np.max(density)
                 voxels_value = metric_data * density
@@ -151,6 +155,13 @@ def _processing_wrapper(args):
                 voxels_value = metric_data[density > 0]
 
             measures_to_return[metric_filename] = np.average(voxels_value)
+
+    if include_dps:
+        for dps_key in hdf5_file[key].keys():
+            if dps_key not in ['data', 'offsets', 'lengths']:
+                out_file = os.path.join(include_dps, dps_key)
+                measures_to_return[out_file] = np.average(
+                    hdf5_file[key][dps_key])
 
     return {(in_label, out_label): measures_to_return}
 
@@ -190,6 +201,12 @@ def _build_arg_parser():
                    help='Use density-weighting for the metric weighted matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
+    p.add_argument('--include_dps', metavar='OUT_DIR',
+                   help='Save matrices from data_per_streamline in the output '
+                        'directory.\nWill always overwrite files.')
+    p.add_argument('--force_labels_list',
+                   help='Path to a labels list (.txt) in case of missing '
+                        'labels in the atlas.')
 
     add_processes_arg(p)
     add_verbose_arg(p)
@@ -202,7 +219,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_labels)
+    assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
+                        args.force_labels_list)
 
     log_level = logging.WARNING
     if args.verbose:
@@ -241,7 +259,7 @@ def main():
                               'header'.format(args.metrics[0][0], in_name))
 
             # This is necessary to support more than one map for weighting
-            measures_to_compute.append(in_name)
+            measures_to_compute.append((in_name, nib.load(in_name)))
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
@@ -249,25 +267,51 @@ def main():
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing '
                      'to compute.')
+
     logging.info('The following measures will be computed and save: {}'.format(
-        measures_to_compute))
+        measures_output_filename))
+
+    if args.include_dps:
+        if not os.path.isdir(args.include_dps):
+            os.makedirs(args.include_dps)
+        logging.info('data_per_streamline weighting is activated.')
 
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_label(img_labels)
-    labels_list = np.unique(data_labels)[1:].tolist()
+    if not args.force_labels_list:
+        labels_list = np.unique(data_labels)[1:].tolist()
+    else:
+        labels_list = np.loadtxt(
+            args.force_labels_list, dtype=np.int16).tolist()
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
         comb_list.extend(zip(labels_list, labels_list))
 
-    pool = multiprocessing.Pool(args.nbr_processes)
-    measures_dict_list = pool.map(_processing_wrapper,
-                                  zip(itertools.repeat(args.in_hdf5),
-                                      itertools.repeat(img_labels),
-                                      comb_list,
-                                      itertools.repeat(measures_to_compute),
-                                      itertools.repeat(args.density_weighting),
-                                      itertools.repeat(args.similarity)))
+    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    measures_dict_list = []
+    if nbr_cpu == 1:
+        for comb in comb_list:
+            measures_dict_list.append(_processing_wrapper([args.in_hdf5,
+                                                           img_labels, comb,
+                                                           measures_to_compute,
+                                                           args.similarity,
+                                                           args.density_weighting,
+                                                           args.include_dps]))
+    else:
+        pool = multiprocessing.Pool(nbr_cpu)
+        measures_dict_list = pool.map(_processing_wrapper,
+                                      zip(itertools.repeat(args.in_hdf5),
+                                          itertools.repeat(img_labels),
+                                          comb_list,
+                                          itertools.repeat(
+                                              measures_to_compute),
+                                          itertools.repeat(args.similarity),
+                                          itertools.repeat(
+                                          args.density_weighting),
+                                          itertools.repeat(args.include_dps)))
+        pool.close()
+        pool.join()
 
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
@@ -287,18 +331,20 @@ def main():
         total_elem, results_elem))
 
     # Filling out all the matrices (symmetric) in the order of labels_list
-    nbr_of_measures = len(measures_to_compute)
+    nbr_of_measures = len(list(measures_dict.values())[0])
     matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
     for in_label, out_label in measures_dict:
         curr_node_dict = measures_dict[(in_label, out_label)]
         measures_ordering = list(curr_node_dict.keys())
+
         for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
+
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
-    # Saving the matrices separatly with the specified name
+    # Saving the matrices separatly with the specified name or dps
     for i, measure in enumerate(measures_ordering):
         if measure == 'volume':
             matrix_basename = args.volume
@@ -312,6 +358,8 @@ def main():
             matrix_basename = dict_metrics_out_name[measure]
         elif measure in dict_maps_out_name:
             matrix_basename = dict_maps_out_name[measure]
+        else:
+            matrix_basename = measure
 
         np.save(matrix_basename, matrix[:, :, i])
 

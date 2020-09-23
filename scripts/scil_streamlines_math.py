@@ -68,7 +68,7 @@ def _build_arg_parser():
                    'streamlines to operate on.')
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
-                   'are saved.')
+                        'are saved.')
 
     p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
                    type=int, default=4,

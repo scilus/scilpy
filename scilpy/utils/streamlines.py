@@ -3,10 +3,8 @@
 import itertools
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.segment.clustering import QuickBundles
-from dipy.segment.metric import ResampleFeature
-from dipy.segment.metric import AveragePointwiseEuclideanMetric
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
+from dipy.io.utils import get_reference_info
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -27,7 +25,7 @@ def sum_sft(sft_list, erase_metadata=False):
             sft.data_per_point = {}
             sft.data_per_streamline = {}
 
-        if not StatefulTractogram.is_compatible_sft(sft, fused_sft):
+        if not StatefulTractogram.are_compatible(sft, fused_sft):
             raise ValueError('Incompatible SFT.')
         fused_sft += sft
 
@@ -182,70 +180,90 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     return streamlines, np.where(streamlines_to_keep > 0)[0]
 
 
-def warp_streamlines(sft, deformation_data, source='ants'):
-    """ Warp tractogram using a deformation map. Apply warp in-place.
-    Support Ants and Dipy deformation map.
+def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
+                               deformation_data=None,
+                               remove_invalid=True, cut_invalid=False):
+    """ Transform tractogram using a affine Subsequently apply a warp from
+    antsRegistration (optional).
+    Remove/Cut invalid streamlines to preserve sft validity.
 
     Parameters
     ----------
-    streamlines: list or ArraySequence
-        Streamlines as loaded by the nibabel API (RASMM)
-    transfo: numpy.ndarray
-        Transformation matrix to bring streamlines from RASMM to Voxel space
-    deformation_data: numpy.ndarray
-        4D numpy array containing a 3D displacement vector in each voxel
-    source: str
-        Source of the deformation map [ants, dipy]
+    sft: StatefulTractogram
+        Stateful tractogram object containing the streamlines to transform.
+    linear_transfo: numpy.ndarray
+        Linear transformation matrix to apply to the tractogram.
+    target: Nifti filepath, image object, header
+        Final reference for the tractogram after registration.
+    inverse: boolean
+        Apply the inverse linear transformation.
+    deformation_data: np.ndarray
+        4D array containing a 3D displacement vector in each voxel.
+
+    remove_invalid: boolean
+        Remove the streamlines landing out of the bounding box.
+    cut_invalid: boolean
+        Cut invalid streamlines rather than removing them. Keep the longest
+        segment only.
+
+    Return
+    ----------
+    new_sft : StatefulTractogram
+
     """
     sft.to_rasmm()
     sft.to_center()
-    streamlines = sft.streamlines
-    transfo = sft.affine
-    if source == 'ants':
-        flip = [-1, -1, 1]
-    elif source == 'dipy':
-        flip = [1, 1, 1]
+    if inverse:
+        linear_transfo = np.linalg.inv(linear_transfo)
 
-    # Because of duplication, an iteration over chunks of points is necessary
-    # for a big dataset (especially if not compressed)
-    streamlines = ArraySequence(streamlines)
-    nb_points = len(streamlines._data)
-    cur_position = 0
-    chunk_size = 1000000
-    nb_iteration = int(np.ceil(nb_points/chunk_size))
-    inv_transfo = np.linalg.inv(transfo)
+    streamlines = transform_streamlines(sft.streamlines,
+                                        linear_transfo)
 
-    while nb_iteration > 0:
-        max_position = min(cur_position + chunk_size, nb_points)
-        points = streamlines._data[cur_position:max_position]
+    if deformation_data is not None:
+        affine, _, _, _ = get_reference_info(target)
 
-        # To access the deformation information, we need to go in voxel space
-        # No need for corner shift since we are doing interpolation
-        cur_points_vox = np.array(transform_streamlines(points,
-                                                        inv_transfo)).T
+        # Because of duplication, an iteration over chunks of points is
+        # necessary for a big dataset (especially if not compressed)
+        streamlines = ArraySequence(streamlines)
+        nb_points = len(streamlines._data)
+        cur_position = 0
+        chunk_size = 1000000
+        nb_iteration = int(np.ceil(nb_points/chunk_size))
+        inv_affine = np.linalg.inv(affine)
 
-        x_def = map_coordinates(deformation_data[..., 0],
-                                cur_points_vox.tolist(), order=1)
-        y_def = map_coordinates(deformation_data[..., 1],
-                                cur_points_vox.tolist(), order=1)
-        z_def = map_coordinates(deformation_data[..., 2],
-                                cur_points_vox.tolist(), order=1)
+        while nb_iteration > 0:
+            max_position = min(cur_position + chunk_size, nb_points)
+            points = streamlines._data[cur_position:max_position]
 
-        # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
-        final_points = np.array([flip[0]*x_def, flip[1]*y_def, flip[2]*z_def])
+            # To access the deformation information, we need to go in VOX space
+            # No need for corner shift since we are doing interpolation
+            cur_points_vox = np.array(transform_streamlines(points,
+                                                            inv_affine)).T
 
-        # The Ants deformation is relative to world space
-        if source == 'ants':
+            x_def = map_coordinates(deformation_data[..., 0],
+                                    cur_points_vox.tolist(), order=1)
+            y_def = map_coordinates(deformation_data[..., 1],
+                                    cur_points_vox.tolist(), order=1)
+            z_def = map_coordinates(deformation_data[..., 2],
+                                    cur_points_vox.tolist(), order=1)
+
+            # ITK is in LPS and nibabel is in RAS, a flip is necessary for ANTs
+            final_points = np.array([-1*x_def, -1*y_def, z_def])
             final_points += np.array(points).T
-        # Dipy transformation is relative to vox space
-        elif source == 'dipy':
-            final_points += cur_points_vox
-            transform_streamlines(final_points, transfo, in_place=True)
-        streamlines._data[cur_position:max_position] = final_points.T
-        cur_position = max_position
-        nb_iteration -= 1
 
-        return streamlines
+            streamlines._data[cur_position:max_position] = final_points.T
+            cur_position = max_position
+            nb_iteration -= 1
+
+    new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
+                                 data_per_point=sft.data_per_point,
+                                 data_per_streamline=sft.data_per_streamline)
+    if cut_invalid:
+        new_sft, _ = cut_invalid_streamlines(new_sft)
+    elif remove_invalid:
+        new_sft.remove_invalid_streamlines()
+
+    return new_sft
 
 
 def filter_tractogram_data(tractogram, streamline_ids):
@@ -302,9 +320,10 @@ def compress_sft(sft, tol_error=0.01):
 
     The compression also ensures that two consecutive points won't be too far
     from each other (precisely less or equal than `max_segment_length`mm).
-    This is a tradeoff to speed up the linearization process [Rheault15]_. A low
-    value will result in a faster linearization but low compression, whereas
-    a high value will result in a slower linearization but high compression.
+    This is a tradeoff to speed up the linearization process [Rheault15]_. A
+    low value will result in a faster linearization but low compression,
+    whereas a high value will result in a slower linearization but high
+    compression.
 
     [Presseau C. et al., A new compression format for fiber tracking datasets,
     NeuroImage, no 109, 73-83, 2015.]
@@ -330,7 +349,7 @@ def compress_sft(sft, tol_error=0.01):
     compressed_streamlines = compress_streamlines(sft.streamlines,
                                                   tol_error=tol_error)
     if sft.data_per_point is not None:
-        logging.warning("Initial stateful tractogram contained data_per_point. "
+        logging.warning("Initial StatefulTractogram contained data_per_point. "
                         "This information will not be carried in the final"
                         "tractogram.")
 
@@ -366,13 +385,15 @@ def cut_invalid_streamlines(sft):
 
     copy_sft = copy.deepcopy(sft)
     epsilon = 0.001
-    indices_to_remove, indices_to_keep = copy_sft.remove_invalid_streamlines()
+    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
 
     new_streamlines = []
     new_data_per_point = {}
     new_data_per_streamline = {}
     for key in sft.data_per_point.keys():
         new_data_per_point[key] = []
+    for key in sft.data_per_streamline.keys():
+        new_data_per_streamline[key] = []
 
     cutting_counter = 0
     for ind in range(len(sft.streamlines)):
@@ -381,7 +402,8 @@ def cut_invalid_streamlines(sft):
             best_pos = [0, 0]
             cur_pos = [0, 0]
             for pos, point in enumerate(sft.streamlines[ind]):
-                if (point < epsilon).any() or (point >= sft.dimensions - epsilon).any():
+                if (point < epsilon).any() or \
+                        (point >= sft.dimensions - epsilon).any():
                     cur_pos = [pos+1, pos+1]
                 if cur_pos[1] - cur_pos[0] > best_pos[1] - best_pos[0]:
                     best_pos = cur_pos

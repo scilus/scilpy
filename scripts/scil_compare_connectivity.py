@@ -24,9 +24,10 @@ import numpy as np
 from scipy.stats import t
 from statsmodels.stats.multitest import multipletests
 
-from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
 
@@ -43,7 +44,7 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
         epilog=EPILOG)
 
     p.add_argument('out_pval_matrix',
@@ -80,7 +81,6 @@ def _build_arg_parser():
                    help='Binary filtering mask (.npy) to apply before '
                         'computing the measures.')
 
-    add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 

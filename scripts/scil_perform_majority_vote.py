@@ -103,7 +103,7 @@ def main():
 
         if args.same_tractogram:
             _, indices = intersection([fusion_streamlines, bundle])
-            streamlines_vote[list(indices), i] += 1
+            streamlines_vote[list(indices), [i]] += 1
 
     if args.same_tractogram:
         real_indices = []

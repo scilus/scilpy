@@ -20,11 +20,13 @@ import numpy as np
 
 import scilpy
 from scilpy.io.image import get_data_as_label
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 
 
-def _build_arg_parser(luts):
+def _build_arg_parser():
+    luts = [os.path.splitext(f)[0] for f in os.listdir(get_lut_dir())]
 
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -39,30 +41,38 @@ def _build_arg_parser(luts):
                    help='Prefix to be used for each output image.')
 
     mutual_group = p.add_mutually_exclusive_group(required=True)
-    mutual_group.add_argument(
-        '--scilpy_lut', choices=luts,
-        help='Lookup table, in the file scilpy/data/LUT, '
-             'used to name the output files.')
-    mutual_group.add_argument(
-        '--custom_lut',
-        help='Path of the lookup table file, '
-             'used to name the output files.')
+    mutual_group.add_argument('--scilpy_lut', choices=luts,
+                              help='Lookup table, in the file scilpy/data/LUT, '
+                              'used to name the output files.')
+    mutual_group.add_argument('--custom_lut',
+                              help='Path of the lookup table file, '
+                              'used to name the output files.')
 
     add_overwrite_arg(p)
 
     return p
 
 
-def main():
+def get_lut_dir():
+    """
+    Return LUT directory in scilpy repository
+
+    Returns
+    -------
+    lut_dir: string
+        LUT path
+    """
     # Get the valid LUT choices.
     module_path = inspect.getfile(scilpy)
 
     lut_dir = os.path.join(os.path.dirname(
-                           os.path.dirname(module_path)) + "/data/LUT/")
+        os.path.dirname(module_path)) + "/data/LUT/")
 
-    luts = [os.path.splitext(f)[0] for f in os.listdir(lut_dir)]
+    return lut_dir
 
-    parser = _build_arg_parser(luts)
+
+def main():
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     required = args.in_label
@@ -72,7 +82,7 @@ def main():
     label_img_data = get_data_as_label(label_img)
 
     if args.scilpy_lut:
-        with open(os.path.join(lut_dir, args.scilpy_lut + '.json')) as f:
+        with open(os.path.join(get_lut_dir(), args.scilpy_lut + '.json')) as f:
             label_dict = json.load(f)
         (label_indices, label_names) = zip(*label_dict.items())
     else:
@@ -91,12 +101,10 @@ def main():
             else:
                 output_filenames.append(os.path.join(args.out_dir,
                                                      '{0}.nii.gz'.format(
-                                                        name)))
+                                                         name)))
 
+    assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, output_filenames)
-
-    if args.out_dir and not os.path.isdir(args.out_dir):
-        os.mkdir(args.out_dir)
 
     # Extract the voxels that match the label and save them to a file.
     cnt_filename = 0

@@ -2,6 +2,8 @@
 *.pyo
 *.sublime*
 *.idea*
+*.swp
+*.swo
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -58,7 +60,7 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-docs/_build/
+docs/build/
 
 # PyBuilder
 target/

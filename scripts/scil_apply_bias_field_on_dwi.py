@@ -7,27 +7,32 @@ field itself. It ONLY applies an existing bias field. Use the ANTs
 N4BiasFieldCorrection executable to compute the bias field
 """
 
-from past.utils import old_div
 import argparse
 
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.image import get_data_as_mask
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('dwi', help='DWI Nifti image')
-    parser.add_argument('bias_field', help='Bias field Nifti image')
-    parser.add_argument('output', help='Corrected DWI Nifti image')
-    parser.add_argument('--mask',
-                        help='Apply bias field correction only in the region '
-                             'defined by the mask')
-    add_overwrite_arg(parser)
-    return parser
+    p = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('in_dwi',
+                   help='DWI Nifti image.')
+    p.add_argument('in_bias_field',
+                   help='Bias field Nifti image.')
+    p.add_argument('out_name',
+                   help='Corrected DWI Nifti image.')
+    p.add_argument('--mask',
+                   help='Apply bias field correction only in the region '
+                        'defined by the mask.')
+    add_overwrite_arg(p)
+    return p
 
 
 def _rescale_intensity(val, slope, in_max, bc_max):
@@ -35,30 +40,22 @@ def _rescale_intensity(val, slope, in_max, bc_max):
 
 
 # https://github.com/stnava/ANTs/blob/master/Examples/N4BiasFieldCorrection.cxx
-def _rescale_dwi(in_data, bc_data, mask_data=None):
-    nz_in_data = in_data
-    nz_bc_data = bc_data
-    nz_mask_data = None
+def _rescale_dwi(in_data, bc_data):
+    in_min = np.amin(in_data)
+    in_max = np.amax(in_data)
+    bc_min = np.amin(bc_data)
+    bc_max = np.amax(bc_data)
 
-    if mask_data is not None:
-        nz_mask_data = np.nonzero(mask_data)
-        nz_in_data = in_data[nz_mask_data]
-        nz_bc_data = bc_data[nz_mask_data]
+    slope = (in_max - in_min) / (bc_max - bc_min)
 
-    in_min = np.amin(nz_in_data)
-    in_max = np.amax(nz_in_data)
-    bc_min = np.amin(nz_bc_data)
-    bc_max = np.amax(nz_bc_data)
+    chunk = np.arange(0, len(in_data), 100000)
+    chunk = np.append(chunk, len(in_data)-1)
+    for i in range(len(chunk)-1):
+        nz_bc_data = bc_data[chunk[i]:chunk[i+1]]
+        rescale_func = np.vectorize(_rescale_intensity, otypes=[np.float32])
 
-    slope = old_div((in_max - in_min), (bc_max - bc_min))
-
-    rescale_func = np.vectorize(_rescale_intensity, otypes=[np.float])
-    rescaled_data = rescale_func(nz_bc_data, slope, in_max, bc_max)
-
-    if mask_data is not None:
-        bc_data[nz_mask_data] = rescaled_data
-    else:
-        bc_data = rescaled_data
+        rescaled_data = rescale_func(nz_bc_data, slope, in_max, bc_max)
+        bc_data[chunk[i]:chunk[i+1]] = rescaled_data
 
     return bc_data
 
@@ -67,22 +64,31 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.dwi, args.bias_field], args.mask)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bias_field], args.mask)
+    assert_outputs_exist(parser, args, args.out_name)
 
-    dwi_img = nib.load(args.dwi)
-    dwi_data = dwi_img.get_data()
+    dwi_img = nib.load(args.in_dwi)
+    dwi_data = dwi_img.get_fdata(dtype=np.float32)
 
-    bias_field_img = nib.load(args.bias_field)
-    bias_field_data = bias_field_img.get_data()
+    bias_field_img = nib.load(args.in_bias_field)
+    bias_field_data = bias_field_img.get_fdata(dtype=np.float32)
 
-    mask_data = nib.load(args.mask).get_data() if args.mask else None
-    nuc_dwi_data = np.divide(dwi_data, bias_field_data[..., np.newaxis])
-    rescaled_nuc_data = _rescale_dwi(dwi_data, nuc_dwi_data, mask_data)
+    if args.mask:
+        mask_img = nib.load(args.mask)
+        nz_mask_data = np.nonzero(get_data_as_mask(mask_img))
+    else:
+        nz_mask_data = np.nonzero(np.average(dwi_data, axis=-1))
 
-    nib.save(nib.Nifti1Image(rescaled_nuc_data, dwi_img.affine,
+    nuc_dwi_data = np.divide(dwi_data[nz_mask_data],
+                             bias_field_data[nz_mask_data].reshape((len(nz_mask_data[0]), 1)))
+
+    rescaled_nuc_data = _rescale_dwi(dwi_data[nz_mask_data],
+                                     nuc_dwi_data)
+
+    dwi_data[nz_mask_data] = rescaled_nuc_data
+    nib.save(nib.Nifti1Image(dwi_data, dwi_img.affine,
                              dwi_img.header),
-             args.output)
+             args.out_name)
 
 
 if __name__ == "__main__":
