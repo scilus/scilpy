@@ -173,7 +173,7 @@ def main():
     shm_coeff = msmt_fit.all_shm_coeff
 
     nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
-    voxel_count = np.prod(shm_coeff[:-1])
+    voxel_count = np.prod(shm_coeff.shape[:-1])
 
     if nan_count / voxel_count >= 0.05:
         msg = """There are {} voxels out of {} that could not be solved by
@@ -181,14 +181,14 @@ def main():
         response functions properly, as the solving process is very sensitive
         to it. Proceeding to fill the problematic voxels by 0.
         """
-        logging.warning(msg)
+        logging.warning(msg.format(nan_count, voxel_count))
     elif nan_count  > 0:
         msg = """There are {} voxels out of {} that could not be solved by
         the solver. Make sure to tune the response functions properly, as the
         solving process is very sensitive to it. Proceeding to fill the
         problematic voxels by 0.
         """
-        logging.warning(msg)
+        logging.warning(msg.format(nan_count, voxel_count))
 
     shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
 
