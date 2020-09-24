@@ -145,11 +145,10 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
 
 
 def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
-    atlas_data = atlas_data.astype(np.int32)
-
     connectivity = {k: {lab: [] for lab in real_labels} for k in real_labels}
-
     for strl_idx, strl_indices in enumerate(indices):
+        if (np.array(strl_indices) > atlas_data.shape).any():
+            continue
         segments_info = segmenting_func(strl_indices, atlas_data)
 
         for si in segments_info:

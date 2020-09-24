@@ -44,7 +44,7 @@ def get_testing_files_dict():
              'dbe796fb75c3e1e5559fad3308982769'],
             'others.zip':
             ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
-             '91117b26d44e7e53d0a00022ed92fb38'],
+             '981dccd8b23aad43aa014f4fdd907e70'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
              '57aee810f2f5c687df48de65935bb527'],
