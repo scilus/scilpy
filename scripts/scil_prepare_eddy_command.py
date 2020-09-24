@@ -12,6 +12,7 @@ import subprocess
 from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_fsl_options_exist,
                              assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import (create_acqparams,
                                                         create_index,
@@ -77,6 +78,11 @@ def _build_arg_parser():
                    help='if set, will use the fixed seed strategy for eddy.\n'
                         'Enhances reproducibility.')
 
+    p.add_argument('--eddy_options',  default=None,
+                   help='Additional options you want to use to run eddy.\n'
+                        'Add these options using quotes (i.e. "--ol_nstd=6'
+                        ' --mb=4").')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
 
@@ -99,6 +105,7 @@ def main():
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 
     assert_inputs_exist(parser, required_args)
+    assert_fsl_options_exist(parser, args.eddy_options, 'eddy')
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
@@ -136,6 +143,9 @@ def main():
 
     if args.fix_seed:
         additional_args += "--initrand "
+
+    if args.eddy_options:
+        additional_args += args.eddy_options
 
     output_path = os.path.join(args.out_directory, args.out_prefix)
     eddy = '{0} --imain={1} --mask={2} --acqp={3} --index={4}' \

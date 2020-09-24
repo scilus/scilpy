@@ -6,7 +6,6 @@ from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
-from dipy.segment.mask import applymask
 import numpy as np
 
 
@@ -47,18 +46,16 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     data_shape = data.shape
     if mask is None:
         mask = np.sum(data, axis=3).astype(bool)
-    else:
-        data = applymask(data, mask)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
-    data = data.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
+    data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
     chunks = np.array_split(data, nbr_processes)
-    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
 
+    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
     pool = multiprocessing.Pool(nbr_processes)
     results = pool.map(fit_from_model_parallel,
                        zip(itertools.repeat(model),
@@ -68,10 +65,13 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     pool.join()
 
     # Re-assemble the chunk together in the original shape.
-    fit_array = np.zeros((np.prod(data_shape[0:3]),), dtype='object')
+    fit_array = np.zeros(data_shape[0:3], dtype='object')
+    tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
     for i, fit in results:
-        fit_array[chunk_len[i]:chunk_len[i+1]] = fit
-    fit_array = MultiVoxelFit(model, fit_array.reshape(data_shape[0:3]), mask)
+        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+
+    fit_array[mask] = tmp_fit_array
+    fit_array = MultiVoxelFit(model, fit_array, mask)
 
     return fit_array
 
@@ -98,8 +98,8 @@ def peaks_from_sh_parallel(args):
             odf = np.dot(shm_coeff[idx], B)
             odf[odf < absolute_threshold] = 0.
             dirs, peaks, ind = peak_directions(odf, sphere,
-                                            relative_peak_threshold,
-                                            min_separation_angle)
+                                               relative_peak_threshold,
+                                               min_separation_angle)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -165,15 +165,16 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
-    if mask is not None:
-        shm_coeff = applymask(shm_coeff, mask)
+    if mask is None:
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
-    shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
+    shm_coeff = shm_coeff[mask].reshape(
+        (np.count_nonzero(mask), data_shape[3]))
     chunks = np.array_split(shm_coeff, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in chunks])
 
@@ -192,23 +193,30 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     pool.join()
 
     # Re-assemble the chunk together in the original shape.
-    peak_dirs_array = np.zeros((np.prod(data_shape[0:3]), npeaks, 3))
-    peak_values_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
-    peak_indices_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
+    peak_dirs_array = np.zeros(data_shape[0:3] + (npeaks, 3))
+    peak_values_array = np.zeros(data_shape[0:3] + (npeaks,))
+    peak_indices_array = np.zeros(data_shape[0:3] + (npeaks,))
+
+    # tmp arrays are neccesary to avoid inserting data in returned variable
+    # rather than the original array
+    tmp_peak_dirs_array = np.zeros((np.count_nonzero(mask), npeaks, 3))
+    tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
+    tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
     for i, peak_dirs, peak_values, peak_indices in results:
-        peak_dirs_array[chunk_len[i]:chunk_len[i+1], :] = peak_dirs
-        peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
-        peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
-    peak_dirs_array = peak_dirs_array.reshape(data_shape[0:3]+(npeaks, 3))
-    peak_values_array = peak_values_array.reshape(data_shape[0:3]+(npeaks,))
-    peak_indices_array = peak_indices_array.reshape(data_shape[0:3]+(npeaks,))
+        tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
+        tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
+        tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
+
+    peak_dirs_array[mask] = tmp_peak_dirs_array
+    peak_values_array[mask] = tmp_peak_values_array
+    peak_indices_array[mask] = tmp_peak_indices_array
 
     return peak_dirs_array, peak_values_array, peak_indices_array
 
 
 def maps_from_sh_parallel(args):
     shm_coeff = args[0]
-    peak_dirs = args[1]
+    _ = args[1]
     peak_values = args[2]
     peak_indices = args[3]
     B = args[4]
@@ -246,11 +254,8 @@ def maps_from_sh_parallel(args):
                 qa_map = peak_values[idx] - odf.min()
                 global_max = max(global_max, peak_values[idx][0])
 
-    rgb_map /= max_odf
-    rgb_map *= 255
-    qa_map /= global_max
-
-    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map
+    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, \
+        max_odf, global_max
 
 
 def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
@@ -294,11 +299,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
-    if mask is not None:
-        shm_coeff = applymask(shm_coeff, mask)
-        peak_dirs = applymask(peak_dirs, mask)
-        peak_values = applymask(peak_values, mask)
-        peak_indices = applymask(peak_indices, mask)
+    if mask is None:
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
@@ -306,10 +308,11 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     npeaks = peak_values.shape[3]
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
-    shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
-    peak_dirs = peak_dirs.ravel().reshape((np.prod(data_shape[0:3]), npeaks, 3))
-    peak_values = peak_values.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
-    peak_indices = peak_indices.ravel().reshape(np.prod(data_shape[0:3]), npeaks)
+    shm_coeff = shm_coeff[mask].reshape(
+        (np.count_nonzero(mask), data_shape[3]))
+    peak_dirs = peak_dirs[mask].reshape((np.count_nonzero(mask), npeaks, 3))
+    peak_values = peak_values[mask].reshape((np.count_nonzero(mask), npeaks))
+    peak_indices = peak_indices[mask].reshape((np.count_nonzero(mask), npeaks))
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
     peak_dirs_chunks = np.array_split(peak_dirs, nbr_processes)
     peak_values_chunks = np.array_split(peak_values, nbr_processes)
@@ -330,29 +333,50 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     pool.join()
 
     # Re-assemble the chunk together in the original shape.
-    nufo_map_array = np.zeros((np.prod(data_shape[0:3])))
-    afd_max_array = np.zeros((np.prod(data_shape[0:3])))
-    afd_sum_array = np.zeros((np.prod(data_shape[0:3])))
-    rgb_map_array = np.zeros((np.prod(data_shape[0:3]), 3))
-    gfa_map_array = np.zeros((np.prod(data_shape[0:3])))
-    qa_map_array = np.zeros((np.prod(data_shape[0:3]), npeaks))
-    for i, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map in results:
-        nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
-        afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
-        afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
-        rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
-        gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
-        qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
-    nufo_map_array = nufo_map_array.reshape(data_shape[0:3])
-    afd_max_array = afd_max_array.reshape(data_shape[0:3])
-    afd_sum_array = afd_sum_array.reshape(data_shape[0:3])
-    rgb_map_array = rgb_map_array.reshape(data_shape[0:3] + (3,))
-    gfa_map_array = gfa_map_array.reshape(data_shape[0:3])
-    qa_map_array = qa_map_array.reshape(data_shape[0:3] + (npeaks,))
+    nufo_map_array = np.zeros(data_shape[0:3])
+    afd_max_array = np.zeros(data_shape[0:3])
+    afd_sum_array = np.zeros(data_shape[0:3])
+    rgb_map_array = np.zeros(data_shape[0:3] + (3,))
+    gfa_map_array = np.zeros(data_shape[0:3])
+    qa_map_array = np.zeros(data_shape[0:3] + (npeaks,))
+
+    # tmp arrays are neccesary to avoid inserting data in returned variable
+    # rather than the original array
+    tmp_nufo_map_array = np.zeros((np.count_nonzero(mask)))
+    tmp_afd_max_array = np.zeros((np.count_nonzero(mask)))
+    tmp_afd_sum_array = np.zeros((np.count_nonzero(mask)))
+    tmp_rgb_map_array = np.zeros((np.count_nonzero(mask), 3))
+    tmp_gfa_map_array = np.zeros((np.count_nonzero(mask)))
+    tmp_qa_map_array = np.zeros((np.count_nonzero(mask), npeaks))
+
+    all_time_max_odf = -np.inf
+    all_time_global_max = -np.inf
+    for i, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, \
+            max_odf, global_max in results:
+        all_time_max_odf = max(all_time_global_max, max_odf)
+        all_time_global_max = max(all_time_global_max, global_max)
+
+        tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
+        tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
+        tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
+        tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+        tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
+        tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
+
+    nufo_map_array[mask] = tmp_nufo_map_array
+    afd_max_array[mask] = tmp_afd_max_array
+    afd_sum_array[mask] = tmp_afd_sum_array
+    rgb_map_array[mask] = tmp_rgb_map_array
+    gfa_map_array[mask] = tmp_gfa_map_array
+    qa_map_array[mask] = tmp_qa_map_array
+
+    rgb_map_array /= all_time_max_odf
+    rgb_map_array *= 255
+    qa_map_array /= all_time_global_max
 
     afd_unique = np.unique(afd_max_array)
     if np.array_equal(np.array([0, 1]), afd_unique) \
-        or np.array_equal(np.array([1]), afd_unique):
+            or np.array_equal(np.array([1]), afd_unique):
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
     return(nufo_map_array, afd_max_array, afd_sum_array,
@@ -406,15 +430,16 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     _, invB_out = sh_to_sf_matrix(sphere, sh_order, output_basis)
 
     data_shape = shm_coeff.shape
-    if mask is not None:
-        shm_coeff = applymask(shm_coeff, mask)
+    if mask is None:
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
-    shm_coeff = shm_coeff.ravel().reshape(np.prod(data_shape[0:3]), data_shape[3])
+    shm_coeff = shm_coeff[mask].reshape(
+        (np.count_nonzero(mask), data_shape[3]))
     shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
     chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
 
@@ -428,9 +453,11 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     pool.join()
 
     # Re-assemble the chunk together in the original shape.
-    shm_coeff_array = np.zeros((np.prod(data_shape[0:3]), data_shape[3]))
+    shm_coeff_array = np.zeros(data_shape)
+    tmp_shm_coeff_array = np.zeros((np.count_nonzero(mask), data_shape[3]))
     for i, new_shm_coeff in results:
-        shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
-    shm_coeff_array = shm_coeff_array.reshape(data_shape[0:3]+(data_shape[3],))
+        tmp_shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
+
+    shm_coeff_array[mask] = tmp_shm_coeff_array
 
     return shm_coeff_array

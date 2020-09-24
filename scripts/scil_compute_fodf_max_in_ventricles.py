@@ -24,7 +24,7 @@ from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 EPILOG = """
 [1] Dell'Acqua, Flavio, et al. "Can spherical deconvolution provide more
     information than fiber orientations? Hindrance modulated orientational
-    anisotropy, a true‐tract specific index to characterize white matter
+    anisotropy, a true-tract specific index to characterize white matter
     diffusion." Human brain mapping 34.10 (2013): 2464-2483.
 """
 
@@ -94,7 +94,7 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
         else:
             step = 5
 
-    # 1000 works well at 2x2x2 = 8 mm^3
+    # 1000 works well at 2x2x2 = 8 mm3
     # Hence, we multiply by the volume of a voxel
     vol = (zoom[0] * zoom[1] * zoom[2])
     if vol != 0:

@@ -117,7 +117,7 @@ def main():
             wbbox = pickle.load(bbox_file)
         if not args.ignore_voxel_size:
             voxel_size = img.header.get_zooms()[0:3]
-            if not np.allclose(voxel_size, wbbox.voxel_size[0:3]):
+            if not np.allclose(voxel_size, wbbox.voxel_size[0:3], atol=1e-03):
                 raise IOError("Bounding box and data voxel sizes are not "
                               "compatible. Use option --ignore_voxel_size "
                               "to ignore this test.")
