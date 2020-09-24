@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute bundle volume per label in mm³. This script supports anisotropic voxels
+Compute bundle volume per label in mm3. This script supports anisotropic voxels
 resolution. Volume is estimated by counting the number of voxel occupied by
 each label and multiplying it by the volume of a single voxel.
 
-This estimation is typically performed at resolution around 1mm³.
+This estimation is typically performed at resolution around 1mm3.
 """
 
 import argparse

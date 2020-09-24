@@ -28,7 +28,7 @@ def _build_arg_parser():
 
     p.add_argument('--fill_color',
                    help='Hexadecimal RGB color filling the region between '
-                        'mean ± std. The hexadecimal RGB color should be '
+                        'mean +/- std. The hexadecimal RGB color should be '
                         'formatted as 0xRRGGBB.')
 
     add_overwrite_arg(p)
