@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This script computes two myelin indices maps from the Magnetization Transfer
@@ -69,7 +70,7 @@ EPILOG = """
 Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
 magnetization transfer with inherent correction for RF inhomogeneity
 and T1 relaxation obtained from 3D FLASH MRI. Magnetic Resonance in Medicine.
-2008;60(6):1396‑407.
+2008;60(6):1396-407.
 """
 
 
