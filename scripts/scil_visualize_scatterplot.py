@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Script to display scatter plot between two maps (ex. FA and MD).
