@@ -93,6 +93,10 @@ def _build_arg_parser():
                    help='Save the streamline indices to the supplied '
                         'json file.')
 
+    p.add_argument('--ignore_invalid', action='store_true',
+                   help='If set, does not crash because of invalid '
+                        'streamlines.')
+
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -113,6 +117,7 @@ def main():
 
     # Load all input streamlines.
     sft_list = [load_tractogram_with_reference(parser, args,
+                                               bbox_check=not args.ignore_invalid,
                                                f) for f in args.inputs]
 
     # Apply the requested operation to each input file.
@@ -151,7 +156,8 @@ def main():
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
                                                        args.output))
-    save_tractogram(new_sft[indices], args.output)
+    save_tractogram(new_sft[indices], args.output,
+                    bbox_valid_check=not args.ignore_invalid)
 
 
 if __name__ == "__main__":
