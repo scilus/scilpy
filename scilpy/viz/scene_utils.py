@@ -147,12 +147,29 @@ def create_texture_slicer(texture, value_range=None, orientation='axial',
     return slicer_actor
 
 
+def create_peaks_slicer(data, orientation, mask, peaks_length=0.7071):
+    """
+    Create a peaks slicer actor rendering a slice of the fODF peaks
+    as normalized lines of given length.
+    """
+    # Scale the peaks
+    norm = np.linalg.norm(data, axis=-1)
+    scaled_data = np.zeros_like(data)
+    scaled_data[norm > 0] =\
+        peaks_length * data[norm > 0] / norm[norm > 0][:, None]
+
+    # Instantiate peaks slicer
+    peaks_slicer = actor.peak_slicer(scaled_data, mask=mask)
+    set_display_extent(peaks_slicer, orientation, data.shape)
+
+    return peaks_slicer
+
+
 def create_scene(actors, orientation, volume_shape):
     """
-    Create a 3D scene containing actors fitting inside a 2-dimensional grid in
-    the XY plane. The coordinate system of the scene is right-handed. The
-    camera's up vector is in direction +Y and its view vector is in
-    direction +Z. The projection is parallel.
+    Create a 3D scene containing actors fitting inside a grid. The camera is
+    placed based on the orientation supplied by the user. The projection mode
+    is parallel.
     """
     # Configure camera
     camera = initialize_camera(orientation, volume_shape)

@@ -19,7 +19,8 @@ from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
-                                    create_scene, render_scene)
+                                    create_peaks_slicer, create_scene,
+                                    render_scene)
 
 
 def _build_arg_parser():
@@ -100,6 +101,10 @@ def _build_arg_parser():
     p.add_argument('--bg_interpolation', choices={'linear', 'nearest'},
                    help='Interpolation mode for the background image.')
 
+    # Peaks input file options
+    p.add_argument('--peaks',
+                   help='Peaks image file.')
+
     return p
 
 
@@ -131,6 +136,12 @@ def _parse_args(parser):
             parser.error('Background image interpolation is specified but no '
                          'background image is specified. Specify a background '
                          'image with --background to use this feature.')
+    if args.peaks:
+        if args.full_basis:
+            # FURY doesn't support asymmetric peaks visualization
+            parser.error('Cannot use peaks file with full basis: '
+                         'Asymmetric peaks visualization is not available.')
+        inputs.append(args.peaks)
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, output)
@@ -165,7 +176,7 @@ def _crop_along_axis(data, index, axis_name):
 def _get_data_from_inputs(args):
     """
     Load data given by args. Perform checks to ensure dimensions agree
-    between the data for mask, background and fODF.
+    between the data for mask, background, peaks and fODF.
     """
     fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
     data = {'fodf': _crop_along_axis(fodf, args.slice_index,
@@ -184,6 +195,14 @@ def _get_data_from_inputs(args):
                              'dimensions {1}.'.format(mask.shape, fodf.shape))
         data['mask'] = _crop_along_axis(mask, args.slice_index,
                                         args.axis_name)
+    if args.peaks:
+        peaks = nib.nifti1.load(args.peaks).get_fdata(dtype=np.float32)
+        if peaks.shape[:3] != fodf.shape[:-1]:
+            raise ValueError('Peaks volume dimensions {0} do not agree '
+                             'with fODF dimensions {1}.'.format(bg.shape,
+                                                                fodf.shape))
+        data['peaks'] = _crop_along_axis(peaks, args.slice_index,
+                                         args.axis_name)
 
     grid_shape = data['fodf'].shape[:3]
     return data, grid_shape
@@ -220,6 +239,13 @@ def main():
                                          args.bg_offset,
                                          args.bg_interpolation)
         actors.append(bg_actor)
+
+    # Instantiate a peaks slicer actor if peaks are supplied
+    if 'peaks' in data:
+        peaks_actor = create_peaks_slicer(data['peaks'],
+                                          args.axis_name,
+                                          mask)
+        actors.append(peaks_actor)
 
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name, grid_shape)
