@@ -13,7 +13,7 @@ def get_next_real_point(points_to_index, vox_index):
         int map_idx = -1
         int nb_points_to_index
         int internal_vox_index
-        cnp.npy_ulong[:] pts_to_index_view
+        cnp.npy_uint16[:] pts_to_index_view
 
     nb_points_to_index = len(points_to_index)
     internal_vox_index = vox_index
@@ -35,7 +35,7 @@ def get_previous_real_point(points_to_index, vox_index):
         int map_index
         int nb_points_to_index
         int internal_vox_index
-        cnp.npy_ulong[:] pts_to_index_view
+        cnp.npy_uint16[:] pts_to_index_view
 
     nb_points_to_index = len(points_to_index)
     previous_point = nb_points_to_index
