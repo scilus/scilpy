@@ -144,16 +144,22 @@ def _crop_along_axis(data, index, axis_name):
     """
     if axis_name == 'sagittal':
         if index is None:
-            return data[data.shape[0]//2, :, :]
-        return data[index, :, :]
+            data_slice = data[data.shape[0]//2, :, :]
+        else:
+            data_slice = data[index, :, :]
+        return data_slice[None, ...]
     elif axis_name == 'coronal':
         if index is None:
-            return data[:, data.shape[1]//2, :]
-        return data[:, index, :]
+            data_slice = data[:, data.shape[1]//2, :]
+        else:
+            data_slice = data[index, :, :]
+        return data_slice[:, None, ...]
     elif axis_name == 'axial':
         if index is None:
-            return data[:, :, data.shape[2]//2]
-        return data[:, :, index]
+            data_slice = data[:, :, data.shape[2]//2]
+        else:
+            data_slice = data[:, :, index]
+        return data_slice[:, :, None]
 
 
 def _get_data_from_inputs(args):
@@ -179,7 +185,7 @@ def _get_data_from_inputs(args):
         data['mask'] = _crop_along_axis(mask, args.slice_index,
                                         args.axis_name)
 
-    grid_shape = data['fodf'].shape[:2]
+    grid_shape = data['fodf'].shape[:3]
     return data, grid_shape
 
 
@@ -210,12 +216,13 @@ def main():
     if 'bg' in data:
         bg_actor = create_texture_slicer(data['bg'],
                                          args.bg_range,
+                                         args.axis_name,
                                          args.bg_offset,
                                          args.bg_interpolation)
         actors.append(bg_actor)
 
     # Prepare and display the scene
-    scene = create_scene(actors, grid_shape)
+    scene = create_scene(actors, args.axis_name, grid_shape)
     render_scene(scene, args.win_dims, args.interactor,
                  args.output, args.silent)
 
