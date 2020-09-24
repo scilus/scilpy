@@ -36,5 +36,5 @@ def test_execution_processing_mask(script_runner):
     in_mask = os.path.join(get_home(), 'processing',
                            'seed.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
-                            'scatter_plot.png', '--in_mask', in_mask)
+                            'scatter_plot.png', '--mask', in_mask)
     assert ret.success
