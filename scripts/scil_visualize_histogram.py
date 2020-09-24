@@ -17,7 +17,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist)
+from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
 
 
 def _build_arg_parser():
@@ -55,7 +55,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_metric, args.in_mask)
+    assert_inputs_exist(parser, [args.in_metric, args.in_mask])
+    assert_outputs_exist(parser, args, args.out_png)
 
     # Load metric image
     metric_img = nib.load(args.in_metric)

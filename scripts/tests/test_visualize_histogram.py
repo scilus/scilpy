@@ -21,7 +21,7 @@ def test_execution_processing(script_runner):
     in_fa = os.path.join(get_home(), 'processing',
                          'fa.nii.gz')
     in_mask = os.path.join(get_home(), 'processing',
-                           'mask.nii.gz')
+                           'seed.nii.gz')
     ret = script_runner.run('scil_visualize_histogram.py', in_fa, in_mask,
                             '20', 'histogram.png')
     assert ret.success
