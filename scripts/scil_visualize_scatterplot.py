@@ -3,7 +3,7 @@
 Script to display scatter plot between two maps (ex. FA and MD).
 This script can be also used for the correspondence between two Myelin maps
 (ex. ihMTR and MTsat). For the myelin, the WM and GM probability maps are
-used to threshold the myelin maps. Therefore, the --myelin --in_wm and --in_gm
+used to threshold the myelin maps. Therefore, the --myelin --wm and --gm
 options must be added.
 
 For general scatter plot:
@@ -11,8 +11,8 @@ For general scatter plot:
 
 For Myelin scatter plot:
 >>> scil_visualize_scatterplot.py ihMTR_map.nii.gz MTsat_map.nii.gz
-    out_filename_image.png --myelin --in_wm probability_wm_map.nii.gz
-    --in_gm probability_gm_map.nii.gz
+    out_filename_image.png --myelin --wm probability_wm_map.nii.gz
+    --gm probability_gm_map.nii.gz
 
 To display specific label for myelin scatter plot used:
     --label 'WM Threshold' --label_myelin 'GM Threshold'
@@ -27,7 +27,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist)
+from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
 
 
 def _build_arg_parser():
@@ -40,7 +40,7 @@ def _build_arg_parser():
                    help='Map in y axis, MD or MTsat for example.')
     p.add_argument('out_png',
                    help='Output filename for the figure.')
-    p.add_argument('--in_mask',
+    p.add_argument('--mask',
                    help='Binary mask map. Use this mask to extract x and '
                         'y maps value from specific map or region: '
                         'mask_wm or roi_mask')
@@ -49,9 +49,9 @@ def _build_arg_parser():
     myelo.add_argument('--myelin', action='store_true',
                        help='Compute and display specific scatter plot for '
                             'myelin maps.')
-    myelo.add_argument('--in_wm',
+    myelo.add_argument('--wm',
                        help='Probability WM map.')
-    myelo.add_argument('--in_gm',
+    myelo.add_argument('--gm',
                        help='Probability GM map.')
 
     scat = p.add_argument_group(title='Scatter plot options')
@@ -98,22 +98,22 @@ def main():
 
     assert_inputs_exist(parser, args.in_x_map, args.in_y_map)
     if args.myelin:
-        assert_inputs_exist(parser, args.in_gm, args.in_wm)
+        assert_inputs_exist(parser, args.gm, args.wm)
 
     # Load images
     maps_image = [args.in_x_map, args.in_y_map]
     maps_data = load_maps(maps_image)
 
-    if args.in_mask:
+    if args.mask:
         # Load and apply threshold from mask
-        mask_image = nib.load(args.in_mask)
+        mask_image = nib.load(args.mask)
         mask_data = get_data_as_mask(mask_image)
         for curr_map in maps_data:
             curr_map[np.where(mask_data == 0)] = np.nan
 
     if args.myelin:
         # Load images
-        tissue_image = [args.in_wm, args.in_gm]
+        tissue_image = [args.wm, args.gm]
         tissue_data = load_maps(tissue_image)
         maps_data_gm_thr = copy.deepcopy(maps_data)
 
