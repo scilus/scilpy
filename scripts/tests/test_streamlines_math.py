@@ -7,7 +7,7 @@ import tempfile
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
+fetch_data(get_testing_files_dict(), keys=['others.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -16,34 +16,185 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_union(script_runner):
+def test_execution_union_no_color(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tracto_1 = os.path.join(get_home(), 'tracking',
-                               'local.trk')
-    in_tracto_2 = os.path.join(get_home(), 'tracking',
-                               'pft.trk')
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
     ret = script_runner.run('scil_streamlines_math.py', 'union',
                             in_tracto_1, in_tracto_2, 'union.trk')
     assert ret.success
 
 
-def test_execution_intersection(script_runner):
+def test_execution_intersection_no_color(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tracto_1 = os.path.join(get_home(), 'tracking',
-                               'union.trk')
-    in_tracto_2 = os.path.join(get_home(), 'tracking',
-                               'pft.trk')
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
     ret = script_runner.run('scil_streamlines_math.py', 'intersection',
                             in_tracto_1, in_tracto_2, 'intersection.trk')
     assert ret.success
 
 
-def test_execution_difference(script_runner):
+def test_execution_difference_no_color(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_tracto_1 = os.path.join(get_home(), 'tracking',
-                               'union.trk')
-    in_tracto_2 = os.path.join(get_home(), 'tracking',
-                               'pft.trk')
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
     ret = script_runner.run('scil_streamlines_math.py', 'difference',
                             in_tracto_1, in_tracto_2, 'difference.trk')
+    assert ret.success
+
+
+def test_execution_concatenate_no_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'concatenate',
+                            in_tracto_1, in_tracto_2, 'concatenate.trk')
+    assert ret.success
+
+
+def test_execution_union_no_color_robust(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union_r.trk',
+                            '--robust')
+    assert ret.success
+
+
+def test_execution_intersection_no_color_robust(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'intersection',
+                            in_tracto_1, in_tracto_2, 'intersection_r.trk',
+                            '--robust')
+    assert ret.success
+
+
+def test_execution_difference_no_color_robust(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference_r.trk',
+                            '--robust')
+    assert ret.success
+
+
+def test_execution_union_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union_color.trk')
+    assert ret.success
+
+
+def test_execution_intersection_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'intersection',
+                            in_tracto_1, in_tracto_2, 'intersection_color.trk')
+    assert ret.success
+
+
+def test_execution_difference_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference_color.trk')
+    assert ret.success
+
+
+def test_execution_concatenate_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'concatenate',
+                            in_tracto_1, in_tracto_2, 'concatenate_color.trk')
+    assert ret.success
+
+
+def test_execution_union_mix(script_runner):
+    # This is intentionally failing
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'union',
+                            in_tracto_1, in_tracto_2, 'union_mix.trk')
+    assert not ret.success
+
+
+def test_execution_intersection_mix_fake(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'intersection',
+                            in_tracto_1, in_tracto_2, 'intersection_mix.trk',
+                            '--fake_metadata')
+    assert ret.success
+
+
+def test_execution_difference_empty_result(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'difference',
+                            in_tracto_1, in_tracto_2,
+                            'difference_empty_results.trk', '--no_metadata')
+    assert ret.success
+
+
+def test_execution_difference_empty_input_1(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'empty.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference_empty_1.trk',
+                            '--no_metadata')
+    assert ret.success
+
+
+def test_execution_difference_empty_input_2(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'empty.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'difference',
+                            in_tracto_1, in_tracto_2, 'difference_empty_2.trk',
+                            '--no_metadata')
     assert ret.success

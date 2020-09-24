@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-
 import copy
-from functools import reduce
 import itertools
+from functools import reduce
 import logging
 
+
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
-from dipy.io.utils import get_reference_info
+from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
+from scipy.spatial import cKDTree
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -76,8 +77,8 @@ def union(left, right):
     """Union of two streamlines dict (see hash_streamlines)"""
 
     # In python 3 : return {**left, **right}
-    result = left.copy()
-    result.update(right)
+    result = right.copy()
+    result.update(left)
     return result
 
 
@@ -109,7 +110,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     streamlines: list of `nib.streamline.Streamlines`
         The streamlines obtained after performing the operation on all the
         input streamlines.
-    indices: list
+    indices: np.ndarray
         The indices of the streamlines that are used in the output.
 
     """
@@ -122,14 +123,261 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     # Perform the operation on the hashes and get the output streamlines.
     to_keep = reduce(operation, hashes)
     all_streamlines = list(itertools.chain(*streamlines))
-    indices = sorted(to_keep.values())
+    indices = np.array(sorted(to_keep.values())).astype(np.uint32)
     streamlines = [all_streamlines[i] for i in indices]
     return streamlines, indices
+
+
+def intersection_robust(streamlines_list, precision=3):
+    """ Intersection of a list of StatefulTractogram """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
+
+    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
+                                                            epsilon=10**(-precision))
+    return streamlines_fused[indices], indices
+
+
+def difference_robust(streamlines_list, precision=3):
+    """ Difference of a list of StatefulTractogram from the first element """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
+    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
+                                                            epsilon=10**(-precision),
+                                                            difference_mode=True)
+    return streamlines_fused[indices], indices
+
+
+def union_robust(streamlines_list, precision=3):
+    """ Union of a list of StatefulTractogram """
+    if not isinstance(streamlines_list, list):
+        streamlines_list = [streamlines_list]
+    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
+                                                            epsilon=10**(-precision),
+                                                            union_mode=True)
+    return streamlines_fused[indices], indices
+
+
+def find_identical_streamlines(streamlines_list, epsilon=0.001,
+                               union_mode=False, difference_mode=False):
+    """ Return the intersection/union/difference from a list of list of
+    streamlines. Allows for a maximum distance for matching.
+
+    Parameters:
+    -----------
+    streamlines_list: list
+        List of lists of streamlines or list of ArraySequences
+    epsilon: float
+        Maximum allowed distance (should not go above 1.0)
+    union_mode: bool
+        Perform the union of streamlines
+    difference_mode
+        Perform the difference of streamlines (from the first element)
+    Returns:
+    --------
+    Tuple, ArraySequence, np.ndarray
+        Returns the concatenated streamlines and the indices to pick from it
+    """
+    streamlines = ArraySequence(itertools.chain(*streamlines_list))
+    nb_streamlines = np.cumsum([len(sft) for sft in streamlines_list])
+    nb_streamlines = np.insert(nb_streamlines, 0, 0)
+
+    if union_mode and difference_mode:
+        raise ValueError('Cannot use union_mode and difference_mode at the '
+                         'same time.')
+
+    all_tree = {}
+    all_tree_mapping = {}
+    first_points = np.array(streamlines.get_data()[streamlines._offsets])
+    # Uses the number of point to speed up the search in the ckdtree
+    for point_count in np.unique(streamlines._lengths):
+        same_length_ind = np.where(streamlines._lengths == point_count)[0]
+        all_tree[point_count] = cKDTree(first_points[same_length_ind])
+        all_tree_mapping[point_count] = same_length_ind
+
+    inversion_val = 1 if union_mode or difference_mode else 0
+    streamlines_to_keep = np.ones((len(streamlines),)) * inversion_val
+    average_match_distance = []
+
+    # Difference by design will never select streamlines that are not from the
+    # first set
+    if difference_mode:
+        streamlines_to_keep[nb_streamlines[1]:] = 0
+    for i, streamline in enumerate(streamlines):
+        # Unless do an union, there is no point at looking past the first set
+        if not union_mode and i >= nb_streamlines[1]:
+            break
+
+        # Find the closest (first) points
+        distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
+                                                                  r=2*epsilon)
+        actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
+
+        # Intersection requires finding matches is all sets
+        if not union_mode or not difference_mode:
+            intersect_test = np.zeros((len(nb_streamlines)-1,))
+
+        for j in actual_ind:
+            # Actual check of the whole streamline
+            sub_vector = streamline-streamlines[j]
+            norm = np.linalg.norm(sub_vector, axis=1)
+
+            if union_mode:
+                # 1) Yourself is not a match
+                # 2) If the streamline hasn't been selected (by another match)
+                # 3) The streamline is 'identical'
+                if i != j and streamlines_to_keep[i] == inversion_val \
+                        and (norm < 2*epsilon).all():
+                    streamlines_to_keep[j] = not inversion_val
+                    average_match_distance.append(np.average(sub_vector,
+                                                             axis=0))
+            elif difference_mode:
+                # 1) Yourself is not a match
+                # 2) The streamline is 'identical'
+                if i != j and (norm < 2*epsilon).all():
+                    pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
+
+                    # If it is an identical streamline, but from the same set
+                    # it needs to be removed, otherwise remove all instances
+                    if pos_in_list_j == 0:
+                        # If it is the first 'encounter' add it
+                        if streamlines_to_keep[actual_ind].all():
+                            streamlines_to_keep[j] = not inversion_val
+                            average_match_distance.append(np.average(sub_vector,
+                                                                     axis=0))
+                    else:
+                        streamlines_to_keep[actual_ind] = not inversion_val
+                        average_match_distance.append(np.average(sub_vector,
+                                                                 axis=0))
+            else:
+                # 1) The streamline is 'identical'
+                if (norm < 2*epsilon).all():
+                    pos_in_list_i = np.max(np.where(nb_streamlines <= i)[0])
+                    pos_in_list_j = np.max(np.where(nb_streamlines <= j)[0])
+                    # If it is an identical streamline, but from the same set
+                    # it needs to be removed
+                    if i == j or pos_in_list_i != pos_in_list_j:
+                        intersect_test[pos_in_list_j] = True
+                    if i != j:
+                        average_match_distance.append(
+                            np.average(sub_vector, axis=0))
+
+        # Verify that you actually found a match in each set
+        if (not union_mode or not difference_mode) and intersect_test.all():
+            streamlines_to_keep[i] = not inversion_val
+
+    # To facilitate debugging and discovering shifts in data
+    if average_match_distance:
+        logging.info('Average matches distance: {}mm'.format(
+            np.round(np.average(average_match_distance, axis=0), 5)))
+    else:
+        logging.info('No matches found.')
+
+    return streamlines, np.where(streamlines_to_keep > 0)[0].astype(np.uint32)
+
+
+def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
+    """ Concatenate a list of StatefulTractogram together """
+    if erase_metadata:
+        sft_list[0].data_per_point = {}
+        sft_list[0].data_per_streamline = {}
+
+    for sft in sft_list[1:]:
+        if erase_metadata:
+            sft.data_per_point = {}
+            sft.data_per_streamline = {}
+        elif metadata_fake_init:
+            for dps_key in list(sft.data_per_streamline.keys()):
+                if dps_key not in sft_list[0].data_per_streamline.keys():
+                    del sft.data_per_streamline[dps_key]
+            for dpp_key in list(sft.data_per_point.keys()):
+                if dpp_key not in sft_list[0].data_per_point.keys():
+                    del sft.data_per_point[dpp_key]
+
+            for dps_key in sft_list[0].data_per_streamline.keys():
+                if dps_key not in sft.data_per_streamline:
+                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
+                    arr_shape[0] = len(sft)
+                    sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
+            for dpp_key in sft_list[0].data_per_point.keys():
+                if dpp_key not in sft.data_per_point:
+                    arr_seq = ArraySequence()
+                    arr_seq_shape = list(
+                        sft_list[0].data_per_point[dpp_key]._data.shape)
+                    arr_seq_shape[0] = len(sft.streamlines._data)
+                    arr_seq._data = np.zeros(arr_seq_shape)
+                    arr_seq._offsets = sft.streamlines._offsets
+                    arr_seq._lengths = sft.streamlines._lengths
+                    sft.data_per_point[dpp_key] = arr_seq
+
+        if not metadata_fake_init and \
+                not StatefulTractogram.are_compatible(sft, sft_list[0]):
+            raise ValueError('Incompatible SFT, check space attributes and '
+                             'data_per_point/streamlines.')
+        elif not is_header_compatible(sft, sft_list[0]):
+            raise ValueError('Incompatible SFT, check space attributes.')
+
+    total_streamlines = 0
+    total_points = 0
+    lengths = []
+    for sft in sft_list:
+        total_streamlines += len(sft.streamlines._offsets)
+        total_points += len(sft.streamlines._data)
+        lengths.extend(sft.streamlines._lengths)
+    lengths = np.array(lengths, dtype=np.uint32)
+    offsets = np.concatenate(([0], np.cumsum(lengths[:-1]))).astype(np.uint64)
+
+    dpp = {}
+    for dpp_key in sft_list[0].data_per_point.keys():
+        arr_seq_shape = list(sft_list[0].data_per_point[dpp_key]._data.shape)
+        arr_seq_shape[0] = total_points
+        dpp[dpp_key] = ArraySequence()
+        dpp[dpp_key]._data = np.zeros(arr_seq_shape)
+        dpp[dpp_key]._lengths = lengths
+        dpp[dpp_key]._offsets = offsets
+
+    dps = {}
+    for dps_key in sft_list[0].data_per_streamline.keys():
+        arr_seq_shape = list(sft_list[0].data_per_streamline[dps_key].shape)
+        arr_seq_shape[0] = total_streamlines
+        dps[dps_key] = np.zeros(arr_seq_shape)
+
+    streamlines = ArraySequence()
+    streamlines._data = np.zeros((total_points, 3))
+    streamlines._lengths = lengths
+    streamlines._offsets = offsets
+
+    pts_counter = 0
+    strs_counter = 0
+    for sft in sft_list:
+        pts_curr_len = len(sft.streamlines._data)
+        strs_curr_len = len(sft.streamlines._offsets)
+
+        if strs_curr_len == 0 or pts_curr_len == 0:
+            continue
+
+        streamlines._data[pts_counter:pts_counter+pts_curr_len] = \
+            sft.streamlines._data
+
+        for dpp_key in sft_list[0].data_per_point.keys():
+            dpp[dpp_key]._data[pts_counter:pts_counter+pts_curr_len] = \
+                sft.data_per_point[dpp_key]._data
+        for dps_key in sft_list[0].data_per_streamline.keys():
+            dps[dps_key][strs_counter:strs_counter+strs_curr_len] = \
+                sft.data_per_streamline[dps_key]
+        pts_counter += pts_curr_len
+        strs_counter += strs_curr_len
+
+    fused_sft = StatefulTractogram.from_sft(streamlines, sft_list[0],
+                                            data_per_point=dpp,
+                                            data_per_streamline=dps)
+    return fused_sft
 
 
 def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
                                deformation_data=None,
                                remove_invalid=True, cut_invalid=False):
+    # TODO rename transform_warp_sft
     """ Transform tractogram using a affine Subsequently apply a warp from
     antsRegistration (optional).
     Remove/Cut invalid streamlines to preserve sft validity.
