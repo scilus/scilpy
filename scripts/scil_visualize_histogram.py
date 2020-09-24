@@ -18,8 +18,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist,
-                            assert_outputs_exist
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
