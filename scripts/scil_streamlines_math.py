@@ -116,9 +116,10 @@ def main():
     assert_outputs_exist(parser, args, args.output)
 
     # Load all input streamlines.
-    sft_list = [load_tractogram_with_reference(parser, args,
-                                               bbox_check=not args.ignore_invalid,
-                                               f) for f in args.inputs]
+    sft_list = []
+    for f in args.inputs:
+        sft_list.append(load_tractogram_with_reference(
+            parser, args, f, bbox_check=not args.ignore_invalid))
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
