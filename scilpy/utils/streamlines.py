@@ -123,9 +123,9 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
     # Perform the operation on the hashes and get the output streamlines.
     to_keep = reduce(operation, hashes)
     all_streamlines = list(itertools.chain(*streamlines))
-    indices = sorted(to_keep.values())
+    indices = np.array(sorted(to_keep.values())).astype(np.uint32)
     streamlines = [all_streamlines[i] for i in indices]
-    return streamlines, np.array(indices)
+    return streamlines, indices
 
 
 def intersection_robust(streamlines_list, precision=3):
@@ -273,7 +273,7 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
     else:
         logging.info('No matches found.')
 
-    return streamlines, np.where(streamlines_to_keep > 0)[0]
+    return streamlines, np.where(streamlines_to_keep > 0)[0].astype(np.uint32)
 
 
 def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
@@ -352,6 +352,9 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
     for sft in sft_list:
         pts_curr_len = len(sft.streamlines._data)
         strs_curr_len = len(sft.streamlines._offsets)
+
+        if strs_curr_len == 0 or pts_curr_len == 0:
+            continue
 
         streamlines._data[pts_counter:pts_counter+pts_curr_len] = \
             sft.streamlines._data
