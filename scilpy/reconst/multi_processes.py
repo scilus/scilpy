@@ -25,7 +25,7 @@ def fit_from_model_parallel(args):
             except cvx.error.SolverError:
                 coeff = np.empty((len(model.n)))
                 coeff[:] = np.NaN
-                sub_fit_array[i] = MSDeconvFit(model, coeff)
+                sub_fit_array[i] = MSDeconvFit(model, coeff, None)
 
     return chunk_id, sub_fit_array
 
