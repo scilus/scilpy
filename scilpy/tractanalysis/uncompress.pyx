@@ -51,7 +51,7 @@ def uncompress(streamlines, return_mapping=False):
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
-        cnp.npy_intp max_points = (streamlines.get_data().size / 3)
+        cnp.npy_intp max_points = (streamlines._data.size / 3)
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
     new_array_sequence._lengths.resize(nb_streamlines)
@@ -61,7 +61,7 @@ def uncompress(streamlines, return_mapping=False):
     points_to_index = nib.streamlines.array_sequence.ArraySequence()
     points_to_index._lengths.resize(nb_streamlines)
     points_to_index._offsets.resize(nb_streamlines)
-    points_to_index._data = np.zeros(int(streamlines.get_data().size / 3), np.uint16)
+    points_to_index._data = np.zeros(int(streamlines._data.size / 3), np.uint16)
 
     cdef:
         cnp.npy_intp[:] lengths_view_in = streamlines._lengths
