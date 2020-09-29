@@ -75,8 +75,9 @@ def _build_arg_parser():
                    help='Optional mask file. Only fODF inside '
                         'the mask are displayed.')
 
-    p.add_argument('--colormap', default='jet',
-                   help='Colormap for the ODF slicer.')
+    p.add_argument('--colormap', default=None,
+                   help='Colormap for the ODF slicer. If None, '
+                        'then a RGB colormap will be used.')
 
     p.add_argument('--scale', default=0.5, type=float,
                    help='Scaling factor for FODF.')
@@ -104,6 +105,16 @@ def _build_arg_parser():
     # Peaks input file options
     p.add_argument('--peaks',
                    help='Peaks image file.')
+
+    p.add_argument('--peaks_color', nargs=3, type=float,
+                   help='Color used for peaks. If None, '
+                        'then a RGB colormap is used.')
+
+    p.add_argument('--peaks_length', default=0.5, type=float,
+                   help='Length of the peaks segments.')
+
+    p.add_argument('--peaks_width', default=1.0, type=float,
+                   help='Width of peaks segments.')
 
     return p
 
@@ -244,7 +255,10 @@ def main():
     if 'peaks' in data:
         peaks_actor = create_peaks_slicer(data['peaks'],
                                           args.axis_name,
-                                          mask)
+                                          mask,
+                                          args.peaks_color,
+                                          args.peaks_width,
+                                          args.peaks_length)
         actors.append(peaks_actor)
 
     # Prepare and display the scene
