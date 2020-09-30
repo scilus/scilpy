@@ -267,7 +267,7 @@ def main():
         len(sft), round(time2 - time1, 2)))
 
     if not is_header_compatible(sft, img_labels):
-        raise IOError('{} and {}do not have a compatible header'.format(
+        raise IOError('{} and {} do not have a compatible header'.format(
             args.in_tractogram, args.in_labels))
 
     sft.to_vox()

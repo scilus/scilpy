@@ -283,7 +283,7 @@ def main():
         labels_list = np.unique(data_labels)[1:].tolist()
     else:
         labels_list = np.loadtxt(
-            args.force_labels_list, dtype=np.int16).tolist()
+            args.force_labels_list, dtype=np.uint16).tolist()
 
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:

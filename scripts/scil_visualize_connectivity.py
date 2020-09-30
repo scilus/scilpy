@@ -135,7 +135,8 @@ def main():
         y_ticks = np.arange(matrix.shape[1])
 
         if args.labels_list:
-            labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
+            labels_list = np.loadtxt(
+                args.labels_list, dtype=np.uint16).tolist()
 
         if args.labels_list and not args.reorder_txt and not args.lookup_table:
             if len(labels_list) != matrix.shape[0] \
@@ -179,7 +180,7 @@ def main():
 
         if len(x_ticks) != len(x_legend) \
                 or len(y_ticks) != len(y_legend):
-            logging.warning('Legend is not the same size as the data.'
+            logging.warning('Legend is not the same size as the data. '
                             'Make sure you are using the same reordering json.')
         plt.xticks(x_ticks, x_legend,
                    rotation=args.axis_text_angle[0],
