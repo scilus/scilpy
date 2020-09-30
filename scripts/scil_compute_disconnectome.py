@@ -63,19 +63,24 @@ def _build_arg_parser():
                    help='Labels file name (nifti). Labels must have 0 as '
                         'background.')
     p.add_argument('in_lesion',
-                   help='.')
+                   help='Input binary mask representing the lesion(s).')
 
     s = p.add_argument_group('Saving options')
     p.add_argument('--out_json',
-                   help='.')
+                   help='Output json containing all inputs as keys,\n'
+                        'then diff/before/after keys and then a disconnectome '
+                        'matrix')
     s.add_argument('--out_dir',
-                   help='.')
+                   help='Save all output disconnectome matrices to this '
+                        'directory.')
     s.add_argument('--save_diff_array', action='store_true',
-                   help='.')
+                   help='Difference of streamlines count created by the '
+                        'lesion(s).')
     s.add_argument('--save_before_array', action='store_true',
-                   help='.')
+                   help='Equivalent to a streamline count matrix.')
     s.add_argument('--save_after_array', action='store_true',
-                   help='.')
+                   help='Equivalent to a streamline count matrix minus'
+                        'the streamlines touching the lesion(s).')
 
     p.add_argument('--force_labels_list', metavar='IN_TXT',
                    help='Path to a labels list (.txt) in case of missing '
@@ -88,7 +93,10 @@ def _build_arg_parser():
 
     return p
 
-
+# List of TODO for the 'far future'
+# TODO Supports a volume overlap with the lesion(s) matrix
+# TODO Support a probability/weigthed count (peripheries/cores of lesions)
+# TODO Split lesions by clusters and do a lesions count matrix
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
