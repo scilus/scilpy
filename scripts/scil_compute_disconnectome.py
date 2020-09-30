@@ -2,29 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute a connectivity matrix from a tractogram and a parcellation.
-
-Current strategy is to keep the longest streamline segment connecting
-2 regions. If the streamline crosses other gray matter regions before
-reaching its final connected region, the kept connection is still the
-longest. This is robust to compressed streamlines.
-
-The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
-group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
-The 'data' is stored in VOX/CORNER for simplicity and efficiency.
-
-For the --outlier_threshold option the default is a recommended good trade-off
-for a freesurfer parcellation. With smaller parcels (brainnetome, glasser) the
-threshold should most likely be reduced.
-Good candidate connections to QC are the brainstem to precentral gyrus
-connection and precentral left to precentral right connection, or equivalent
-in your parcellation."
-
-NOTE: this script can take a while to run. Please be patient.
-Example: on a tractogram with 1.8M streamlines, running on a SSD:
-- 15 minutes without post-processing, only saving final bundles.
-- 30 minutes with full post-processing, only saving final bundles.
-- 60 minutes with full post-processing, saving all possible files.
+.
 """
 
 import argparse
