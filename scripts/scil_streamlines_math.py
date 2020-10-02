@@ -157,8 +157,12 @@ def main():
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
                                                        args.output))
-    save_tractogram(new_sft[indices], args.output,
-                    bbox_valid_check=not args.ignore_invalid)
+    if args.operation == 'concatenate':
+        save_tractogram(new_sft, args.output,
+                        bbox_valid_check=not args.ignore_invalid)
+    else:
+        save_tractogram(new_sft[indices], args.output,
+                        bbox_valid_check=not args.ignore_invalid)
 
 
 if __name__ == "__main__":
