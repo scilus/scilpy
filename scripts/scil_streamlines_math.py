@@ -69,11 +69,11 @@ def _build_arg_parser():
 
     p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
                    help='The type of operation to be performed on the '
-                   'streamlines. Must\nbe one of the following: '
-                   '%(choices)s.')
+                        'streamlines. Must\nbe one of the following: '
+                        '%(choices)s.')
     p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
-                   'streamlines to operate on.')
+                        'streamlines to operate on.')
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                         'are saved.')
@@ -157,12 +157,8 @@ def main():
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
                                                        args.output))
-    if args.operation == 'concatenate':
-        save_tractogram(new_sft, args.output,
-                        bbox_valid_check=not args.ignore_invalid)
-    else:
-        save_tractogram(new_sft[indices], args.output,
-                        bbox_valid_check=not args.ignore_invalid)
+    save_tractogram(new_sft[indices], args.output,
+                    bbox_valid_check=not args.ignore_invalid)
 
 
 if __name__ == "__main__":
