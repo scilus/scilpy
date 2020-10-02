@@ -11,7 +11,7 @@ import os
 
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
-from nibabel.streamlines import Tractogram
+from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -34,6 +34,13 @@ def _build_arg_parser():
     return p
 
 
+def list_generator_from_nib(filenames):
+    for in_file in filenames:
+        tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
+        for s in tractogram_file.streamlines:
+            yield s
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -42,7 +49,6 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     header = None
-    out_streamlines = []
     for in_file in args.in_tractograms:
         _, ext = os.path.splitext(in_file)
         if ext == '.trk':
@@ -51,10 +57,9 @@ def main():
             elif not is_header_compatible(header, in_file):
                 logging.warning('Incompatible headers in the list.')
 
-        tractogram_file = nib.streamlines.load(in_file)
-        out_streamlines.extend(tractogram_file.streamlines)
-    out_tractogram = Tractogram(out_streamlines,
-                                affine_to_rasmm=np.eye(4))
+    generator = list_generator_from_nib(args.in_tractograms)
+    out_tractogram = LazyTractogram(lambda: generator,
+                                    affine_to_rasmm=np.eye(4))
     nib.streamlines.save(out_tractogram, args.out_tractogram, header=header)
 
 
