@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-
+Concantenate large tractogram without taking up memory. Does not carry
+metadata and does check space compatibility.
+Only supports trk/tck.
 """
 
 import argparse
