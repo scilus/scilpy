@@ -25,7 +25,7 @@ duplicated streamlines.
 To allow a soft match, use the --precision option to increase the allowed
 threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
-default value of 3 (or 0.001mm distance) should work. 
+default value of 3 (or 0.001mm distance) should work.
 
 If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) the --robust
 option should make it work, but slightly slower.
