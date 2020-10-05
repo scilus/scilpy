@@ -33,8 +33,12 @@ share the same type of metadata. If this is not the case, use the option
 import argparse
 import json
 import logging
+import os
 
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import is_header_compatible
+import nibabel as nib
+from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -58,7 +62,8 @@ OPERATIONS = {
     'difference': difference,
     'intersection': intersection,
     'union': union,
-    'concatenate': 'concatenate'
+    'concatenate': 'concatenate',
+    'lazy_concatenate': 'lazy_concatenate'
 }
 
 
@@ -114,6 +119,32 @@ def main():
 
     assert_inputs_exist(parser, args.inputs)
     assert_outputs_exist(parser, args, args.output)
+
+    if args.operation == 'lazy_concatenate':
+        logging.info('Using lazy_concatenate, no spatial or metadata related '
+                     'checks are performed.\nMetadata will be lost, only '
+                     'trk/tck file are supported.')
+
+        def list_generator_from_nib(filenames):
+            for in_file in filenames:
+                tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
+                for s in tractogram_file.streamlines:
+                    yield s
+        header = None
+        for in_file in args.inputs:
+            _, ext = os.path.splitext(in_file)
+            if ext == '.trk':
+                if header is None:
+                    header = nib.streamlines.load(
+                        in_file, lazy_load=True).header
+                elif not is_header_compatible(header, in_file):
+                    logging.warning('Incompatible headers in the list.')
+
+        generator = list_generator_from_nib(args.inputs)
+        out_tractogram = LazyTractogram(lambda: generator,
+                                        affine_to_rasmm=np.eye(4))
+        nib.streamlines.save(out_tractogram, args.output, header=header)
+        return
 
     # Load all input streamlines.
     sft_list = []
