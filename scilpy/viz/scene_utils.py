@@ -124,11 +124,15 @@ def _get_affine_for_texture(orientation, offset):
 
 
 def create_texture_slicer(texture, value_range=None, orientation='axial',
-                          offset=None, interpolation=None):
+                          opacity=None, offset=None, interpolation=None):
     """
     Create a texture displayed behind the fODF. The texture is applied on a
     plane with a given offset for the fODF grid.
     """
+    # opacity = None defaults to 1.0
+    if opacity is None:
+        opacity = 1.0
+
     # offset = None defaults to 0.5
     if offset is None:
         offset = 0.5
@@ -141,26 +145,31 @@ def create_texture_slicer(texture, value_range=None, orientation='axial',
 
     slicer_actor = actor.slicer(texture, affine=affine,
                                 value_range=value_range,
+                                opacity=opacity,
                                 interpolation=interpolation)
     set_display_extent(slicer_actor, orientation, texture.shape)
 
     return slicer_actor
 
 
-def create_peaks_slicer(data, orientation, mask=None, color=None,
-                        peaks_width=1.0, peaks_length=0.65):
+def create_peaks_slicer(data, orientation, peak_values=None, mask=None, 
+                        color=None, peaks_width=1.0, peaks_length=None):
     """
     Create a peaks slicer actor rendering a slice of the fODF peaks
     as normalized lines of given length.
     """
     # Scale the peaks
-    norm = np.linalg.norm(data, axis=-1)
-    scaled_data = np.zeros_like(data)
-    scaled_data[norm > 0] =\
-        peaks_length * data[norm > 0] / norm[norm > 0][:, None]
+    if peaks_length:
+        norm = np.linalg.norm(data, axis=-1)
+        scaled_data = np.zeros_like(data)
+        scaled_data[norm > 0] =\
+            peaks_length * data[norm > 0] / norm[norm > 0][:, None]
+    elif peak_values is not None:
+        scaled_data = data
 
     # Instantiate peaks slicer
-    peaks_slicer = actor.peak_slicer(scaled_data, mask=mask, colors=color,
+    peaks_slicer = actor.peak_slicer(scaled_data, peaks_values=peak_values,
+                                     mask=mask, colors=color,
                                      linewidth=peaks_width)
     set_display_extent(peaks_slicer, orientation, data.shape)
 

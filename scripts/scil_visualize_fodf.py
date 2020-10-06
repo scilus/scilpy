@@ -54,9 +54,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     # Optional FODF personalization arguments
-    p.add_argument('--sh_order', type=int, default=8,
-                   help='The SH order of the input fODF.')
-
     add_sh_basis_args(p)
 
     p.add_argument('--full_basis', action='store_true',
@@ -96,6 +93,9 @@ def _build_arg_parser():
                    help='The range of values mapped to range [0, 1] '
                         'for background image.')
 
+    p.add_argument('--bg_opacity', type=float,
+                   help='The opacity of the background image. Opacity of 0 '
+                        'means transparent and 1 is completely visible.')
     p.add_argument('--bg_offset', type=float,
                    help='The offset of the background image.')
 
@@ -110,11 +110,15 @@ def _build_arg_parser():
                    help='Color used for peaks. If None, '
                         'then a RGB colormap is used.')
 
-    p.add_argument('--peaks_length', default=0.5, type=float,
-                   help='Length of the peaks segments.')
-
     p.add_argument('--peaks_width', default=1.0, type=float,
                    help='Width of peaks segments.')
+
+    group = p.add_mutually_exclusive_group()
+    group.add_argument('--peak_values',
+                   help='Peak values file.')
+
+    group.add_argument('--peaks_length', default=0.5, type=float,
+                   help='Length of the peaks segments.')
 
     return p
 
@@ -137,6 +141,10 @@ def _parse_args(parser):
     else:
         if args.bg_range:
             parser.error('Background range is specified but no background '
+                         'image is specified. Specify a background image '
+                         'with --background to use this feature.')
+        if args.bg_opacity:
+            parser.error('Background opacity is specified but no background '
                          'image is specified. Specify a background image '
                          'with --background to use this feature.')
         if args.bg_offset:
@@ -212,7 +220,24 @@ def _get_data_from_inputs(args):
             raise ValueError('Peaks volume dimensions {0} do not agree '
                              'with fODF dimensions {1}.'.format(bg.shape,
                                                                 fodf.shape))
+        if len(peaks.shape) == 4:
+            last_dim = peaks.shape[-1]
+            if last_dim % 3 == 0:
+                npeaks = int(last_dim / 3)
+                peaks = peaks.reshape((peaks.shape[:3] + (npeaks, 3)))
+            else:
+                raise ValueError('Peaks volume last dimension ({0}) cannot '
+                                 'be reshaped as (npeaks, 3).'
+                                 .format(peaks.shape[-1]))
         data['peaks'] = _crop_along_axis(peaks, args.slice_index,
+                                         args.axis_name)
+    if args.peak_values:
+        peak_vals = nib.nifti1.load(args.peak_values).get_fdata(dtype=np.float32)
+        if peak_vals.shape[:3] != fodf.shape[:-1]:
+            raise ValueError('Peaks volume dimensions {0} do not agree '
+                             'with fODF dimensions {1}.'.format(peak_vals.shape,
+                                                                fodf.shape))
+        data['peak_values'] = _crop_along_axis(peak_vals, args.slice_index,
                                          args.axis_name)
 
     grid_shape = data['fodf'].shape[:3]
@@ -224,6 +249,7 @@ def main():
     args = _parse_args(parser)
     data, grid_shape = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
+    sh_order = order_from_ncoef(data['fodf'].shape[-1])
 
     actors = []
 
@@ -235,7 +261,7 @@ def main():
 
     # Instantiate the ODF slicer actor
     odf_actor = create_odf_slicer(data['fodf'], mask, sph,
-                                  args.sph_subdivide, args.sh_order,
+                                  args.sph_subdivide, sh_order,
                                   args.sh_basis, args.full_basis,
                                   args.axis_name, args.scale,
                                   not args.radial_scale_off,
@@ -247,18 +273,29 @@ def main():
         bg_actor = create_texture_slicer(data['bg'],
                                          args.bg_range,
                                          args.axis_name,
+                                         args.bg_opacity,
                                          args.bg_offset,
                                          args.bg_interpolation)
         actors.append(bg_actor)
 
     # Instantiate a peaks slicer actor if peaks are supplied
     if 'peaks' in data:
-        peaks_actor = create_peaks_slicer(data['peaks'],
-                                          args.axis_name,
-                                          mask,
-                                          args.peaks_color,
-                                          args.peaks_width,
-                                          args.peaks_length)
+        if 'peak_values' in data:
+            peaks_actor = create_peaks_slicer(data['peaks'],
+                                              args.axis_name,
+                                              data['peak_values'],
+                                              mask,
+                                              args.peaks_color,
+                                              args.peaks_width,
+                                              None)
+        else:
+            peaks_actor = create_peaks_slicer(data['peaks'],
+                                              args.axis_name,
+                                              None,
+                                              mask,
+                                              args.peaks_color,
+                                              args.peaks_width,
+                                              args.peaks_length)
         actors.append(peaks_actor)
 
     # Prepare and display the scene
