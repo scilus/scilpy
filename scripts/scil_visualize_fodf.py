@@ -30,10 +30,10 @@ def _build_arg_parser():
     # Positional arguments
     p.add_argument('in_fodf', default=None, help='Input SH image file.')
 
+    # Window configuration options
     p.add_argument('--slice_index', type=int,
                    help='Index of the slice to visualize along a given axis.')
 
-    # Window configuration options
     p.add_argument('--win_dims', nargs=2, metavar=('WIDTH', 'HEIGHT'),
                    default=[768, 768], type=int,
                    help='The dimensions for the vtk window.')
@@ -174,7 +174,7 @@ def _crop_along_axis(data, index, axis_name):
         if index is None:
             data_slice = data[:, data.shape[1]//2, :]
         else:
-            data_slice = data[index, :, :]
+            data_slice = data[:, index, :]
         return data_slice[:, None, ...]
     elif axis_name == 'axial':
         if index is None:
