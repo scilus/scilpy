@@ -55,7 +55,8 @@ def _build_arg_parser():
     p.add_argument('--b_thr', type=int, default=40,
                    help='Limit value to consider that a b-value is on an '
                         'existing shell. Above this limit, the b-value is '
-                        'placed on a new shell. This includes b0s values.')
+                        'placed on a new shell. This includes b0s values. '
+                        '[%(default)s]')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--para_diff', type=float, default=1.5e-3,
