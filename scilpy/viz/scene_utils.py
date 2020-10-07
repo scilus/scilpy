@@ -152,23 +152,17 @@ def create_texture_slicer(texture, value_range=None, orientation='axial',
     return slicer_actor
 
 
-def create_peaks_slicer(data, orientation, peak_values=None, mask=None, 
-                        color=None, peaks_width=1.0, peaks_length=None):
+def create_peaks_slicer(data, orientation, peak_values=None, mask=None,
+                        color=None, peaks_width=1.0):
     """
     Create a peaks slicer actor rendering a slice of the fODF peaks
-    as normalized lines of given length.
     """
-    # Scale the peaks
-    if peaks_length:
-        norm = np.linalg.norm(data, axis=-1)
-        scaled_data = np.zeros_like(data)
-        scaled_data[norm > 0] =\
-            peaks_length * data[norm > 0] / norm[norm > 0][:, None]
-    elif peak_values is not None:
-        scaled_data = data
+    # Normalize input data
+    norm = np.linalg.norm(data, axis=-1)
+    data[norm > 0] /= norm[norm > 0].reshape((-1, 1))
 
     # Instantiate peaks slicer
-    peaks_slicer = actor.peak_slicer(scaled_data, peaks_values=peak_values,
+    peaks_slicer = actor.peak_slicer(data, peaks_values=peak_values,
                                      mask=mask, colors=color,
                                      linewidth=peaks_width)
     set_display_extent(peaks_slicer, orientation, data.shape)

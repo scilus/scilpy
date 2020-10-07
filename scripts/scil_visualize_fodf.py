@@ -14,6 +14,7 @@ import nibabel as nib
 import numpy as np
 
 from dipy.data import get_sphere
+from dipy.reconst.shm import order_from_ncoef
 
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
@@ -87,7 +88,8 @@ def _build_arg_parser():
 
     # Background image options
     p.add_argument('--background',
-                   help='Background image file.')
+                   help='Background image file. If RGB, values must '
+                        'be between 0 and 255.')
 
     p.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
                    help='The range of values mapped to range [0, 1] '
@@ -96,6 +98,7 @@ def _build_arg_parser():
     p.add_argument('--bg_opacity', type=float,
                    help='The opacity of the background image. Opacity of 0 '
                         'means transparent and 1 is completely visible.')
+
     p.add_argument('--bg_offset', type=float,
                    help='The offset of the background image.')
 
@@ -113,12 +116,12 @@ def _build_arg_parser():
     p.add_argument('--peaks_width', default=1.0, type=float,
                    help='Width of peaks segments.')
 
-    group = p.add_mutually_exclusive_group()
-    group.add_argument('--peak_values',
-                   help='Peak values file.')
+    peaks_scale_group = p.add_mutually_exclusive_group()
+    peaks_scale_group.add_argument('--peak_values',
+                                   help='Peak values file.')
 
-    group.add_argument('--peaks_length', default=0.5, type=float,
-                   help='Length of the peaks segments.')
+    peaks_scale_group.add_argument('--peaks_length', default=0.65, type=float,
+                                   help='Length of the peaks segments.')
 
     return p
 
@@ -231,17 +234,30 @@ def _get_data_from_inputs(args):
                                  .format(peaks.shape[-1]))
         data['peaks'] = _crop_along_axis(peaks, args.slice_index,
                                          args.axis_name)
-    if args.peak_values:
-        peak_vals = nib.nifti1.load(args.peak_values).get_fdata(dtype=np.float32)
-        if peak_vals.shape[:3] != fodf.shape[:-1]:
-            raise ValueError('Peaks volume dimensions {0} do not agree '
-                             'with fODF dimensions {1}.'.format(peak_vals.shape,
-                                                                fodf.shape))
-        data['peak_values'] = _crop_along_axis(peak_vals, args.slice_index,
-                                         args.axis_name)
+        if args.peak_values:
+            peak_vals =\
+                nib.nifti1.load(args.peak_values).get_fdata(dtype=np.float32)
+            if peak_vals.shape[:3] != fodf.shape[:-1]:
+                raise ValueError('Peaks volume dimensions {0} do not agree '
+                                 'with fODF dimensions {1}.'
+                                 .format(peak_vals.shape, fodf.shape))
+            data['peak_values'] = _crop_along_axis(peak_vals, args.slice_index,
+                                                   args.axis_name)
 
     grid_shape = data['fodf'].shape[:3]
     return data, grid_shape
+
+
+def validate_order(sh_order, ncoeffs, full_basis):
+    """
+    Check that the sh order agrees with the number
+    of coefficients in the input
+    """
+    if full_basis:
+        expected_ncoeffs = (sh_order + 1)**2
+    else:
+        expected_ncoeffs = (sh_order + 1) * (sh_order + 2) // 2
+    return ncoeffs == expected_ncoeffs
 
 
 def main():
@@ -249,7 +265,11 @@ def main():
     args = _parse_args(parser)
     data, grid_shape = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
-    sh_order = order_from_ncoef(data['fodf'].shape[-1])
+    sh_order = order_from_ncoef(data['fodf'].shape[-1], args.full_basis)
+    if not validate_order(sh_order, data['fodf'].shape[-1], args.full_basis):
+        parser.error('Invalid number of coefficients for fODF. '
+                     'Use --full_basis if your input is in '
+                     'full SH basis.')
 
     actors = []
 
@@ -280,22 +300,18 @@ def main():
 
     # Instantiate a peaks slicer actor if peaks are supplied
     if 'peaks' in data:
+        peak_values = None
         if 'peak_values' in data:
-            peaks_actor = create_peaks_slicer(data['peaks'],
-                                              args.axis_name,
-                                              data['peak_values'],
-                                              mask,
-                                              args.peaks_color,
-                                              args.peaks_width,
-                                              None)
+            peak_values = data['peak_values']
         else:
-            peaks_actor = create_peaks_slicer(data['peaks'],
-                                              args.axis_name,
-                                              None,
-                                              mask,
-                                              args.peaks_color,
-                                              args.peaks_width,
-                                              args.peaks_length)
+            peak_values = np.ones(data['peaks'].shape[:-1]) * args.peaks_length
+        peaks_actor = create_peaks_slicer(data['peaks'],
+                                          args.axis_name,
+                                          peak_values,
+                                          mask,
+                                          args.peaks_color,
+                                          args.peaks_width)
+
         actors.append(peaks_actor)
 
     # Prepare and display the scene
