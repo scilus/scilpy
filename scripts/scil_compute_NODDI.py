@@ -11,8 +11,9 @@ from contextlib import redirect_stdout
 import io
 import logging
 import os
-import tempfile
+import shutil
 import sys
+import tempfile
 
 import amico
 from dipy.io.gradients import read_bvals_bvecs
@@ -22,6 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
+                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
@@ -47,7 +49,7 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='b-vectors filename, in FSL format (.bvec).')
 
-    p.add_argument('--in_mask',
+    p.add_argument('--mask',
                    help='Brain mask filename.')
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the NODDI results. '
@@ -95,9 +97,16 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
-                        args.in_mask)
+                        args.mask)
+
+    basic_out_files = ['FIT_dir.nii.gz', 'FIT_ICVF.nii.gz',
+                       'FIT_ISOVF.nii.gz', 'FIT_OD.nii.gz']
+    out_files = [os.path.join(args.out_dir, f) for f in basic_out_files]
+
+    assert_outputs_exist(parser, args, out_files, check_dir_exists=False)
+
     assert_output_dirs_exist_and_empty(parser, args,
-                                       os.path.join(args.out_dir, 'NODDI'),
+                                       args.out_dir,
                                        optional=args.save_kernels)
 
     # COMMIT has some c-level stdout and non-logging print that cannot
@@ -130,7 +139,7 @@ def main():
         ae = amico.Evaluation('.', '.')
         ae.load_data(args.in_dwi,
                      tmp_scheme_filename,
-                     mask_filename=args.in_mask)
+                     mask_filename=args.mask)
         # Compute the response functions
         ae.set_model("NODDI")
 
@@ -157,7 +166,7 @@ def main():
 
         ae.set_config('ATOMS_path', kernels_dir)
         out_model_dir = os.path.join(args.out_dir, ae.model.id)
-        ae.set_config('OUTPUT_path', out_model_dir)
+        ae.set_config('OUTPUT_path', args.out_dir)
         ae.generate_kernels(regenerate=regenerate_kernels)
         ae.load_kernels()
 
