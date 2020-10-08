@@ -96,7 +96,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
-                        args.in_mask)
+                        args.mask)
     assert_output_dirs_exist_and_empty(parser, args,
                                        os.path.join(args.out_dir, 'NODDI'),
                                        optional=args.save_kernels)
@@ -131,7 +131,7 @@ def main():
         ae = amico.Evaluation('.', '.')
         ae.load_data(args.in_dwi,
                      tmp_scheme_filename,
-                     mask_filename=args.in_mask)
+                     mask_filename=args.mask)
         # Compute the response functions
         ae.set_model("NODDI")
 
