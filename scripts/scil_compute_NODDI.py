@@ -11,7 +11,6 @@ from contextlib import redirect_stdout
 import io
 import logging
 import os
-import shutil
 import sys
 import tempfile
 
@@ -165,7 +164,6 @@ def main():
             regenerate_kernels = True
 
         ae.set_config('ATOMS_path', kernels_dir)
-        out_model_dir = os.path.join(args.out_dir, ae.model.id)
         ae.set_config('OUTPUT_path', args.out_dir)
         ae.generate_kernels(regenerate=regenerate_kernels)
         ae.load_kernels()
