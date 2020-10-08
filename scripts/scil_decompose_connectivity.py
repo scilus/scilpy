@@ -109,9 +109,20 @@ def _save_if_needed(sft, hdf5_file, args,
                     save_type, step_type,
                     in_label, out_label):
     if step_type == 'final':
+        # Due to the cutting, streamlines can become invalid
+        indices = []
+        for i in range(len(sft)):
+            norm = np.linalg.norm(np.gradient(sft.streamlines[i],
+                                                axis=0), axis=1)
+            if (norm < 0.001).any():# or len(sft.streamlines[i]) <= 1:
+                indices.append(i)
+
+        indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
+        sft = sft[indices]
+
         group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
         group.create_dataset('data', data=sft.streamlines._data,
-                             dtype=np.float16)
+                             dtype=np.float32)
         group.create_dataset('offsets', data=sft.streamlines._offsets,
                              dtype=np.int64)
         group.create_dataset('lengths', data=sft.streamlines._lengths,
@@ -125,20 +136,10 @@ def _save_if_needed(sft, hdf5_file, args,
         out_paths = _get_output_paths(args)
 
         if saving_options[save_type] and len(sft):
-            indices = []
-            indices = [i for i in range(len(sft)) if len(
-                sft.streamlines[i]) <= 1]
-
-            for i in np.setdiff1d(range(len(sft)), indices):
-                norm = np.linalg.norm(np.gradient(sft.streamlines[i],
-                                                  axis=0), axis=1)
-                if (norm < 0.001).any():
-                    indices.append(i)
             out_name = os.path.join(out_paths[step_type],
                                     '{}_{}.trk'.format(in_label,
                                                        out_label))
-            save_tractogram(sft[np.setdiff1d(range(len(sft)), indices)],
-                            out_name)
+            save_tractogram(sft, out_name)
 
 
 def _prune_segments(segments, min_length, max_length, vox_size):

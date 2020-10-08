@@ -75,7 +75,7 @@ def main():
             if (norm < 0.001).any():
                 indices.append(i)
 
-    indices = np.setdiff1d(range(len(sft)), indices)
+    indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
     if len(indices):
         new_sft = sft[indices]
     else:
