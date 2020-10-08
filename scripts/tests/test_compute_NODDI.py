@@ -28,7 +28,7 @@ def test_execution_commit_amico(script_runner):
                         'mask.nii.gz')
     ret = script_runner.run('scil_compute_NODDI.py', in_dwi,
                             in_bval, in_bvec, '--mask', mask,
-                            '--out_dir', 'noddi/', '--b_thr', '30',
+                            '--out_dir', 'noddi', '--b_thr', '30',
                             '--para_diff', '0.0017', '--iso_diff', '0.003',
                             '--lambda1', '0.5', '--lambda2', '0.001',
                             '--processes', '1')

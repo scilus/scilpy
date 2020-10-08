@@ -22,7 +22,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
@@ -105,14 +104,6 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         args.mask)
-
-    basic_out_files = ['dwi_fw_corrected.nii.gz', 'FIT_dir.nii.gz',
-                       'FIT_FiberVolume.nii.gz', 'FIT_FW.nii.gz',
-                       'FIT_nrmse.nii.gz']
-    out_files = [os.path.join(args.out_dir, f)
-                 for f in basic_out_files]
-
-    assert_outputs_exist(parser, args, out_files, check_dir_exists=False)
 
     assert_output_dirs_exist_and_empty(parser, args,
                                        args.out_dir,
