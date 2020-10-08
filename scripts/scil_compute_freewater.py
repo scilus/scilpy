@@ -47,7 +47,7 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='b-vectors filename, in FSL format (.bvec).')
 
-    p.add_argument('--in_mask',
+    p.add_argument('--mask',
                    help='Brain mask filename.')
     p.add_argument('--out_dir', default="results",
                    help='Output directory for the Free Water results. '
