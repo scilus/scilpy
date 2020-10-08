@@ -103,7 +103,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_dwi, args.in_mask)
+    assert_inputs_exist(parser, args.in_dwi, args.mask)
     assert_output_dirs_exist_and_empty(parser, args,
                                        os.path.join(args.out_dir, 'FreeWater'),
                                        optional=args.save_kernels)
@@ -140,7 +140,7 @@ def main():
         # Load the data
         ae.load_data(args.in_dwi,
                      scheme_filename=tmp_scheme_filename,
-                     mask_filename=args.in_mask)
+                     mask_filename=args.mask)
 
         # Compute the response functions
         ae.set_model("FreeWater")
