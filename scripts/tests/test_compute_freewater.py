@@ -27,7 +27,7 @@ def test_execution_commit_amico(script_runner):
     in_mask = os.path.join(get_home(), 'commit_amico',
                            'mask.nii.gz')
     ret = script_runner.run('scil_compute_freewater.py', in_dwi,
-                            in_bval, in_bvec, '--in_mask', in_mask,
+                            in_bval, in_bvec, '--mask', in_mask,
                             '--out_dir', 'freewater/', '--b_thr', '30',
                             '--para_diff', '0.0015',
                             '--perp_diff_min', '0.0001',
