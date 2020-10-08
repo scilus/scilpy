@@ -113,8 +113,8 @@ def _save_if_needed(sft, hdf5_file, args,
         indices = []
         for i in range(len(sft)):
             norm = np.linalg.norm(np.gradient(sft.streamlines[i],
-                                                axis=0), axis=1)
-            if (norm < 0.001).any():# or len(sft.streamlines[i]) <= 1:
+                                              axis=0), axis=1)
+            if (norm < 0.001).any():  # or len(sft.streamlines[i]) <= 1:
                 indices.append(i)
 
         indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
