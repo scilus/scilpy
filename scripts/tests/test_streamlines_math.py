@@ -16,6 +16,30 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+def test_execution_lazy_concatenate_no_color(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'lazy_concatenate',
+                            in_tracto_1, in_tracto_2,
+                            'lazy_concatenate.trk')
+    assert ret.success
+
+
+def test_execution_lazy_concatenate_mix(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto_1 = os.path.join(get_home(), 'others',
+                               'fibercup_bundles_color.trk')
+    in_tracto_2 = os.path.join(get_home(), 'others',
+                               'fibercup_bundle_0.trk')
+    ret = script_runner.run('scil_streamlines_math.py', 'lazy_concatenate',
+                            in_tracto_1, in_tracto_2,
+                            'lazy_concatenate_mix.trk')
+    assert ret.success
+
+
 def test_execution_union_no_color(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto_1 = os.path.join(get_home(), 'others',
