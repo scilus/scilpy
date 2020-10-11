@@ -16,9 +16,11 @@ provide the text file(s), using --labels_list and/or --reorder_txt.
 """
 
 import argparse
+import copy
 import json
 import logging
 
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
@@ -26,6 +28,7 @@ import numpy as np
 from scilpy.image.operations import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
+from scilpy.viz.chord_chart import chordDiagram
 
 
 def _build_arg_parser():
@@ -74,6 +77,20 @@ def _build_arg_parser():
     histo.add_argument('--exclude_zeros', action='store_true',
                        help='Exclude the zeros from the histogram.')
 
+    chord = p.add_argument_group(title='Chord chart options')
+    chord.add_argument('--chord_chart', metavar='FILENAME',
+                       help='Compute and display/save a chord chart of weigth.')
+    chord.add_argument('--percentile_threshold', type=int, default=0,
+                       help='Discard connections below that percentile.'
+                            '[%(default)s]')
+    chord.add_argument('--angle_threshold', type=float, default=1,
+                       help='Angle below that theshold will be transparent.\n'
+                            'Use --alpha to set opacity. Value typically'
+                            'between 0.1 and 5 degrees. [%(default)s]')
+    chord.add_argument('--alpha', type=float, default=0.9,
+                       help='Opacity for the smaller angle on the chord (0-1). '
+                            '[%(default)s]')
+
     p.add_argument('--log', action='store_true',
                    help='Apply a base 10 logarithm to the matrix.')
     p.add_argument('--show_only', action='store_true',
@@ -117,7 +134,7 @@ def main():
         min_value = np.min(matrix)
 
     fig, ax = plt.subplots()
-    im = ax.imshow(matrix,
+    im = ax.imshow(matrix.T,
                    interpolation='nearest',
                    cmap=args.colormap, vmin=min_value)
 
@@ -196,8 +213,10 @@ def main():
     if args.histogram:
         fig, ax = plt.subplots()
         if args.exclude_zeros:
-            matrix = matrix[matrix != 0]
-        _, _, patches = ax.hist(matrix.ravel(), bins=args.nb_bins)
+            matrix_hist = matrix[matrix != 0]
+        else:
+            matrix_hist = matrix.ravel()
+        _, _, patches = ax.hist(matrix_hist, bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
         for i in range(0, nbr_bins):
@@ -207,6 +226,63 @@ def main():
             plt.show()
         else:
             plt.savefig(args.histogram, dpi=300, bbox_inches='tight')
+
+    if args.chord_chart:
+        if not args.name_axis:
+            if matrix.shape[0] != matrix.shape[1]:
+                print('Warning, the matrix is not square, the parcels order on'
+                      'both axis must be the same.')
+            x_legend = [str(i) for i in range(matrix.shape[0])]
+            y_legend = [str(i) for i in range(matrix.shape[1])]
+        if isinstance(x_legend, np.ndarray):
+            x_legend = x_legend.tolist()
+            y_legend = y_legend.tolist()
+
+        total_legend = copy.copy(x_legend)
+        total_legend.extend(y_legend)
+        total_legend = set(total_legend)
+        if args.lookup_table:
+            total_legend = sorted(total_legend, key=int)
+        else:
+            total_legend = sorted(total_legend, key=int)
+
+        new_matrix = np.zeros((len(total_legend), len(total_legend)))
+        for x in range(len(total_legend)):
+            for y in range(len(total_legend)):
+                if total_legend[x] in x_legend and total_legend[y] in y_legend:
+                    i = x_legend.index(total_legend[x])
+                    j = y_legend.index(total_legend[y])
+                    new_matrix[x, y] = matrix[i, j]
+                    new_matrix[y, x] = matrix[i, j]
+
+        fig = plt.figure(figsize=(6, 6))
+        ax = plt.axes([0, 0, 1, 1])
+        new_matrix[new_matrix < np.percentile(new_matrix,
+                                              args.percentile_threshold)] = 0
+        # new_matrix = np.triu(new_matrix)
+        empty_to_del = (np.where(~new_matrix.any(axis=1))[0])
+        non_empty_to_keep = np.setdiff1d(range(len(total_legend)),
+                                         empty_to_del)
+        total_legend = [total_legend[i] for i in non_empty_to_keep]
+        new_matrix = np.delete(new_matrix, empty_to_del, axis=0)
+        new_matrix = np.delete(new_matrix, empty_to_del, axis=1)
+
+        cmap = matplotlib.cm.get_cmap(args.colormap)
+        colors = [cmap(i)[0:3] for i in np.linspace(0, 1, len(new_matrix))]
+        nodePos = chordDiagram(new_matrix, ax, colors=colors,
+                               angle_threshold=args.angle_threshold,
+                               alpha=args.alpha)
+        ax.axis('off')
+        prop = dict(fontsize=args.axis_text_size[0], ha='center', va='center')
+
+        for i in range(len(new_matrix)):
+            ax.text(nodePos[i][0], nodePos[i][1], total_legend[i],
+                    rotation=nodePos[i][2], **prop)
+
+        if args.show_only:
+            plt.show()
+        else:
+            plt.savefig(args.chord_chart, dpi=600, bbox_inches='tight')
 
 
 if __name__ == "__main__":
