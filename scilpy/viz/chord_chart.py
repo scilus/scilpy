@@ -165,7 +165,7 @@ def selfChordArc(start=0, end=60, radius=1.0, chordwidth=0.7, ax=None,
 
 
 def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
-                 angle_threshold=1, alpha=0.1):
+                 angle_threshold=1, alpha=0.1, text_dist=1.1):
     """Plot a chord diagram
     Parameters
     ----------
@@ -186,8 +186,8 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
     """
     # X[i, j]:  i -> j
     x = X.sum(axis=1)  # sum over rows
-    ax.set_xlim(-1.1, 1.1)
-    ax.set_ylim(-1.1, 1.1)
+    ax.set_xlim(-text_dist, text_dist)
+    ax.set_ylim(-text_dist, text_dist)
 
     if colors is None:
         cmap = matplotlib.cm.get_cmap('plasma')
@@ -207,8 +207,10 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
 
         if 90 <= angle <= 270:
             angle += 180
+        if angle >= 360:
+            angle -= 360
         nodePos.append(
-            tuple(polar2xy(1.1, 0.5*(start+end)*np.pi/180.)) + (angle,))
+            tuple(polar2xy(text_dist, 0.5*(start+end)*np.pi/180.)) + (angle,))
         z = (X[i, :]/x[i].astype(float)) * (end - start)
         ids = np.argsort(z)
         z0 = start

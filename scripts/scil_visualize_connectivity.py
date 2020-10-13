@@ -18,6 +18,7 @@ provide the text file(s), using --labels_list and/or --reorder_txt.
 import argparse
 import copy
 import json
+import math
 import logging
 
 import matplotlib
@@ -28,7 +29,7 @@ import numpy as np
 from scilpy.image.operations import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
-from scilpy.viz.chord_chart import chordDiagram
+from scilpy.viz.chord_chart import chordDiagram, polar2xy
 
 
 def _build_arg_parser():
@@ -38,7 +39,7 @@ def _build_arg_parser():
     p.add_argument('in_matrix',
                    help='Connectivity matrix in numpy (.npy) format.')
     p.add_argument('out_png',
-                   help='Output filename for the figure.')
+                   help='Output filename for the connectivity matrix figure.')
 
     g1 = p.add_argument_group(title='Naming options')
     g1.add_argument('--labels_list',
@@ -90,6 +91,11 @@ def _build_arg_parser():
     chord.add_argument('--alpha', type=float, default=0.9,
                        help='Opacity for the smaller angle on the chord (0-1). '
                             '[%(default)s]')
+    chord.add_argument('--text_size', default=10, type=float,
+                       help='Size of the font for the parcels name/number.')
+    chord.add_argument('--text_distance', type=float, default=1.1,
+                       help='Distance from the center so the parcels '
+                            'name/number do not overlap with the diagram')
 
     p.add_argument('--log', action='store_true',
                    help='Apply a base 10 logarithm to the matrix.')
@@ -242,7 +248,7 @@ def main():
         total_legend.extend(y_legend)
         total_legend = set(total_legend)
         if args.lookup_table:
-            total_legend = sorted(total_legend, key=int)
+            total_legend = sorted(total_legend)
         else:
             total_legend = sorted(total_legend, key=int)
 
@@ -259,7 +265,7 @@ def main():
         ax = plt.axes([0, 0, 1, 1])
         new_matrix[new_matrix < np.percentile(new_matrix,
                                               args.percentile_threshold)] = 0
-        # new_matrix = np.triu(new_matrix)
+
         empty_to_del = (np.where(~new_matrix.any(axis=1))[0])
         non_empty_to_keep = np.setdiff1d(range(len(total_legend)),
                                          empty_to_del)
@@ -271,13 +277,32 @@ def main():
         colors = [cmap(i)[0:3] for i in np.linspace(0, 1, len(new_matrix))]
         nodePos = chordDiagram(new_matrix, ax, colors=colors,
                                angle_threshold=args.angle_threshold,
-                               alpha=args.alpha)
+                               alpha=args.alpha, text_dist=args.text_distance)
         ax.axis('off')
-        prop = dict(fontsize=args.axis_text_size[0], ha='center', va='center')
-
+        prop = dict(fontsize=args.text_size, ha='center', va='center')
+        previous_val = 0
+        first_flip = False
+        flip = 1
         for i in range(len(new_matrix)):
-            ax.text(nodePos[i][0], nodePos[i][1], total_legend[i],
-                    rotation=nodePos[i][2], **prop)
+            radians = math.radians(nodePos[i][2])
+            if nodePos[i][2] > previous_val:
+                previous_val = nodePos[i][2]
+            else:
+                flip = -1
+                previous_val = 0
+                first_flip = True
+
+            if nodePos[i][2] > 270:
+                flip = 1 if first_flip else -1
+            if isinstance(total_legend[i], str):
+                text_len = len(total_legend[i])
+            else:
+                text_len = len(str(total_legend[i]))
+
+            textPos = polar2xy(text_len*args.text_size*0.001*flip, radians)
+
+            ax.text(nodePos[i][0] + textPos[0], nodePos[i][1]+textPos[1],
+                    total_legend[i], rotation=nodePos[i][2], **prop)
 
         if args.show_only:
             plt.show()
