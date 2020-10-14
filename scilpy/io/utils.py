@@ -353,8 +353,8 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
-                    'overwritten. Use -f option if you want to continue.'
-                    .format(path))
+                    'overwritten or even deleted. Use -f option if you want '
+                    'to continue.'.format(path))
             else:
                 for the_file in os.listdir(path):
                     file_path = os.path.join(path, the_file)
