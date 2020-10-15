@@ -15,3 +15,5 @@ RUN mv scilpy-${SCILPY_VERSION} scilpy
 
 WORKDIR /scilpy
 RUN pip install -e .
+
+RUN sed -i '41s/.*/backend : Agg/' /usr/local/lib/python3.7/site-packages/matplotlib/mpl-data/matplotlibrc
