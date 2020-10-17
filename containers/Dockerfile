@@ -6,6 +6,8 @@ RUN apt-get -y upgrade
 RUN apt -y install libblas-dev
 RUN apt -y install liblapack-dev
 RUN apt -y install libgl1-mesa-glx
+RUN apt -y install jq
+RUN apt -y install rename
 
 WORKDIR /
 ENV SCILPY_VERSION="master"
