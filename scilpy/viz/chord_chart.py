@@ -37,17 +37,16 @@ def IdeogramArc(start=0, end=60, radius=1.0, width=0.2, ax=None,
     # https://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves
     opt = 4./3. * np.tan((end-start) / 4.) * radius
     inner = radius*(1-width)
-    verts = [
-        polar2xy(radius, start),
-        polar2xy(radius, start) + polar2xy(opt, start+0.5*np.pi),
-        polar2xy(radius, end) + polar2xy(opt, end-0.5*np.pi),
-        polar2xy(radius, end),
-        polar2xy(inner, end),
-        polar2xy(inner, end) + polar2xy(opt*(1-width), end-0.5*np.pi),
-        polar2xy(inner, start) + polar2xy(opt*(1-width), start+0.5*np.pi),
-        polar2xy(inner, start),
-        polar2xy(radius, start),
-    ]
+    verts = [polar2xy(radius, start),
+             polar2xy(radius, start) + polar2xy(opt, start+0.5*np.pi),
+             polar2xy(radius, end) + polar2xy(opt, end-0.5*np.pi),
+             polar2xy(radius, end),
+             polar2xy(inner, end),
+             polar2xy(inner, end) + polar2xy(opt*(1-width), end-0.515*np.pi),
+             polar2xy(inner, start) + polar2xy(opt *
+                                               (1-width), start+0.515*np.pi),
+             polar2xy(inner, start),
+             polar2xy(radius, start), ]
 
     codes = [Path.MOVETO,
              Path.CURVE4,
@@ -57,8 +56,7 @@ def IdeogramArc(start=0, end=60, radius=1.0, width=0.2, ax=None,
              Path.CURVE4,
              Path.CURVE4,
              Path.CURVE4,
-             Path.CLOSEPOLY,
-             ]
+             Path.CLOSEPOLY, ]
 
     if ax is None:
         return verts, codes

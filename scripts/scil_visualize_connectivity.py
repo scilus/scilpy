@@ -113,7 +113,7 @@ def write_values(ax, matrix, properties):
     font0.set_size(properties[0])
     for x in range(width):
         for y in range(height):
-            value = round(matrix[y][x], properties[1])
+            value = round(matrix[x][y], properties[1])
             ax.annotate(str(value), xy=(x, y), fontproperties=font0,
                         horizontalalignment='center')
     return ax
