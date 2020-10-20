@@ -27,7 +27,7 @@ def _build_arg_parser():
     p.add_argument('in_fodf',
                    help='FODF file used as ava-fodf input.')
     p.add_argument('in_mask',
-                   help='Input WM mask.')
+                   help='Input nonzero fODF mask.')
 
     p.add_argument('--avafodf_peaks_dirs', default='avafodf_peaks.nii.gz',
                    help='Output peaks directions file name.')
@@ -87,7 +87,7 @@ def compute_nupeaks(peaks_values):
     return nupeaks.astype(np.uint8)
 
 
-def compare_nupeaks_in_wm(sym_nupeaks, asym_nupeaks, wm_mask):
+def compare_nupeaks(sym_nupeaks, asym_nupeaks, wm_mask):
     wm_sym_nupeaks = sym_nupeaks[wm_mask]
     wm_asym_nupeaks = asym_nupeaks[wm_mask]
 
@@ -147,12 +147,12 @@ def main():
     fodf_img = nib.load(args.in_fodf)
     fodf_data = fodf_img.get_fdata(dtype=np.float)
 
-    mask = get_data_as_mask(nib.load(args.in_mask), dtype=np.bool)
+    nonzero_fodf = get_data_as_mask(nib.load(args.in_mask), dtype=np.bool)
 
     sphere = get_sphere(args.sphere)
 
     # Compute ava-fodf peaks
-    peak_dirs, peak_vals = compute_peaks(avafodf_data, mask, sphere,
+    peak_dirs, peak_vals = compute_peaks(avafodf_data, nonzero_fodf, sphere,
                                          args.sh_basis, True,
                                          args.rel_peaks_threshold,
                                          args.abs_peaks_threshold,
@@ -169,7 +169,7 @@ def main():
              args.avafodf_nupeaks)
 
     # Compute fodf peaks
-    peak_dirs, peak_vals = compute_peaks(fodf_data, mask, sphere,
+    peak_dirs, peak_vals = compute_peaks(fodf_data, nonzero_fodf, sphere,
                                          args.sh_basis, False,
                                          args.rel_peaks_threshold,
                                          args.abs_peaks_threshold,
@@ -188,7 +188,7 @@ def main():
     # Compare nupeaks
     save_matrix_in_any_format(
         args.nupeaks_compare,
-        compare_nupeaks_in_wm(fodf_nupeaks, avafodf_nupeaks, mask)
+        compare_nupeaks(fodf_nupeaks, avafodf_nupeaks, nonzero_fodf)
     )
 
     # Compute odd-power map for ava-fodf
@@ -197,13 +197,19 @@ def main():
                              avafodf_img.affine), args.odd_pwr_map)
 
     # Compute proportion of crossings before/after filtering
+    # We define a WM mask as all voxels with at least
+    # one principal direction.
+    nonzero_fodf_peaks = fodf_nupeaks > 0
     fodf_crossings_proportions =\
-        np.count_nonzero(fodf_nupeaks[mask] > 2) / np.count_nonzero(mask)
+        np.count_nonzero(fodf_nupeaks[nonzero_fodf_peaks] > 2) / \
+        np.count_nonzero(nonzero_fodf_peaks)
     save_matrix_in_any_format(args.avafodf_crossings,
                               np.array([fodf_crossings_proportions]))
 
+    nonzero_avafodf_peaks = avafodf_nupeaks > 0
     avafodf_crossings_proportions =\
-        np.count_nonzero(avafodf_nupeaks[mask] > 2) / np.count_nonzero(mask)
+        np.count_nonzero(avafodf_nupeaks[nonzero_avafodf_peaks] > 2) / \
+        np.count_nonzero(nonzero_avafodf_peaks)
     save_matrix_in_any_format(args.fodf_crossings,
                               np.array([avafodf_crossings_proportions]))
 

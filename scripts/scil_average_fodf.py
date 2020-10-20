@@ -100,7 +100,7 @@ def filter_one_shot(fodf, affine, fname, args):
              fname)
 
 
-def generate_wm_mask(fodf, threshold):
+def generate_nonzero_fodf_mask(fodf, threshold):
     norm = np.linalg.norm(fodf, axis=-1)
     mask = norm > threshold
     return mask
@@ -115,7 +115,7 @@ def main():
     inputs.append(args.in_fodf)
 
     f_prefix, f_extension = get_file_prefix_and_extension(args.out_avafodf)
-    out_mask = f_prefix + '_mask' + f_extension
+    out_mask = f_prefix + '_nonzero_mask' + f_extension
     if args.out_mask:
         out_mask = args.out_mask
     out_avafodf = []
@@ -136,7 +136,7 @@ def main():
     fodf_data = fodf_img.get_fdata(dtype=np.float)
 
     # Generate WM fODF mask by applying threshold on fODF amplitude
-    mask = generate_wm_mask(fodf_data, args.wm_epsilon)
+    mask = generate_nonzero_fodf_mask(fodf_data, args.wm_epsilon)
     nib.save(nib.Nifti1Image(mask.astype(np.uint8), fodf_img.affine),
              out_mask)
 
