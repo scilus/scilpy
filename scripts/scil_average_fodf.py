@@ -31,9 +31,8 @@ def _build_arg_parser():
     p.add_argument('--nb_iterations', default=1, type=int,
                    help='Number of iterations.')
 
-    p.add_argument('--out_mask',
-                   help='Name of output mask. If not specified, the mask is '
-                        'saved under wm_mask.nii.gz.')
+    p.add_argument('--out_mask', default='nonzero_mask.nii.gz',
+                   help='Name of output mask.')
 
     p.add_argument('--wm_epsilon', default=1e-16,
                    help='Threshold on WM fODF for output mask.')
@@ -114,10 +113,7 @@ def main():
     inputs = []
     inputs.append(args.in_fodf)
 
-    f_prefix, f_extension = get_file_prefix_and_extension(args.out_avafodf)
-    out_mask = f_prefix + '_nonzero_mask' + f_extension
-    if args.out_mask:
-        out_mask = args.out_mask
+    out_mask = args.out_mask
     out_avafodf = []
     if args.nb_iterations > 1:
         for i in range(args.nb_iterations):
