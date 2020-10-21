@@ -3,7 +3,6 @@ import os
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 
-
 with open('requirements.txt') as f:
     required_dependencies = f.read().splitlines()
     external_dependencies = []
