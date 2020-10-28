@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import argparse
 import glob
 import nibabel as nib
@@ -42,8 +45,6 @@ def main():
                             for f in os.listdir(args.in_bundles)]
     else:
         bundle_filenames = glob.glob(args.in_bundles)
-        print(bundle_filenames)
-
 
     scene = window.Scene()
     for filename in bundle_filenames:
@@ -54,7 +55,8 @@ def main():
             np.random.seed(int(args.random_coloring))
             color = random_rgb()
 
-        line_actor = actor.streamtube(streamlines[::args.subsample], colors=color)
+        line_actor = actor.streamtube(streamlines[::args.subsample],
+                                      colors=color)
         scene.add(line_actor)
 
     showm = window.ShowManager(scene, reset_camera=True)

@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import argparse
 import nibabel as nib
 import random
@@ -45,7 +48,9 @@ def main():
     values = np.delete(np.unique(seed_map_data), 0)
     cmap = actor.create_colormap(values, name=args.colormap, auto=False)
 
-    cmap = np.concatenate((cmap, np.full((cmap.shape[0], 1), args.seed_opacity)), axis=-1)
+    cmap = np.concatenate((cmap,
+                           np.full((cmap.shape[0], 1), args.seed_opacity)),
+                          axis=-1)
 
     seedroi_actor = actor.contour_from_label(
         seed_map_data, seed_map_affine, color=cmap)
