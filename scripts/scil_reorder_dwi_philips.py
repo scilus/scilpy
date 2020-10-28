@@ -107,15 +107,18 @@ def main():
     dwis = nb.load(args.dwi)
 
     newIndex = valideInputs(oTable, dwis, bvals, bvecs)
-
     bvecs = bvecs[newIndex]
     bvals = bvals[newIndex]
 
-    data = dwis.get_fdata(dtype=np.float32)
+    data = dwis.dataobj.get_unscaled()
     data = data[:, :, :, newIndex]
 
-    nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,
-                           header=dwis.header), output_filenames[0])
+    tmp = nb.Nifti1Image(data, dwis.affine, header=dwis.header)
+    tmp.header['scl_slope'] = dwis.dataobj.slope
+    tmp.header['scl_inter'] = dwis.dataobj.inter
+    tmp.update_header()
+
+    nb.save(tmp, output_filenames[0])
     np.savetxt(args.baseName + '.bval', bvals.reshape(1, len(bvals)), '%d')
     np.savetxt(args.baseName + '.bvec', bvecs.T, '%0.15f')
 
