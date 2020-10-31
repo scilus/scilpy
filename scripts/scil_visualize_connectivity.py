@@ -42,7 +42,8 @@ def _build_arg_parser():
                     help='List saved by the decomposition script,\n'
                          'must contain labels rather than coordinates (.txt).')
     g1.add_argument('--reorder_txt',
-                    help='File with two rows (x/y) listing the ordering (.txt).')
+                    help='File with two rows (x/y) listing the ordering '
+                    '(.txt).')
     g1.add_argument('--lookup_table',
                     help='Lookup table with the label number as keys and the '
                          'name as values.')
@@ -53,14 +54,17 @@ def _build_arg_parser():
     g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
                     default=(10, 10),
                     help='Font size of the X and Y axis labels. [%(default)s]')
-    g2.add_argument('--axis_text_angle', nargs=2, metavar=('X_ANGLE', 'Y_ANGLE'),
+    g2.add_argument('--axis_text_angle', nargs=2,
+                    metavar=('X_ANGLE', 'Y_ANGLE'),
                     default=(90, 0),
-                    help='Text angle of the X and Y axis labels. [%(default)s]')
+                    help='Text angle of the X and Y axis labels. '
+                    '[%(default)s]')
     g2.add_argument('--colormap', default='viridis',
                     help='Colormap to use for the matrix. [%(default)s]')
     g2.add_argument('--display_legend', action='store_true',
                     help='Display the colorbar next to the matrix.')
-    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
+    g2.add_argument('--write_values', nargs=2,
+                    metavar=('FONT_SIZE', 'DECIMAL'),
                     default=None, type=int,
                     help='Write the values at the center of each node.\n'
                          'The font size and the rouding parameters can be '
@@ -133,7 +137,7 @@ def main():
     if args.name_axis:
         x_ticks = np.arange(matrix.shape[0])
         y_ticks = np.arange(matrix.shape[1])
-        
+
         if args.labels_list:
             labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
 
@@ -156,8 +160,10 @@ def main():
 
         if args.lookup_table:
             if args.reorder_txt:
-                logging.warning('Using a lookup table, make sure the reordering '
-                                'json contain labels, not coordinates')
+                logging.warning('Using a lookup table, '
+                                'make sure the reordering '
+                                'json contain labels, not '
+                                'coordinates')
             with open(args.lookup_table) as json_data:
                 lut = json.load(json_data)
 
@@ -180,7 +186,8 @@ def main():
         if len(x_ticks) != len(x_legend) \
                 or len(y_ticks) != len(y_legend):
             logging.warning('Legend is not the same size as the data.'
-                            'Make sure you are using the same reordering json.')
+                            'Make sure you are using the same '
+                            'reordering json.')
 
         plt.xticks(y_ticks, y_legend,
                    rotation=args.axis_text_angle[0],
