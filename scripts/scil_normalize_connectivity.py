@@ -139,7 +139,7 @@ def main():
 
         voxels_vol = np.prod(atlas_img.header.get_zooms()[:3])
         voxels_sur = np.prod(atlas_img.header.get_zooms()[:2])
-
+        
         # Excluding background (0)
         labels_list = np.loadtxt(labels_filepath)
         if len(labels_list) != in_matrix.shape[0] \
@@ -174,8 +174,12 @@ def main():
                 factor_list.append(np.count_nonzero(
                     atlas_data == label) * voxels_vol)
             else:
-                factor_list.append(approximate_surface_node(
-                    atlas_data, label) * voxels_sur)
+                if np.count_nonzero(atlas_data == label): 
+                    factor_list.append(approximate_surface_node(
+                        atlas_data, label) * voxels_sur)
+                else:
+                    factor_list.append(0)
+                    
 
         for pos_1, pos_2 in all_comb:
             factor = factor_list[pos_1] + factor_list[pos_2]
