@@ -1,6 +1,10 @@
 os:
   - linux
+  dist: bionic
+  dist: trusty
   - osx
+  dist: xcode11.4
+  dist: xcode12.2
 
 language: python
 python:
@@ -9,6 +13,8 @@ python:
   - "3.8"
 
 before_install:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install pyenv; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-key adv --recv-keys --keyserver pool.sks-keyservers.net 2649A5A9 || { sudo wget -q -O- http://neuro.debian.net/_static/neuro.debian.net.asc | sudo apt-key add -; } ; fi
