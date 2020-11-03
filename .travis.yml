@@ -1,12 +1,4 @@
-os:
-  - linux
-  dist: bionic
-  dist: trusty
-  - osx
-  dist: xcode11.4
-  dist: xcode12.2
 
-language: python
 python:
   - "3.6"
   - "3.7"
@@ -32,6 +24,12 @@ script:
 
 jobs:
   include:
+    - os: linux
+      dist: bionic
+      language: python
+    - os: osx
+      osx_image: xcode12.2
+
     - stage: Deploy Docker latest
       if: branch = master AND type = push
       script:
