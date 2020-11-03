@@ -135,8 +135,8 @@ def main():
         fig.colorbar(im, ax=ax)
 
     if args.name_axis:
-        x_ticks = np.arange(matrix.shape[0])
-        y_ticks = np.arange(matrix.shape[1])
+        y_ticks = np.arange(matrix.shape[0])
+        x_ticks = np.arange(matrix.shape[1])
 
         if args.labels_list:
             labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
@@ -146,17 +146,17 @@ def main():
                     or len(labels_list) != matrix.shape[1]:
                 logging.warning('The provided matrix not the same size as '
                                 'the labels list.')
-            x_legend = labels_list[0:matrix.shape[0]]
-            y_legend = labels_list[0:matrix.shape[1]]
+            y_legend = labels_list[0:matrix.shape[0]]
+            x_legend = labels_list[0:matrix.shape[1]]
         else:
-            x_legend = x_ticks
             y_legend = y_ticks
+            x_legend = x_ticks
 
         if args.reorder_txt:
             with open(args.reorder_txt, 'r') as my_file:
                 lines = my_file.readlines()
-                x_legend = [int(val) for val in lines[0].split()]
-                y_legend = [int(val) for val in lines[1].split()]
+                y_legend = [int(val) for val in lines[0].split()]
+                x_legend = [int(val) for val in lines[1].split()]
 
         if args.lookup_table:
             if args.reorder_txt:
@@ -166,31 +166,31 @@ def main():
             with open(args.lookup_table) as json_data:
                 lut = json.load(json_data)
 
-            x_legend = []
             y_legend = []
+            x_legend = []
             if args.reorder_txt:
                 with open(args.reorder_txt, 'r') as my_file:
                     lines = my_file.readlines()
-                    x_list = [int(val) for val in lines[0].split()]
-                    y_list = [int(val) for val in lines[1].split()]
+                    y_list = [int(val) for val in lines[0].split()]
+                    x_list = [int(val) for val in lines[1].split()]
             else:
-                x_list = labels_list[0:matrix.shape[0]]
-                y_list = labels_list[0:matrix.shape[1]]
+                y_list = labels_list[0:matrix.shape[0]]
+                x_list = labels_list[0:matrix.shape[1]]
 
-            x_legend = [lut[str(x)] if str(x) in lut else str(x)
-                        for x in x_list]
             y_legend = [lut[str(x)] if str(x) in lut else str(x)
                         for x in y_list]
+            x_legend = [lut[str(x)] if str(x) in lut else str(x)
+                        for x in x_list]
 
-        if len(x_ticks) != len(x_legend) \
-                or len(y_ticks) != len(y_legend):
+        if len(y_ticks) != len(y_legend) \
+                or len(x_ticks) != len(x_legend):
             logging.warning('Legend is not the same size as the data.'
                             'Make sure you are using the same reordering '
                             'json.')
-        plt.xticks(y_ticks, y_legend,
+        plt.xticks(x_ticks, x_legend,
                    rotation=args.axis_text_angle[0],
                    fontsize=args.axis_text_size[0])
-        plt.yticks(x_ticks, x_legend,
+        plt.yticks(y_ticks, y_legend,
                    rotation=args.axis_text_angle[1],
                    fontsize=args.axis_text_size[1])
 
