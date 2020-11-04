@@ -3,12 +3,16 @@
 """
 Visualize 2-dimensional fODF slice loaded from disk.
 
-Given a SH coefficients image, this script displays a slice in the
+Given an image of SH coefficients, this script displays a slice in the
 orientation specified by the user. The user can also add a background
-on top of which the fODF are to be displayed.
+on top of which the fODF are to be displayed. It also support peaks
+visualization for symmetric fODF. Using a full SH basis, the script
+can be used to visualize asymmetric fODF. Peaks visualization is however not
+supported for asymmetric signals.
 """
 
 import argparse
+import warnings
 
 import nibabel as nib
 import numpy as np
@@ -33,19 +37,21 @@ def _build_arg_parser():
 
     # Window configuration options
     p.add_argument('--slice_index', type=int,
-                   help='Index of the slice to visualize along a given axis.')
+                   help='Index of the slice to visualize along a given axis. '
+                        'Defaults to middle of volume.')
 
     p.add_argument('--win_dims', nargs=2, metavar=('WIDTH', 'HEIGHT'),
-                   default=[768, 768], type=int,
-                   help='The dimensions for the vtk window.')
+                   default=(768, 768), type=int,
+                   help='The dimensions for the vtk window. [%(default)s]')
 
     p.add_argument('--interactor', default='trackball',
                    choices={'image', 'trackball'},
-                   help='Specify interactor mode for vtk window.')
+                   help='Specify interactor mode for vtk window. '
+                        '[%(default)s]')
 
     p.add_argument('--axis_name', default='axial', type=str,
                    choices={'axial', 'coronal', 'sagittal'},
-                   help='Name of the axis to visualize.')
+                   help='Name of the axis to visualize. [%(default)s]')
 
     p.add_argument('--silent', action='store_true',
                    help='Disable interactive visualization.')
@@ -59,15 +65,17 @@ def _build_arg_parser():
 
     p.add_argument('--full_basis', action='store_true',
                    help='Use full SH basis to reconstruct fODF from '
-                   'coefficients.')
+                        'coefficients.')
 
     sphere_choices = {'symmetric362', 'symmetric642', 'symmetric724',
                       'repulsion724', 'repulsion100', 'repulsion200'}
     p.add_argument('--sphere', default='symmetric724', choices=sphere_choices,
-                   help='Name of the sphere used to reconstruct SF.')
+                   help='Name of the sphere used to reconstruct SF. '
+                        '[%(default)s]')
 
     p.add_argument('--sph_subdivide', type=int,
-                   help='Number of subdivisions for given sphere.')
+                   help='Number of subdivisions for given sphere. If not '
+                        'supplied, use the given sphere as is.')
 
     p.add_argument('--mask',
                    help='Optional mask file. Only fODF inside '
@@ -75,10 +83,10 @@ def _build_arg_parser():
 
     p.add_argument('--colormap', default=None,
                    help='Colormap for the ODF slicer. If None, '
-                        'then a RGB colormap will be used.')
+                        'then a RGB colormap will be used. [%(default)s]')
 
     p.add_argument('--scale', default=0.5, type=float,
-                   help='Scaling factor for FODF.')
+                   help='Scaling factor for FODF. [%(default)s]')
 
     p.add_argument('--radial_scale_off', action='store_true',
                    help='Disable radial scale for ODF slicer.')
@@ -93,35 +101,39 @@ def _build_arg_parser():
 
     p.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
                    help='The range of values mapped to range [0, 1] '
-                        'for background image.')
+                        'for background image. [(bg.min(), bg.max())]')
 
-    p.add_argument('--bg_opacity', type=float,
-                   help='The opacity of the background image. Opacity of 0 '
-                        'means transparent and 1 is completely visible.')
+    p.add_argument('--bg_opacity', type=float, default=1.0,
+                   help='The opacity of the background image. Opacity of 0.0 '
+                        'means transparent and 1.0 is completely visible. '
+                        '[%(default)s]')
 
-    p.add_argument('--bg_offset', type=float,
-                   help='The offset of the background image.')
+    p.add_argument('--bg_offset', type=float, default=0.5,
+                   help='The offset of the background image. [%(default)s]')
 
-    p.add_argument('--bg_interpolation', choices={'linear', 'nearest'},
-                   help='Interpolation mode for the background image.')
+    p.add_argument('--bg_interpolation',
+                   default='nearest', choices={'linear', 'nearest'},
+                   help='Interpolation mode for the background image. '
+                        '[%(default)s]')
 
     # Peaks input file options
     p.add_argument('--peaks',
                    help='Peaks image file.')
 
     p.add_argument('--peaks_color', nargs=3, type=float,
-                   help='Color used for peaks. If None, '
-                        'then a RGB colormap is used.')
+                   help='Color used for peaks. if None, '
+                        'then a RGB colormap is used. [%(default)s]')
 
     p.add_argument('--peaks_width', default=1.0, type=float,
-                   help='Width of peaks segments.')
+                   help='Width of peaks segments. [%(default)s]')
 
     peaks_scale_group = p.add_mutually_exclusive_group()
-    peaks_scale_group.add_argument('--peak_values',
-                                   help='Peak values file.')
+    peaks_scale_group.add_argument('--peaks_values',
+                                   help='Peaks values file.')
 
     peaks_scale_group.add_argument('--peaks_length', default=0.65, type=float,
-                                   help='Length of the peaks segments.')
+                                   help='Length of the peaks segments. '
+                                        '[%(default)s]')
 
     return p
 
@@ -141,29 +153,20 @@ def _parse_args(parser):
         inputs.append(args.mask)
     if args.background:
         inputs.append(args.background)
-    else:
-        if args.bg_range:
-            parser.error('Background range is specified but no background '
-                         'image is specified. Specify a background image '
-                         'with --background to use this feature.')
-        if args.bg_opacity:
-            parser.error('Background opacity is specified but no background '
-                         'image is specified. Specify a background image '
-                         'with --background to use this feature.')
-        if args.bg_offset:
-            parser.error('Background image offset is specified but no '
-                         'background image is specified. Specify a background '
-                         'image with --background to use this feature.')
-        if args.bg_interpolation:
-            parser.error('Background image interpolation is specified but no '
-                         'background image is specified. Specify a background '
-                         'image with --background to use this feature.')
+
     if args.peaks:
         if args.full_basis:
             # FURY doesn't support asymmetric peaks visualization
-            parser.error('Cannot use peaks file with full basis: '
-                         'Asymmetric peaks visualization is not available.')
+            warnings.warn('Asymmetric peaks visualization is not supported '
+                          'by FURY. Peaks shown as symmetric peaks.',
+                          UserWarning)
         inputs.append(args.peaks)
+        if args.peaks_values:
+            inputs.append(args.peaks_values)
+    else:
+        if args.peaks_values:
+            parser.error('Peaks values image supplied without peaks. Specify '
+                         'a peaks image with --peaks to use this feature.')
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, output)
@@ -234,15 +237,16 @@ def _get_data_from_inputs(args):
                                  .format(peaks.shape[-1]))
         data['peaks'] = _crop_along_axis(peaks, args.slice_index,
                                          args.axis_name)
-        if args.peak_values:
+        if args.peaks_values:
             peak_vals =\
-                nib.nifti1.load(args.peak_values).get_fdata(dtype=np.float32)
+                nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
             if peak_vals.shape[:3] != fodf.shape[:-1]:
                 raise ValueError('Peaks volume dimensions {0} do not agree '
                                  'with fODF dimensions {1}.'
                                  .format(peak_vals.shape, fodf.shape))
-            data['peak_values'] = _crop_along_axis(peak_vals, args.slice_index,
-                                                   args.axis_name)
+            data['peaks_values'] =\
+                _crop_along_axis(peak_vals, args.slice_index,
+                                 args.axis_name)
 
     grid_shape = data['fodf'].shape[:3]
     return data, grid_shape
@@ -300,14 +304,15 @@ def main():
 
     # Instantiate a peaks slicer actor if peaks are supplied
     if 'peaks' in data:
-        peak_values = None
-        if 'peak_values' in data:
-            peak_values = data['peak_values']
+        peaks_values = None
+        if 'peaks_values' in data:
+            peaks_values = data['peaks_values']
         else:
-            peak_values = np.ones(data['peaks'].shape[:-1]) * args.peaks_length
+            peaks_values =\
+                np.ones(data['peaks'].shape[:-1]) * args.peaks_length
         peaks_actor = create_peaks_slicer(data['peaks'],
                                           args.axis_name,
-                                          peak_values,
+                                          peaks_values,
                                           mask,
                                           args.peaks_color,
                                           args.peaks_width)

@@ -124,23 +124,11 @@ def _get_affine_for_texture(orientation, offset):
 
 
 def create_texture_slicer(texture, value_range=None, orientation='axial',
-                          opacity=None, offset=None, interpolation=None):
+                          opacity=1.0, offset=0.5, interpolation='nearest'):
     """
     Create a texture displayed behind the fODF. The texture is applied on a
     plane with a given offset for the fODF grid.
     """
-    # opacity = None defaults to 1.0
-    if opacity is None:
-        opacity = 1.0
-
-    # offset = None defaults to 0.5
-    if offset is None:
-        offset = 0.5
-
-    # interpolation = None defaults to 'nearest'
-    if interpolation is None:
-        interpolation = 'nearest'
-
     affine = _get_affine_for_texture(orientation, offset)
 
     slicer_actor = actor.slicer(texture, affine=affine,
