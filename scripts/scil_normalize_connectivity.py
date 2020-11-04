@@ -30,8 +30,8 @@ Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
  - sum_to_one: Ensure the sum of all edges weight is one
  - log_10: Apply a base 10 logarithm to all edges weight
 
-The volume and length matrix should come from the scil_decompose_connectivity.py
-script.
+The volume and length matrix should come from the
+scil_decompose_connectivity.py script.
 
 A review of the type of normalization is available in:
 Colon-Perez, Luis M., et al. "Dimensionless, scale-invariant, edge weight
@@ -48,6 +48,7 @@ import itertools
 import nibabel as nib
 import numpy as np
 from sklearn.neighbors import KDTree
+
 
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
 from scilpy.io.image import get_data_as_label
@@ -72,7 +73,8 @@ def _build_arg_parser():
     edge_p = p.add_argument_group('Edge-wise options')
     length = edge_p.add_mutually_exclusive_group()
     length.add_argument('--length', metavar='LENGTH_MATRIX',
-                        help='Length matrix used for edge-wise multiplication.')
+                        help='Length matrix used for '
+                        'edge-wise multiplication.')
     length.add_argument('--inverse_length', metavar='LENGTH_MATRIX',
                         help='Length matrix used for edge-wise division.')
     edge_p.add_argument('--bundle_volume', metavar='VOLUME_MATRIX',
@@ -134,7 +136,8 @@ def main():
         atlas_data = get_data_as_label(atlas_img)
 
         voxels_size = atlas_img.header.get_zooms()[:3]
-        if voxels_size[0] != voxels_size[1] or voxels_size[0] != voxels_size[2]:
+        if voxels_size[0] != voxels_size[1] \
+           or voxels_size[0] != voxels_size[2]:
             parser.error('Atlas must have an isotropic resolution.')
 
         voxels_vol = np.prod(atlas_img.header.get_zooms()[:3])
@@ -174,8 +177,11 @@ def main():
                 factor_list.append(np.count_nonzero(
                     atlas_data == label) * voxels_vol)
             else:
-                factor_list.append(approximate_surface_node(
-                    atlas_data, label) * voxels_sur)
+                if np.count_nonzero(atlas_data == label):
+                    factor_list.append(approximate_surface_node(
+                        atlas_data, label) * voxels_sur)
+                else:
+                    factor_list.append(0)
 
         for pos_1, pos_2 in all_comb:
             factor = factor_list[pos_1] + factor_list[pos_2]
@@ -183,13 +189,16 @@ def main():
                 out_matrix[pos_1, pos_2] /= factor
                 out_matrix[pos_2, pos_1] /= factor
 
+    # Load as image
+    ref_matrix = nib.Nifti1Image(in_matrix, np.eye(4))
+    out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:
-        out_matrix = normalize_max([out_matrix])
+        out_matrix = normalize_max([out_matrix], ref_matrix)
     elif args.sum_to_one:
-        out_matrix = normalize_sum([out_matrix])
+        out_matrix = normalize_sum([out_matrix], ref_matrix)
     elif args.log_10:
-        out_matrix = base_10_log([out_matrix])
+        out_matrix = base_10_log([out_matrix], ref_matrix)
 
     save_matrix_in_any_format(args.out_matrix, out_matrix)
 
