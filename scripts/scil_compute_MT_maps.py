@@ -85,7 +85,7 @@ def _build_arg_parser():
                         'T1 segmentation (GM+WM+CSF).')
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
-    p.add_argument('--in_B1_map', action='store_true',
+    p.add_argument('--in_B1_map',
                    help='Path to B1 coregister map to MT contrasts.')
 
     g = p.add_argument_group(title='MT contrasts', description='Path to '
