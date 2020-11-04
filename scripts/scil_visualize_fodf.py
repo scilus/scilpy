@@ -3,11 +3,11 @@
 """
 Visualize 2-dimensional fODF slice loaded from disk.
 
-Given an image of SH coefficients, this script displays a slice in the
-orientation specified by the user. The user can also add a background
-on top of which the fODF are to be displayed. It also support peaks
-visualization for symmetric fODF. Using a full SH basis, the script
-can be used to visualize asymmetric fODF.
+Given an image of SH coefficients, this script displays a slice in a
+given orientation. The user can also add a background on top of which the
+fODF are to be displayed. Using a full SH basis, the script can be used to
+visualize asymmetric fODF. The user can supply a peaks image to visualize
+peaks on top of fODF.
 """
 
 import argparse
