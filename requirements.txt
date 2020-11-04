@@ -5,7 +5,7 @@ Cython==0.29.*
 -e git+https://github.com/CHrlS98/dipy.git@f6b6f5ece3e293c7455511420f0f40002b533d11#egg=dipy
 fury==0.2.*
 future==0.17.*
-h5py==2.9.*
+h5py==2.10.*
 kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
@@ -20,7 +20,7 @@ scikit-learn==0.22.*
 scipy==1.4.*
 setuptools==46.1.*
 six==1.15.*
-vtk==9.0.1
+vtk>=8.0.0,<10.0.0
 trimeshpy==0.0.*
 coloredlogs==10.0.*
 nilearn==0.6.*

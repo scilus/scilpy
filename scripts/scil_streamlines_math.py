@@ -14,6 +14,10 @@ union:        Keep all streamlines while removing duplicates.
 
 concatenate:  Keep all streamlines with duplicates.
 
+lazy_concatenate:  Keep all streamlines with duplicates, never load the whole
+                    tractograms in memory. Only works with trk/tck file,
+                    metadata will be lost and invalid streamlines are kept.
+
 If a file 'duplicate.trk' have identical streamlines, calling the script using
 the difference/intersection/union with a single input will remove these
 duplicated streamlines.
@@ -21,20 +25,27 @@ duplicated streamlines.
 To allow a soft match, use the --precision option to increase the allowed
 threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
-default value of 3 (or 0.001mm distance) should work. If there is a 0.5mm shift,
-use a precision of 0 (or 1mm distance) should work, but slightly slower.
+default value of 3 (or 0.001mm distance) should work.
+
+If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) the --robust
+option should make it work, but slightly slower.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
---no_metadata to strip the metadata from the output.
+--no_metadata to strip the metadata from the output. Or --fake_metadata to
+initialize dummy metadata in the file missing them.
 """
 
 import argparse
 import json
 import logging
+import os
 
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import is_header_compatible
+import nibabel as nib
+from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -58,7 +69,8 @@ OPERATIONS = {
     'difference': difference,
     'intersection': intersection,
     'union': union,
-    'concatenate': 'concatenate'
+    'concatenate': 'concatenate',
+    'lazy_concatenate': 'lazy_concatenate'
 }
 
 
@@ -69,11 +81,11 @@ def _build_arg_parser():
 
     p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
                    help='The type of operation to be performed on the '
-                   'streamlines. Must\nbe one of the following: '
-                   '%(choices)s.')
+                        'streamlines. Must\nbe one of the following: '
+                        '%(choices)s.')
     p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
-                   'streamlines to operate on.')
+                        'streamlines to operate on.')
     p.add_argument('output', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                         'are saved.')
@@ -114,6 +126,32 @@ def main():
 
     assert_inputs_exist(parser, args.inputs)
     assert_outputs_exist(parser, args, args.output)
+
+    if args.operation == 'lazy_concatenate':
+        logging.info('Using lazy_concatenate, no spatial or metadata related '
+                     'checks are performed.\nMetadata will be lost, only '
+                     'trk/tck file are supported.')
+
+        def list_generator_from_nib(filenames):
+            for in_file in filenames:
+                tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
+                for s in tractogram_file.streamlines:
+                    yield s
+        header = None
+        for in_file in args.inputs:
+            _, ext = os.path.splitext(in_file)
+            if ext == '.trk':
+                if header is None:
+                    header = nib.streamlines.load(
+                        in_file, lazy_load=True).header
+                elif not is_header_compatible(header, in_file):
+                    logging.warning('Incompatible headers in the list.')
+
+        generator = list_generator_from_nib(args.inputs)
+        out_tractogram = LazyTractogram(lambda: generator,
+                                        affine_to_rasmm=np.eye(4))
+        nib.streamlines.save(out_tractogram, args.output, header=header)
+        return
 
     # Load all input streamlines.
     sft_list = []
