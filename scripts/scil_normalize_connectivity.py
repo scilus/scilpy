@@ -49,6 +49,7 @@ import nibabel as nib
 import numpy as np
 from sklearn.neighbors import KDTree
 
+
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
 from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg,
@@ -188,13 +189,16 @@ def main():
                 out_matrix[pos_1, pos_2] /= factor
                 out_matrix[pos_2, pos_1] /= factor
 
+    # Load as image
+    ref_matrix = nib.Nifti1Image(in_matrix, np.eye(4))
+    out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:
-        out_matrix = normalize_max([out_matrix])
+        out_matrix = normalize_max([out_matrix], ref_matrix)
     elif args.sum_to_one:
-        out_matrix = normalize_sum([out_matrix])
+        out_matrix = normalize_sum([out_matrix], ref_matrix)
     elif args.log_10:
-        out_matrix = base_10_log([out_matrix])
+        out_matrix = base_10_log([out_matrix], ref_matrix)
 
     save_matrix_in_any_format(args.out_matrix, out_matrix)
 
