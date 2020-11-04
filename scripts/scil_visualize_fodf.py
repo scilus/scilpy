@@ -7,8 +7,7 @@ Given an image of SH coefficients, this script displays a slice in the
 orientation specified by the user. The user can also add a background
 on top of which the fODF are to be displayed. It also support peaks
 visualization for symmetric fODF. Using a full SH basis, the script
-can be used to visualize asymmetric fODF. Peaks visualization is however not
-supported for asymmetric signals.
+can be used to visualize asymmetric fODF.
 """
 
 import argparse
