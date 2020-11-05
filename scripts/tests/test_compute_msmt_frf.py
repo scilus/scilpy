@@ -56,5 +56,6 @@ def test_execution_processing(script_runner):
                            'mask.nii.gz')
     ret = script_runner.run('scil_compute_msmt_frf.py', in_dwi,
                             in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
-                            'csf_frf.txt', '--mask', mask, '-f')
+                            'csf_frf.txt', '--mask', mask, '--min_nvox', '20',
+                            '-f')
     assert ret.success

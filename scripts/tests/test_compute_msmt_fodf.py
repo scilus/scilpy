@@ -6,7 +6,6 @@ import tempfile
 
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
-# If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
