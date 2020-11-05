@@ -6,48 +6,55 @@ import tempfile
 
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
-# If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['processing.zip'])
+fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_ssst_frf.py', '--help')
+    ret = script_runner.run('scil_compute_msmt_frf.py', '--help')
     assert ret.success
 
 
 def test_roi_radii_shape_parameter(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
-                          'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(get_home(), 'commit_amico',
+                          'dwi.nii.gz')
+    in_bval = os.path.join(get_home(), 'commit_amico',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
-    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
-                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+    mask = os.path.join(get_home(), 'commit_amico',
+                           'mask.nii.gz')
+    ret = script_runner.run('scil_compute_msmt_frf.py', in_dwi,
+                            in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
+                            'csf_frf.txt', '--mask', mask, '--roi_radii',
                             '37', '-f')
     assert ret.success
 
     ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
-                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+                            in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
+                            'csf_frf.txt', '--mask', mask, '--roi_radii',
                             '37', '37', '37', '-f')
     assert ret.success
 
     ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
-                            in_bval, in_bvec, 'frf.txt', '--roi_radii',
+                            in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
+                            'csf_frf.txt', '--mask', mask, '--roi_radii',
                             '37', '37', '37', '37', '37', '-f')
 
     assert (not ret.success)
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
-                          'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
+    in_dwi = os.path.join(get_home(), 'commit_amico',
+                          'dwi.nii.gz')
+    in_bval = os.path.join(get_home(), 'commit_amico',
                            'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
+    in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
-    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
-                            in_bval, in_bvec, 'frf.txt', '-f')
+    mask = os.path.join(get_home(), 'commit_amico',
+                           'mask.nii.gz')
+    ret = script_runner.run('scil_compute_msmt_frf.py', in_dwi,
+                            in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
+                            'csf_frf.txt', '--mask', mask, '-f')
     assert ret.success
