@@ -28,7 +28,7 @@ cdef struct Pointers:
     # To bookkeep the final index related to a streamline point
     cnp.npy_intp *pti_lengths_out
     cnp.npy_intp *pti_offsets_out
-    cnp.uint64_t *points_to_index_out
+    cnp.uint16_t *points_to_index_out
 
 
 @cython.boundscheck(False)
@@ -51,7 +51,7 @@ def uncompress(streamlines, return_mapping=False):
 
         # Multiplying by 6 is simply a heuristic to avoiding resizing too many
         # times. In my bundles tests, I had either 0 or 1 resize.
-        cnp.npy_intp max_points = (streamlines.get_data().size / 3) * 6
+        cnp.npy_intp max_points = (streamlines._data.size / 3)
 
     new_array_sequence = nib.streamlines.array_sequence.ArraySequence()
     new_array_sequence._lengths.resize(nb_streamlines)
@@ -61,7 +61,7 @@ def uncompress(streamlines, return_mapping=False):
     points_to_index = nib.streamlines.array_sequence.ArraySequence()
     points_to_index._lengths.resize(nb_streamlines)
     points_to_index._offsets.resize(nb_streamlines)
-    points_to_index._data = np.zeros(int(streamlines.get_data().size / 3), np.uint64)
+    points_to_index._data = np.zeros(int(streamlines._data.size / 3), np.uint16)
 
     cdef:
         cnp.npy_intp[:] lengths_view_in = streamlines._lengths
@@ -72,7 +72,7 @@ def uncompress(streamlines, return_mapping=False):
         cnp.uint16_t[:] data_view_out = new_array_sequence._data
         cnp.npy_intp[:] pti_lengths_view_out = points_to_index._lengths
         cnp.npy_intp[:] pti_offsets_view_out = points_to_index._offsets
-        cnp.uint64_t[:] points_to_index_view_out = points_to_index._data
+        cnp.uint16_t[:] points_to_index_view_out = points_to_index._data
 
     cdef Pointers pointers
     pointers.lengths_in = &lengths_view_in[0]
