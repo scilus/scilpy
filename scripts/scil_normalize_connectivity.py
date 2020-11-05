@@ -191,13 +191,15 @@ def main():
 
     # Load as image
     ref_matrix = nib.Nifti1Image(in_matrix, np.eye(4))
-    out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:
+        out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
         out_matrix = normalize_max([out_matrix], ref_matrix)
     elif args.sum_to_one:
+        out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
         out_matrix = normalize_sum([out_matrix], ref_matrix)
     elif args.log_10:
+        out_matrix = nib.Nifti1Image(out_matrix, np.eye(4))
         out_matrix = base_10_log([out_matrix], ref_matrix)
 
     save_matrix_in_any_format(args.out_matrix, out_matrix)
