@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Visualize seeds as 3D points, with heatmaps corresponding to seed density
+
+Example usages:
+
+scil_visualize_seeds_3d.py seeds.nii.gz --tractogram tractogram.trk
+
+"""
+
 import argparse
 import nibabel as nib
-import random
-
 import numpy as np
 
 from fury import window, actor
+
+from scilpy.io.utils import assert_inputs_exist, parser_color_type
 
 
 def _build_arg_parser():
@@ -24,46 +33,58 @@ def _build_arg_parser():
                    help='Opacity of the contour generated.')
     p.add_argument('--tractogram_opacity', type=float, default=0.5,
                    help='Opacity of the streamlines')
+    p.add_argument('--tractogram_width', type=float, default=0.05,
+                   help='Width of tubes or lines representing streamlines')
+    p.add_argument('--tractogram_color', metavar='R G B',
+                   nargs='+', default=None, type=parser_color_type,
+                   help='Color for the tractogram.')
+    p.add_argument('--background', metavar='R G B', nargs='+',
+                   default=[0, 0, 0], type=parser_color_type,
+                   help='RBG values [0, 255] of the color of the background.')
 
     return p
-
-
-def random_rgb():
-    r = random.randint(0, 255)
-    g = random.randint(0, 255)
-    b = random.randint(0, 255)
-    return np.array([r, g, b]) / 255.0
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    assert_inputs_exist(parser, args.in_seed_map, [args.tractogram])
+
+    # Seed map informations
     seed_map_img = nib.load(args.in_seed_map)
     seed_map_data = seed_map_img.get_fdata()
     seed_map_affine = seed_map_img.affine
 
-    scene = window.Scene()
-
+    # Load seed density as labels
     values = np.delete(np.unique(seed_map_data), 0)
+    # Create colormap based on labels
     cmap = actor.create_colormap(values, name=args.colormap, auto=False)
+    # Append opacity to colormap
+    cmap = np.concatenate(
+        (cmap, np.full((cmap.shape[0], 1), args.seed_opacity)),
+        axis=-1)
 
-    cmap = np.concatenate((cmap,
-                           np.full((cmap.shape[0], 1), args.seed_opacity)),
-                          axis=-1)
+    scene = window.Scene()
+    scene.background(tuple(map(int, args.background)))
 
     seedroi_actor = actor.contour_from_label(
         seed_map_data, seed_map_affine, color=cmap)
-
     scene.add(seedroi_actor)
 
+    # Load tractogram as tubes if specified
     if args.tractogram:
         tractogram = nib.streamlines.load(args.tractogram).tractogram
-
+        color = None
+        if args.tractogram_color:
+            color = tuple(map(int, args.tractogram_color))
         line_actor = actor.streamtube(tractogram.streamlines,
-                                      opacity=args.tractogram_opacity)
+                                      opacity=args.tractogram_opacity,
+                                      colors=color,
+                                      linewidth=args.tractogram_width)
         scene.add(line_actor)
 
+    # Showtime !
     showm = window.ShowManager(scene, reset_camera=True)
     showm.initialize()
     showm.start()

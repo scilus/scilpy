@@ -14,24 +14,23 @@ $ scil_visualize_bundles path_to_bundles/ --shape tube --random_coloring 1337
 $ scil_visualize_bundles tractogram.trk --shape line --subsample 10
 
 # Visualize CSTs as large tubes and color them from a list of colors in a file
-$ scil_visualize_bundles path_to_bundles/CST_* --width 0.5 --color_list colors.txt
+$ scil_visualize_bundles path_to_bundles/CST_* --width 0.5 \
+    --color_list colors.txt
 """
 
 import argparse
 import colorsys
 import glob
+import itertools
 import nibabel as nib
+import numpy as np
 import os
 import random
-import itertools
-
-import numpy as np
 
 from dipy.tracking.streamline import set_number_of_points
 from fury import window, actor
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist)
+from scilpy.io.utils import assert_inputs_exist, parser_color_type
 
 
 streamline_actor = {'tube': actor.streamtube,
@@ -61,10 +60,8 @@ def _build_arg_parser():
     p.add_argument('--downsample', metavar='N', type=int, default=None,
                    help='Downsample streamlines to N points.')
     p.add_argument('--background', metavar='R G B', nargs='+',
-                   default=[0, 0, 0],
+                   default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.')
-
-    add_overwrite_arg(p)
     return p
 
 
