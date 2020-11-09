@@ -28,7 +28,6 @@ import logging
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-from scipy.stats import iqr
 
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
@@ -285,7 +284,7 @@ def main():
         nib.save(evecs_img, args.evecs)
 
         # save individual e-vectors also
-        for i in [1,2,3]:
+        for i in [1, 2, 3]:
             e_img = nib.Nifti1Image(evecs[..., i-1], affine)
             nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i)))
             del e_img
@@ -348,9 +347,19 @@ def main():
     if args.residual:
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
-        data_p = tenfit.predict(gtab, S0)
-        R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
-                           data[..., ~gtab.b0s_mask]), axis=-1)
+        data_diff = np.zeros(data.shape, dtype=np.float32)
+
+        for i in range(data.shape[0]):
+            if args.mask is not None:
+                tenfit2 = tenmodel.fit(data[i, :, :, :], mask[i, :, :])
+            else:
+                tenfit2 = tenmodel.fit(data[i, :, :, :])
+
+            data_diff[i, :, :, :] = np.abs(
+                tenfit2.predict(gtab, S0[i, :, :]).astype(
+                    np.float32) - data[i, :, :])
+
+        R = np.mean(data_diff, axis=-1)
 
         if args.mask is not None:
             R *= mask
@@ -378,7 +387,7 @@ def main():
         percent_outliers = np.zeros(data.shape[-1], dtype=np.float32)
         nb_voxels = np.count_nonzero(mask)
         for k in range(data.shape[-1]):
-            x = np.abs(data_p[..., k] - data[..., k])[mask]
+            x = data_diff[..., k]
             R_k[k] = np.mean(x)
             std[k] = np.std(x)
             q3[k], q1[k] = np.percentile(x, [75, 25])
