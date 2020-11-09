@@ -28,6 +28,7 @@ import logging
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
+from scipy.stats import iqr
 
 from dipy.core.gradients import gradient_table
 import dipy.denoise.noise_estimate as ne
@@ -357,6 +358,8 @@ def main():
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
 
+        del R, R_img, S0
+
         # Each volume's residual statistics
         if args.mask is None:
             logger.info("Outlier detection will not be performed, since no "
@@ -367,12 +370,12 @@ def main():
         # Note that stats will be computed manually and plotted using bxp
         # but could be computed using stats = cbook.boxplot_stats
         # or pyplot.boxplot(x)
-        R_k = np.zeros(data.shape[-1])    # mean residual per DWI
-        std = np.zeros(data.shape[-1])  # std residual per DWI
-        q1 = np.zeros(data.shape[-1])   # first quartile per DWI
-        q3 = np.zeros(data.shape[-1])   # third quartile per DWI
-        iqr = np.zeros(data.shape[-1])  # interquartile per DWI
-        percent_outliers = np.zeros(data.shape[-1])
+        R_k = np.zeros(data.shape[-1], dtype=np.float32)    # mean residual per DWI
+        std = np.zeros(data.shape[-1], dtype=np.float32)  # std residual per DWI
+        q1 = np.zeros(data.shape[-1], dtype=np.float32)   # first quartile per DWI
+        q3 = np.zeros(data.shape[-1], dtype=np.float32)   # third quartile per DWI
+        iqr = np.zeros(data.shape[-1], dtype=np.float32)  # interquartile per DWI
+        percent_outliers = np.zeros(data.shape[-1], dtype=np.float32)
         nb_voxels = np.count_nonzero(mask)
         for k in range(data.shape[-1]):
             x = np.abs(data_p[..., k] - data[..., k])[mask]
