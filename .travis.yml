@@ -34,13 +34,13 @@ jobs:
       language: python
       python: 3.8
     - os: osx
-      language: python
+      language: generic
       env: PYTHON=36
     - os: osx
-      language: python
+      language: generic
       env: PYTHON=37
     - os: osx
-      language: python
+      language: generic
       env: PYTHON=38
     - stage: Deploy Docker latest
       if: branch = master AND type = push
