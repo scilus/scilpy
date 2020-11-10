@@ -2,7 +2,6 @@ dist: bionic
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install pyenv; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     yes | sudo port install python$PYTHON;
     yes | sudo port install py$PYTHON-pip;
