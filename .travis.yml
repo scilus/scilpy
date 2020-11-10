@@ -1,4 +1,4 @@
-language: python
+dist: bionic
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update ; fi
@@ -14,20 +14,20 @@ before_install:
 jobs:
   include:
     - os: linux
-    dist: bionic
-    python:
-      - "3.6"
-      - "3.7"
-      - "3.8"
+      dist: bionic
+      python:
+        - "3.6"
+        - "3.7"
+        - "3.8"
     - os: osx
-    language: generic
-    env: TOXENV=py36
+      language: generic
+      env: TOXENV=py36
     - os: osx
-    language: generic
-    env: TOXENV=py37
+      language: generic
+      env: TOXENV=py37
     - os: osx
-    language: generic
-    env: TOXENV=py38
+      language: generic
+      env: TOXENV=py38
     - stage: Deploy Docker latest
       if: branch = master AND type = push
       script:
