@@ -41,10 +41,11 @@ jobs:
       addons:
         homebrew:
           update: true
-          packages: python@3.6
+          packages: pyenv
       before_install:
-        - python3 -m pip install --upgrade virtualenv
-        - virtualenv -p python3 --system-site-packages "$HOME/venv"
+        - pyenv install 3.6.0
+        - python3.6 -m pip install --upgrade virtualenv
+        - virtualenv -p python3.6 --system-site-packages "$HOME/venv"
         - source "$HOME/venv/bin/activate"
 
     # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
@@ -62,10 +63,11 @@ jobs:
       addons:
         homebrew:
           update: true
-          packages: python@3.7
+          packages: pyenv
       before_install:
-        - python3 -m pip install --upgrade virtualenv
-        - virtualenv -p python3 --system-site-packages "$HOME/venv"
+        - pyenv install 3.7.0
+        - python3.7 -m pip install --upgrade virtualenv
+        - virtualenv -p python3.7 --system-site-packages "$HOME/venv"
         - source "$HOME/venv/bin/activate"
 
     # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
@@ -83,10 +85,11 @@ jobs:
       addons:
         homebrew:
           update: true
-          packages: python@3.8
+          packages: pyenv
       before_install:
-        - python3 -m pip install --upgrade virtualenv
-        - virtualenv -p python3 --system-site-packages "$HOME/venv"
+        - pyenv install 3.8.0
+        - python3.8 -m pip install --upgrade virtualenv
+        - virtualenv -p python3.8 --system-site-packages "$HOME/venv"
         - source "$HOME/venv/bin/activate"
 
     - stage: Deploy Docker latest
