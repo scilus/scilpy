@@ -28,7 +28,7 @@ jobs:
     - os: osx
     language: generic
     env: TOXENV=py38
-    - stage: Deploy Docker latest
+    - stage: Deploy Docker latest tag
       if: branch = master AND type = push
       script:
         - travis_wait 60 docker build -t docker-scilpy containers
