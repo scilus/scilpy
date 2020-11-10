@@ -35,7 +35,7 @@ jobs:
       python: 3.8
     - os: osx
       language: python
-      env: PYTHON=p6
+      env: PYTHON=36
     - os: osx
       language: python
       env: PYTHON=37
