@@ -3,6 +3,14 @@ dist: bionic
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install pyenv; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    yes | sudo port install python$PYTHON;
+    yes | sudo port install py$PYTHON-pip;
+    sudo port select --set python3 python$PYTHON;
+    sudo port select --set pip pip$PYTHON;
+    pip install pyinstaller --user;
+    export PATH=$PATH:/Users/travis/Library/Python/$PYTHON/bin;
+    fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list ; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-key adv --recv-keys --keyserver pool.sks-keyservers.net 2649A5A9 || { sudo wget -q -O- http://neuro.debian.net/_static/neuro.debian.net.asc | sudo apt-key add -; } ; fi
@@ -16,24 +24,24 @@ jobs:
     - os: linux
       dist: bionic
       language: python
-      python: "3.6"
+      python: 3.6
     - os: linux
       dist: bionic
       language: python
-      python: "3.7"
+      python: 3.7
     - os: linux
       dist: bionic
       language: python
-      python: "3.8"
+      python: 3.8
     - os: osx
       language: python
-      env: TOXENV=py36
+      env: PYTHON=p6
     - os: osx
       language: python
-      env: TOXENV=py37
+      env: PYTHON=37
     - os: osx
       language: python
-      env: TOXENV=py38
+      env: PYTHON=38
     - stage: Deploy Docker latest
       if: branch = master AND type = push
       script:
