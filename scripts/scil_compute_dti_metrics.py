@@ -284,9 +284,9 @@ def main():
         nib.save(evecs_img, args.evecs)
 
         # save individual e-vectors also
-        for i in [1, 2, 3]:
-            e_img = nib.Nifti1Image(evecs[..., i-1], affine)
-            nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i)))
+        for i in range(3):
+            e_img = nib.Nifti1Image(evecs[..., i], affine)
+            nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i+1)))
             del e_img
 
         del evecs, evecs_img
@@ -297,9 +297,9 @@ def main():
         nib.save(evals_img, args.evals)
 
         # save individual e-values also
-        for i in [1, 2, 3]:
-            e_img = nib.Nifti1Image(evals[..., i-1], affine)
-            nib.save(e_img, add_filename_suffix(args.evals, '_e' + str(i)))
+        for i in range(3):
+            e_img = nib.Nifti1Image(evals[..., i], affine)
+            nib.save(e_img, add_filename_suffix(args.evals, '_e' + str(i+1)))
             del e_img
 
         del evals, evals_img
@@ -359,7 +359,7 @@ def main():
                 tenfit2.predict(gtab, S0[i, :, :]).astype(
                     np.float32) - data[i, :, :])
 
-        R = np.mean(data_diff, axis=-1)
+        R = np.mean(data_diff[..., ~gtab.b0s_mask], axis=-1, dtype=np.float32)
 
         if args.mask is not None:
             R *= mask
