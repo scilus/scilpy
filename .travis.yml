@@ -126,4 +126,4 @@ script:
   - pip install -r requirements.txt --no-cache-dir
   - python setup.py develop
   - export MPLBACKEND="agg"
-  - travis_wait 30 pytest -v
+  - travis_wait 60 pytest -v
