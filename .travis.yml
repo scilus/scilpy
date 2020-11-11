@@ -26,27 +26,10 @@ jobs:
       language: python
       python: 3.8
 
-    # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
-    - os: osx
-      language: generic
-      env:
-        - TOXENV=py3
-        - HOMEBREW_NO_INSTALL_CLEANUP=1
-        - HOMEBREW_NO_ANALYTICS=1
-      before_cache:
-        - rm -f "$HOME/Library/Caches/pip/log/debug.log"
-      cache:
-        directories:
-          - "$HOME/Library/Caches/pip"
-      addons:
-        homebrew:
-          update: true
-          packages: pyenv
-      before_install:
-        - PATH=$(pyenv root)/shims:$PATH
-        - pyenv install 3.6.0
-        - pyenv global 3.6.0
-        - python --version
+    - os: linux
+      dist: bionic
+      language: python
+      python: 3.9
 
     # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
     - os: osx
@@ -90,6 +73,28 @@ jobs:
         - PATH=$(pyenv root)/shims:$PATH
         - pyenv install 3.8.0
         - pyenv global 3.8.0
+        - python --version
+
+    # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
+    - os: osx
+      language: generic
+      env:
+        - TOXENV=py3
+        - HOMEBREW_NO_INSTALL_CLEANUP=1
+        - HOMEBREW_NO_ANALYTICS=1
+      before_cache:
+        - rm -f "$HOME/Library/Caches/pip/log/debug.log"
+      cache:
+        directories:
+          - "$HOME/Library/Caches/pip"
+      addons:
+        homebrew:
+          update: true
+          packages: pyenv
+      before_install:
+        - PATH=$(pyenv root)/shims:$PATH
+        - pyenv install 3.9.0
+        - pyenv global 3.9.0
         - python --version
 
     - stage: Deploy Docker latest
