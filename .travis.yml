@@ -123,7 +123,7 @@ jobs:
 
 stage: Tests
 script:
-  - pip install -r requirements.txt
+  - pip install -r requirements.txt --no-cache-dir
   - python setup.py develop
   - export MPLBACKEND="agg"
-  - pytest -v
+  - travis_wait 30 pytest -v
