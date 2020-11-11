@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import os
 import multiprocessing
 import re
@@ -474,3 +475,22 @@ def assert_fsl_options_exist(parser, options_args, command):
         if nOption not in fsl_options:
             parser.error('--{} is not a valid option for '
                          '{} command.'.format(nOption, command))
+
+
+def parser_color_type(arg):
+    """
+    Validate that a color component is between RBG values, else return an error
+    From https://stackoverflow.com/a/55410582
+    """
+
+    MIN_VAL = 0
+    MAX_VAL = 255
+    try:
+        f = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Color component must be a floating "
+                                         "point number")
+    if f < MIN_VAL or f > MAX_VAL:
+        raise argparse.ArgumentTypeError(
+            "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
+    return f
