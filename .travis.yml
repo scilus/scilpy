@@ -43,16 +43,10 @@ jobs:
           update: true
           packages: pyenv
       before_install:
-        - which python
-        - pyenv root
         - PATH=$(pyenv root)/shims:$PATH
-        - which python
         - pyenv install 3.6.0
         - pyenv global 3.6.0
         - python --version
-        - python -m pip install --upgrade virtualenv
-        - virtualenv -p python --system-site-packages "$HOME/venv"
-        - source "$HOME/venv/bin/activate"
 
     # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
     - os: osx
@@ -71,16 +65,10 @@ jobs:
           update: true
           packages: pyenv
       before_install:
-        - which python
-        - pyenv root
         - PATH=$(pyenv root)/shims:$PATH
-        - which python
         - pyenv install 3.7.0
         - pyenv global 3.7.0
         - python --version
-        - python -m pip install --upgrade virtualenv
-        - virtualenv -p python --system-site-packages "$HOME/venv"
-        - source "$HOME/venv/bin/activate"
 
     # Inspired by https://github.com/pyload/pyload/blob/main/.travis.yml
     - os: osx
@@ -99,16 +87,10 @@ jobs:
           update: true
           packages: pyenv
       before_install:
-        - which python
-        - pyenv root
         - PATH=$(pyenv root)/shims:$PATH
-        - which python
         - pyenv install 3.8.0
         - pyenv global 3.8.0
         - python --version
-        - python -m pip install --upgrade virtualenv
-        - virtualenv -p python --system-site-packages "$HOME/venv"
-        - source "$HOME/venv/bin/activate"
 
     - stage: Deploy Docker latest
       if: branch = master AND type = push
