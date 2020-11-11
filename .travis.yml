@@ -123,6 +123,7 @@ jobs:
 
 stage: Tests
 script:
+  - pip install -r requirements.txt
   - python setup.py develop
   - export MPLBACKEND="agg"
   - pytest -v
