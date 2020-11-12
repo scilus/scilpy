@@ -40,7 +40,6 @@ jobs:
           - "$HOME/Library/Caches/pip"
       addons:
         homebrew:
-          update: true
           packages: pyenv
       before_install:
         - PATH=$(pyenv root)/shims:$PATH
@@ -62,7 +61,6 @@ jobs:
           - "$HOME/Library/Caches/pip"
       addons:
         homebrew:
-          update: true
           packages: pyenv
       before_install:
         - PATH=$(pyenv root)/shims:$PATH
