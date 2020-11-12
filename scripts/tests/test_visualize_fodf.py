@@ -3,7 +3,6 @@
 
 import os
 import warnings
-import argparse
 import tempfile
 
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
