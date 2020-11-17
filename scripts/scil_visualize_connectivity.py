@@ -13,6 +13,15 @@ This script can either display the axis labels as:
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
 provide the text file(s), using --labels_list and/or --reorder_txt.
+
+The chord chart is always displaying parting in the order they are defined
+(clockwise), the color is attributed in that order following a colormap. The
+thickness of the line represent the 'size/intensity', the greater the value is
+the thicker the line will be. In order to hide the low values, two options are
+available:
+- Angle threshold + alpha, any connections with a small angle on the chord chart
+    will be slightly transparent to increase the focus on bigger connections.
+- Percentile, hide any connections with a value below that percentile
 """
 
 import argparse
@@ -72,7 +81,7 @@ def _build_arg_parser():
 
     histo = p.add_argument_group(title='Histogram options')
     histo.add_argument('--histogram', metavar='FILENAME',
-                       help='Compute and display/save an histogram of weigth.')
+                       help='Compute and display/save an histogram of weights.')
     histo.add_argument('--nb_bins', type=int,
                        help='Number of bins to use for the histogram.')
     histo.add_argument('--exclude_zeros', action='store_true',
@@ -92,10 +101,12 @@ def _build_arg_parser():
                        help='Opacity for the smaller angle on the chord (0-1). '
                             '[%(default)s]')
     chord.add_argument('--text_size', default=10, type=float,
-                       help='Size of the font for the parcels name/number.')
+                       help='Size of the font for the parcels name/number '
+                            '[%(default)s].')
     chord.add_argument('--text_distance', type=float, default=1.1,
                        help='Distance from the center so the parcels '
-                            'name/number do not overlap with the diagram')
+                            'name/number do not overlap \nwith the diagram '
+                            '[%(default)s].')
 
     p.add_argument('--log', action='store_true',
                    help='Apply a base 10 logarithm to the matrix.')

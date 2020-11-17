@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""
+Most code here is from https://github.com/fengwangPhysics/matplotlib-chord-diagram.
+It was adapted to our specific needs: size of matrix, order of magnitude of
+max/min values, alpha for visualisation, etc.
+"""
+
 import math
 import matplotlib
 from matplotlib.path import Path
@@ -8,6 +14,20 @@ import numpy as np
 
 
 def polar2xy(r, theta):
+    """
+    Plot each shell
+
+    Parameters
+    ----------
+    r: float
+        The norm/radius
+    theta: float
+        The angle in radian
+    Return
+    ------
+    numpy.ndarray
+        the x/y coordinates
+    """
     return np.array([r*np.cos(theta), r*np.sin(theta)])
 
 
