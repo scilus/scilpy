@@ -16,21 +16,21 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
     p.add_argument("--name", help="Name of the database")
-    p.add_argument("--shells", nargs="+", help="Shells wanted in the datases")
+    p.add_argument("--shells", nargs="+", help="Shells searched in the datases")
     p.add_argument(
         "--nb_sub",
         default=0,
         type=int,
-        help="Minimum number of subjects wanted.",
+        help="Minimum number of subjects searched.",
     )
     p.add_argument(
         "--nb_ses",
         default=0,
         type=int,
-        help="Minimum number of sessions wanted.",
+        help="Minimum number of sessions searched.",
     )
     p.add_argument(
-        "--nb_run", default=0, type=int, help="Minimum number of runs wanted."
+        "--nb_run", default=0, type=int, help="Minimum number of runs searched."
     )
     p.add_argument(
         "--is_healthy",
@@ -46,7 +46,7 @@ def _build_arg_parser():
     p.add_argument(
         "--csv",
         default="/braindata/utils/databases.csv",
-        help="Path of the CSV containing all the databases " "informations.",
+        help="Path of the CSV containing all the databases informations.",
     )
     return p
 
