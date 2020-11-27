@@ -73,6 +73,9 @@ def _build_arg_parser():
                     help='Colormap to use for the matrix. [%(default)s]')
     g2.add_argument('--display_legend', action='store_true',
                     help='Display the colorbar next to the matrix.')
+    g2.add_argument('--legend_min_max', nargs=2, metavar=('MIN', 'MAX'),
+                    type=float, default=None,
+                    help='Manually define the min/max of the legend.')
     g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
                     default=None, type=int,
                     help='Write the values at the center of each node.\n'
@@ -150,10 +153,16 @@ def main():
     else:
         min_value = np.min(matrix)
 
+    max_value = None
+    if args.legend_min_max is not None:
+        min_value = args.legend_min_max[0]
+        max_value = args.legend_min_max[1]
+
+
     fig, ax = plt.subplots()
     im = ax.imshow(matrix.T,
                    interpolation='nearest',
-                   cmap=args.colormap, vmin=min_value)
+                   cmap=args.colormap, vmin=min_value, vmax=max_value)
 
     if args.write_values:
         if np.prod(matrix.shape) > 1000:
