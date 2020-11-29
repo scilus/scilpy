@@ -35,7 +35,7 @@ def _build_arg_parser():
     p.add_argument('out_b0',
                    help='Output b0 file(s).')
     p.add_argument('--b0_thr', type=float, default=0.0,
-                   help='All b-values with values less than or equal '
+                   help='All b-values (>0 and <=100) with values less than or equal '
                         'to b0_thr are considered as b0s i.e. without '
                         'diffusion weighting.')
 
@@ -96,9 +96,9 @@ def main():
     if np.isclose(bvals_min, 0.0) and b0_threshold >= bvals_min:
         pass
     else:
-        if bvals_min < 0 or bvals_min > 20:
+        if bvals_min < 0 or bvals_min > 100:
             raise ValueError(
-                'The minimal b-value is lesser than 0 or greater than 20. '
+                'The minimal b-value is lesser than 0 or greater than 100. '
                 'This is highly suspicious. Please check your data to ensure '
                 'everything is correct. Value found: {}'.format(bvals_min))
 
@@ -107,8 +107,8 @@ def main():
             logging.warning('No b=0 image. '
                             'Setting b0_threshold to {}'.format(b0_threshold))
 
-        if b0_threshold < 0 or b0_threshold > 20:
-            raise ValueError('Invalid --b0_thr value (<0 or >20). '
+        if b0_threshold < 0 or b0_threshold > 100:
+            raise ValueError('Invalid --b0_thr value (<0 or >100). '
                              'This is highly suspicious. '
                              'Value found: {}'.format(b0_threshold))
 
