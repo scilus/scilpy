@@ -24,11 +24,11 @@ def test_execution_commit_amico(script_runner):
                            'dwi.bval')
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
-    in_mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+    mask = os.path.join(get_home(), 'commit_amico',
+                        'mask.nii.gz')
     ret = script_runner.run('scil_compute_NODDI.py', in_dwi,
-                            in_bval, in_bvec, '--in_mask', in_mask,
-                            '--out_dir', 'noddi/', '--b_thr', '30',
+                            in_bval, in_bvec, '--mask', mask,
+                            '--out_dir', 'noddi', '--b_thr', '30',
                             '--para_diff', '0.0017', '--iso_diff', '0.003',
                             '--lambda1', '0.5', '--lambda2', '0.001',
                             '--processes', '1')
