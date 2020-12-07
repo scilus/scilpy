@@ -5,80 +5,85 @@ import argparse
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from dipy.tracking.utils import length
 
+import json
+import itertools
+import nibabel as nib
+from nibabel.streamlines import ArraySequence
+import numpy as np
+import os
+import pprint
+from sklearn.cluster import KMeans
+
+from scilpy.image.operations import intersection, difference
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg,
                              add_json_args,
-                             add_reference_arg, assert_output_dirs_exist_and_empty)
-import numpy as np
-
-import itertools
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.reproducibility_measures import (get_endpoints_density_map,
-                                                           compute_dice_voxel)
+                             add_reference_arg,
+                             assert_output_dirs_exist_and_empty)
 from scilpy.segment.streamlines import filter_grid_roi
-import nibabel as nib
-from sklearn.cluster import KMeans
-import json
-from dipy.tracking.utils import length
+from scilpy.tractanalysis.reproducibility_measures \
+    import (compute_dice_voxel, get_endpoints_density_map)
+from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.streamlines import (perform_streamlines_operation,
                                       difference)
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-import os
-from scilpy.utils.filenames import split_name_with_nii
-from nibabel.streamlines import ArraySequence
-import pprint
+
 from time import time
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description='Compute bundle centroid',
+        description="Scores input tractogram overall and bundlewise. Outputs \
+            a results.json containning a full report and splits the input \
+            tractogram into resulting .trk : *_tc.trk, *_fc.trk, nc.trk and \
+            *_wpc.trk, where * is the current bundle.\n\
+            Definitions: tc : true connections, streamlines joining a \
+            correct combination of ROIs. \n \
+            fc : false connections, streamlines \
+            joining an incorrect combination of ROIs.\n \
+            nc : no connections, streamlines not joining two ROIs.\n \
+            wpc: wrong path connections, streamlines that go outside of \
+            the ground truth mask, joining a correct combination of ROIs.\n \
+            Bundle overlap : ground truth voxels containing tc streamline(s).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help='')
+                   help='Input tractogram to score')
     p.add_argument('gt_bundles', nargs='+',
-                   help='')
+                   help='Bundles ground truth, either .trk or .nii.gz')
     p.add_argument('--gt_endpoints', nargs='+',
-                   help='')
-
+                   help="Bundles endpoints, both bundle's ROIs, \
+                       has to be a .nii.gz")
     p.add_argument('--gt_tails', nargs='+',
-                   help='')
+                   help="Bundles tails, bundle's first ROI, has to be .nii.gz")
     p.add_argument('--gt_heads', nargs='+',
-                   help='')
+                   help="Bundles heads, bundle's second ROI, \
+                       has to be .nii.gz")
 
     # p.add_argument('--dilate_endpoints', metavar='NB_PASS',
     #                help='heuristic')
 
     p.add_argument('--gt_config', metavar='FILE',
-                   help='heuristic')
+                   help='.json dict to specify bundles streamlines min, \
+                    max lenght and max angles.')
     p.add_argument('--out_dir', default='gt_out/',
-                   help='heuristic')
+                   help='Output directory')
 
     p.add_argument('--wrong_path_as_separate', action='store_true',
-                   help='heuristic')
+                   help='Separates streamlines that go outside of the ground \
+                        truth mask from true connections, output as *_wpc.trk')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_json_args(p)
 
     return p
-
-
-def split_heads_tails_kmeans(data):
-    X = np.argwhere(data)
-    k_means = KMeans(n_clusters=2).fit(X)
-    mask_1 = np.zeros(data.shape)
-    mask_2 = np.zeros(data.shape)
-
-    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
-    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
-
-    return mask_1, mask_2
 
 
 def find_tc_pos(tc_filenames, filename):
@@ -112,6 +117,49 @@ def get_binary_maps(streamlines, dimensions, sft):
     return bundles_voxels, endpoints_voxels
 
 
+def identify_overlapping_roi(mask_1, mask_2, overlapping_roi):
+    if not os.path.isfile(mask_1):
+        raise ValueError('Input file {} does not exist.'.format(mask_1))
+    roi_1 = nib.load(mask_1)
+    roi1 = roi_1.get_fdata(dtype=np.float64)
+
+    if not os.path.isfile(mask_2):
+        raise ValueError('Input file {} does not exist.'.format(mask_2))
+    roi_2 = nib.load(mask_2)
+    roi2 = roi_2.get_fdata(dtype=np.float64)
+
+    rois = [roi1, roi2]
+    overlap = intersection(rois, roi_1)
+    nb_voxels = np.count_nonzero(overlap)
+
+    if nb_voxels > 0:
+        overlapping_roi.append((mask_1, mask_2))
+        overlapping_roi.append((mask_2, mask_1))
+
+
+def remove_duplicate_streamlines(sft, fc_streamlines, roi1_name, roi2_name):
+    roi1 = nib.load(roi1_name).get_fdata().astype(np.int16)
+    roi2 = nib.load(roi2_name).get_fdata().astype(np.int16)
+    tmp_sft, _ = filter_grid_roi(sft, roi1, 'either_end', False)
+    tmp_sft, _ = filter_grid_roi(tmp_sft, roi2, 'either_end', False)
+    duplicate_streamlines = tmp_sft.streamlines
+    fc_streamlines, _ = perform_streamlines_operation(
+        difference, [fc_streamlines, duplicate_streamlines], precision=0)
+    return fc_streamlines
+
+
+def split_heads_tails_kmeans(data):
+    X = np.argwhere(data)
+    k_means = KMeans(n_clusters=2).fit(X)
+    mask_1 = np.zeros(data.shape)
+    mask_2 = np.zeros(data.shape)
+
+    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
+    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
+
+    return mask_1, mask_2
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -120,9 +168,9 @@ def main():
 
     if (args.gt_tails and not args.gt_heads) \
             or (args.gt_heads and not args.gt_tails):
-        parser.error('')
+        parser.error('Both gt_heads and gt_tails are needed.')
     if not args.gt_endpoints and (not args.gt_tails and not args.gt_heads):
-        parser.error('')
+        parser.error('Either input gt_endpoints or gt_heads and gt_tails.')
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     gt_bundle_masks = []
@@ -200,8 +248,13 @@ def main():
     fused_masks[fused_masks > 0] = 1
 
     indices = np.unique(indices).tolist()
-    missing_conn_streamlines = []
-    missing_conn_streamlines.extend(sft.streamlines[indices])
+    no_conn_streamlines = []
+    no_conn_streamlines.extend(sft.streamlines[indices])
+
+    overlapping_roi = []
+    all_rois = args.gt_heads + args.gt_tails
+    for roi1, roi2 in itertools.combinations(all_rois, 2):
+        identify_overlapping_roi(roi1, roi2, overlapping_roi)
 
     if args.gt_config:
         with open(args.gt_config, 'r') as json_file:
@@ -223,17 +276,18 @@ def main():
         tmp_sft, _ = filter_grid_roi(tmp_sft, roi[1], 'either_end', False)
         streamlines = tmp_sft.streamlines
 
-        # Different processing for the true connections and the false connections
-        is_tp, tc_pos = find_tc_pos(tc_filenames, comb_filename[i])
-        if is_tp:
+        # Different processing for true connections and false connections
+        is_tc, tc_pos = find_tc_pos(tc_filenames, comb_filename[i])
+        if is_tc:
             tc_streamlines = streamlines
             fc_streamlines = []
 
             # Config file for each 'bundle'
-            # Loops => missing connection (mc)
+            # Loops => no connection (nc)
             # Length => false connection (fc)
             if args.gt_config:
-                min_len, max_len = length_dict[args.gt_bundles[tc_pos]]['length']
+                min_len, max_len = \
+                    length_dict[args.gt_bundles[tc_pos]]['length']
 
                 lengths = np.array(list(length(streamlines)))
                 valid_min_length_mask = lengths > min_len
@@ -250,7 +304,7 @@ def main():
                     val_len_streamlines, angle)
 
                 if loops:
-                    missing_conn_streamlines.extend(loops)
+                    no_conn_streamlines.extend(loops)
 
             else:
                 tc_streamlines = streamlines
@@ -270,7 +324,50 @@ def main():
                 wpc_streamlines = []
         else:
             tc_streamlines = []
+            wpc_streamlines = []
             fc_streamlines = streamlines
+
+            roi_comb = comb_filename[i]
+            roi1_overlap_list = []
+            roi2_overlap_list = []
+
+            # Exclude ROIs combination if both are overlapping each other
+            if roi_comb in overlapping_roi:
+                fc_streamlines = []
+            # Exclude tc streamlines from fc streamlines, if one or both ROI
+            # overlap another one. It eliminates the chance to get streamlines
+            # that correctly classify as tc and incorrectly as fc.
+            elif roi_comb[0] in itertools.chain(*overlapping_roi) or \
+                    roi_comb[1] in itertools.chain(*overlapping_roi):
+
+                roi1_overlap_list = [item for item in overlapping_roi
+                                     if item[0] == roi_comb[0]]
+                roi1_overlap_list.insert(0, (0, roi_comb[0]))
+
+                roi2_overlap_list = [item for item in overlapping_roi
+                                     if item[0] == roi_comb[1]]
+                roi2_overlap_list.insert(0, (0, roi_comb[1]))
+
+                for roi1_name in roi1_overlap_list:
+                    for roi2_name in roi2_overlap_list:
+                        is_tp1, _ = find_tc_pos(tc_filenames,
+                                                     (roi1_name[1],
+                                                      roi2_name[1]))
+                        if is_tp1:
+                            fc_streamlines = \
+                                remove_duplicate_streamlines(sft,
+                                                             fc_streamlines,
+                                                             roi1_name[1],
+                                                             roi2_name[1])
+
+                        is_tp2, _ = find_tc_pos(tc_filenames,
+                                                (roi2_name[1], roi1_name[1]))
+                        if is_tp2:
+                            fc_streamlines = \
+                                remove_duplicate_streamlines(sft,
+                                                             fc_streamlines,
+                                                             roi2_name[1],
+                                                             roi1_name[1])
 
         tc_streamlines_list.append(tc_streamlines)
         fc_streamlines_list.append(fc_streamlines)
@@ -283,14 +380,23 @@ def main():
         prefix_2, _ = split_name_with_nii(prefix_2)
         _, ext = os.path.splitext(args.in_tractogram)
 
-        if is_tp:
+        if is_tc:
             tc_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
             save_tractogram(tc_sft, os.path.join(
                 args.out_dir, '{}_{}_tc{}'.format(prefix_1, prefix_2, ext)))
 
+            if args.wrong_path_as_separate:
+                wpc_sft = StatefulTractogram.from_sft(wpc_streamlines, sft)
+                if len(wpc_sft) > 0:
+                    save_tractogram(wpc_sft,
+                                    os.path.join(args.out_dir,
+                                                 '{}_{}_wpc{}'.format(prefix_1,
+                                                                      prefix_2,
+                                                                      ext)))
+
         fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
         if len(fc_sft) > 0:
-            if is_tp:
+            if is_tc:
                 save_tractogram(fc_sft, os.path.join(
                     args.out_dir, '{}_{}_fc_inv{}'.format(prefix_1,
                                                           prefix_2, ext)))
@@ -298,15 +404,6 @@ def main():
                 save_tractogram(fc_sft, os.path.join(
                     args.out_dir, '{}_{}_fc{}'.format(prefix_1,
                                                       prefix_2, ext)))
-
-        if args.wrong_path_as_separate:
-            wpc_sft = StatefulTractogram.from_sft(wpc_streamlines, sft)
-            if len(wpc_sft) > 0:
-                save_tractogram(wpc_sft,
-                                os.path.join(args.out_dir,
-                                             '{}_{}_wpc{}'.format(prefix_1,
-                                                                  prefix_2,
-                                                                  ext)))
 
     no_conn_sft, _ = filter_grid_roi(sft, fused_masks,
                                      'either_end', True)
@@ -316,13 +413,13 @@ def main():
     one_conn_sft, _ = filter_grid_roi(tmp_sft, fused_masks,
                                       'both_ends', True)
     one_conn_streamlines = one_conn_sft.streamlines
-    missing_conn_streamlines.extend(no_conn_streamlines)
-    missing_conn_streamlines.extend(one_conn_streamlines)
+    no_conn_streamlines.extend(no_conn_streamlines)
+    no_conn_streamlines.extend(one_conn_streamlines)
 
     final_results = {}
-    missing_conn_sft = StatefulTractogram.from_sft(missing_conn_streamlines, sft)
-    save_tractogram(missing_conn_sft, os.path.join(
-        args.out_dir, 'mc{}'.format(ext)))
+    no_conn_sft = StatefulTractogram.from_sft(no_conn_streamlines, sft)
+    save_tractogram(no_conn_sft, os.path.join(
+        args.out_dir, 'nc{}'.format(ext)))
 
     # Total number of streamlines for each category
     # and statistic that are not 'bundle-wise'
@@ -335,26 +432,27 @@ def main():
     else:
         wpc_streamlines_count = 0
 
-    mc_streamlines_count = len(missing_conn_streamlines)
+    nc_streamlines_count = len(no_conn_streamlines)
     total_count = tc_streamlines_count + fc_streamlines_count + \
-                  wpc_streamlines_count + mc_streamlines_count
+        wpc_streamlines_count + nc_streamlines_count
 
-    final_results['trk_filename'] = str(args.in_tractogram)
+    final_results['tractogram_filename'] = str(args.in_tractogram)
     final_results['tractogram_overlap'] = 0.0
     final_results['tc_streamlines'] = tc_streamlines_count
     final_results['fc_streamlines'] = fc_streamlines_count
-    final_results['mc_streamlines'] = mc_streamlines_count
+    final_results['nc_streamlines'] = nc_streamlines_count
 
     final_results['tc_bundle'] = len([x for x in tc_streamlines_list if x])
     final_results['fc_bundle'] = len([x for x in fc_streamlines_list if x])
 
     final_results['tc_streamlines_ratio'] = tc_streamlines_count / total_count
     final_results['fc_streamlines_ratio'] = fc_streamlines_count / total_count
-    final_results['mc_streamlines_ratio'] = mc_streamlines_count / total_count
+    final_results['nc_streamlines_ratio'] = nc_streamlines_count / total_count
 
     if args.wrong_path_as_separate:
         final_results['wpc_streamlines'] = wpc_streamlines_count
-        final_results['wpc_streamlines_ratio'] = wpc_streamlines_count / total_count
+        final_results['wpc_streamlines_ratio'] = \
+            wpc_streamlines_count / total_count
         final_results['wpc_bundle'] = len(
             [x for x in wpc_streamlines_list if x])
 
@@ -398,13 +496,17 @@ def main():
                                     & (current_tc_voxels == 0))] = 1
 
             tmp_dict['tc_bundle_overlap'] = np.count_nonzero(bundle_overlap)
-            tmp_dict['tc_bundle_overrach'] = np.count_nonzero(bundle_overreach)
+            tmp_dict['tc_bundle_overreach'] = \
+                np.count_nonzero(bundle_overreach)
             tmp_dict['tc_bundle_lacking'] = np.count_nonzero(bundle_lacking)
-            tmp_dict['tc_bundle_overlap_PCT'] = tmp_dict['tc_bundle_overlap'] / \
-                (tmp_dict['tc_bundle_overlap'] + tmp_dict['tc_bundle_lacking'])
+            tmp_dict['tc_bundle_overlap_PCT'] = \
+                tmp_dict['tc_bundle_overlap'] / \
+                (tmp_dict['tc_bundle_overlap'] +
+                    tmp_dict['tc_bundle_lacking'])
             tractogram_overlap += tmp_dict['tc_bundle_overlap_PCT']
 
-            endpoints_overlap = gt_bundle_masks[tc_pos] * current_tc_endpoints_voxels
+            endpoints_overlap = \
+                gt_bundle_masks[tc_pos] * current_tc_endpoints_voxels
             endpoints_overreach = np.zeros(dimensions)
             endpoints_overreach[np.where((gt_bundle_masks[tc_pos] == 0)
                                          & (current_fc_voxels > 1))] = 1
@@ -413,17 +515,23 @@ def main():
 
             if args.wrong_path_as_separate:
                 tmp_dict['wpc_streamlines'] = len(current_wpc_streamlines)
-                tmp_dict['wpc_dice'] = compute_dice_voxel(gt_bundle_masks[tc_pos],
-                                                          current_wpc_voxels)[0]
+                tmp_dict['wpc_dice'] = \
+                    compute_dice_voxel(gt_bundle_masks[tc_pos],
+                                       current_wpc_voxels)[0]
 
-            final_results["bundle_wise"]["true_connections"][str(filename)] = tmp_dict
+            final_results["bundle_wise"]["true_connections"][str(filename)] = \
+                tmp_dict
+
         elif len(current_fc_streamlines):
             tmp_dict['fc_streamlines'] = len(current_fc_streamlines)
             tmp_dict['fc_voxels'] = np.count_nonzero(current_fc_voxels)
 
-            final_results["bundle_wise"]["false_connections"][str(filename)] = tmp_dict
+            final_results["bundle_wise"]["false_connections"][str(filename)] =\
+                tmp_dict
 
-    final_results['tractogram_overlap'] = tractogram_overlap/len(gt_bundle_masks)
+    final_results['tractogram_overlap'] = \
+        tractogram_overlap / len(gt_bundle_masks)
+
     with open(os.path.join(args.out_dir, 'results.json'), 'w') as f:
         json.dump(final_results, f,
                   indent=args.indent,
