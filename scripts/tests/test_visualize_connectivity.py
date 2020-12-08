@@ -27,5 +27,5 @@ def test_execution_connectivity(script_runner):
                             'sc_norm.png', '--log', '--display_legend',
                             '--labels_list', in_labels_list,
                             '--histogram', 'hist.png', '--nb_bins', '50',
-                            '--exclude_zeros')
+                            '--exclude_zeros', '--chord_chart', 'sc_chord.png')
     assert ret.success
