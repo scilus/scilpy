@@ -40,44 +40,47 @@ from time import time
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description="Scores input tractogram overall and bundlewise. Outputs \
-            a results.json containning a full report and splits the input \
+            a results.json containing a full report and splits the input \
             tractogram into resulting .trk : *_tc.trk, *_fc.trk, nc.trk and \
-            *_wpc.trk, where * is the current bundle.\n\
-            Definitions: tc : true connections, streamlines joining a \
-            correct combination of ROIs. \n \
-            fc : false connections, streamlines \
-            joining an incorrect combination of ROIs.\n \
-            nc : no connections, streamlines not joining two ROIs.\n \
+            *_wpc.trk, where * is the current bundle.\n \
+            Definitions: tc: true connections, streamlines joining a \
+            correct combination of ROIs. \n fc: false connections, \
+            streamlines joining an incorrect combination of ROIs.\n \
+            nc: no connections, streamlines not joining two ROIs.\n \
             wpc: wrong path connections, streamlines that go outside of \
             the ground truth mask, joining a correct combination of ROIs.\n \
-            Bundle overlap : ground truth voxels containing tc streamline(s).",
+            Bundle overlap : ground truth voxels containing tc streamline(s). \
+            Either input gt_endpoints or gt_heads and gt_tails. Ground truth \
+            and ROIs must be in the same order i.e. groundTruth1.nii.gz ... \
+            groundTruthN.nii.gz --gt_tails tail1.nii.gz ... tailN.nii.gz \
+            --gt_heads head1.nii.gz ... headN.nii.gz",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help='Input tractogram to score')
+                   help="Input tractogram to score(.trk)")
     p.add_argument('gt_bundles', nargs='+',
-                   help='Bundles ground truth, either .trk or .nii.gz')
+                   help="Bundles ground truth(.trk, .nii or .nii.gz).")
     p.add_argument('--gt_endpoints', nargs='+',
-                   help="Bundles endpoints, both bundle's ROIs, \
-                       has to be a .nii.gz")
+                   help="Bundles endpoints, both bundle's ROIs\
+                       (.nii or .nii.gz).")
     p.add_argument('--gt_tails', nargs='+',
-                   help="Bundles tails, bundle's first ROI, has to be .nii.gz")
+                   help="Bundles tails, bundle's first ROI(.nii or .nii.gz).")
     p.add_argument('--gt_heads', nargs='+',
-                   help="Bundles heads, bundle's second ROI, \
-                       has to be .nii.gz")
+                   help="Bundles heads, bundle's second ROI(.nii or .nii.gz).")
 
     # p.add_argument('--dilate_endpoints', metavar='NB_PASS',
     #                help='heuristic')
 
     p.add_argument('--gt_config', metavar='FILE',
-                   help='.json dict to specify bundles streamlines min, \
-                    max lenght and max angles.')
+                   help=".json dict to specify bundles streamlines min, \
+                    max length and max angles.")
     p.add_argument('--out_dir', default='gt_out/',
-                   help='Output directory')
+                   help="Output directory")
 
     p.add_argument('--wrong_path_as_separate', action='store_true',
-                   help='Separates streamlines that go outside of the ground \
-                        truth mask from true connections, output as *_wpc.trk')
+                   help="Separates streamlines that go outside of the ground \
+                        truth mask from true connections, outputs as \
+                        *_wpc.trk.")
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -351,8 +354,7 @@ def main():
                 for roi1_name in roi1_overlap_list:
                     for roi2_name in roi2_overlap_list:
                         is_tp1, _ = find_tc_pos(tc_filenames,
-                                                     (roi1_name[1],
-                                                      roi2_name[1]))
+                                                (roi1_name[1], roi2_name[1]))
                         if is_tp1:
                             fc_streamlines = \
                                 remove_duplicate_streamlines(sft,
@@ -471,12 +473,12 @@ def main():
             current_tc_streamlines, dimensions, sft)
 
         current_fc_streamlines = fc_streamlines_list[i]
-        current_fc_voxels, current_fc_endpoints_voxels = get_binary_maps(
+        current_fc_voxels, _ = get_binary_maps(
             current_fc_streamlines, dimensions, sft)
 
         if args.wrong_path_as_separate:
             current_wpc_streamlines = wpc_streamlines_list[i]
-            current_wpc_voxels, current_wpc_endpoints_voxels = get_binary_maps(
+            current_wpc_voxels, _ = get_binary_maps(
                 current_wpc_streamlines, dimensions, sft)
 
         tmp_dict = {}
@@ -489,11 +491,11 @@ def main():
 
             bundle_overlap = gt_bundle_masks[tc_pos] * current_tc_voxels
             bundle_overreach = np.zeros(dimensions)
-            bundle_overreach[np.where((gt_bundle_masks[tc_pos] == 0)
-                                      & (current_fc_voxels > 1))] = 1
+            bundle_overreach[np.where(
+                (gt_bundle_masks[tc_pos] == 0) & (current_fc_voxels > 1))] = 1
             bundle_lacking = np.zeros(dimensions)
-            bundle_lacking[np.where((gt_bundle_masks[tc_pos] == 1)
-                                    & (current_tc_voxels == 0))] = 1
+            bundle_lacking[np.where(
+                (gt_bundle_masks[tc_pos] == 1) & (current_tc_voxels == 0))] = 1
 
             tmp_dict['tc_bundle_overlap'] = np.count_nonzero(bundle_overlap)
             tmp_dict['tc_bundle_overreach'] = \
@@ -508,8 +510,8 @@ def main():
             endpoints_overlap = \
                 gt_bundle_masks[tc_pos] * current_tc_endpoints_voxels
             endpoints_overreach = np.zeros(dimensions)
-            endpoints_overreach[np.where((gt_bundle_masks[tc_pos] == 0)
-                                         & (current_fc_voxels > 1))] = 1
+            endpoints_overreach[np.where(
+                (gt_bundle_masks[tc_pos] == 0) & (current_fc_voxels > 1))] = 1
             tmp_dict['tc_endpoints_overlap'] = np.count_nonzero(
                 endpoints_overlap)
 
