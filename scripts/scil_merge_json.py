@@ -14,10 +14,10 @@ from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
 
 
-def _merge_dict(dict_1, dict_2):
+def _merge_dict(dict_1, dict_2, no_list=False):
     new_dict = {}
     for key in dict_1.keys():
-        if isinstance(dict_1[key], list):
+        if isinstance(dict_1[key], list) or no_list:
             new_dict[key] = dict_1[key]
         else:
             new_dict[key] = [dict_1[key]]
@@ -29,7 +29,7 @@ def _merge_dict(dict_1, dict_2):
             else:
                 new_dict[key].append(dict_2[key])
         else:
-            if isinstance(dict_2[key], list):
+            if isinstance(dict_2[key], list) or no_list:
                 new_dict[key] = dict_2[key]
             else:
                 new_dict[key] = [dict_2[key]]
@@ -47,8 +47,11 @@ def _build_arg_parser():
                    help='Output json file (.json).')
 
     p.add_argument('--keep_separate', action='store_true',
-                   help='Merge entries as separate keys.')
-
+                   help='Merge entries as separate keys based on filename.')
+    p.add_argument('--no_list', action='store_true',
+                   help='Merge entries knowing there is no conflict.')
+    p.add_argument('--parent_key',
+                   help='Merge all entries under a single parent.')
     add_json_args(p)
     add_overwrite_arg(p)
 
@@ -69,9 +72,11 @@ def main():
             if args.keep_separate:
                 out_dict[os.path.splitext(in_file)[0]] = in_dict
             else:
-                out_dict = _merge_dict(out_dict, in_dict)
+                out_dict = _merge_dict(out_dict, in_dict, no_list=args.no_list)
 
     with open(args.out_json, 'w') as outfile:
+        if args.parent_key:
+            out_dict = {args.parent_key: out_dict}
         json.dump(out_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
 
