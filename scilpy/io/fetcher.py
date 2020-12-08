@@ -24,6 +24,9 @@ def get_testing_files_dict():
     return {'ihMT.zip':
             ['1V0xzvmVrVlL9dRKhc5-7xWESkmof1zyS',
              '44eee21bcc0597836ba2eb32d41ed98c'],
+            'MT.zip':
+            ['1C2LEUkGaLFdsmym3kBrAtfPjPtv5mJuZ',
+             '66e07ada4dd2a192a44705277e0673bb'],
             'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
              'af15ab98bc1faf2554fa0abb1891f345'],
