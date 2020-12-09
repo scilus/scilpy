@@ -29,12 +29,12 @@ def _build_arg_parser():
     p.add_argument('in_tractograms', nargs='+',
                    help='Tractograms.')
     p1 = p.add_mutually_exclusive_group()
-    p1.add_argument('--color',
+    p1.add_argument('--fill_color',
                     help='Can be either hexadecimal (ie. "#RRGGBB" '
                          'or 0xRRGGBB).')
-    p1.add_argument('--colors_dict',
+    p1.add_argument('--dict_colors',
                     help='Dictionnary mapping basename to color.'
-                         'Same nomenclature as --color.')
+                         'Same convention as --color.')
     p2 = p.add_mutually_exclusive_group()
     p2.add_argument('--out_suffix', default='colored',
                     help='Specify suffix to append to input')
@@ -73,12 +73,15 @@ def main():
         out_filename = out_filenames[i]
         pos = base.index('__') if '__' in base else -2
         base = base[pos+2:]
+        if args.dict_colors:
+            with open(args.dict_colors, 'r') as data:
+                dict_colors = json.load(data)
+            color = dict_colors[base]
+        else:
+            color = args.fill_color
 
-        with open(args.colors_dict, 'r') as data:
-            colors_dict = json.load(data)
-        color = colors_dict[base] if args.colors_dict else args.color
         if len(color) == 7:
-            args.color = '0x' + args.color.lstrip('#')
+            args.fill_color = '0x' + args.fill_color.lstrip('#')
 
         if len(color) == 8:
             color_int = int(color, 0)

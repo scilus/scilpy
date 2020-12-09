@@ -26,10 +26,18 @@ def _build_arg_parser():
     p.add_argument('out_dir',
                    help='Output directory.')
 
-    p.add_argument('--fill_color',
+    p.add_argument('--stats_over_population', action='store_true',
+                   help='If set, consider the input stats to be over an '
+                        'entire population and not subject-based.')
+
+    p1 = p.add_mutually_exclusive_group()
+    p1.add_argument('--fill_color',
                    help='Hexadecimal RGB color filling the region between '
                         'mean +/- std. The hexadecimal RGB color should be '
                         'formatted as 0xRRGGBB.')
+    p1.add_argument('--dict_colors',
+                    help='Dictionnary mapping basename to color.'
+                         'Same convention as --color.')
 
     add_overwrite_arg(p)
     return p
@@ -47,8 +55,8 @@ def main():
         parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB')
 
     with open(args.in_json, 'r+') as f:
-        mean_std_per_point = json.load(f)
-
+        mean_std_per_point = list(json.load(f).values())[0]
+    
     for bundle_name, bundle_stats in mean_std_per_point.items():
         for metric, metric_stats in bundle_stats.items():
             nb_points = len(metric_stats)
@@ -64,13 +72,21 @@ def main():
                 means += [mean]
                 stds += [std]
 
+            if args.dict_colors:
+                with open(args.dict_colors, 'r') as data:
+                    dict_colors = json.load(data)
+                color = dict_colors[bundle_name]
+            elif args.fill_color is not None:
+                color = args.fill_color
+            else:
+                color = None
+
             fig = plot_metrics_stats(
                 np.array(means), np.array(stds),
                 title=bundle_name,
                 xlabel='Location along the streamline',
                 ylabel=metric,
-                fill_color=(args.fill_color.replace("0x", "#")
-                            if args.fill_color else None))
+                fill_color=(color.replace("0x", "#")))
             fig.savefig(
                 os.path.join(args.out_dir, '{}_{}.png'.format(bundle_name,
                                                               metric)),
