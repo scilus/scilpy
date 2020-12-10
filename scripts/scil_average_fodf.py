@@ -57,6 +57,11 @@ def _build_arg_parser():
         help='Sigma of the gaussian to use [%(default)s]'
     )
 
+    p.add_argument(
+        '--out_sym_basis', default=False, action='store_true',
+        help='Save output in symmetric SH basis.'
+    )
+
     add_sh_basis_args(p)
     add_overwrite_arg(p)
 
@@ -76,24 +81,28 @@ def get_file_prefix_and_extension(avafodf_file):
 
 def filter_iterative(fodf, affine, fnames, args):
     for i in range(args.nb_iterations):
-        avafodf = average_fodf_asymmetrically(fodf,
-                                              sh_order=args.sh_order,
-                                              sh_basis=args.sh_basis,
-                                              sphere_str=args.sphere,
-                                              dot_sharpness=args.sharpness,
-                                              sigma=args.sigma)
+        avafodf =\
+            average_fodf_asymmetrically(fodf,
+                                        sh_order=args.sh_order,
+                                        sh_basis=args.sh_basis,
+                                        out_full_basis=not(args.out_sym_basis),
+                                        sphere_str=args.sphere,
+                                        dot_sharpness=args.sharpness,
+                                        sigma=args.sigma)
         nib.save(nib.Nifti1Image(avafodf.astype(np.float), affine),
                  fnames[i])
         fodf = avafodf
 
 
 def filter_one_shot(fodf, affine, fname, args):
-    avafodf = average_fodf_asymmetrically(fodf,
-                                          sh_order=args.sh_order,
-                                          sh_basis=args.sh_basis,
-                                          sphere_str=args.sphere,
-                                          dot_sharpness=args.sharpness,
-                                          sigma=args.sigma)
+    avafodf =\
+        average_fodf_asymmetrically(fodf,
+                                    sh_order=args.sh_order,
+                                    sh_basis=args.sh_basis,
+                                    out_full_basis=not(args.out_sym_basis),
+                                    sphere_str=args.sphere,
+                                    dot_sharpness=args.sharpness,
+                                    sigma=args.sigma)
 
     nib.save(nib.Nifti1Image(avafodf.astype(np.float), affine),
              fname)
