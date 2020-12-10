@@ -316,14 +316,8 @@ def _parse_per_label_population_stats(stats, bundles, metrics):
                             stddev[bundle_id, label_id, metric_id] =\
                                 np.average(label_stat['std'])
 
-    # column_names = []
-    # for bundles_name in bundles:
-    #     column_names.extend(["{}_{}".format(bundles_name, label)
-    #                          for label in labels])
-
     dataframes = []
     df_names = []
-    # index = ['Population']
     for metric_id, metric_name in enumerate(metrics):
         dataframes.append(pd.DataFrame(data=np.array(means[:, :, metric_id]),
                                        index=bundles,
