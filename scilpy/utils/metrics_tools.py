@@ -208,16 +208,16 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     return stats
 
 
-def plot_metrics_stats(mean, std, title=None, xlabel=None,
+def plot_metrics_stats(means, stds, title=None, xlabel=None,
                        ylabel=None, figlabel=None, fill_color=None):
     """
     Plots the mean of a metric along n points with the standard deviation.
 
     Parameters
     ----------
-    mean: Numpy 1D array of size n
+    mean: Numpy 1D (or 2D) array of size n
         Mean of the metric along n points.
-    std: Numpy 1D array of size n
+    std: Numpy 1D (or 2D) array of size n
         Standard deviation of the metric along n points.
     title: string
         Title of the figure.
@@ -249,6 +249,15 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     if figlabel is not None:
         fig.set_label(figlabel)
 
+    if means.ndim > 1:
+        mean = np.average(means, axis=1)
+        std = np.average(stds, axis=1) + np.std(means, axis=1)
+        alpha = 0.5
+    else:
+        mean = means
+        std = stds
+        alpha = 0.9
+
     dim = np.arange(1, len(mean)+1, 1)
 
     if len(mean) <= 20:
@@ -256,11 +265,15 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     ax.set_xlim(0, len(mean)+1)
 
+    if means.ndim > 1:
+        for i in range(means.shape[-1]):
+            ax.plot(dim, means[:, i], color="k", linewidth=1, solid_capstyle='round', alpha=0.1)
+
     # Plot the mean line.
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
-    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color)
+    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color, alpha=alpha)
 
     plt.close(fig)
     return fig

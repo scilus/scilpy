@@ -14,25 +14,30 @@ from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
 
 
-def _merge_dict(dict_1, dict_2, no_list=False):
+def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
     new_dict = {}
     for key in dict_1.keys():
-        if isinstance(dict_1[key], list) or no_list:
-            new_dict[key] = dict_1[key]
-        else:
-            new_dict[key] = [dict_1[key]]
+        new_dict[key] = dict_1[key]
 
     for key in dict_2.keys():
-        if key in new_dict:
-            if isinstance(dict_2[key], list):
-                new_dict[key].extend(dict_2[key])
-            else:
-                new_dict[key].append(dict_2[key])
+        if isinstance(dict_2[key], dict) and recursive:
+            if key not in dict_1:
+                dict_1[key] = {}
+            new_dict[key] = _merge_dict(dict_1[key], dict_2[key],
+                                        no_list=no_list, recursive=recursive)
+        elif key not in new_dict:
+            new_dict[key] = dict_2[key]
         else:
-            if isinstance(dict_2[key], list) or no_list:
-                new_dict[key] = dict_2[key]
+            if not isinstance(new_dict[key], list) and not no_list:
+                new_dict[key] = [new_dict[key]]
+
+            if not isinstance(dict_2[key], list) and not no_list:
+                new_dict[key].extend([dict_2[key]])
             else:
-                new_dict[key] = [dict_2[key]]
+                if isinstance(dict_2[key], dict):
+                    new_dict.update(dict_2)
+                else:
+                    new_dict[key] = new_dict[key] + dict_2[key]
 
     return new_dict
 
@@ -50,8 +55,12 @@ def _build_arg_parser():
                    help='Merge entries as separate keys based on filename.')
     p.add_argument('--no_list', action='store_true',
                    help='Merge entries knowing there is no conflict.')
-    p.add_argument('--parent_key',
+    p.add_argument('--add_parent_key',
                    help='Merge all entries under a single parent.')
+    p.add_argument('--remove_parent_key', action='store_true',
+                   help='Merge ignoring parent key (e.g for population).')
+    p.add_argument('--recursive', action='store_true',
+                   help='Merge all entries at the lowest layers.')
     add_json_args(p)
     add_overwrite_arg(p)
 
@@ -69,14 +78,18 @@ def main():
     for in_file in args.in_json:
         with open(in_file, 'r') as json_file:
             in_dict = json.load(json_file)
+            if args.remove_parent_key:
+                in_dict = list(in_dict.values())[0]
             if args.keep_separate:
                 out_dict[os.path.splitext(in_file)[0]] = in_dict
             else:
-                out_dict = _merge_dict(out_dict, in_dict, no_list=args.no_list)
+                out_dict = _merge_dict(out_dict, in_dict,
+                                       no_list=args.no_list,
+                                       recursive=args.recursive)
 
     with open(args.out_json, 'w') as outfile:
-        if args.parent_key:
-            out_dict = {args.parent_key: out_dict}
+        if args.add_parent_key:
+            out_dict = {args.add_parent_key: out_dict}
         json.dump(out_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
 

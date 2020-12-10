@@ -55,7 +55,10 @@ def main():
         parser.error('Hexadecimal RGB color should be formatted as 0xRRGGBB')
 
     with open(args.in_json, 'r+') as f:
-        mean_std_per_point = list(json.load(f).values())[0]
+        if args.stats_over_population:
+            mean_std_per_point = json.load(f)
+        else:
+            mean_std_per_point = list(json.load(f).values())[0]
     
     for bundle_name, bundle_stats in mean_std_per_point.items():
         for metric, metric_stats in bundle_stats.items():
@@ -68,7 +71,7 @@ def main():
                 mean = metric_stats.get(label, {'mean': np.nan})['mean']
                 mean = mean if mean else np.nan
                 std = metric_stats.get(label, {'std': np.nan})['std']
-                std = std if std else np.nan
+
                 means += [mean]
                 stds += [std]
 
@@ -79,7 +82,7 @@ def main():
             elif args.fill_color is not None:
                 color = args.fill_color
             else:
-                color = None
+                color = '0x000000'
 
             fig = plot_metrics_stats(
                 np.array(means), np.array(stds),
