@@ -33,9 +33,9 @@ def _build_arg_parser():
 
     p1 = p.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',
-                   help='Hexadecimal RGB color filling the region between '
-                        'mean +/- std. The hexadecimal RGB color should be '
-                        'formatted as 0xRRGGBB.')
+                    help='Hexadecimal RGB color filling the region between '
+                    'mean +/- std. The hexadecimal RGB color should be '
+                    'formatted as 0xRRGGBB.')
     p1.add_argument('--dict_colors',
                     help='Dictionnary mapping basename to color.'
                          'Same convention as --color.')
@@ -60,7 +60,7 @@ def main():
             mean_std_per_point = json.load(f)
         else:
             mean_std_per_point = list(json.load(f).values())[0]
-    
+
     for bundle_name, bundle_stats in mean_std_per_point.items():
         for metric, metric_stats in bundle_stats.items():
             nb_points = len(metric_stats)
@@ -94,8 +94,10 @@ def main():
                 color = '0x000000'
 
             # Robustify for missing data
-            means = np.array(list(itertools.zip_longest(*means, fillvalue=np.nan))).T
-            stds = np.array(list(itertools.zip_longest(*stds, fillvalue=np.nan))).T
+            means = np.array(list(itertools.zip_longest(*means,
+                                                        fillvalue=np.nan))).T
+            stds = np.array(list(itertools.zip_longest(*stds,
+                                                       fillvalue=np.nan))).T
             for i in range(len(means)):
                 _nan = np.isnan(means[i, :])
                 if np.count_nonzero(_nan) > 0:
@@ -106,16 +108,15 @@ def main():
                         means[i, _nan] = -1
                         stds[i, _nan] = -1
 
-            fig = plot_metrics_stats(
-                np.array(means), np.array(stds),
-                title=bundle_name,
-                xlabel='Location along the streamline',
-                ylabel=metric,
-                fill_color=(color.replace("0x", "#")))
-            fig.savefig(
-                os.path.join(args.out_dir, '{}_{}.png'.format(bundle_name,
-                                                              metric)),
-                bbox_inches='tight')
+            fig = plot_metrics_stats(np.array(means), np.array(stds),
+                                     title=bundle_name,
+                                     xlabel='Location along the streamline',
+                                     ylabel=metric,
+                                     fill_color=(color.replace("0x", "#")))
+            fig.savefig(os.path.join(args.out_dir,
+                                     '{}_{}.png'.format(bundle_name,
+                                                        metric)),
+                        bbox_inches='tight')
 
 
 if __name__ == '__main__':

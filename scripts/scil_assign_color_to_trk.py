@@ -95,12 +95,13 @@ def main():
             green = (color_int & 0x00FF00) >> 8
             blue = color_int & 0x0000FF
         else:
-            parser.error('Hexadecimal RGB color should be formatted as "#RRGGBB"'
-                         ' or 0xRRGGBB.')
+            parser.error('Hexadecimal RGB color should be formatted as '
+                         '"#RRGGBB" or 0xRRGGBB.')
 
         sft = load_tractogram(filename, 'same')
-        sft.data_per_point["color"] = [np.tile([red, green, blue],
-                                               (len(i), 1)) for i in sft.streamlines]
+        tmp = [np.tile([red, green, blue],
+                       (len(i), 1)) for i in sft.streamlines]
+        sft.data_per_point["color"] = tmp
         save_tractogram(sft, out_filename)
 
 

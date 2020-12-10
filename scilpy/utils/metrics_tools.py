@@ -40,11 +40,11 @@ def get_bundle_metrics_profiles(sft, metrics_files):
         z_ind = np.floor(streamline[:, 2]).astype(np.int)
 
         return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
-                    metrics_files))
+                        metrics_files))
 
     # We preload the data to avoid loading it for each streamline
     metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
-                        metrics_files))
+                            metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
@@ -52,7 +52,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     # encountered along the current streamline.
     metrics_per_strl =\
         list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
-             streamlines))
+                 streamlines))
 
     converted = []
     # Here, the zip gives us a list of N tuples, so one tuple for each metric.
@@ -160,9 +160,10 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     num_digits_labels = len(str(np.max(unique_labels)))
     if density_weighting:
         track_count = compute_tract_counts_map(streamlines,
-                                               metrics[0].shape).astype(np.float64)
+                                               metrics[0].shape)
     else:
         track_count = np.ones(metrics[0].shape)
+    track_count = track_count.astype(np.float64)
 
     # Bigger weight near the centroid streamline
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
@@ -267,13 +268,15 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     if means.ndim > 1:
         for i in range(means.shape[-1]):
-            ax.plot(dim, means[:, i], color="k", linewidth=1, solid_capstyle='round', alpha=0.1)
+            ax.plot(dim, means[:, i], color="k", linewidth=1,
+                    solid_capstyle='round', alpha=0.1)
 
     # Plot the mean line.
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
-    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color, alpha=alpha)
+    plt.fill_between(dim, mean - std, mean + std,
+                     facecolor=fill_color, alpha=alpha)
 
     plt.close(fig)
     return fig
