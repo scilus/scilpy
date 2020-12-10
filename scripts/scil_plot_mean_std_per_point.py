@@ -6,6 +6,7 @@ Plot mean/std per point.
 """
 
 import argparse
+import itertools
 import json
 import os
 
@@ -67,22 +68,43 @@ def main():
             means = []
             stds = []
             for label_int in range(1, nb_points+1):
+                print(bundle_name, metric, label_int)
                 label = str(label_int).zfill(num_digits_labels)
                 mean = metric_stats.get(label, {'mean': np.nan})['mean']
                 mean = mean if mean else np.nan
                 std = metric_stats.get(label, {'std': np.nan})['std']
+                if not isinstance(mean, list):
+                    mean = [mean]
+                    std = [std]
 
                 means += [mean]
                 stds += [std]
 
+            color = None
             if args.dict_colors:
                 with open(args.dict_colors, 'r') as data:
                     dict_colors = json.load(data)
-                color = dict_colors[bundle_name]
+                # Supports variation from rbx-flow
+                for key in dict_colors.keys():
+                    if key in bundle_name:
+                        color = dict_colors[key]
             elif args.fill_color is not None:
                 color = args.fill_color
-            else:
+            if color is None:
                 color = '0x000000'
+
+            # Robustify for missing data
+            means = np.array(list(itertools.zip_longest(*means, fillvalue=np.nan))).T
+            stds = np.array(list(itertools.zip_longest(*stds, fillvalue=np.nan))).T
+            for i in range(len(means)):
+                _nan = np.isnan(means[i, :])
+                if np.count_nonzero(_nan) > 0:
+                    if np.count_nonzero(_nan) < len(means[i, :]):
+                        means[i, _nan] = np.average(means[i, ~_nan])
+                        stds[i, _nan] = np.average(stds[i, ~_nan])
+                    else:
+                        means[i, _nan] = -1
+                        stds[i, _nan] = -1
 
             fig = plot_metrics_stats(
                 np.array(means), np.array(stds),

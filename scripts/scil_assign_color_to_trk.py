@@ -73,12 +73,18 @@ def main():
         out_filename = out_filenames[i]
         pos = base.index('__') if '__' in base else -2
         base = base[pos+2:]
+        color = None
         if args.dict_colors:
             with open(args.dict_colors, 'r') as data:
                 dict_colors = json.load(data)
-            color = dict_colors[base]
-        else:
+            # Supports variation from rbx-flow
+            for key in dict_colors.keys():
+                if key in base:
+                    color = dict_colors[key]
+        elif args.fill_color is not None:
             color = args.fill_color
+        if color is None:
+            color = '0x000000'
 
         if len(color) == 7:
             args.fill_color = '0x' + args.fill_color.lstrip('#')

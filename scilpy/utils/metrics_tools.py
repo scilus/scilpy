@@ -254,8 +254,8 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
         std = np.average(stds, axis=1) + np.std(means, axis=1)
         alpha = 0.5
     else:
-        mean = means
-        std = stds
+        mean = np.array(means)
+        std = np.array(stds)
         alpha = 0.9
 
     dim = np.arange(1, len(mean)+1, 1)

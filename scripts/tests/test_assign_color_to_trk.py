@@ -23,5 +23,5 @@ def test_execution_tractometry(script_runner):
                              'IFGWM.trk')
     ret = script_runner.run('scil_assign_color_to_trk.py',
                             in_bundle, '--fill_color', '0x000000',
-                            '--out_suffix', 'c')
+                            '--out_name', 'colored.trk')
     assert ret.success
