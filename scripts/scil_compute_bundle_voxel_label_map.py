@@ -152,57 +152,80 @@ def main():
 
     labels_mask = np.zeros(binary_centroid.shape)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
+    real_min_distances = np.ones(sft_bundle.dimensions, dtype=np.int16) * -1
+    real_min_distances[labels_mask > 0] += 1
 
-    closest_labels = np.ones(sft_bundle.dimensions, dtype=np.uint16) * 9999
-    min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
+    count = 1
+    while np.count_nonzero(labels_mask) != np.count_nonzero(binary_bundle):
+        # print('==', np.count_nonzero(labels_mask), np.count_nonzero(binary_bundle))
+        closest_labels = np.zeros(sft_bundle.dimensions, dtype=np.uint16)
+        min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
+        previous_centroid = binary_centroid.copy()
+        binary_centroid = labels_mask.astype(np.bool)
+        next_binary_centroid = binary_centroid.copy()
+        next_binary_centroid = ndi.binary_dilation(next_binary_centroid,
+                                                   structure=structure)
+        next_binary_centroid *= binary_bundle
 
-    for i, ind_s in enumerate(np.argwhere(binary_centroid)):
-        ind_s = tuple(ind_s)
-        tmp_binary_bundle = binary_bundle.copy()
-        tmp_binary_bundle[ind_s] = 0
-        dist_field = dijkstra3d.euclidean_distance_field(tmp_binary_bundle,
-                                                         source=ind_s)
-        for j, ind_t in enumerate(np.argwhere(tmp_binary_bundle)):
-            ind_t = tuple(ind_t)
-            if dist_field[ind_t] < min_distances[ind_t]:
-                min_distances[ind_t] = dist_field[ind_t]
-                closest_labels[ind_t] = labels_mask[ind_s]
+        tmp_binary_centroid = binary_centroid.copy()
+        if count > 1:
+            tmp_binary_centroid[previous_centroid] = 0
+        positions = np.argwhere(tmp_binary_centroid)
+        for i, ind_s in enumerate(positions):
+            print(i, len(positions))
+            ind_s = tuple(ind_s)
+            next_binary_centroid[binary_centroid > 0] = 0
+            dist_field = dijkstra3d.euclidean_distance_field(next_binary_centroid,
+                                                             source=ind_s)
 
-    closest_labels[closest_labels == 9999] = 0
-    min_distances[min_distances >= 9999-1] = -1
-    nib.save(nib.Nifti1Image(closest_labels, sft_bundle.affine),
-             args.out_labels_map)
-    nib.save(nib.Nifti1Image(min_distances, sft_bundle.affine),
-             args.out_distances_map)
+            for j, ind_t in enumerate(np.argwhere(next_binary_centroid)):
+                ind_t = tuple(ind_t)
+                if not np.isinf(dist_field[ind_t]) and int(dist_field[ind_t]) <= 1:
+                    if dist_field[ind_t] < min_distances[ind_t]:
+                        min_distances[ind_t] = dist_field[ind_t]
+                        closest_labels[ind_t] = labels_mask[ind_s]
 
-    if args.labels_color_dpp or args.distance_color_dpp \
-            or args.out_labels_npz or args.out_distances_npz:
+        # closest_labels[closest_labels == 9999] = 0
+        min_distances[min_distances == 9999] = -1
+        labels_mask[closest_labels > 0] = closest_labels[closest_labels > 0]
+        real_min_distances[min_distances > 0] = count
+        count += 1
 
-        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
-        cut_sft.to_center()
-        labels_array = ndi.map_coordinates(closest_labels,
-                                           cut_sft.streamlines._data.T,
-                                           order=0)
-        distances_array = ndi.map_coordinates(min_distances,
-                                              cut_sft.streamlines._data.T,
-                                              order=0)
-        if args.out_labels_npz:
-            np.savez_compressed(labels_array, args.out_labels_npz)
-        if args.out_distances_npz:
-            np.savez_compressed(labels_array, args.out_distances_npz)
+        # SAVING
+        nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
+                 args.out_labels_map)
+        nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
+                 args.out_distances_map)
+        if args.labels_color_dpp or args.distance_color_dpp \
+                or args.out_labels_npz or args.out_distances_npz:
 
-        cmap = plt.get_cmap(args.colormap)
-        cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
+            cut_sft = cut_outside_of_mask_streamlines(
+                sft_bundle, binary_bundle)
+            cut_sft.to_center()
+            labels_array = ndi.map_coordinates(labels_mask,
+                                               cut_sft.streamlines._data.T,
+                                               order=0)
+            distances_array = ndi.map_coordinates(real_min_distances,
+                                                  cut_sft.streamlines._data.T,
+                                                  order=0)
+            if args.out_labels_npz:
+                np.savez_compressed(labels_array, args.out_labels_npz)
+            if args.out_distances_npz:
+                np.savez_compressed(labels_array, args.out_distances_npz)
 
-        if args.labels_color_dpp:
-            cut_sft.data_per_point['color']._data = cmap(
-                labels_array / args.nb_pts)[:, 0:3] * 255
-            save_tractogram(cut_sft, args.labels_color_dpp)
+            cmap = plt.get_cmap(args.colormap)
+            cut_sft.data_per_point['color'] = ArraySequence(
+                cut_sft.streamlines)
 
-        if args.distances_color_dpp:
-            cut_sft.data_per_point['color']._data = cmap(
-                distances_array / np.max(distances_array))[:, 0:3] * 255
-            save_tractogram(cut_sft, args.distances_color_dpp)
+            if args.labels_color_dpp:
+                cut_sft.data_per_point['color']._data = cmap(
+                    labels_array / args.nb_pts)[:, 0:3] * 255
+                save_tractogram(cut_sft, args.labels_color_dpp)
+
+            if args.distances_color_dpp:
+                cut_sft.data_per_point['color']._data = cmap(
+                    distances_array / np.max(distances_array))[:, 0:3] * 255
+                save_tractogram(cut_sft, args.distances_color_dpp)
 
 
 if __name__ == '__main__':
