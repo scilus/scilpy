@@ -85,6 +85,7 @@ def main():
 
     # Centroid - will be use as reference to reorient each streamline
     if args.in_centroid:
+        # TODO no test here ...
         is_header_compatible(args.in_bundle, args.in_centroid)
         sft_centroid = load_tractogram_with_reference(parser, args,
                                                       args.in_centroid)

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.tracking.streamlinespeed import set_number_of_points
 import numpy as np
 
+from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.tractanalysis.quick_tools import (get_next_real_point,
                                               get_previous_real_point)
 
@@ -158,3 +161,53 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
                  'out_idx': si['end_index']})
 
     return connectivity
+
+
+def cut_outside_of_mask_streamlines(sft, binary_mask):
+    """ Cut streamlines so their longest segment are within the bounding box
+    or a binary mask.
+    This function keeps the data_per_point and data_per_streamline.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove invalid points from.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        New object with the invalid points removed from each streamline.
+    cutting_counter : int
+        Number of streamlines that were cut.
+    """
+    new_streamlines = []
+    for i, streamline in enumerate(sft.streamlines):
+        streamline = set_number_of_points(streamline, 100)
+        entry_found = False
+        exit_found = False
+        last_success = 0
+        curr_len = 0
+        longest_seq = (0,0)
+        for ind, pos in enumerate(streamline):
+            pos = tuple(pos.astype(np.int16))
+            if binary_mask[pos]:
+                if not entry_found:
+                    entry_found = True
+                    last_success = ind
+                    curr_len = 0
+                else:
+                    curr_len += 1
+                    if curr_len > longest_seq[1] - longest_seq[0]:
+                        longest_seq = (last_success, ind)
+            else:
+                if entry_found:
+                    entry_found = False
+                    if curr_len > longest_seq[1] - longest_seq[0]:
+                        longest_seq = (last_success, ind-1)
+                        curr_len = 0
+        if longest_seq[1] != 0:
+            new_streamlines.append(streamline[longest_seq[0]:longest_seq[1]])
+
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    return filter_streamlines_by_length(new_sft, min_length=20, max_length=200)
+

@@ -11,8 +11,17 @@ The number of labels will be the same as the centroid's number of points.
 import argparse
 import logging
 
+import dijkstra3d
+from dipy.align.streamlinear import (BundleMinDistanceMetric,
+                                     StreamlineLinearRegistration)
+from dipy.io.streamline import save_tractogram
+from dipy.tracking.streamline import transform_streamlines, set_number_of_points
+from dipy.io.utils import is_header_compatible
+import matplotlib.pyplot as plt
 import nibabel as nib
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+import scipy.ndimage as ndi
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -20,7 +29,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg)
+from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 
 
@@ -33,17 +44,46 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
-    p.add_argument('out_map',
+    p.add_argument('out_labels_map',
                    help='Nifti image with corresponding labels.')
-    p.add_argument('--upsample', type=float, default=1,
-                   help='Upsample reference grid by this factor. '
-                        '[%(default)s]')
+    p.add_argument('out_distances_map',
+                   help='Nifti image showing distances to centroids.')
+
+    p.add_argument('--nb_pts', type=int,
+                   help='Number of divisions for the bundles.')
+
+    p.add_argument('--out_labels_npz', metavar='FILE',
+                   help='File mapping of points to labels.')
+    p.add_argument('--out_distances_npz', metavar='FILE',
+                   help='File mapping of points to distances.')
+
+    p.add_argument('--labels_color_dpp', metavar='FILE',
+                   help='Save a trk with labels color indicating labels.')
+    p.add_argument('--distances_color_dpp', metavar='FILE',
+                   help='Save a trk with labels color indicating labels.')
+    p.add_argument('--colormap', default='jet',
+                   help='Select the colormap for colored trk (data_per_point) '
+                        '[%(default)s].')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
+
+
+def _rigid_slr(sft_bundle, sft_centroid):
+    bounds_dof = [(-10, 10), (-10, 10), (-10, 10),
+                  (-5, 5), (-5, 5), (-5, 5)]
+    metric = BundleMinDistanceMetric(num_threads=1)
+    slr = StreamlineLinearRegistration(metric=metric, method="Powell",
+                                       bounds=bounds_dof,
+                                       num_threads=1)
+    tmp_bundle = set_number_of_points(sft_bundle.streamlines.copy(), 20)
+    tmp_centroid = set_number_of_points(sft_centroid.streamlines.copy(), 20)
+    slm = slr.optimize(tmp_bundle, tmp_centroid)
+    sft_centroid.streamlines = transform_streamlines(sft_centroid.streamlines,
+                                                     slm.matrix)
+    return sft_centroid
 
 
 def main():
@@ -53,7 +93,12 @@ def main():
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
                         optional=args.reference)
-    assert_outputs_exist(parser, args, args.out_map)
+    assert_outputs_exist(parser, args, [args.out_labels_map,
+                                        args.out_distances_map],
+                         optional=[args.out_labels_npz,
+                                   args.out_distances_npz,
+                                   args.labels_color_dpp,
+                                   args.distances_color_dpp])
 
     sft_bundle = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft_centroid = load_tractogram_with_reference(parser, args,
@@ -69,33 +114,95 @@ def main():
                       'Skipping'.format(args.in_centroid))
         raise ValueError
 
+    if not is_header_compatible(sft_centroid, sft_bundle):
+        raise IOError('{} and {}do not have a compatible header'.format(
+            args.in_centroid, args.in_bundle))
+
     sft_bundle.to_vox()
-    bundle_streamlines_vox = sft_bundle.streamlines
-    bundle_streamlines_vox._data *= args.upsample
+    sft_bundle.to_corner()
 
+    binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
+                                             sft_bundle.dimensions).astype(np.bool)
+
+    structure = ndi.generate_binary_structure(3, 1)
+    binary_bundle = ndi.binary_dilation(binary_bundle,
+                                        structure=np.ones((3, 3, 3)))
+    binary_bundle = ndi.binary_erosion(binary_bundle,
+                                       structure=structure, iterations=2)
+
+    bundle_disjoint, _ = ndi.label(binary_bundle)
+    unique, count = np.unique(bundle_disjoint, return_counts=True)
+    val = unique[np.argmax(count[1:])+1]
+    binary_bundle[bundle_disjoint != val] = 0
+
+    if args.nb_pts is not None:
+        sft_centroid = resample_streamlines_num_points(sft_centroid,
+                                                       args.nb_pts)
     sft_centroid.to_vox()
-    centroid_streamlines_vox = sft_centroid.streamlines
-    centroid_streamlines_vox._data *= args.upsample
+    sft_centroid.to_corner()
+    sft_centroid = _rigid_slr(sft_bundle, sft_centroid)
 
-    upsampled_shape = [s * args.upsample for s in sft_bundle.dimensions]
-    tdi_mask = compute_tract_counts_map(bundle_streamlines_vox,
-                                        upsampled_shape) > 0
+    binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
+                                               sft_centroid.dimensions).astype(np.bool)
 
-    tdi_mask_nzr = np.nonzero(tdi_mask)
+    tdi_mask_nzr = np.nonzero(binary_centroid)
     tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
-
     min_dist_ind, _ = min_dist_to_centroid(tdi_mask_nzr_ind,
-                                           centroid_streamlines_vox[0])
+                                           sft_centroid.streamlines[0])
 
-    # Save the (upscaled) labels mask
-    labels_mask = np.zeros(tdi_mask.shape)
+    labels_mask = np.zeros(binary_centroid.shape)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
-    rescaled_affine = sft_bundle.affine
-    rescaled_affine[:3, :3] /= args.upsample
-    labels_img = nib.Nifti1Image(labels_mask, rescaled_affine)
-    upsampled_spacing = sft_bundle.voxel_sizes / args.upsample
-    labels_img.header.set_zooms(upsampled_spacing)
-    nib.save(labels_img, args.out_map)
+
+    closest_labels = np.ones(sft_bundle.dimensions, dtype=np.uint16) * 9999
+    min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
+
+    for i, ind_s in enumerate(np.argwhere(binary_centroid)):
+        ind_s = tuple(ind_s)
+        tmp_binary_bundle = binary_bundle.copy()
+        tmp_binary_bundle[ind_s] = 0
+        dist_field = dijkstra3d.euclidean_distance_field(tmp_binary_bundle,
+                                                         source=ind_s)
+        for j, ind_t in enumerate(np.argwhere(tmp_binary_bundle)):
+            ind_t = tuple(ind_t)
+            if dist_field[ind_t] < min_distances[ind_t]:
+                min_distances[ind_t] = dist_field[ind_t]
+                closest_labels[ind_t] = labels_mask[ind_s]
+
+    closest_labels[closest_labels == 9999] = 0
+    min_distances[min_distances >= 9999-1] = -1
+    nib.save(nib.Nifti1Image(closest_labels, sft_bundle.affine),
+             args.out_labels_map)
+    nib.save(nib.Nifti1Image(min_distances, sft_bundle.affine),
+             args.out_distances_map)
+
+    if args.labels_color_dpp or args.distance_color_dpp \
+            or args.out_labels_npz or args.out_distances_npz:
+
+        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+        cut_sft.to_center()
+        labels_array = ndi.map_coordinates(closest_labels,
+                                           cut_sft.streamlines._data.T,
+                                           order=0)
+        distances_array = ndi.map_coordinates(min_distances,
+                                              cut_sft.streamlines._data.T,
+                                              order=0)
+        if args.out_labels_npz:
+            np.savez_compressed(labels_array, args.out_labels_npz)
+        if args.out_distances_npz:
+            np.savez_compressed(labels_array, args.out_distances_npz)
+
+        cmap = plt.get_cmap(args.colormap)
+        cut_sft.data_per_point['color'] = ArraySequence(cut_sft.streamlines)
+
+        if args.labels_color_dpp:
+            cut_sft.data_per_point['color']._data = cmap(
+                labels_array / args.nb_pts)[:, 0:3] * 255
+            save_tractogram(cut_sft, args.labels_color_dpp)
+
+        if args.distances_color_dpp:
+            cut_sft.data_per_point['color']._data = cmap(
+                distances_array / np.max(distances_array))[:, 0:3] * 255
+            save_tractogram(cut_sft, args.distances_color_dpp)
 
 
 if __name__ == '__main__':
