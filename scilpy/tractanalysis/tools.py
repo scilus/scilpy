@@ -182,7 +182,7 @@ def cut_outside_of_mask_streamlines(sft, binary_mask):
     """
     new_streamlines = []
     for i, streamline in enumerate(sft.streamlines):
-        streamline = set_number_of_points(streamline, 100)
+        # streamline = set_number_of_points(streamline, 100)
         entry_found = False
         exit_found = False
         last_success = 0

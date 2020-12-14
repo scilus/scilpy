@@ -9,6 +9,7 @@ The number of labels will be the same as the centroid's number of points.
 """
 
 import argparse
+from itertools import product
 import logging
 
 import dijkstra3d
@@ -86,6 +87,18 @@ def _rigid_slr(sft_bundle, sft_centroid):
     return sft_centroid
 
 
+def _get_neighbors_vote(pos, data):
+    neighbors = list(product((1, -1), repeat=3))
+    neighbors = np.array(neighbors, dtype=np.int32) + pos
+    neighbors_val = ndi.map_coordinates(data, neighbors.T, order=0)
+    unique, count = np.unique(neighbors_val, return_counts=True)
+    # print(unique)
+    if len(unique) > 1:
+        return unique[np.argmax(unique[1:])+1]
+    else:
+        return 0
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -156,76 +169,67 @@ def main():
     real_min_distances[labels_mask > 0] += 1
 
     count = 1
-    while np.count_nonzero(labels_mask) != np.count_nonzero(binary_bundle):
-        # print('==', np.count_nonzero(labels_mask), np.count_nonzero(binary_bundle))
+    while np.count_nonzero(labels_mask) != 22276:
+        print('==', np.count_nonzero(labels_mask), np.count_nonzero(binary_bundle))
         closest_labels = np.zeros(sft_bundle.dimensions, dtype=np.uint16)
-        min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
+        # min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
         previous_centroid = binary_centroid.copy()
-        binary_centroid = labels_mask.astype(np.bool)
-        next_binary_centroid = binary_centroid.copy()
-        next_binary_centroid = ndi.binary_dilation(next_binary_centroid,
-                                                   structure=structure)
-        next_binary_centroid *= binary_bundle
+        binary_centroid = ndi.binary_dilation(binary_centroid,
+                                                   structure=np.ones((3,3,3)))
+        binary_centroid *= binary_bundle
 
         tmp_binary_centroid = binary_centroid.copy()
         if count > 1:
             tmp_binary_centroid[previous_centroid] = 0
         positions = np.argwhere(tmp_binary_centroid)
-        for i, ind_s in enumerate(positions):
-            print(i, len(positions))
-            ind_s = tuple(ind_s)
-            next_binary_centroid[binary_centroid > 0] = 0
-            dist_field = dijkstra3d.euclidean_distance_field(next_binary_centroid,
-                                                             source=ind_s)
+        for j, ind_t in enumerate(np.argwhere(tmp_binary_centroid)):
+            ind_t = tuple(ind_t)
+            closest_labels[ind_t] = _get_neighbors_vote(ind_t, labels_mask)
 
-            for j, ind_t in enumerate(np.argwhere(next_binary_centroid)):
-                ind_t = tuple(ind_t)
-                if not np.isinf(dist_field[ind_t]) and int(dist_field[ind_t]) <= 1:
-                    if dist_field[ind_t] < min_distances[ind_t]:
-                        min_distances[ind_t] = dist_field[ind_t]
-                        closest_labels[ind_t] = labels_mask[ind_s]
-
-        # closest_labels[closest_labels == 9999] = 0
-        min_distances[min_distances == 9999] = -1
         labels_mask[closest_labels > 0] = closest_labels[closest_labels > 0]
-        real_min_distances[min_distances > 0] = count
+        real_min_distances[closest_labels > 0] = count
+        # nib.save(nib.Nifti1Image(tmp_binary_centroid.astype(np.uint8), sft_bundle.affine),
+        #             'lol.nii.gz')
         count += 1
+        # if count == 15:
+        #     break
 
-        # SAVING
-        nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
-                 args.out_labels_map)
-        nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
-                 args.out_distances_map)
-        if args.labels_color_dpp or args.distance_color_dpp \
-                or args.out_labels_npz or args.out_distances_npz:
+    # SAVING
+    nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
+                args.out_labels_map)
+    nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
+                args.out_distances_map)
+    if args.labels_color_dpp or args.distance_color_dpp \
+            or args.out_labels_npz or args.out_distances_npz:
 
-            cut_sft = cut_outside_of_mask_streamlines(
-                sft_bundle, binary_bundle)
-            cut_sft.to_center()
-            labels_array = ndi.map_coordinates(labels_mask,
-                                               cut_sft.streamlines._data.T,
-                                               order=0)
-            distances_array = ndi.map_coordinates(real_min_distances,
-                                                  cut_sft.streamlines._data.T,
-                                                  order=0)
-            if args.out_labels_npz:
-                np.savez_compressed(labels_array, args.out_labels_npz)
-            if args.out_distances_npz:
-                np.savez_compressed(labels_array, args.out_distances_npz)
+        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+        cut_sft.to_center()
+        labels_array = ndi.map_coordinates(labels_mask,
+                                            cut_sft.streamlines._data.T,
+                                            order=0)
+        distances_array = ndi.map_coordinates(real_min_distances,
+                                                cut_sft.streamlines._data.T,
+                                                order=0)
+        if args.out_labels_npz:
+            np.savez_compressed(labels_array, args.out_labels_npz)
+        if args.out_distances_npz:
+            np.savez_compressed(labels_array, args.out_distances_npz)
 
-            cmap = plt.get_cmap(args.colormap)
-            cut_sft.data_per_point['color'] = ArraySequence(
-                cut_sft.streamlines)
+        cmap = plt.get_cmap(args.colormap)
+        cut_sft.data_per_point['color'] = ArraySequence(
+            cut_sft.streamlines)
 
-            if args.labels_color_dpp:
-                cut_sft.data_per_point['color']._data = cmap(
-                    labels_array / args.nb_pts)[:, 0:3] * 255
-                save_tractogram(cut_sft, args.labels_color_dpp)
+        if args.labels_color_dpp:
+            cut_sft.data_per_point['color']._data = cmap(
+                labels_array / args.nb_pts)[:, 0:3] * 255
+            # save_tractogram(cut_sft, 'labels_{}.trk'.format(count))
+            save_tractogram(cut_sft, args.labels_color_dpp)
 
-            if args.distances_color_dpp:
-                cut_sft.data_per_point['color']._data = cmap(
-                    distances_array / np.max(distances_array))[:, 0:3] * 255
-                save_tractogram(cut_sft, args.distances_color_dpp)
+        if args.distances_color_dpp:
+            cut_sft.data_per_point['color']._data = cmap(
+                distances_array / np.max(distances_array))[:, 0:3] * 255
+            # save_tractogram(cut_sft, 'distance{}.trk'.format(count))
+            save_tractogram(cut_sft, args.distances_color_dpp)
 
 
 if __name__ == '__main__':
