@@ -188,11 +188,7 @@ def main():
 
         labels_mask[closest_labels > 0] = closest_labels[closest_labels > 0]
         real_min_distances[closest_labels > 0] = count
-        # nib.save(nib.Nifti1Image(tmp_binary_centroid.astype(np.uint8), sft_bundle.affine),
-        #             'lol.nii.gz')
         count += 1
-        # if count == 15:
-        #     break
 
     # SAVING
     nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
