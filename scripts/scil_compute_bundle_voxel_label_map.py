@@ -88,8 +88,11 @@ def _rigid_slr(sft_bundle, sft_centroid):
 
 
 def _get_neighbors_vote(pos, data):
-    neighbors = list(product((1, -1), repeat=3))
+    neighbors = list(product((1, 0, -1), repeat=3))
     neighbors = np.array(neighbors, dtype=np.int32) + pos
+    # print(pos)
+    # print(neighbors)
+    # print()
     neighbors_val = ndi.map_coordinates(data, neighbors.T, order=0)
     unique, count = np.unique(neighbors_val, return_counts=True)
     # print(unique)
@@ -169,18 +172,17 @@ def main():
     real_min_distances[labels_mask > 0] += 1
 
     count = 1
-    while np.count_nonzero(labels_mask) != 22276:
-        print('==', np.count_nonzero(labels_mask), np.count_nonzero(binary_bundle))
+    while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
+        print('==', np.count_nonzero(binary_centroid),
+              np.count_nonzero(binary_bundle))
         closest_labels = np.zeros(sft_bundle.dimensions, dtype=np.uint16)
         # min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
         previous_centroid = binary_centroid.copy()
         binary_centroid = ndi.binary_dilation(binary_centroid,
-                                                   structure=np.ones((3,3,3)))
+                                              structure=np.ones((3, 3, 3)))
         binary_centroid *= binary_bundle
-
         tmp_binary_centroid = binary_centroid.copy()
-        if count > 1:
-            tmp_binary_centroid[previous_centroid] = 0
+        tmp_binary_centroid[previous_centroid] = 0
         positions = np.argwhere(tmp_binary_centroid)
         for j, ind_t in enumerate(np.argwhere(tmp_binary_centroid)):
             ind_t = tuple(ind_t)
@@ -192,20 +194,20 @@ def main():
 
     # SAVING
     nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
-                args.out_labels_map)
+             args.out_labels_map)
     nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
-                args.out_distances_map)
+             args.out_distances_map)
     if args.labels_color_dpp or args.distance_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
 
         cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
         cut_sft.to_center()
         labels_array = ndi.map_coordinates(labels_mask,
-                                            cut_sft.streamlines._data.T,
-                                            order=0)
+                                           cut_sft.streamlines._data.T,
+                                           order=0)
         distances_array = ndi.map_coordinates(real_min_distances,
-                                                cut_sft.streamlines._data.T,
-                                                order=0)
+                                              cut_sft.streamlines._data.T,
+                                              order=0)
         if args.out_labels_npz:
             np.savez_compressed(labels_array, args.out_labels_npz)
         if args.out_distances_npz:
