@@ -12,7 +12,6 @@ import argparse
 from itertools import product
 import logging
 
-import dijkstra3d
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
 from dipy.io.streamline import save_tractogram
@@ -28,8 +27,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_verbose_arg)
+                             assert_outputs_exist)
 from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
@@ -137,8 +135,11 @@ def main():
     sft_bundle.to_vox()
     sft_bundle.to_corner()
 
+    # Slightly cut the bundle at the edgge to clean up single streamline voxels
+    # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
-                                             sft_bundle.dimensions).astype(np.bool)
+                                             sft_bundle.dimensions).astype(
+                                                 np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
     binary_bundle = ndi.binary_dilation(binary_bundle,
@@ -154,12 +155,17 @@ def main():
     if args.nb_pts is not None:
         sft_centroid = resample_streamlines_num_points(sft_centroid,
                                                        args.nb_pts)
+    else:
+        args.nb_pts = len(sft_centroid.streamlines[0])
+
+    # Generate a centroids labels mask for the centroid alone
     sft_centroid.to_vox()
     sft_centroid.to_corner()
     sft_centroid = _rigid_slr(sft_bundle, sft_centroid)
 
     binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
-                                               sft_centroid.dimensions).astype(np.bool)
+                                               sft_centroid.dimensions).astype(
+                                                   np.bool)
 
     tdi_mask_nzr = np.nonzero(binary_centroid)
     tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
@@ -171,35 +177,37 @@ def main():
     real_min_distances = np.ones(sft_bundle.dimensions, dtype=np.int16) * -1
     real_min_distances[labels_mask > 0] += 1
 
+    # Iteratively dilate the mask until the cleaned bundle mask is filled
     count = 1
     while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
-        print('==', np.count_nonzero(binary_centroid),
-              np.count_nonzero(binary_bundle))
         closest_labels = np.zeros(sft_bundle.dimensions, dtype=np.uint16)
-        # min_distances = np.ones(sft_bundle.dimensions, dtype=np.float32) * 9999
         previous_centroid = binary_centroid.copy()
         binary_centroid = ndi.binary_dilation(binary_centroid,
                                               structure=np.ones((3, 3, 3)))
+
+        # Must follow the curve of the bundle (gyri/sulci)
         binary_centroid *= binary_bundle
         tmp_binary_centroid = binary_centroid.copy()
         tmp_binary_centroid[previous_centroid] = 0
-        positions = np.argwhere(tmp_binary_centroid)
         for j, ind_t in enumerate(np.argwhere(tmp_binary_centroid)):
             ind_t = tuple(ind_t)
             closest_labels[ind_t] = _get_neighbors_vote(ind_t, labels_mask)
 
+        # Update maps only where the current dilation occured
         labels_mask[closest_labels > 0] = closest_labels[closest_labels > 0]
         real_min_distances[closest_labels > 0] = count
         count += 1
 
-    # SAVING
+    # Saving map for tractometry
     nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
              args.out_labels_map)
     nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
              args.out_distances_map)
+
     if args.labels_color_dpp or args.distance_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
 
+        # Mapping of labels and distances to the slightly cut bundle
         cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
         cut_sft.to_center()
         labels_array = ndi.map_coordinates(labels_mask,
@@ -217,16 +225,15 @@ def main():
         cut_sft.data_per_point['color'] = ArraySequence(
             cut_sft.streamlines)
 
+        # Nicer visualisation for MI-Brain
         if args.labels_color_dpp:
             cut_sft.data_per_point['color']._data = cmap(
                 labels_array / args.nb_pts)[:, 0:3] * 255
-            # save_tractogram(cut_sft, 'labels_{}.trk'.format(count))
             save_tractogram(cut_sft, args.labels_color_dpp)
 
         if args.distances_color_dpp:
             cut_sft.data_per_point['color']._data = cmap(
                 distances_array / np.max(distances_array))[:, 0:3] * 255
-            # save_tractogram(cut_sft, 'distance{}.trk'.format(count))
             save_tractogram(cut_sft, args.distances_color_dpp)
 
 
