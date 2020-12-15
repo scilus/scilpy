@@ -15,6 +15,7 @@ import logging
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
 from dipy.io.streamline import save_tractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.io.utils import is_header_compatible
 import matplotlib.pyplot as plt
@@ -85,19 +86,35 @@ def _rigid_slr(sft_bundle, sft_centroid):
     return sft_centroid
 
 
-def _get_neighbors_vote(pos, data):
-    neighbors = list(product((1, 0, -1), repeat=3))
-    neighbors = np.array(neighbors, dtype=np.int32) + pos
-    # print(pos)
-    # print(neighbors)
-    # print()
-    neighbors_val = ndi.map_coordinates(data, neighbors.T, order=0)
-    unique, count = np.unique(neighbors_val, return_counts=True)
-    # print(unique)
-    if len(unique) > 1:
-        return unique[np.argmax(unique[1:])+1]
-    else:
-        return 0
+def _distance_using_mask(sft_bundle, binary_centroid):
+    binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
+                                             sft_bundle.dimensions).astype(
+        np.bool)
+
+    # Iteratively dilate the mask until the cleaned bundle mask is filled
+    count = 1
+    min_distances = np.zeros(sft_bundle.dimensions)
+    while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
+        previous_centroid = binary_centroid.copy()
+        binary_centroid = ndi.binary_dilation(binary_centroid,
+                                              structure=np.ones((3, 3, 3)))
+
+        # Must follow the curve of the bundle (gyri/sulci)
+        binary_centroid *= binary_bundle
+        tmp_binary_centroid = binary_centroid.copy()
+        tmp_binary_centroid[previous_centroid] = 0
+        min_distances[tmp_binary_centroid > 0] = count
+        count += 1
+
+    sft_bundle.to_center()
+    distances_arr_seq = ArraySequence()
+    distances_arr_seq._data = ndi.map_coordinates(min_distances,
+                                          sft_bundle.streamlines._data.T,
+                                          order=0)
+    distances_arr_seq._offsets = sft_bundle.streamlines._offsets
+    distances_arr_seq._lengths = sft_bundle.streamlines._lengths
+
+    return distances_arr_seq / np.max(distances_arr_seq)
 
 
 def main():
@@ -177,64 +194,84 @@ def main():
     real_min_distances = np.ones(sft_bundle.dimensions, dtype=np.int16) * -1
     real_min_distances[labels_mask > 0] += 1
 
-    # Iteratively dilate the mask until the cleaned bundle mask is filled
-    count = 1
-    while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
-        closest_labels = np.zeros(sft_bundle.dimensions, dtype=np.uint16)
-        previous_centroid = binary_centroid.copy()
-        binary_centroid = ndi.binary_dilation(binary_centroid,
-                                              structure=np.ones((3, 3, 3)))
+    cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+    min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines.get_data(),
+                                                    sft_centroid.streamlines.get_data())
+    min_dist_label += 1
 
-        # Must follow the curve of the bundle (gyri/sulci)
-        binary_centroid *= binary_bundle
-        tmp_binary_centroid = binary_centroid.copy()
-        tmp_binary_centroid[previous_centroid] = 0
-        for j, ind_t in enumerate(np.argwhere(tmp_binary_centroid)):
-            ind_t = tuple(ind_t)
-            closest_labels[ind_t] = _get_neighbors_vote(ind_t, labels_mask)
+    curr_ind = 0
+    final_streamlines = []
+    final_label = []
+    final_dist = []
+    for i, streamline in enumerate(cut_sft.streamlines):
+        next_ind = curr_ind + len(streamline)
+        curr_labels = min_dist_label[curr_ind:next_ind]
+        curr_dist = min_dist[curr_ind:next_ind]
+        curr_ind = next_ind
 
-        # Update maps only where the current dilation occured
-        labels_mask[closest_labels > 0] = closest_labels[closest_labels > 0]
-        real_min_distances[closest_labels > 0] = count
-        count += 1
+        gradient = np.gradient(curr_labels)
+        if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
+            streamline = streamline[::-1]
+            curr_labels = curr_labels[::-1]
+            curr_dist = curr_dist[::-1]
 
-    # Saving map for tractometry
-    nib.save(nib.Nifti1Image(labels_mask, sft_bundle.affine),
-             args.out_labels_map)
-    nib.save(nib.Nifti1Image(real_min_distances, sft_bundle.affine),
-             args.out_distances_map)
+        gradient = np.ediff1d(curr_labels)
+        if len(np.argwhere(np.abs(gradient) > 1)) > 0:
+            split_chunk = np.split(curr_labels,
+                                   np.where(np.abs(gradient) > 1)[0] + 1)
 
+            max_len = 0
+            max_pos = 0
+            for j, chunk in enumerate(split_chunk):
+                if len(chunk) > max_len:
+                    max_len = len(chunk)
+                    max_pos = j
+
+            curr_labels = split_chunk[max_pos]
+            gradient_chunk = np.ediff1d(chunk)
+            if len(np.unique(np.sign(gradient_chunk))) > 1:
+                continue
+            streamline = np.split(streamline,
+                                  np.where(np.abs(gradient) > 1)[0] + 1)[max_pos]
+            curr_dist = np.split(curr_dist,
+                                 np.where(np.abs(gradient) > 1)[0] + 1)[max_pos]
+
+        final_streamlines.append(streamline)
+        final_label.append(curr_labels)
+        final_dist.append(curr_dist)
+
+    new_sft = StatefulTractogram.from_sft(final_streamlines, sft_bundle)
+    labels_array = ArraySequence(final_label)
+    distances_array = _distance_using_mask(new_sft, binary_centroid)
+    print(distances_array._data.shape, labels_array._data.shape)
     if args.labels_color_dpp or args.distance_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
 
         # Mapping of labels and distances to the slightly cut bundle
-        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
-        cut_sft.to_center()
-        labels_array = ndi.map_coordinates(labels_mask,
-                                           cut_sft.streamlines._data.T,
-                                           order=0)
-        distances_array = ndi.map_coordinates(real_min_distances,
-                                              cut_sft.streamlines._data.T,
-                                              order=0)
+        # cut_sft.to_center()
+        # labels_array = ndi.map_coordinates(labels_mask,
+        #                                    cut_sft.streamlines._data.T,
+        #                                    order=0)
+        # distances_array = ndi.map_coordinates(real_min_distances,
+        #                                       cut_sft.streamlines._data.T,
+        #                                       order=0)
         if args.out_labels_npz:
-            np.savez_compressed(labels_array, args.out_labels_npz)
+            np.savez_compressed(labels_array._data, args.out_labels_npz)
         if args.out_distances_npz:
-            np.savez_compressed(labels_array, args.out_distances_npz)
+            np.savez_compressed(labels_array._data, args.out_distances_npz)
 
         cmap = plt.get_cmap(args.colormap)
-        cut_sft.data_per_point['color'] = ArraySequence(
-            cut_sft.streamlines)
-
+        new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
         # Nicer visualisation for MI-Brain
         if args.labels_color_dpp:
-            cut_sft.data_per_point['color']._data = cmap(
-                labels_array / args.nb_pts)[:, 0:3] * 255
-            save_tractogram(cut_sft, args.labels_color_dpp)
+            new_sft.data_per_point['color']._data = cmap(
+                labels_array._data / np.max(labels_array._data))[:, 0:3] * 255
+            save_tractogram(new_sft, args.labels_color_dpp)
 
         if args.distances_color_dpp:
-            cut_sft.data_per_point['color']._data = cmap(
-                distances_array / np.max(distances_array))[:, 0:3] * 255
-            save_tractogram(cut_sft, args.distances_color_dpp)
+            new_sft.data_per_point['color']._data = cmap(
+                distances_array._data / np.max(distances_array._data))[:, 0:3] * 255
+            save_tractogram(new_sft, args.distances_color_dpp)
 
 
 if __name__ == '__main__':
