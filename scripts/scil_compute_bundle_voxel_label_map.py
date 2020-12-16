@@ -71,12 +71,13 @@ def _build_arg_parser():
 
 
 def _affine_slr(sft_bundle, sft_centroid):
+    x0 = np.zeros((7,))
     bounds_dof = [(-10, 10), (-10, 10), (-10, 10),
                   (-5, 5), (-5, 5), (-5, 5),
-                  (0.95, 1.05), (0.95, 1.05), (0.95, 1.05)]
+                  (0.95, 1.05)]
     metric = BundleMinDistanceMetric(num_threads=1)
-    slr = StreamlineLinearRegistration(metric=metric, method="Powell",
-                                       bounds=bounds_dof,
+    slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
+                                       bounds=bounds_dof, x0=x0,
                                        num_threads=1)
     tmp_bundle = set_number_of_points(sft_bundle.streamlines.copy(), 20)
     tmp_centroid = set_number_of_points(sft_centroid.streamlines.copy(), 20)

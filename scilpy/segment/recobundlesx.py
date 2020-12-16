@@ -197,7 +197,7 @@ class RecobundlesX(object):
         slr_transform_type_id = possible_slr_transform_type[slr_transform_type]
         if slr_transform_type_id >= 0:
             init_transfo_dof = np.zeros(3)
-            slr = StreamlineLinearRegistration(metric=metric, method="Powell",
+            slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:3],
                                                num_threads=slr_num_thread)
