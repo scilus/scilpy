@@ -71,9 +71,10 @@ def _build_arg_parser():
     return p
 
 
-def _rigid_slr(sft_bundle, sft_centroid):
+def _affine_slr(sft_bundle, sft_centroid):
     bounds_dof = [(-10, 10), (-10, 10), (-10, 10),
-                  (-5, 5), (-5, 5), (-5, 5)]
+                  (-5, 5), (-5, 5), (-5, 5),
+                  (0.95, 1.05), (0.95, 1.05), (0.95, 1.05)]
     metric = BundleMinDistanceMetric(num_threads=1)
     slr = StreamlineLinearRegistration(metric=metric, method="Powell",
                                        bounds=bounds_dof,
@@ -182,7 +183,7 @@ def main():
     # Generate a centroids labels mask for the centroid alone
     sft_centroid.to_vox()
     sft_centroid.to_corner()
-    sft_centroid = _rigid_slr(sft_bundle, sft_centroid)
+    sft_centroid = _affine_slr(sft_bundle, sft_centroid)
 
     # Map every streamlines points to the centroids
     binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
