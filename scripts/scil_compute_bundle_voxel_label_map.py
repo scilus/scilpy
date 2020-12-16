@@ -9,7 +9,6 @@ The number of labels will be the same as the centroid's number of points.
 """
 
 import argparse
-from itertools import product
 import logging
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
@@ -190,8 +189,8 @@ def main():
                                                sft_centroid.dimensions).astype(
                                                    np.bool)
     # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
-    min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines.get_data(),
-                                                    sft_centroid.streamlines.get_data())
+    min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines._data,
+                                                    sft_centroid.streamlines._data)
     min_dist_label += 1  # 0 means no labels
 
     # It is not allowed that labels jumps labels for consistency

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.tracking.streamlinespeed import set_number_of_points
 import numpy as np
 
 from scilpy.tracking.tools import filter_streamlines_by_length
@@ -184,10 +183,9 @@ def cut_outside_of_mask_streamlines(sft, binary_mask):
     for i, streamline in enumerate(sft.streamlines):
         # streamline = set_number_of_points(streamline, 100)
         entry_found = False
-        exit_found = False
         last_success = 0
         curr_len = 0
-        longest_seq = (0,0)
+        longest_seq = (0, 0)
         for ind, pos in enumerate(streamline):
             pos = tuple(pos.astype(np.int16))
             if binary_mask[pos]:
@@ -209,5 +207,4 @@ def cut_outside_of_mask_streamlines(sft, binary_mask):
             new_streamlines.append(streamline[longest_seq[0]:longest_seq[1]])
 
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
-    return filter_streamlines_by_length(new_sft, min_length=20, max_length=200)
-
+    return filter_streamlines_by_length(new_sft, min_length=5, max_length=300)
