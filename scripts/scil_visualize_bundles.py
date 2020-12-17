@@ -7,20 +7,22 @@ Visualize bundles.
 Example usages:
 
 # Visualize streamlines as tubes, each bundle with a different color
-$ scil_visualize_bundles path_to_bundles/ --shape tube --random_coloring 1337
+$ scil_visualize_bundles.py path_to_bundles/ --shape tube \
+    --random_coloring 1337
 
 # Visualize a tractogram with each streamlines drawn as lines, colored with
 # their local orientation, but only load 1 in 10 streamlines
-$ scil_visualize_bundles tractogram.trk --shape line --subsample 10
+$ scil_visualize_bundles.py tractogram.trk --shape line --subsample 10
 
 # Visualize CSTs as large tubes and color them from a list of colors in a file
-$ scil_visualize_bundles path_to_bundles/CST_* --width 0.5 \
-    --color_list colors.txt
+$ scil_visualize_bundles.py path_to_bundles/CST_* --width 0.5 \
+    --color_dict colors.json
 """
 
 import argparse
 import colorsys
 import glob
+import json
 import itertools
 import nibabel as nib
 import numpy as np
@@ -45,23 +47,37 @@ def _build_arg_parser():
     coloring_group = p.add_mutually_exclusive_group()
     coloring_group.add_argument('--random_coloring', metavar='SEED', type=int,
                                 help='Assign a random color to bundles.')
-    coloring_group.add_argument('--color_list', type=str, metavar='FILE',
-                                help='File containing colors for each bundle.'
-                                'Color values must be separated by a space'
-                                ' and each color must be on its own line.'
-                                'Can include opacity.')
+    coloring_group.add_argument('--color_dict', type=str, metavar='JSON',
+                                help='JSON file containing colors for each '
+                                'bundle.\nBundle filenames are indicated as '
+                                ' keys and colors as values.\nA \'default\' '
+                                ' key and value can be included.')
+    coloring_group.add_argument('--color_from_streamlines',
+                                metavar='KEY', type=str,
+                                help='Extract a color per streamline from the '
+                                'data_per_streamline property of the '
+                                'tractogram at the specified key.')
+    coloring_group.add_argument('--color_from_points', metavar='KEY', type=str,
+                                help='Extract a color per point from the '
+                                'data_per_point property of the tractogram '
+                                'at the specified key.')
     p.add_argument('--shape', type=str,
                    choices=['line', 'tube'], default='tube',
-                   help='Display streamlines either as lines or tubes.')
-    p.add_argument('--width', type=float, default=0.05,
-                   help='Width of tubes or lines representing streamlines')
-    p.add_argument('--subsample', metavar='N', type=int, default=1,
-                   help='Only load 1 in N streamlines.')
-    p.add_argument('--downsample', metavar='N', type=int, default=None,
-                   help='Downsample streamlines to N points.')
+                   help='Display streamlines either as lines or tubes.'
+                   '\n[Default: %(default)s)]')
+    p.add_argument('--width', type=float, default=0.25,
+                   help='Width of tubes or lines representing streamlines'
+                   '\n[Default: %(default)s)]')
+    p.add_argument('--subsample', type=int, default=1,
+                   help='Only load 1 in N streamlines.'
+                   '\n[Default: %(default)s)]')
+    p.add_argument('--downsample', type=int, default=None,
+                   help='Downsample streamlines to N points.'
+                   '\n[Default: %(default)s)]')
     p.add_argument('--background', metavar='R G B', nargs='+',
                    default=[0, 0, 0], type=parser_color_type,
-                   help='RBG values [0, 255] of the color of the background.')
+                   help='RBG values [0, 255] of the color of the background.'
+                   '\n[Default: %(default)s)]')
     return p
 
 
@@ -100,37 +116,58 @@ def main():
             # Load the file/wildcard
             bundle_filenames = glob.glob(in_path)
 
-    assert_inputs_exist(parser, bundle_filenames, args.color_list)
+    assert_inputs_exist(parser, bundle_filenames, args.color_dict)
 
     scene = window.Scene()
     scene.background(tuple(map(int, args.background)))
 
-    # Handle bundle colors. Either assign a random bright color to each
-    # bundle, or load a color specific to each bundle, or let the bundles
-    # be colored according to their local orientation
-    if args.random_coloring is not None:
-        colors = [random_rgb() for _ in range(len(bundle_filenames))]
-    elif args.color_list:
-        colors = map(tuple, np.loadtxt(args.color_list))
-    else:
-        colors = [None for _ in range(len(bundle_filenames))]
+    def subsample(list_obj):
+        """ Lazily subsample a list
+        """
+        return list(
+            itertools.islice(list_obj, 0, None, args.subsample))
 
-    # Load each bundle, subsample and downsample it if needed and
-    # assign it its color. Bundles are sorted alphabetically so their
-    # color matches
-    for filename, color in zip(sorted(bundle_filenames), colors):
+    # Load each bundle, subsample and downsample it if needed
+    for filename in bundle_filenames:
         try:
             # Lazy-load streamlines to minimize ram usage
-            streamlines_gen = nib.streamlines.load(
-                filename, lazy_load=True).tractogram.streamlines
+            tractogram_gen = nib.streamlines.load(
+                filename, lazy_load=True).tractogram
+            streamlines_gen = tractogram_gen.streamlines
         except ValueError:
             # Not a file loadable by nibabel's streamline API
             print('Skipping {}'.format(filename))
             continue
 
+        # Handle bundle colors. Either assign a random bright color to each
+        # bundle, or load a color specific to each bundle, or let the bundles
+        # be colored according to their local orientation
+        if args.random_coloring:
+            color = random_rgb()
+        elif args.color_dict:
+            with open(args.color_dict) as json_file:
+                # Color dictionary
+                color_dict = json.load(json_file)
+
+                # Extract filenames to compare against the color dictionary
+                basename = os.path.splitext(os.path.basename(filename))[0]
+
+                # Load colors
+                color = color_dict[basename] \
+                    if basename in color_dict.keys() \
+                    else color_dict['default']
+        elif args.color_from_streamlines:
+            color = subsample(
+                tractogram_gen.data_per_streamline[args.color_from_streamlines]
+            )
+        elif args.color_from_points:
+            color = subsample(
+                tractogram_gen.data_per_point[args.color_from_points])
+        else:
+            color = None
+
         # Actually load streamlines according to the subsample argument
-        streamlines = list(
-            itertools.islice(streamlines_gen, 0, None, args.subsample))
+        streamlines = subsample(streamlines_gen)
 
         if args.downsample:
             streamlines = set_number_of_points(streamlines, args.downsample)
