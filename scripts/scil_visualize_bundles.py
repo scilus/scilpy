@@ -64,20 +64,20 @@ def _build_arg_parser():
     p.add_argument('--shape', type=str,
                    choices=['line', 'tube'], default='tube',
                    help='Display streamlines either as lines or tubes.'
-                   '\n[Default: %(default)s)]')
+                   '\n[Default: %(default)s]')
     p.add_argument('--width', type=float, default=0.25,
                    help='Width of tubes or lines representing streamlines'
-                   '\n[Default: %(default)s)]')
+                   '\n[Default: %(default)s]')
     p.add_argument('--subsample', type=int, default=1,
                    help='Only load 1 in N streamlines.'
-                   '\n[Default: %(default)s)]')
+                   '\n[Default: %(default)s]')
     p.add_argument('--downsample', type=int, default=None,
                    help='Downsample streamlines to N points.'
-                   '\n[Default: %(default)s)]')
+                   '\n[Default: %(default)s]')
     p.add_argument('--background', metavar='R G B', nargs='+',
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
-                   '\n[Default: %(default)s)]')
+                   '\n[Default: %(default)s]')
     return p
 
 
