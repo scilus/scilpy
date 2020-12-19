@@ -32,7 +32,6 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     orig_space = sft.space
     sft.to_rasmm()
 
-
     if sft.streamlines:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
