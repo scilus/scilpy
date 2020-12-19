@@ -59,7 +59,6 @@ from dipy.io.gradients import read_bvals_bvecs
 import h5py
 import numpy as np
 import nibabel as nib
-from nibabel.streamlines import Tractogram
 
 from scilpy.io.streamlines import (lazy_streamlines_count,
                                    reconstruct_streamlines,
@@ -106,6 +105,14 @@ def _build_arg_parser():
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
+
+    g0 = p.add_argument_group(title='COMMIT2 options')
+    g0.add_argument('--commit2', action='store_true',
+                    help='Run commit2, requires .h5 as input and will force\n'
+                         'ball&stick model.')
+    g0.add_argument('--lambdas', type=float, default=1e-4,
+                    help='Run commit2, requires .h5 as input and will force\n'
+                         'ball&stick model [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
@@ -169,6 +176,11 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
 
+    if args.commit2:
+        if os.path.splitext(args.in_tractogram)[1] != '.h5':
+            parser.error('COMMIT2 requires .h5 file for connectomics.')
+        args.ball_stick = True
+
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
 
@@ -230,17 +242,16 @@ def main():
 
         # Keep track of the order of connections/streamlines in relation to the
         # tractogram as well as the number of streamlines for each connection.
+        bundle_groups_len = []
         hdf5_keys = list(hdf5_file.keys())
         streamlines = []
-        offsets_list = [0]
         for key in hdf5_keys:
             tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
                                                                 key)
-            offsets_list.append(len(tmp_streamlines))
             streamlines.extend(tmp_streamlines)
+            bundle_groups_len.append(len(tmp_streamlines))
 
-        offsets_list = np.cumsum(offsets_list)
-
+        offsets_list = np.cumsum([0]+bundle_groups_len)
         sft = StatefulTractogram(streamlines, args.in_dwi,
                                  Space.VOX, origin=Origin.TRACKVIS)
         tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
@@ -273,7 +284,6 @@ def main():
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
-                           gen_trk=False,
                            path_out=tmp_dir.name)
 
         # Preparation for fitting
@@ -322,13 +332,32 @@ def main():
         if args.compute_only:
             return
         mit.load_kernels()
+        use_mask = args.in_tracking_mask is not None
         mit.load_dictionary(tmp_dir.name,
-                            use_mask=args.in_tracking_mask is not None)
+                            use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
 
-        mit.build_operator(build_dir=tmp_dir.name)
+        mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
+
+        if args.commit2:
+            tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
+            group_idx = np.array([np.arange(tmp[i], tmp[i+1])
+                                  for i in range(len(tmp)-1)])
+            group_w = np.empty_like(bundle_groups_len, dtype=np.float64)
+            for k in range(len(bundle_groups_len)):
+                group_w[k] = np.sqrt(bundle_groups_len[k]) / \
+                    (np.linalg.norm(mit.x[group_idx[k]]) + 1e-12)
+            prior_on_bundles = commit.solvers.init_regularisation(
+                mit, structureIC=group_idx, weightsIC=group_w,
+                regnorms=[commit.solvers.group_sparsity,
+                          commit.solvers.non_negative,
+                          commit.solvers.non_negative],
+                lambdas=[args.lambdas, 0.0, 0.0])
+            mit.fit(tol_fun=1e-3, max_iter=1000,
+                    regularisation=prior_on_bundles, verbose=False)
+            mit.save_results()
 
     # Simplifying output for streamlines and cleaning output directory
     commit_results_dir = os.path.join(tmp_dir.name,
@@ -391,9 +420,7 @@ def main():
     # tractogram with data_per_streamline updated
     if args.keep_whole_tractogram or args.threshold_weights is not None:
         # Reload is needed because of COMMIT handling its file by itself
-        tractogram_file = nib.streamlines.load(args.in_tractogram)
-        tractogram = tractogram_file.tractogram
-        tractogram.data_per_streamline['commit_weights'] = commit_weights
+        sft.data_per_streamline['commit_weights'] = commit_weights
 
         if args.threshold_weights is not None:
             essential_ind = np.where(
@@ -407,36 +434,17 @@ def main():
                           'threshold {}'.format(len(nonessential_ind),
                                                 args.threshold_weights))
 
-            # TODO PR when Dipy 1.2 is out with sft slicing
-            essential_streamlines = tractogram.streamlines[essential_ind]
-            essential_dps = tractogram.data_per_streamline[essential_ind]
-            essential_dpp = tractogram.data_per_point[essential_ind]
-            essential_tractogram = Tractogram(essential_streamlines,
-                                              data_per_point=essential_dpp,
-                                              data_per_streamline=essential_dps,
-                                              affine_to_rasmm=np.eye(4))
-
-            nonessential_streamlines = tractogram.streamlines[nonessential_ind]
-            nonessential_dps = tractogram.data_per_streamline[nonessential_ind]
-            nonessential_dpp = tractogram.data_per_point[nonessential_ind]
-            nonessential_tractogram = Tractogram(nonessential_streamlines,
-                                                 data_per_point=nonessential_dpp,
-                                                 data_per_streamline=nonessential_dps,
-                                                 affine_to_rasmm=np.eye(4))
-
-            nib.streamlines.save(essential_tractogram,
-                                 os.path.join(args.out_dir,
-                                              'essential_tractogram.trk'),
-                                 header=tractogram_file.header)
-            nib.streamlines.save(nonessential_tractogram,
-                                 os.path.join(args.out_dir,
-                                              'nonessential_tractogram.trk'),
-                                 header=tractogram_file.header,)
+            save_tractogram(sft[essential_ind],
+                            os.path.join(args.out_dir,
+                                         'essential_tractogram.trk'))
+            save_tractogram(sft[nonessential_ind],
+                            os.path.join(args.out_dir,
+                                         'nonessential_tractogram.trk'))
         if args.keep_whole_tractogram:
             output_filename = os.path.join(args.out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
                 output_filename))
-            nib.streamlines.save(tractogram_file, output_filename)
+            shutil.copy(tmp_tractogram_filename, output_filename)
 
     tmp_dir.cleanup()
 
