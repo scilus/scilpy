@@ -53,6 +53,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
 
     # Return to original space
     filtered_sft.to_space(orig_space)
+
     return filtered_sft
 
 
