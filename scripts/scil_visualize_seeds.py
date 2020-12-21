@@ -46,7 +46,7 @@ def main():
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk): {0}".format(args.tractogram_filename))
 
-    # Load files and data. TRKs can have 'same' as reference
+    # Load files and data. TRKs can have 'same' as refescenece
     tractogram = load_tractogram(args.tractogram, 'same')
     # Streamlines are saved in RASMM but seeds are saved in VOX
     # This might produce weird behavior with non-iso
@@ -62,14 +62,14 @@ def main():
     points = actor.dots(seeds, color=(1., 1., 1.))
 
     # Add display objects to canvas
-    r = window.Renderer()
-    r.add(streamlines_actor)
-    r.add(points)
+    s = window.Scene()
+    s.add(streamlines_actor)
+    s.add(points)
 
     # Show and record if needed
     if args.save is not None:
-        window.record(r, out_path=args.save, size=(1000, 1000))
-    window.show(r)
+        window.record(s, out_path=args.save, size=(1000, 1000))
+    window.show(s)
 
 
 if __name__ == '__main__':
