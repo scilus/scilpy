@@ -176,10 +176,12 @@ def main():
             streamlines, colors=color, linewidth=args.width)
         scene.add(line_actor)
 
-    # Showtime !
-    showm = window.ShowManager(scene, reset_camera=True)
-    showm.initialize()
-    showm.start()
+    # If there's actually streamlines to display
+    if len(bundle_filenames):
+        # Showtime !
+        showm = window.ShowManager(scene, reset_camera=True)
+        showm.initialize()
+        showm.start()
 
 
 if __name__ == '__main__':
