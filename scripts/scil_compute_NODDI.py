@@ -74,6 +74,8 @@ def _build_arg_parser():
     kern.add_argument('--load_kernels', metavar='DIRECTORY',
                       help='Input directory where the COMMIT kernels are '
                            'located.')
+    g2.add_argument('--compute_only', action='store_true',
+                    help='Compute kernels only, --save_kernels must be used.')
 
     add_processes_arg(p)
     add_overwrite_arg(p)
@@ -93,6 +95,9 @@ def redirect_stdout_c():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    if args.compute_only and not args.save_kernels:
+        parser.error('--compute_only must be used with --save_kernels.')
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec],
                         args.mask)
@@ -159,6 +164,9 @@ def main():
         ae.set_config('ATOMS_path', kernels_dir)
         ae.set_config('OUTPUT_path', args.out_dir)
         ae.generate_kernels(regenerate=regenerate_kernels)
+        if args.compute_only:
+            return
+
         ae.load_kernels()
 
         # Set number of processes
