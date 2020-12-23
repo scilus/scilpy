@@ -46,7 +46,7 @@ def main():
         raise ValueError("Invalid input streamline file format " +
                          "(must be trk): {0}".format(args.tractogram_filename))
 
-    # Load files and data. TRKs can have 'same' as refescenece
+    # Load files and data. TRKs can have 'same' as reference
     tractogram = load_tractogram(args.tractogram, 'same')
     # Streamlines are saved in RASMM but seeds are saved in VOX
     # This might produce weird behavior with non-iso
