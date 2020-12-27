@@ -3,7 +3,7 @@
 
 """
 Script to compute per-vertices hemisphere-aware (asymmetric) Gaussian
-filtering of spherical functions (SF) given as an array of spherical
+filtering of spherical functions (SF) given an array of spherical
 harmonics (SH) coefficients.
 
 The resulting SF can be expressed using a full SH basis (to keep the
