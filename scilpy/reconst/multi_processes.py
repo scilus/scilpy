@@ -86,7 +86,6 @@ def peaks_from_sh_parallel(args):
     npeaks = args[6]
     normalize_peaks = args[7]
     chunk_id = args[8]
-    is_symmetric = args[9]
 
     data_shape = shm_coeff.shape[0]
     peak_dirs = np.zeros((data_shape, npeaks, 3))
@@ -100,8 +99,7 @@ def peaks_from_sh_parallel(args):
             odf[odf < absolute_threshold] = 0.
             dirs, peaks, ind = peak_directions(odf, sphere,
                                                relative_peak_threshold,
-                                               min_separation_angle,
-                                               is_symmetric)
+                                               min_separation_angle)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -120,8 +118,7 @@ def peaks_from_sh_parallel(args):
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                   absolute_threshold=0, min_separation_angle=25,
                   normalize_peaks=False, npeaks=5,
-                  sh_basis_type='descoteaux07', nbr_processes=None,
-                  is_symmetric=True, full_basis=False):
+                  sh_basis_type='descoteaux07', nbr_processes=None):
     """Computes peaks from given spherical harmonic coefficients
 
     Parameters
@@ -164,9 +161,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     tuple of np.ndarray
         peak_dirs, peak_values, peak_indices
     """
-    sh_order = order_from_ncoef(shm_coeff.shape[-1], full_basis)
-    if full_basis:
-        sh_basis_type += '_full'
+    sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
 
     data_shape = shm_coeff.shape
@@ -193,8 +188,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                            itertools.repeat(min_separation_angle),
                            itertools.repeat(npeaks),
                            itertools.repeat(normalize_peaks),
-                           np.arange(len(chunks)),
-                           itertools.repeat(is_symmetric)))
+                           np.arange(len(chunks))))
     pool.close()
     pool.join()
 
