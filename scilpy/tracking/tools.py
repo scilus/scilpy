@@ -32,12 +32,15 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     orig_space = sft.space
     sft.to_rasmm()
 
-    # Compute streamlines lengths
-    lengths = length(sft.streamlines)
+    if sft.streamlines:
+        # Compute streamlines lengths
+        lengths = length(sft.streamlines)
+        # Filter lengths
+        filter_stream = np.logical_and(lengths >= min_length,
+                                       lengths <= max_length)
+    else:
+        filter_stream = []
 
-    # Filter lengths
-    filter_stream = np.logical_and(lengths >= min_length,
-                                   lengths <= max_length)
     filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
     filtered_data_per_point = sft.data_per_point[filter_stream]
     filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
