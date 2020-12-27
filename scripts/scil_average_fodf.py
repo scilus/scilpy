@@ -2,12 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute neighbors average from fODF
+Script to compute per-vertices hemisphere-aware (asymmetric) Gaussian
+filtering of spherical functions (SF) given as an array of spherical
+harmonics (SH) coefficients.
+
+The resulting SF can be expressed using a full SH basis (to keep the
+asymmetry resulting from the filtering) or a symmetric SH basis (where the
+effect of the filtering is a simple denoising).
 """
 
-import time
 import argparse
 import logging
+import os
 
 import nibabel as nib
 import numpy as np
@@ -15,50 +21,51 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_sh_basis_args)
 
-from scilpy.denoise.asym_enhancement import (average_fodf_asymmetrically)
+from scilpy.denoise.asym_enhancement import local_asym_gaussian_filtering
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_fodf',
-                   help='Path to the input file')
+    p.add_argument('in_sh',
+                   help='Path to the input file.')
 
-    p.add_argument('out_avafodf',
-                   help='Output path of averaged fODF')
+    p.add_argument('--out_dir', default='.',
+                   help='Output directory. Default is current directory.')
 
-    p.add_argument('--nb_iterations', default=1, type=int,
-                   help='Number of iterations.')
+    p.add_argument('--out_sh', default='out_filtered.nii.gz',
+                   help='Output path of averaged signal. [%(default)s]')
 
-    p.add_argument('--out_mask', default='nonzero_mask.nii.gz',
-                   help='Name of output mask.')
+    p.add_argument('--out_mask', default='mask.nii.gz',
+                   help='Name of output mask. [%(default)s]')
 
-    p.add_argument('--wm_epsilon', default=1e-16,
-                   help='Threshold on WM fODF for output mask.')
+    p.add_argument('--mask_eps', default=1e-16,
+                   help='Threshold on SH coefficients norm for output mask. '
+                   '[%(default)s]')
 
     p.add_argument(
         '--sh_order', default=8, type=int,
-        help='SH order of the input [%(default)s]')
+        help='SH order of the input. [%(default)s]')
 
     p.add_argument(
         '--sphere', default='repulsion724', type=str,
-        help='Sphere used for the SH reprojection [%(default)s]'
+        help='Sphere used for the SH projection. [%(default)s]'
     )
 
     p.add_argument(
         '--sharpness', default=1.0, type=float,
-        help='Specify sharpness factor to use for weighted average'
+        help='Specify sharpness factor to use for weighted average.'
         ' [%(default)s]'
     )
 
     p.add_argument(
         '--sigma', default=1.0, type=float,
-        help='Sigma of the gaussian to use [%(default)s]'
+        help='Sigma of the gaussian to use. [%(default)s]'
     )
 
     p.add_argument(
-        '--out_sym_basis', default=False, action='store_true',
+        '--out_sym', action='store_true',
         help='Save output in symmetric SH basis.'
     )
 
@@ -68,48 +75,8 @@ def _build_arg_parser():
     return p
 
 
-def get_file_prefix_and_extension(avafodf_file):
-    extension_index = avafodf_file.find('.nii')
-    if extension_index != -1:
-        extension = avafodf_file[extension_index:]
-        prefix = avafodf_file[:extension_index]
-    else:
-        extension = '.nii.gz'
-        prefix = avafodf_file
-    return prefix, extension
-
-
-def filter_iterative(fodf, affine, fnames, args):
-    for i in range(args.nb_iterations):
-        avafodf =\
-            average_fodf_asymmetrically(fodf,
-                                        sh_order=args.sh_order,
-                                        sh_basis=args.sh_basis,
-                                        out_full_basis=not(args.out_sym_basis),
-                                        sphere_str=args.sphere,
-                                        dot_sharpness=args.sharpness,
-                                        sigma=args.sigma)
-        nib.save(nib.Nifti1Image(avafodf.astype(np.float), affine),
-                 fnames[i])
-        fodf = avafodf
-
-
-def filter_one_shot(fodf, affine, fname, args):
-    avafodf =\
-        average_fodf_asymmetrically(fodf,
-                                    sh_order=args.sh_order,
-                                    sh_basis=args.sh_basis,
-                                    out_full_basis=not(args.out_sym_basis),
-                                    sphere_str=args.sphere,
-                                    dot_sharpness=args.sharpness,
-                                    sigma=args.sigma)
-
-    nib.save(nib.Nifti1Image(avafodf.astype(np.float), affine),
-             fname)
-
-
-def generate_nonzero_fodf_mask(fodf, threshold):
-    norm = np.linalg.norm(fodf, axis=-1)
+def generate_mask(sh, threshold):
+    norm = np.linalg.norm(sh, axis=-1)
     mask = norm > threshold
     return mask
 
@@ -119,43 +86,37 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    inputs = []
-    inputs.append(args.in_fodf)
-
-    out_mask = args.out_mask
-    out_avafodf = []
-    if args.nb_iterations > 1:
-        for i in range(args.nb_iterations):
-            outfile = f_prefix + '_{0}'.format(i) + f_extension
-            out_avafodf.append(outfile)
-    else:
-        out_avafodf.append(args.out_avafodf)
-    outputs = [out_mask] + out_avafodf
-
     # Checking args
-    assert_inputs_exist(parser, inputs)
+    if not os.path.exists(args.out_dir):
+        os.makedirs(args.out_dir)
+    out_sh = os.path.join(args.out_dir, args.out_sh)
+    out_mask = os.path.join(args.out_dir, args.out_mask)
+
+    outputs = [out_sh, out_mask]
+    assert_inputs_exist(parser, args.in_sh)
     assert_outputs_exist(parser, args, outputs)
 
     # Prepare data
-    fodf_img = nib.nifti1.load(args.in_fodf)
-    fodf_data = fodf_img.get_fdata(dtype=np.float)
+    sh_img = nib.nifti1.load(args.in_sh)
+    data = sh_img.get_fdata(dtype=np.float)
 
-    # Generate WM fODF mask by applying threshold on fODF amplitude
-    mask = generate_nonzero_fodf_mask(fodf_data, args.wm_epsilon)
-    nib.save(nib.Nifti1Image(mask.astype(np.uint8), fodf_img.affine),
+    # Generate mask by applying threshold on input SH amplitude
+    mask = generate_mask(data, args.mask_eps)
+    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine),
              out_mask)
 
-    # Computing neighbors asymmetric average of fODFs
-    t0 = time.perf_counter()
-    logging.info('Computing asymmetric averaged fODF')
-    if args.nb_iterations > 1:
-        filter_iterative(fodf_data, fodf_img.affine, out_avafodf, args)
-    else:
-        filter_one_shot(fodf_data, fodf_img.affine, out_avafodf[0], args)
-    t1 = time.perf_counter()
+    logging.info('Executing locally asymmetric Gaussian filtering.')
+    filtered_sh = local_asym_gaussian_filtering(
+        data, sh_order=args.sh_order,
+        sh_basis=args.sh_basis,
+        out_full_basis=not(args.out_sym),
+        sphere_str=args.sphere,
+        dot_sharpness=args.sharpness,
+        sigma=args.sigma
+        )
 
-    elapsedTime = t1 - t0
-    logging.info('Elapsed time (s): {0}'.format(elapsedTime))
+    nib.save(nib.Nifti1Image(filtered_sh.astype(np.float), sh_img.affine),
+             out_sh)
 
 
 if __name__ == "__main__":
