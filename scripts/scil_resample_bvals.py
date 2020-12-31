@@ -4,10 +4,10 @@
 """
 Resample b-values on specific b-value shells for sampling schemes where
 b-values of a shell are not all identicall. The --tolerance
-argument needs to be adjusted to vary the accepted interval around the 
-targetted b-value. 
+argument needs to be adjusted to vary the accepted interval around the
+targetted b-value.
 
-For example, a b-value of 2000 and a tolerance of 20 will resample all 
+For example, a b-value of 2000 and a tolerance of 20 will resample all
 volumes with a b-values from 1980 to 2020 to the value of 2000.
 
 scil_resample_bvals.py bvals bvecs 0 1000 2000 newbvals --tolerance 20
@@ -69,7 +69,7 @@ def main():
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
 
-    centroids,shell_indices = identify_shells(bvals, tol, False)
+    centroids, shell_indices = identify_shells(bvals, tol)
 
     bvals_to_extract = args.bvals_to_extract
     n_shells = np.shape(bvals_to_extract)[0]
