@@ -10,7 +10,7 @@ targetted b-value.
 For example, a b-value of 2000 and a tolerance of 20 will resample all 
 volumes with a b-values from 1980 to 2020 to the value of 2000.
 
-scil_resample_bvals.py grad.bval 0 1000 2000 new_grad.bval --tolerance 20
+scil_resample_bvals.py bvals bvecs 0 1000 2000 newbvals --tolerance 20
 """
 
 import argparse
@@ -66,7 +66,6 @@ def main():
     assert_outputs_exist(parser, args, [args.output_bvals])
 
     bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
-
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
 
@@ -86,10 +85,8 @@ def main():
         new_bvals[np.where(shell_indices == i)] = bvals_to_extract[i]
 
     logging.info("new bvals: {}".format(new_bvals))
-
     np.savetxt(args.output_bvals, new_bvals, '%d')
 
-    
 
 if __name__ == "__main__":
     main()
