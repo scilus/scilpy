@@ -33,6 +33,9 @@ def _build_arg_parser():
     parser.add_argument('bvals',
                         help='The b-values in FSL format.')
 
+    parser.add_argument('bvecs',
+                        help='The b-vectors in FSL format.')
+
     parser.add_argument('bvals_to_extract', nargs='+',
                         metavar='bvals-to-extract', type=int,
                         help='The list of b-values to extract. For example '
@@ -62,20 +65,31 @@ def main():
     assert_inputs_exist(parser, [args.bvals])
     assert_outputs_exist(parser, args, [args.output_bvals])
 
-    bvals,  = read_bvals_bvecs(args.bvals)
+    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
 
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
 
-    centroids,shell_indices = identify_shells(bvals, tol, True)
+    centroids,shell_indices = identify_shells(bvals, tol, False)
 
-    print(centroids)
-    print(shell_indices)
+    bvals_to_extract = args.bvals_to_extract
+    n_shells = np.shape(bvals_to_extract)[0]
 
-    logging.info("Selected indices: {}".format(shell_indices))
+    logging.info("number of shells: {}".format(n_shells))
+    logging.info("bvals to extract: {}".format(bvals_to_extract))
+    logging.info("estimated centroids: {}".format(centroids))
+    logging.info("original bvals: {}".format(bvals))
+    logging.info("selected indices: {}".format(shell_indices))
+
+    new_bvals = np.zeros(np.shape(bvals))
+    for i in range(n_shells):
+        new_bvals[np.where(shell_indices == i)] = bvals_to_extract[i]
+
+    logging.info("new bvals: {}".format(new_bvals))
 
     np.savetxt(args.output_bvals, new_bvals, '%d')
 
+    
 
 if __name__ == "__main__":
     main()
