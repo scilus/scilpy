@@ -91,7 +91,7 @@ def _build_arg_parser():
                    type=int, default=[12], nargs='+',
                    help='Input tractogram clustering thresholds %(default)smm.')
 
-    p.add_argument('--seeds', type=int, default=[None], nargs='+',
+    p.add_argument('--seeds', type=int, default=[0], nargs='+',
                    help='Random number generator seed %(default)s\n'
                         'Will multiply the number of times Recobundles is ran.')
     p.add_argument('--inverse', action='store_true',
