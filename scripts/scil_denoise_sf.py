@@ -3,8 +3,8 @@
 
 """
 Script to compute per-vertices hemisphere-aware (asymmetric) Gaussian
-filtering of spherical functions (SF) given an array of spherical
-harmonics (SH) coefficients.
+filtering of spherical functions (SF) given an array of spherical harmonics
+(SH) coefficients.
 
 The resulting SF can be expressed using a full SH basis (to keep the
 asymmetry resulting from the filtering) or a symmetric SH basis (where the
@@ -35,14 +35,14 @@ def _build_arg_parser():
                    help='Output directory. Default is current directory.')
 
     p.add_argument('--out_sh', default='out_filtered.nii.gz',
-                   help='Output path of averaged signal. [%(default)s]')
+                   help='File name for averaged signal. [%(default)s]')
 
     p.add_argument('--out_mask', default='mask.nii.gz',
-                   help='Name of output mask. [%(default)s]')
+                   help='File name for output mask. [%(default)s]')
 
     p.add_argument('--mask_eps', default=1e-16,
-                   help='Threshold on SH coefficients norm for output mask. '
-                   '[%(default)s]')
+                   help='Threshold on SH coefficients norm for output mask.'
+                   ' [%(default)s]')
 
     p.add_argument(
         '--sh_order', default=8, type=int,
@@ -100,11 +100,6 @@ def main():
     sh_img = nib.nifti1.load(args.in_sh)
     data = sh_img.get_fdata(dtype=np.float)
 
-    # Generate mask by applying threshold on input SH amplitude
-    mask = generate_mask(data, args.mask_eps)
-    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine),
-             out_mask)
-
     logging.info('Executing locally asymmetric Gaussian filtering.')
     filtered_sh = local_asym_gaussian_filtering(
         data, sh_order=args.sh_order,
@@ -112,11 +107,15 @@ def main():
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
-        sigma=args.sigma
-        )
+        sigma=args.sigma)
 
     nib.save(nib.Nifti1Image(filtered_sh.astype(np.float), sh_img.affine),
              out_sh)
+
+    # Generate mask by applying threshold on input SH amplitude
+    mask = generate_mask(data, args.mask_eps)
+    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine),
+             out_mask)
 
 
 if __name__ == "__main__":
