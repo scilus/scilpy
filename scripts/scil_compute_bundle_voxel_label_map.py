@@ -161,10 +161,11 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    binary_bundle = ndi.binary_dilation(binary_bundle,
-                                        structure=np.ones((3, 3, 3)))
-    binary_bundle = ndi.binary_erosion(binary_bundle,
-                                       structure=structure, iterations=2)
+    if np.count_nonzero(binary_bundle) > 5000:
+        binary_bundle = ndi.binary_dilation(binary_bundle,
+                                            structure=np.ones((3, 3, 3)))
+        binary_bundle = ndi.binary_erosion(binary_bundle,
+                                           structure=structure, iterations=2)
 
     bundle_disjoint, _ = ndi.label(binary_bundle)
     unique, count = np.unique(bundle_disjoint, return_counts=True)
