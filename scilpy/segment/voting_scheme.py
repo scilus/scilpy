@@ -100,12 +100,13 @@ class VotingScheme(object):
 
         # Only keep the group of models where all files exist
         bundle_names_exist = [bundle_names[i] for i in to_keep]
-
         bundles_filepath_exist = [bundles_filepath[i] for i in to_keep]
         logging.info('{0} sub-model directory were found each '
                      'with {1} model bundles'.format(
                          len(self.atlas_dir),
                          len(bundle_names_exist)))
+        if len(bundle_names_exist) == 0:
+            raise IOError("No model bundles found, check input directory.")
 
         return bundle_names_exist, bundles_filepath_exist
 
