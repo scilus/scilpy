@@ -3,7 +3,7 @@
 
 """
 Resample b-values on specific b-value shells for sampling schemes where
-b-values of a shell are not all identicall. The --tolerance
+b-values of a shell are not all identical. The --tolerance
 argument needs to be adjusted to vary the accepted interval around the
 targetted b-value.
 
