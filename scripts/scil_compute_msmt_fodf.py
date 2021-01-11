@@ -86,6 +86,9 @@ def _build_arg_parser():
     g.add_argument(
         '--vf', metavar='file', default='',
         help='Output filename for the volume fractions map.')
+    g.add_argument(
+        '--vf_rgb', metavar='file', default='',
+        help='Output filename for the volume fractions map in rgb.')
 
     return p
 
@@ -100,8 +103,10 @@ def main():
         args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
         args.csf_out_fODF = args.csf_out_fODF or 'csf_fodf.nii.gz'
         args.vf = args.vf or 'vf.nii.gz'
+        args.vf_rgb = args.vf_rgb or 'vf_rgb.nii.gz'
 
-    arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF, args.vf]
+    arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF,
+               args.vf, args.vf_rgb]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least ' +
                      'one file to output.')
@@ -222,6 +227,12 @@ def main():
     if args.vf:
         nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
                                  vol.affine), args.vf)
+
+    if args.vf_rgb:
+        vf = msmt_fit.volume_fractions
+        vf_rgb = (vf + np.min(vf)) / (np.max(vf)-np.min(vf)) * 255
+        nib.save(nib.Nifti1Image(vf_rgb.astype(np.float32),
+                                 vol.affine), args.vf_rgb)
 
 
 if __name__ == "__main__":
