@@ -99,7 +99,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
-        args.wm_out_fODF = args.wm_out_fODF or 'wm_fODF.nii.gz'
+        args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
         args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
         args.csf_out_fODF = args.csf_out_fODF or 'csf_fodf.nii.gz'
         args.vf = args.vf or 'vf.nii.gz'
