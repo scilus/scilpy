@@ -95,6 +95,7 @@ def _distance_using_mask(sft_bundle, binary_centroid):
     # Iteratively dilate the mask until the cleaned bundle mask is filled
     count = 1
     min_distances = np.zeros(sft_bundle.dimensions)
+    last_count = 0
     while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
         previous_centroid = binary_centroid.copy()
         binary_centroid = ndi.binary_dilation(binary_centroid,
@@ -106,6 +107,9 @@ def _distance_using_mask(sft_bundle, binary_centroid):
         tmp_binary_centroid[previous_centroid] = 0
         min_distances[tmp_binary_centroid > 0] = count
         count += 1
+        if last_count == np.count_nonzero(binary_centroid):
+            break
+        last_count = np.count_nonzero(binary_centroid)
 
     sft_bundle.to_center()
     distances_arr_seq = ArraySequence()
@@ -161,6 +165,7 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
+    print(np.count_nonzero(binary_bundle))
     if np.count_nonzero(binary_bundle) > 10000:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
