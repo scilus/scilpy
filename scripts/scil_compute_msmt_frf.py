@@ -61,13 +61,16 @@ def buildArgsParser():
              'masks are available.')
     p.add_argument(
         '--mask_wm',
-        help='Path to the WM mask file.')
+        help='Path to the input WM mask file, used to improve the final WM
+             'frf mask.')
     p.add_argument(
         '--mask_gm',
-        help='Path to the GM mask file.')
+        help='Path to the input GM mask file, used to improve the final GM
+             'frf mask.')
     p.add_argument(
         '--mask_csf',
-        help='Path to the CSF mask file.')
+        help='Path to the input CSF mask file, used to improve the final CSF
+             'frf mask.')
 
     p.add_argument(
         '--fa_thr_wm', default=0.7, type=float,
