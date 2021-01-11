@@ -264,7 +264,7 @@ def main():
     nib.save(nib.Nifti1Image(img_distances, sft_bundle.affine),
              args.out_distances_map)
 
-    if args.labels_color_dpp or args.distance_color_dpp \
+    if args.labels_color_dpp or args.distances_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
         # WARNING: WILL NOT WORK WITH THE INPUT TRK !
         # These will fit only with the TRK saved below.
