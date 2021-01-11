@@ -18,8 +18,12 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_sh_basis_args)
+from dipy.data import SPHERE_FILES
+
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             add_sh_basis_args,
+                             assert_output_dirs_exist_and_empty)
 
 from scilpy.denoise.asym_enhancement import local_asym_gaussian_filtering
 
@@ -31,11 +35,11 @@ def _build_arg_parser():
     p.add_argument('in_sh',
                    help='Path to the input file.')
 
-    p.add_argument('--out_dir', default='.',
-                   help='Output directory. Default is current directory.')
+    p.add_argument('out_sh',
+                   help='File name for averaged signal.')
 
-    p.add_argument('--out_sh', default='out_filtered.nii.gz',
-                   help='File name for averaged signal. [%(default)s]')
+    p.add_argument('--out_dir', default='results',
+                   help='Output directory. Default is current directory.')
 
     p.add_argument('--out_mask', default='mask.nii.gz',
                    help='File name for output mask. [%(default)s]')
@@ -44,30 +48,22 @@ def _build_arg_parser():
                    help='Threshold on SH coefficients norm for output mask.'
                    ' [%(default)s]')
 
-    p.add_argument(
-        '--sh_order', default=8, type=int,
-        help='SH order of the input. [%(default)s]')
+    p.add_argument('--sh_order', default=8, type=int,
+                   help='SH order of the input. [%(default)s]')
 
-    p.add_argument(
-        '--sphere', default='repulsion724', type=str,
-        help='Sphere used for the SH projection. [%(default)s]'
-    )
+    p.add_argument('--sphere', default='repulsion724',
+                   choices=sorted(SPHERE_FILES.keys()),
+                   help='Sphere used for the SH projection. [%(default)s]')
 
-    p.add_argument(
-        '--sharpness', default=1.0, type=float,
-        help='Specify sharpness factor to use for weighted average.'
-        ' [%(default)s]'
-    )
+    p.add_argument('--sharpness', default=1.0, type=float,
+                   help='Specify sharpness factor to use for weighted average.'
+                   ' [%(default)s]')
 
-    p.add_argument(
-        '--sigma', default=1.0, type=float,
-        help='Sigma of the gaussian to use. [%(default)s]'
-    )
+    p.add_argument('--sigma', default=1.0, type=float,
+                   help='Sigma of the gaussian to use. [%(default)s]')
 
-    p.add_argument(
-        '--out_sym', action='store_true',
-        help='Save output in symmetric SH basis.'
-    )
+    p.add_argument('--out_sym', action='store_true',
+                   help='Save output in symmetric SH basis.')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -87,17 +83,11 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     # Checking args
-    if not os.path.exists(args.out_dir):
-        os.makedirs(args.out_dir)
-    out_sh = os.path.join(args.out_dir, args.out_sh)
-    out_mask = os.path.join(args.out_dir, args.out_mask)
-
-    outputs = [out_sh, out_mask]
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
     assert_inputs_exist(parser, args.in_sh)
-    assert_outputs_exist(parser, args, outputs)
 
     # Prepare data
-    sh_img = nib.nifti1.load(args.in_sh)
+    sh_img = nib.load(args.in_sh)
     data = sh_img.get_fdata(dtype=np.float)
 
     logging.info('Executing locally asymmetric Gaussian filtering.')
@@ -109,13 +99,13 @@ def main():
         dot_sharpness=args.sharpness,
         sigma=args.sigma)
 
-    nib.save(nib.Nifti1Image(filtered_sh.astype(np.float), sh_img.affine),
-             out_sh)
+    out_sh = os.path.join(args.out_dir, args.out_sh)
+    nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), out_sh)
 
     # Generate mask by applying threshold on input SH amplitude
     mask = generate_mask(data, args.mask_eps)
-    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine),
-             out_mask)
+    out_mask = os.path.join(args.out_dir, args.out_mask)
+    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine), out_mask)
 
 
 if __name__ == "__main__":
