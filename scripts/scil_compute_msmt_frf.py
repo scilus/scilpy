@@ -61,15 +61,15 @@ def buildArgsParser():
              'masks are available.')
     p.add_argument(
         '--mask_wm',
-        help='Path to the input WM mask file, used to improve the final WM
+        help='Path to the input WM mask file, used to improve the final WM '
              'frf mask.')
     p.add_argument(
         '--mask_gm',
-        help='Path to the input GM mask file, used to improve the final GM
+        help='Path to the input GM mask file, used to improve the final GM '
              'frf mask.')
     p.add_argument(
         '--mask_csf',
-        help='Path to the input CSF mask file, used to improve the final CSF
+        help='Path to the input CSF mask file, used to improve the final CSF '
              'frf mask.')
 
     p.add_argument(
@@ -223,7 +223,7 @@ def main():
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
     for mask, mask_file in zip(frf_masks, masks_files):
         if mask_file:
-            nib.save(nib.Nifti1Image(mask.astype(np.uint16), vol.get_affine()),
+            nib.save(nib.Nifti1Image(mask.astype(np.uint8), vol.affine),
                      mask_file)
 
     frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]
