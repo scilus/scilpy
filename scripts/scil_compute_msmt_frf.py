@@ -104,6 +104,9 @@ def buildArgsParser():
         help='The tolerated gap between the b-values to '
              'extract\nand the current b-value. [%(default)s]')
     p.add_argument(
+        '--dti_bval_limit', type=int, default=1200,
+        help='The highest b-value taken for DTI. [%(default)s]')
+    p.add_argument(
         '--roi_radii', default=[10], nargs='+', type=int,
         help='If supplied, use those radii to select a cuboid roi '
              'to estimate the response functions. The roi will be '
@@ -167,11 +170,12 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     tol = args.tolerance
+    dti_lim = args.dti_bval_limit
 
     list_bvals = unique_bvals_tolerance(bvals, tol=tol)
-    if not np.all(list_bvals <= 1200):
+    if not np.all(list_bvals <= dti_lim):
         outputs = extract_dwi_shell(vol, bvals, bvecs,
-                                    list_bvals[list_bvals <= 1200],
+                                    list_bvals[list_bvals <= dti_lim],
                                     tol=tol)
         _, data_dti, bvals_dti, bvecs_dti = outputs
         bvals_dti = np.squeeze(bvals_dti)
