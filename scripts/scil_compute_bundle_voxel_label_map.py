@@ -256,7 +256,7 @@ def main():
     tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
     min_dist_ind, _ = min_dist_to_centroid(tdi_mask_nzr_ind,
                                            sft_centroid.streamlines[0])
-    img_labels = np.zeros(binary_centroid.shape)
+    img_labels = np.zeros(binary_centroid.shape, dtype=np.int16)
     img_labels[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
 
     # Approximation of the distance using the WM diffusion approach
