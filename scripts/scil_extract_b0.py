@@ -17,7 +17,9 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import add_verbose_arg, assert_inputs_exist
+from scilpy.io.utils import (add_verbose_arg, assert_inputs_exist,
+                             add_force_b0_arg)
+from scilpy.utils.bvec_bval_tools import check_b0_threshold
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
@@ -45,6 +47,7 @@ def _build_arg_parser():
                             'the output file.')
     group.add_argument('--mean', action='store_true', help='Extract mean b0.')
 
+    add_force_b0_arg(p)
     add_verbose_arg(p)
 
     return p
@@ -93,24 +96,7 @@ def main():
     bvals_min = bvals.min()
     b0_threshold = args.b0_thr
 
-    if np.isclose(bvals_min, 0.0) and b0_threshold >= bvals_min:
-        pass
-    else:
-        if bvals_min < 0 or bvals_min > 20:
-            raise ValueError(
-                'The minimal b-value is lesser than 0 or greater than 20. '
-                'This is highly suspicious. Please check your data to ensure '
-                'everything is correct. Value found: {}'.format(bvals_min))
-
-        if not np.isclose(bvals_min, 0.0):
-            b0_threshold = b0_threshold if b0_threshold > bvals_min else bvals_min
-            logging.warning('No b=0 image. '
-                            'Setting b0_threshold to {}'.format(b0_threshold))
-
-        if b0_threshold < 0 or b0_threshold > 20:
-            raise ValueError('Invalid --b0_thr value (<0 or >20). '
-                             'This is highly suspicious. '
-                             'Value found: {}'.format(b0_threshold))
+    check_b0_threshold(args.force_b0_threshold, bvals_min)
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]

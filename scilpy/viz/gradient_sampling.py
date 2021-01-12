@@ -64,22 +64,22 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_col
         logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
-        ren = window.Renderer()
-        ren.SetBackground(1, 1, 1)
+        scene = window.Scene()
+        scene.SetBackground(1, 1, 1)
         if use_sphere:
             sphere_actor = actor.odf_slicer(odfs, affine, sphere=sphere,
                                             colormap='winter', scale=1.0,
                                             opacity=opacity)
-            ren.add(sphere_actor)
+            scene.add(sphere_actor)
         pts_actor = actor.point(shell, vtkcolors[i], point_radius=rad)
-        ren.add(pts_actor)
+        scene.add(pts_actor)
         if plot_sym_vecs:
             pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
-            ren.add(pts_actor)
-        window.show(ren)
+            scene.add(pts_actor)
+        window.show(scene)
 
         if ofile:
-            window.snapshot(ren, fname=ofile + '_shell_' +
+            window.snapshot(scene, fname=ofile + '_shell_' +
                             str(int(centroids[i])) + '.png',
                             size=ores)
 
@@ -115,8 +115,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     if len(ms) > 10:
         vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
 
-    ren = window.Renderer()
-    ren.SetBackground(1, 1, 1)
+    scene = window.Scene()
+    scene.SetBackground(1, 1, 1)
     if use_sphere:
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
@@ -129,19 +129,19 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
                                         colormap='winter', scale=1.0,
                                         opacity=opacity)
 
-        ren.add(sphere_actor)
+        scene.add(sphere_actor)
 
     for i, shell in enumerate(ms):
         if same_color:
             i = 0
         pts_actor = actor.point(shell, vtkcolors[i], point_radius=rad)
-        ren.add(pts_actor)
+        scene.add(pts_actor)
         if use_sym:
             pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
-            ren.add(pts_actor)
-    window.show(ren)
+            scene.add(pts_actor)
+    window.show(scene)
     if ofile:
-        window.snapshot(ren, fname=ofile + '.png', size=ores)
+        window.snapshot(scene, fname=ofile + '.png', size=ores)
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
