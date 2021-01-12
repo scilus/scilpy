@@ -6,9 +6,62 @@ import os
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.ndimage as ndi
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
+
+
+def compute_lesions_stats(map_data, lesions_data, single_label=True,
+                          voxel_sizes=[1.0, 1.0, 1.0], min_lesions_vol=7):
+    """
+    Returns information related to lesions inside of a binary mask or voxel
+    labels map (bundle, for tractometry).
+
+    Parameters
+    ------------
+    map_data : StatefulTractogram
+        Either a binary mask (uint8) or a voxel labels map (int16).
+    lesions_data : np.ndarray (3)
+        Binary mask of lesions. Should be uint8.
+    voxel_sizes : np.ndarray (3)
+        If not specified, returns voxel count (instead of  volume)
+    single_label : boolean
+        If true, does not add an extra layer for number of labels.
+    Returns
+    ---------
+    lesions_load_dict : dict
+        For each label, volume and lesions count
+    lesions_atlas : np.ndarray (3)
+        Labelled lesions atlas
+    """
+    voxel_vol = np.prod(voxel_sizes)
+    lesions_atlas, _ = ndi.label(lesions_data)
+    lesions_load_dict = {}
+    for label in np.unique(map_data)[1:]:
+        section_dict = {}
+        tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
+        tmp_mask[map_data == label] = 1
+        tmp_mask *= lesions_atlas
+
+        lesions_vols = []
+        for lesion in np.unique(tmp_mask)[1:]:
+            curr_vol = np.count_nonzero(tmp_mask[tmp_mask == lesion]) \
+                * voxel_vol
+            if curr_vol >= min_lesions_vol:
+                lesions_vols.append(curr_vol)
+
+        section_dict['total_volume'] = round(np.count_nonzero(tmp_mask), 3)
+        section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
+        section_dict['std_volume'] = round(np.std(lesions_vols), 3)
+        section_dict['lesions_count'] = len(lesions_vols)
+
+        if single_label:
+            lesions_load_dict = section_dict
+        else:
+            lesions_load_dict[str(label).zfill(3)] = section_dict
+
+    return lesions_load_dict, tmp_mask
 
 
 def get_bundle_metrics_profiles(sft, metrics_files):
@@ -40,11 +93,11 @@ def get_bundle_metrics_profiles(sft, metrics_files):
         z_ind = np.floor(streamline[:, 2]).astype(np.int)
 
         return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
-                    metrics_files))
+                        metrics_files))
 
     # We preload the data to avoid loading it for each streamline
     metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
-                        metrics_files))
+                            metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
@@ -52,7 +105,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     # encountered along the current streamline.
     metrics_per_strl =\
         list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
-             streamlines))
+                 streamlines))
 
     converted = []
     # Here, the zip gives us a list of N tuples, so one tuple for each metric.
