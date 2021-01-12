@@ -49,7 +49,8 @@ def _build_arg_parser():
                    help='Nifti image showing distances to centroids.')
 
     p.add_argument('--nb_pts', type=int,
-                   help='Number of divisions for the bundles.')
+                   help='Number of divisions for the bundles.\n'
+                        'Default is the number of points of the centroid.')
 
     p.add_argument('--out_labels_npz', metavar='FILE',
                    help='File mapping of points to labels.')
