@@ -85,7 +85,7 @@ def check_b0_threshold(force_b0_threshold, bvals_min):
                     '--force_b0_threshold was specified.'.format(bvals_min))
             else:
                 raise ValueError('The minimal bval is lesser than 0 or '
-                                 'greater than {}. This is highly ' +
+                                 'greater than {}. This is highly '
                                  'suspicious.\n'
                                  'Please check your data to ensure everything '
                                  'is correct.\n'
