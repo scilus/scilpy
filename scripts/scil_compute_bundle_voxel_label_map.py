@@ -14,7 +14,7 @@ import logging
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
 from dipy.io.streamline import save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level
 from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.io.utils import is_header_compatible
 import matplotlib.pyplot as plt
@@ -127,7 +127,7 @@ def _distance_using_mask(sft_bundle, binary_centroid):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-
+    set_sft_logger_level('DEBUG')
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
                         optional=args.reference)
