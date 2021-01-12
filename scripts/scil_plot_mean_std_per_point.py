@@ -30,6 +30,10 @@ def _build_arg_parser():
     p.add_argument('--stats_over_population', action='store_true',
                    help='If set, consider the input stats to be over an '
                         'entire population and not subject-based.')
+    p.add_argument('--nb_pts', type=int,
+                   help='Force the number of divisions for the bundles.\n'
+                        'Avoid unequal plots across datasets, replace missing '
+                        'data with zeros.')
 
     p1 = p.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',
@@ -63,16 +67,15 @@ def main():
 
     for bundle_name, bundle_stats in mean_std_per_point.items():
         for metric, metric_stats in bundle_stats.items():
-            nb_points = len(metric_stats)
-            num_digits_labels = len(str(nb_points))
+            nb_points = args.nb_pts if args.nb_pts is not None \
+                else len(metric_stats)
+            num_digits_labels = len(list(metric_stats.keys())[0])
             means = []
             stds = []
             for label_int in range(1, nb_points+1):
-                print(bundle_name, metric, label_int)
                 label = str(label_int).zfill(num_digits_labels)
-                mean = metric_stats.get(label, {'mean': np.nan})['mean']
-                mean = mean if mean else np.nan
-                std = metric_stats.get(label, {'std': np.nan})['std']
+                mean = metric_stats.get(label, {'mean': 0})['mean']
+                std = metric_stats.get(label, {'std': 0})['std']
                 if not isinstance(mean, list):
                     mean = [mean]
                     std = [std]

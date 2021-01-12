@@ -43,8 +43,9 @@ def get_bundle_metrics_profiles(sft, metrics_files):
                         metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
-                            metrics_files))
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(
+        dtype=np.float64),
+        metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
@@ -127,7 +128,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
 def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                           distances_to_centroid_streamline,
-                                          metrics, labels, density_weighting=False,
+                                          metrics, labels,
+                                          density_weighting=False,
                                           distance_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
@@ -157,7 +159,7 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     """
     # Computing infos on bundle
     unique_labels = np.unique(labels)
-    num_digits_labels = len(str(np.max(unique_labels)))
+    num_digits_labels = 3
     if density_weighting:
         track_count = compute_tract_counts_map(streamlines,
                                                metrics[0].shape)
