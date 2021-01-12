@@ -166,7 +166,6 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    print(np.count_nonzero(binary_bundle))
     if np.count_nonzero(binary_bundle) > 10000:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
