@@ -37,6 +37,10 @@ on the streamlines' weight. Typically, the threshold should be 0, keeping only
 streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
+
+COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
+with the --ball_stick option. Use the --commit2 option to activite it, slightly
+longer computation time.
 """
 
 import argparse
@@ -110,9 +114,8 @@ def _build_arg_parser():
     g0.add_argument('--commit2', action='store_true',
                     help='Run commit2, requires .h5 as input and will force\n'
                          'ball&stick model.')
-    g0.add_argument('--lambdas', type=float, default=1e-4,
-                    help='Run commit2, requires .h5 as input and will force\n'
-                         'ball&stick model [%(default)s].')
+    g0.add_argument('--lambda_commit_2', type=float, default=1e-4,
+                    help='Specify the clustering prior strength [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
@@ -354,7 +357,7 @@ def main():
                 regnorms=[commit.solvers.group_sparsity,
                           commit.solvers.non_negative,
                           commit.solvers.non_negative],
-                lambdas=[args.lambdas, 0.0, 0.0])
+                lambdas=[args.lambda_commit_2, 0.0, 0.0])
             mit.fit(tol_fun=1e-3, max_iter=1000,
                     regularisation=prior_on_bundles, verbose=False)
             mit.save_results()
