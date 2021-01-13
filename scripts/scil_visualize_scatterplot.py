@@ -3,7 +3,7 @@
 """
 Script to display scatter plot between two maps (ex. FA and MD).
 This script can be also used for the correspondence between two maps
-(ex. AD and RD). Two probability maps can be used to threshold the myelin maps.
+(ex. AD and RD). Two probability maps can be used to threshold maps.
 Therefore, the --probability --prob_mask_1 (WM) and --prob_mask_1 (GM) options
 must be added.
 
@@ -15,8 +15,8 @@ For tissue probability scatter plot:
     --probability --prob_mask_1 probability_wm_map.nii.gz
     --prob_mask_2 probability_gm_map.nii.gz
 
-To display specific label for myelin scatter plot used:
-    --label 'WM Threshold' --label_myelin 'GM Threshold'
+To display specific label for probability scatter plot used:
+    --label 'WM Threshold' --label_prob_2 'GM Threshold'
 
 """
 
@@ -46,21 +46,18 @@ def _build_arg_parser():
                         'y maps value from specific map or region: '
                         'wm_mask or roi_mask')
 
-    g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
-                    default=(10, 10))
-
     probmap = p.add_argument_group(title='Probability maps options')
     probmap.add_argument('--probability', action='store_true',
-                       help='Compute and display specific scatter plot for '
-                            'myelin maps.')
+                         help='Compute and display specific scatter plot for '
+                              'probability maps.')
     probmap.add_argument('--prob_mask',
-                       help='Probability map, WM for example.')
+                         help='Probability map, WM for example.')
     probmap.add_argument('--prob_mask_2',
-                       help='Used to add a second probability map. '
-                            'GM for example.')
+                         help='Used to add a second probability map. '
+                              'GM for example.')
     probmap.add_argument('--thr', default='0.9',
-                      help='Use to apply threshold on probability mask.'
-                           ' [%(default)s]')
+                         help='Use to apply threshold on probability mask.'
+                              ' [%(default)s]')
 
     scat = p.add_argument_group(title='Scatter plot options')
     scat.add_argument('--title',
@@ -73,7 +70,7 @@ def _build_arg_parser():
     scat.add_argument('--y_label', default='y',
                       help='Use the provided info for the y axis name. '
                            ' [%(default)s]')
-    scat.add_argument('--label', default=' ',
+    scat.add_argument('--label', default='Mask',
                       help='Use the provided info for the legend box '
                            'corresponding to mask or probability map. '
                            ' [%(default)s]')
@@ -94,8 +91,7 @@ def _build_arg_parser():
                       help='Use the provided info for the dpi resolution.'
                            ' [%(default)s]')
     scat.add_argument('--color_prob', nargs=2, metavar=('color1', 'color2'),
-                    default=('r', 'b'))
-
+                      default=('r', 'b'))
 
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, only display.')
@@ -110,7 +106,7 @@ def load_data(images_list, prob_mask=False):
     for curr_map in images_list:
         load_image = nib.load(curr_map)
         if prob_mask:
-            map.append(get_data_as_mask(mask_image))
+            map.append(get_data_as_mask(load_image))
         else:
             map.append(load_image.get_fdata(dtype=np.float32))
     return map
@@ -146,12 +142,12 @@ def main():
         # Copy to apply two different probability maps in the same data
         maps_data_prob = copy.deepcopy(maps_data)
 
-        # Threshold myelin images with tissue probability maps
+        # Threshold probability images with tissue probability maps
         # White Matter threshold
         for curr_map in maps_data:
             curr_map[np.where(prob_mask_data[0] < args.thr)] = np.nan
         # Grey Matter threshold
-        for curr_map in map_data_prob:
+        for curr_map in maps_data_prob:
             curr_map[np.where(prob_mask_data[1] < args.thr)] = np.nan
 
     # Scatter Plot
