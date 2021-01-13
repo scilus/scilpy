@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 """
 Script to display scatter plot between two maps (ex. FA and MD).
-This script can be also used for the correspondence between two Myelin maps
-(ex. ihMTR and MTsat). For the myelin, the WM and GM probability maps are
-used to threshold the myelin maps. Therefore, the --myelin --wm and --gm
-options must be added.
+This script can be also used for the correspondence between two maps
+(ex. AD and RD). Two probability maps can be used to threshold the myelin maps.
+Therefore, the --probability --prob_mask_1 (WM) and --prob_mask_1 (GM) options
+must be added.
 
 For general scatter plot:
 >>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
 
-For Myelin scatter plot:
->>> scil_visualize_scatterplot.py ihMTR_map.nii.gz MTsat_map.nii.gz
-    out_filename_image.png --myelin --wm probability_wm_map.nii.gz
-    --gm probability_gm_map.nii.gz
+For tissue probability scatter plot:
+>>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
+    --probability --prob_mask_1 probability_wm_map.nii.gz
+    --prob_mask_2 probability_gm_map.nii.gz
 
 To display specific label for myelin scatter plot used:
     --label 'WM Threshold' --label_myelin 'GM Threshold'
@@ -36,24 +36,31 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_x_map',
-                   help='Map in x axis, FA or ihMTR for example.')
+                   help='Map in x axis, FA for example.')
     p.add_argument('in_y_map',
-                   help='Map in y axis, MD or MTsat for example.')
+                   help='Map in y axis, MD for example.')
     p.add_argument('out_png',
                    help='Output filename for the figure.')
     p.add_argument('--mask',
                    help='Binary mask map. Use this mask to extract x and '
                         'y maps value from specific map or region: '
-                        'mask_wm or roi_mask')
+                        'wm_mask or roi_mask')
 
-    myelo = p.add_argument_group(title='Myelin options')
-    myelo.add_argument('--myelin', action='store_true',
+    g2.add_argument('--axis_text_size', nargs=2, metavar=('X_SIZE', 'Y_SIZE'),
+                    default=(10, 10))
+
+    probmap = p.add_argument_group(title='Probability maps options')
+    probmap.add_argument('--probability', action='store_true',
                        help='Compute and display specific scatter plot for '
                             'myelin maps.')
-    myelo.add_argument('--wm',
-                       help='Probability WM map.')
-    myelo.add_argument('--gm',
-                       help='Probability GM map.')
+    probmap.add_argument('--prob_mask',
+                       help='Probability map, WM for example.')
+    probmap.add_argument('--prob_mask_2',
+                       help='Used to add a second probability map. '
+                            'GM for example.')
+    probmap.add_argument('--thr', default='0.9',
+                      help='Use to apply threshold on probability mask.'
+                           ' [%(default)s]')
 
     scat = p.add_argument_group(title='Scatter plot options')
     scat.add_argument('--title',
@@ -67,15 +74,28 @@ def _build_arg_parser():
                       help='Use the provided info for the y axis name. '
                            ' [%(default)s]')
     scat.add_argument('--label', default=' ',
-                      help='Use the provided info for the legend. '
+                      help='Use the provided info for the legend box '
+                           'corresponding to mask or probability map. '
                            ' [%(default)s]')
-    scat.add_argument('--label_myelin', default='GM Threshold',
-                      help='Use the provided info for the legend myelin map. '
-                           ' Coudl be added for Myeline scatter plot. '
-                           '[%(default)s]')
+    scat.add_argument('--label_prob_2', default=' ',
+                      help='Use the provided info for the legend box '
+                           'corresponding to the second probability map. '
+                           ' [%(default)s]')
     scat.add_argument('--marker', default='.',
                       help='Use the provided info for the marker shape.'
                            ' [%(default)s]')
+    scat.add_argument('--marker_size', default='15',
+                      help='Use the provided info for the marker shape.'
+                           ' [%(default)s]')
+    scat.add_argument('--transparency', default='0.4',
+                      help='Use the provided info for the marker shape.'
+                           ' [%(default)s]')
+    scat.add_argument('--dpi', default='300',
+                      help='Use the provided info for the dpi resolution.'
+                           ' [%(default)s]')
+    scat.add_argument('--color_prob', nargs=2, metavar=('color1', 'color2'),
+                    default=('r', 'b'))
+
 
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, only display.')
@@ -85,11 +105,14 @@ def _build_arg_parser():
     return p
 
 
-def load_maps(images_list):
+def load_data(images_list, prob_mask=False):
     map = []
     for curr_map in images_list:
         load_image = nib.load(curr_map)
-        map.append(load_image.get_fdata(dtype=np.float32))
+        if prob_mask:
+            map.append(get_data_as_mask(mask_image))
+        else:
+            map.append(load_image.get_fdata(dtype=np.float32))
     return map
 
 
@@ -98,12 +121,12 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_x_map, args.in_y_map)
-    if args.myelin:
-        assert_inputs_exist(parser, args.gm, args.wm)
+    if args.probability:
+        assert_inputs_exist(parser, args.prob_mask, args.prob_mask_2)
 
     # Load images
     maps_image = [args.in_x_map, args.in_y_map]
-    maps_data = load_maps(maps_image)
+    maps_data = load_data(maps_image)
 
     if args.mask:
         # Load and apply threshold from mask
@@ -112,28 +135,36 @@ def main():
         for curr_map in maps_data:
             curr_map[np.where(mask_data == 0)] = np.nan
 
-    if args.myelin:
+    if args.probability:
         # Load images
-        tissue_image = [args.wm, args.gm]
-        tissue_data = load_maps(tissue_image)
-        maps_data_gm_thr = copy.deepcopy(maps_data)
+        if args.prob_mask_2 is None:
+            tissue_image = args.prob_mask
+        else:
+            tissue_image = [args.prob_mask, args.prob_mask_2]
+        prob_mask_data = load_data(tissue_image, prob_mask=True)
+
+        # Copy to apply two different probability maps in the same data
+        maps_data_prob = copy.deepcopy(maps_data)
 
         # Threshold myelin images with tissue probability maps
         # White Matter threshold
         for curr_map in maps_data:
-            curr_map[np.where(tissue_data[0] < 0.9)] = np.nan
+            curr_map[np.where(prob_mask_data[0] < args.thr)] = np.nan
         # Grey Matter threshold
-        for curr_map in maps_data_gm_thr:
-            curr_map[np.where(tissue_data[1] < 0.9)] = np.nan
+        for curr_map in map_data_prob:
+            curr_map[np.where(prob_mask_data[1] < args.thr)] = np.nan
 
     # Scatter Plot
     fig, ax = plt.subplots()
-    ax.scatter(maps_data[0], maps_data[1], label=args.label, color='b',
-               s=15, marker=args.marker, alpha=0.4)
-    if args.myelin:
-        ax.scatter(maps_data_gm_thr[0], maps_data_gm_thr[1],
-                   label=args.label_myelin, color='r', s=15,
-                   marker=args.marker, alpha=0.4)
+    ax.scatter(maps_data[0], maps_data[1], label=args.label_prob_1,
+               color=args.color_prob[0], s=args.marker_size,
+               marker=args.marker, alpha=args.transparency)
+
+    if args.probability:
+        ax.scatter(maps_data_prob[0], maps_data_prob[1],
+                   label=args.label_prob_2, color=args.color_prob[1],
+                   s=args.marker_size, marker=args.marker,
+                   alpha=args.transparency)
     plt.xlabel(args.x_label)
     plt.ylabel(args.y_label)
     plt.title(args.title)
@@ -142,7 +173,7 @@ def main():
     if args.show_only:
         plt.show()
     else:
-        plt.savefig(args.out_png, dpi=300, bbox_inches='tight')
+        plt.savefig(args.out_png, dpi=args.dpi, bbox_inches='tight')
 
 
 if __name__ == "__main__":
