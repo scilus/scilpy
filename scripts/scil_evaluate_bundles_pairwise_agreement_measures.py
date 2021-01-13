@@ -63,6 +63,8 @@ def _build_arg_parser():
     p.add_argument('--streamline_dice', action='store_true',
                    help='Streamlines-wise Dice coefficient will be computed \n'
                         'Tractograms must be identical [%(default)s].')
+    p.add_argument('--bundle_adjency_no_overlap', action='store_true',
+                   help='If set, do not count zeros in the average BA.')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
                         '[%(default)s].')
@@ -111,7 +113,8 @@ def load_data_tmp_saving(args):
         if init_only:
             return None
         density = nib.load(tmp_density_filename).get_fdata(dtype=np.float32)
-        endpoints_density = nib.load(tmp_endpoints_filename).get_fdata(dtype=np.float32)
+        endpoints_density = nib.load(
+            tmp_endpoints_filename).get_fdata(dtype=np.float32)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
@@ -148,7 +151,8 @@ def compute_all_measures(args):
     filename_1, reference_1 = tuple_1
     filename_2, reference_2 = tuple_2
     streamline_dice = args[1]
-    disable_streamline_distance = args[2]
+    bundle_adjency_no_overlap = args[2]
+    disable_streamline_distance = args[3]
 
     if not is_header_compatible(reference_1, reference_2):
         raise ValueError('{} and {} have incompatible headers'.format(
@@ -187,21 +191,21 @@ def compute_all_measures(args):
         endpoints_density_1 + endpoints_density_2) - volume_overlap_endpoints)
 
     # These measures are in mm
-    bundle_adjacency_voxel = compute_bundle_adjacency_voxel(density_1,
-                                                            density_2,
-                                                            non_overlap=True)
+    bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
+        density_1, density_2,
+        non_overlap=bundle_adjency_no_overlap)
     if streamline_dice and not disable_streamline_distance:
         bundle_adjacency_streamlines = \
-            compute_bundle_adjacency_streamlines(bundle_1,
-                                                 bundle_2,
-                                                 non_overlap=True)
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                non_overlap=bundle_adjency_no_overlap)
     elif not disable_streamline_distance:
         bundle_adjacency_streamlines = \
-            compute_bundle_adjacency_streamlines(bundle_1,
-                                                 bundle_2,
-                                                 centroids_1=centroids_1,
-                                                 centroids_2=centroids_2,
-                                                 non_overlap=True)
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                centroids_1=centroids_1,
+                centroids_2=centroids_2,
+                non_overlap=bundle_adjency_no_overlap)
     # These measures are between 0 and 1
     dice_vox, w_dice_vox = compute_dice_voxel(density_1, density_2)
 
@@ -306,7 +310,9 @@ def main():
         all_measures_dict = []
         for i in comb_dict_keys:
             all_measures_dict.append(compute_all_measures([
-                i, args.streamline_dice, args.disable_streamline_distance]))
+                i, args.streamline_dice,
+                args.bundle_adjency_no_overlap,
+                args.disable_streamline_distance]))
     else:
         all_measures_dict = pool.map(
             compute_all_measures,
