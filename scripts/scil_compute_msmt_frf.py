@@ -15,6 +15,12 @@ In the gm (or csf), we compute the response function in each voxels where
 the FA is below at threshold_fa_gm (or threshold_fa_csf) and where
 the MD is below threshold_md_gm (or threshold_md_csf).
 
+We output one response function file for each tissue, containing the response
+function for each b-value (arranged by lines). These are saved as the diagonal
+of the axis-symmetric diffusion tensor (3 e-values) and a mean b0 value.
+For example, a typical wm_frf is 15e-4 4e-4 4e-4 700, where the tensor e-values
+are (15,4,4)x10^-4 and the mean b0 is 700.
+
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
@@ -39,7 +45,7 @@ from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 def buildArgsParser():
 
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path to the input diffusion volume.')
@@ -57,7 +63,7 @@ def buildArgsParser():
     p.add_argument(
         '--mask',
         help='Path to a binary mask. Only the data inside the mask will be '
-             'used for computations and reconstruction. Useful if no tissue '
+             'used for\ncomputations and reconstruction. Useful if no tissue '
              'masks are available.')
     p.add_argument(
         '--mask_wm',
@@ -105,21 +111,23 @@ def buildArgsParser():
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
-             'extract\nand the current b-value. [%(default)s]')
+             'extract and the current b-value. [%(default)s]')
     p.add_argument(
         '--dti_bval_limit', type=int, default=1200,
-        help='The highest b-value taken for DTI. [%(default)s]')
+        help='The highest b-value taken for the DTI model. [%(default)s]')
     p.add_argument(
         '--roi_radii', default=[10], nargs='+', type=int,
         help='If supplied, use those radii to select a cuboid roi '
              'to estimate the response functions. The roi will be '
              'a cuboid spanning from the middle of the volume in '
              'each direction with the different radii. The type is '
-             'either an int or an array-like (3,). [%(default)s]')
+             'either an int (e.g. --roi_radii 10) or an array-like (3,) '
+             '(e.g. --roi_radii 20 30 10). [%(default)s]')
     p.add_argument(
-        '--roi_center', metavar='tuple(3)', nargs=3, type=int,
+        '--roi_center', metavar='tuple(3)', type=int,
         help='If supplied, use this center to span the cuboid roi '
-             'using roi_radii. [center of the 3D volume]')
+             'using roi_radii. [center of the 3D volume] '
+             '(e.g. --roi_center 66 79 79)')
 
     p.add_argument(
         '--wm_frf_mask', metavar='file', default='',

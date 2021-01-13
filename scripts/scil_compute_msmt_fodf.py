@@ -39,7 +39,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
 def _build_arg_parser():
 
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
