@@ -67,7 +67,7 @@ def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
             if curr_vol >= min_lesions_vol:
                 lesions_vols.append(curr_vol)
         if lesions_vols:
-            section_dict['total_volume'] = round(np.sum(curr_vol), 3)
+            section_dict['total_volume'] = round(np.sum(lesions_vols), 3)
             section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
             section_dict['std_volume'] = round(np.std(lesions_vols), 3)
             section_dict['lesions_count'] = len(lesions_vols)

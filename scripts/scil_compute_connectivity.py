@@ -187,6 +187,7 @@ def _processing_wrapper(args):
                     density.astype(np.bool), lesions_atlas,
                     voxel_sizes=voxel_sizes, single_label=True,
                     precomputed_lesions_labels=computed_lesions_labels)
+
                 tmp_ind = _streamlines_in_mask(list(streamlines),
                                                lesions_atlas.astype(np.uint8),
                                                np.eye(3), [0, 0, 0])
@@ -355,7 +356,7 @@ def main():
         labels_list = np.loadtxt(
             args.force_labels_list, dtype=np.int16).tolist()
 
-    comb_list = list(itertools.combinations(labels_list, r=2))
+    comb_list = list(itertools.combinations(labels_list, r=2))[0:1000]
     if not args.no_self_connection:
         comb_list.extend(zip(labels_list, labels_list))
 
