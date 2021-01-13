@@ -127,7 +127,7 @@ def _distance_using_mask(sft_bundle, binary_centroid):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    set_sft_logger_level('DEBUG')
+    set_sft_logger_level('ERROR')
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
                         optional=args.reference)
@@ -274,9 +274,9 @@ def main():
         # WARNING: WILL NOT WORK WITH THE INPUT TRK !
         # These will fit only with the TRK saved below.
         if args.out_labels_npz:
-            np.savez_compressed(labels_array._data, args.out_labels_npz)
+            np.savez_compressed(args.out_labels_npz, labels_array._data)
         if args.out_distances_npz:
-            np.savez_compressed(labels_array._data, args.out_distances_npz)
+            np.savez_compressed(args.out_distances_npz, labels_array._data)
 
         cmap = plt.get_cmap(args.colormap)
         new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
