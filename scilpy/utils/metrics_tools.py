@@ -6,14 +6,14 @@ import os
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.ndimage as ndi
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def compute_lesions_stats(map_data, lesions_data, single_label=True,
-                          voxel_sizes=[1.0, 1.0, 1.0], min_lesions_vol=7):
+def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
+                          voxel_sizes=[1.0, 1.0, 1.0], min_lesions_vol=7,
+                          computed_lesions_labels=None):
     """
     Returns information related to lesions inside of a binary mask or voxel
     labels map (bundle, for tractometry).
@@ -22,46 +22,59 @@ def compute_lesions_stats(map_data, lesions_data, single_label=True,
     ------------
     map_data : StatefulTractogram
         Either a binary mask (uint8) or a voxel labels map (int16).
-    lesions_data : np.ndarray (3)
-        Binary mask of lesions. Should be uint8.
-    voxel_sizes : np.ndarray (3)
-        If not specified, returns voxel count (instead of  volume)
+    lesions_atlas : np.ndarray (3)
+        Labelled atlas of lesions. Should be int16.
     single_label : boolean
         If true, does not add an extra layer for number of labels.
+    voxel_sizes : np.ndarray (3)
+        If not specified, returns voxel count (instead of  volume)
+    min_lesions_vol : float
+        Minimum lesions volume in mm3 (default: 7, cross-shape).
+    computed_lesions_labels : np.ndarray (N)
+        For connectivity analysis, when the unique lesions labels are know,
+        provided a pre-computed list of labels save computation.
     Returns
     ---------
     lesions_load_dict : dict
         For each label, volume and lesions count
-    lesions_atlas : np.ndarray (3)
-        Labelled lesions atlas
     """
     voxel_vol = np.prod(voxel_sizes)
-    lesions_atlas, _ = ndi.label(lesions_data)
     lesions_load_dict = {}
-    for label in np.unique(map_data)[1:]:
+
+    if single_label:
+        labels_list = [1]
+    else:
+        labels_list = np.unique(map_data)[1:]
+
+    for label in labels_list:
         section_dict = {}
-        tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
-        tmp_mask[map_data == label] = 1
-        tmp_mask *= lesions_atlas
+        if not single_label:
+            tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
+            tmp_mask[map_data == label] = 1
+            tmp_mask *= lesions_atlas
+        else:
+            tmp_mask = lesions_atlas * map_data
 
         lesions_vols = []
-        for lesion in np.unique(tmp_mask)[1:]:
+        if computed_lesions_labels is None:
+            computed_lesions_labels = np.unique(tmp_mask)[1:]
+        for lesion in computed_lesions_labels:
             curr_vol = np.count_nonzero(tmp_mask[tmp_mask == lesion]) \
                 * voxel_vol
             if curr_vol >= min_lesions_vol:
                 lesions_vols.append(curr_vol)
-
-        section_dict['total_volume'] = round(np.count_nonzero(tmp_mask), 3)
-        section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
-        section_dict['std_volume'] = round(np.std(lesions_vols), 3)
-        section_dict['lesions_count'] = len(lesions_vols)
+        if lesions_vols:
+            section_dict['total_volume'] = round(np.count_nonzero(tmp_mask), 3)
+            section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
+            section_dict['std_volume'] = round(np.std(lesions_vols), 3)
+            section_dict['lesions_count'] = len(lesions_vols)
 
         if single_label:
             lesions_load_dict = section_dict
         else:
             lesions_load_dict[str(label).zfill(3)] = section_dict
 
-    return lesions_load_dict, tmp_mask
+    return lesions_load_dict
 
 
 def get_bundle_metrics_profiles(sft, metrics_files):

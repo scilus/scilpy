@@ -11,6 +11,8 @@ import json
 
 import nibabel as nib
 import numpy as np
+import scipy.ndimage as ndi
+
 from scilpy.io.image import get_data_as_mask, get_data_as_label
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -86,9 +88,10 @@ def main():
 
     is_single_label = args.bundle_labels_map is None
     voxel_sizes = lesions_img.header.get_zooms()[0:3]
+    lesions_atlas, _ = ndi.label(lesions_data)
 
-    lesions_load_dict, lesions_atlas = compute_lesions_stats(
-        map_data, lesions_data, single_label=is_single_label,
+    lesions_load_dict = compute_lesions_stats(
+        map_data, lesions_atlas, single_label=is_single_label,
         voxel_sizes=voxel_sizes, min_lesions_vol=args.min_lesions_vol)
 
     with open(args.out_json, 'w') as outfile:
@@ -96,6 +99,7 @@ def main():
                   sort_keys=args.sort_keys, indent=args.indent)
 
     if args.out_atlas:
+        lesions_atlas *= map_data.astype(np.bool)
         nib.save(nib.Nifti1Image(lesions_atlas, lesions_img.affine),
                  args.out_atlas)
 
@@ -105,13 +109,14 @@ def main():
             curr_vol = np.count_nonzero(lesions_atlas[lesions_atlas == lesion]) \
                 * np.prod(voxel_sizes)
             if curr_vol >= args.min_lesions_vol:
+                key = str(lesion).zfill(3)
+                lesions_dict[key] = {'volume': curr_vol}
                 if args.bundle:
                     tmp = np.zeros(lesions_atlas.shape)
                     tmp[lesions_atlas == lesion] = 1
                     new_sft, _ = filter_grid_roi(sft, tmp, 'any', False)
 
-                lesions_dict[str(lesion).zfill(3)] = {
-                    'volume': curr_vol, 'streamlines_count': len(new_sft)}
+                    lesions_dict[key]['streamlines_count'] = len(new_sft)
 
         with open(args.out_lesions_stats, 'w') as outfile:
             json.dump(lesions_dict, outfile,
