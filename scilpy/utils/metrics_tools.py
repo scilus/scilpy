@@ -13,7 +13,7 @@ from scilpy.utils.filenames import split_name_with_nii
 
 def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
                           voxel_sizes=[1.0, 1.0, 1.0], min_lesions_vol=7,
-                          computed_lesions_labels=None):
+                          precomputed_lesions_labels=None):
     """
     Returns information related to lesions inside of a binary mask or voxel
     labels map (bundle, for tractometry).
@@ -30,7 +30,7 @@ def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
         If not specified, returns voxel count (instead of  volume)
     min_lesions_vol : float
         Minimum lesions volume in mm3 (default: 7, cross-shape).
-    computed_lesions_labels : np.ndarray (N)
+    precomputed_lesions_labels : np.ndarray (N)
         For connectivity analysis, when the unique lesions labels are know,
         provided a pre-computed list of labels save computation.
     Returns
@@ -56,18 +56,26 @@ def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
             tmp_mask = lesions_atlas * map_data
 
         lesions_vols = []
-        if computed_lesions_labels is None:
+        if precomputed_lesions_labels is None:
             computed_lesions_labels = np.unique(tmp_mask)[1:]
+        else:
+            computed_lesions_labels = precomputed_lesions_labels
+
         for lesion in computed_lesions_labels:
             curr_vol = np.count_nonzero(tmp_mask[tmp_mask == lesion]) \
                 * voxel_vol
             if curr_vol >= min_lesions_vol:
                 lesions_vols.append(curr_vol)
         if lesions_vols:
-            section_dict['total_volume'] = round(np.count_nonzero(tmp_mask), 3)
+            section_dict['total_volume'] = round(np.sum(curr_vol), 3)
             section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
             section_dict['std_volume'] = round(np.std(lesions_vols), 3)
             section_dict['lesions_count'] = len(lesions_vols)
+        else:
+            section_dict['total_volume'] = 0
+            section_dict['avg_volume'] = 0
+            section_dict['std_volume'] = 0
+            section_dict['lesions_count'] = 0
 
         if single_label:
             lesions_load_dict = section_dict
@@ -193,7 +201,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
 def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                           distances_to_centroid_streamline,
-                                          metrics, labels, density_weighting=False,
+                                          metrics, labels,
+                                          density_weighting=False,
                                           distance_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
@@ -225,8 +234,8 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     unique_labels = np.unique(labels)
     num_digits_labels = len(str(np.max(unique_labels)))
     if density_weighting:
-        track_count = compute_tract_counts_map(streamlines,
-                                               metrics[0].shape).astype(np.float64)
+        track_count = compute_tract_counts_map(
+            streamlines, metrics[0].shape).astype(np.float64)
     else:
         track_count = np.ones(metrics[0].shape)
 

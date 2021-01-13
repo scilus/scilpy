@@ -186,7 +186,7 @@ def _processing_wrapper(args):
                 tmp_dict = compute_lesions_stats(
                     density.astype(np.bool), lesions_atlas,
                     voxel_sizes=voxel_sizes, single_label=True,
-                    computed_lesions_labels=computed_lesions_labels)
+                    precomputed_lesions_labels=computed_lesions_labels)
                 tmp_ind = _streamlines_in_mask(list(streamlines),
                                                lesions_atlas.astype(np.uint8),
                                                np.eye(3), [0, 0, 0])
