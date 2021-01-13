@@ -59,9 +59,8 @@ def _build_arg_parser():
                    help='Path of the input bundles.')
     p.add_argument('out_json',
                    help='Path of the output json file.')
-
     p.add_argument('--streamline_dice', action='store_true',
-                   help='Streamlines-wise Dice coefficient will be computed \n'
+                   help='Compute streamline-wise dice coefficient.\n'
                         'Tractograms must be identical [%(default)s].')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
@@ -71,9 +70,9 @@ def _build_arg_parser():
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end.')
     p.add_argument('--ratio', action='store_true',
-                   help='Return overlap and overreach as a ratio over the '
-                        'reference tractogram in a Tractometer-style way. Can '
-                        'only be used if also using the `single_compare` '
+                   help='Compute overlap and overreach as a ratio over the\n'
+                        'reference tractogram in a Tractometer-style way.\n'
+                        'Can only be used if also using the `single_compare` '
                         'option.')
 
     add_processes_arg(p)
