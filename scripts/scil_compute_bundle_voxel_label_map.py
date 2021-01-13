@@ -58,9 +58,9 @@ def _build_arg_parser():
                    help='File mapping of points to distances.')
 
     p.add_argument('--labels_color_dpp', metavar='FILE',
-                   help='Save a trk with labels color indicating labels.')
+                   help='Save bundle with labels coloring (.trk).')
     p.add_argument('--distances_color_dpp', metavar='FILE',
-                   help='Save a trk with labels color indicating labels.')
+                   help='Save bundle with distances coloring (.trk).')
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
                         '[%(default)s].')
