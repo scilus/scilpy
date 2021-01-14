@@ -7,18 +7,24 @@ The hexadecimal RGB color should be formatted as 0xRRGGBB or
 "#RRGGBB".
 
 Saves the RGB values in the data_per_point (color_x, color_y, color_z).
+
+If called with .tck, the output will always be .trk, because data_per_point has
+no equivalent in tck file.
 """
 
 import argparse
+import logging
 import os
 
-from dipy.io.streamline import save_tractogram, load_tractogram
+from dipy.io.streamline import save_tractogram
 import json
 import numpy as np
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_overwrite_arg,
+                             add_reference_arg)
 
 
 def _build_arg_parser():
@@ -27,7 +33,7 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractograms', nargs='+',
-                   help='Tractograms.')
+                   help='Input tractograms (.trk or .tck).')
     p1 = p.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',
                     help='Can be either hexadecimal (ie. "#RRGGBB" '
@@ -37,10 +43,11 @@ def _build_arg_parser():
                          'Same convention as --color.')
     p2 = p.add_mutually_exclusive_group()
     p2.add_argument('--out_suffix', default='colored',
-                    help='Specify suffix to append to input')
-    p2.add_argument('--out_name',
-                    help='Colored TRK tractogram.')
+                    help='Specify suffix to append to input basename.')
+    p2.add_argument('--out_tractogram',
+                    help='Output filename of colored tractogram (.trk).')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -49,23 +56,24 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    logging.basicConfig(level=logging.WARNING)
 
     assert_inputs_exist(parser, args.in_tractograms)
     if args.out_suffix:
-        if args.out_name:
+        if args.out_tractogram:
             args.out_suffix = ''
         else:
             args.out_suffix = '_'+args.out_suffix
 
-    if len(args.in_tractograms) > 1 and args.out_name:
+    if len(args.in_tractograms) > 1 and args.out_tractogram:
         parser.error('Using multiple inputs, use --out_suffix.')
     out_filenames = []
     for filename in args.in_tractograms:
-        base, ext = os.path.splitext(filename) if args.out_name is None \
-            else os.path.splitext(args.out_name)
+        base, ext = os.path.splitext(filename) if args.out_tractogram is None \
+            else os.path.splitext(args.out_tractogram)
         if not ext == '.trk':
-            parser.error('Output file needs to end with .trk.')
-        out_filenames.append('{}{}{}'.format(base, args.out_suffix, ext))
+            logging.warning('Input is TCK file, will be converted to TRK.')
+        out_filenames.append('{}{}{}'.format(base, args.out_suffix, '.trk'))
     assert_outputs_exist(parser, args, out_filenames)
 
     for i, filename in enumerate(args.in_tractograms):
@@ -98,7 +106,7 @@ def main():
             parser.error('Hexadecimal RGB color should be formatted as '
                          '"#RRGGBB" or 0xRRGGBB.')
 
-        sft = load_tractogram(filename, 'same')
+        sft = load_tractogram_with_reference(parser, args, filename)
         tmp = [np.tile([red, green, blue],
                        (len(i), 1)) for i in sft.streamlines]
         sft.data_per_point["color"] = tmp
