@@ -59,9 +59,8 @@ def _build_arg_parser():
                    help='Path of the input bundles.')
     p.add_argument('out_json',
                    help='Path of the output json file.')
-
     p.add_argument('--streamline_dice', action='store_true',
-                   help='Streamlines-wise Dice coefficient will be computed \n'
+                   help='Compute streamline-wise dice coefficient.\n'
                         'Tractograms must be identical [%(default)s].')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
@@ -70,6 +69,11 @@ def _build_arg_parser():
                    help='Compare inputs to this single file.')
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end.')
+    p.add_argument('--ratio', action='store_true',
+                   help='Compute overlap and overreach as a ratio over the\n'
+                        'reference tractogram in a Tractometer-style way.\n'
+                        'Can only be used if also using the `single_compare` '
+                        'option.')
 
     add_processes_arg(p)
     add_reference_arg(p)
@@ -149,6 +153,7 @@ def compute_all_measures(args):
     filename_2, reference_2 = tuple_2
     streamline_dice = args[1]
     disable_streamline_distance = args[2]
+    ratio = args[3]
 
     if not is_header_compatible(reference_1, reference_2):
         raise ValueError('{} and {} have incompatible headers'.format(
@@ -186,6 +191,13 @@ def compute_all_measures(args):
     volume_overreach_endpoints = np.abs(np.count_nonzero(
         endpoints_density_1 + endpoints_density_2) - volume_overlap_endpoints)
 
+    if ratio:
+        count = np.count_nonzero(binary_1)
+        volume_overlap /= count
+        volume_overlap_endpoints /= count
+        volume_overreach /= count
+        volume_overreach_endpoints /= count
+
     # These measures are in mm
     bundle_adjacency_voxel = compute_bundle_adjacency_voxel(density_1,
                                                             density_2,
@@ -222,6 +234,10 @@ def compute_all_measures(args):
                      'volume_overreach_endpoints',
                      'density_correlation',
                      'density_correlation_endpoints']
+
+    # If computing ratio, voxel size does not make sense
+    if ratio:
+        voxel_size = 1.
     measures = [bundle_adjacency_voxel,
                 dice_vox, w_dice_vox,
                 volume_overlap * voxel_size,
@@ -260,6 +276,9 @@ def main():
 
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [args.out_json])
+
+    if args.ratio and not args.single_compare:
+        parser.error('Can only compute ratio if also using `single_compare`')
 
     nbr_cpu = validate_nbr_processes(parser, args)
 
@@ -306,14 +325,16 @@ def main():
         all_measures_dict = []
         for i in comb_dict_keys:
             all_measures_dict.append(compute_all_measures([
-                i, args.streamline_dice, args.disable_streamline_distance]))
+                i, args.streamline_dice, args.disable_streamline_distance,
+                args.ratio]))
     else:
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
                 itertools.repeat(
                     args.streamline_dice),
-                itertools.repeat(args.disable_streamline_distance)))
+                itertools.repeat(args.disable_streamline_distance),
+                itertools.repeat(args.ratio)))
         pool.close()
         pool.join()
 
