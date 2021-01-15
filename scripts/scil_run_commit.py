@@ -114,7 +114,7 @@ def _build_arg_parser():
     g0.add_argument('--commit2', action='store_true',
                     help='Run commit2, requires .h5 as input and will force\n'
                          'ball&stick model.')
-    g0.add_argument('--lambda_commit_2', type=float, default=1e-4,
+    g0.add_argument('--lambda_commit_2', type=float, default=5e-4,
                     help='Specify the clustering prior strength [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
@@ -426,7 +426,7 @@ def main():
             regenerate_kernels = True
         mit.set_config('ATOMS_path', kernels_dir)
 
-        mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
+        mit.generate_kernels(ndirs=args.nbr_dir, regenerate=regenerate_kernels)
         if args.compute_only:
             return
         mit.load_kernels()
@@ -436,7 +436,7 @@ def main():
         mit.set_threads(args.nbr_processes)
 
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
-        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
+        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=False)
         mit.save_results()
         _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                               'commit_1/')
@@ -455,7 +455,7 @@ def main():
                           commit.solvers.non_negative,
                           commit.solvers.non_negative],
                 lambdas=[args.lambda_commit_2, 0.0, 0.0])
-            mit.fit(tol_fun=1e-3, max_iter=1000,
+            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter,
                     regularisation=prior_on_bundles, verbose=False)
             mit.save_results()
             _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
