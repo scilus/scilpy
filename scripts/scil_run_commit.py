@@ -57,7 +57,7 @@ import commit
 from commit import trk2dictionary
 from dipy.io.stateful_tractogram import (Origin, Space,
                                          StatefulTractogram)
-from dipy.io.streamline import save_tractogram
+from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.gradients import read_bvals_bvecs
 import h5py
@@ -169,9 +169,10 @@ def redirect_stdout_c():
     sys.stdout = os.fdopen(newstdout, 'w')
 
 
-def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, sub_dir):
-    args.out_dir = os.path.join(args.out_dir, sub_dir)
-    os.mkdir(args.out_dir)
+def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                          sub_dir):
+    out_dir = os.path.join(args.out_dir, sub_dir)
+    os.mkdir(out_dir)
     # Simplifying output for streamlines and cleaning output directory
     commit_results_dir = os.path.join(tmp_dir.name,
                                       'Results_StickZeppelinBall')
@@ -183,6 +184,7 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, sub_dir):
                             'commit_weights.txt'),
                commit_weights)
 
+    sft = load_tractogram(args.in_tractogram, 'same')
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
@@ -194,7 +196,7 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, sub_dir):
             # Assign the weights into the hdf5, while respecting the ordering of
             # connections/streamlines
             logging.debug('Adding commit weights to {}.'.format(new_filename))
-            for i, key in enumerate(hdf5_keys):
+            for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
                 old_group = hdf5_file[key]
                 tmp_commit_weights = commit_weights[offsets_list[i]
@@ -228,7 +230,7 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, sub_dir):
 
     files = os.listdir(commit_results_dir)
     for f in files:
-        shutil.copy(os.path.join(commit_results_dir, f), args.out_dir)
+        shutil.copy(os.path.join(commit_results_dir, f), out_dir)
 
     # Save split tractogram (essential/nonessential) and/or saving the
     # tractogram with data_per_streamline updated
@@ -249,13 +251,13 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, sub_dir):
                                                 args.threshold_weights))
 
             save_tractogram(sft[essential_ind],
-                            os.path.join(args.out_dir,
+                            os.path.join(out_dir,
                                          'essential_tractogram.trk'))
             save_tractogram(sft[nonessential_ind],
-                            os.path.join(args.out_dir,
+                            os.path.join(out_dir,
                                          'nonessential_tractogram.trk'))
         if args.keep_whole_tractogram:
-            output_filename = os.path.join(args.out_dir, 'tractogram.trk')
+            output_filename = os.path.join(out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
                 output_filename))
             shutil.copy(tmp_tractogram_filename, output_filename)
@@ -324,7 +326,6 @@ def main():
 
     tmp_dir = tempfile.TemporaryDirectory()
     hdf5_file = None
-    sft = None
     if ext == '.h5':
         logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
@@ -437,7 +438,8 @@ def main():
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
         mit.save_results()
-        _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft, 'commit_1/')
+        _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                              'commit_1/')
 
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
@@ -456,8 +458,8 @@ def main():
             mit.fit(tol_fun=1e-3, max_iter=1000,
                     regularisation=prior_on_bundles, verbose=False)
             mit.save_results()
-            _save_results_wrapper(args, tmp_dir, ext, hdf5_file, sft,
-                                  'commit_1/')
+            _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                                  'commit_2/')
 
     tmp_dir.cleanup()
 
