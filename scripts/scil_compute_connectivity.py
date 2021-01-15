@@ -81,6 +81,8 @@ def _processing_wrapper(args):
     if key not in hdf5_file:
         return
     streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
+    if len(streamlines) == 0:
+        return
 
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}

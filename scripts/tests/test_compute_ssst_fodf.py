@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_fodf.py', '--help')
+    ret = script_runner.run('scil_compute_ssst_fodf.py', '--help')
     assert ret.success
 
 
@@ -26,7 +26,7 @@ def test_execution_processing(script_runner):
                            '3000.bvec')
     in_frf = os.path.join(get_home(), 'processing',
                           'frf.txt')
-    ret = script_runner.run('scil_compute_fodf.py', in_dwi, in_bval, in_bvec,
-                            in_frf, 'fodf.nii.gz', '--sh_order', '4',
+    ret = script_runner.run('scil_compute_ssst_fodf.py', in_dwi, in_bval,
+                            in_bvec, in_frf, 'fodf.nii.gz', '--sh_order', '4',
                             '--sh_basis', 'tournier07', '--processes', '1')
     assert ret.success

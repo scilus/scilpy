@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import os
 import multiprocessing
 import re
@@ -353,8 +354,8 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
-                    'overwritten. Use -f option if you want to continue.'
-                    .format(path))
+                    'overwritten or even deleted. Use -f option if you want '
+                    'to continue.'.format(path))
             else:
                 for the_file in os.listdir(path):
                     file_path = os.path.join(path, the_file)
@@ -474,3 +475,22 @@ def assert_fsl_options_exist(parser, options_args, command):
         if nOption not in fsl_options:
             parser.error('--{} is not a valid option for '
                          '{} command.'.format(nOption, command))
+
+
+def parser_color_type(arg):
+    """
+    Validate that a color component is between RBG values, else return an error
+    From https://stackoverflow.com/a/55410582
+    """
+
+    MIN_VAL = 0
+    MAX_VAL = 255
+    try:
+        f = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Color component must be a floating "
+                                         "point number")
+    if f < MIN_VAL or f > MAX_VAL:
+        raise argparse.ArgumentTypeError(
+            "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
+    return f

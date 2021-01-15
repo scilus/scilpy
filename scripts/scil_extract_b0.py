@@ -17,40 +17,40 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import add_verbose_arg, assert_inputs_exist
+from scilpy.io.utils import (add_verbose_arg, assert_inputs_exist,
+                             add_force_b0_arg)
+from scilpy.utils.bvec_bval_tools import check_b0_threshold
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
-    # TODO Rename variable p
-    # TODO Rename to in_*
-    parser.add_argument('dwi',
-                        help='DWI Nifti image')
-    parser.add_argument('bvals',
-                        help='B-values file in FSL format')
-    parser.add_argument('bvecs',
-                        help='B-vectors file in FSL format')
-    parser.add_argument('output',
-                        help='Output b0 file(s)')
-    parser.add_argument('--b0_thr', type=float, default=0.0,
-                        help='All b-values with values less than or equal '
-                             'to b0_thr are considered as b0s i.e. without '
-                             'diffusion weighting')
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('in_dwi',
+                   help='DWI Nifti image.')
+    p.add_argument('in_bval',
+                   help='b-values filename, in FSL format (.bval).')
+    p.add_argument('in_bvec',
+                   help='b-values filename, in FSL format (.bvec).')
+    p.add_argument('out_b0',
+                   help='Output b0 file(s).')
+    p.add_argument('--b0_thr', type=float, default=0.0,
+                   help='All b-values with values less than or equal '
+                        'to b0_thr are considered as b0s i.e. without '
+                        'diffusion weighting.')
 
-    group = parser.add_mutually_exclusive_group()
+    group = p.add_mutually_exclusive_group()
     group.add_argument('--all', action='store_true',
                        help='Extract all b0. Index number will be appended to '
-                            'the output file')
-    group.add_argument('--mean', action='store_true', help='Extract mean b0')
+                            'the output file.')
+    group.add_argument('--mean', action='store_true', help='Extract mean b0.')
 
-    add_verbose_arg(parser)
+    add_force_b0_arg(p)
+    add_verbose_arg(p)
 
-    return parser
+    return p
 
 
 def _keep_time_step(dwi, time, output):
@@ -87,31 +87,16 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.dwi, args.bvals, args.bvecs])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
 
     # We don't assert the existence of any output here because there
     # are many possible inputs/outputs.
 
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     bvals_min = bvals.min()
-
-    # TODO refactor those checks
-    # Should be min bval, then b0.
-    if bvals_min < 0 or bvals_min > 20:
-        raise ValueError(
-            'The minimal b-value is lesser than 0 or greater than 20. This '
-            'is highly suspicious. Please check your data to ensure '
-            'everything is correct. Value found: {}'.format(bvals_min))
-
     b0_threshold = args.b0_thr
-    if b0_threshold < 0 or b0_threshold > 20:
-        raise ValueError('Invalid --b0_thr value (<0 or >20). This is highly '
-                         'suspicious. Value found: {}'.format(b0_threshold))
 
-    if not np.isclose(bvals_min, 0.0):
-        b0_threshold = b0_threshold if b0_threshold > bvals_min else bvals_min
-        logging.warning('No b=0 image. Setting b0_threshold to {}'.format(
-                        b0_threshold))
+    check_b0_threshold(args.force_b0_threshold, bvals_min)
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
@@ -120,12 +105,12 @@ def main():
 
     if args.mean:
         logger.info('Using mean of indices {} for b0'.format(b0_idx))
-        _mean_in_time(args.dwi, b0_idx, args.output)
+        _mean_in_time(args.in_dwi, b0_idx, args.out_b0)
     else:
         if not args.all:
             b0_idx = [b0_idx[0]]
         logger.info("Keeping {} for b0".format(b0_idx))
-        _keep_time_step(args.dwi, b0_idx, args.output)
+        _keep_time_step(args.in_dwi, b0_idx, args.out_b0)
 
 
 if __name__ == '__main__':

@@ -78,7 +78,7 @@ def _build_arg_parser():
                    help='if set, will use the fixed seed strategy for eddy.\n'
                         'Enhances reproducibility.')
 
-    p.add_argument('--eddy_options',  default=None,
+    p.add_argument('--eddy_options',  default='',
                    help='Additional options you want to use to run eddy.\n'
                         'Add these options using quotes (i.e. "--ol_nstd=6'
                         ' --mb=4").')

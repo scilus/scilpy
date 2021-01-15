@@ -133,6 +133,7 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
 
 def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
     """ Set a snapshot of the bundle in a cell of mosaic """
+
     window.snapshot(ren, path, size=(width, height))
     j = height * view_number
     image = Image.open(path)
@@ -167,6 +168,8 @@ def main():
     if output_dir:
         assert_output_dirs_exist_and_empty(parser, args, output_dir,
                                            create_dir=True)
+
+    _, extension = os.path.splitext(args.out_image)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
@@ -237,7 +240,8 @@ def main():
                 colors = random_rgb()
             # Select the streamlines to plot
             if bundle_ext in ['.tck', '.trk']:
-                if args.random_coloring is None and args.uniform_coloring is None:
+                if (args.random_coloring is None
+                        and args.uniform_coloring is None):
                     colors = None
                 bundle_tractogram_file = nib.streamlines.load(bundle_file)
                 streamlines = bundle_tractogram_file.streamlines
@@ -270,14 +274,16 @@ def main():
             ren.zoom(zoom)
             view_number = 0
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             ren.pitch(180)
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 1
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             ren.rm(slice_actor)
             slice_actor2 = slice_actor.copy()
@@ -291,7 +297,8 @@ def main():
             ren.zoom(zoom)
             view_number = 2
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             ren.pitch(180)
             ren.set_camera(view_up=(0, 0, 1))
@@ -299,7 +306,8 @@ def main():
             ren.zoom(zoom)
             view_number = 3
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             ren.rm(slice_actor2)
             slice_actor3 = slice_actor.copy()
@@ -312,14 +320,16 @@ def main():
             ren.zoom(zoom)
             view_number = 4
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             ren.yaw(180)
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 5
             set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+                            output_paths[view_number] +
+                            '.{}'.format(extension), width, height, i)
 
             view_number = 6
             j = height * view_number
