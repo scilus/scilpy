@@ -1,11 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division
 import logging
 
 from itertools import combinations
-
 import scipy.stats
 
 

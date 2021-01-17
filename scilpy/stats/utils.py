@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import csv
@@ -49,10 +49,14 @@ class data_for_stat(object):
             for variable in participant:
                 if variable != 'participant_id':
                     self.data_dictionnary[participant['participant_id']]\
-                                         [variable] = participant[variable]
+                        [variable] = participant[variable]
 
         logging.debug('Data_dictionnary')
-        logging.debug(self.data_dictionnary[self.data_dictionnary.keys()[0]])
+        logging.debug(self.data_dictionnary[self.get_first_participant()])
+
+        with open('data.json', 'w') as fp:
+            json.dump(self.data_dictionnary, fp, indent=4)
+
 
     def validation_participant_id(self, json_info, participants_info):
         """
@@ -60,12 +64,11 @@ class data_for_stat(object):
         """
         # Create the list of participants id from the json dictionnary
 
-        participants_from_json = json_info.keys()
+        participants_from_json = list(json_info.keys())
         logging.debug('participant list from json dictionnary:')
         logging.debug(participants_from_json)
 
         # Create the list of participants id from the tsv list of dictionnary
-
         participants_from_tsv = []
         for participant in participants_info:
             participants_from_tsv.append(participant['participant_id'])
@@ -73,7 +76,6 @@ class data_for_stat(object):
         logging.debug(participants_from_tsv)
 
         # Compare the two list
-
         participants_from_json.sort()
         participants_from_tsv.sort()
 
@@ -101,15 +103,26 @@ class data_for_stat(object):
     def get_participants_list(self):
         # Construct the list of participant_id from the data_dictionnary
 
-        return self.data_dictionnary.keys()
+        return list(self.data_dictionnary.keys())
+
+    def get_first_participant(self):
+        # Get the first participant
+        return next(iter(self.data_dictionnary))
+
+    def get_first_bundle(self, participant):
+        # Get the first bundle
+        return next(iter(self.data_dictionnary[participant]['bundles']))
+
+    def get_first_measure(self, participant, bundle):
+        # Get the first measure key
+        return next(iter(self.data_dictionnary[participant]['bundles'][bundle]))
 
     def get_participant_attributes_list(self):
         # Construct the list of attribute from data_dictionnary
         # We take the attributes from first participant
         # (assume to be consistent across participants)
-
-        first_participant = self.data_dictionnary.keys()[0]
-        attributes_list = self.data_dictionnary[first_participant].keys()
+        first_participant = self.get_first_participant()
+        attributes_list = list(self.data_dictionnary[first_participant].keys())
         attributes_list.remove('bundles')
         return attributes_list
 
@@ -117,35 +130,30 @@ class data_for_stat(object):
         # Construct the list of bundles_id from data_dictionnary
         # We take the bundles from first participant
         # (assume to be consistent across participants)
-
-        first_participant = self.data_dictionnary.keys()[0]
-        return self.data_dictionnary[first_participant]['bundles'].keys()
+        first_participant = self.get_first_participant()
+        return list(self.data_dictionnary[first_participant]['bundles'].keys())
 
     def get_measures_list(self):
         # Construct the list of measures_id from data_dictionnary
         # We take the measures from first participant
         # (assume to be consistent across participants)
-
-        first_participant = self.data_dictionnary.keys()[0]
-        first_bundle = self.data_dictionnary[first_participant]\
-                                            ['bundles'].keys()[0]
-        return self.data_dictionnary[first_participant]\
-                                    ['bundles'][first_bundle].keys()
+        first_participant = self.get_first_participant()
+        first_bundle = self.get_first_bundle(first_participant)
+        return list(self.data_dictionnary[first_participant]\
+                                    ['bundles'][first_bundle].keys())
 
     def get_values_list(self):
         # Construct the list of values_id from data_dictionnary
         # We take the values from first participant
         # (assume to be consistent across participants)
 
-        first_participant = self.data_dictionnary.keys()[0]
-        first_bundle = self.data_dictionnary[first_participant]\
-                                            ['bundles'].keys()[0]
-        first_measure = self.data_dictionnary[first_participant]\
-                                             ['bundles']\
-                                             [first_bundle].keys()[0]
-        return self.data_dictionnary[first_participant]\
+        first_participant = self.get_first_participant()
+        first_bundle = self.get_first_bundle(first_participant)
+        first_measure = self.get_first_measure(first_participant,
+                                               first_bundle)
+        return list(self.data_dictionnary[first_participant]\
                                     ['bundles']\
-                                    [first_bundle][first_measure].keys()
+                                    [first_bundle][first_measure].keys())
 
     def get_groups_dictionnary(self, group_by):
         """
@@ -176,7 +184,8 @@ class data_for_stat(object):
 
             else:
                 group_dict.update({curr_group_id:
-                            {participant: self.data_dictionnary[participant]}})
+                                  {participant: self.data_dictionnary[participant]}})
+
         return group_dict
 
     def get_groups_list(self, group_by):
@@ -191,8 +200,7 @@ class data_for_stat(object):
             list of group id generated by group_by variable.
         """
         # Generated the list of group generated by group_by variable
-
-        return self.get_groups_dictionnary(group_by).keys()
+        return list(self.get_groups_dictionnary(group_by).keys())
 
     def get_data_sample(self, bundle, measure, value):
         """
@@ -209,13 +217,12 @@ class data_for_stat(object):
         data_sample : array of float
             The sample array associate with the parameters.
         """
-        sample_size = len(self.data_dictionnary.keys())
-        data_sample = np.zeros(sample_size)
-        for i in range(len(self.data_dictionnary)):
-            data_sample[i] = self.data_dictionnary.values()[i]\
-                                                           ['bundles']\
-                                                           [bundle]\
-                                                           [measure][value]
+        data_sample = []
+        for participant in self.data_dictionnary:
+            data_sample.append(self.data_dictionnary[participant]\
+                                                    ['bundles']\
+                                                    [bundle]\
+                                                    [measure][value])
         return data_sample
 
 
@@ -241,12 +248,12 @@ def get_group_data_sample(group_dict, group_id, bundle, measure, value):
     """
     sample_size = len(group_dict[group_id].keys())
     data_sample = np.zeros(sample_size)
-    for i in range(len(group_dict[group_id])):
-        if bundle in group_dict[group_id].values()[i]['bundles'].keys():
+    for index, participant in enumerate(group_dict[group_id].keys()):
+        if bundle in group_dict[group_id][participant]['bundles']:
             # Assure the participants has the bundle in the database
-            if measure in group_dict[group_id].values()[i]['bundles'][bundle].keys():
+            if measure in group_dict[group_id][participant]['bundles'][bundle]:
                 # Assure the participants has the measure in the database
-                data_sample[i] = group_dict[group_id].values()[i]\
+                data_sample[index] = group_dict[group_id][participant]\
                                                             ['bundles']\
                                                             [bundle]\
                                                             [measure][value]
@@ -377,14 +384,14 @@ def write_csv_from_json(writer, json_dict):
                         ['Test name', 'p-value', 'Test name'])
 
     # Now the result for every measure
-    measures = json_dict.keys()
+    measures = list(json_dict.keys())
     measures.sort()
     for i in range(len(measures)):
         # Normality
         curr_pvalue_n = []
         for j in range(len(groups_list)):
-            curr_pvalue_n.append(json_dict[measures[i]]\
-                                          ['Normality']\
+            curr_pvalue_n.append(json_dict[measures[i]]
+                                          ['Normality']
                                           ['P-value'][groups_list[j]])
         curr_n = [json_dict[measures[i]]['Normality']['Test']] + curr_pvalue_n
 
@@ -400,10 +407,10 @@ def write_csv_from_json(writer, json_dict):
         if 'Pairwise group difference' in json_dict[measures[i]].keys():
             curr_pvalue_pd = []
             for j in range(len(pairwise_list)):
-                curr_pvalue_pd.append(json_dict[measures[i]]\
-                                               ['Pairwise group difference']\
+                curr_pvalue_pd.append(json_dict[measures[i]]
+                                               ['Pairwise group difference']
                                                ['P-value'][pairwise_list[j]])
-            curr_pd = [json_dict[measures[i]]['Pairwise group difference']\
+            curr_pd = [json_dict[measures[i]]['Pairwise group difference']
                                              ['Test']] + curr_pvalue_pd
             writer.writerow([measures[i]] + curr_n + curr_h + curr_gd + curr_pd)
         else:
@@ -469,17 +476,20 @@ def visualise_distribution(data_by_group, participants_id, bundle, measure, valu
         labels[k] = groups_list[k]
     ax.set_xticklabels(labels)
     plt.ylabel(measure)
-    plt.title("Distribution of the " + measure + " data set in bundle " + bundle)
-    save_path = oFolder + '/Graph/' + bundle + '/plot_' + measure
+    plt.title("Distribution of the {} data set in bundle {}.".format(measure,
+                                                                     bundle))
+
+    save_path = os.path.join(oFolder,'Graph',bundle,'plot_' + measure)
 
     if not os.path.exists(os.path.dirname(save_path)):
         try:
             os.makedirs(os.path.dirname(save_path))
         except OSError as exc:
-            if exc.errno != errno.EEXIST:
+            if exc.errno != exc.EEXIST:
                 raise
 
-    fig.savefig(oFolder + '/Graph/' + bundle + '/' + measure)
+    fig.savefig(os.path.join(oFolder, 'Graph', bundle, measure))
+#    fig.savefig(oFolder + '/Graph/' + bundle + '/' + measure)
 
     logging.debug('outliers:[(id, group)]')
     logging.debug(outliers)

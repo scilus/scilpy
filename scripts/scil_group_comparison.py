@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -71,7 +71,7 @@ def _build_arg_parser():
                         'Ex : Sex, Number of children, ...')
 
     p.add_argument('o_json', metavar='O_JSON',
-                   help='The name of the result json output file'
+                   help='The name of the result json output file.'
                         'No need to add the extension .json')
 
     p.add_argument('--bundles', '-b',
