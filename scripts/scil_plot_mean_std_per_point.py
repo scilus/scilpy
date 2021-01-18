@@ -121,7 +121,8 @@ def main():
                                      title=bundle_name,
                                      xlabel='Location along the streamline',
                                      ylabel=metric,
-                                     fill_color=(color.replace("0x", "#")))
+                                     fill_color=(color.replace("0x", "#")),
+                                     display_means=args.display_means)
             fig.savefig(os.path.join(args.out_dir,
                                      '{}_{}.png'.format(bundle_name,
                                                         metric)),
