@@ -63,13 +63,13 @@ def add_gradient_info(procpar_path, header):
     with open(procpar_path, 'r') as procpar:
         for line in procpar:
             if line.startswith('bvalue'):
-                bval = procpar.next()
+                bval = next(procpar)
             if line.startswith('dpe '):
-                diff_x = procpar.next()
+                diff_x = next(procpar)
             if line.startswith('dro '):
-                diff_y = procpar.next()
+                diff_y = next(procpar)
             if line.startswith('dsl '):
-                diff_z = procpar.next()
+                diff_z = next(procpar)
 
     if bval and diff_x and diff_y and diff_z:
         header['bvalue'] = [float(x) for x in bval.split()[1:]]
@@ -119,6 +119,7 @@ def read_file(file_path):
         # Read entire file
         while True:
             line = fp.readline()
+            line = line.decode()
 
             if line[0] == chr(12):
                 break
@@ -126,6 +127,9 @@ def read_file(file_path):
             # Check line for tag, extract value with the regex then put it in
             # the header with the associated tag.
             for file_key, head_key in find_values:
+                print(file_path)
+                print(file_key)
+                print(line)
                 if line.find(file_key) > 0:
                     raw_header[head_key] = \
                         re.findall(named_value_regex, line)[0]
@@ -173,7 +177,8 @@ def read_file(file_path):
                 raw_header['shape'] = np.array([int(x) for x in m])
 
         # Total number of data pixels
-        nb_voxels = reduce(operator.mul, raw_header['shape'])
+        #nb_voxels = reduce(operator.mul, raw_header['shape'])
+        nb_voxels = np.prod(raw_header['shape'])
 
         # Set how data is packed
         raw_header['fmt'] = "{}f".format(nb_voxels)
@@ -243,13 +248,14 @@ def read_directory(path):
 
         # Support for fourth dimension
         time = int(float(final_header['array_dim']))
-        if time > 0:
+        if time > 1:
             final_header['shape'] = (final_header['shape'][0],
                                      final_header['shape'][1],
-                                     final_header['shape'][2] / time,
+                                     round(final_header['shape'][2] / time),
                                      time)
 
             final_header['voxel_dim'].append(1)
+
             all_data = all_data.reshape(final_header['shape'])
     else:
         all_data = np.transpose(all_data, (3, 2, 1, 0))
@@ -329,7 +335,7 @@ def save_babel(out_path, data, raw_header, bval_path, bvec_path, affine=None):
     img.to_filename(out_path)
 
 
-def write_gradient_information(header, bval_path, bvec_path):
+def write_gradient_information(header, bval_path=None, bvec_path=None):
     """
     Write gradient information in present in the header.
 

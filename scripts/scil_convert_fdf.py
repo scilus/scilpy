@@ -36,7 +36,7 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_path)
+    #assert_inputs_exist(parser, args.in_path)
     assert_outputs_exist(parser, args, args.out_path, optional=[args.bval,
                                                                 args.bvec])
 
