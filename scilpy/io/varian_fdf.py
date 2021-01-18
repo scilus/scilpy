@@ -3,7 +3,6 @@
 import glob
 import logging
 import os
-import operator
 import re
 import struct
 
@@ -174,7 +173,7 @@ def read_file(file_path):
                 raw_header['shape'] = np.array([int(x) for x in m])
 
         # Total number of data pixels
-        #nb_voxels = reduce(operator.mul, raw_header['shape'])
+        # nb_voxels = reduce(operator.mul, raw_header['shape'])
         nb_voxels = np.prod(raw_header['shape'])
 
         # Set how data is packed

@@ -11,7 +11,6 @@ import argparse
 
 from scilpy.io.varian_fdf import load_fdf, save_babel
 from scilpy.io.utils import (add_overwrite_arg,
-                             assert_inputs_exist,
                              assert_outputs_exist)
 
 
@@ -36,7 +35,6 @@ def main():
     parser = build_arg_parser()
     args = parser.parse_args()
 
-    #assert_inputs_exist(parser, args.in_path)
     assert_outputs_exist(parser, args, args.out_path, optional=[args.bval,
                                                                 args.bvec])
 
