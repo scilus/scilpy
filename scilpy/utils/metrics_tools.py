@@ -212,7 +212,8 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
 
 
 def plot_metrics_stats(means, stds, title=None, xlabel=None,
-                       ylabel=None, figlabel=None, fill_color=None):
+                       ylabel=None, figlabel=None, fill_color=None,
+                       display_means=False):
     """
     Plots the mean of a metric along n points with the standard deviation.
 
@@ -233,7 +234,8 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
     fill_color: string
         Hexadecimal RGB color filling the region between mean ± std. The
         hexadecimal RGB color should be formatted as #RRGGBB
-
+    display_means: bool
+        Display the subjects means as semi-transparent line
     Return
     ------
     The figure object.
@@ -254,7 +256,7 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     if means.ndim > 1:
         mean = np.average(means, axis=1)
-        std = np.average(stds, axis=1) + np.std(means, axis=1)
+        std = np.std(means, axis=1)
         alpha = 0.5
     else:
         mean = np.array(means)
@@ -268,7 +270,7 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     ax.set_xlim(0, len(mean)+1)
 
-    if means.ndim > 1:
+    if means.ndim > 1 and display_means:
         for i in range(means.shape[-1]):
             ax.plot(dim, means[:, i], color="k", linewidth=1,
                     solid_capstyle='round', alpha=0.1)
