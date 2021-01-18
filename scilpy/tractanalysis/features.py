@@ -8,6 +8,45 @@ from dipy.segment.metric import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
 import numpy as np
+from sklearn.preprocessing import normalize
+
+def detect_ushape(streamlines, ufactor=[0.5, 1]):
+    """
+    Remove loops and sharp turns from a list of streamlines.
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines from which to remove loops and sharp turns.
+    threshold:  float
+        Threshold bla bla bla
+
+    Returns
+    -------
+    list: the ids of clean streamlines
+        Only the ids are returned so proper filtering can be done afterwards
+    """
+    ids = []
+    for i, s in enumerate(streamlines):
+        if len(s)>=4:
+            first_point = s[0]
+            last_point = s[-1]
+            second_point = s[round(len(s)/3)]
+            third_point = s[round(2*len(s)/3)]
+
+            v1 = first_point - second_point
+            v2 = second_point - third_point
+            v3 = third_point - last_point
+
+            v1 = v1 / np.linalg.norm(v1)
+            v2 = v2 / np.linalg.norm(v2)
+            v3 = v3 / np.linalg.norm(v3)
+
+            val = np.dot(np.cross(v1,v2), np.cross(v2,v3))
+
+            if min(ufactor) < val < max(ufactor):
+                ids.append(i)
+
+    return ids
 
 
 def remove_loops_and_sharp_turns(streamlines,
