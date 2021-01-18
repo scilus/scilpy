@@ -127,9 +127,6 @@ def read_file(file_path):
             # Check line for tag, extract value with the regex then put it in
             # the header with the associated tag.
             for file_key, head_key in find_values:
-                print(file_path)
-                print(file_key)
-                print(line)
                 if line.find(file_key) > 0:
                     raw_header[head_key] = \
                         re.findall(named_value_regex, line)[0]
