@@ -69,9 +69,9 @@ def main():
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.remaining_tractogram])
 
-    #if args.threshold <= 0:
-    #    parser.error('Threshold "{}" '.format(args.ufactor) +
-    #                 'must be greater than 0')
+    if min(args.ufactor) <= 0 or max(args.ufactor) > 1:
+        parser.error('U-factor "{}" '.format(args.ufactor) +
+                     'must be greater than 0 and lower or equal to 1.')
 
     tractogram = load_tractogram_with_reference(
         parser, args, args.in_tractogram)
