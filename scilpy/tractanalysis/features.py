@@ -8,7 +8,7 @@ from dipy.segment.metric import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
 import numpy as np
-from sklearn.preprocessing import normalize
+
 
 def detect_ushape(streamlines, ufactor=[0.5, 1]):
     """
@@ -27,7 +27,7 @@ def detect_ushape(streamlines, ufactor=[0.5, 1]):
     """
     ids = []
     for i, s in enumerate(streamlines):
-        if len(s)>=4:
+        if len(s) >= 4:
             first_point = s[0]
             last_point = s[-1]
             second_point = s[round(len(s)/3)]
@@ -41,7 +41,7 @@ def detect_ushape(streamlines, ufactor=[0.5, 1]):
             v2 = v2 / np.linalg.norm(v2)
             v3 = v3 / np.linalg.norm(v3)
 
-            val = np.dot(np.cross(v1,v2), np.cross(v2,v3))
+            val = np.dot(np.cross(v1, v2), np.cross(v2, v3))
 
             if min(ufactor) < val < max(ufactor):
                 ids.append(i)
@@ -84,6 +84,8 @@ def remove_loops_and_sharp_turns(streamlines,
         if tm.winding(s) < max_angle:
             ids.append(i)
             streamlines_clean.append(s)
+        else:
+            streamlines_clean.append = np.empty((1,3))
 
     if use_qb:
         ids = []
