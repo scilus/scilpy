@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from itertools import islice
+import logging
 import os
 import tempfile
 
@@ -84,6 +85,8 @@ def load_tractogram_with_reference(parser, args, filepath,
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
+        logging.warn('--reference is discarded for this file format '
+                     '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
