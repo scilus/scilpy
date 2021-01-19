@@ -85,8 +85,9 @@ def load_tractogram_with_reference(parser, args, filepath,
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
-        logging.warning('--reference is discarded for this file format '
-                        '{}.'.format(filepath))
+        if args.reference:
+            logging.warning('--reference is discarded for this file format '
+                            '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
