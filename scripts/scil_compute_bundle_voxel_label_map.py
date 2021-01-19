@@ -147,7 +147,8 @@ def main():
                       'Skipping'.format(args.in_bundle))
         raise ValueError
 
-    if not len(sft_centroid.streamlines):
+    if len(sft_centroid.streamlines) < 1 \
+            or len(sft_centroid.streamlines) > 1:
         logging.error('Centroid file {} should contain one streamline. '
                       'Skipping'.format(args.in_centroid))
         raise ValueError
