@@ -54,10 +54,9 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, [], optional=args.output_centroids)
-    if args.output_clusters_dir:
-        assert_output_dirs_exist_and_empty(parser, args,
-                                           args.output_clusters_dir,
-                                           create_dir=True)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                        args.output_clusters_dir,
+                                        create_dir=True)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
@@ -71,12 +70,12 @@ def main():
         else:
             cluster_streamlines = streamlines[cluster.indices]
 
-        new_sft = StatefulTractogram(cluster_streamlines, sft, Space.RASMM)
+        new_sft = StatefulTractogram.from_sft(cluster_streamlines, sft)
         save_tractogram(new_sft, os.path.join(args.output_clusters_dir,
                                               'cluster_{}.trk'.format(i)))
 
     if args.output_centroids:
-        new_sft = StatefulTractogram(clusters.centroids, sft, Space.RASMM)
+        new_sft = StatefulTractogram.from_sft(clusters.centroids, sft)
         save_tractogram(new_sft, args.output_centroids)
 
 
