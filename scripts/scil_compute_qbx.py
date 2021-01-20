@@ -10,7 +10,7 @@ import argparse
 from operator import itemgetter
 import os
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import qbx_and_merge
 
@@ -55,8 +55,8 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, [], optional=args.output_centroids)
     assert_output_dirs_exist_and_empty(parser, args,
-                                        args.output_clusters_dir,
-                                        create_dir=True)
+                                       args.output_clusters_dir,
+                                       create_dir=True)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
