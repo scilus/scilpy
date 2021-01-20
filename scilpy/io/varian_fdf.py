@@ -281,6 +281,7 @@ def format_raw_header(header):
         return header
 
     nifti1_header = nib.nifti1.Nifti1Header()
+
     nifti1_header.set_data_shape(header['shape'])
     nifti1_header.set_xyzt_units(header['xyz_units'], header['t_units'])
     nifti1_header.set_data_dtype('float32')
@@ -330,8 +331,8 @@ def save_babel(dwi_data, dwi_header, b0_data, b0_header,
     img = nib.nifti1.Nifti1Image(dataobj=data,
                                  header=nifti1_header,
                                  affine=affine)
-
-    img.header.set_zooms(nifti1_header['pixdim'][0:4])
+    vox_dim = [round(num, 3) for num in dwi_header['voxel_dim'][0:4]]
+    img.header.set_zooms(vox_dim)
     qform = img.header.get_qform()
     qform[:2, :3] *= -1.
 
