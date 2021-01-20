@@ -48,6 +48,7 @@ The output consist in two types of images in two folders :
       - ihMTsat.nii.gz : inhomogeneous Magnetization Transfer saturation map
       The (ih)MT saturation is a pseudo-quantitative maps representing
       the signal change between the bound and free water pools.
+
   These final maps can be corrected by an empiric B1 correction with
   --in_B1_map option, suffix *B1_corrected is added for each map.
 
@@ -435,7 +436,6 @@ def apply_B1_correction(MT_map, B1_map):
     MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
 
     return MT_map_B1_corrected
-
 
 
 def main():
