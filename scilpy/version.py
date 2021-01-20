@@ -3,10 +3,10 @@
 import glob
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
-_version_major = 0
-_version_minor = 2
+_version_major = 1
+_version_minor = 0
 _version_micro = ''
-_version_extra = 'dev'
+_version_extra = ''
 
 # Construct full version string from these.
 _ver = [_version_major, _version_minor]

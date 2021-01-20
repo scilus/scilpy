@@ -13,7 +13,6 @@ within the bounding box
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -68,21 +67,17 @@ def main():
     if args.remove_single_point:
         # Will try to do a PR in Dipy
         indices = [i for i in range(len(sft)) if len(sft.streamlines[i]) <= 1]
-        remaining_indices = np.setdiff1d(range(len(sft)), indices)
 
     if args.remove_overlapping_points:
-        for i in remaining_indices:
+        for i in np.setdiff1d(range(len(sft)), indices):
             norm = np.linalg.norm(np.gradient(sft.streamlines[i],
                                               axis=0), axis=1)
             if (norm < 0.001).any():
                 indices.append(i)
 
-    indices = np.setdiff1d(range(len(sft)), indices)
+    indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
     if len(indices):
-        new_sft = StatefulTractogram.from_sft(
-            sft.streamlines[indices], sft,
-            data_per_point=sft.data_per_point[indices],
-            data_per_streamline=sft.data_per_streamline[indices])
+        new_sft = sft[indices]
     else:
         new_sft = sft
     logging.warning('Removed {} invalid streamlines.'.format(

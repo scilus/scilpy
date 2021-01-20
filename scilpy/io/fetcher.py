@@ -24,6 +24,9 @@ def get_testing_files_dict():
     return {'ihMT.zip':
             ['1V0xzvmVrVlL9dRKhc5-7xWESkmof1zyS',
              '44eee21bcc0597836ba2eb32d41ed98c'],
+            'MT.zip':
+            ['1C2LEUkGaLFdsmym3kBrAtfPjPtv5mJuZ',
+             '66e07ada4dd2a192a44705277e0673bb'],
             'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
              'af15ab98bc1faf2554fa0abb1891f345'],
@@ -44,7 +47,7 @@ def get_testing_files_dict():
              'dbe796fb75c3e1e5559fad3308982769'],
             'others.zip':
             ['12BAszPjE1A9L2RbQJIFpkPzqUJfPdYO6',
-             '91117b26d44e7e53d0a00022ed92fb38'],
+             '981dccd8b23aad43aa014f4fdd907e70'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
              '57aee810f2f5c687df48de65935bb527'],

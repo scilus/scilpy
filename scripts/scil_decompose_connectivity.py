@@ -109,8 +109,19 @@ def _save_if_needed(sft, hdf5_file, args,
                     save_type, step_type,
                     in_label, out_label):
     if step_type == 'final':
+        # Due to the cutting, streamlines can become invalid
+        indices = []
+        for i in range(len(sft)):
+            norm = np.linalg.norm(np.gradient(sft.streamlines[i],
+                                              axis=0), axis=1)
+            if (norm < 0.001).any():  # or len(sft.streamlines[i]) <= 1:
+                indices.append(i)
+
+        indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
+        sft = sft[indices]
+
         group = hdf5_file.create_group('{}_{}'.format(in_label, out_label))
-        group.create_dataset('data', data=sft.streamlines.get_data(),
+        group.create_dataset('data', data=sft.streamlines._data,
                              dtype=np.float32)
         group.create_dataset('offsets', data=sft.streamlines._offsets,
                              dtype=np.int64)
@@ -260,7 +271,8 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
+                                         bbox_check=False)
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
@@ -269,19 +281,8 @@ def main():
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_tractogram, args.in_labels))
 
-    logging.info('*** Filtering streamlines ***')
-    original_len = len(sft)
-    time1 = time.time()
-
     sft.to_vox()
     sft.to_corner()
-    sft.remove_invalid_streamlines()
-    time2 = time.time()
-    logging.info(
-        '    Discarded {} streamlines from filtering in {} sec.'.format(
-            original_len - len(sft), round(time2 - time1, 2)))
-    logging.info('    Number of streamlines to process: {}'.format(len(sft)))
-
     # Get all streamlines intersection indices
     logging.info('*** Computing streamlines intersection ***')
     time1 = time.time()

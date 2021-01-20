@@ -162,7 +162,6 @@ def main():
             output_filenames_glass.append(os.path.join(args.out_dir,
                                                        '{0}_glass.png'.format(
                                                            axis_name)))
-
     assert_outputs_exist(parser, args,
                          output_filenames_3d+output_filenames_glass)
 
@@ -227,7 +226,6 @@ def main():
         colors = None
 
     streamlines_actor = actor.line(streamlines, colors=colors, linewidth=0.2)
-
     # Take a snapshot of each dataset, camera settings are fixed for the
     # known template, won't work with another.
     if args.right:

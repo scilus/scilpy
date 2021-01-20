@@ -67,7 +67,7 @@ def _build_arg_parser():
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 
-    p.add_argument('--topup_options',  default=None,
+    p.add_argument('--topup_options',  default='',
                    help='Additional options you want to use to run topup.\n'
                         'Add these options using quotes (i.e. "--fwhm=6'
                         ' --miter=4").')
@@ -90,7 +90,7 @@ def main():
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, [], args.out_b0s)
-    assert_fsl_options_exist(parser, args.topup_options)
+    assert_fsl_options_exist(parser, args.topup_options, 'topup')
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')

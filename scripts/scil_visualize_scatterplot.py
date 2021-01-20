@@ -4,7 +4,7 @@
 Script to display scatter plot between two maps (ex. FA and MD).
 This script can be also used for the correspondence between two maps
 (ex. AD and RD). Two probability maps can be used to threshold maps.
-Therefore, the --probability --prob_mask_1 (WM) and --prob_mask_1 (GM) options
+Therefore, the --probability --prob_mask (WM) and --prob_mask_1 (GM) options
 must be added.
 
 For general scatter plot:
@@ -12,7 +12,7 @@ For general scatter plot:
 
 For tissue probability scatter plot:
 >>> scil_visualize_scatterplot.py FA.nii.gz MD.nii.gz out_filename_image.png
-    --probability --prob_mask_1 probability_wm_map.nii.gz
+    --probability --prob_mask probability_wm_map.nii.gz
     --prob_mask_2 probability_gm_map.nii.gz
 
 To display specific label for probability scatter plot used:
@@ -45,6 +45,18 @@ def _build_arg_parser():
                    help='Binary mask map. Use this mask to extract x and '
                         'y maps value from specific map or region: '
                         'wm_mask or roi_mask')
+    p.add_argument('--out_dir',
+                   help='')
+
+    atlas = p.add_argument_group(title='Atlas options')
+    atlas.add_argument('--in_atlas',
+                       help='Path to the input atlas image.')
+    atlas.add_argument('--in_atlas_lut',
+                       help='Path of the LUT file corresponding to atlas '
+                            'used to name the regions of interest.')
+    atlas.add_argument('--specific_label', type=int, nargs='+', default=None,
+                       help='Label list to use to do scatter plot. Label must'
+                            ' corresponding tp atlas LUT file.')
 
     probmap = p.add_argument_group(title='Probability maps options')
     probmap.add_argument('--probability', action='store_true',
@@ -101,14 +113,22 @@ def _build_arg_parser():
     return p
 
 
-def load_data(images_list, prob_mask=False):
+def load_data(images_list, mask=False, label=False):
     map = []
     for curr_map in images_list:
         load_image = nib.load(curr_map)
-        if prob_mask:
+
+        if label:
+            map.append(get_data_as_label(load_image))
+            with open(args.in_atlas_lut) as f:
+                label_dict = json.load(f)
+            return map, zip(*label_dict.items())
+
+        if mask:
             map.append(get_data_as_mask(load_image))
         else:
             map.append(load_image.get_fdata(dtype=np.float32))
+
     return map
 
 
@@ -120,51 +140,70 @@ def main():
     if args.probability:
         assert_inputs_exist(parser, args.prob_mask, args.prob_mask_2)
 
+    if args.in_atlas:
+        assert_inputs_exist(parser, args.in_atlas_lut)
+
     # Load images
     maps_image = [args.in_x_map, args.in_y_map]
     maps_data = load_data(maps_image)
 
+    # Load and apply threshold from mask
     if args.mask:
-        # Load and apply threshold from mask
-        mask_image = nib.load(args.mask)
-        mask_data = get_data_as_mask(mask_image)
+        #mask_image = nib.load(args.mask)
+        #mask_data = get_data_as_mask(mask_image)
+        mask_data = load_data(args.mask, mask=True)
         for curr_map in maps_data:
             curr_map[np.where(mask_data == 0)] = np.nan
 
+    if args.atlas:
+        label_img_data, (lut_indices, lut_names) = load_data(args.in_atlas,
+                                                                 label=True)
+        if args.specific_label:
+            for key in args.specific_label:
+                label_indices, label_names = (lut_indices[key], lut_names[key])
+        else:
+            (label_indices, label_names) = (lut_indices, lut_names)
+
     if args.probability:
-        # Load images
         if args.prob_mask_2 is None:
             tissue_image = args.prob_mask
         else:
             tissue_image = [args.prob_mask, args.prob_mask_2]
-        prob_mask_data = load_data(tissue_image, prob_mask=True)
+        prob_mask_data = load_data(tissue_image, mask=True)
 
-        # Copy to apply two different probability maps in the same data
         maps_data_prob = copy.deepcopy(maps_data)
 
         # Threshold probability images with tissue probability maps
-        # White Matter threshold
         for curr_map in maps_data:
             curr_map[np.where(prob_mask_data[0] < args.thr)] = np.nan
-        # Grey Matter threshold
+
         for curr_map in maps_data_prob:
             curr_map[np.where(prob_mask_data[1] < args.thr)] = np.nan
 
     # Scatter Plot
     fig, ax = plt.subplots()
-    ax.scatter(maps_data[0], maps_data[1], label=args.label_prob_1,
-               color=args.color_prob[0], s=args.marker_size,
-               marker=args.marker, alpha=args.transparency)
+    ax.scatter(maps_data[0], maps_data[1], label=args.label,
+    color=args.color_prob[0], s=args.marker_size,
+    marker=args.marker, alpha=args.transparency)
 
     if args.probability:
         ax.scatter(maps_data_prob[0], maps_data_prob[1],
-                   label=args.label_prob_2, color=args.color_prob[1],
-                   s=args.marker_size, marker=args.marker,
-                   alpha=args.transparency)
+        label=args.label_prob_2, color=args.color_prob[1],
+        s=args.marker_size, marker=args.marker,
+        alpha=args.transparency)
     plt.xlabel(args.x_label)
     plt.ylabel(args.y_label)
     plt.title(args.title)
     plt.legend()
+
+    if args.in_atlas:
+        for label, name in zip(label_indices, label_names):
+            label = int(label)
+            ax.scatter(maps_data[0], maps_data[1], label=name,
+            color=args.color_prob[0], s=args.marker_size,
+            marker=args.marker, alpha=args.transparency)
+
+            plt.savefig(args.out_png+name, dpi=args.dpi, bbox_inches='tight')
 
     if args.show_only:
         plt.show()
