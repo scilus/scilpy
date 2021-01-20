@@ -6,8 +6,11 @@ import os
 import re
 import struct
 
+from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
+
+from scilpy.utils.util import str_to_index
 
 
 def load_fdf(file_path):
@@ -285,7 +288,9 @@ def format_raw_header(header):
     return nifti1_header
 
 
-def save_babel(out_path, data, raw_header, bval_path, bvec_path, affine=None):
+def save_babel(dwi_data, dwi_header, b0_data, b0_header,
+               bval_path, bvec_path, out_path,
+               affine=None, flip=None, swap=None):
     """
     Save a loaded fdf file to nifti.
 
@@ -302,36 +307,45 @@ def save_babel(out_path, data, raw_header, bval_path, bvec_path, affine=None):
     ------
     None
     """
-    nifti1_header = format_raw_header(raw_header)
+    nifti1_dwi_header = format_raw_header(dwi_header)
+    nifti1_b0_header = format_raw_header(b0_header)
 
-    if 'orientation' in raw_header:
+    if not is_header_compatible(nifti1_dwi_header, nifti1_b0_header):
+        raise Exception("Images are not of the same resolution/affine")
+
+    nifti1_header = nifti1_dwi_header
+
+    if 'orientation' in nifti1_header:
         orientation = np.identity(4)
-        orientation[:3, :3] = raw_header['orientation'].reshape(3, 3)
+        orientation[:3, :3] = nifti1_header['orientation'].reshape(3, 3)
         affine = np.linalg.inv(orientation)
 
-    write_gradient_information(raw_header, bval_path, bvec_path)
+    write_gradient_information(dwi_header, b0_header,
+                               bval_path, bvec_path, flip, swap)
+
+    data = np.concatenate([b0_data[:, :, :, np.newaxis], dwi_data], axis=3)
+
+    nifti1_header.set_data_shape(data.shape)
 
     img = nib.nifti1.Nifti1Image(dataobj=data,
                                  header=nifti1_header,
                                  affine=affine)
 
-    img.header.set_zooms(raw_header['voxel_dim'])
-
+    img.header.set_zooms(nifti1_header['pixdim'][0:4])
     qform = img.header.get_qform()
-
     qform[:2, :3] *= -1.
 
-    if 'origin' in raw_header:
-        qform[:len(raw_header['origin']), 3] = -raw_header['origin']
+    if 'origin' in nifti1_header:
+        qform[:len(nifti1_header['origin']), 3] = -nifti1_header['origin']
 
     img.get_header().set_qform(qform)
-
     img.update_header()
-
     img.to_filename(out_path)
 
 
-def write_gradient_information(header, bval_path=None, bvec_path=None):
+def write_gradient_information(dwi_header, b0_header,
+                               bval_path=None, bvec_path=None,
+                               flip=None, swap=None):
     """
     Write gradient information in present in the header.
 
@@ -345,14 +359,101 @@ def write_gradient_information(header, bval_path=None, bvec_path=None):
     ------
     None
     """
-    if 'bvalue' in header and 'diff_x' in header and 'diff_y' in header and\
-            'diff_z' in header:
+    keys = ['bvalue', 'diff_x', 'diff_y', 'diff_z']
+    if all(k in dwi_header for k in keys) and \
+       all(k in b0_header for k in keys):
+
         if bval_path:
-            with open(bval_path, 'w') as bvals:
-                bvals.write(' '.join(str(i) for i in header['bvalue']))
+            bvals = b0_header['bvalue'] + dwi_header['bvalue']
+            with open(bval_path, 'w') as bval_file:
+                bval_file.write(' '.join(str(i) for i in bvals))
 
         if bvec_path:
-            with open(bvec_path, 'w') as bvecs:
-                bvecs.write(' '.join(str(i) for i in header['diff_x']) + '\n')
-                bvecs.write(' '.join(str(i) for i in header['diff_y']) + '\n')
-                bvecs.write(' '.join(str(i) for i in header['diff_z']))
+            bvecs = np.zeros((3,
+                              len(b0_header['diff_x'] + dwi_header['diff_x'])))
+
+            bvecs[0, :] = b0_header['diff_x'] + dwi_header['diff_x']
+            bvecs[1, :] = b0_header['diff_y'] + dwi_header['diff_y']
+            bvecs[2, :] = b0_header['diff_z'] + dwi_header['diff_z']
+
+            if flip:
+                axes = [str_to_index(axis) for axis in list(flip)]
+                for axis in axes:
+                    bvecs[axis, :] *= -1
+
+            if swap:
+                axes = [str_to_index(axis) for axis in list(swap)]
+                new_bvecs = np.zeros(bvecs.shape)
+                new_bvecs[axes[0], :] = bvecs[axes[1], :]
+                new_bvecs[axes[1], :] = bvecs[axes[0], :]
+                bvecs = new_bvecs
+
+            np.savetxt(bvec_path, bvecs, "%.8f")
+    else:
+        raise Exception(
+            'Could not save gradient. Some keys are missing.')
+
+
+def correct_dwi_intensity(dwi_data, dwi_path, b0_path):
+    """Applies a linear value correction based on gain difference
+        found in procpar files. The basic formulae provided by Luc Tremblay
+        Luc.Tremblay@usherbrooke.ca is:
+
+            Ldb = 20log(P1/P0)
+
+        Where:
+            Ldb is the gain difference between B0 and dwi.
+            P1 is the B0 image intensity factor.
+            P0 is the dwi image intensity factor.
+
+        Since we only seek an intensity correction factor between B0 and dwi,
+        we fix P0 at 1. The equation becomes:
+
+            Ldb = 20log(P1)
+
+        P1 is the factor we are looking for. Isolating P1 gives us the final
+        equation:
+
+            P1 = 10**(Ldb/20)
+    """
+
+    dwi_gain = get_gain(dwi_path)
+    b0_gain = get_gain(b0_path)
+
+    if dwi_gain is None or b0_gain is None:
+        raise Exception(
+            'Could not apply gain correction, make sure that your B0 and '
+            'dwi procpar files contain the gain tag.')
+
+    gain_difference = dwi_gain - b0_gain
+    correction_factor = 10 ** (gain_difference / 20.0)
+
+    # The dwi intensity is divided by factor instead of multiplying b0's
+    # intensity. This allows the scaling step in compute_dti_metrics to
+    # be applyed correclty.
+    dwi_data *= 1.0 / correction_factor
+
+    return dwi_data
+
+
+def get_gain(procpar_path):
+    """
+    Extract gain fromm procpar file
+
+    Parameters
+    ----------
+    procpar_path: Path to the procpar folder.
+
+    Return
+    ------
+    float
+    """
+
+    procpar_file = os.path.join(procpar_path, 'procpar')
+    with open(procpar_file) as f:
+        for line in f:
+            if line.startswith('gain'):
+                gain = next(f)
+                return float(gain.split()[1])
+
+    return None

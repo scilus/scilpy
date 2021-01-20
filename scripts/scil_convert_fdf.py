@@ -9,7 +9,7 @@ import argparse
    bvec in the same folder as the output file.
 """
 
-from scilpy.io.varian_fdf import load_fdf, save_babel
+from scilpy.io.varian_fdf import load_fdf, save_babel, correct_dwi_intensity
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
@@ -19,14 +19,25 @@ def build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_path',
-                   help='Path to the FDF file or folder to convert.')
+    p.add_argument('in_dwi_path',
+                   help='Path to the DWI FDF file or folder to convert.')
+    p.add_argument('in_b0_path',
+                   help='Path to the b0 FDF file or folder to convert.')
     p.add_argument('out_path',
                    help='Path to the nifti file to write on disk.')
     p.add_argument('--bval',
                    help='Path to the bval file to write on disk.')
     p.add_argument('--bvec',
                    help='Path to the bvec file to write on disk.')
+    p.add_argument('--flip', metavar='dimension',
+                   choices=['x', 'y', 'z'], nargs='+',
+                   help='The axes you want to flip. eg: to flip the x '
+                        'and y axes use: x y.')
+    p.add_argument('--swap', metavar='dimension',
+                   choices=['x', 'y', 'z'], nargs='+',
+                   help='The axes you want to swap. eg: to swap the x '
+                        'and y axes use: x y.')
+
     add_overwrite_arg(p)
     return p
 
@@ -38,8 +49,18 @@ def main():
     assert_outputs_exist(parser, args, args.out_path, optional=[args.bval,
                                                                 args.bvec])
 
-    data, header = load_fdf(args.in_path)
-    save_babel(args.out_path, data, header, args.bval, args.bvec)
+    data_dwi, header_dwi = load_fdf(args.in_dwi_path)
+    data_b0, header_b0 = load_fdf(args.in_b0_path)
+
+    data_dwi = correct_dwi_intensity(data_dwi, args.in_dwi_path,
+                                     args.in_b0_path)
+
+    save_babel(data_dwi, header_dwi,
+               data_b0, header_b0,
+               args.bval, args.bvec,
+               args.out_path,
+               flip=args.flip,
+               swap=args.swap)
 
 
 if __name__ == "__main__":
