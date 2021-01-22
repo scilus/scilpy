@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import argparse
-
 """
    Converts a Varian FDF file or directory to a nifti file.
    If the procpar contains diffusion information, it will be saved as bval and
    bvec in the same folder as the output file.
+
+   ex: scil_convert_fdf.py semsdw/b0_folder/ semsdw/dwi_folder/ dwi.nii.gz --bval dwi.bval --bvec dwi.bvec -f
 """
+
+import argparse
 
 from scilpy.io.varian_fdf import load_fdf, save_babel, correct_dwi_intensity
 from scilpy.io.utils import (add_overwrite_arg,
@@ -17,26 +19,26 @@ from scilpy.io.utils import (add_overwrite_arg,
 def build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter,)
 
-    p.add_argument('in_dwi_path',
-                   help='Path to the DWI FDF file or folder to convert.')
     p.add_argument('in_b0_path',
                    help='Path to the b0 FDF file or folder to convert.')
+    p.add_argument('in_dwi_path',
+                   help='Path to the DWI FDF file or folder to convert.')
     p.add_argument('out_path',
                    help='Path to the nifti file to write on disk.')
     p.add_argument('--bval',
                    help='Path to the bval file to write on disk.')
     p.add_argument('--bvec',
                    help='Path to the bvec file to write on disk.')
-    p.add_argument('--flip', metavar='dimension',
+    p.add_argument('--flip', metavar='dimension', default=None,
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to flip. eg: to flip the x '
-                        'and y axes use: x y.')
-    p.add_argument('--swap', metavar='dimension',
+                        'and y axes use: x y. [%(default)s]')
+    p.add_argument('--swap', metavar='dimension', default=None,
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to swap. eg: to swap the x '
-                        'and y axes use: x y.')
+                        'and y axes use: x y. [%(default)s]')
 
     add_overwrite_arg(p)
     return p
