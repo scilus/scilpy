@@ -517,7 +517,6 @@ def concat(input_list, ref_img):
         if len(img.header.get_data_shape()) == 4:
             data = np.rollaxis(data, 3)
             for i in range(0, len(data)):
-                print(data[i])
                 input_data.append(data[i])
         else:
             input_data.append(data)   
