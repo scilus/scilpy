@@ -502,17 +502,28 @@ def invert(input_list, ref_img):
 def concat(input_list, ref_img):
     """
     concat: IMGs
-        Concatenate a list of 3D images into a single 4D image.
+        Concatenate a list of 3D and 4D images into a single 4D image.
     """
-    _validate_imgs(*input_list, ref_img)
-    if len(input_list[0].header.get_data_shape()) != 3:
-        raise ValueError('Concatenate require 3D arrays.')
-
+    
+    # _validate_imgs(*input_list, ref_img)
+    if len(input_list[0].header.get_data_shape()) > 4:
+        raise ValueError('Concatenate require 3D or 4D arrays.')
+    
     input_data = []
     for img in input_list:
+
         data = img.get_fdata(dtype=np.float64)
-        input_data.append(data)
+        
+        if len(img.header.get_data_shape()) == 4:
+            data = np.rollaxis(data, 3)
+            for i in range(0, len(data)):
+                print(data[i])
+                input_data.append(data[i])
+        else:
+            input_data.append(data)   
+        
         img.uncache()
+
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
 
 
