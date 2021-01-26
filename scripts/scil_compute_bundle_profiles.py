@@ -71,12 +71,12 @@ def main():
         parser.error('--nb_pts_per_streamline {} needs to be greater than '
                      '1'.format(args.nb_pts_per_streamline))
 
-    assert_same_resolution(args.in_metrics + [args.in_bundle])
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    assert_same_resolution(args.in_metrics + [sft])
 
     metrics = [nib.load(m) for m in args.in_metrics]
 
-    bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))
+    bundle_name, ext = os.path.splitext(os.path.basename(args.in_bundle))
     stats = {}
     if len(sft) == 0:
         stats[bundle_name] = None
@@ -85,14 +85,19 @@ def main():
 
     # Centroid - will be use as reference to reorient each streamline
     if args.in_centroid:
-        is_header_compatible(args.in_bundle, args.in_centroid)
         sft_centroid = load_tractogram_with_reference(parser, args,
                                                       args.in_centroid)
+        if ext == '.tck':
+            in_bundle = load_tractogram_with_reference(parser, args,
+                                                       args.in_bundle)
+        else:
+            in_bundle = args.in_bundle
+        is_header_compatible(in_bundle, args.in_centroid)
         centroid_streamlines = sft_centroid.streamlines[0]
         nb_pts_per_streamline = len(centroid_streamlines)
     else:
-        centroid_streamlines = get_streamlines_centroid(sft.streamlines,
-                                                        args.nb_pts_per_streamline)
+        centroid_streamlines = get_streamlines_centroid(
+            sft.streamlines, args.nb_pts_per_streamline)
         nb_pts_per_streamline = args.nb_pts_per_streamline
 
     resampled_sft = resample_streamlines_num_points(sft, nb_pts_per_streamline)
