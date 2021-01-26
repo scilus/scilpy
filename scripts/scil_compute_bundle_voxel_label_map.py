@@ -45,8 +45,6 @@ def _build_arg_parser():
                    help='Centroid streamline corresponding to bundle.')
     p.add_argument('out_labels_map',
                    help='Nifti image with corresponding labels.')
-    p.add_argument('out_distances_map',
-                   help='Nifti image showing distances to centroids.')
 
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
@@ -87,43 +85,6 @@ def _affine_slr(sft_bundle, sft_centroid):
                                                      slm.matrix)
     return sft_centroid
 
-
-def _distance_using_mask(sft_bundle, binary_centroid):
-    binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
-                                             sft_bundle.dimensions).astype(
-        np.bool)
-
-    # Iteratively dilate the mask until the cleaned bundle mask is filled
-    count = 1
-    min_distances = np.zeros(sft_bundle.dimensions)
-    last_count = 0
-    while np.count_nonzero(binary_centroid) != np.count_nonzero(binary_bundle):
-        previous_centroid = binary_centroid.copy()
-        binary_centroid = ndi.binary_dilation(binary_centroid,
-                                              structure=np.ones((3, 3, 3)))
-
-        # Must follow the curve of the bundle (gyri/sulci)
-        binary_centroid *= binary_bundle
-        tmp_binary_centroid = binary_centroid.copy()
-        tmp_binary_centroid[previous_centroid] = 0
-        min_distances[tmp_binary_centroid > 0] = count
-        count += 1
-        if last_count == np.count_nonzero(binary_centroid):
-            break
-        last_count = np.count_nonzero(binary_centroid)
-
-    sft_bundle.to_center()
-    distances_arr_seq = ArraySequence()
-    distances_arr_seq._data = ndi.map_coordinates(min_distances,
-                                                  sft_bundle.streamlines._data.T,
-                                                  order=0)
-    distances_arr_seq._data /= np.max(distances_arr_seq._data)
-    distances_arr_seq._offsets = sft_bundle.streamlines._offsets
-    distances_arr_seq._lengths = sft_bundle.streamlines._lengths
-
-    return distances_arr_seq, min_distances
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -131,8 +92,7 @@ def main():
     assert_inputs_exist(parser,
                         [args.in_bundle, args.in_centroid],
                         optional=args.reference)
-    assert_outputs_exist(parser, args, [args.out_labels_map,
-                                        args.out_distances_map],
+    assert_outputs_exist(parser, args, args.out_labels_map,
                          optional=[args.out_labels_npz,
                                    args.out_distances_npz,
                                    args.labels_color_dpp,
@@ -251,7 +211,6 @@ def main():
     # Re-arrange the new cut streamlines and their metadata
     # Compute the voxels equivalent of the labels maps
     new_sft = StatefulTractogram.from_sft(final_streamlines, sft_bundle)
-    labels_array = ArraySequence(final_label)
 
     tdi_mask_nzr = np.nonzero(binary_bundle)
     tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
@@ -260,24 +219,19 @@ def main():
     img_labels = np.zeros(binary_centroid.shape, dtype=np.int16)
     img_labels[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
 
-    # Approximation of the distance using the WM diffusion approach
-    # In non-obstructed line, equivalent to euclidian distance
-    distances_array, img_distances = _distance_using_mask(new_sft,
-                                                          binary_centroid)
-
     nib.save(nib.Nifti1Image(img_labels, sft_bundle.affine),
              args.out_labels_map)
-    nib.save(nib.Nifti1Image(img_distances, sft_bundle.affine),
-             args.out_distances_map)
 
     if args.labels_color_dpp or args.distances_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
+        labels_array = ArraySequence(final_label)
+        dist_array = ArraySequence(final_dist)
         # WARNING: WILL NOT WORK WITH THE INPUT TRK !
         # These will fit only with the TRK saved below.
         if args.out_labels_npz:
             np.savez_compressed(args.out_labels_npz, labels_array._data)
         if args.out_distances_npz:
-            np.savez_compressed(args.out_distances_npz, labels_array._data)
+            np.savez_compressed(args.out_distances_npz, dist_array._data)
 
         cmap = plt.get_cmap(args.colormap)
         new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
@@ -290,7 +244,7 @@ def main():
 
         if args.distances_color_dpp:
             new_sft.data_per_point['color']._data = cmap(
-                distances_array._data / np.max(distances_array._data))[:, 0:3] * 255
+                dist_array._data / np.max(dist_array._data))[:, 0:3] * 255
             save_tractogram(new_sft, args.distances_color_dpp)
 
 
