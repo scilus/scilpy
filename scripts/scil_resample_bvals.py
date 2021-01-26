@@ -10,14 +10,13 @@ targetted b-value.
 For example, a b-value of 2000 and a tolerance of 20 will resample all
 volumes with a b-values from 1980 to 2020 to the value of 2000.
 
-scil_resample_bvals.py bvals bvecs 0 1000 2000 newbvals --tolerance 20
+scil_resample_bvals.py bvals 0 1000 2000 newbvals --tolerance 20
 """
 
 import argparse
 import logging
 
 from dipy.io import read_bvals_bvecs
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
@@ -71,8 +70,13 @@ def main():
     centroids = centroids[sort_index]
     shell_indices = shell_indices[sort_index]
 
-    bvals_to_extract = args.bvals_to_extract
+    bvals_to_extract = np.sort(args.bvals_to_extract)
     n_shells = np.shape(bvals_to_extract)[0]
+
+    if len(centroids) != n_shells:
+        parser.error(
+            "Number of shells given have not the same number of shells "
+            "than bval file.")
 
     logging.info("number of shells: {}".format(n_shells))
     logging.info("bvals to extract: {}".format(bvals_to_extract))
@@ -82,7 +86,11 @@ def main():
 
     new_bvals = np.zeros(np.shape(bvals))
     for i in range(n_shells):
-        new_bvals[np.where(shell_indices == i)] = bvals_to_extract[i]
+        if np.abs(centroids[i] - bvals_to_extract[i]) < tol:
+            new_bvals[np.where(shell_indices == i)] = bvals_to_extract[i]
+        else:
+            parser.error("new bval {} not similar to original bval {}".format(
+                bvals_to_extract[i], centroids[i]))
 
     new_bvals.shape = (1, len(new_bvals))
     logging.info("new bvals: {}".format(new_bvals))
