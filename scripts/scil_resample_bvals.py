@@ -33,9 +33,6 @@ def _build_arg_parser():
     parser.add_argument('bvals',
                         help='The b-values in FSL format.')
 
-    parser.add_argument('bvecs',
-                        help='The b-vectors in FSL format.')
-
     parser.add_argument('bvals_to_extract', nargs='+',
                         metavar='bvals-to-extract', type=int,
                         help='The list of b-values to extract. For example '
@@ -65,11 +62,14 @@ def main():
     assert_inputs_exist(parser, [args.bvals])
     assert_outputs_exist(parser, args, [args.output_bvals])
 
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.bvals, None)
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
 
     centroids, shell_indices = identify_shells(bvals, tol)
+    sort_index = np.argsort(centroids)
+    centroids = centroids[sort_index]
+    shell_indices = shell_indices[sort_index]
 
     bvals_to_extract = args.bvals_to_extract
     n_shells = np.shape(bvals_to_extract)[0]
@@ -84,6 +84,7 @@ def main():
     for i in range(n_shells):
         new_bvals[np.where(shell_indices == i)] = bvals_to_extract[i]
 
+    new_bvals.shape = (1, len(new_bvals))
     logging.info("new bvals: {}".format(new_bvals))
     np.savetxt(args.output_bvals, new_bvals, '%d')
 
