@@ -40,11 +40,12 @@ def get_bundle_metrics_profiles(sft, metrics_files):
         z_ind = np.floor(streamline[:, 2]).astype(np.int)
 
         return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
-                    metrics_files))
+                        metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(dtype=np.float64),
-                        metrics_files))
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(
+        dtype=np.float64),
+        metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
@@ -52,7 +53,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     # encountered along the current streamline.
     metrics_per_strl =\
         list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
-             streamlines))
+                 streamlines))
 
     converted = []
     # Here, the zip gives us a list of N tuples, so one tuple for each metric.
@@ -127,7 +128,8 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
 def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                           distances_to_centroid_streamline,
-                                          metrics, labels, density_weighting=False,
+                                          metrics, labels,
+                                          density_weighting=False,
                                           distance_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
@@ -157,12 +159,13 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     """
     # Computing infos on bundle
     unique_labels = np.unique(labels)
-    num_digits_labels = len(str(np.max(unique_labels)))
+    num_digits_labels = 3
     if density_weighting:
         track_count = compute_tract_counts_map(streamlines,
-                                               metrics[0].shape).astype(np.float64)
+                                               metrics[0].shape)
     else:
         track_count = np.ones(metrics[0].shape)
+    track_count = track_count.astype(np.float64)
 
     # Bigger weight near the centroid streamline
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
@@ -208,16 +211,17 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     return stats
 
 
-def plot_metrics_stats(mean, std, title=None, xlabel=None,
-                       ylabel=None, figlabel=None, fill_color=None):
+def plot_metrics_stats(means, stds, title=None, xlabel=None,
+                       ylabel=None, figlabel=None, fill_color=None,
+                       display_means=False):
     """
     Plots the mean of a metric along n points with the standard deviation.
 
     Parameters
     ----------
-    mean: Numpy 1D array of size n
+    mean: Numpy 1D (or 2D) array of size n
         Mean of the metric along n points.
-    std: Numpy 1D array of size n
+    std: Numpy 1D (or 2D) array of size n
         Standard deviation of the metric along n points.
     title: string
         Title of the figure.
@@ -230,7 +234,8 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     fill_color: string
         Hexadecimal RGB color filling the region between mean ± std. The
         hexadecimal RGB color should be formatted as #RRGGBB
-
+    display_means: bool
+        Display the subjects means as semi-transparent line
     Return
     ------
     The figure object.
@@ -249,6 +254,15 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     if figlabel is not None:
         fig.set_label(figlabel)
 
+    if means.ndim > 1:
+        mean = np.average(means, axis=1)
+        std = np.std(means, axis=1)
+        alpha = 0.5
+    else:
+        mean = np.array(means)
+        std = np.array(stds)
+        alpha = 0.9
+
     dim = np.arange(1, len(mean)+1, 1)
 
     if len(mean) <= 20:
@@ -256,11 +270,17 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     ax.set_xlim(0, len(mean)+1)
 
+    if means.ndim > 1 and display_means:
+        for i in range(means.shape[-1]):
+            ax.plot(dim, means[:, i], color="k", linewidth=1,
+                    solid_capstyle='round', alpha=0.1)
+
     # Plot the mean line.
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
-    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color)
+    plt.fill_between(dim, mean - std, mean + std,
+                     facecolor=fill_color, alpha=alpha)
 
     plt.close(fig)
     return fig
