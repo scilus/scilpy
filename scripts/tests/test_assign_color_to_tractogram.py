@@ -13,17 +13,15 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_endpoints_metric.py', '--help')
+    ret = script_runner.run('scil_assign_color_to_tractogram.py', '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM_uni.trk')
-    in_ref = os.path.join(get_home(), 'tractometry',
-                          'mni_masked.nii.gz')
-    ret = script_runner.run('scil_endpoints_metric.py', in_bundle,
-                            in_ref, 'out/')
-
+                             'IFGWM.trk')
+    ret = script_runner.run('scil_assign_color_to_tractogram.py',
+                            in_bundle, '--fill_color', '0x000000',
+                            '--out_tractogram', 'colored.trk')
     assert ret.success
