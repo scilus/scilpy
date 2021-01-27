@@ -189,7 +189,7 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
                                filename_bvec=fsl_bvec_filename)
 
 
-def identify_shells(bvals, threshold=40.0, roundCentroids=False):
+def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     """
     Guessing the shells from the b-values. Returns the list of shells and, for
     each b-value, the associated shell.
@@ -211,6 +211,8 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False):
         this limit, the b-value is placed on a new shell.
     roundCentroids: bool
         If true will round shell values to the nearest 10.
+    sort: bool
+        Sort centroids and shell_indices associated.
 
     Returns
     -------
@@ -241,6 +243,15 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False):
 
     if roundCentroids:
         centroids = np.round(centroids, decimals=-1)
+
+    if sort:
+        sort_index = np.argsort(centroids)
+        sorted_centroids = np.zeros(centroids.shape)
+        sorted_indices = np.zeros(shell_indices.shape)
+        for i in range(len(centroids)):
+            sorted_centroids[i] = centroids[sort_index[i]]
+            sorted_indices[shell_indices == i] = sort_index[i]
+        return sorted_centroids, sorted_indices
 
     return centroids, shell_indices
 
