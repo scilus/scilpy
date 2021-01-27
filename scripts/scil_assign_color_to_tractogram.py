@@ -34,18 +34,23 @@ def _build_arg_parser():
 
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
-    p1 = p.add_mutually_exclusive_group()
+
+    g1 = p.add_argument_group(title='Coloring options')
+    p1 = g1.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',
                     help='Can be either hexadecimal (ie. "#RRGGBB" '
                          'or 0xRRGGBB).')
     p1.add_argument('--dict_colors',
-                    help='Dictionnary mapping basename to color.'
-                         'Same convention as --color.')
-    p2 = p.add_mutually_exclusive_group()
+                    help='Dictionnary mapping basename to color.\n'
+                         'Same convention as --fill_color.')
+
+    g2 = p.add_argument_group(title='Output options')
+    p2 = g2.add_mutually_exclusive_group()
     p2.add_argument('--out_suffix', default='colored',
                     help='Specify suffix to append to input basename.')
     p2.add_argument('--out_tractogram',
-                    help='Output filename of colored tractogram (.trk).')
+                    help='Output filename of colored tractogram (.trk).\n'
+                         'Cannot be used with --dict_colors.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
