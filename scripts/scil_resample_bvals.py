@@ -81,8 +81,7 @@ def main():
         if np.abs(sorted_centroids[i] - bvals_to_extract[i]) <= tol:
             new_bvals[np.where(sorted_indices == i)] = bvals_to_extract[i]
         else:
-            parser.error("new bval {} not similar to original bval {}".format(
-                bvals_to_extract[i], sorted_centroids[i]))
+            parser.error("No bvals to resample: tolerance is too low.")
 
     logging.info("new bvals: {}".format(new_bvals))
     new_bvals.shape = (1, len(new_bvals))
