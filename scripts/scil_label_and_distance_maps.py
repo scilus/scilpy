@@ -54,10 +54,10 @@ def main():
     sft_bundle = load_tractogram_with_reference(parser, args,
                                                 args.in_bundle)
 
-    is_header_compatible(sft_bundle, args.in_centroid)
-
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
+
+    is_header_compatible(sft_bundle, sft_centroid)
 
     if not len(sft_bundle.streamlines):
         logging.error('Empty bundle file {}. Skipping'
