@@ -92,7 +92,6 @@ class RecobundlesX(object):
         """
         self._cluster_model_bundle(model_bundle, model_clust_thr,
                                    identifier=identifier)
-
         if not self._reduce_search_space():
             if identifier:
                 logging.error('{0} did not find any neighbors in '
@@ -248,7 +247,7 @@ class RecobundlesX(object):
         :param neighbors_cluster_thr, float, distance in mm for clustering.
         """
         # Neighbors can be refined since the search space is smaller
-        thresholds = [32, 16, neighbors_cluster_thr]
+        thresholds = [32, 16, 24, neighbors_cluster_thr]
 
         neighb_cluster_map = qbx_and_merge(self.neighb_streamlines, thresholds,
                                            nb_pts=self.nb_points,
