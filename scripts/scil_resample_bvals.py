@@ -70,20 +70,15 @@ def main():
     bvals_to_extract = np.sort(args.bvals_to_extract)
     n_shells = np.shape(bvals_to_extract)[0]
 
-    if len(sorted_centroids) != n_shells:
-        parser.error(
-            "Number of shells given have not the same number of shells "
-            "than bval file.")
-
     logging.info("number of shells: {}".format(n_shells))
     logging.info("bvals to extract: {}".format(bvals_to_extract))
     logging.info("estimated centroids: {}".format(sorted_centroids))
     logging.info("original bvals: {}".format(bvals))
     logging.info("selected indices: {}".format(sorted_indices))
 
-    new_bvals = np.zeros(np.shape(bvals))
+    new_bvals = bvals
     for i in range(n_shells):
-        if np.abs(sorted_centroids[i] - bvals_to_extract[i]) < tol:
+        if np.abs(sorted_centroids[i] - bvals_to_extract[i]) <= tol:
             new_bvals[np.where(sorted_indices == i)] = bvals_to_extract[i]
         else:
             parser.error("new bval {} not similar to original bval {}".format(
