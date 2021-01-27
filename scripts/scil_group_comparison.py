@@ -8,8 +8,8 @@ Run group comparison statistics on metrics from tractometry
 2) Does Shapiro-Wilk test of normality for every sample
 https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test
 
-3) Does Levene or Bartlett (depending on normality) test of variance homogeneity
-Levene:
+3) Does Levene or Bartlett (depending on normality) test of variance
+homogeneity Levene:
 https://www.itl.nist.gov/div898/handbook/eda/section3/eda35a.htm
 Bartlett:
 https://www.itl.nist.gov/div898/handbook/eda/section3/eda357.htm
@@ -72,7 +72,8 @@ def _build_arg_parser():
                    'See doc in scilpy/doc/construct_participants_tsv_file.md.')
 
     p.add_argument('group_by', metavar='GROUP',
-                   help='variable that will be used to compare group together.')
+                   help='variable that will be used to compare group '
+                        'together.')
 
     p.add_argument('o_json', metavar='O_JSON',
                    help='The name of the result json output file. '
@@ -103,7 +104,8 @@ def _build_arg_parser():
 
     p.add_argument('--generate_graph',
                    '--gg', action='store_true',
-                   help='Generate a simple plot of every metric across groups.')
+                   help='Generate a simple plot of every metric across '
+                        'groups.')
 
     p.add_argument('--generate_csv',
                    '--gc', action='store_true',
@@ -142,7 +144,6 @@ def main():
 
     req_folder = os.path.join(args.out_dir, 'Graph')
     assert_output_dirs_exist_and_empty(parser, args, req_folder)
-
 
     basename, ext = os.path.splitext(args.o_json)
     assert_outputs_exist(parser, args,

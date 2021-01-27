@@ -18,6 +18,7 @@ def test_help_option(script_runner):
         '--help')
     assert ret.success
 
+
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_json = os.path.join(get_home(), 'participants.tsv')

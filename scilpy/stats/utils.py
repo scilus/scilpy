@@ -57,7 +57,6 @@ class data_for_stat(object):
         with open('data.json', 'w') as fp:
             json.dump(self.data_dictionnary, fp, indent=4)
 
-
     def validation_participant_id(self, json_info, participants_info):
         """
         Verify if the json and tsv file has the same participants id
@@ -139,8 +138,8 @@ class data_for_stat(object):
         # (assume to be consistent across participants)
         first_participant = self.get_first_participant()
         first_bundle = self.get_first_bundle(first_participant)
-        return list(self.data_dictionnary[first_participant]\
-                                    ['bundles'][first_bundle].keys())
+        return list(self.data_dictionnary[first_participant]
+                                         ['bundles'][first_bundle].keys())
 
     def get_values_list(self):
         # Construct the list of values_id from data_dictionnary
@@ -150,10 +149,10 @@ class data_for_stat(object):
         first_participant = self.get_first_participant()
         first_bundle = self.get_first_bundle(first_participant)
         first_metric = self.get_first_metric(first_participant,
-                                               first_bundle)
-        return list(self.data_dictionnary[first_participant]\
-                                    ['bundles']\
-                                    [first_bundle][first_metric].keys())
+                                             first_bundle)
+        return list(self.data_dictionnary[first_participant]
+                                         ['bundles']
+                                         [first_bundle][first_metric].keys())
 
     def get_groups_dictionnary(self, group_by):
         """
@@ -219,9 +218,9 @@ class data_for_stat(object):
         """
         data_sample = []
         for participant in self.data_dictionnary:
-            data_sample.append(self.data_dictionnary[participant]\
-                                                    ['bundles']\
-                                                    [bundle]\
+            data_sample.append(self.data_dictionnary[participant]
+                                                    ['bundles']
+                                                    [bundle]
                                                     [metric][value])
         return data_sample
 
@@ -258,9 +257,8 @@ def get_group_data_sample(group_dict, group_id, bundle, metric, value):
                                                              ['bundles']\
                                                              [bundle]\
                                                              [metric][value]
-                except IOError:
-                    print('TRUC')
-                    print(e)
+                except KeyError:
+                    print('{} is not a valid key.'.format(value))
 
     return data_sample
 
@@ -416,14 +414,14 @@ def write_csv_from_json(writer, json_dict):
                                                ['Pairwise group difference']
                                                ['P-value'][pairwise_list[j]])
             curr_pd = [json_dict[metrics[i]]['Pairwise group difference']
-                                             ['Test']] + curr_pvalue_pd
+                                            ['Test']] + curr_pvalue_pd
             writer.writerow([metrics[i]] + curr_n + curr_h + curr_gd + curr_pd)
         else:
             writer.writerow([metrics[i]] + curr_n + curr_h + curr_gd)
 
 
-def visualise_distribution(data_by_group, participants_id, bundle, metric, value, oFolder,
-                           groups_list):
+def visualise_distribution(data_by_group, participants_id, bundle, metric,
+                           value, oFolder, groups_list):
     """
     Parameters
     ----------
@@ -484,7 +482,7 @@ def visualise_distribution(data_by_group, participants_id, bundle, metric, value
     plt.title("Distribution of the {} data set in bundle {}.".format(metric,
                                                                      bundle))
 
-    save_path = os.path.join(oFolder,'Graph',bundle,'plot_' + metric)
+    save_path = os.path.join(oFolder, 'Graph', bundle, 'plot_' + metric)
 
     if not os.path.exists(os.path.dirname(save_path)):
         try:
