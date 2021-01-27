@@ -96,14 +96,13 @@ def main():
     sft = load_tractogram(args.in_bundle, args.in_fodf,
                           trk_header_check=True)
     sft.to_vox()
-    streamlines = sft.streamlines
-    if len(streamlines) < 1:
+    if len(sft.streamlines) < 1:
         raise ValueError('The input bundle contains no streamline.')
 
     # Compute TODI from streamlines
     with TrackOrientationDensityImaging(img_mask.shape,
                                         'repulsion724') as todi_obj:
-        todi_obj.compute_todi(streamlines, length_weights=True)
+        todi_obj.compute_todi(sft.streamlines, length_weights=True)
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial(sigma=args.todi_sigma)
 
@@ -150,14 +149,17 @@ def main():
     del input_sh_3d
 
     nib.save(nib.Nifti1Image(sub_mask_3d.astype(
-        np.int16), img_mask.affine), out_todi_mask)
+        np.uint8), img_mask.affine), out_todi_mask)
 
-    endpoints_mask = np.zeros(img_mask.shape, dtype=np.int16)
-    for streamline in streamlines:
-        if get_data_as_mask(img_mask)[tuple(streamline[0].astype(np.int16))]:
-            endpoints_mask[tuple(streamline[0].astype(np.int16))] = 1
-            endpoints_mask[tuple(streamline[-1].astype(np.int16))] = 1
-    nib.save(nib.Nifti1Image(endpoints_mask,
+    endpoints_mask = np.zeros(img_mask.shape, dtype=np.uint8)
+    sft.to_corner()
+    sft.streamlines._data = sft.streamlines._data.astype(np.uint16)
+    for streamline in sft.streamlines:
+        endpoints_mask[tuple(streamline[0])] = 1
+        endpoints_mask[tuple(streamline[-1])] = 1
+
+    in_mask_data = get_data_as_mask(img_mask)
+    nib.save(nib.Nifti1Image(endpoints_mask*in_mask_data,
                              img_mask.affine), out_endpoints_mask)
 
 
