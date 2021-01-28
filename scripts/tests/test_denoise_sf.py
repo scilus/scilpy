@@ -24,5 +24,17 @@ def test_execution_denoise_sf(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_denoise_sf.py', in_fodf,
-                            'averaged_out.nii.gz', '--sphere', 'repulsion100')
+                            'out.nii.gz', '--sphere', 'repulsion100',
+                            '--out_mask', 'out_mask.nii.gz')
+    assert ret.success
+
+
+def test_denoise_sf_sym_basis(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
+
+    # We use a low resolution sphere to reduce execution time
+    ret = script_runner.run('scil_denoise_sf.py', in_fodf, 'out_sym.nii.gz',
+                            '--out_sym', '--sphere', 'repulsion100',
+                            '--out_mask', 'out_sym_mask.nii.gz')
     assert ret.success
