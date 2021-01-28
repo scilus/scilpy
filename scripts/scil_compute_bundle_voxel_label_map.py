@@ -88,7 +88,7 @@ def main():
                                            centroid_streamlines_vox[0])
 
     # Save the (upscaled) labels mask
-    labels_mask = np.zeros(tdi_mask.shape)
+    labels_mask = np.zeros(tdi_mask.shape, dtype=np.int16)
     labels_mask[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
     rescaled_affine = sft_bundle.affine
     rescaled_affine[:3, :3] /= args.upsample

@@ -51,13 +51,13 @@ def main():
     assert_outputs_exist(parser, args, [args.output_label,
                                         args.output_distance])
 
-    is_header_compatible(args.in_bundle, args.in_centroid)
-
     sft_bundle = load_tractogram_with_reference(parser, args,
                                                 args.in_bundle)
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
+
+    is_header_compatible(sft_bundle, sft_centroid)
 
     if not len(sft_bundle.streamlines):
         logging.error('Empty bundle file {}. Skipping'
@@ -69,8 +69,9 @@ def main():
                       .format(args.centroid_streamline))
         raise ValueError
 
-    min_dist_label, min_dist = min_dist_to_centroid(sft_bundle.streamlines.get_data(),
-                                                    sft_centroid.streamlines.get_data())
+    min_dist_label, min_dist = min_dist_to_centroid(
+        sft_bundle.streamlines.get_data(),
+        sft_centroid.streamlines.get_data())
     min_dist_label += 1
 
     # Save assignment in a compressed numpy file

@@ -4,8 +4,8 @@
 """
     Render clusters sequentially to either accept or reject them based on
     visual inspection. Useful for cleaning bundles for RBx, BST or for figures.
-    The VTK window does not handle well opacity of streamlines, this is a normal
-    rendering behavior.
+    The VTK window does not handle well opacity of streamlines, this is a
+    normal rendering behavior.
     Often use in pair with scil_compute_qbx.py.
 
     Key mapping:
@@ -74,7 +74,8 @@ def main():
     def keypress_callback(obj, _):
         key = obj.GetKeySym().lower()
         nonlocal clusters_linewidth, background_linewidth
-        nonlocal curr_streamlines_actor, concat_streamlines_actor, show_curr_actor
+        nonlocal curr_streamlines_actor, concat_streamlines_actor, \
+            show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
@@ -170,12 +171,16 @@ def main():
     sft_accepted_on_size, filename_accepted_on_size = [], []
     sft_rejected_on_size, filename_rejected_on_size = [], []
     concat_streamlines = []
+
+    ref_bundle = load_tractogram_with_reference(
+        parser, args, args.in_bundles[0], bbox_check=False)
+
     for filename in args.in_bundles:
-        if not is_header_compatible(args.in_bundles[0], filename):
-            return
         basename = os.path.basename(filename)
         sft = load_tractogram_with_reference(parser, args, filename,
                                              bbox_check=False)
+        if not is_header_compatible(ref_bundle, sft):
+            return
         if len(sft) >= args.min_cluster_size:
             sft_accepted_on_size.append(sft)
             filename_accepted_on_size.append(basename)
