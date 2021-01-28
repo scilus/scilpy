@@ -49,11 +49,17 @@ The output consist in two types of images in two folders :
       The (ih)MT saturation is a pseudo-quantitative maps representing
       the signal change between the bound and free water pools.
 
+  These final maps can be corrected by an empiric B1 correction with
+  --in_B1_map option, suffix *B1_corrected is added for each map.
 
 >>> scil_compute_ihMT_maps.py path/to/output/directory path/to/mask_bin.nii.gz
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
     --in_mtoff path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
     --in_positive path/to/echo*pos.nii.gz --in_t1w path/to/echo*T1w.nii.gz
+
+By default, the script uses all the echoes available in the input folder.
+If you want to use a single echo add --single_echo to the command line and
+replace the * with the specific number of the echo.
 
 """
 
@@ -97,9 +103,13 @@ def _build_arg_parser():
                         'T1 segmentation (GM+WM+CSF).')
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
+    p.add_argument('--in_B1_map',
+                   help='Path to B1 coregister map to MT contrasts.')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing. '
                         'Not recommended.')
+    p.add_argument('--single_echo', action='store_true',
+                   help='Use this option when there is only one echo.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -203,13 +213,14 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-def compute_contrasts_maps(echoes_image, filtering=False):
+def compute_contrasts_maps(echoes_image, single_echo=False, filtering=False):
     """
     Load echoes and compute corresponding contrast map.
 
     Parameters
     ----------
     echoes_image    List of file path : list of echoes path for contrast
+    single_echo     Apply when only one echo is used to compute contrast maps
     filtering       Apply Gaussian filtering to remove Gibbs ringing
                     (default is False).
 
@@ -221,8 +232,11 @@ def compute_contrasts_maps(echoes_image, filtering=False):
     # Merged the 3 echo images into 4D-array
     merged_map = merge_images(echoes_image)
 
-    # Compute the sum of contrast map
-    contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
+    if single_echo:
+        contrast_map = np.sqrt(np.squeeze(merged_map**2))
+    else:
+        # Compute the sum of contrast map
+        contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
 
     # Apply gaussian filtering if needed
     if filtering:
@@ -393,6 +407,37 @@ def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
     return computed_map
 
 
+def apply_B1_correction(MT_map, B1_map):
+    """
+    Function to apply an empiric B1 correction.
+
+    see Weiskopf et al., 2013
+    https://www.frontiersin.org/articles/10.3389/fnins.2013.00095/full
+
+    Parameters
+    ----------
+    MT_map           3D-Array Myelin map.
+    B1_map           Path to B1 coregister map.
+
+    Returns
+    ----------
+    Corrected MT matrix in 3D-array.
+    """
+    # Load B1 image
+    B1_img = nib.load(B1_map)
+    B1_img_data = B1_img.get_fdata(dtype=np.float32)
+
+    # Apply a light smoothing to the B1 map
+    h = np.ones((5, 5, 1))/25
+    B1_smooth_map = scipy.ndimage.convolve(B1_img_data,
+                                           h).astype(np.float32)
+
+    # Apply an empiric B1 correction via B1 smooth data on MT data
+    MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
+
+    return MT_map_B1_corrected
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -437,6 +482,9 @@ def main():
     if args.filtering:
         contrasts_name = [curr_name + '_filter'
                           for curr_name in contrasts_name]
+    if args.single_echo:
+        contrasts_name = [curr_name + '_single_echo'
+                          for curr_name in contrasts_name]
 
     if args.out_prefix:
         contrasts_name = [args.out_prefix + '_' + curr_name
@@ -446,7 +494,8 @@ def main():
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
         computed_contrasts.append(compute_contrasts_maps(
-                                  curr_map, filtering=args.filtering))
+                                  curr_map, filtering=args.filtering,
+                                  single_echo=args.single_echo))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),
@@ -459,18 +508,31 @@ def main():
                                 0, 100, [4, 3, 1, 0, 2])
     ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
                                   0, 10, [4, 3, 1, 0])
+    if args.in_B1_map:
+        ihMTR = apply_B1_correction(ihMTR, args.in_B1_map)
+        ihMTsat = apply_B1_correction(ihMTsat, args.in_B1_map)
 
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
         curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
                                        args.in_mask, 0, 100, [4, 2])
+        if args.in_B1_map:
+            curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 
     # Save ihMT and MT images
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
 
     if args.filtering:
         img_name = [curr_name + '_filter'
+                    for curr_name in img_name]
+
+    if args.single_echo:
+        img_name = [curr_name + '_single_echo'
+                    for curr_name in img_name]
+
+    if args.in_B1_map:
+        img_name = [curr_name + '_B1_corrected'
                     for curr_name in img_name]
 
     if args.out_prefix:
