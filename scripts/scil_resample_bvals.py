@@ -29,7 +29,7 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('bvals',
+    parser.add_argument('in_bval',
                         help='The b-values in FSL format.')
 
     parser.add_argument('bvals_to_extract', nargs='+',
@@ -37,7 +37,7 @@ def _build_arg_parser():
                         help='The list of b-values to extract. For example '
                              '0 1000 2000.')
 
-    parser.add_argument('output_bvals',
+    parser.add_argument('out_bval',
                         help='The name of the output b-values.')
 
     parser.add_argument('--tolerance', '-t',
@@ -58,10 +58,10 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.bvals])
-    assert_outputs_exist(parser, args, [args.output_bvals])
+    assert_inputs_exist(parser, args.in_bval)
+    assert_outputs_exist(parser, args, args.out_bval)
 
-    bvals, bvecs = read_bvals_bvecs(args.bvals, None)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, None)
     # Find the volume indices that correspond to the shells to extract.
     tol = args.tolerance
 
@@ -85,7 +85,7 @@ def main():
 
     logging.info("new bvals: {}".format(new_bvals))
     new_bvals.shape = (1, len(new_bvals))
-    np.savetxt(args.output_bvals, new_bvals, '%d')
+    np.savetxt(args.out_bval, new_bvals, '%d')
 
 
 if __name__ == "__main__":
