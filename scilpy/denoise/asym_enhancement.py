@@ -46,20 +46,18 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
 
     # Detect if the basis is full based on its order
     # and the number of coefficients of the SH
-    in_sh_basis = sh_basis
-    if in_sh.shape[-1] == (sh_order + 1)**2:
-        in_sh_basis += '_full'
+    in_full_basis = in_sh.shape[-1] == (sh_order + 1)**2
 
     nb_sf = len(sphere.vertices)
     mean_sf = np.zeros(np.append(in_sh.shape[:-1], nb_sf))
-    B = sh_to_sf_matrix(sphere, sh_order=sh_order,
-                        basis_type=in_sh_basis,
-                        return_inv=False)
+    B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+                        return_inv=False, full_basis=in_full_basis)
 
     # We want a B matrix to project on an inverse sphere to have the sf on
     # the opposite hemisphere for a given vertice
     neg_B = sh_to_sf_matrix(Sphere(xyz=-sphere.vertices), sh_order=sh_order,
-                            basis_type=in_sh_basis, return_inv=False)
+                            basis_type=sh_basis, return_inv=False,
+                            full_basis=in_full_basis)
 
     # Apply filter to each sphere vertice
     for sf_i in range(nb_sf):
@@ -75,11 +73,8 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         mean_sf[..., sf_i] += correlate(current_sf, w_filter, mode="constant")
 
     # Convert back to SH coefficients
-    out_sh_basis = sh_basis
-    if out_full_basis:
-        out_sh_basis += '_full'
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
-                               basis_type=out_sh_basis)
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
+                               full_basis=out_full_basis)
 
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     return out_sh

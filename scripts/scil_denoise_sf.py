@@ -33,7 +33,7 @@ import nibabel as nib
 import numpy as np
 
 from dipy.data import SPHERE_FILES
-from dipy.reconst.shm import order_from_ncoef, sph_harm_full_ind_list
+from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -98,8 +98,8 @@ def generate_mask(sh, threshold):
 
 
 def compute_asymmetry_map(sh_coeffs):
-    order = order_from_ncoef(sh_coeffs.shape[-1], is_full_basis=True)
-    _, l_list = sph_harm_full_ind_list(order)
+    order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
+    _, l_list = sph_harm_ind_list(order, full_basis=True)
 
     sign = np.power(-1.0, l_list)
     sign = np.reshape(sign, (1, 1, 1, len(l_list)))
