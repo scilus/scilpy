@@ -44,7 +44,7 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
                                dim, grid2world,
                                moving_data.shape, moving_affine)
         resampled = affine_map.transform(moving_data.astype(np.float64),
-                                         interp=interp)
+                                         interpolation=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     elif len(moving_data[0, 0, 0]) > 1:
@@ -57,7 +57,7 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
 
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,
-                                  interp=interp)
+                                  interpolation=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     else:
@@ -82,7 +82,8 @@ def transform_dwi(reg_obj, static, dwi, interp='linear'):
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
-        trans_dwi[..., i] = reg_obj.transform(dwi[..., i], interp=interp)
+        trans_dwi[..., i] = reg_obj.transform(dwi[..., i],
+                                              interpolation=interp)
 
     return trans_dwi
 
