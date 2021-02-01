@@ -217,9 +217,6 @@ def main():
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, bundle_ext = split_name_with_nii(bundle_file_name)
 
-        # !! It creates a temporary folder to create
-        # the images to concatenate in the mosaic !!
-
         i = (idx_bundle + 1)*width
 
         if not os.path.isfile(bundle_file):
