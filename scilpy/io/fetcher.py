@@ -23,7 +23,7 @@ def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
     return {'ihMT.zip':
             ['1V0xzvmVrVlL9dRKhc5-7xWESkmof1zyS',
-             'cd1c880e675a1b4f784b28be21c062f8'],
+             '5d28430ac46b4fc04b6d77f9efaefb5c'],
             'MT.zip':
             ['1C2LEUkGaLFdsmym3kBrAtfPjPtv5mJuZ',
              '66e07ada4dd2a192a44705277e0673bb'],
