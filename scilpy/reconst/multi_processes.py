@@ -54,6 +54,9 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     data_shape = data.shape
     if mask is None:
         mask = np.sum(data, axis=3).astype(bool)
+    else:
+        mask_any = np.sum(data, axis=3).astype(bool)
+        mask *= mask_any
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes

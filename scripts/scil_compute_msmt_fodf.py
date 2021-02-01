@@ -231,7 +231,7 @@ def main():
     if args.vf_rgb:
         vf = msmt_fit.volume_fractions
         vf_rgb = (vf + np.min(vf)) / (np.max(vf)-np.min(vf)) * 255
-        nib.save(nib.Nifti1Image(vf_rgb.astype(np.float32),
+        nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
                                  vol.affine), args.vf_rgb)
 
 
