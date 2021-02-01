@@ -87,8 +87,8 @@ def create_odf_slicer(sh_fodf, mask, sphere, nb_subdivide,
         sphere = sphere.subdivide(nb_subdivide)
 
     # Convert SH coefficients to SF coefficients
-    dipy_basis_name = sh_basis + '_full' if full_basis else sh_basis
-    fodf = sh_to_sf(sh_fodf, sphere, sh_order, dipy_basis_name)
+    fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis, 
+                    full_basis=full_basis)
 
     # Get mask if supplied, otherwise create a mask discarding empty voxels
     if mask is None:
