@@ -26,7 +26,7 @@ def get_testing_files_dict():
              '5d28430ac46b4fc04b6d77f9efaefb5c'],
             'MT.zip':
             ['1C2LEUkGaLFdsmym3kBrAtfPjPtv5mJuZ',
-             '66e07ada4dd2a192a44705277e0673bb'],
+             '13532c593efdf09350667df14ea4e93a'],
             'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
              'af15ab98bc1faf2554fa0abb1891f345'],
@@ -38,7 +38,7 @@ def get_testing_files_dict():
              '5fbf5c8eaabff2648ad509e06b003e67'],
             'commit_amico.zip':
             ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
-             '12e901e899ee48bdf31b25f22d39ee48'],
+             'b40800ab4290e4f58c375140fe59b44f'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '6d13bd076225fa2f786f416fa754623a'],
