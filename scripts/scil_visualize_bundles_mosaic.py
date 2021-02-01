@@ -10,7 +10,6 @@ import argparse
 import logging
 import os
 import random
-import shutil
 
 from dipy.io.utils import is_header_compatible
 from fury import actor, window
@@ -220,9 +219,6 @@ def main():
 
         # !! It creates a temporary folder to create
         # the images to concatenate in the mosaic !!
-        output_bundle_dir = os.path.join(output_dir, bundle_name)
-        if not os.path.isdir(output_bundle_dir):
-            os.makedirs(output_bundle_dir)
 
         i = (idx_bundle + 1)*width
 
@@ -327,8 +323,6 @@ def main():
             j = height * view_number
             draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
                                     i + text_pos_x, j + text_pos_y, font)
-
-        shutil.rmtree(output_bundle_dir)
 
     # Save image to file
     mosaic.save(args.out_image)
