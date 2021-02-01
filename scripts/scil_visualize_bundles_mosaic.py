@@ -132,7 +132,7 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
               ('{}'.format(nbr_of_elem)), font=font)
 
 
-def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
+def set_img_in_cell(mosaic, ren, view_number, width, height, i):
     """ Set a snapshot of the bundle in a cell of mosaic """
 
     out = window.snapshot(ren, size=(width, height))
@@ -224,12 +224,6 @@ def main():
         if not os.path.isdir(output_bundle_dir):
             os.makedirs(output_bundle_dir)
 
-        output_paths = [
-            os.path.join(output_bundle_dir,
-                         '{}_' + os.path.basename(
-                             output_bundle_dir)).format(name)
-            for name in output_names]
-
         i = (idx_bundle + 1)*width
 
         if not os.path.isfile(bundle_file):
@@ -283,17 +277,13 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 0
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.pitch(180)
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 1
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor)
             slice_actor2 = slice_actor.copy()
@@ -306,18 +296,14 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 2
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.pitch(180)
             ren.set_camera(view_up=(0, 0, 1))
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 3
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor2)
             slice_actor3 = slice_actor.copy()
@@ -329,17 +315,13 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 4
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.yaw(180)
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 5
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number] +
-                            '.{}'.format(extension), width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             view_number = 6
             j = height * view_number
