@@ -81,7 +81,7 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
     _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
                                basis_type=out_sh_basis)
 
-    out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=np.float)
+    out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     return out_sh
 
 
