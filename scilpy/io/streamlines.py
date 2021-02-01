@@ -101,10 +101,9 @@ def load_tractogram_with_reference(parser, args, filepath,
             else:
                 parser.error('--{} is required for this file format '
                              '{}.'.format(arg_ref, filepath))
-        elif args.reference is None:
+        elif (getattr(args, 'reference', None)) or args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
-
         else:
             sft = load_tractogram(filepath, args.reference,
                                   bbox_valid_check=bbox_check)
