@@ -135,9 +135,10 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
 def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
     """ Set a snapshot of the bundle in a cell of mosaic """
 
-    window.snapshot(ren, path, size=(width, height))
+    out = window.snapshot(ren, size=(width, height))
     j = height * view_number
-    image = Image.open(path)
+    # fury-gl flips image
+    image = Image.fromarray(out[::-1])
     image.thumbnail((width, height))
     mosaic.paste(image, (i, j))
 
