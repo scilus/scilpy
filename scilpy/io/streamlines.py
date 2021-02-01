@@ -80,12 +80,17 @@ def ichunk(sequence, n):
         chunk = list(islice(sequence, n))
 
 
+def is_argument_set(args, arg_name):
+    # Check that attribute is not None
+    return not getattr(args, 'reference', None) is None
+
+
 def load_tractogram_with_reference(parser, args, filepath,
                                    bbox_check=True, arg_name=None):
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
-        if (getattr(args, 'reference', None) or
+        if (is_argument_set(args, 'reference') or
                 arg_name and args.__getattribute__(arg_name + '_ref')):
             logging.warning('Reference is discarded for this file format '
                             '{}.'.format(filepath))
@@ -101,10 +106,9 @@ def load_tractogram_with_reference(parser, args, filepath,
             else:
                 parser.error('--{} is required for this file format '
                              '{}.'.format(arg_ref, filepath))
-        elif args.reference is None:
+        elif (not is_argument_set(args, 'reference')) or args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
-
         else:
             sft = load_tractogram(filepath, args.reference,
                                   bbox_valid_check=bbox_check)
