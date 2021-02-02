@@ -81,7 +81,13 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     for i, fit in results:
         tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
 
-    fit_array[mask] = tmp_fit_array
+    fit_results_mask = np.array(
+        [not isinstance(it, int) for it in tmp_fit_array]
+    )
+
+    mask[mask] = fit_results_mask
+
+    fit_array[mask] = tmp_fit_array[fit_results_mask]
     fit_array = MultiVoxelFit(model, fit_array, mask)
 
     return fit_array
