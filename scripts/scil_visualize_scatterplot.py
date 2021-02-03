@@ -86,7 +86,7 @@ def _build_arg_parser():
                             'used to name the regions of interest.')
     atlas.add_argument('--specific_label', type=int, nargs='+', default=None,
                        help='Label list to use to do scatter plot. Label must '
-                            'corresponding tp atlas LUT file. [%(default)s]')
+                            'corresponding to atlas LUT file. [%(default)s]')
     atlas.add_argument('--in_folder', action='store_true',
                        help='Save label plots in subfolder "Label_plots".')
 

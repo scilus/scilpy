@@ -23,11 +23,11 @@ def test_execution_processing(script_runner):
     in_y = os.path.join(get_home(), 'processing',
                         'ad.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
-                            'scatter_plot.png')
+                            'scatter_plot')
     assert ret.success
 
 
-def test_execution_processing_mask(script_runner):
+def test_execution_processing_bin_mask(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_x = os.path.join(get_home(), 'processing',
                         'fa.nii.gz')
@@ -36,5 +36,69 @@ def test_execution_processing_mask(script_runner):
     in_mask = os.path.join(get_home(), 'processing',
                            'seed.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
-                            'scatter_plot.png', '--mask', in_mask)
+                            'scatter_plot_m', '--in_bin_mask', in_mask)
+    assert ret.success
+
+
+def test_execution_processing_prob_map(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_x = os.path.join(get_home(), 'processing',
+                        'fa.nii.gz')
+    in_y = os.path.join(get_home(), 'processing',
+                        'ad.nii.gz')
+    in_prob_1 = os.path.join(get_home(), 'processing',
+                           'seed.nii.gz')
+    in_prob_2 = os.path.join(get_home(), 'processing',
+                           'seed.nii.gz')
+    ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
+                            'scatter_plot_prob',
+                            '--in_prob_maps', in_prob_1, in_prob_2)
+    assert ret.success
+
+def test_execution_processing_atlas(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_x = os.path.join(get_home(), 'processing',
+                        'fa.nii.gz')
+    in_y = os.path.join(get_home(), 'processing',
+                        'ad.nii.gz')
+    in_atlas = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.nii.gz')
+    atlas_lut = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.json')
+    ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
+                            'scatter_plot', '--in_atlas', in_atlas,
+                            '--atlas_lut', atlas_lut)
+    assert ret.success
+
+def test_execution_processing_atlas_folder(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_x = os.path.join(get_home(), 'processing',
+                        'fa.nii.gz')
+    in_y = os.path.join(get_home(), 'processing',
+                        'ad.nii.gz')
+    in_atlas = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.nii.gz')
+    atlas_lut = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.json')
+    ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
+                            'scatter_plot', '--in_atlas', in_atlas,
+                            '--atlas_lut', atlas_lut,
+                            '--in_folder')
+    assert ret.success
+
+def test_execution_processing_atlas_folder(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_x = os.path.join(get_home(), 'processing',
+                        'fa.nii.gz')
+    in_y = os.path.join(get_home(), 'processing',
+                        'ad.nii.gz')
+    in_atlas = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.nii.gz')
+    atlas_lut = os.path.join(get_home(), 'processing',
+                           'atlas_brainnetome.json')
+    ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
+                            'scatter_plot', '--in_atlas', in_atlas,
+                            '--atlas_lut', atlas_lut,
+                            '--specific_label', 12 34 67 89,
+                            '--in_folder')
     assert ret.success
