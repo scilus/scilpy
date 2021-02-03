@@ -34,7 +34,7 @@ def test_execution_processing_bin_mask(script_runner):
     in_y = os.path.join(get_home(), 'plot',
                         'md.nii.gz')
     in_mask = os.path.join(get_home(), 'plot',
-                           'seed.nii.gz')
+                           'mask_wm.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot_m', '--in_bin_mask', in_mask)
     assert ret.success
@@ -47,9 +47,9 @@ def test_execution_processing_prob_map(script_runner):
     in_y = os.path.join(get_home(), 'plot',
                         'md.nii.gz')
     in_prob_1 = os.path.join(get_home(), 'plot',
-                             'wm_map.nii.gz')
+                             'map_wm.nii.gz')
     in_prob_2 = os.path.join(get_home(), 'plot',
-                             'gm_map.nii.gz')
+                             'map_gm.nii.gz')
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot_prob',
                             '--in_prob_maps', in_prob_1, in_prob_2)
