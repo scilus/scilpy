@@ -225,8 +225,10 @@ def main():
             plt.title(args.title)
             plt.legend()
 
-            plt.savefig(args.out_dir + args.out_name + '_' + name,
-                        dpi=args.dpi, bbox_inches='tight')
+            out_name = os.path.join(args.out_dir + args.out_name +
+                                    '_' + name + '.png')
+            plt.savefig(out_name, dpi=args.dpi, bbox_inches='tight')
+            plt.close()
 
     else:
         # Plot unmasking or masking data (by binary or first probability map)
