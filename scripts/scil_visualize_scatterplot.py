@@ -72,11 +72,11 @@ def _build_arg_parser():
 
     maskopt = p.add_mutually_exclusive_group()
     maskopt.add_argument('--in_bin_mask',
-                   help='Binary mask. Use this option to extract x and '
-                        'y maps value from specific mask or region: '
-                        'wm_mask or roi_mask for example.')
+                         help='Binary mask. Use this option to extract x and '
+                         'y maps value from specific mask or region: '
+                         'wm_mask or roi_mask for example.')
     maskopt.add_argument('--in_prob_maps', nargs=2,
-                         help='Tissue probability maps, WM and GW for example.')
+                         help='Probability maps, WM and GW for example.')
     maskopt.add_argument('--in_atlas',
                          help='Path to the input atlas image.')
 
@@ -88,7 +88,7 @@ def _build_arg_parser():
                        help='Label list to use to do scatter plot. Label must '
                             'corresponding tp atlas LUT file. [%(default)s]')
     atlas.add_argument('--in_folder', action='store_true',
-                         help='Use to save label plots in folder.')
+                       help='Save label plots in subfolder "Label_plots".')
 
     scat = p.add_argument_group(title='Scatter plot options')
     scat.add_argument('--title',
@@ -121,13 +121,12 @@ def _build_arg_parser():
     scat.add_argument('--dpi', default=300,
                       help='Use the provided info for the dpi resolution.'
                            ' [%(default)s]')
-    scat.add_argument('--color_prob', nargs=2, metavar=('color1', 'color2'),
+    scat.add_argument('--colors', nargs=2, metavar=('color1', 'color2'),
                       default=('r', 'b'))
 
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, only display. '
                         ' Not avalaible with --in_atlas option.')
-
 
     add_overwrite_arg(p)
 
@@ -204,7 +203,6 @@ def main():
         else:
             (label_indices, label_names) = (lut_indices, lut_names)
 
-
     # Scatter Plots
     # Plot for each label only with unmasking data
     if args.in_atlas:
@@ -219,15 +217,16 @@ def main():
             x = (maps_data[0][np.where(label_data == label)])
             y = (maps_data[1][np.where(label_data == label)])
 
-            ax.scatter(x, y, label=name, color=args.color_prob[0],
-            s=args.marker_size, marker=args.marker, alpha=args.transparency)
+            ax.scatter(x, y, label=name, color=args.colors[0],
+                       s=args.marker_size, marker=args.marker,
+                       alpha=args.transparency)
             plt.xlabel(args.x_label)
             plt.ylabel(args.y_label)
             plt.title(args.title)
             plt.legend()
 
-            plt.savefig(args.out_dir + args.out_name + '_' + name, dpi=args.dpi,
-                        bbox_inches='tight')
+            plt.savefig(args.out_dir + args.out_name + '_' + name,
+                        dpi=args.dpi, bbox_inches='tight')
 
     else:
         # Plot unmasking or masking data (by binary or first probability map)
@@ -237,14 +236,14 @@ def main():
         plt.title(args.title)
 
         ax.scatter(maps_data[0], maps_data[1], label=args.label,
-        color=args.color_prob[0], s=args.marker_size,
-        marker=args.marker, alpha=args.transparency)
+                   color=args.colors[0], s=args.marker_size,
+                   marker=args.marker, alpha=args.transparency)
 
         # Add data thresholded with the second probability map
         if args.in_prob_maps:
             ax.scatter(maps_prob[0], maps_prob[1], label=args.label_prob,
-            color=args.color_prob[1], s=args.marker_size, marker=args.marker,
-            alpha=args.transparency)
+                       color=args.colors[1], s=args.marker_size,
+                       marker=args.marker, alpha=args.transparency)
 
         plt.legend()
 
