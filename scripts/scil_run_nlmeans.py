@@ -99,7 +99,7 @@ def main():
     vol = nb.load(args.input)
     data = vol.get_fdata(dtype=np.float32)
     if args.mask is None:
-        mask = np.zeros(data.shape, dtype=np.bool)
+        mask = np.zeros(data.shape[0:3], dtype=np.bool)
         if data.ndim == 4:
             mask[np.sum(data, axis=-1) > 0] = 1
         else:
