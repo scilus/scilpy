@@ -3,8 +3,13 @@ pipeline {
 
     stages {
         stage('Test') {
+            agent { docker { image 'python:3.6-alpine' } }
             steps {
-                echo 'Deploying.'
+                sh '''
+                    python setup.py develop
+                    export MPLBACKEND="agg"
+                    pytest -v
+                   '''
             }
         }
         stage('Deploy') {
