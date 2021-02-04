@@ -20,8 +20,9 @@ vtkcolors = [window.colors.blue,
              window.colors.grey]
 
 
-def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True, same_color=False,
-                    rad=0.025, opacity=1.0, ofile=None, ores=(300, 300)):
+def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
+                    same_color=False, rad=0.025, opacity=1.0, ofile=None,
+                    ores=(300, 300)):
     """
     Plot each shell
 

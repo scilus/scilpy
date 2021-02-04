@@ -13,19 +13,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_bundle_profiles.py', '--help')
+    ret = script_runner.run('scil_compute_endpoints_metric.py', '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM.trk')
-    in_centroid = os.path.join(get_home(), 'tractometry',
-                               'IFGWM_uni_c_10.trk')
+                             'IFGWM_uni.trk')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_compute_bundle_profiles.py', in_bundle,
-                            in_ref, '--in_centroid', in_centroid)
+    ret = script_runner.run('scil_compute_endpoints_metric.py', in_bundle,
+                            in_ref, 'out/')
 
     assert ret.success
