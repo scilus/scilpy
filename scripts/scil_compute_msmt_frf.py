@@ -19,7 +19,7 @@ We output one response function file for each tissue, containing the response
 function for each b-value (arranged by lines). These are saved as the diagonal
 of the axis-symmetric diffusion tensor (3 e-values) and a mean b0 value.
 For example, a typical wm_frf is 15e-4 4e-4 4e-4 700, where the tensor e-values
-are (15,4,4)x10^-4 and the mean b0 is 700.
+are (15,4,4)x10^-4 mm^2/s and the mean b0 is 700.
 
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
