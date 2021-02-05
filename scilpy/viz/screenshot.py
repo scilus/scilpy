@@ -2,7 +2,7 @@
 
 from fury import window
 
-from scipy.io.utils import save_image
+from scilpy.io.utils import snapshot
 
 
 def display_slices(volume_actor, slices,
@@ -37,7 +37,4 @@ def display_slices(volume_actor, slices,
                      view_up=view_up_vector,
                      focal_point=focal_point)
 
-    out = window.snapshot(scene, size=(1920, 1080), offscreen=True)
-    # TODO: For some reason, window.snapshot flips images vetically.
-    # If ever this behaviour gets fixed, we need to remove the code below.
-    save_image(out, output_filename)
+    snapshot(scene, output_filename, size=(1920, 1080), offscreen=True)
