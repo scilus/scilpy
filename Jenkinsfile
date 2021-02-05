@@ -6,7 +6,11 @@ pipeline {
             steps {
                 sh 'sudo apt-get install -y python3-venv'
                 withPythonEnv('CPython-3.6') {
-                        sh 'python --version'
+                        sh '''
+                           python setup.py develop
+                           export MPLBACKEND="agg"
+                           pytest -v
+                        '''
                 }
             }
         }
