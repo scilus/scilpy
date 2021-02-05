@@ -3,10 +3,10 @@ pipeline {
 
     stages {
         stage('Test') {
+            steps {
+                sh 'sudo apt-get install -y python3-venv build-essential libblas-dev liblapack-dev python3-tk python3-dev cmake'
+            }
             parallel {
-                steps {
-                    sh 'sudo apt-get install -y python3-venv build-essential libblas-dev liblapack-dev python3-tk python3-dev cmake'
-                }
                 stage('Python3.6') {
                     steps {
                         withPythonEnv('CPython-3.6') {
