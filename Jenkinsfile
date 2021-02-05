@@ -7,7 +7,8 @@ pipeline {
                 sh 'sudo apt-get install -y python3-venv build-essential libblas-dev liblapack-dev python3-tk python3-dev'
                 withPythonEnv('CPython-3.6') {
                         sh '''
-                           python setup.py develop
+                           pip3 install requirements.txt
+                           python3 setup.py develop
                            export MPLBACKEND="agg"
                            pytest -v
                         '''
