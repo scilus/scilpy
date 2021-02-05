@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from fury import window
-from PIL import Image
+
+from scipy.io.utils import save_image
 
 
 def display_slices(volume_actor, slices,
@@ -39,5 +40,4 @@ def display_slices(volume_actor, slices,
     out = window.snapshot(scene, size=(1920, 1080), offscreen=True)
     # TODO: For some reason, window.snapshot flips images vetically.
     # If ever this behaviour gets fixed, we need to remove the code below.
-    image = Image.fromarray(out[::-1])
-    image.save(output_filename)
+    save_image(out, output_filename)

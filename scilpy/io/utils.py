@@ -8,6 +8,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from PIL import Image
 from scipy.io import loadmat
 import six
 
@@ -494,3 +495,8 @@ def parser_color_type(arg):
         raise argparse.ArgumentTypeError(
             "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
     return f
+
+
+def save_image(img_array, filename):
+    image = Image.fromarray(img_array[::-1])
+    image.save(filename)

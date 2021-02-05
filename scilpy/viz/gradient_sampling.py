@@ -6,8 +6,9 @@ from tempfile import mkstemp
 
 from dipy.data import get_sphere
 from fury import actor, window
-from PIL import Image
 import fury
+
+from scilpy.io.utils import save_image
 
 vtkcolors = [window.colors.blue,
              window.colors.red,
@@ -83,8 +84,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         if ofile:
             filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
             out = window.snapshot(scene, size=ores)
-            image = Image.fromarray(out[::-1])
-            image.save(filename)
+            save_image(out, filename)
 
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
@@ -146,8 +146,9 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     if ofile:
         filename = ofile + '.png'
         out = window.snapshot(scene, size=ores)
-        image = Image.fromarray(out[::-1])
-        image.save(filename)
+        # TODO: For some reason, window.snapshot flips images vetically.
+        # If ever this behaviour gets fixed, we need to remove the code below.
+        save_image(out, filename)
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):

@@ -5,7 +5,8 @@ import numpy as np
 
 from dipy.reconst.shm import sh_to_sf
 from fury import window, actor
-from PIL import Image
+
+from scilpy.io.utils import save_image
 
 
 class CamParams(Enum):
@@ -197,5 +198,4 @@ def render_scene(scene, window_size, interactor, output, silent):
         out_img = window.snapshot(scene, size=window_size)
         # TODO: For some reason, window.snapshot flips images vetically.
         # If ever this behaviour gets fixed, we need to remove the code below.
-        image = Image.fromarray(out_img[::-1])
-        image.save(output)
+        save_image(out_img, output)
