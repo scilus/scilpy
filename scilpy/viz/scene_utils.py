@@ -87,8 +87,8 @@ def create_odf_slicer(sh_fodf, mask, sphere, nb_subdivide,
         sphere = sphere.subdivide(nb_subdivide)
 
     # Convert SH coefficients to SF coefficients
-    dipy_basis_name = sh_basis + '_full' if full_basis else sh_basis
-    fodf = sh_to_sf(sh_fodf, sphere, sh_order, dipy_basis_name)
+    fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
+                    full_basis=full_basis)
 
     # Get mask if supplied, otherwise create a mask discarding empty voxels
     if mask is None:
@@ -175,8 +175,8 @@ def create_scene(actors, orientation, volume_shape):
     scene.zoom(camera[CamParams.ZOOM_FACTOR])
 
     # Add actors to the scene
-    for a in actors:
-        scene.add(a)
+    for curr_actor in actors:
+        scene.add(curr_actor)
 
     return scene
 
@@ -194,7 +194,7 @@ def render_scene(scene, window_size, interactor, output, silent):
         showm.start()
 
     if output:
-        out_img = window.snapshot(scene, size=window_size, fname=output)
+        out_img = window.snapshot(scene, size=window_size)
         # TODO: For some reason, window.snapshot flips images vetically.
         # If ever this behaviour gets fixed, we need to remove the code below.
         image = Image.fromarray(out_img[::-1])

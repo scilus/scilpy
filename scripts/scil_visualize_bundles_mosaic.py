@@ -23,6 +23,7 @@ from PIL import ImageDraw
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -63,6 +64,7 @@ def _build_arg_parser():
                    help='Resolution of thumbnails used in mosaic '
                         '[%(default)s].')
 
+    add_reference_arg(p)
     add_overwrite_arg(p)
     return p
 
