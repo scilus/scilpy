@@ -57,3 +57,15 @@ def test_execution_concat(script_runner):
                             in_img_1, in_img_2, in_img_3, in_img_4, in_img_5,
                             in_img_6, 'concat_ids.nii.gz')
     assert ret.success
+
+
+def test_execution_concat_4D(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_img_1 = os.path.join(get_home(), 'atlas', 'ids', '10.nii.gz')
+    in_img_2 = os.path.join(get_home(), 'atlas', 'ids', '8_10.nii.gz')
+    in_img_3 = os.path.join(get_home(), 'atlas', 'ids', '12.nii.gz')
+    in_img_4 = os.path.join(get_home(), 'atlas', 'ids', '8_10.nii.gz')
+    ret = script_runner.run('scil_image_math.py', 'concatenate',
+                            in_img_1, in_img_2, in_img_3, in_img_4,
+                            'concat_ids.nii.gz')
+    assert ret.success
