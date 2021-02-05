@@ -1,9 +1,17 @@
 pipeline {
-    agent any
+    agent {
+        label 'docker'
+      }
 
     stages {
         stage('Test') {
-            agent { docker { image 'python:3.6-alpine' } }
+            agent {
+                docker {
+                      // Set both label and image
+                      label 'docker'
+                      image 'python:3.6-alpine'
+                }
+            }
             steps {
                 sh '''
                     python setup.py develop
