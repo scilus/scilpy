@@ -3,9 +3,9 @@
 from enum import Enum
 import numpy as np
 
-from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sh_to_sf
 from fury import window, actor
+from PIL import Image
 
 
 class CamParams(Enum):
@@ -175,8 +175,8 @@ def create_scene(actors, orientation, volume_shape):
     scene.zoom(camera[CamParams.ZOOM_FACTOR])
 
     # Add actors to the scene
-    for actor in actors:
-        scene.add(actor)
+    for a in actors:
+        scene.add(a)
 
     return scene
 
@@ -195,3 +195,7 @@ def render_scene(scene, window_size, interactor, output, silent):
 
     if output:
         out_img = window.snapshot(scene, size=window_size, fname=output)
+        # TODO: For some reason, window.snapshot flips images vetically.
+        # If ever this behaviour gets fixed, we need to remove the code below.
+        image = Image.fromarray(out_img[::-1])
+        image.save(output)
