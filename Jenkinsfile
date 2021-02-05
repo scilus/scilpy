@@ -5,8 +5,6 @@ pipeline {
         stage('Test') {
             agent {
                 docker {
-                      // Set both label and image
-                      label 'docker'
                       image 'python:3.6-alpine'
                 }
             }
