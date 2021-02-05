@@ -114,7 +114,7 @@ def _build_arg_parser():
     g0.add_argument('--commit2', action='store_true',
                     help='Run commit2, requires .h5 as input and will force\n'
                          'ball&stick model.')
-    g0.add_argument('--lambda_commit_2', type=float, default=5e-4,
+    g0.add_argument('--lambda_commit_2', type=float, default=1e-3,
                     help='Specify the clustering prior strength [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
