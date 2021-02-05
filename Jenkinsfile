@@ -11,7 +11,9 @@ pipeline {
         stage('Test') {
             parallel {
                 stage('Python3.6') {
-                    agent { docker { image: "python:3.6-alpine" }}
+                    agent {
+                            docker { image 'python:3.6-alpine' }
+                        }
                     steps {
                            sh '''
                                pip3 install numpy==1.18.* wheel
