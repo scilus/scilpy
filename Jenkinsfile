@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                sh 'apt-get install python3-venv'
+                sh 'sudo apt-get install python3-venv'
                 withPythonEnv('CPython-3.6') {
                         sh 'python --version'
                 }
