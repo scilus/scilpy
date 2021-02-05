@@ -17,8 +17,7 @@ Both `sharpness` and `sigma` must be positive.
 The resulting SF can be expressed using a full SH basis or a symmetric SH basis
 (where the effect of the filtering is a simple denoising). When a full SH basis
 is used, an asymmetry map is also generated using an asymmetry measure (Cetin
-Karayumak et al, 2018). The script also generates a mask of voxel higher than
-`mask_eps` from the input image which can later be used to mask the output.
+Karayumak et al, 2018).
 
 Using default parameters, the script completes in about 15-20 minutes for a
 HCP subject fiber ODF processed with tractoflow. Also note the bigger the
@@ -58,13 +57,6 @@ def _build_arg_parser():
                    help='File name for asymmetry map. Can only be outputed'
                         ' when the output SH basis is full. [%(default)s]')
 
-    p.add_argument('--out_mask', default='mask.nii.gz',
-                   help='File name for output mask. [%(default)s]')
-
-    p.add_argument('--mask_eps', default=1e-16,
-                   help='Threshold on SH coefficients norm for output mask.'
-                        ' [%(default)s]')
-
     p.add_argument('--sh_order', default=8, type=int,
                    help='SH order of the input. [%(default)s]')
 
@@ -91,12 +83,6 @@ def _build_arg_parser():
     return p
 
 
-def generate_mask(sh, threshold):
-    norm = np.linalg.norm(sh, axis=-1)
-    mask = norm > threshold
-    return mask
-
-
 def compute_asymmetry_map(sh_coeffs):
     order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
     _, l_list = sph_harm_ind_list(order, full_basis=True)
@@ -121,7 +107,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    outputs = [args.out_sh, args.out_mask]
+    outputs = [args.out_sh]
     if not args.out_sym:
         outputs.append(args.out_asymmetry)
 
@@ -155,13 +141,6 @@ def main():
                      '{0}.'.format(args.out_asymmetry))
         nib.save(nib.Nifti1Image(asym_map, sh_img.affine),
                  args.out_asymmetry)
-
-    # Generate mask by applying threshold on input SH
-    logging.info('Generating mask by thresholding input SH.')
-    mask = generate_mask(data, args.mask_eps)
-    logging.info('Saving mask to file {0}.'.format(args.out_mask))
-    nib.save(nib.Nifti1Image(mask.astype(np.uint8), sh_img.affine),
-             args.out_mask)
 
 
 if __name__ == "__main__":
