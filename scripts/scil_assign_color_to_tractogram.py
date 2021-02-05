@@ -5,6 +5,8 @@
 Assign an hexadecimal RGB color to a Trackvis TRK tractogram.
 The hexadecimal RGB color should be formatted as 0xRRGGBB or
 "#RRGGBB".
+The script can also use scalar in data_per_point and data_per_streamline
+(e.g commit_weights) to visualise on the streamlines.
 
 Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 
@@ -45,8 +47,8 @@ def _build_arg_parser():
                     help='Dictionnary mapping basename to color.\n'
                          'Same convention as --fill_color.')
     p1.add_argument('--use_dps', metavar='DPS_KEY',
-                    help='Use the data_per_streamline (scalar) for coloring, '
-                         'linear from min to max.')
+                    help='Use the data_per_streamline (scalar) for coloring,\n'
+                         'linear from min to max, e.g. commit_weights.')
     p1.add_argument('--use_dpp', metavar='DPP_KEY',
                     help='Use the data_per_point (scalar) for coloring, '
                          'linear from min to max.')
