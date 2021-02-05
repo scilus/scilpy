@@ -7,7 +7,8 @@ pipeline {
                 sh 'sudo apt-get install -y python3-venv build-essential libblas-dev liblapack-dev python3-tk python3-dev'
                 withPythonEnv('CPython-3.6') {
                         sh '''
-                           pip install -e .
+                           pip 3 install numpy==1.18.*
+                           pip3 install -e .
                            export MPLBACKEND="agg"
                            pytest -v
                         '''
