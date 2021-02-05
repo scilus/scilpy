@@ -6,6 +6,7 @@ from tempfile import mkstemp
 
 from dipy.data import get_sphere
 from fury import actor, window
+from PIL import Image
 import fury
 
 vtkcolors = [window.colors.blue,
@@ -80,9 +81,10 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         window.show(scene)
 
         if ofile:
-            window.snapshot(scene, fname=ofile + '_shell_' +
-                            str(int(centroids[i])) + '.png',
-                            size=ores)
+            filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
+            out = window.snapshot(scene, size=ores)
+            image = Image.fromarray(out[::-1])
+            image.save(filename)
 
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
@@ -142,7 +144,10 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
             scene.add(pts_actor)
     window.show(scene)
     if ofile:
-        window.snapshot(scene, fname=ofile + '.png', size=ores)
+        filename = ofile + '.png'
+        out = window.snapshot(scene, size=ores)
+        image = Image.fromarray(out[::-1])
+        image.save(filename)
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
