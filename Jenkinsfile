@@ -2,19 +2,41 @@ pipeline {
     agent any
 
     stages {
-        stage('Build') {
-            steps {
-                echo 'Building..'
-            }
-        }
         stage('Test') {
-            steps {
-                echo 'Testing..'
+            parallel {
+                stage('Python3.6') {
+                    steps {
+                        withPythonEnv('CPython-3.6') {
+                            sh '''
+                                pip3 install numpy==1.18.* wheel
+                                pip3 install -e .
+                                export MPLBACKEND="agg"
+                                pytest -v
+                            '''
+                        }
+                    }
+                }
+                stage('Python3.7') {
+                    steps {
+                        withPythonEnv('CPython-3.7') {
+                            sh '''
+                                pip3 install numpy==1.18.* wheel
+                                pip3 install -e .
+                                export MPLBACKEND="agg"
+                                pytest -v
+                            '''
+                        }
+                    }
+                }
             }
         }
+
         stage('Deploy') {
+            when {
+                branch 'master'
+            }
             steps {
-                echo 'Deploying....'
+                echo 'Deploying.'
             }
         }
     }
