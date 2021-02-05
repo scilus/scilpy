@@ -28,18 +28,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Python3.8') {
-                    steps {
-                        withPythonEnv('CPython-3.8') {
-                            sh '''
-                                pip3 install numpy==1.18.* wheel
-                                python setup.py develop
-                                export MPLBACKEND="agg"
-                                pytest -v
-                            '''
-                        }
-                    }
-                }
             }
         }
 
