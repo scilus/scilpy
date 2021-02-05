@@ -310,7 +310,7 @@ def main():
         if not args.keep_whole_tractogram and ext != '.h5':
             logging.warning('Not thresholding weigth with trk file without '
                             'the --keep_whole_tractogram will not save a '
-                            'tractogram')
+                            'tractogram.')
     else:
         args.threshold_weights = float(args.threshold_weights)
 
