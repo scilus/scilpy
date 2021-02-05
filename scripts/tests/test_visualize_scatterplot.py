@@ -102,6 +102,6 @@ def test_execution_processing_atlas_folder_specific_label(script_runner):
     ret = script_runner.run('scil_visualize_scatterplot.py', in_x, in_y,
                             'scatter_plot', '--in_atlas', in_atlas,
                             '--atlas_lut', atlas_lut,
-                            '--specific_label', '2 5 7',
+                            '--specific_label', '2', '5', '7',
                             '--in_folder')
     assert ret.success
