@@ -13,26 +13,27 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_denoise_sf.py',
+    ret = script_runner.run('scil_execute_asymmetric_filtering.py',
                             '--help')
     assert ret.success
 
 
-def test_execution_denoise_sf(script_runner):
+def test_asym_basis_output(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
 
     # We use a low resolution sphere to reduce execution time
-    ret = script_runner.run('scil_denoise_sf.py', in_fodf,
+    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
                             'out.nii.gz', '--sphere', 'repulsion100')
     assert ret.success
 
 
-def test_denoise_sf_sym_basis(script_runner):
+def test_sym_basis_output(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
 
     # We use a low resolution sphere to reduce execution time
-    ret = script_runner.run('scil_denoise_sf.py', in_fodf, 'out_sym.nii.gz',
-                            '--out_sym', '--sphere', 'repulsion100')
+    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
+                            'out_sym.nii.gz', '--out_sym', '--sphere',
+                            'repulsion100')
     assert ret.success
