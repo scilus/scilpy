@@ -24,8 +24,7 @@ def test_execution_denoise_sf(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_denoise_sf.py', in_fodf,
-                            'out.nii.gz', '--sphere', 'repulsion100',
-                            '--out_mask', 'out_mask.nii.gz')
+                            'out.nii.gz', '--sphere', 'repulsion100')
     assert ret.success
 
 
@@ -35,6 +34,5 @@ def test_denoise_sf_sym_basis(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_denoise_sf.py', in_fodf, 'out_sym.nii.gz',
-                            '--out_sym', '--sphere', 'repulsion100',
-                            '--out_mask', 'out_sym_mask.nii.gz')
+                            '--out_sym', '--sphere', 'repulsion100')
     assert ret.success
