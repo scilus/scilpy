@@ -24,7 +24,7 @@ def test_asym_basis_output(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out.nii.gz', '--sphere', 'repulsion100')
+                            'out_0.nii.gz', '--sphere', 'repulsion100')
     assert ret.success
 
 
@@ -34,6 +34,16 @@ def test_sym_basis_output(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out_sym.nii.gz', '--out_sym', '--sphere',
+                            'out_1.nii.gz', '--out_sym', '--sphere',
                             'repulsion100')
+    assert ret.success
+
+
+def test_asym_input(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf_full.nii.gz')
+
+    # We use a low resolution sphere to reduce execution time
+    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
+                            'out_2.nii.gz', '--sphere', 'repulsion100', '-f')
     assert ret.success
