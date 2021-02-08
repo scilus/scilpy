@@ -55,7 +55,7 @@ def _build_arg_parser():
 
     p.add_argument('--out_asymmetry', default='asym_map.nii.gz',
                    help='File name for asymmetry map. Can only be outputed'
-                        ' when the output SH basis is full. [%(default)s]')
+                        ' when the output SH basis is full. [%(default)s]')
 
     p.add_argument('--sh_order', default=8, type=int,
                    help='SH order of the input. [%(default)s]')
