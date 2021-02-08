@@ -8,6 +8,7 @@ pipeline {
                     steps {
                         withPythonEnv('CPython-3.6') {
                             sh '''
+                                export SCILPY_HOME=$PWD
                                 pip3 install numpy==1.18.* wheel
                                 pip3 install -e .
                                 export MPLBACKEND="agg"
@@ -20,6 +21,7 @@ pipeline {
                     steps {
                         withPythonEnv('CPython-3.7') {
                             sh '''
+                                export SCILPY_HOME=$PWD
                                 pip3 install numpy==1.18.* wheel
                                 pip3 install -e .
                                 export MPLBACKEND="agg"
