@@ -2,6 +2,8 @@
 
 from fury import window
 
+from scilpy.io.utils import snapshot
+
 
 def display_slices(volume_actor, slices,
                    output_filename, axis_name,
@@ -35,5 +37,4 @@ def display_slices(volume_actor, slices,
                      view_up=view_up_vector,
                      focal_point=focal_point)
 
-    window.snapshot(scene, size=(1920, 1080), offscreen=True,
-                    fname=output_filename)
+    snapshot(scene, output_filename, size=(1920, 1080), offscreen=True)

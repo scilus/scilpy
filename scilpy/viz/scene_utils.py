@@ -6,6 +6,8 @@ import numpy as np
 from dipy.reconst.shm import sh_to_sf
 from fury import window, actor
 
+from scilpy.io.utils import snapshot
+
 
 class CamParams(Enum):
     """
@@ -193,4 +195,4 @@ def render_scene(scene, window_size, interactor, output, silent):
         showm.start()
 
     if output:
-        window.snapshot(scene, size=window_size, fname=output)
+        snapshot(scene, output, size=window_size)
