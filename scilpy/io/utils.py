@@ -8,6 +8,8 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from fury import window
+from PIL import Image
 from scipy.io import loadmat
 import six
 
@@ -494,3 +496,13 @@ def parser_color_type(arg):
         raise argparse.ArgumentTypeError(
             "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
     return f
+
+
+def snapshot(scene, filename, **kwargs):
+    """ Wrapper around fury.window.snapshot
+    For some reason, fury.window.snapshot flips the image vertically.
+    This image unflips the image and then saves it.
+    """
+    out = window.snapshot(scene, **kwargs)
+    image = Image.fromarray(out[::-1])
+    image.save(filename)
