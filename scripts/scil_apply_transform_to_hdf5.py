@@ -100,7 +100,6 @@ def main():
 
                 if len(streamlines) == 0:
                     continue
-                print(len(streamlines))
                 header = create_nifti_header(affine, dimensions, voxel_sizes)
                 moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
                                                 origin=Origin.TRACKVIS)
