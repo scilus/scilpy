@@ -75,8 +75,19 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 
+EPILOG = """
+References:
+    [1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
+    microstructure informed tractography." IEEE transactions on medical
+    imaging 34.1 (2014): 246-257.
+    [2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
+    human brain connections using microstructural and anatomical information."
+    Science advances 6.31 (2020): eaba8245.
+"""
+
+
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
@@ -170,7 +181,7 @@ def redirect_stdout_c():
 
 
 def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
-                          sub_dir):
+                          sub_dir, is_commit_2):
     out_dir = os.path.join(args.out_dir, sub_dir)
     os.mkdir(out_dir)
     # Simplifying output for streamlines and cleaning output directory
@@ -201,31 +212,37 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                 old_group = hdf5_file[key]
                 tmp_commit_weights = commit_weights[offsets_list[i]
                     :offsets_list[i+1]]
-                if args.threshold_weights is not None:
-                    essential_ind = np.where(
-                        tmp_commit_weights > args.threshold_weights)[0]
-                    tmp_streamlines = reconstruct_streamlines(old_group['data'],
-                                                              old_group['offsets'],
-                                                              old_group['lengths'],
-                                                              indices=essential_ind)
 
-                    # Replacing the data with the one above the threshold
-                    # Safe since this hdf5 was a copy in the first place
-                    new_group.create_dataset('data',
-                                             data=tmp_streamlines.get_data(),
-                                             dtype=np.float32)
-                    new_group.create_dataset('offsets',
-                                             data=tmp_streamlines._offsets,
-                                             dtype=np.int64)
-                    new_group.create_dataset('lengths',
-                                             data=tmp_streamlines._lengths,
-                                             dtype=np.int32)
+                if args.threshold_weights is None:
+                    args.threshold_weights = -1
+                essential_ind = np.where(
+                    tmp_commit_weights > args.threshold_weights)[0]
+                tmp_commit_weights = tmp_commit_weights[essential_ind]
+
+                tmp_streamlines = reconstruct_streamlines(old_group['data'],
+                                                            old_group['offsets'],
+                                                            old_group['lengths'],
+                                                            indices=essential_ind)
+
+                # Replacing the data with the one above the threshold
+                # Safe since this hdf5 was a copy in the first place
+                new_group.create_dataset('data',
+                                            data=tmp_streamlines.get_data(),
+                                            dtype=np.float32)
+                new_group.create_dataset('offsets',
+                                            data=tmp_streamlines._offsets,
+                                            dtype=np.int64)
+                new_group.create_dataset('lengths',
+                                            data=tmp_streamlines._lengths,
+                                            dtype=np.int32)
 
                 for dps_key in hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        new_group.create_dataset(key,
-                                                 data=hdf5_file[key][dps_key])
-                new_group.create_dataset('commit_weights',
+                        new_group.create_dataset(
+                            key, data=hdf5_file[key][dps_key][essential_ind])
+
+                dpp_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+                new_group.create_dataset(dpp_key,
                                          data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
@@ -238,24 +255,25 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
         # Reload is needed because of COMMIT handling its file by itself
         sft.data_per_streamline['commit_weights'] = commit_weights
 
-        if args.threshold_weights is not None:
-            essential_ind = np.where(
-                commit_weights > args.threshold_weights)[0]
-            nonessential_ind = np.where(
-                commit_weights <= args.threshold_weights)[0]
-            logging.debug('{} essential streamlines were kept at '
-                          'threshold {}'.format(len(essential_ind),
-                                                args.threshold_weights))
-            logging.debug('{} nonessential streamlines were kept at '
-                          'threshold {}'.format(len(nonessential_ind),
-                                                args.threshold_weights))
+        if args.threshold_weights is None:
+            args.threshold_weights = -1
+        essential_ind = np.where(
+            commit_weights > args.threshold_weights)[0]
+        nonessential_ind = np.where(
+            commit_weights <= args.threshold_weights)[0]
+        logging.debug('{} essential streamlines were kept at '
+                        'threshold {}'.format(len(essential_ind),
+                                            args.threshold_weights))
+        logging.debug('{} nonessential streamlines were kept at '
+                        'threshold {}'.format(len(nonessential_ind),
+                                            args.threshold_weights))
 
-            save_tractogram(sft[essential_ind],
-                            os.path.join(out_dir,
-                                         'essential_tractogram.trk'))
-            save_tractogram(sft[nonessential_ind],
-                            os.path.join(out_dir,
-                                         'nonessential_tractogram.trk'))
+        save_tractogram(sft[essential_ind],
+                        os.path.join(out_dir,
+                                        'essential_tractogram.trk'))
+        save_tractogram(sft[nonessential_ind],
+                        os.path.join(out_dir,
+                                        'nonessential_tractogram.trk'))
         if args.keep_whole_tractogram:
             output_filename = os.path.join(out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
@@ -308,7 +326,7 @@ def main():
     if args.threshold_weights == 'None' or args.threshold_weights == 'none':
         args.threshold_weights = None
         if not args.keep_whole_tractogram and ext != '.h5':
-            logging.warning('Not thresholding weigth with trk file without '
+            logging.warning('Not thresholding weight with trk file without '
                             'the --keep_whole_tractogram will not save a '
                             'tractogram.')
     else:
@@ -439,7 +457,7 @@ def main():
         mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=False)
         mit.save_results()
         _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
-                              'commit_1/')
+                              'commit_1/', False)
 
         if args.commit2:
             tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
@@ -459,7 +477,7 @@ def main():
                     regularisation=prior_on_bundles, verbose=False)
             mit.save_results()
             _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
-                                  'commit_2/')
+                                  'commit_2/', True)
 
     tmp_dir.cleanup()
 
