@@ -83,7 +83,7 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
         trans_dwi[..., i] = reg_obj.transform(dwi[..., i],
-                                              interpolation=interp)
+                                              interpolation=interpolation)
 
     return trans_dwi
 
