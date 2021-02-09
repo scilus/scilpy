@@ -34,6 +34,7 @@ pipeline {
                         pip3 install numpy==1.18.* wheel
                         pip3 install -e .
                         export MPLBACKEND="agg"
+                        export OPENBLAS_NUM_THREADS=1
                         pytest -v
                     '''
                 }
