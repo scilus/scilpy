@@ -8,6 +8,8 @@ from dipy.data import get_sphere
 from fury import actor, window
 import fury
 
+from scilpy.io.utils import snapshot
+
 vtkcolors = [window.colors.blue,
              window.colors.red,
              window.colors.yellow,
@@ -80,9 +82,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         window.show(scene)
 
         if ofile:
-            window.snapshot(scene, fname=ofile + '_shell_' +
-                            str(int(centroids[i])) + '.png',
-                            size=ores)
+            filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
+            snapshot(scene, filename, size=ores)
 
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
@@ -142,7 +143,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
             scene.add(pts_actor)
     window.show(scene)
     if ofile:
-        window.snapshot(scene, fname=ofile + '.png', size=ores)
+        filename = ofile + '.png'
+        snapshot(scene, filename, size=ores)
 
 
 def build_ms_from_shell_idx(bvecs, shell_idx):
