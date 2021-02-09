@@ -35,7 +35,7 @@ def get_testing_files_dict():
              'c0551a28dcefcd7cb53f572b1794b3e8'],
             'bundles.zip':
             ['1VaGWwhVhnfsZBCCYu12dta9qi0SgZFP7',
-             '91cd6e388b5908e9455860e2405b99ec'],
+             '5fbf5c8eaabff2648ad509e06b003e67'],
             'commit_amico.zip':
             ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
              'b40800ab4290e4f58c375140fe59b44f'],
