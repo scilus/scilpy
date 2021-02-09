@@ -21,12 +21,15 @@ def get_home():
 
 def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
-    return {'ihMT.zip':
+    return {'plot.zip':
+            ['1Ab-oVWI1Fu7fHTEz1H3-s1TfR_oW-GOE',
+             'cca8f1e19da357f44365a7e27b9029ca'],
+            'ihMT.zip':
             ['1V0xzvmVrVlL9dRKhc5-7xWESkmof1zyS',
-             '44eee21bcc0597836ba2eb32d41ed98c'],
+             '5d28430ac46b4fc04b6d77f9efaefb5c'],
             'MT.zip':
             ['1C2LEUkGaLFdsmym3kBrAtfPjPtv5mJuZ',
-             '66e07ada4dd2a192a44705277e0673bb'],
+             '13532c593efdf09350667df14ea4e93a'],
             'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
              'af15ab98bc1faf2554fa0abb1891f345'],
@@ -38,7 +41,7 @@ def get_testing_files_dict():
              '5fbf5c8eaabff2648ad509e06b003e67'],
             'commit_amico.zip':
             ['1vyMtQd1u2h2pza9M0bncDWLc34_4MRPK',
-             '12e901e899ee48bdf31b25f22d39ee48'],
+             'b40800ab4290e4f58c375140fe59b44f'],
             'connectivity.zip':
             ['1lZqiOKmwTluPIRqblthOnBc4KI2kfKUC',
              '6d13bd076225fa2f786f416fa754623a'],
@@ -56,7 +59,7 @@ def get_testing_files_dict():
              '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
-             'eb0d6e7388b8793439857d876a3fd109'],
+             'f0492dd995f6bcb14b525a55edab9807'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc']}
@@ -137,8 +140,8 @@ def fetch_data(files_dict, keys=None):
                 break
             elif os.path.exists(full_path):
                 if tryout > 0:
-                    logging.error('Wrong md5sum after {} attemps for {}'.format(
-                        tryout+1, full_path))
+                    logging.error('Wrong md5sum after {} attemps for {}'
+                                  .format(tryout+1, full_path))
                 os.remove(full_path)
 
             # If we re-download, we re-extract
