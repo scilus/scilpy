@@ -6,8 +6,11 @@ from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
+from dipy.reconst.mcsd import MSDeconvFit
 import numpy as np
 
+from dipy.utils.optpkg import optional_package
+cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 def fit_from_model_parallel(args):
     model = args[0]
@@ -17,7 +20,12 @@ def fit_from_model_parallel(args):
     sub_fit_array = np.zeros((data.shape[0],), dtype='object')
     for i in range(data.shape[0]):
         if data[i].any():
-            sub_fit_array[i] = model.fit(data[i])
+            try:
+                sub_fit_array[i] = model.fit(data[i])
+            except cvx.error.SolverError:
+                coeff = np.empty((len(model.n)))
+                coeff[:] = np.NaN
+                sub_fit_array[i] = MSDeconvFit(model, coeff, None)
 
     return chunk_id, sub_fit_array
 
@@ -46,6 +54,9 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     data_shape = data.shape
     if mask is None:
         mask = np.sum(data, axis=3).astype(bool)
+    else:
+        mask_any = np.sum(data, axis=3).astype(bool)
+        mask *= mask_any
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
         or nbr_processes <= 0 else nbr_processes

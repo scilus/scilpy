@@ -81,7 +81,7 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         sphere = Sphere(xyz=bvecs)
 
     # Fit SH
-    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth)
+    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth)
 
     # Apply mask
     if mask is not None:
