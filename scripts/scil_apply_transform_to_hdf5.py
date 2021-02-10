@@ -81,7 +81,6 @@ def main():
         os.remove(args.out_hdf5)
 
     with h5py.File(args.in_hdf5, 'r') as in_hdf5_file:
-        shutil.copy(args.in_hdf5, args.out_hdf5)
         with h5py.File(args.out_hdf5, 'a') as out_hdf5_file:
             transfo = load_matrix_in_any_format(args.in_transfo)
 
@@ -92,6 +91,7 @@ def main():
             target_img = nib.load(args.in_target_file)
 
             for key in in_hdf5_file.keys():
+                group = out_hdf5_file.create_group(key)
                 affine = in_hdf5_file.attrs['affine']
                 dimensions = in_hdf5_file.attrs['dimensions']
                 voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
@@ -100,7 +100,6 @@ def main():
 
                 if len(streamlines) == 0:
                     continue
-
                 header = create_nifti_header(affine, dimensions, voxel_sizes)
                 moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
                                                 origin=Origin.TRACKVIS)
@@ -122,13 +121,10 @@ def main():
                 out_hdf5_file.attrs['voxel_order'] = voxel_order
 
                 group = out_hdf5_file[key]
-                del group['data']
                 group.create_dataset('data',
-                                     data=new_sft.streamlines.get_data())
-                del group['offsets']
+                                     data=new_sft.streamlines._data.astype(np.float32))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
-                del group['lengths']
                 group.create_dataset('lengths',
                                      data=new_sft.streamlines._lengths)
 
