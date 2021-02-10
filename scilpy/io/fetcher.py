@@ -32,7 +32,7 @@ def get_testing_files_dict():
              '13532c593efdf09350667df14ea4e93a'],
             'atlas.zip':
             ['1waYx4ED3qwzyJqrICjjgGXXBW2v4ZCYJ',
-             'af15ab98bc1faf2554fa0abb1891f345'],
+             'eb37427054cef5d50ac3d429ff53de47'],
             'bst.zip':
             ['1YprJRnyXk7VRHUkb-bJLs69C1v3tPd1S',
              'c0551a28dcefcd7cb53f572b1794b3e8'],
