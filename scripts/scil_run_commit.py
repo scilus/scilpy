@@ -241,8 +241,8 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                         new_group.create_dataset(
                             key, data=hdf5_file[key][dps_key][essential_ind])
 
-                dpp_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
-                new_group.create_dataset(dpp_key,
+                dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+                new_group.create_dataset(dps_key,
                                          data=tmp_commit_weights)
 
     files = os.listdir(commit_results_dir)
@@ -252,8 +252,9 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     # Save split tractogram (essential/nonessential) and/or saving the
     # tractogram with data_per_streamline updated
     if args.keep_whole_tractogram or args.threshold_weights is not None:
+        dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
         # Reload is needed because of COMMIT handling its file by itself
-        sft.data_per_streamline['commit_weights'] = commit_weights
+        sft.data_per_streamline[dps_key] = commit_weights
 
         if args.threshold_weights is None:
             args.threshold_weights = -1
@@ -344,6 +345,7 @@ def main():
 
     tmp_dir = tempfile.TemporaryDirectory()
     hdf5_file = None
+    offsets_list = None
     if ext == '.h5':
         logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
