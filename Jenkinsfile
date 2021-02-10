@@ -2,16 +2,14 @@ pipeline {
     agent any
 
     stages {
-        stage('Test') {
-            parallel {
+        stage('Build') {
+            stages {
                 stage('Python3.6') {
                     steps {
                         withPythonEnv('CPython-3.6') {
                             sh '''
                                 pip3 install numpy==1.18.* wheel
                                 pip3 install -e .
-                                export MPLBACKEND="agg"
-                                pytest -v
                             '''
                         }
                     }
@@ -22,11 +20,23 @@ pipeline {
                             sh '''
                                 pip3 install numpy==1.18.* wheel
                                 pip3 install -e .
-                                export MPLBACKEND="agg"
-                                pytest -v
                             '''
                         }
                     }
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                withPythonEnv('CPython-3.7') {
+                    sh '''
+                        pip3 install numpy==1.18.* wheel
+                        pip3 install -e .
+                        export MPLBACKEND="agg"
+                        export OPENBLAS_NUM_THREADS=1
+                        pytest -v
+                    '''
                 }
             }
         }
