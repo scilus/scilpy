@@ -64,7 +64,7 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
 
-def transform_dwi(reg_obj, static, dwi, interp='linear'):
+def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     """
     Iteratively apply transformation to 4D image using Dipy's tool
 
@@ -76,14 +76,14 @@ def transform_dwi(reg_obj, static, dwi, interp='linear'):
         Target image data
     dwi: numpy.ndarray
         4D numpy array containing a scalar in each voxel (moving image data)
-    interp : string, either 'linear' or 'nearest'
+    interpolation : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
         trans_dwi[..., i] = reg_obj.transform(dwi[..., i],
-                                              interpolation=interp)
+                                              interpolation=interpolation)
 
     return trans_dwi
 
