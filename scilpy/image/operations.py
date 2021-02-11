@@ -54,7 +54,7 @@ def get_image_ops():
     """Get a dictionary of all functions relating to image operations"""
     image_ops = get_array_ops()
     image_ops.update(OrderedDict([
-        ('concatenate', concat),
+        ('concatenate', concatenate),
         ('dilation', dilation),
         ('erosion', erosion),
         ('closing', closing),
@@ -499,9 +499,9 @@ def invert(input_list, ref_img):
     return output_data
 
 
-def concat(input_list, ref_img):
+def concatenate(input_list, ref_img):
     """
-    concat: IMGs
+    concatenate: IMGs
         Concatenate a list of 3D and 4D images into a single 4D image.
     """
     
