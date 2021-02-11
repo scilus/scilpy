@@ -24,5 +24,5 @@ def test_execution_tractometry(script_runner):
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
     ret = script_runner.run('scil_compute_bundle_mean_std.py', in_bundle,
-                            in_ref, '--density_weighting')
+                            in_ref, '--density_weighting', '--include_dps')
     assert ret.success

@@ -233,7 +233,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels],
+                        args.reference)
     assert_outputs_exist(parser, args, args.out_hdf5)
 
     # HDF5 will not overwrite the file

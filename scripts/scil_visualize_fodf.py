@@ -108,7 +108,7 @@ def _build_arg_parser():
                         '[%(default)s]')
 
     p.add_argument('--bg_offset', type=float, default=0.5,
-                   help='The offset of the background image. [%(default)s]')
+                   help='The offset of the background image. [%(default)s]')
 
     p.add_argument('--bg_interpolation',
                    default='nearest', choices={'linear', 'nearest'},

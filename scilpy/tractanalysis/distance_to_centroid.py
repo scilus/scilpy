@@ -18,7 +18,6 @@ def min_dist_to_centroid(bundle_pts, centroid_pts):
     bundle_points = np.repeat(bundle_pts,
                               nb_centroid_points,
                               axis=0)
-
     # centroid_points will be shaped like
     # [[centroid_pt1],  ⸣
     #  [centroid_pt2],  |

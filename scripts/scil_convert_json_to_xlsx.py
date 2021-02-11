@@ -289,15 +289,15 @@ def _parse_per_point_meanstd(stats, subs, bundles):
 
 
 def _parse_per_label_population_stats(stats, bundles, metrics):
-    labels = stats[bundles[0]][metrics[0]].keys()
+    labels = list(stats[bundles[0]][metrics[0]].keys())
     labels.sort()
 
     nb_bundles = len(bundles)
     nb_labels = len(labels)
     nb_metrics = len(metrics)
 
-    means = np.full((nb_bundles * nb_labels, nb_metrics), np.NaN)
-    stddev = np.full((nb_bundles * nb_labels, nb_metrics), np.NaN)
+    means = np.full((nb_bundles, nb_labels, nb_metrics), np.NaN)
+    stddev = np.full((nb_bundles, nb_labels, nb_metrics), np.NaN)
 
     for bundle_id, bundle_name in enumerate(bundles):
         b_stat = stats.get(bundle_name)
@@ -311,30 +311,22 @@ def _parse_per_label_population_stats(stats, bundles, metrics):
                         label_stat = m_stat.get(label)
 
                         if label_stat is not None:
-                            means[bundle_id * len(labels) + label_id,
-                                  metric_id] =\
-                                label_stat['mean']
-                            stddev[bundle_id * len(labels) + label_id,
-                                   metric_id] =\
-                                label_stat['std']
-
-    column_names = []
-    for bundles_name in bundles:
-        column_names.extend(["{}_{}".format(bundles_name, label)
-                             for label in labels])
+                            means[bundle_id, label_id, metric_id] =\
+                                np.average(label_stat['mean'])
+                            stddev[bundle_id, label_id, metric_id] =\
+                                np.average(label_stat['std'])
 
     dataframes = []
     df_names = []
-    index = ['Population']
     for metric_id, metric_name in enumerate(metrics):
-        dataframes.append(pd.DataFrame(data=np.array([means[:, metric_id]]),
-                                       index=index,
-                                       columns=column_names))
+        dataframes.append(pd.DataFrame(data=np.array(means[:, :, metric_id]),
+                                       index=bundles,
+                                       columns=labels))
         df_names.append(metric_name + "_mean")
 
-        dataframes.append(pd.DataFrame(data=np.array([stddev[:, metric_id]]),
-                                       index=index,
-                                       columns=column_names))
+        dataframes.append(pd.DataFrame(data=np.array(stddev[:, :, metric_id]),
+                                       index=bundles,
+                                       columns=labels))
         df_names.append(metric_name + "_std")
 
     return dataframes, df_names

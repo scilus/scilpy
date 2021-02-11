@@ -18,10 +18,8 @@ def test_help_option(script_runner):
 
 def test_peaks_full_basis(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking',
-                           'fodf.nii.gz')
-    in_peaks = os.path.join(get_home(), 'tracking',
-                            'peaks.nii.gz')
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
+    in_peaks = os.path.join(get_home(), 'tracking', 'peaks.nii.gz')
     # Tests that the use of a full SH basis with peaks raises a warning
     with warnings.catch_warnings(record=True) as w:
         ret = script_runner.run('scil_visualize_fodf.py', in_fodf,
@@ -37,10 +35,18 @@ def test_peaks_full_basis(script_runner):
     assert (not ret.success)
 
 
+def test_full_basis_input_without_arg(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf_full.nii.gz')
+    ret = script_runner.run('scil_visualize_fodf.py', in_fodf)
+
+    # Using a full SH basis without --full_basis argument should fail
+    assert (not ret.success)
+
+
 def test_silent_without_output(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking',
-                           'fodf.nii.gz')
+    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
 
     ret = script_runner.run('scil_visualize_fodf.py', in_fodf, '--silent')
 
