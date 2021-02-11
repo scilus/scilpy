@@ -30,11 +30,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals',
+    p.add_argument('in_bval',
                    help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
+    p.add_argument('in_bvec',
                    help='Path of the bvecs file, in FSL format.')
     p.add_argument('frf_file',
                    help='Path of the FRF file')
@@ -62,15 +62,15 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs,
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
                                  args.frf_file])
     assert_outputs_exist(parser, args, args.out_fODF)
 
     # Loading data
     full_frf = np.loadtxt(args.frf_file)
-    vol = nib.load(args.input)
+    vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     # Checking mask
     if args.mask is None:
