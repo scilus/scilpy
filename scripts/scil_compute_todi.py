@@ -32,18 +32,17 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
-    # TODO Rename argument in_bundle
-    p.add_argument('tract_filename',
+
+    p.add_argument('in_bundle',
                    help='Input streamlines file.')
 
     add_reference_arg(p)
 
-    # TODO Uniformize argparse
     p.add_argument('--sphere', default='repulsion724',
                    help='sphere used for the angular discretization.')
 
     p.add_argument('--mask',
-                   help='Use the given mask')
+                   help='Use the given mask.')
 
     p.add_argument('--out_mask',
                    help='Mask showing where TDI > 0.')
@@ -55,14 +54,15 @@ def _build_arg_parser():
                    help='Output length-weighted TODI map.')
 
     p.add_argument('--out_lw_todi_sh',
-                   help='Output length-weighted TODI map, '
-                   'with SH coefficient.')
+                   help='Output length-weighted TODI map, with SH '
+                        'coefficient.')
 
-    p.add_argument('--sh_order', type=int, default=8,
+    p.add_argument('--sh_order',
+                   type=int, default=8,
                    help='Order of the original SH.')
 
     p.add_argument('--sh_normed', action='store_true',
-                   help='Normalize sh.')
+                   help='Normalize SH.')
 
     p.add_argument('--smooth', action='store_true',
                    help='Smooth todi (angular and spatial).')
@@ -77,7 +77,7 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.tract_filename,
+    assert_inputs_exist(parser, args.in_bundle,
                         [args.mask, args.reference])
 
     output_file_list = []
@@ -95,7 +95,7 @@ def main():
 
     assert_outputs_exist(parser, args, output_file_list)
 
-    sft = load_tractogram_with_reference(parser, args, args.tract_filename)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     affine, data_shape, _, _ = sft.space_attributes
     sft.to_vox()
 
