@@ -63,8 +63,8 @@ def main():
         out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
                               im_dat, out_coeffs)
 
-    # TODO remove header or add optional argument name
-    nib.save(nib.Nifti1Image(out_coeffs, first_im.affine, first_im.header),
+    nib.save(nib.Nifti1Image(out_coeffs, first_im.affine,
+                             header=first_im.header),
              args.out_sh)
 
 

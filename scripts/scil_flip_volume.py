@@ -51,7 +51,7 @@ def main():
     if 'z' in args.axes:
         data = data[:, :, ::-1, ...]
 
-    nib.save(nib.Nifti1Image(data, affine, header), args.out_image)
+    nib.save(nib.Nifti1Image(data, affine, header=header), args.out_image)
 
 
 if __name__ == "__main__":

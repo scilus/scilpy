@@ -9,7 +9,7 @@ import argparse
 import logging
 
 from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -97,7 +97,7 @@ def main():
 
     oTable = np.loadtxt(args.in_table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    dwis = nb.load(args.in_dwi)
+    dwis = nib.load(args.in_dwi)
 
     newIndex = valideInputs(oTable, dwis, bvals, bvecs)
     bvecs = bvecs[newIndex]
@@ -106,12 +106,12 @@ def main():
     data = dwis.dataobj.get_unscaled()
     data = data[:, :, :, newIndex]
 
-    tmp = nb.Nifti1Image(data, dwis.affine, header=dwis.header)
+    tmp = nib.Nifti1Image(data, dwis.affine, header=dwis.header)
     tmp.header['scl_slope'] = dwis.dataobj.slope
     tmp.header['scl_inter'] = dwis.dataobj.inter
     tmp.update_header()
 
-    nb.save(tmp, output_filenames[0])
+    nib.save(tmp, output_filenames[0])
     np.savetxt(args.out_basename + '.bval', bvals.reshape(1, len(bvals)), '%d')
     np.savetxt(args.out_basename + '.bvec', bvecs.T, '%0.15f')
 

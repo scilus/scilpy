@@ -9,10 +9,9 @@ import argparse
 import logging
 import warnings
 
-# TODO Switch to nib
 from dipy.denoise.nlmeans import nlmeans
 from dipy.denoise.noise_estimate import estimate_sigma
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
@@ -26,7 +25,7 @@ from scilpy.io.utils import (add_processes_arg,
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    # TODO First line argparse
+
     p.add_argument('in_image',
                    help='Path of the image file to denoise.')
     p.add_argument('out_image',
@@ -88,7 +87,7 @@ def main():
     if args.logfile is not None:
         log.addHandler(logging.FileHandler(args.logfile, mode='w'))
 
-    vol = nb.load(args.in_image)
+    vol = nib.load(args.in_image)
     data = vol.get_fdata(dtype=np.float32)
     if args.mask is None:
         mask = np.zeros(data.shape[0:3], dtype=np.bool)
@@ -97,7 +96,7 @@ def main():
         else:
             mask[data > 0] = 1
     else:
-        mask = get_data_as_mask(nb.load(args.mask), dtype=np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=np.bool)
 
     sigma = args.sigma
 
@@ -115,8 +114,8 @@ def main():
             data, sigma, mask=mask, rician=args.number_coils > 0,
             num_threads=args.nbr_processes)
 
-    nb.save(nb.Nifti1Image(
-        data_denoised, vol.affine, vol.header), args.out_image)
+    nib.save(nib.Nifti1Image(data_denoised, vol.affine, header=vol.header),
+             args.out_image)
 
 
 if __name__ == "__main__":

@@ -40,7 +40,6 @@ def _build_arg_parser():
     p.add_argument('in_md',  metavar='MD',
                    help='Path to the mean diffusivity (MD) volume.')
 
-    # TODO Start one first line
     p.add_argument('--fa_t', dest='fa_threshold',
                    type=float, default='0.1',
                    help='Maximal threshold of FA (voxels under that threshold'
