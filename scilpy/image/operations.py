@@ -83,6 +83,14 @@ def _validate_imgs(*imgs):
             raise ValueError('Not all inputs have the same shape!')
 
 
+def _validate_imgs_concat(*imgs):
+    """Make sure that all inputs are images."""
+    ref_img = imgs[-1]
+    for img in imgs:
+        if isinstance(img, nib.Nifti1Image):
+            raise ValueError('Inputs are not all images')
+
+
 def _validate_length(input_list, length, at_least=False):
     """Make sure the the input list has the right number of arguments
     (length)."""
@@ -505,7 +513,7 @@ def concatenate(input_list, ref_img):
         Concatenate a list of 3D and 4D images into a single 4D image.
     """
     
-    # _validate_imgs(*input_list, ref_img)
+    _validate_imgs_concat(*input_list, ref_img)
     if len(input_list[0].header.get_data_shape()) > 4:
         raise ValueError('Concatenate require 3D or 4D arrays.')
     
