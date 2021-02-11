@@ -35,7 +35,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG)
 
-    p.add_argument('in_SHs', nargs="+",
+    p.add_argument('in_shs', nargs="+",
                    help='List of SH files.')
     p.add_argument('out_sh',
                    help='output SH file.')
@@ -49,14 +49,14 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_SHs)
+    assert_inputs_exist(parser, args.in_shs)
     assert_outputs_exist(parser, args, args.out_sh)
-    assert_same_resolution(args.in_SHs)
+    assert_same_resolution(args.in_shs)
 
-    first_im = nib.load(args.in_SHs[0])
+    first_im = nib.load(args.in_shs[0])
     out_coeffs = first_im.get_fdata(dtype=np.float32)
 
-    for sh_file in args.in_SHs[1:]:
+    for sh_file in args.in_shs[1:]:
         im = nib.load(sh_file)
         im_dat = im.get_fdata(dtype=np.float32)
 

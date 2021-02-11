@@ -31,13 +31,13 @@ def _build_arg_parser():
                    help='Path of the image file to denoise.')
     p.add_argument('out_image',
                    help='Path to save the denoised image file.')
-    p.add_argument('N', metavar='number_coils', type=int,
-                   help='Number of receiver coils of the scanner.\nUse N=1 in'
-                        'the case of a SENSE (GE, Philips) reconstruction '
-                        'and \nN >= 1 for GRAPPA reconstruction (Siemens). '
-                        'N=4 works well for the 1.5T\n in Sherbrooke. '
-                        'Use N=0 if the noise is considered Gaussian '
-                        'distributed.')
+    p.add_argument('number_coils', type=int,
+                   help='Number of receiver coils of the scanner.\nUse '
+                        'number_coils=1 in the case of a SENSE (GE, Philips) '
+                        'reconstruction and \nnumber_coils >= 1 for GRAPPA '
+                        'reconstruction (Siemens). number_coils=4 works well '
+                        'for the 1.5T\n in Sherbrooke. Use number_coils=0 if '
+                        'the noise is considered Gaussian distributed.')
 
     p.add_argument('--mask', metavar='',
                    help='Path to a binary mask. Only the data inside the mask'
@@ -58,7 +58,7 @@ def _build_arg_parser():
 def _get_basic_sigma(data, log):
     # We force to zero as the 3T is either oversmoothed or still noisy, but
     # we prefer the second option
-    log.info("In basic noise estimation, N=0 is enforced!")
+    log.info("In basic noise estimation, number_coils=0 is enforced!")
     sigma = estimate_sigma(data, N=0)
 
     # Use a single value for all of the volumes.
@@ -112,7 +112,7 @@ def main():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
         data_denoised = nlmeans(
-            data, sigma, mask=mask, rician=args.N > 0,
+            data, sigma, mask=mask, rician=args.number_coils > 0,
             num_threads=args.nbr_processes)
 
     nb.save(nb.Nifti1Image(

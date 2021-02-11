@@ -33,7 +33,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__, epilog=EPILOG)
 
-    p.add_argument('in_fODFs',  metavar='fODFs',
+    p.add_argument('in_fodfs',  metavar='fODFs',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('in_fa',  metavar='FA',
                    help='Path to the FA volume.')
@@ -118,7 +118,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_fODFs, args.in_fa, args.in_md])
+    assert_inputs_exist(parser, [args.in_fodfs, args.in_fa, args.in_md])
     assert_outputs_exist(parser, args, [],
                          [args.max_value_output, args.mask_output])
 
@@ -126,7 +126,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     # Load input image
-    img_fODFs = nib.load(args.in_fODFs)
+    img_fODFs = nib.load(args.in_fodfs)
     fodf = img_fODFs.get_fdata(dtype=np.float32)
     affine = img_fODFs.affine
     zoom = img_fODFs.header.get_zooms()[:3]
