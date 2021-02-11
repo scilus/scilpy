@@ -85,9 +85,8 @@ def _validate_imgs(*imgs):
 
 def _validate_imgs_concat(*imgs):
     """Make sure that all inputs are images."""
-    ref_img = imgs[-1]
     for img in imgs:
-        if isinstance(img, nib.Nifti1Image):
+        if not isinstance(img, nib.Nifti1Image):
             raise ValueError('Inputs are not all images')
 
 

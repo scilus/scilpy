@@ -101,7 +101,7 @@ def main():
     # Find at least one image for reference
     for input_arg in args.in_images:
         found_ref = False
-        if not is_float(input_arg):                
+        if not is_float(input_arg):
             ref_img = nib.load(input_arg)
             mask = np.zeros(ref_img.shape)
             found_ref = True
@@ -145,7 +145,10 @@ def main():
 
         if isinstance(img, nib.Nifti1Image):
             data = img.get_fdata(dtype=np.float64)
-            mask[data > 0] = 1
+            if data.ndim == 4:
+                mask[np.sum(data, axis=3).astype(bool) > 0] = 1
+            else:
+                mask[data > 0] = 1
             img.uncache()
         input_img.append(img)
 
