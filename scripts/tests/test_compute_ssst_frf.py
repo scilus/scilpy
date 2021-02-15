@@ -15,6 +15,7 @@ def test_help_option(script_runner):
     ret = script_runner.run('scil_compute_ssst_frf.py', '--help')
     assert ret.success
 
+
 def test_roi_center_parameter(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
