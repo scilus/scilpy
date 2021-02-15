@@ -73,7 +73,7 @@ def _build_arg_parser():
                         'a cuboid spanning from the middle of the volume in '
                         'each direction with the different radii. The type is '
                         'either an int or an array-like (3,). [%(default)s]')
-    p.add_argument('--roi_center', metavar='tuple(3)', nargs=3, type=int
+    p.add_argument('--roi_center', metavar='tuple(3)', nargs=3, type=int,
                    help='If supplied, use this center to span the roi of size '
                         'roi_radius. [center of the 3D volume]')
 
