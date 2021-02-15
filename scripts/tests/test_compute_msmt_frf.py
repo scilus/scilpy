@@ -28,7 +28,7 @@ def test_roi_radii_shape_parameter(script_runner):
     ret = script_runner.run('scil_compute_msmt_frf.py', in_dwi,
                             in_bval, in_bvec, 'wm_frf.txt', 'gm_frf.txt',
                             'csf_frf.txt', '--mask', mask, '--roi_radii',
-                            '37', '-f')
+                            '37', '--roi_center', '15', '15', '15', '-f')
     assert ret.success
 
     ret = script_runner.run('scil_compute_msmt_frf.py', in_dwi,

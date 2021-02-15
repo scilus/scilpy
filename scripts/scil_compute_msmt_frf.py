@@ -124,7 +124,7 @@ def buildArgsParser():
              'either an int (e.g. --roi_radii 10) or an array-like (3,) '
              '(e.g. --roi_radii 20 30 10). [%(default)s]')
     p.add_argument(
-        '--roi_center', metavar='tuple(3)', type=int,
+        '--roi_center', metavar='tuple(3)', nargs=3, type=int,
         help='If supplied, use this center to span the cuboid roi '
              'using roi_radii. [center of the 3D volume] '
              '(e.g. --roi_center 66 79 79)')
