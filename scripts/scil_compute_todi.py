@@ -64,10 +64,10 @@ def _build_arg_parser():
                    help='Order of the original SH. [%(default)s]')
 
     p.add_argument('--normalize_per_voxel', action='store_true',
-                   help='Normalize SH.')
+                   help='Normalize each SF or SH at each voxel.')
 
     p.add_argument('--smooth_todi', action='store_true',
-                   help='Smooth todi (angular and spatial).')
+                   help='Smooth TODI (angular and spatial).')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
