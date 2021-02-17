@@ -161,8 +161,12 @@ def _processing_wrapper(args):
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
                 out_file = os.path.join(include_dps, dps_key)
-                measures_to_return[out_file] = np.average(
-                    hdf5_file[key][dps_key])
+                if 'commit' in dps_key:
+                    measures_to_return[out_file] = np.sum(
+                        hdf5_file[key][dps_key])
+                else:
+                    measures_to_return[out_file] = np.average(
+                        hdf5_file[key][dps_key])
 
     return {(in_label, out_label): measures_to_return}
 
