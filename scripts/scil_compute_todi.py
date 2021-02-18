@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Compute a Track Orientation Density Image (TODI).
-Each segment of the streamlines is weighted by length,
-this is done to support compressed streamlines.
+Each segment of the streamlines is weighted by its length
+(to support compressed streamlines).
 This script can afterwards output a Track Density Image (TDI)
 or a TODI with SF or SH representation, based on streamlines' segments.\n\n
 """
@@ -35,7 +35,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('input_tracto',
+    p.add_argument('in_tractogram',
                    help='Input streamlines file.')
 
     add_reference_arg(p)
@@ -55,7 +55,7 @@ def _build_arg_parser():
 
     p.add_argument('--out_todi_sf',
                    help='Output TODI, with SF (each directions\n'
-                        'on the sphere), require a lot of memory)')
+                        'on the sphere, requires a lot of memory)')
 
     p.add_argument('--out_todi_sh',
                    help='Output TODI, with SH coefficients.')
@@ -79,7 +79,7 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.input_tracto,
+    assert_inputs_exist(parser, args.in_tractogram,
                         [args.mask, args.reference])
 
     output_file_list = []
@@ -97,7 +97,7 @@ def main():
 
     assert_outputs_exist(parser, args, output_file_list)
 
-    sft = load_tractogram_with_reference(parser, args, args.input_tracto)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
     sft.to_vox()
 
