@@ -161,8 +161,12 @@ def _processing_wrapper(args):
         for dps_key in hdf5_file[key].keys():
             if dps_key not in ['data', 'offsets', 'lengths']:
                 out_file = os.path.join(include_dps, dps_key)
-                measures_to_return[out_file] = np.average(
-                    hdf5_file[key][dps_key])
+                if 'commit' in dps_key:
+                    measures_to_return[out_file] = np.sum(
+                        hdf5_file[key][dps_key])
+                else:
+                    measures_to_return[out_file] = np.average(
+                        hdf5_file[key][dps_key])
 
     return {(in_label, out_label): measures_to_return}
 
@@ -204,7 +208,8 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', metavar='OUT_DIR',
                    help='Save matrices from data_per_streamline in the output '
-                        'directory.\nWill always overwrite files.')
+                        'directory.\nCOMMIT-related values will be summed '
+                        'instead of averaged.\nWill always overwrite files.')
     p.add_argument('--force_labels_list',
                    help='Path to a labels list (.txt) in case of missing '
                         'labels in the atlas.')

@@ -20,7 +20,6 @@ the bounding box), three strategies are available:
 
 import argparse
 import os
-import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.utils import create_nifti_header, get_reference_info
@@ -103,6 +102,13 @@ def main():
                 header = create_nifti_header(affine, dimensions, voxel_sizes)
                 moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
                                                 origin=Origin.TRACKVIS)
+                for dps_key in in_hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        print(type(in_hdf5_file[key][dps_key].value))
+                        if in_hdf5_file[key][dps_key].value.shape \
+                                == in_hdf5_file[key]['offsets']:
+                            moving_sft.data_per_streamline[dps_key] \
+                                = in_hdf5_file[key][dps_key]
 
                 new_sft = transform_warp_streamlines(
                     moving_sft, transfo, target_img,
@@ -127,6 +133,15 @@ def main():
                                      data=new_sft.streamlines._offsets)
                 group.create_dataset('lengths',
                                      data=new_sft.streamlines._lengths)
+                for dps_key in in_hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        if in_hdf5_file[key][dps_key].value.shape \
+                                == in_hdf5_file[key]['offsets']:
+                            group.create_dataset(dps_key,
+                                                 data=new_sft.data_per_streamline[dps_key])
+                        else:
+                            group.create_dataset(dps_key,
+                                                 data=in_hdf5_file[key][dps_key].value)
 
 
 if __name__ == "__main__":
