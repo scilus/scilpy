@@ -208,7 +208,8 @@ def _build_arg_parser():
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', metavar='OUT_DIR',
                    help='Save matrices from data_per_streamline in the output '
-                        'directory.\nWill always overwrite files.')
+                        'directory.\nCOMMIT-related values will be summed '
+                        'instead of averaged.\nWill always overwrite files.')
     p.add_argument('--force_labels_list',
                    help='Path to a labels list (.txt) in case of missing '
                         'labels in the atlas.')
