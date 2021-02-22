@@ -337,8 +337,8 @@ def main():
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
-                itertools.repeat(
-                    args.streamline_dice),
+                itertools.repeat(args.streamline_dice),
+                itertools.repeat(args.bundle_adjency_no_overlap),
                 itertools.repeat(args.disable_streamline_distance),
                 itertools.repeat(args.ratio)))
         pool.close()
