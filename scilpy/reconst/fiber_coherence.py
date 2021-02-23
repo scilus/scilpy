@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import itertools
 import numpy as np
-from scipy.ndimage import correlate
-import nibabel as nib
 
 
 NB_FLIPS = 4
@@ -36,45 +34,59 @@ def compute_fiber_coherence_table(directions, values, mask=None):
     table = {}
     for t in transforms:
         key = _generate_key_for_transform(t)
-        table[key], _ =\
-            compute_fiber_coherence_index(directions.dot(t), values, mask)
+        coherence_map =\
+            compute_fiber_coherence_map_naive(directions.dot(t), values, mask)
+        table[key] = coherence_map.sum()
     return table
 
 
-def compute_fiber_coherence_index(directions, values, mask=None):
+def compute_fiber_coherence_map_naive(peaks, values, mask=None):
     """
-    C = sum_{u, v} I(|dot(d, u)|>cos(30))*I(|dot(d, v)|>cos(30))*(f(u)+f(v))
+    One peak direction per voxel associated to one anisotropy value.
     """
-    # each voxel has 26 neighbors to check
-    # lets first consider the case with only one direction per voxel
-    # there is probably a convolution approach for this equation
-    # each direction is connected to 2 voxels
-    D = _get_directions_to_neighbours()
-    norms = np.linalg.norm(directions, axis=-1)
-    UV = np.zeros_like(directions)
-    UV[norms > 0] = directions[norms > 0] / norms[norms > 0][..., None]
+    if mask is not None:
+        peaks = peaks * mask.astype(float)[..., None]
 
-    coherence_map = np.zeros(directions.shape[:3])
-    for d in D:
-        W = np.zeros((3, 3, 3))
-        W[1, 1, 1] = 1
-        W[d] = 1
-        d_norm = d / np.linalg.norm(d)
-        aligned_vox = UV.dot(d_norm) > np.cos(ANGLE_TH)
-        aligned_vox =\
-            correlate(aligned_vox.astype(float), W, mode='constant') > 1
-        coherence_map[aligned_vox] +=\
-            correlate(values, W, mode='constant')[aligned_vox]
+    coherence_map = np.zeros(peaks.shape[:3])
+    pad_peaks = np.pad(peaks, ((1, 1), (1, 1), (1, 1), (0, 0)))
+    pad_vals = np.pad(values, ((1, 1), (1, 1), (1, 1)))
+    nonzero_voxels = np.array(np.nonzero(np.abs(peaks).sum(axis=-1))).T
+    for vox_coord in nonzero_voxels:
+        x, y, z = vox_coord
+        win_peaks = pad_peaks[x:x+3, y:y+3, z:z+3]
+        win_vals = pad_vals[x:x+3, y:y+3, z:z+3]
+        coherence_map[x, y, z] =\
+            compute_fiber_coherence_naive(win_peaks, win_vals)
 
-    return coherence_map.sum(), coherence_map
+    return coherence_map
 
 
-def _get_directions_to_neighbours():
-    d = []
-    for i in range(3):
-        for j in range(3):
-            for k in range(3):
-                if not(i == 1 and j == 1 and k == 1):
-                    d.append([i, j, k])
-    d = np.array(d, dtype=int) - 1
-    return d
+def compute_fiber_coherence_naive(win_peaks, win_vals):
+    """
+    Naive fiber coherence index implementation for one peak direction
+    per voxel inside a 3 x 3 x 3 window.
+    """
+    c = 0
+    ax, ay, az = (1, 1, 1)
+    vox_a = np.array([ax, ay, az])
+    u = win_peaks[ax, ay, az]
+    u /= np.linalg.norm(u)
+    fu = win_vals[ax, ay, az]
+
+    if np.abs(u).sum() == 0.:
+        return 0
+
+    nonzero_vox = np.array(np.nonzero(np.abs(win_peaks).sum(axis=-1))).T
+    for vox_b in nonzero_vox:
+        bx, by, bz = vox_b
+        if not np.array_equal(vox_b, vox_a):
+            d = vox_b - vox_a
+            d = d / np.linalg.norm(d)
+
+            v = win_peaks[bx, by, bz]
+            v /= np.linalg.norm(v)
+            fv = win_vals[bx, by, bz]
+            if (np.abs(u.dot(d)) > np.cos(ANGLE_TH) and
+                    np.abs(v.dot(d)) > np.cos(ANGLE_TH)):
+                c += fu + fv
+    return c
