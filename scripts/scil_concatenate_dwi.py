@@ -8,7 +8,8 @@ order. Default data type will be the same as the first input DWI.
 
 import argparse
 
-from dipy.io import read_bvals_bvecs
+from dipy.io.gradients import read_bvals_bvecs
+from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
@@ -26,7 +27,7 @@ def _build_arg_parser():
                    help='The name of the output DWI file.')
     p.add_argument('out_bval',
                    help='The name of the output b-values.')
-    p.add_argument('out_bvecs',
+    p.add_argument('out_bvec',
                    help='The name of the output b-vectors.')
 
     p.add_argument('--in_dwis', nargs='+',
@@ -49,11 +50,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if len(args.in_dwi) != len(args.in_bvals) \
-            or len(args.in_dwi) != len(args.in_bvecs):
+    if len(args.in_dwis) != len(args.in_bvals) \
+            or len(args.in_dwis) != len(args.in_bvecs):
         parser.error('DWI, bvals and bvecs must have the same length')
 
-    assert_inputs_exist(parser, args.in_dwi + args.in_bvals + args.in_bvecs)
+    assert_inputs_exist(parser, args.in_dwis + args.in_bvals + args.in_bvecs)
     assert_outputs_exist(parser, args, [args.out_dwi, args.out_bval,
                                         args.out_bvec])
 
@@ -70,17 +71,18 @@ def main():
     all_bvals = np.concatenate(all_bvals)
     all_bvecs = np.concatenate(all_bvecs)
 
-    ref_dwi = nib.load(args.in_dwi[0])
+    ref_dwi = nib.load(args.in_dwis[0])
     all_dwi = np.zeros(ref_dwi.shape[0:3] + (total_size,),
                        dtype=args.data_type)
     last_count = ref_dwi.shape[-1]
     all_dwi[..., 0:last_count] = ref_dwi.get_fdata()
     for i in range(1, len(args.in_dwis)):
         curr_dwi = nib.load(args.in_dwis[i])
-        if curr_dwi.shape != ref_dwi.shape:
-            raise ValueError('All DWI must have the same shape.')
+        if not is_header_compatible(curr_dwi, ref_dwi):
+            raise ValueError('All DWI must have the compatible header.')
         curr_size = curr_dwi.shape[-1]
-        all_dwi[..., last_count:last_count+curr_size] = curr_dwi.get_fdata()
+        all_dwi[..., last_count:last_count+curr_size] = \
+            curr_dwi.get_fdata()
 
     np.savetxt(args.out_bval, all_bvals, '%d')
     np.savetxt(args.out_bvec, all_bvecs.T, '%0.15f')
