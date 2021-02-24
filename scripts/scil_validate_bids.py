@@ -37,7 +37,7 @@ def _build_arg_parser():
                         'are missing any information.')
 
     p.add_argument("--readout", type=float, default=0.062,
-                        help="Default total readout time value [%(default)s].")
+                   help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(p)
 
