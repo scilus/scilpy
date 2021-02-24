@@ -82,7 +82,7 @@ def main():
         curr_size = curr_dwi.shape[-1]
         all_dwi[..., last_count:last_count+curr_size] = curr_dwi.get_fdata()
 
-    np.savetxt(args.out_bvals, all_bvals, '%d')
+    np.savetxt(args.out_bval, all_bvals, '%d')
     np.savetxt(args.out_bvecs, all_bvecs.T, '%0.15f')
     nib.save(nib.Nifti1Image(all_dwi, ref_dwi.affine, header=ref_dwi.header),
              args.out_dwi)
