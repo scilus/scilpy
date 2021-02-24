@@ -54,7 +54,7 @@ def main():
         parser.error('DWI, bvals and bvecs must have the same length')
 
     assert_inputs_exist(parser, args.in_dwi + args.in_bvals + args.in_bvecs)
-    assert_outputs_exist(parser, args, [args.out_dwi, args.out_bvals,
+    assert_outputs_exist(parser, args, [args.out_dwi, args.out_bval,
                                         args.out_bvecs])
 
     all_bvals = []
