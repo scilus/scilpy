@@ -125,7 +125,8 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, args.in_tractograms)
-    assert_outputs_exist(parser, args, [args.out_tractogram, args.save_indices])
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.save_indices)
 
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '
