@@ -29,7 +29,7 @@ def _build_arg_parser():
     p.add_argument('out_bvecs',
                    help='The name of the output b-vectors')
 
-    p.add_argument('--in_dwi', nargs='+',
+    p.add_argument('--in_dwis', nargs='+',
                    help='The DWI file (.nii) to concatenate.')
     p.add_argument('--in_bvals', nargs='+',
                    help='The b-values in FSL format.')
