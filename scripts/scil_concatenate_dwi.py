@@ -27,7 +27,7 @@ def _build_arg_parser():
     p.add_argument('out_bval',
                    help='The name of the output b-values.')
     p.add_argument('out_bvecs',
-                   help='The name of the output b-vectors')
+                   help='The name of the output b-vectors.')
 
     p.add_argument('--in_dwis', nargs='+',
                    help='The DWI file (.nii) to concatenate.')
