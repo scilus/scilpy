@@ -60,7 +60,7 @@ def main():
     all_bvals = []
     all_bvecs = []
     total_size = 0
-    for i in range(len(args.in_dwi)):
+    for i in range(len(args.in_dwis)):
         bvals, bvecs = read_bvals_bvecs(args.in_bvals[i], args.in_bvecs[i])
         if len(bvals) != len(bvecs):
             raise ValueError('Paired bvals and bvecs must have the same size.')
