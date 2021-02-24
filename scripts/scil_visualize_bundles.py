@@ -30,7 +30,7 @@ import os
 import random
 
 from dipy.tracking.streamline import set_number_of_points
-from fury import window, actor
+from fury import window, actor, colormap
 
 from scilpy.io.utils import assert_inputs_exist, parser_color_type
 
@@ -47,6 +47,12 @@ def _build_arg_parser():
     coloring_group = p.add_mutually_exclusive_group()
     coloring_group.add_argument('--random_coloring', metavar='SEED', type=int,
                                 help='Assign a random color to bundles.')
+    coloring_group.add_argument('--uniform_coloring', metavar='R G B',
+                                nargs='+',
+                                help='Assign a uniform color to streamlines.')
+    coloring_group.add_argument('--local_coloring', action='store_true',
+                                help='Assign coloring to streamlines '
+                                'depending on their local orientations.')
     coloring_group.add_argument('--color_dict', type=str, metavar='JSON',
                                 help='JSON file containing colors for each '
                                 'bundle.\nBundle filenames are indicated as '
@@ -139,6 +145,12 @@ def main():
             print('Skipping {}'.format(filename))
             continue
 
+        # Actually load streamlines according to the subsample argument
+        streamlines = subsample(streamlines_gen)
+
+        if args.downsample:
+            streamlines = set_number_of_points(streamlines, args.downsample)
+
         # Handle bundle colors. Either assign a random bright color to each
         # bundle, or load a color specific to each bundle, or let the bundles
         # be colored according to their local orientation
@@ -163,14 +175,21 @@ def main():
         elif args.color_from_points:
             color = subsample(
                 tractogram_gen.data_per_point[args.color_from_points])
-        else:
+        elif args.uniform_coloring:  # Assign uniform coloring to streamlines
+            color = tuple(map(int, args.uniform_coloring))
+        elif args.local_coloring:  # Compute coloring from local orientations
+            # Compute segment orientation
+            diff = [np.diff(list(s), axis=0) for s in streamlines]
+            # Repeat first segment so that the number of segments matches
+            # the number of points
+            diff = [[d[0]] + list(d) for d in diff]
+            # Flatten the list of segments
+            orientations = np.asarray([o for d in diff for o in d])
+            # Turn the segments into colors
+            color = colormap.orient2rgb(orientations)
+        else:  # Streamline color will depend on the streamlines' endpoints.
             color = None
-
-        # Actually load streamlines according to the subsample argument
-        streamlines = subsample(streamlines_gen)
-
-        if args.downsample:
-            streamlines = set_number_of_points(streamlines, args.downsample)
+        # TODO: Coloring from a volume of local orientations
 
         line_actor = streamline_actor[args.shape](
             streamlines, colors=color, linewidth=args.width)
