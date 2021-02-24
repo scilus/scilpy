@@ -3,7 +3,7 @@
 
 """
 Concatenate DWI, bval and bvecs together. File must be specified in matching
-order.
+order. Default data type will be the same as the first input DWI.
 """
 
 import argparse
