@@ -76,7 +76,7 @@ def main():
     last_count = ref_dwi.shape[-1]
     all_dwi[..., 0:last_count] = ref_dwi.get_fdata()
     for i in range(1, len(args.in_dwis)):
-        curr_dwi = nib.load(args.in_dwi[i])
+        curr_dwi = nib.load(args.in_dwis[i])
         if curr_dwi.shape != ref_dwi.shape:
             raise ValueError('All DWI must have the same shape.')
         curr_size = curr_dwi.shape[-1]
