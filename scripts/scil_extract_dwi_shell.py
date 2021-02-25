@@ -30,17 +30,19 @@ from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter)
+
 
     p.add_argument('in_dwi',
                    help='The DW image file to split.')
 
     p.add_argument('in_bval',
-                   help='The b-value file in FSL format.')
+                   help='The b-values file in FSL format (.bval).')
 
     p.add_argument('in_bvec',
-                   help='The b-vector file in FSL format.')
+                   help='The b-vectors file in FSL format (.bvec).')
 
     p.add_argument('in_bvals_to_extract', nargs='+',
                    type=int,
@@ -50,10 +52,10 @@ def _build_arg_parser():
                    help='The name of the output DWI file.')
 
     p.add_argument('out_bval',
-                   help='The name of the output b-value file.')
+                   help='The name of the output b-value file (.bval).')
 
     p.add_argument('out_bvec',
-                   help='The name of the output b-vector file.')
+                   help='The name of the output b-vector file (.bvec).')
 
     p.add_argument('--block-size', '-s',
                    metavar='INT', type=int,
