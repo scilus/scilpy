@@ -28,7 +28,9 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
-
+# TODO switch from parser to p
+# TODO switch to in_*
+# TODO switch to out_*
 def _build_arg_parser():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -100,6 +102,7 @@ def main():
 
     np.savetxt(args.output_bvals, new_bvals, '%d')
     np.savetxt(args.output_bvecs, new_bvecs.T, '%0.15f')
+    # use named argument header=
     nib.save(nib.Nifti1Image(shell_data, img.affine, img.header),
              args.output_dwi)
 
