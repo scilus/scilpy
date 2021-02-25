@@ -34,7 +34,6 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-
     p.add_argument('in_dwi',
                    help='The DW image file to split.')
 
