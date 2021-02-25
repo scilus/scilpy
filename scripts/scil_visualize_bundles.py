@@ -48,7 +48,7 @@ def _build_arg_parser():
     coloring_group.add_argument('--random_coloring', metavar='SEED', type=int,
                                 help='Assign a random color to bundles.')
     coloring_group.add_argument('--uniform_coloring', metavar='R G B',
-                                nargs='+',
+                                nargs=3,
                                 help='Assign a uniform color to streamlines.')
     coloring_group.add_argument('--local_coloring', action='store_true',
                                 help='Assign coloring to streamlines '
@@ -80,7 +80,7 @@ def _build_arg_parser():
     p.add_argument('--downsample', type=int, default=None,
                    help='Downsample streamlines to N points.'
                    '\n[Default: %(default)s]')
-    p.add_argument('--background', metavar='R G B', nargs='+',
+    p.add_argument('--background', metavar='R G B', nargs=3,
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
