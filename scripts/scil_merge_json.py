@@ -32,7 +32,7 @@ def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
                 new_dict[key] = [new_dict[key]]
 
             if not isinstance(dict_2[key], list) and not no_list:
-                new_dict[key].extend(dict_2[key])
+                new_dict[key].extend([dict_2[key]])
             else:
                 if isinstance(dict_2[key], dict):
                     new_dict.update(dict_2)
