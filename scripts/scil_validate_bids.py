@@ -275,7 +275,7 @@ def main():
                                  args.readout, args.clean))
 
     if args.clean:
-        data = [d for d in data if not all(d.values())]
+        data = [d for d in data if all(d.values())]
 
     with open(args.out_json, 'w') as outfile:
         json.dump(data,
