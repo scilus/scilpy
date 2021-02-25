@@ -79,12 +79,10 @@ def _processing_wrapper(args):
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
     if key not in hdf5_file:
-        return {(in_label, out_label): dict(zip(measures_to_compute,
-                                                itertools.repeat(0)))}
+        return
     streamlines = reconstruct_streamlines_from_hdf5(hdf5_file, key)
     if len(streamlines) == 0:
-        return {(in_label, out_label): dict(zip(measures_to_compute,
-                                                itertools.repeat(0)))}
+        return
 
     affine, dimensions, voxel_sizes, _ = get_reference_info(labels_img)
     measures_to_return = {}
@@ -324,12 +322,11 @@ def main():
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
     measures_dict_list = [it for it in measures_dict_list if it is not None]
-    if measures_dict_list:
-        measures_dict = measures_dict_list[0]
-        for dix in measures_dict_list[1:]:
-            measures_dict.update(dix)
-    else:
-        measures_dict = {}
+    if not measures_dict_list:
+        raise ValueError('Empty matrix, no entries to save.')
+    measures_dict = measures_dict_list[0]
+    for dix in measures_dict_list[1:]:
+        measures_dict.update(dix)
 
     if args.no_self_connection:
         total_elem = len(labels_list)**2 - len(labels_list)
