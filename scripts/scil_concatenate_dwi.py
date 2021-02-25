@@ -26,16 +26,16 @@ def _build_arg_parser():
     p.add_argument('out_dwi',
                    help='The name of the output DWI file.')
     p.add_argument('out_bval',
-                   help='The name of the output b-values.')
+                   help='The name of the output b-values file (.bval).')
     p.add_argument('out_bvec',
-                   help='The name of the output b-vectors.')
+                   help='The name of the output b-vectors file (.bvec).')
 
     p.add_argument('--in_dwis', nargs='+',
                    help='The DWI file (.nii) to concatenate.')
     p.add_argument('--in_bvals', nargs='+',
-                   help='The b-values in FSL format.')
+                   help='The b-values files in FSL format (.bval).')
     p.add_argument('--in_bvecs', nargs='+',
-                   help='The b-vectors in FSL format.')
+                   help='The b-vectors files in FSL format (.bvec).')
 
     p.add_argument('--data_type',
                    help='Data type of the output image. Use the format: '
