@@ -7,15 +7,6 @@ NB_FLIPS = 4
 ANGLE_TH = np.pi / 6.
 
 
-def _generate_key_for_transform(transform):
-    key = np.ones(6)
-    key[:3] = np.nonzero(transform)[1]
-    flip_mask = transform < 0
-    if flip_mask.any():
-        key[np.nonzero(flip_mask)[1] + 3] *= -1
-    return tuple(key.astype(int))
-
-
 def compute_fiber_coherence_table(directions, values, mask=None):
     """
     Compute fiber coherence indexes for all possible axis permutations/flips.
@@ -23,7 +14,8 @@ def compute_fiber_coherence_table(directions, values, mask=None):
     permutations = list(itertools.permutations([0, 1, 2]))
     transforms = np.zeros((len(permutations)*NB_FLIPS, 3, 3))
 
-    # Generate 24 possible permutation/flips of gradient directions
+    # Generate transforms for 24 possible permutation/flips of
+    # gradient directions
     for i in range(len(permutations)):
         transforms[i*NB_FLIPS, np.arange(3), permutations[i]] = 1
         for ii in range(3):
@@ -32,15 +24,15 @@ def compute_fiber_coherence_table(directions, values, mask=None):
             transforms[ii+i*NB_FLIPS+1] = transforms[i*NB_FLIPS].dot(flip)
 
     table = {}
+    key_id = 0
     for t in transforms:
-        key = _generate_key_for_transform(t)
-        coherence_map =\
-            compute_fiber_coherence_map_naive(directions.dot(t), values, mask)
-        table[key] = coherence_map.sum()
+        c_map = compute_fiber_coherence_map(directions.dot(t), values, mask)
+        table['t{0}'.format(key_id)] = {'map': c_map, 't': transforms}
+        key_id += 1
     return table
 
 
-def compute_fiber_coherence_map_naive(peaks, values, mask=None):
+def compute_fiber_coherence_map(peaks, values, mask=None):
     """
     One peak direction per voxel associated to one anisotropy value.
     """
@@ -56,12 +48,12 @@ def compute_fiber_coherence_map_naive(peaks, values, mask=None):
         win_peaks = pad_peaks[x:x+3, y:y+3, z:z+3]
         win_vals = pad_vals[x:x+3, y:y+3, z:z+3]
         coherence_map[x, y, z] =\
-            compute_fiber_coherence_naive(win_peaks, win_vals)
+            compute_fiber_coherence(win_peaks, win_vals)
 
     return coherence_map
 
 
-def compute_fiber_coherence_naive(win_peaks, win_vals):
+def compute_fiber_coherence(win_peaks, win_vals):
     """
     Naive fiber coherence index implementation for one peak direction
     per voxel inside a 3 x 3 x 3 window.
