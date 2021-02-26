@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 import numpy as np
+from numpy.core.defchararray import index
 
 
 NB_FLIPS = 4
@@ -26,8 +27,8 @@ def compute_fiber_coherence_table(directions, values, mask=None):
     table = {}
     key_id = 0
     for t in transforms:
-        c_map = compute_fiber_coherence_map(directions.dot(t), values, mask)
-        table['t{0}'.format(key_id)] = {'map': c_map, 't': transforms}
+        index = compute_fiber_coherence_fast(directions.dot(t), values, mask)
+        table['t{0}'.format(key_id)] = {'index': index, 't': transforms}
         key_id += 1
     return table
 
@@ -82,3 +83,40 @@ def compute_fiber_coherence(win_peaks, win_vals):
                     np.abs(v.dot(d)) > np.cos(ANGLE_TH)):
                 c += fu + fv
     return c
+
+
+def compute_fiber_coherence_fast(peaks, values, mask=None):
+    """
+    One peak direction per voxel associated to one anisotropy value.
+    """
+    if mask is not None:
+        peaks = peaks * mask.astype(float)[..., None]
+
+    # directions to neighbors
+    all_d = np.indices((3, 3, 3))
+    all_d = all_d.T.reshape((27, 3)) - 1
+    all_d = np.delete(all_d, 13, axis=0)
+
+    pad_peaks = np.pad(peaks, ((1, 1), (1, 1), (1, 1), (0, 0)))
+    norms = np.linalg.norm(pad_peaks, axis=-1)
+    pad_peaks[norms > 0] /= norms[norms > 0][..., None]
+    pad_vals = np.pad(values, ((1, 1), (1, 1), (1, 1)))
+
+    coherence = 0.0
+    for di in all_d:
+        tx, ty, tz = di.astype(int)
+        slice_x = slice(1 + tx, peaks.shape[0] + 1 + tx)
+        slice_y = slice(1 + ty, peaks.shape[1] + 1 + ty)
+        slice_z = slice(1 + tz, peaks.shape[2] + 1 + tz)
+
+        di_norm = di / np.linalg.norm(di)
+        I_u = np.abs(pad_peaks.dot(di_norm)) > np.cos(ANGLE_TH)
+        I_v = np.zeros_like(I_u)
+        I_v[1:-1, 1:-1, 1:-1] = I_u[slice_x, slice_y, slice_z]
+
+        I_uv = np.logical_and(I_u, I_v)
+        u = np.nonzero(I_uv)
+        v = tuple(np.array(u) + di.astype(int).reshape(3, 1))
+        coherence += np.sum(pad_vals[u]) + np.sum(pad_vals[v])
+
+    return coherence
