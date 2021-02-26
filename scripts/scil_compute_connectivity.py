@@ -322,6 +322,8 @@ def main():
     # Removing None entries (combinaisons that do not exist)
     # Fusing the multiprocessing output into a single dictionary
     measures_dict_list = [it for it in measures_dict_list if it is not None]
+    if not measures_dict_list:
+        raise ValueError('Empty matrix, no entries to save.')
     measures_dict = measures_dict_list[0]
     for dix in measures_dict_list[1:]:
         measures_dict.update(dix)
