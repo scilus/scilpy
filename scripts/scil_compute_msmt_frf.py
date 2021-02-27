@@ -44,8 +44,9 @@ from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 def buildArgsParser():
 
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+            description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path to the input diffusion volume.')
@@ -107,8 +108,9 @@ def buildArgsParser():
 
     p.add_argument('--min_nvox',
                    default=100, type=int,
-                   help='Minimal number of voxels needed for each tissue masks '
-                        'in order to proceed to frf estimation. [%(default)s]')
+                   help='Minimal number of voxels needed for each tissue masks'
+                        ' in order to proceed to frf estimation. '
+                        '[%(default)s]')
     p.add_argument('--tolerance',
                    type=int, default=20,
                    help='The tolerated gap between the b-values to '
@@ -141,8 +143,8 @@ def buildArgsParser():
                         'to compute the GM frf.')
     p.add_argument('--csf_frf_mask',
                    metavar='file', default='',
-                   help='Path to the output CSF frf mask file, the voxels used '
-                        'to compute the CSF frf.')
+                   help='Path to the output CSF frf mask file, the voxels '
+                        'used to compute the CSF frf.')
 
     p.add_argument('--frf_table',
                    metavar='file', default='',
