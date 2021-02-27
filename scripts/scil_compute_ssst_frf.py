@@ -67,7 +67,7 @@ def _build_arg_parser():
                         'estimation. [%(default)s]')
 
     p.add_argument('--roi_radii', nargs='+',
-                   default=[10],  type=int,
+                   default=[20],  type=int,
                    help='If supplied, use those radii to select a cuboid roi '
                         'to estimate the response functions. The roi will be '
                         'a cuboid spanning from the middle of the volume in '
