@@ -7,9 +7,24 @@ NB_FLIPS = 4
 ANGLE_TH = np.pi / 6.
 
 
-def compute_fiber_coherence_table(directions, values, mask=None):
+def compute_fiber_coherence_table(directions, values):
     """
-    Compute fiber coherence indexes for all possible axis permutations/flips.
+    Compute fiber coherence indexes for all possible axes permutations/flips.
+
+    Parameters
+    ----------
+    directions: ndarray (x, y, z, 3)
+        Principal fiber orientation for each voxel.
+    values: ndarray (x, y, z)
+        Anisotropy measure for each voxel (e.g. FA map).
+
+    Returns
+    -------
+    coherence: list
+        Fiber coherence value for each permutation/flip.
+    transforms: list
+        Transform representing each permutation/flip, in the same
+        order as `coherence` list.
     """
     permutations = list(itertools.permutations([0, 1, 2]))
     transforms = np.zeros((len(permutations)*NB_FLIPS, 3, 3))
@@ -23,20 +38,29 @@ def compute_fiber_coherence_table(directions, values, mask=None):
             flip[ii, ii] = -1
             transforms[ii+i*NB_FLIPS+1] = transforms[i*NB_FLIPS].dot(flip)
 
-    indices = []
+    coherence = []
     for t in transforms:
-        index = compute_fiber_coherence_fast(directions.dot(t), values, mask)
-        indices.append(index)
-    return indices, list(transforms)
+        index = compute_fiber_coherence(directions.dot(t), values)
+        coherence.append(index)
+    return coherence, list(transforms)
 
 
-def compute_fiber_coherence_fast(peaks, values, mask=None):
+def compute_fiber_coherence(peaks, values):
     """
-    One peak direction per voxel associated to one anisotropy value.
-    """
-    if mask is not None:
-        peaks = peaks * mask.astype(float)[..., None]
+    Compute the fiber coherence for `peaks` and `values`.
 
+    Parameters
+    ----------
+    peaks: ndarray (x, y, z, 3)
+        Principal fiber orientation for each voxel.
+    values: ndarray (x, y, z)
+        Anisotropy measure for each voxel (e.g. FA map).
+
+    Returns
+    -------
+    coherence: float
+        Fiber coherence value.
+    """
     # directions to neighbors
     all_d = np.indices((3, 3, 3))
     all_d = all_d.T.reshape((27, 3)) - 1
