@@ -29,13 +29,12 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
-    # TODO rename to in_*
-    p.add_argument('label_map',
+    p.add_argument('in_label_map',
                    help='Label map (.npz) of the corresponding fiber bundle.')
-    p.add_argument('distance_map',
+    p.add_argument('in_distance_map',
                    help='Distance map (.npz) of the corresponding bundle/'
                         'centroid streamline.')
-    p.add_argument('metrics', nargs='+',
+    p.add_argument('in_metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
 
@@ -59,8 +58,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.label_map,
-                                 args.distance_map] + args.metrics)
+    assert_inputs_exist(parser, [args.in_bundle, args.in_label_map,
+                                 args.in_distance_map] + args.in_metrics)
     assert_outputs_exist(parser, args, '', args.out_json)
 
     # Load everything
@@ -74,13 +73,13 @@ def main():
         print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
         return
 
-    assert_same_resolution(args.metrics)
-    metrics = [nib.load(metric) for metric in args.metrics]
+    assert_same_resolution(args.in_metrics)
+    metrics = [nib.load(metric) for metric in args.in_metrics]
 
-    label_file = np.load(args.label_map)
+    label_file = np.load(args.in_label_map)
     labels = label_file['arr_0']
 
-    distance_file = np.load(args.distance_map)
+    distance_file = np.load(args.in_distance_map)
     distances_to_centroid_streamline = distance_file['arr_0']
 
     if len(labels) != len(distances_to_centroid_streamline):

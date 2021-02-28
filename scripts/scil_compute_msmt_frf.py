@@ -44,8 +44,9 @@ from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 def buildArgsParser():
 
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+            description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path to the input diffusion volume.')
@@ -60,92 +61,95 @@ def buildArgsParser():
     p.add_argument('out_csf_frf',
                    help='Path to the output CSF frf file, in .txt format.')
 
-    p.add_argument(
-        '--mask',
-        help='Path to a binary mask. Only the data inside the mask will be '
-             'used for\ncomputations and reconstruction. Useful if no tissue '
-             'masks are available.')
-    p.add_argument(
-        '--mask_wm',
-        help='Path to the input WM mask file, used to improve the final WM '
-             'frf mask.')
-    p.add_argument(
-        '--mask_gm',
-        help='Path to the input GM mask file, used to improve the final GM '
-             'frf mask.')
-    p.add_argument(
-        '--mask_csf',
-        help='Path to the input CSF mask file, used to improve the final CSF '
-             'frf mask.')
+    p.add_argument('--mask',
+                   help='Path to a binary mask. Only the data inside the mask '
+                        'will be used for\ncomputations and reconstruction. '
+                        'Useful if no tissue masks are available.')
+    p.add_argument('--mask_wm',
+                   help='Path to the input WM mask file, used to improve the'
+                        ' final WM frf mask.')
+    p.add_argument('--mask_gm',
+                   help='Path to the input GM mask file, used to improve the '
+                        'final GM frf mask.')
+    p.add_argument('--mask_csf',
+                   help='Path to the input CSF mask file, used to improve the'
+                        ' final CSF frf mask.')
 
-    p.add_argument(
-        '--fa_thr_wm', default=0.7, type=float,
-        help='If supplied, use this threshold to select single WM fiber '
-             'voxels from the FA inside the WM mask defined by mask_wm. Each '
-             'voxel above this threshold will be selected. [%(default)s]')
-    p.add_argument(
-        '--fa_thr_gm', default=0.2, type=float,
-        help='If supplied, use this threshold to select GM voxels from the FA '
-             'inside the GM mask defined by mask_gm. Each voxel below this '
-             'threshold will be selected. [%(default)s]')
-    p.add_argument(
-        '--fa_thr_csf', default=0.1, type=float,
-        help='If supplied, use this threshold to select CSF voxels from the '
-             'FA inside the CSF mask defined by mask_csf. Each voxel below '
-             'this threshold will be selected. [%(default)s]')
-    p.add_argument(
-        '--md_thr_gm', default=0.0007, type=float,
-        help='If supplied, use this threshold to select GM voxels from the MD '
-             'inside the GM mask defined by mask_gm. Each voxel below this '
-             'threshold will be selected. [%(default)s]')
-    p.add_argument(
-        '--md_thr_csf', default=0.003, type=float,
-        help='If supplied, use this threshold to select CSF voxels from the '
-             'MD inside the CSF mask defined by mask_csf. Each voxel below '
-             'this threshold will be selected. [%(default)s]')
+    p.add_argument('--fa_thr_wm',
+                   default=0.7, type=float,
+                   help='If supplied, use this threshold to select single WM '
+                        'fiber voxels from the FA inside the WM mask defined '
+                        ' by mask_wm. Each voxel above this threshold will '
+                        'be selected. [%(default)s]')
+    p.add_argument('--fa_thr_gm',
+                   default=0.2, type=float,
+                   help='If supplied, use this threshold to select GM voxels '
+                        'from the FA inside the GM mask defined by mask_gm. '
+                        'Each voxel below this threshold will be selected.'
+                        ' [%(default)s]')
+    p.add_argument('--fa_thr_csf',
+                   default=0.1, type=float,
+                   help='If supplied, use this threshold to select CSF voxels '
+                        'from the FA inside the CSF mask defined by mask_csf. '
+                        'Each voxel below this threshold will be selected. '
+                        '[%(default)s]')
+    p.add_argument('--md_thr_gm',
+                   default=0.0007, type=float,
+                   help='If supplied, use this threshold to select GM voxels '
+                        'from the MD inside the GM mask defined by mask_gm. '
+                        'Each voxel below this threshold will be selected. '
+                        '[%(default)s]')
+    p.add_argument('--md_thr_csf',
+                   default=0.003, type=float,
+                   help='If supplied, use this threshold to select CSF '
+                        'voxels from the MD inside the CSF mask defined by '
+                        'mask_csf. Each voxel below this threshold will be'
+                        ' selected. [%(default)s]')
 
-    p.add_argument(
-        '--min_nvox', default=100, type=int,
-        help='Minimal number of voxels needed for each tissue masks '
-             'in order to proceed to frf estimation. [%(default)s]')
-    p.add_argument(
-        '--tolerance', type=int, default=20,
-        help='The tolerated gap between the b-values to '
-             'extract and the current b-value. [%(default)s]')
-    p.add_argument(
-        '--dti_bval_limit', type=int, default=1200,
-        help='The highest b-value taken for the DTI model. [%(default)s]')
-    p.add_argument(
-        '--roi_radii', default=[10], nargs='+', type=int,
-        help='If supplied, use those radii to select a cuboid roi '
-             'to estimate the response functions. The roi will be '
-             'a cuboid spanning from the middle of the volume in '
-             'each direction with the different radii. The type is '
-             'either an int (e.g. --roi_radii 10) or an array-like (3,) '
-             '(e.g. --roi_radii 20 30 10). [%(default)s]')
-    p.add_argument(
-        '--roi_center', metavar='tuple(3)', type=int,
-        help='If supplied, use this center to span the cuboid roi '
-             'using roi_radii. [center of the 3D volume] '
-             '(e.g. --roi_center 66 79 79)')
+    p.add_argument('--min_nvox',
+                   default=100, type=int,
+                   help='Minimal number of voxels needed for each tissue masks'
+                        ' in order to proceed to frf estimation. '
+                        '[%(default)s]')
+    p.add_argument('--tolerance',
+                   type=int, default=20,
+                   help='The tolerated gap between the b-values to '
+                        'extract and the current b-value. [%(default)s]')
+    p.add_argument('--dti_bval_limit',
+                   type=int, default=1200,
+                   help='The highest b-value taken for the DTI model. '
+                        '[%(default)s]')
+    p.add_argument('--roi_radii',
+                   default=[20], nargs='+', type=int,
+                   help='If supplied, use those radii to select a cuboid roi '
+                        'to estimate the response functions. The roi will be '
+                        'a cuboid spanning from the middle of the volume in '
+                        'each direction with the different radii. The type is '
+                        'either an int (e.g. --roi_radii 10) or an array-like '
+                        '(3,) (e.g. --roi_radii 20 30 10). [%(default)s]')
+    p.add_argument('--roi_center',
+                   metavar='tuple(3)', nargs=3, type=int,
+                   help='If supplied, use this center to span the cuboid roi '
+                        'using roi_radii. [center of the 3D volume] '
+                        '(e.g. --roi_center 66 79 79)')
 
-    p.add_argument(
-        '--wm_frf_mask', metavar='file', default='',
-        help='Path to the output WM frf mask file, the voxels used '
-             'to compute the WM frf.')
-    p.add_argument(
-        '--gm_frf_mask', metavar='file', default='',
-        help='Path to the output GM frf mask file, the voxels used '
-             'to compute the GM frf.')
-    p.add_argument(
-        '--csf_frf_mask', metavar='file', default='',
-        help='Path to the output CSF frf mask file, the voxels used '
-             'to compute the CSF frf.')
+    p.add_argument('--wm_frf_mask',
+                   metavar='file', default='',
+                   help='Path to the output WM frf mask file, the voxels used '
+                        'to compute the WM frf.')
+    p.add_argument('--gm_frf_mask',
+                   metavar='file', default='',
+                   help='Path to the output GM frf mask file, the voxels used '
+                        'to compute the GM frf.')
+    p.add_argument('--csf_frf_mask',
+                   metavar='file', default='',
+                   help='Path to the output CSF frf mask file, the voxels '
+                        'used to compute the CSF frf.')
 
-    p.add_argument(
-        '--frf_table', metavar='file', default='',
-        help='Path to the output frf table file. Saves the frf for '
-             'each b-value, in .txt format.')
+    p.add_argument('--frf_table',
+                   metavar='file', default='',
+                   help='Path to the output frf table file. Saves the frf for '
+                        'each b-value, in .txt format.')
 
     add_force_b0_arg(p)
     add_overwrite_arg(p)

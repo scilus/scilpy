@@ -285,6 +285,8 @@ def main():
         parser.error('Can only compute ratio if also using `single_compare`')
 
     nbr_cpu = validate_nbr_processes(parser, args)
+    if nbr_cpu > 1:
+        pool = multiprocessing.Pool(nbr_cpu)
 
     if not os.path.isdir('tmp_measures/'):
         os.mkdir('tmp_measures/')
@@ -315,7 +317,6 @@ def main():
                                       bundles_references_tuple[i][1],
                                       True, args.disable_streamline_distance])
         else:
-            pool = multiprocessing.Pool(nbr_cpu)
             pool.map(load_data_tmp_saving,
                      zip([tup[0] for tup in bundles_references_tuple],
                          [tup[1] for tup in bundles_references_tuple],
@@ -337,8 +338,8 @@ def main():
         all_measures_dict = pool.map(
             compute_all_measures,
             zip(comb_dict_keys,
-                itertools.repeat(
-                    args.streamline_dice),
+                itertools.repeat(args.streamline_dice),
+                itertools.repeat(args.bundle_adjency_no_overlap),
                 itertools.repeat(args.disable_streamline_distance),
                 itertools.repeat(args.ratio)))
         pool.close()

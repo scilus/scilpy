@@ -15,22 +15,33 @@ from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
 
-    parser.add_argument("bids_folder",
-                        help="Input BIDS folder.")
+    p.add_argument("in_bids",
+                   help="Input BIDS folder.")
 
-    parser.add_argument("output_json",
-                        help="Output json file.")
+    p.add_argument("out_json",
+                   help="Output json file.")
 
-    parser.add_argument("--readout", type=float, default=0.062,
-                        help="Default total readout time value [%(default)s].")
+    p.add_argument('--participants_label', nargs="+",
+                   help='The label(s) of the specific participant(s) you'
+                        ' want to be be analyzed. Participants should not '
+                        'include "sub-". If this parameter is not provided all'
+                        ' subjects should be analyzed.')
 
-    add_overwrite_arg(parser)
+    p.add_argument('--clean',
+                   action='store_true',
+                   help='If set, it will remove all the participants that '
+                        'are missing any information.')
 
-    return parser
+    p.add_argument("--readout", type=float, default=0.062,
+                   help="Default total readout time value [%(default)s].")
+
+    add_overwrite_arg(p)
+
+    return p
 
 
 def get_metadata(bf):
@@ -108,7 +119,7 @@ def get_dwi_associations(fmaps, bvals, bvecs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, default_readout):
+def get_data(nSub, dwi, t1s, associations, default_readout, clean):
     """ Return subject data
 
     Parameters
@@ -162,6 +173,8 @@ def get_data(nSub, dwi, t1s, associations, default_readout):
             dwi_revPE = dwi_PE + '-'
         else:
             dwi_revPE = dwi_PE[0]
+    elif clean:
+        return {}
 
     # Find b0 for topup, take the first one
     revb0_path = ''
@@ -193,6 +206,9 @@ def get_data(nSub, dwi, t1s, associations, default_readout):
 
     t1_path = 'todo'
     t1_nSess = []
+    if not t1s and clean:
+        return {}
+
     for t1 in t1s:
         if 'session' in t1.get_entities().keys() and\
                 t1.get_entities()['session'] == nSess:
@@ -224,11 +240,15 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_outputs_exist(parser, args, args.output_json)
+    assert_outputs_exist(parser, args, args.out_json)
 
     data = []
-    layout = BIDSLayout(args.bids_folder, index_metadata=False)
+    layout = BIDSLayout(args.in_bids, index_metadata=False)
     subjects = layout.get_subjects()
+
+    if args.participants_label:
+        subjects = [nSub for nSub in args.participants_label if nSub in subjects]
+
     for nSub in subjects:
         dwis = layout.get(subject=nSub,
                           datatype='dwi', extension='nii.gz',
@@ -251,9 +271,13 @@ def main():
 
         # Get the data for each run of DWIs
         for dwi in dwis:
-            data.append(get_data(nSub, dwi, t1s, associations, args.readout))
+            data.append(get_data(nSub, dwi, t1s, associations,
+                                 args.readout, args.clean))
 
-    with open(args.output_json, 'w') as outfile:
+    if args.clean:
+        data = [d for d in data if d]
+
+    with open(args.out_json, 'w') as outfile:
         json.dump(data,
                   outfile,
                   indent=4,
