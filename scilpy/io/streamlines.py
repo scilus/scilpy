@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from itertools import islice
+import logging
 import os
 import tempfile
 
@@ -79,11 +80,20 @@ def ichunk(sequence, n):
         chunk = list(islice(sequence, n))
 
 
+def is_argument_set(args, arg_name):
+    # Check that attribute is not None
+    return not getattr(args, 'reference', None) is None
+
+
 def load_tractogram_with_reference(parser, args, filepath,
                                    bbox_check=True, arg_name=None):
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':
+        if (is_argument_set(args, 'reference') or
+                arg_name and args.__getattribute__(arg_name + '_ref')):
+            logging.warning('Reference is discarded for this file format '
+                            '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
@@ -96,10 +106,9 @@ def load_tractogram_with_reference(parser, args, filepath,
             else:
                 parser.error('--{} is required for this file format '
                              '{}.'.format(arg_ref, filepath))
-        elif args.reference is None:
+        elif (not is_argument_set(args, 'reference')) or args.reference is None:
             parser.error('--reference is required for this file format '
                          '{}.'.format(filepath))
-
         else:
             sft = load_tractogram(filepath, args.reference,
                                   bbox_valid_check=bbox_check)
@@ -188,6 +197,8 @@ def reconstruct_streamlines_from_hdf5(hdf5_filename, key=None):
         if key not in hdf5_file:
             return []
         group = hdf5_file[key]
+        if 'data' not in group:
+            return []
     else:
         group = hdf5_file
 

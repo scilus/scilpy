@@ -55,16 +55,15 @@ def main():
     map_inc_data[additional_mask_data > 0] = 0
     map_exc_data[additional_mask_data > 0] = 0
 
-    # TODO Remove header or add optional argument name
     nib.save(
         nib.Nifti1Image(map_inc_data.astype('float32'),
                         map_inc.affine,
-                        map_inc.header),
+                        header=map_inc.header),
         args.map_include_corr)
     nib.save(
         nib.Nifti1Image(map_exc_data.astype('float32'),
                         map_exc.affine,
-                        map_exc.header),
+                        header=map_exc.header),
         args.map_exclude_corr)
 
 

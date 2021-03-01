@@ -37,6 +37,10 @@ on the streamlines' weight. Typically, the threshold should be 0, keeping only
 streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
+
+COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
+with the --ball_stick option. Use the --commit2 option to activite it, slightly
+longer computation time.
 """
 
 import argparse
@@ -53,13 +57,12 @@ import commit
 from commit import trk2dictionary
 from dipy.io.stateful_tractogram import (Origin, Space,
                                          StatefulTractogram)
-from dipy.io.streamline import save_tractogram
+from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.gradients import read_bvals_bvecs
 import h5py
 import numpy as np
 import nibabel as nib
-from nibabel.streamlines import Tractogram
 
 from scilpy.io.streamlines import (lazy_streamlines_count,
                                    reconstruct_streamlines,
@@ -72,8 +75,19 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 
+EPILOG = """
+References:
+    [1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
+    microstructure informed tractography." IEEE transactions on medical
+    imaging 34.1 (2014): 246-257.
+    [2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
+    human brain connections using microstructural and anatomical information."
+    Science advances 6.31 (2020): eaba8245.
+"""
+
+
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_tractogram',
@@ -106,6 +120,13 @@ def _build_arg_parser():
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
                         'the streamlines.')
+
+    g0 = p.add_argument_group(title='COMMIT2 options')
+    g0.add_argument('--commit2', action='store_true',
+                    help='Run commit2, requires .h5 as input and will force\n'
+                         'ball&stick model.')
+    g0.add_argument('--lambda_commit_2', type=float, default=1e-3,
+                    help='Specify the clustering prior strength [%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
@@ -159,6 +180,108 @@ def redirect_stdout_c():
     sys.stdout = os.fdopen(newstdout, 'w')
 
 
+def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                          sub_dir, is_commit_2):
+    out_dir = os.path.join(args.out_dir, sub_dir)
+    os.mkdir(out_dir)
+    # Simplifying output for streamlines and cleaning output directory
+    commit_results_dir = os.path.join(tmp_dir.name,
+                                      'Results_StickZeppelinBall')
+    pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
+    commit_output_dict = pickle.load(pk_file)
+    nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
+    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
+    np.savetxt(os.path.join(commit_results_dir,
+                            'commit_weights.txt'),
+               commit_weights)
+
+    sft = load_tractogram(args.in_tractogram, 'same')
+    if ext == '.h5':
+        new_filename = os.path.join(commit_results_dir,
+                                    'decompose_commit.h5')
+        with h5py.File(new_filename, 'w') as new_hdf5_file:
+            new_hdf5_file.attrs['affine'] = sft.affine
+            new_hdf5_file.attrs['dimensions'] = sft.dimensions
+            new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
+            new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
+            # Assign the weights into the hdf5, while respecting the ordering of
+            # connections/streamlines
+            logging.debug('Adding commit weights to {}.'.format(new_filename))
+            for i, key in enumerate(list(hdf5_file.keys())):
+                new_group = new_hdf5_file.create_group(key)
+                old_group = hdf5_file[key]
+                tmp_commit_weights = commit_weights[offsets_list[i]
+                    :offsets_list[i+1]]
+
+                if args.threshold_weights is None:
+                    args.threshold_weights = -1
+                essential_ind = np.where(
+                    tmp_commit_weights > args.threshold_weights)[0]
+                tmp_commit_weights = tmp_commit_weights[essential_ind]
+
+                tmp_streamlines = reconstruct_streamlines(old_group['data'],
+                                                            old_group['offsets'],
+                                                            old_group['lengths'],
+                                                            indices=essential_ind)
+
+                # Replacing the data with the one above the threshold
+                # Safe since this hdf5 was a copy in the first place
+                new_group.create_dataset('data',
+                                            data=tmp_streamlines.get_data(),
+                                            dtype=np.float32)
+                new_group.create_dataset('offsets',
+                                            data=tmp_streamlines._offsets,
+                                            dtype=np.int64)
+                new_group.create_dataset('lengths',
+                                            data=tmp_streamlines._lengths,
+                                            dtype=np.int32)
+
+                for dps_key in hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        new_group.create_dataset(
+                            key, data=hdf5_file[key][dps_key][essential_ind])
+
+                dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+                new_group.create_dataset(dps_key,
+                                         data=tmp_commit_weights)
+
+    files = os.listdir(commit_results_dir)
+    for f in files:
+        shutil.copy(os.path.join(commit_results_dir, f), out_dir)
+
+    # Save split tractogram (essential/nonessential) and/or saving the
+    # tractogram with data_per_streamline updated
+    if args.keep_whole_tractogram or args.threshold_weights is not None:
+        dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+        # Reload is needed because of COMMIT handling its file by itself
+        sft.data_per_streamline[dps_key] = commit_weights
+
+        if args.threshold_weights is None:
+            args.threshold_weights = -1
+        essential_ind = np.where(
+            commit_weights > args.threshold_weights)[0]
+        nonessential_ind = np.where(
+            commit_weights <= args.threshold_weights)[0]
+        logging.debug('{} essential streamlines were kept at '
+                        'threshold {}'.format(len(essential_ind),
+                                            args.threshold_weights))
+        logging.debug('{} nonessential streamlines were kept at '
+                        'threshold {}'.format(len(nonessential_ind),
+                                            args.threshold_weights))
+
+        save_tractogram(sft[essential_ind],
+                        os.path.join(out_dir,
+                                        'essential_tractogram.trk'))
+        save_tractogram(sft[nonessential_ind],
+                        os.path.join(out_dir,
+                                        'nonessential_tractogram.trk'))
+        if args.keep_whole_tractogram:
+            output_filename = os.path.join(out_dir, 'tractogram.trk')
+            logging.debug('Saving tractogram with weights as {}'.format(
+                output_filename))
+            shutil.copy(tmp_tractogram_filename, output_filename)
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -168,6 +291,11 @@ def main():
                         [args.in_peaks, args.in_tracking_mask])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        optional=args.save_kernels)
+
+    if args.commit2:
+        if os.path.splitext(args.in_tractogram)[1] != '.h5':
+            parser.error('COMMIT2 requires .h5 file for connectomics.')
+        args.ball_stick = True
 
     if args.load_kernels and not os.path.isdir(args.load_kernels):
         parser.error('Kernels directory does not exist.')
@@ -199,9 +327,9 @@ def main():
     if args.threshold_weights == 'None' or args.threshold_weights == 'none':
         args.threshold_weights = None
         if not args.keep_whole_tractogram and ext != '.h5':
-            logging.warning('Not thresholding weigth with trk file without '
+            logging.warning('Not thresholding weight with trk file without '
                             'the --keep_whole_tractogram will not save a '
-                            'tractogram')
+                            'tractogram.')
     else:
         args.threshold_weights = float(args.threshold_weights)
 
@@ -216,6 +344,8 @@ def main():
         redirect_stdout_c()
 
     tmp_dir = tempfile.TemporaryDirectory()
+    hdf5_file = None
+    offsets_list = None
     if ext == '.h5':
         logging.debug('Reconstructing {} into a tractogram for COMMIT.'.format(
             args.in_tractogram))
@@ -230,17 +360,16 @@ def main():
 
         # Keep track of the order of connections/streamlines in relation to the
         # tractogram as well as the number of streamlines for each connection.
+        bundle_groups_len = []
         hdf5_keys = list(hdf5_file.keys())
         streamlines = []
-        offsets_list = [0]
         for key in hdf5_keys:
             tmp_streamlines = reconstruct_streamlines_from_hdf5(hdf5_file,
                                                                 key)
-            offsets_list.append(len(tmp_streamlines))
             streamlines.extend(tmp_streamlines)
+            bundle_groups_len.append(len(tmp_streamlines))
 
-        offsets_list = np.cumsum(offsets_list)
-
+        offsets_list = np.cumsum([0]+bundle_groups_len)
         sft = StatefulTractogram(streamlines, args.in_dwi,
                                  Space.VOX, origin=Origin.TRACKVIS)
         tmp_tractogram_filename = os.path.join(tmp_dir.name, 'tractogram.trk')
@@ -273,7 +402,6 @@ def main():
                            peaks_use_affine=False,
                            filename_mask=args.in_tracking_mask,
                            ndirs=args.nbr_dir,
-                           gen_trk=False,
                            path_out=tmp_dir.name)
 
         # Preparation for fitting
@@ -318,125 +446,40 @@ def main():
             regenerate_kernels = True
         mit.set_config('ATOMS_path', kernels_dir)
 
-        mit.generate_kernels(ndirs=500, regenerate=regenerate_kernels)
+        mit.generate_kernels(ndirs=args.nbr_dir, regenerate=regenerate_kernels)
         if args.compute_only:
             return
         mit.load_kernels()
+        use_mask = args.in_tracking_mask is not None
         mit.load_dictionary(tmp_dir.name,
-                            use_mask=args.in_tracking_mask is not None)
+                            use_all_voxels_in_mask=use_mask)
         mit.set_threads(args.nbr_processes)
 
-        mit.build_operator(build_dir=tmp_dir.name)
-        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=0)
+        mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
+        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=False)
         mit.save_results()
+        _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                              'commit_1/', False)
 
-    # Simplifying output for streamlines and cleaning output directory
-    commit_results_dir = os.path.join(tmp_dir.name,
-                                      'Results_StickZeppelinBall')
-    pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
-    commit_output_dict = pickle.load(pk_file)
-    nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
-    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
-    np.savetxt(os.path.join(commit_results_dir,
-                            'commit_weights.txt'),
-               commit_weights)
-
-    if ext == '.h5':
-        new_filename = os.path.join(commit_results_dir,
-                                    'decompose_commit.h5')
-        with h5py.File(new_filename, 'w') as new_hdf5_file:
-            new_hdf5_file.attrs['affine'] = sft.affine
-            new_hdf5_file.attrs['dimensions'] = sft.dimensions
-            new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
-            new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
-            # Assign the weights into the hdf5, while respecting the ordering of
-            # connections/streamlines
-            logging.debug('Adding commit weights to {}.'.format(new_filename))
-            for i, key in enumerate(hdf5_keys):
-                new_group = new_hdf5_file.create_group(key)
-                old_group = hdf5_file[key]
-                tmp_commit_weights = commit_weights[offsets_list[i]:offsets_list[i+1]]
-                if args.threshold_weights is not None:
-                    essential_ind = np.where(
-                        tmp_commit_weights > args.threshold_weights)[0]
-                    tmp_streamlines = reconstruct_streamlines(old_group['data'],
-                                                              old_group['offsets'],
-                                                              old_group['lengths'],
-                                                              indices=essential_ind)
-
-                    # Replacing the data with the one above the threshold
-                    # Safe since this hdf5 was a copy in the first place
-                    new_group.create_dataset('data',
-                                             data=tmp_streamlines.get_data(),
-                                             dtype=np.float32)
-                    new_group.create_dataset('offsets',
-                                             data=tmp_streamlines._offsets,
-                                             dtype=np.int64)
-                    new_group.create_dataset('lengths',
-                                             data=tmp_streamlines._lengths,
-                                             dtype=np.int32)
-
-                for dps_key in hdf5_file[key].keys():
-                    if dps_key not in ['data', 'offsets', 'lengths']:
-                        new_group.create_dataset(key,
-                                                 data=hdf5_file[key][dps_key])
-                new_group.create_dataset('commit_weights',
-                                         data=tmp_commit_weights)
-
-    files = os.listdir(commit_results_dir)
-    for f in files:
-        shutil.move(os.path.join(commit_results_dir, f), args.out_dir)
-
-    # Save split tractogram (essential/nonessential) and/or saving the
-    # tractogram with data_per_streamline updated
-    if args.keep_whole_tractogram or args.threshold_weights is not None:
-        # Reload is needed because of COMMIT handling its file by itself
-        tractogram_file = nib.streamlines.load(args.in_tractogram)
-        tractogram = tractogram_file.tractogram
-        tractogram.data_per_streamline['commit_weights'] = commit_weights
-
-        if args.threshold_weights is not None:
-            essential_ind = np.where(
-                commit_weights > args.threshold_weights)[0]
-            nonessential_ind = np.where(
-                commit_weights <= args.threshold_weights)[0]
-            logging.debug('{} essential streamlines were kept at '
-                          'threshold {}'.format(len(essential_ind),
-                                                args.threshold_weights))
-            logging.debug('{} nonessential streamlines were kept at '
-                          'threshold {}'.format(len(nonessential_ind),
-                                                args.threshold_weights))
-
-            # TODO PR when Dipy 1.2 is out with sft slicing
-            essential_streamlines = tractogram.streamlines[essential_ind]
-            essential_dps = tractogram.data_per_streamline[essential_ind]
-            essential_dpp = tractogram.data_per_point[essential_ind]
-            essential_tractogram = Tractogram(essential_streamlines,
-                                              data_per_point=essential_dpp,
-                                              data_per_streamline=essential_dps,
-                                              affine_to_rasmm=np.eye(4))
-
-            nonessential_streamlines = tractogram.streamlines[nonessential_ind]
-            nonessential_dps = tractogram.data_per_streamline[nonessential_ind]
-            nonessential_dpp = tractogram.data_per_point[nonessential_ind]
-            nonessential_tractogram = Tractogram(nonessential_streamlines,
-                                                 data_per_point=nonessential_dpp,
-                                                 data_per_streamline=nonessential_dps,
-                                                 affine_to_rasmm=np.eye(4))
-
-            nib.streamlines.save(essential_tractogram,
-                                 os.path.join(args.out_dir,
-                                              'essential_tractogram.trk'),
-                                 header=tractogram_file.header)
-            nib.streamlines.save(nonessential_tractogram,
-                                 os.path.join(args.out_dir,
-                                              'nonessential_tractogram.trk'),
-                                 header=tractogram_file.header,)
-        if args.keep_whole_tractogram:
-            output_filename = os.path.join(args.out_dir, 'tractogram.trk')
-            logging.debug('Saving tractogram with weights as {}'.format(
-                output_filename))
-            nib.streamlines.save(tractogram_file, output_filename)
+        if args.commit2:
+            tmp = np.insert(np.cumsum(bundle_groups_len), 0, 0)
+            group_idx = np.array([np.arange(tmp[i], tmp[i+1])
+                                  for i in range(len(tmp)-1)])
+            group_w = np.empty_like(bundle_groups_len, dtype=np.float64)
+            for k in range(len(bundle_groups_len)):
+                group_w[k] = np.sqrt(bundle_groups_len[k]) / \
+                    (np.linalg.norm(mit.x[group_idx[k]]) + 1e-12)
+            prior_on_bundles = commit.solvers.init_regularisation(
+                mit, structureIC=group_idx, weightsIC=group_w,
+                regnorms=[commit.solvers.group_sparsity,
+                          commit.solvers.non_negative,
+                          commit.solvers.non_negative],
+                lambdas=[args.lambda_commit_2, 0.0, 0.0])
+            mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter,
+                    regularisation=prior_on_bundles, verbose=False)
+            mit.save_results()
+            _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
+                                  'commit_2/', True)
 
     tmp_dir.cleanup()
 

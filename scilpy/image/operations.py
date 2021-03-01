@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Utility operations provided for scil_image_math.py and scil_connectivity_math.py
+Utility operations provided for scil_image_math.py
+and scil_connectivity_math.py
 They basically act as wrappers around numpy to avoid installing MRtrix/FSL
 to apply simple operations on nibabel images or numpy arrays.
 """
@@ -54,7 +55,7 @@ def get_image_ops():
     """Get a dictionary of all functions relating to image operations"""
     image_ops = get_array_ops()
     image_ops.update(OrderedDict([
-        ('concatenate', concat),
+        ('concatenate', concatenate),
         ('dilation', dilation),
         ('erosion', erosion),
         ('closing', closing),
@@ -81,6 +82,13 @@ def _validate_imgs(*imgs):
                 not np.all(ref_img.header.get_data_shape() ==
                            img.header.get_data_shape()):
             raise ValueError('Not all inputs have the same shape!')
+
+
+def _validate_imgs_concat(*imgs):
+    """Make sure that all inputs are images."""
+    for img in imgs:
+        if not isinstance(img, nib.Nifti1Image):
+            raise ValueError('Inputs are not all images')
 
 
 def _validate_length(input_list, length, at_least=False):
@@ -499,20 +507,30 @@ def invert(input_list, ref_img):
     return output_data
 
 
-def concat(input_list, ref_img):
+def concatenate(input_list, ref_img):
     """
-    concat: IMGs
-        Concatenate a list of 3D images into a single 4D image.
+    concatenate: IMGs
+        Concatenate a list of 3D and 4D images into a single 4D image.
     """
-    _validate_imgs(*input_list, ref_img)
-    if len(input_list[0].header.get_data_shape()) != 3:
-        raise ValueError('Concatenate require 3D arrays.')
+
+    _validate_imgs_concat(*input_list, ref_img)
+    if len(input_list[0].header.get_data_shape()) > 4:
+        raise ValueError('Concatenate require 3D or 4D arrays.')
 
     input_data = []
     for img in input_list:
+
         data = img.get_fdata(dtype=np.float64)
-        input_data.append(data)
+
+        if len(img.header.get_data_shape()) == 4:
+            data = np.rollaxis(data, 3)
+            for i in range(0, len(data)):
+                input_data.append(data[i])
+        else:
+            input_data.append(data)
+
         img.uncache()
+
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
 
 
