@@ -11,35 +11,35 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
-                          voxel_sizes=[1.0, 1.0, 1.0], min_lesions_vol=7,
-                          precomputed_lesions_labels=None):
+def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
+                          voxel_sizes=[1.0, 1.0, 1.0], min_lesion_vol=7,
+                          precomputed_lesion_labels=None):
     """
-    Returns information related to lesions inside of a binary mask or voxel
+    Returns information related to lesion inside of a binary mask or voxel
     labels map (bundle, for tractometry).
 
     Parameters
     ------------
     map_data : StatefulTractogram
         Either a binary mask (uint8) or a voxel labels map (int16).
-    lesions_atlas : np.ndarray (3)
-        Labelled atlas of lesions. Should be int16.
+    lesion_atlas : np.ndarray (3)
+        Labelled atlas of lesion. Should be int16.
     single_label : boolean
         If true, does not add an extra layer for number of labels.
     voxel_sizes : np.ndarray (3)
         If not specified, returns voxel count (instead of  volume)
-    min_lesions_vol : float
-        Minimum lesions volume in mm3 (default: 7, cross-shape).
-    precomputed_lesions_labels : np.ndarray (N)
-        For connectivity analysis, when the unique lesions labels are know,
+    min_lesion_vol : float
+        Minimum lesion volume in mm3 (default: 7, cross-shape).
+    precomputed_lesion_labels : np.ndarray (N)
+        For connectivity analysis, when the unique lesion labels are know,
         provided a pre-computed list of labels save computation.
     Returns
     ---------
-    lesions_load_dict : dict
-        For each label, volume and lesions count
+    lesion_load_dict : dict
+        For each label, volume and lesion count
     """
     voxel_vol = np.prod(voxel_sizes)
-    lesions_load_dict = {}
+    lesion_load_dict = {}
 
     if single_label:
         labels_list = [1]
@@ -51,38 +51,38 @@ def compute_lesions_stats(map_data, lesions_atlas, single_label=True,
         if not single_label:
             tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
             tmp_mask[map_data == label] = 1
-            tmp_mask *= lesions_atlas
+            tmp_mask *= lesion_atlas
         else:
-            tmp_mask = lesions_atlas * map_data
+            tmp_mask = lesion_atlas * map_data
 
-        lesions_vols = []
-        if precomputed_lesions_labels is None:
-            computed_lesions_labels = np.unique(tmp_mask)[1:]
+        lesion_vols = []
+        if precomputed_lesion_labels is None:
+            computed_lesion_labels = np.unique(tmp_mask)[1:]
         else:
-            computed_lesions_labels = precomputed_lesions_labels
+            computed_lesion_labels = precomputed_lesion_labels
 
-        for lesion in computed_lesions_labels:
+        for lesion in computed_lesion_labels:
             curr_vol = np.count_nonzero(tmp_mask[tmp_mask == lesion]) \
                 * voxel_vol
-            if curr_vol >= min_lesions_vol:
-                lesions_vols.append(curr_vol)
-        if lesions_vols:
-            section_dict['total_volume'] = round(np.sum(lesions_vols), 3)
-            section_dict['avg_volume'] = round(np.average(lesions_vols), 3)
-            section_dict['std_volume'] = round(np.std(lesions_vols), 3)
-            section_dict['lesions_count'] = len(lesions_vols)
+            if curr_vol >= min_lesion_vol:
+                lesion_vols.append(curr_vol)
+        if lesion_vols:
+            section_dict['total_volume'] = round(np.sum(lesion_vols), 3)
+            section_dict['avg_volume'] = round(np.average(lesion_vols), 3)
+            section_dict['std_volume'] = round(np.std(lesion_vols), 3)
+            section_dict['lesion_count'] = len(lesion_vols)
         else:
             section_dict['total_volume'] = 0
             section_dict['avg_volume'] = 0
             section_dict['std_volume'] = 0
-            section_dict['lesions_count'] = 0
+            section_dict['lesion_count'] = 0
 
         if single_label:
-            lesions_load_dict = section_dict
+            lesion_load_dict = section_dict
         else:
-            lesions_load_dict[str(label).zfill(3)] = section_dict
+            lesion_load_dict[str(label).zfill(3)] = section_dict
 
-    return lesions_load_dict
+    return lesion_load_dict
 
 
 def get_bundle_metrics_profiles(sft, metrics_files):
