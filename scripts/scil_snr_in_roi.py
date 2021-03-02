@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to signal to noise ratio (SNR) in a region of interest (ROI)
+Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
+of a DWI volume. 
 
-Computes the SNR for all slices of the input image.
+It will compute the SNR for all DWI volumes of the input image seperately.
+The output will contain the SNR 
 The mean of the signal is computed inside the mask.
 The standard deviation of the noise is estimated inside noise_mask.
 If it's not supplied, it will be estimated using the data outside medotsu.
+
+If verbose is True, the SNR for every DWI volume will be outputed.
 """
 
 import numpy as np
@@ -19,37 +23,30 @@ import argparse
 
 from datetime import datetime
 from dipy.segment.mask import median_otsu
+from dipy.io.gradients import read_bvals_bvecs
 from scipy.ndimage.morphology import binary_dilation
+from scilpy.io.image import get_data_as_mask
 
-
-def compute_snr(image, bvecs_file, mask, noise_mask=None, savename=None, verbose=False):
-    """
-    Computes the SNR for all slices of image.
-    The mean of the signal is computed inside the mask.
-    The standard deviation of the noise is estimated inside noise_mask.
-    If it's not supplied, it will be estimated using the data outside medotsu.
-    """
+def compute_snr(image, bvals_file, bvecs_file, b0_thr,
+                mask, noise_mask=None, savename=None, verbose=False):
 
     img = nib.load(image)
-    mask = nib.load(mask).get_data()
-
-    data = img.get_data()
-    header = img.get_header()
-    affine = img.get_affine()
+    data = img.get_fdata(dtype=np.float32)
+    affine = img.affine
+    mask = get_data_as_mask(nib.load(mask), dtype=bool)
 
     if savename is None:
         temp, _ = str.split(os.path.basename(image), '.', 1)
         filename = os.path.dirname(os.path.realpath(image)) + '/' + temp
-
     else:
         filename, _ = str.split(savename, '.', 1)
 
+    bvals, bvecs = read_bvals_bvecs(bvals_file, bvecs_file)
+    b0s_location = bvals <= b0_thr
     bvecs = np.loadtxt(bvecs_file)
-    b0s_location = np.where(np.sum(np.abs(bvecs), axis=0)==0)
 
     if noise_mask is None:
-
-        b0_mask, noise_mask = median_otsu(data, b0Slices=b0s_location)
+        b0_mask, noise_mask = median_otsu(data, vol_idx=b0s_location)
 
         # we inflate the mask, then invert it to recover only the noise
         noise_mask = binary_dilation(noise_mask, iterations=10).squeeze()
@@ -95,8 +92,6 @@ def compute_snr(image, bvecs_file, mask, noise_mask=None, savename=None, verbose
         report.write(info)
 
     SNR_b0 = SNR[b0s_location]
-    bvecs = np.delete(bvecs, b0s_location, axis=1)
-    SNR = np.delete(SNR, b0s_location)
     report_SNR_b0 = "\nSNR for b0 is " + str(SNR_b0)
     report_SNR = "\nMax SNR (located at gradient direction " + \
                 str(bvecs[:, np.argmax(SNR)]) +  " ) is : " + str(np.max(SNR)) + \
@@ -122,16 +117,11 @@ def compute_snr(image, bvecs_file, mask, noise_mask=None, savename=None, verbose
 
 
 DESCRIPTION = """
-    Estimates the SNR in a given region of the anatomy.
+    Estimates the SNR in a given region of interest (ROI).
+    SNR is the ratio of the average signal in the ROI divide by standard deviation.
 
-    Input : A DWI volume in which to compute the SNR.
-
-            A nifti file image that is a binary mask of the region of interest.
-
-            The bvecs file associated with the DWI.
-
-
-    This works best by using the output from the corpus callosum segmentation script (segment_CC.py).
+    This works best in a well-defined ROI such as the corpus callosum. 
+    It is heavily dependent on the ROI and its quality. 
 
     Optional input : a binary mask for the noise region (otherwise it computes one automatically)
     """
@@ -142,11 +132,14 @@ def buildArgsParser():
     p = argparse.ArgumentParser(description=DESCRIPTION,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    p.add_argument('input', action='store', metavar='input',
-                   help='Path of the image file.')
+    p.add_argument('in_dwi', 
+                   help='Path of the input diffusion volume.')
 
-    p.add_argument('bvecs', action='store', metavar='bvecs',
-                   help='bvecs file (Mrtrix format) used to specify the gradient directions in the report.')
+    p.add_argument('in_bval',
+                   help='Path of the bvals file, in FSL format.')
+
+    p.add_argument('in_bvec',
+                   help='Path of the bvecs file, in FSL format.')
 
     p.add_argument('mask_roi', action='store', metavar='mask_roi',
                    help='Binary mask of the region used to estimate SNR.')
@@ -154,6 +147,11 @@ def buildArgsParser():
     p.add_argument('--noise', action='store', dest='noise_mask',
                    metavar='noise_mask',
                    help='Binary mask used to estimate the noise.')
+
+    p.add_argument('--b0_thr', type=float, default=0.0,
+                   help='All b-values with values less than or equal '
+                        'to b0_thr are considered as b0s i.e. without '
+                        'diffusion weighting. [Default: 0.0]')
 
     p.add_argument('-v', action='store_true', dest='verbose',
                    help='If True, prints the information that gets saved into the report.')
@@ -169,7 +167,8 @@ def main():
     parser = buildArgsParser()
     args = parser.parse_args()
 
-    compute_snr(args.input, args.bvecs, args.mask_roi, args.noise_mask, args.savename, args.verbose)
+    compute_snr(args.in_dwi, args.in_bval, args.in_bvec, args.b0_thr,
+                args.mask_roi, args.noise_mask, args.savename, args.verbose)
 
 
 if __name__ == "__main__":
