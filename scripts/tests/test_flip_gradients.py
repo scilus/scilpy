@@ -21,5 +21,5 @@ def test_execution_processing(script_runner):
     in_encoding = os.path.join(get_home(), 'processing',
                                '1000.b')
     ret = script_runner.run('scil_flip_gradients.py', in_encoding,
-                            '1000_flip.b', 'x', '--mrtrix')
+                            '1000_flip.b', 'x')
     assert ret.success
