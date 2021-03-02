@@ -196,7 +196,7 @@ def _processing_wrapper(args):
 
                 if tmp_dict:
                     measures_to_return[lesion_filename+'vol'] = \
-                        tmp_dict['total_volume']
+                        tmp_dict['lesion_total_volume']
                     measures_to_return[lesion_filename+'count'] = \
                         tmp_dict['lesion_count']
                     measures_to_return[lesion_filename+'sc'] = \
@@ -325,7 +325,7 @@ def main():
     if args.lesion_load is not None:
         in_name = args.lesion_load[0]
         lesion_img = nib.load(in_name)
-        lesion_data = get_data_as_mask(lesion_img)
+        lesion_data = get_data_as_mask(lesion_img, dtype=np.bool)
         lesion_atlas, _ = ndi.label(lesion_data)
         measures_to_compute.append(((in_name, np.unique(lesion_atlas)[1:]),
                                     nib.Nifti1Image(lesion_atlas,
