@@ -39,15 +39,16 @@ def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
         For each label, volume and lesion count
     """
     voxel_vol = np.prod(voxel_sizes)
-    lesion_load_dict = {}
 
     if single_label:
         labels_list = [1]
     else:
-        labels_list = np.unique(map_data)[1:]
+        labels_list = np.unique(map_data)[1:].astype(np.int32)
 
+    section_dict = {'lesion_total_volume': {}, 'lesion_volume': {},
+                    'lesion_count': {}}
     for label in labels_list:
-        section_dict = {}
+        zlabel = str(label).zfill(3)
         if not single_label:
             tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
             tmp_mask[map_data == label] = 1
@@ -67,22 +68,21 @@ def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
             if curr_vol >= min_lesion_vol:
                 lesion_vols.append(curr_vol)
         if lesion_vols:
-            section_dict['total_volume'] = round(np.sum(lesion_vols), 3)
-            section_dict['avg_volume'] = round(np.average(lesion_vols), 3)
-            section_dict['std_volume'] = round(np.std(lesion_vols), 3)
-            section_dict['lesion_count'] = len(lesion_vols)
+            section_dict['lesion_total_volume'][zlabel] = round(
+                np.sum(lesion_vols), 3)
+            section_dict['lesion_volume'][zlabel] = np.round(lesion_vols, 3).tolist()
+            section_dict['lesion_count'][zlabel] = float(len(lesion_vols))
         else:
-            section_dict['total_volume'] = 0
-            section_dict['avg_volume'] = 0
-            section_dict['std_volume'] = 0
-            section_dict['lesion_count'] = 0
+            section_dict['lesion_total_volume'][zlabel] = 0.0
+            section_dict['lesion_volume'][zlabel] = [0.0]
+            section_dict['lesion_count'][zlabel] = 0.0
 
-        if single_label:
-            lesion_load_dict = section_dict
-        else:
-            lesion_load_dict[str(label).zfill(3)] = section_dict
+    if single_label:
+        section_dict = {'lesion_total_volume': section_dict['lesion_total_volume']['001'],
+                        'lesion_volume': section_dict['lesion_volume']['001'],
+                        'lesion_count': section_dict['lesion_count']['001']}
 
-    return lesion_load_dict
+    return section_dict
 
 
 def get_bundle_metrics_profiles(sft, metrics_files):
@@ -328,13 +328,13 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
     if figlabel is not None:
         fig.set_label(figlabel)
 
-    if means.ndim > 1:
+    if means.shape[-1] > 1:
         mean = np.average(means, axis=1)
         std = np.std(means, axis=1)
         alpha = 0.5
     else:
-        mean = np.array(means)
-        std = np.array(stds)
+        mean = np.array(means).ravel()
+        std = np.array(stds).ravel()
         alpha = 0.9
 
     dim = np.arange(1, len(mean)+1, 1)
@@ -353,6 +353,10 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
+    # print(mean)
+    # print(mean - std)
+    # print(mean + std)
+    # print()
     plt.fill_between(dim, mean - std, mean + std,
                      facecolor=fill_color, alpha=alpha)
 

@@ -29,12 +29,12 @@ pre-computed maps (LABEL1_LABEL2.nii.gz) following the same naming convention
 as the input directory. Each will generate a matrix. The average non-zeros
 value in the map will be reported in the matrices nodes.
 
-The parameters --lesions_load will compute 3 lesions related matrices:
-lesions_count.npy, lesions_vol.npy, lesions_sc.npy and put it inside of a
-specified folder. They represent the number of lesions, the total volume of
-lesions and the total of streamlines going through the lesions for  of each
+The parameters --lesion_load will compute 3 lesion related matrices:
+lesion_count.npy, lesion_vol.npy, lesion_sc.npy and put it inside of a
+specified folder. They represent the number of lesion, the total volume of
+lesion and the total of streamlines going through the lesion for  of each
 connection. Each connection can be seen as a 'bundle' and then something
-similar to scil_analyse_lesions_load.py is run for each 'bundle'.
+similar to scil_analyse_lesion_load.py is run for each 'bundle'.
 """
 
 import argparse
@@ -61,7 +61,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.metrics_tools import compute_lesions_stats
+from scilpy.utils.metrics_tools import compute_lesion_stats
 
 
 def load_node_nifti(directory, in_label, out_label, ref_img):
@@ -170,41 +170,41 @@ def _processing_wrapper(args):
                     voxels_value = metric_data[density > 0]
 
                 measures_to_return[metric_filename] = np.average(voxels_value)
-            # Lesions
+            # lesion
             else:
-                lesions_filename = measure[0][0]
-                computed_lesions_labels = measure[0][1]
-                lesions_img = measure[1]
-                if not is_header_compatible(lesions_img, labels_img):
+                lesion_filename = measure[0][0]
+                computed_lesion_labels = measure[0][1]
+                lesion_img = measure[1]
+                if not is_header_compatible(lesion_img, labels_img):
                     logging.error('{} do not have a compatible header'.format(
-                        lesions_filename))
+                        lesion_filename))
                     raise IOError
 
-                voxel_sizes = lesions_img.header.get_zooms()[0:3]
-                lesions_img.set_filename('tmp.nii.gz')
-                lesions_atlas = get_data_as_label(lesions_img)
-                tmp_dict = compute_lesions_stats(
-                    density.astype(np.bool), lesions_atlas,
+                voxel_sizes = lesion_img.header.get_zooms()[0:3]
+                lesion_img.set_filename('tmp.nii.gz')
+                lesion_atlas = get_data_as_label(lesion_img)
+                tmp_dict = compute_lesion_stats(
+                    density.astype(np.bool), lesion_atlas,
                     voxel_sizes=voxel_sizes, single_label=True,
-                    precomputed_lesions_labels=computed_lesions_labels)
+                    precomputed_lesion_labels=computed_lesion_labels)
 
                 tmp_ind = _streamlines_in_mask(list(streamlines),
-                                               lesions_atlas.astype(np.uint8),
+                                               lesion_atlas.astype(np.uint8),
                                                np.eye(3), [0, 0, 0])
                 streamlines_count = len(
                     np.where(tmp_ind == [0, 1][True])[0].tolist())
 
                 if tmp_dict:
-                    measures_to_return[lesions_filename+'vol'] = \
+                    measures_to_return[lesion_filename+'vol'] = \
                         tmp_dict['total_volume']
-                    measures_to_return[lesions_filename+'count'] = \
-                        tmp_dict['lesions_count']
-                    measures_to_return[lesions_filename+'sc'] = \
+                    measures_to_return[lesion_filename+'count'] = \
+                        tmp_dict['lesion_count']
+                    measures_to_return[lesion_filename+'sc'] = \
                         streamlines_count
                 else:
-                    measures_to_return[lesions_filename+'vol'] = 0
-                    measures_to_return[lesions_filename+'count'] = 0
-                    measures_to_return[lesions_filename+'sc'] = 0
+                    measures_to_return[lesion_filename+'vol'] = 0
+                    measures_to_return[lesion_filename+'count'] = 0
+                    measures_to_return[lesion_filename+'sc'] = 0
 
     if include_dps:
         for dps_key in hdf5_file[key].keys():
@@ -250,9 +250,9 @@ def _build_arg_parser():
                    metavar=('IN_FILE', 'OUT_FILE'),
                    help='Input (.nii.gz). and output file (.npy) for a metric '
                         'weighted matrix.')
-    p.add_argument('--lesions_load', nargs=2, metavar=('IN_FILE', 'OUT_DIR'),
+    p.add_argument('--lesion_load', nargs=2, metavar=('IN_FILE', 'OUT_DIR'),
                    help='Input binary mask (.nii.gz) and output directory '
-                        'for all lesions related matrices.')
+                        'for all lesion related matrices.')
 
     p.add_argument('--density_weighting', action="store_true",
                    help='Use density-weighting for the metric weighted matrix.')
@@ -321,23 +321,23 @@ def main():
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
-    dict_lesions_out_name = {}
-    if args.lesions_load is not None:
-        in_name = args.lesions_load[0]
-        lesions_img = nib.load(in_name)
-        lesions_data = get_data_as_mask(lesions_img)
-        lesions_atlas, _ = ndi.label(lesions_data)
-        measures_to_compute.append(((in_name, np.unique(lesions_atlas)[1:]),
-                                    nib.Nifti1Image(lesions_atlas,
-                                                    lesions_img.affine)))
+    dict_lesion_out_name = {}
+    if args.lesion_load is not None:
+        in_name = args.lesion_load[0]
+        lesion_img = nib.load(in_name)
+        lesion_data = get_data_as_mask(lesion_img)
+        lesion_atlas, _ = ndi.label(lesion_data)
+        measures_to_compute.append(((in_name, np.unique(lesion_atlas)[1:]),
+                                    nib.Nifti1Image(lesion_atlas,
+                                                    lesion_img.affine)))
 
-        out_name_1 = os.path.join(args.lesions_load[1], 'lesions_vol.npy')
-        out_name_2 = os.path.join(args.lesions_load[1], 'lesions_count.npy')
-        out_name_3 = os.path.join(args.lesions_load[1], 'lesions_sc.npy')
+        out_name_1 = os.path.join(args.lesion_load[1], 'lesion_vol.npy')
+        out_name_2 = os.path.join(args.lesion_load[1], 'lesion_count.npy')
+        out_name_3 = os.path.join(args.lesion_load[1], 'lesion_sc.npy')
 
-        dict_lesions_out_name[in_name+'vol'] = out_name_1
-        dict_lesions_out_name[in_name+'count'] = out_name_2
-        dict_lesions_out_name[in_name+'sc'] = out_name_3
+        dict_lesion_out_name[in_name+'vol'] = out_name_1
+        dict_lesion_out_name[in_name+'count'] = out_name_2
+        dict_lesion_out_name[in_name+'sc'] = out_name_3
         measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
 
     assert_outputs_exist(parser, args, measures_output_filename)
@@ -437,8 +437,8 @@ def main():
             matrix_basename = dict_metrics_out_name[measure]
         elif measure in dict_maps_out_name:
             matrix_basename = dict_maps_out_name[measure]
-        elif measure in dict_lesions_out_name:
-            matrix_basename = dict_lesions_out_name[measure]
+        elif measure in dict_lesion_out_name:
+            matrix_basename = dict_lesion_out_name[measure]
         else:
             matrix_basename = measure
 
