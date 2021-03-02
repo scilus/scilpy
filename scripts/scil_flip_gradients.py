@@ -1,8 +1,13 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Flip one or more axes of the gradient sampling matrix. It will be saved in
-the same format as input gradient sampling file.
+Flip one or more axes of the gradient sampling matrix.
+
+If the file extension is .b, the gradients are loaded and saved in the mrtrix
+format. If the extension is .bvec, FSL file format is used.
+
+Any other file type is loaded using DIPY and each row in the output file
+represents one gradient direction.
 """
 import argparse
 import os
@@ -10,6 +15,7 @@ import os
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import (flip_mrtrix_gradient_sampling,
+                                          flip_fsl_gradient_sampling,
                                           flip_dipy_gradient_sampling)
 from scilpy.utils.util import str_to_index
 
@@ -49,6 +55,10 @@ def main():
         flip_mrtrix_gradient_sampling(args.gradient_sampling_file,
                                       args.flipped_sampling_file,
                                       indices)
+    elif ext == '.bvec':
+        flip_fsl_gradient_sampling(args.gradient_sampling_file,
+                                   args.flipped_sampling_file,
+                                   indices)
     else:
         flip_dipy_gradient_sampling(args.gradient_sampling_file,
                                     args.flipped_sampling_file,

@@ -358,6 +358,25 @@ def flip_mrtrix_gradient_sampling(gradient_sampling_filename,
                "%.8f %.8f %.8f %0.6f")
 
 
+def flip_fsl_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
+    """
+    Flip FSL bvecs on a axis
+    Parameters
+    ----------
+    bvecs_filename: str
+        Bvecs filename
+    bvecs_flipped_filename: str
+        Bvecs flipped filename
+    axes: list of int
+        List of axes to flip (e.g. [0, 1])
+    """
+    bvecs = np.loadtxt(bvecs_filename)
+    for axis in axes:
+        bvecs[axis, :] *= -1
+
+    np.savetxt(bvecs_flipped_filename, bvecs, "%.8f")
+
+
 def flip_dipy_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
     """
     Flip dipy bvecs on a axis
@@ -415,7 +434,7 @@ def swap_mrtrix_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
     """
 
     bvecs = np.loadtxt(bvecs_filename)
-    new_bvecs = np.zeros(bvecs.shape)
+    new_bvecs = np.copy(bvecs)
 
     new_bvecs[:, axes[0]] = bvecs[:, axes[1]]
     new_bvecs[:, axes[1]] = bvecs[:, axes[0]]
@@ -423,3 +442,24 @@ def swap_mrtrix_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
     np.savetxt(bvecs_swapped_filename,
                new_bvecs,
                "%.8f %.8f %.8f %0.6f")
+
+
+def swap_fsl_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
+    """
+    Swap FSL bvecs
+    Parameters
+    ----------
+    bvecs_filename: str
+        Bvecs filename
+    bvecs_swapped_filename: str
+        Bvecs swapped filename
+    axes: list of int
+        List of axes to swap (e.g. [0, 1])
+    """
+
+    bvecs = np.loadtxt(bvecs_filename)
+    new_bvecs = np.copy(bvecs)
+    new_bvecs[axes[0], :] = bvecs[axes[1], :]
+    new_bvecs[axes[1], :] = bvecs[axes[0], :]
+
+    np.savetxt(bvecs_swapped_filename, new_bvecs, "%.8f")
