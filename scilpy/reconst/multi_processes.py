@@ -9,6 +9,8 @@ from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 from dipy.reconst.mcsd import MSDeconvFit
 import numpy as np
 
+from scilpy.reconst.divide_fit import gamma_data2fit
+
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
@@ -472,3 +474,87 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     shm_coeff_array[mask] = tmp_shm_coeff_array
 
     return shm_coeff_array
+
+
+def fit_gamma_parallel(args):
+    data = args[0]
+    gtab_infos = args[1]
+    fit_iters = args[2]
+    random_iters = args[3]
+    do_weight_bvals = args[4]
+    do_weight_pa = args[5]
+    redo_weight_bvals = args[6]
+    do_multiple_s0 = args[7]
+    chunk_id = args[8]
+
+    sub_fit_array = np.zeros((data.shape[0], 4))
+    for i in range(data.shape[0]):
+        if data[i].any():
+            sub_fit_array[i] = gamma_data2fit(data[i], gtab_infos, fit_iters,
+                                              random_iters, do_weight_bvals,
+                                              do_weight_pa, redo_weight_bvals,
+                                              do_multiple_s0)
+
+    return chunk_id, sub_fit_array
+
+
+def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
+              do_weight_bvals=False, do_weight_pa=False,
+              redo_weight_bvals=False, do_multiple_s0=False,
+              nbr_processes=None):
+    """Fit the model to data
+
+    Parameters
+    ----------
+    model : a model instance
+        `model` will be used to fit the data.
+    data : np.ndarray (4d)
+        Diffusion data.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    nbr_processes : int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    fit_array : np.ndarray
+        Array containing the fit
+    """
+    data_shape = data.shape
+    if mask is None:
+        mask = np.sum(data, axis=3).astype(bool)
+
+    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
+        or nbr_processes <= 0 else nbr_processes
+
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
+    chunks = np.array_split(data, nbr_processes)
+
+    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+    pool = multiprocessing.Pool(nbr_processes)
+    results = pool.map(fit_gamma_parallel,
+                       zip(chunks,
+                           itertools.repeat(gtab_infos),
+                           itertools.repeat(fit_iters),
+                           itertools.repeat(random_iters),
+                           itertools.repeat(do_weight_bvals),
+                           itertools.repeat(do_weight_pa),
+                           itertools.repeat(redo_weight_bvals),
+                           itertools.repeat(do_multiple_s0),
+                           np.arange(len(chunks))))
+    pool.close()
+    pool.join()
+
+    # Re-assemble the chunk together in the original shape.
+    fit_array = np.zeros((data_shape[0:3])+(4,))
+    tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
+    for i, fit in results:
+        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+
+    fit_array[mask] = tmp_fit_array
+
+    return fit_array
