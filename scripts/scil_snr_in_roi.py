@@ -117,14 +117,17 @@ def compute_snr(image, bvals_file, bvecs_file, b0_thr,
 
 
 DESCRIPTION = """
-    Estimates the SNR in a given region of interest (ROI).
-    SNR is the ratio of the average signal in the ROI divide by standard deviation.
+Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
+of a DWI volume. It will compute the SNR for all DWI volumes of the input 
+image seperately. The mean of the signal is computed inside the mask_roi input.
+The standard deviation of the noise is estimated inside the noise_mask.
+If it's not supplied, it will be estimated using the data outside medotsu.
 
-    This works best in a well-defined ROI such as the corpus callosum. 
-    It is heavily dependent on the ROI and its quality. 
+If verbose is True, the SNR for every DWI volume will be outputed.
 
-    Optional input : a binary mask for the noise region (otherwise it computes one automatically)
-    """
+This works best in a well-defined ROI such as the corpus callosum. 
+It is heavily dependent on the ROI and its quality. 
+"""
 
 
 def buildArgsParser():
