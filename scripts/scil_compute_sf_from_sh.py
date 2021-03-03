@@ -44,9 +44,6 @@ def _build_arg_parser():
                    default='symmetric724',
                    help='Sphere to use for sampling SF. [%(default)s]')
     add_sh_basis_args(p)
-    p.add_argument('--mask',
-                   help='Path to a binary mask.\nOnly data inside the mask '
-                        'will be used for computations and reconstruction ')
     add_overwrite_arg(p)
 
     return p
@@ -73,12 +70,6 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
     b0_volume = data_dwi[..., gtab.b0s_mask]
-
-    # Apply mask
-    if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=np.bool)
-        data_sh = data_sh * mask
-        b0_volume = b0_volume * mask
 
     # Figure out SH order
     n_coeffs = data_sh.shape[-1]
