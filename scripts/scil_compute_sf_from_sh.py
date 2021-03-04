@@ -20,8 +20,6 @@ from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold)
 
-ORDER_FROM_NCOEFFS = {1: 0, 6: 2, 15: 4, 28: 6, 45: 8}
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
