@@ -7,9 +7,9 @@ Script to sample SF values from a Spherical Harmonics signal.
 
 import argparse
 
-from dipy.data import get_sphere
+from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
-from dipy.reconst.shm import sh_to_sf
+from dipy.reconst.shm import order_from_ncoef, sh_to_sf
 import nibabel as nib
 import numpy as np
 
@@ -37,9 +37,10 @@ def _build_arg_parser():
                    help='Name of the output SF file to save (bvals/bvecs will '
                         'be automatically named).')
 
-    p.add_argument('--sphere', choices=['symmetric724', 'repulsion724'],
-                   default='repulsion724',
-                   help='Sphere to use for sampling SF. [%(default)s]')
+    p.add_argument('--sphere', default='repulsion724',
+                   choices=sorted(SPHERE_FILES.keys()),
+                   help='Sphere used for the SH to SF projection. '
+                        '[%(default)s]')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
 
@@ -70,8 +71,7 @@ def main():
     b0s_mask = bvals <= 50
 
     # Figure out SH order
-    n_coeffs = data_sh.shape[-1]
-    sh_order = ORDER_FROM_NCOEFFS[n_coeffs]
+    sh_order = order_from_ncoef(data_sh.shape[-1], full_basis=False)
 
     # Sample SF from SH
     sphere = get_sphere(args.sphere)
