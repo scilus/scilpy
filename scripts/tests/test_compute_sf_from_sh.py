@@ -18,15 +18,10 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_sh = os.path.join(get_home(), 'processing',
-                         'sh_1000.nii.gz')
-    in_dwi = os.path.join(get_home(), 'processing',
-                          'dwi_crop_3000.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
-                           '3000.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
-                           '3000.bvec')
+    in_sh = os.path.join(get_home(), 'processing', 'sh_1000.nii.gz')
+    in_b0 = os.path.join(get_home(), 'processing', 'fa.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing', '1000.bval')
 
-    ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh, in_dwi, in_bval, in_bvec,
+    ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh, in_b0, in_bval,
                             'sf_724.nii.gz')
     assert ret.success

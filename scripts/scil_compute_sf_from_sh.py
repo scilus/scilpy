@@ -7,7 +7,6 @@ Script to sample SF values from a Spherical Harmonics signal.
 
 import argparse
 
-from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
 from dipy.io import read_bvals_bvecs
 from dipy.reconst.shm import sh_to_sf
@@ -16,7 +15,6 @@ import numpy as np
 
 from scilpy.gradientsampling.save_gradient_sampling import \
     save_gradient_sampling_fsl
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              assert_outputs_exist)
@@ -29,12 +27,11 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh',
                    help='Path of the SH volume.')
-    p.add_argument('in_dwi',
-                   help='Path of the original DWI volume (to fetch b0 images).')
+    p.add_argument('in_b0',
+                   help='Path of the original b0 volume (to concatenate to the '
+                        'final SF volume).')
     p.add_argument('in_bval',
                    help='Path of the b-value file, in FSL format.')
-    p.add_argument('in_bvec',
-                   help='Path of the b-vector file, in FSL format.')
 
     p.add_argument('out_sf',
                    help='Name of the output SF file to save (bvals/bvecs will '
@@ -64,12 +61,13 @@ def main():
     vol_sh = nib.load(args.in_sh)
     data_sh = vol_sh.get_fdata(dtype=np.float32)
 
-    # Load DWI + gradients
-    vol_dwi = nib.load(args.in_dwi)
-    data_dwi = vol_dwi.get_fdata(dtype=np.float32)
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    gtab = gradient_table(args.in_bval, args.in_bvec, b0_threshold=bvals.min())
-    b0_volume = data_dwi[..., gtab.b0s_mask]
+    # Load b0
+    vol_b0 = nib.load(args.in_b0)
+    data_b0 = vol_b0.get_fdata(dtype=np.float32)
+    if data_b0.ndim == 3:
+        data_b0 = data_b0[..., np.newaxis]
+    bvals, _ = read_bvals_bvecs(args.in_bval, None)
+    b0s_mask = bvals <= 50
 
     # Figure out SH order
     n_coeffs = data_sh.shape[-1]
@@ -80,16 +78,16 @@ def main():
     sf = sh_to_sf(data_sh, sphere, sh_order=sh_order, basis_type=args.sh_basis)
 
     # Append b0 images
-    sf = np.concatenate((sf, b0_volume), axis=-1)
+    sf = np.concatenate((sf, data_b0), axis=-1)
 
     # Save SF
     nib.save(nib.Nifti1Image(sf.astype(np.float32), vol_sh.affine), args.out_sf)
 
     # Save new bvals/bvecs
-    avg_bval = np.mean(gtab.bvals[np.logical_not(gtab.b0s_mask)])
-    bvals = ([avg_bval] * len(sphere.theta)) + ([0] * b0_volume.shape[-1])
+    avg_bval = np.mean(bvals[np.logical_not(b0s_mask)])
+    bvals = ([avg_bval] * len(sphere.theta)) + ([0] * data_b0.shape[-1])
     bvecs = np.concatenate(
-        (sphere.vertices, np.zeros((b0_volume.shape[-1], 3))), axis=0)
+        (sphere.vertices, np.zeros((data_b0.shape[-1], 3))), axis=0)
     save_gradient_sampling_fsl(bvecs, np.arange(len(bvals)), bvals,
                                out_bvals, out_bvecs)
 
