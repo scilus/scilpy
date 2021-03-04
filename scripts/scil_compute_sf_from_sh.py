@@ -38,7 +38,7 @@ def _build_arg_parser():
                         'be automatically named).')
 
     p.add_argument('--sphere', choices=['symmetric724', 'repulsion724'],
-                   default='symmetric724',
+                   default='repulsion724',
                    help='Sphere to use for sampling SF. [%(default)s]')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
