@@ -61,12 +61,12 @@ def compute_measures(filename_tuple):
                          'span', 'curl', 'diameter', 'elongation', 'mean_curvature'],
                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
-    # list of length of all streamlines
     length_list = list(length(list(sft.streamlines)))
     length_avg = float(np.average(length_list))
     length_std = float(np.std(length_list))
     length_min = float(np.min(length_list))
     length_max = float(np.max(length_list))
+    length_sum = float(np.sum(length_list))
 
     sft.to_vox()
     sft.to_corner()
@@ -74,9 +74,6 @@ def compute_measures(filename_tuple):
     density = compute_tract_counts_map(streamlines, dimensions)
     endpoints_density = get_endpoints_density_map(streamlines, dimensions)
 
-    # add new stats
-    # sum of length of all streamlines
-    length_sum = float(np.sum(length_list))
     span_list = list(map(compute_span, list(sft.streamlines)))
     span = float(np.average(span_list))
     curl = length_avg / span
@@ -136,21 +133,16 @@ def main():
                     output_measures_dict[measure_name] = []
                 output_measures_dict[measure_name].append(
                     measure_dict[measure_name])
+    # add set stats if there are more than one bundle
     if len(bundles_references_tuple_extended) > 1:
-        # calculate total length of all input bundles
         set_total_length = np.sum(output_measures_dict['total_length'])
-        # calculate total streamlines of all input bundles
         set_streamlines_count = np.sum(output_measures_dict['streamlines_count'])
-        # calculate avg length of all input bundles
         set_avg_length = set_total_length / set_streamlines_count
         # add a map to the output
         output_measures_dict['set_stats'] = {}
         output_measures_dict['set_stats']['set_total_length'] = set_total_length
         output_measures_dict['set_stats']['set_streamlines_count'] = float(set_streamlines_count)
         output_measures_dict['set_stats']['set_avg_length'] = set_avg_length
-        # output_measures_dict['set_avg_length'] = []
-        # output_measures_dict['set_avg_length'].append(set_avg_length)
-    # if len(bundles_references_tuple_extended) > 1:
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
