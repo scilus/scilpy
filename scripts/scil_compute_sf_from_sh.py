@@ -15,9 +15,10 @@ import numpy as np
 
 from scilpy.gradientsampling.save_gradient_sampling import \
     save_gradient_sampling_fsl
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.utils.bvec_bval_tools import (check_b0_threshold)
 
 ORDER_FROM_NCOEFFS = {1: 0, 6: 2, 15: 4, 28: 6, 45: 8}
 
@@ -43,6 +44,7 @@ def _build_arg_parser():
                         '[%(default)s]')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
+    add_force_b0_arg(p)
 
     return p
 
@@ -67,8 +69,11 @@ def main():
     data_b0 = vol_b0.get_fdata(dtype=np.float32)
     if data_b0.ndim == 3:
         data_b0 = data_b0[..., np.newaxis]
+
+    # Load bvals
     bvals, _ = read_bvals_bvecs(args.in_bval, None)
-    b0s_mask = bvals <= 50
+    check_b0_threshold(args.force_b0_threshold, bvals.min())
+    b0s_mask = bvals <= bvals.min()
 
     # Figure out SH order
     sh_order = order_from_ncoef(data_sh.shape[-1], full_basis=False)
