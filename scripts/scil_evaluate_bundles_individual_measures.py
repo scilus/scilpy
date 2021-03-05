@@ -85,7 +85,6 @@ def compute_measures(filename_tuple):
     for i in range(nbr_streamlines):
         curvature_list[i] = mean_curvature(sft.streamlines[i])
 
-    # add one entry to dict
     return dict(zip(['volume', 'volume_endpoints', 'streamlines_count', 'total_length',
                      'avg_length', 'std_length', 'min_length', 'max_length',
                      'span', 'curl', 'diameter', 'elongation', 'mean_curvature'],
@@ -138,7 +137,6 @@ def main():
         set_total_length = np.sum(output_measures_dict['total_length'])
         set_streamlines_count = np.sum(output_measures_dict['streamlines_count'])
         set_avg_length = set_total_length / set_streamlines_count
-        # add a map to the output
         output_measures_dict['set_stats'] = {}
         output_measures_dict['set_stats']['set_total_length'] = set_total_length
         output_measures_dict['set_stats']['set_streamlines_count'] = float(set_streamlines_count)
