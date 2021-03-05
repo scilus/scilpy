@@ -12,7 +12,7 @@ A typical pipeline could be:
 >>> scil_correct_gradients.py bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
 
 Note that peaks_v1.nii.gz is the file containing the direction associated
-to the highest eigen value at each voxel.
+to the highest eigenvalue at each voxel.
 
 The output bvecs_corr file can then be used in future processing steps.
 """
@@ -41,7 +41,7 @@ def _build_arg_parser():
     p.add_argument('--mask', help='Path to an optional mask.')
     p.add_argument('--fa_th', default=0.2, type=float,
                    help='FA threshold. Only voxels with FA higher '
-                        'than fa_th will be considered.')
+                        'than fa_th will be considered. [%(default)s]')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
