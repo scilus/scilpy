@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_correct_gradients.py', '--help')
+    ret = script_runner.run('scil_validate_and_correct_bvecs.py', '--help')
     assert ret.success
 
 
@@ -30,6 +30,6 @@ def test_execution_processing(script_runner):
                       '--not_all', '--fa', 'fa.nii.gz',
                       '--evecs', 'evecs.nii.gz')
     # test the actual script
-    ret = script_runner.run('scil_correct_gradients.py', in_bvec,
+    ret = script_runner.run('scil_validate_and_correct_bvecs.py', in_bvec,
                             'evecs_v1.nii.gz', 'fa.nii.gz', 'bvec_corr', '-v')
     assert ret.success
