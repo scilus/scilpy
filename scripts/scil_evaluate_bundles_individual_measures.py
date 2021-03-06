@@ -90,14 +90,14 @@ def compute_measures(filename_tuple):
                      'span', 'curl', 'diameter', 'elongation', 'mean_curvature'],
                     [volume, np.count_nonzero(endpoints_density) * np.product(voxel_size),
                      nbr_streamlines, length_sum, length_avg, length_std, length_min,
-                     length_max, span, curl, diameter, elon, float(np.mean(curvature_list)) ]))
+                     length_max, span, curl, diameter, elon, float(np.mean(curvature_list))]))
 
 
 def compute_span(streamline_cords):
     xyz = np.asarray(streamline_cords)
     if xyz.shape[0] < 2:
         return 0
-    dists = np.sqrt((np.diff([xyz[0], xyz[-1]], axis=0)**2).sum(axis=1))
+    dists = np.sqrt((np.diff([xyz[0], xyz[-1]], axis=0) ** 2).sum(axis=1))
     return np.sum(dists)
 
 
@@ -134,13 +134,20 @@ def main():
                     measure_dict[measure_name])
     # add set stats if there are more than one bundle
     if len(bundles_references_tuple_extended) > 1:
-        set_total_length = np.sum(output_measures_dict['total_length'])
+        # set_total_length = np.sum(output_measures_dict['total_length'])
+        set_total_length = np.sum(np.multiply(output_measures_dict['avg_length'],
+                                              output_measures_dict['streamlines_count']))
+        set_total_span = np.sum(np.multiply(output_measures_dict['span'], output_measures_dict['streamlines_count']))
+        set_total_volume = np.sum(
+            np.multiply(output_measures_dict['volume'], output_measures_dict['streamlines_count']))
         set_streamlines_count = np.sum(output_measures_dict['streamlines_count'])
-        set_avg_length = set_total_length / set_streamlines_count
         output_measures_dict['set_stats'] = {}
-        output_measures_dict['set_stats']['set_total_length'] = set_total_length
         output_measures_dict['set_stats']['set_streamlines_count'] = float(set_streamlines_count)
-        output_measures_dict['set_stats']['set_avg_length'] = set_avg_length
+        output_measures_dict['set_stats']['set_avg_length'] = set_total_length / set_streamlines_count
+        output_measures_dict['set_stats']['set_max_length'] = float(np.min(output_measures_dict['max_length']))
+        output_measures_dict['set_stats']['set_min_length'] = float(np.min(output_measures_dict['min_length']))
+        output_measures_dict['set_stats']['set_avg_span'] = set_total_span / set_streamlines_count
+        output_measures_dict['set_stats']['set_avg_volume'] = set_total_volume / set_streamlines_count
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
