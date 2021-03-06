@@ -3,10 +3,14 @@
 from enum import Enum
 import numpy as np
 
-from dipy.reconst.shm import sh_to_sf
+from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
 
 from scilpy.io.utils import snapshot
+
+orient_to_axis_dict = {'sagittal': 'xaxis',
+                       'coronal': 'yaxis',
+                       'axial': 'zaxis'}
 
 
 class CamParams(Enum):
@@ -19,7 +23,7 @@ class CamParams(Enum):
     ZOOM_FACTOR = 'zoom_factor'
 
 
-def initialize_camera(orientation, volume_shape):
+def initialize_camera(orientation, slice_index, volume_shape):
     """
     Initialize a camera for a given orientation.
     """
@@ -28,55 +32,69 @@ def initialize_camera(orientation, volume_shape):
     camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape)
     eye_distance = max(volume_shape)
     if orientation == 'sagittal':
+        if slice_index is None:
+            slice_index = volume_shape[0] // 2
         camera[CamParams.VIEW_POS] = np.array([-eye_distance,
                                                (volume_shape[1] - 1) / 2.0,
                                                (volume_shape[2] - 1) / 2.0])
-        camera[CamParams.VIEW_CENTER] = np.array([0.0,
+        camera[CamParams.VIEW_CENTER] = np.array([slice_index,
                                                   (volume_shape[1] - 1) / 2.0,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
     elif orientation == 'coronal':
+        if slice_index is None:
+            slice_index = volume_shape[1] // 2
         camera[CamParams.VIEW_POS] = np.array([(volume_shape[0] - 1) / 2.0,
                                                eye_distance,
                                                (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_CENTER] = np.array([(volume_shape[0] - 1) / 2.0,
-                                                  0.0,
+                                                  slice_index,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
     elif orientation == 'axial':
+        if slice_index is None:
+            slice_index = volume_shape[2] // 2
         camera[CamParams.VIEW_POS] = np.array([(volume_shape[0] - 1) / 2.0,
                                                (volume_shape[1] - 1) / 2.0,
                                                -eye_distance])
         camera[CamParams.VIEW_CENTER] = np.array([(volume_shape[0] - 1) / 2.0,
                                                   (volume_shape[1] - 1) / 2.0,
-                                                  0.0])
+                                                  slice_index])
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
     else:
         raise ValueError('Invalid axis name: {0}'.format(orientation))
     return camera
 
 
-def set_display_extent(slicer_actor, orientation, volume_shape):
+def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     """
     Set the display extent for a fury actor in ``orientation``.
     """
     if orientation == 'sagittal':
-        slicer_actor.display_extent(0, 0, 0, volume_shape[1],
+        if slice_index is None:
+            slice_index = volume_shape[0] // 2
+        slicer_actor.display_extent(slice_index, slice_index,
+                                    0, volume_shape[1],
                                     0, volume_shape[2])
     elif orientation == 'coronal':
-        slicer_actor.display_extent(0, volume_shape[0], 0, 0,
+        if slice_index is None:
+            slice_index = volume_shape[1] // 2
+        slicer_actor.display_extent(0, volume_shape[0],
+                                    slice_index, slice_index,
                                     0, volume_shape[2])
     elif orientation == 'axial':
+        if slice_index is None:
+            slice_index = volume_shape[2] // 2
         slicer_actor.display_extent(0, volume_shape[0],
                                     0, volume_shape[1],
-                                    0, 0)
+                                    slice_index, slice_index)
     else:
         raise ValueError('Invalid axis name : {0}'.format(orientation))
 
 
 def create_odf_slicer(sh_fodf, mask, sphere, nb_subdivide,
                       sh_order, sh_basis, full_basis, orientation,
-                      scale, radial_scale, norm, colormap):
+                      scale, radial_scale, norm, colormap, slice_index):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF for each
@@ -87,20 +105,16 @@ def create_odf_slicer(sh_fodf, mask, sphere, nb_subdivide,
     if nb_subdivide is not None:
         sphere = sphere.subdivide(nb_subdivide)
 
-    # Convert SH coefficients to SF coefficients
-    fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
-                    full_basis=full_basis)
+    # SH coefficients to SF coefficients matrix
+    B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
+                            full_basis, return_inv=False)
 
-    # Get mask if supplied, otherwise create a mask discarding empty voxels
-    if mask is None:
-        mask = np.linalg.norm(fodf, axis=-1) > 0.
-
-    odf_actor = actor.odf_slicer(fodf, mask=mask, norm=norm,
+    odf_actor = actor.odf_slicer(sh_fodf, mask=mask, norm=norm,
                                  radial_scale=radial_scale,
                                  sphere=sphere,
                                  colormap=colormap,
-                                 scale=scale)
-    set_display_extent(odf_actor, orientation, fodf.shape)
+                                 scale=scale, B_matrix=B_mat)
+    set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
 
     return odf_actor
 
@@ -124,8 +138,9 @@ def _get_affine_for_texture(orientation, offset):
     return affine
 
 
-def create_texture_slicer(texture, value_range=None, orientation='axial',
-                          opacity=1.0, offset=0.5, interpolation='nearest'):
+def create_texture_slicer(texture, slice_index, value_range=None,
+                          orientation='axial', opacity=1.0, offset=0.5,
+                          interpolation='nearest'):
     """
     Create a texture displayed behind the fODF. The texture is applied on a
     plane with a given offset for the fODF grid.
@@ -136,7 +151,7 @@ def create_texture_slicer(texture, value_range=None, orientation='axial',
                                 value_range=value_range,
                                 opacity=opacity,
                                 interpolation=interpolation)
-    set_display_extent(slicer_actor, orientation, texture.shape)
+    set_display_extent(slicer_actor, orientation, texture.shape, slice_index)
 
     return slicer_actor
 
@@ -159,14 +174,14 @@ def create_peaks_slicer(data, orientation, peak_values=None, mask=None,
     return peaks_slicer
 
 
-def create_scene(actors, orientation, volume_shape):
+def create_scene(actors, orientation, slice_index, volume_shape):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
     is parallel.
     """
     # Configure camera
-    camera = initialize_camera(orientation, volume_shape)
+    camera = initialize_camera(orientation, slice_index, volume_shape)
 
     scene = window.Scene()
     scene.projection('parallel')

@@ -173,52 +173,25 @@ def _parse_args(parser):
     return args
 
 
-def _crop_along_axis(data, index, axis_name):
-    """
-    Extract a 2-dimensional slice from a 3-dimensional data volume
-    """
-    if axis_name == 'sagittal':
-        if index is None:
-            data_slice = data[data.shape[0]//2, :, :]
-        else:
-            data_slice = data[index, :, :]
-        return data_slice[None, ...]
-    elif axis_name == 'coronal':
-        if index is None:
-            data_slice = data[:, data.shape[1]//2, :]
-        else:
-            data_slice = data[:, index, :]
-        return data_slice[:, None, ...]
-    elif axis_name == 'axial':
-        if index is None:
-            data_slice = data[:, :, data.shape[2]//2]
-        else:
-            data_slice = data[:, :, index]
-        return data_slice[:, :, None]
-
-
 def _get_data_from_inputs(args):
     """
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
     fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
-    data = {'fodf': _crop_along_axis(fodf, args.slice_index,
-                                     args.axis_name)}
+    data = {'fodf': fodf}
     if args.background:
         bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
         if bg.shape[:3] != fodf.shape[:-1]:
             raise ValueError('Background dimensions {0} do not agree with fODF'
                              ' dimensions {1}.'.format(bg.shape, fodf.shape))
-        data['bg'] = _crop_along_axis(bg, args.slice_index,
-                                      args.axis_name)
+        data['bg'] = bg
     if args.mask:
         mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
         if mask.shape != fodf.shape[:-1]:
             raise ValueError('Mask dimensions {0} do not agree with fODF '
                              'dimensions {1}.'.format(mask.shape, fodf.shape))
-        data['mask'] = _crop_along_axis(mask, args.slice_index,
-                                        args.axis_name)
+        data['mask'] = mask
     if args.peaks:
         peaks = nib.nifti1.load(args.peaks).get_fdata(dtype=np.float32)
         if peaks.shape[:3] != fodf.shape[:-1]:
@@ -234,8 +207,7 @@ def _get_data_from_inputs(args):
                 raise ValueError('Peaks volume last dimension ({0}) cannot '
                                  'be reshaped as (npeaks, 3).'
                                  .format(peaks.shape[-1]))
-        data['peaks'] = _crop_along_axis(peaks, args.slice_index,
-                                         args.axis_name)
+        data['peaks'] = peaks
         if args.peaks_values:
             peak_vals =\
                 nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
@@ -243,12 +215,9 @@ def _get_data_from_inputs(args):
                 raise ValueError('Peaks volume dimensions {0} do not agree '
                                  'with fODF dimensions {1}.'
                                  .format(peak_vals.shape, fodf.shape))
-            data['peaks_values'] =\
-                _crop_along_axis(peak_vals, args.slice_index,
-                                 args.axis_name)
+            data['peaks_values'] = peak_vals
 
-    grid_shape = data['fodf'].shape[:3]
-    return data, grid_shape
+    return data
 
 
 def validate_order(sh_order, ncoeffs, full_basis):
@@ -266,7 +235,7 @@ def validate_order(sh_order, ncoeffs, full_basis):
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
-    data, grid_shape = _get_data_from_inputs(args)
+    data = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
     sh_order = order_from_ncoef(data['fodf'].shape[-1], args.full_basis)
     if not validate_order(sh_order, data['fodf'].shape[-1], args.full_basis):
@@ -288,12 +257,14 @@ def main():
                                   args.sh_basis, args.full_basis,
                                   args.axis_name, args.scale,
                                   not args.radial_scale_off,
-                                  not args.norm_off, args.colormap)
+                                  not args.norm_off, args.colormap,
+                                  args.slice_index)
     actors.append(odf_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:
         bg_actor = create_texture_slicer(data['bg'],
+                                         args.slice_index,
                                          args.bg_range,
                                          args.axis_name,
                                          args.bg_opacity,
@@ -319,7 +290,9 @@ def main():
         actors.append(peaks_actor)
 
     # Prepare and display the scene
-    scene = create_scene(actors, args.axis_name, grid_shape)
+    scene = create_scene(actors, args.axis_name,
+                         args.slice_index,
+                         data['fodf'].shape[:3])
     render_scene(scene, args.win_dims, args.interactor,
                  args.output, args.silent)
 
