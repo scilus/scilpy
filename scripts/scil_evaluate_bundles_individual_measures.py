@@ -40,7 +40,9 @@ def _build_arg_parser():
                    help='Path of the input bundles.')
     p.add_argument('out_json',
                    help='Path of the output file.')
-
+    p.add_argument('--group_statistics', action='store_true',
+                   help='Show average measures \n'
+                        '[%(default)s].')
     add_reference_arg(p)
     add_processes_arg(p)
     add_json_args(p)
@@ -56,17 +58,16 @@ def compute_measures(filename_tuple):
     nbr_streamlines = len(sft)
     if not nbr_streamlines:
         logging.warning('{} is empty'.format(filename_tuple[0]))
-        return dict(zip(['volume', 'volume_endpoints', 'streamlines_count', 'total_length',
+        return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                          'avg_length', 'std_length', 'min_length', 'max_length',
                          'span', 'curl', 'diameter', 'elongation', 'mean_curvature'],
-                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
     length_list = list(length(list(sft.streamlines)))
     length_avg = float(np.average(length_list))
     length_std = float(np.std(length_list))
     length_min = float(np.min(length_list))
     length_max = float(np.max(length_list))
-    length_sum = float(np.sum(length_list))
 
     sft.to_vox()
     sft.to_corner()
@@ -85,11 +86,11 @@ def compute_measures(filename_tuple):
     for i in range(nbr_streamlines):
         curvature_list[i] = mean_curvature(sft.streamlines[i])
 
-    return dict(zip(['volume', 'volume_endpoints', 'streamlines_count', 'total_length',
+    return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                      'avg_length', 'std_length', 'min_length', 'max_length',
                      'span', 'curl', 'diameter', 'elongation', 'mean_curvature'],
                     [volume, np.count_nonzero(endpoints_density) * np.product(voxel_size),
-                     nbr_streamlines, length_sum, length_avg, length_std, length_min,
+                     nbr_streamlines, length_avg, length_std, length_min,
                      length_max, span, curl, diameter, elon, float(np.mean(curvature_list))]))
 
 
@@ -133,8 +134,7 @@ def main():
                 output_measures_dict[measure_name].append(
                     measure_dict[measure_name])
     # add set stats if there are more than one bundle
-    if len(bundles_references_tuple_extended) > 1:
-        # set_total_length = np.sum(output_measures_dict['total_length'])
+    if args.group_statistics:
         set_total_length = np.sum(np.multiply(output_measures_dict['avg_length'],
                                               output_measures_dict['streamlines_count']))
         set_total_span = np.sum(np.multiply(output_measures_dict['span'], output_measures_dict['streamlines_count']))
