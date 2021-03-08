@@ -20,7 +20,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
-from scilpy.reconst.multi_processes.py import fit_gamma
+from scilpy.reconst.multi_processes import fit_gamma
 from scilpy.reconst.divide_fit import gamma_fit2metrics
 from scilpy.reconst.b_tensor_utils import generate_powder_averaged_data, extract_affine
 
@@ -205,8 +205,7 @@ def main():
 
     microFA, MK_I, MK_A, MK_T = gamma_fit2metrics(parameters)
     microFA[np.isnan(microFA)] = 0
-    # microFA = np.clip(microFA, 0, 1)
-    # print(microFA)
+    microFA = np.clip(microFA, 0, 1)
 
     if args.md:
         nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32), affine), args.md)
