@@ -8,10 +8,6 @@ from fury import window, actor
 
 from scilpy.io.utils import snapshot
 
-orient_to_axis_dict = {'sagittal': 'xaxis',
-                       'coronal': 'yaxis',
-                       'axial': 'zaxis'}
-
 
 class CamParams(Enum):
     """
@@ -23,6 +19,84 @@ class CamParams(Enum):
     ZOOM_FACTOR = 'zoom_factor'
 
 
+class InteractableSlicer():
+    def __init__(self, slicer, shape, orientation, slice_index):
+        self.slicer = slicer
+        self.shape = shape
+        if orientation not in ['sagittal', 'coronal', 'axial']:
+            raise ValueError('Invalid orientation for slicer.')
+        self.orientation = orientation
+        if slice_index is None:
+            slice_index = get_middle_slice_index(orientation, shape)
+        self.slice_index = slice_index
+
+    def next_slice(self):
+        if self.orientation == 'sagittal':
+            index = min(self.slice_index + 1, self.shape[0] - 1)
+            self.slicer.display_extent(index, index, 0,
+                                       self.shape[1] - 1,
+                                       0, self.shape[2] - 1)
+        elif self.orientation == 'coronal':
+            index = min(self.slice_index + 1, self.shape[1] - 1)
+            self.slicer.display_extent(0, self.shape[0] - 1,
+                                       index, index,
+                                       0, self.shape[2] - 1)
+        elif self.orientation == 'axial':
+            index = min(self.slice_index + 1, self.shape[2] - 1)
+            self.slicer.display_extent(0, self.shape[0] - 1,
+                                       0, self.shape[1] - 1,
+                                       index, index)
+        self.slice_index = index
+
+    def prev_slice(self):
+        if self.orientation == 'sagittal':
+            index = max(self.slice_index - 1, 0)
+            self.slicer.display_extent(index, index, 0,
+                                       self.shape[1] - 1,
+                                       0, self.shape[2] - 1)
+        elif self.orientation == 'coronal':
+            index = max(self.slice_index - 1, 0)
+            self.slicer.display_extent(0, self.shape[0] - 1,
+                                       index, index,
+                                       0, self.shape[2] - 1)
+        elif self.orientation == 'axial':
+            index = max(self.slice_index - 1, 0)
+            self.slicer.display_extent(0, self.shape[0] - 1,
+                                       0, self.shape[1] - 1,
+                                       index, index)
+        self.slice_index = index
+
+
+class KeyUpDownCallback(object):
+    """
+    Callback for keyboard up/down interaction.
+    """
+    def __init__(self, interactables):
+        self.interactables = interactables
+
+    def __call__(self, caller, ev):
+        key = caller.GetKeySym()
+        if key == 'Up':
+            for i in self.interactables:
+                i.next_slice()
+        elif key == 'Down':
+            for i in self.interactables:
+                i.prev_slice()
+        caller.Render()
+
+
+def get_middle_slice_index(orientation, shape):
+    if orientation == 'sagittal':
+        slice_index = shape[0] // 2
+    elif orientation == 'coronal':
+        slice_index = shape[1] // 2
+    elif orientation == 'axial':
+        slice_index = shape[2] // 2
+    else:
+        raise ValueError('Invalid axis name: {0}'.format(orientation))
+    return slice_index
+
+
 def initialize_camera(orientation, slice_index, volume_shape):
     """
     Initialize a camera for a given orientation.
@@ -30,6 +104,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
     camera = {}
     # Tighten the view around the data
     camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape)
+    # heuristic for setting the camera position at a distance
+    # proportional to the scale of the scene
     eye_distance = max(volume_shape)
     if orientation == 'sagittal':
         if slice_index is None:
@@ -138,7 +214,7 @@ def _get_affine_for_texture(orientation, offset):
     return affine
 
 
-def create_texture_slicer(texture, slice_index, value_range=None,
+def create_texture_slicer(texture, mask, slice_index, value_range=None,
                           orientation='axial', opacity=1.0, offset=0.5,
                           interpolation='nearest'):
     """
@@ -147,17 +223,22 @@ def create_texture_slicer(texture, slice_index, value_range=None,
     """
     affine = _get_affine_for_texture(orientation, offset)
 
-    slicer_actor = actor.slicer(texture, affine=affine,
+    if mask is not None:
+        masked_texture = np.zeros_like(texture)
+        masked_texture[mask] = texture[mask]
+    else:
+        masked_texture = texture
+
+    slicer_actor = actor.slicer(masked_texture, affine=affine,
                                 value_range=value_range,
                                 opacity=opacity,
                                 interpolation=interpolation)
     set_display_extent(slicer_actor, orientation, texture.shape, slice_index)
-
     return slicer_actor
 
 
-def create_peaks_slicer(data, orientation, peak_values=None, mask=None,
-                        color=None, peaks_width=1.0):
+def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
+                        mask=None, color=None, peaks_width=1.0):
     """
     Create a peaks slicer actor rendering a slice of the fODF peaks
     """
@@ -169,7 +250,7 @@ def create_peaks_slicer(data, orientation, peak_values=None, mask=None,
     peaks_slicer = actor.peak_slicer(data, peaks_values=peak_values,
                                      mask=mask, colors=color,
                                      linewidth=peaks_width)
-    set_display_extent(peaks_slicer, orientation, data.shape)
+    set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 
     return peaks_slicer
 
@@ -197,15 +278,22 @@ def create_scene(actors, orientation, slice_index, volume_shape):
     return scene
 
 
-def render_scene(scene, window_size, interactor, output, silent):
+def render_scene(scene, window_size, interactor,
+                 output, silent, interactables=[], title='Viewer'):
     """
     Render a scene. If a output is supplied, a snapshot of the rendered
     scene is taken.
     """
     if not silent:
-        showm = window.ShowManager(scene, size=window_size,
+        showm = window.ShowManager(scene, title=title,
+                                   size=window_size,
                                    reset_camera=False,
                                    interactor_style=interactor)
+
+        if len(interactables) > 0:
+            showm.iren.AddObserver('KeyReleaseEvent',
+                                   KeyUpDownCallback(interactables))
+
         showm.initialize()
         showm.start()
 

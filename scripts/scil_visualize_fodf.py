@@ -263,7 +263,7 @@ def main():
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:
-        bg_actor = create_texture_slicer(data['bg'],
+        bg_actor = create_texture_slicer(data['bg'], mask,
                                          args.slice_index,
                                          args.bg_range,
                                          args.axis_name,
@@ -282,6 +282,7 @@ def main():
                 np.ones(data['peaks'].shape[:-1]) * args.peaks_length
         peaks_actor = create_peaks_slicer(data['peaks'],
                                           args.axis_name,
+                                          args.slice_index,
                                           peaks_values,
                                           mask,
                                           args.peaks_color,
