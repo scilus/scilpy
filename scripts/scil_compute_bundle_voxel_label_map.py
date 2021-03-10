@@ -10,18 +10,16 @@ The number of labels will be the same as the centroid's number of points.
 
 import argparse
 import logging
-
-from dipy.align.streamlinear import (BundleMinDistanceMetric,
-                                     StreamlineLinearRegistration)
 from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level
-from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.io.utils import is_header_compatible
+from dipy.segment.clustering import qbx_and_merge
 import matplotlib.pyplot as plt
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
+from scipy.spatial.ckdtree import cKDTree
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -69,22 +67,6 @@ def _build_arg_parser():
     return p
 
 
-def _affine_slr(sft_bundle, sft_centroid):
-    x0 = np.zeros((7,))
-    bounds_dof = [(-10, 10), (-10, 10), (-10, 10),
-                  (-5, 5), (-5, 5), (-5, 5),
-                  (0.95, 1.05)]
-    metric = BundleMinDistanceMetric(num_threads=1)
-    slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
-                                       bounds=bounds_dof, x0=x0,
-                                       num_threads=1)
-    tmp_bundle = set_number_of_points(sft_bundle.streamlines.copy(), 20)
-    tmp_centroid = set_number_of_points(sft_centroid.streamlines.copy(), 20)
-    slm = slr.optimize(tmp_bundle, tmp_centroid)
-    sft_centroid.streamlines = transform_streamlines(sft_centroid.streamlines,
-                                                     slm.matrix)
-    return sft_centroid
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -127,19 +109,23 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    if np.count_nonzero(binary_bundle) > 10000:
-        binary_bundle = ndi.binary_dilation(binary_bundle,
-                                            structure=np.ones((3, 3, 3)))
-        binary_bundle = ndi.binary_erosion(binary_bundle,
-                                           structure=structure, iterations=2)
+    if len(sft_bundle) > 1000:
+        if np.count_nonzero(binary_bundle) > 10000:
+            binary_bundle = ndi.binary_dilation(binary_bundle,
+                                                structure=np.ones((3, 3, 3)))
+            binary_bundle = ndi.binary_erosion(binary_bundle,
+                                               structure=structure,
+                                               iterations=2)
 
-    bundle_disjoint, _ = ndi.label(binary_bundle)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
-    val = unique[np.argmax(count[1:])+1]
-    binary_bundle[bundle_disjoint != val] = 0
+        bundle_disjoint, _ = ndi.label(binary_bundle)
+        unique, count = np.unique(bundle_disjoint, return_counts=True)
+        val = unique[np.argmax(count[1:])+1]
+        binary_bundle[bundle_disjoint != val] = 0
 
-    # Chop off some streamlines
-    cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+        # Chop off some streamlines
+        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+    else:
+        cut_sft = sft_bundle
 
     if args.nb_pts is not None:
         sft_centroid = resample_streamlines_num_points(sft_centroid,
@@ -147,91 +133,112 @@ def main():
     else:
         args.nb_pts = len(sft_centroid.streamlines[0])
 
-    # Generate a centroids labels mask for the centroid alone
-    sft_centroid.to_vox()
-    sft_centroid.to_corner()
-    sft_centroid = _affine_slr(sft_bundle, sft_centroid)
-
-    # Map every streamlines points to the centroids
-    binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
-                                               sft_centroid.dimensions).astype(
-                                                   np.bool)
-    # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
-    min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines._data,
-                                                    sft_centroid.streamlines._data)
-    min_dist_label += 1  # 0 means no labels
-
-    # It is not allowed that labels jumps labels for consistency
-    # Streamlines should have continous labels
-    curr_ind = 0
+    clusters_map = qbx_and_merge(cut_sft.streamlines, [30, 20, 10, 5],
+                                 nb_pts=args.nb_pts, verbose=False)
     final_streamlines = []
     final_label = []
     final_dist = []
-    for i, streamline in enumerate(cut_sft.streamlines):
-        next_ind = curr_ind + len(streamline)
-        curr_labels = min_dist_label[curr_ind:next_ind]
-        curr_dist = min_dist[curr_ind:next_ind]
-        curr_ind = next_ind
+    for c, cluster in enumerate(clusters_map):
+        cluster_centroid = cluster.centroid
+        cluster_streamlines = ArraySequence(cluster[:])
+        # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
+        min_dist_label, min_dist = min_dist_to_centroid(cluster_streamlines._data,
+                                                        cluster_centroid)
+        min_dist_label += 1  # 0 means no labels
 
-        # Flip streamlines so the labels increase (facilitate if/else)
-        # Should always be ordered in nextflow pipeline
-        gradient = np.gradient(curr_labels)
-        if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
-            streamline = streamline[::-1]
-            curr_labels = curr_labels[::-1]
-            curr_dist = curr_dist[::-1]
+        # It is not allowed that labels jumps labels for consistency
+        # Streamlines should have continous labels
+        curr_ind = 0
+        for i, streamline in enumerate(cluster_streamlines):
+            next_ind = curr_ind + len(streamline)
+            curr_labels = min_dist_label[curr_ind:next_ind]
+            curr_dist = min_dist[curr_ind:next_ind]
+            curr_ind = next_ind
 
-        # Find jumps, cut them and find the longest
-        gradient = np.ediff1d(curr_labels)
-        max_jump = max(args.nb_pts // 5, 1)
-        if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
-            pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
-            split_chunk = np.split(curr_labels,
-                                   pos_jump)
-            max_len = 0
-            max_pos = 0
-            for j, chunk in enumerate(split_chunk):
-                if len(chunk) > max_len:
-                    max_len = len(chunk)
-                    max_pos = j
+            # Flip streamlines so the labels increase (facilitate if/else)
+            # Should always be ordered in nextflow pipeline
+            gradient = np.gradient(curr_labels)
+            if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
+                streamline = streamline[::-1]
+                curr_labels = curr_labels[::-1]
+                curr_dist = curr_dist[::-1]
 
-            curr_labels = split_chunk[max_pos]
-            gradient_chunk = np.ediff1d(chunk)
-            if len(np.unique(np.sign(gradient_chunk))) > 1:
-                continue
-            streamline = np.split(streamline,
-                                  pos_jump)[max_pos]
-            curr_dist = np.split(curr_dist,
-                                 pos_jump)[max_pos]
+            # Find jumps, cut them and find the longest
+            gradient = np.ediff1d(curr_labels)
+            max_jump = max(args.nb_pts // 5, 1)
+            if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
+                pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
+                split_chunk = np.split(curr_labels,
+                                       pos_jump)
+                max_len = 0
+                max_pos = 0
+                for j, chunk in enumerate(split_chunk):
+                    if len(chunk) > max_len:
+                        max_len = len(chunk)
+                        max_pos = j
 
-        final_streamlines.append(streamline)
-        final_label.append(curr_labels)
-        final_dist.append(curr_dist)
+                curr_labels = split_chunk[max_pos]
+                gradient_chunk = np.ediff1d(chunk)
+                if len(np.unique(np.sign(gradient_chunk))) > 1:
+                    continue
+                streamline = np.split(streamline,
+                                      pos_jump)[max_pos]
+                curr_dist = np.split(curr_dist,
+                                     pos_jump)[max_pos]
+
+            final_streamlines.append(streamline)
+            final_label.append(curr_labels)
+            final_dist.append(curr_dist)
+
+    final_streamlines = ArraySequence(final_streamlines)
+    labels_array = ArraySequence(final_label)
+    dist_array = ArraySequence(final_dist)
+    kd_tree = cKDTree(final_streamlines._data)
+    img_labels = np.zeros(binary_bundle.shape, dtype=np.int16)
+    img_distances = np.zeros(binary_bundle.shape, dtype=np.float32)
+    indices = np.nonzero(binary_bundle)
+
+    for i in range(len(indices[0])):
+        ind = np.array([indices[0][i], indices[1][i], indices[2][i]],
+                       dtype=np.int32)
+        neighbor_ids = kd_tree.query_ball_point(ind, 2.0)
+        if not neighbor_ids:
+            continue
+        labels_val = labels_array._data[neighbor_ids]
+        dist_centro = dist_array._data[neighbor_ids]
+        dist_vox = np.linalg.norm(final_streamlines._data[neighbor_ids] - ind,
+                                  axis=1)
+
+        if np.sum(dist_centro) > 0:
+            img_labels[tuple(ind)] = np.round(
+                np.average(labels_val, weights=dist_centro*dist_vox))
+            img_distances[tuple(ind)] = np.average(dist_centro*dist_vox)
+        else:
+            img_labels[tuple(ind)] = np.round(
+                np.average(labels_val, weights=dist_vox))
+            img_distances[tuple(ind)] = np.average(dist_vox)
+    final_labels = ndi.map_coordinates(img_labels,
+                                       final_streamlines._data.T-0.5,
+                                       order=0)
+    final_dists = ndi.map_coordinates(img_distances,
+                                      final_streamlines._data.T-0.5,
+                                      order=0)
 
     # Re-arrange the new cut streamlines and their metadata
     # Compute the voxels equivalent of the labels maps
     new_sft = StatefulTractogram.from_sft(final_streamlines, sft_bundle)
-
-    tdi_mask_nzr = np.nonzero(binary_bundle)
-    tdi_mask_nzr_ind = np.transpose(tdi_mask_nzr)
-    min_dist_ind, _ = min_dist_to_centroid(tdi_mask_nzr_ind,
-                                           sft_centroid.streamlines[0])
-    img_labels = np.zeros(binary_centroid.shape, dtype=np.int16)
-    img_labels[tdi_mask_nzr] = min_dist_ind + 1  # 0 is background value
 
     nib.save(nib.Nifti1Image(img_labels, sft_bundle.affine),
              args.out_labels_map)
 
     if args.labels_color_dpp or args.distances_color_dpp \
             or args.out_labels_npz or args.out_distances_npz:
-        labels_array = ArraySequence(final_label)
-        dist_array = ArraySequence(final_dist)
         # WARNING: WILL NOT WORK WITH THE INPUT TRK !
         # These will fit only with the TRK saved below.
         if args.out_labels_npz:
-            np.savez_compressed(args.out_labels_npz, labels_array._data)
+            np.savez_compressed(args.out_labels_npz, final_labels)
         if args.out_distances_npz:
-            np.savez_compressed(args.out_distances_npz, dist_array._data)
+            np.savez_compressed(args.out_distances_npz, final_dists)
 
         cmap = plt.get_cmap(args.colormap)
         new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
@@ -239,12 +246,12 @@ def main():
         # Nicer visualisation for MI-Brain
         if args.labels_color_dpp:
             new_sft.data_per_point['color']._data = cmap(
-                labels_array._data / np.max(labels_array._data))[:, 0:3] * 255
+                final_labels / np.max(final_labels))[:, 0:3] * 255
             save_tractogram(new_sft, args.labels_color_dpp)
 
         if args.distances_color_dpp:
             new_sft.data_per_point['color']._data = cmap(
-                dist_array._data / np.max(dist_array._data))[:, 0:3] * 255
+                final_dists / np.max(final_dists))[:, 0:3] * 255
             save_tractogram(new_sft, args.distances_color_dpp)
 
 

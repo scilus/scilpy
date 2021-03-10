@@ -16,6 +16,7 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
+from dipy.tracking.streamlinespeed import length
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -25,6 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              assert_inputs_exist)
 from scilpy.tractanalysis.features import get_streamlines_centroid
+from scilpy.tracking.tools import filter_streamlines_by_length
 
 
 def _build_arg_parser():
@@ -38,13 +40,15 @@ def _build_arg_parser():
 
     method = p.add_mutually_exclusive_group(required=True)
     method.add_argument('--axis', choices=['x', 'y', 'z'],
-                        help='Match endpoints of the streamlines along this axis.\n'
-                        'SUGGESTION: Commissural = x, Association = y, '
+                        help='Match endpoints of the streamlines along this axis.'
+                        '\nSUGGESTION: Commissural = x, Association = y, '
                         'Projection = z')
     method.add_argument('--auto', action='store_true',
                         help='Match endpoints of the streamlines along an '
                              'automatically determined axis.')
-
+    method.add_argument('--centroid', metavar='FILE',
+                        help='Match endpoints of the streamlines along an '
+                             'automatically determined axis.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '
                         'Can be useful when the reference is not in RAS.')
@@ -67,8 +71,16 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     axis = ['x', 'y', 'z']
-    if args.auto:
-        centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
+    if args.auto or args.centroid:
+        if args.centroid:
+            centroid = load_tractogram_with_reference(parser, args,
+                                                      args.centroid)
+            centroid = centroid.streamlines[0]
+        else:
+            lengths = length(sft.streamlines)
+            tmp_sft = filter_streamlines_by_length(
+                sft, min_length=np.average(lengths)+np.std(lengths))
+            centroid = get_streamlines_centroid(tmp_sft.streamlines, 20)[0]
         main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
         main_dir_displacement = np.argmax(np.abs(np.sum(np.gradient(centroid,
                                                                     axis=0),
