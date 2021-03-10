@@ -45,6 +45,9 @@ def _build_arg_parser():
     p.add_argument('--fa_th', default=0.2, type=float,
                    help='FA threshold. Only voxels with FA higher '
                         'than fa_th will be considered. [%(default)s]')
+    p.add_argument('--column_wise', action='store_true',
+                   help='Specify input peaks are given column-wise (..., 3, N)'
+                        ' instead of row-wise (..., N, 3).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -70,8 +73,16 @@ def main():
     fa = nib.load(args.in_fa).get_fdata()
     peaks = nib.load(args.in_peaks).get_fdata()
 
+    # TODO: Detect row-wise vs column-wise. Raise warning
+    #       when detection is impossible.
+
     # convert peaks to a volume of shape (H, W, D, N, 3)
-    peaks = np.reshape(peaks, peaks.shape[:3] + (-1, 3))
+    if args.column_wise:
+        peaks = np.reshape(peaks, peaks.shape[:3] + (3, -1))
+        peaks = np.transpose(peaks, axes=(0, 1, 2, 4, 3))
+    else:
+        peaks = np.reshape(peaks, peaks.shape[:3] + (-1, 3))
+
     N = peaks.shape[3]
     if N > 1:
         if not args.peaks_vals:
