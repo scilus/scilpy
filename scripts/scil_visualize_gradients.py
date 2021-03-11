@@ -124,7 +124,8 @@ def main():
         shell_idx[shell_idx == idx] = -1
         centroids = np.delete(centroids,  np.where(centroids == b0))
 
-    shell_idx[shell_idx != -1] -= 1
+    if len(shell_idx[shell_idx == -1]) > 0:
+        shell_idx[shell_idx != -1] -= 1
 
     sym = args.enable_sym
     sph = args.enable_sph
