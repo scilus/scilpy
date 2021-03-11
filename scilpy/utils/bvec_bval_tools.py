@@ -312,7 +312,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         "Extracting shells [{}], with number of images per shell [{}], "
         "from {} images from {}."
         .format(" ".join([str(b) for b in bvals_to_extract]),
-                " ".join([str(len(get_shell_indices(bvals, shell)))
+                " ".join([str(len(get_shell_indices(bvals, shell, tol=tol)))
                           for shell in bvals_to_extract]),
                 len(bvals), dwi.get_filename()))
 
