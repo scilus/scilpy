@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import itertools
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import length, set_number_of_points
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
+from sklearn.neighbors import KDTree
 
 from scilpy.utils.streamlines import (difference_robust,
                                       intersection_robust,
@@ -47,9 +46,9 @@ def binary_classification(segmentation_indices,
     tp = len(np.intersect1d(segmentation_indices, gold_standard_indices))
     fp = len(np.setdiff1d(segmentation_indices, gold_standard_indices))
     fn = len(np.setdiff1d(gold_standard_indices, segmentation_indices))
-    tn = len(np.setdiff1d(range(original_count),
-                          np.union1d(segmentation_indices,
-                                            gold_standard_indices)))
+    tn = len(np.setdiff1d(
+        range(original_count), np.union1d(
+            segmentation_indices, gold_standard_indices)))
     if mask_count > 0:
         tn = tn - original_count + mask_count
     # Extreme that is not covered, all indices are in the gold standard
@@ -122,6 +121,59 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
             endpoints_map[x_val, y_val, z_val] += 1
 
     return endpoints_map
+
+
+def get_head_tail_density_maps(streamlines, dimensions):
+    """
+    Compute two separate endpoints density maps for the head and tail
+    Parameters
+    ----------
+    streamlines: list of ndarray
+        The list of streamlines to compute endpoints density from.
+    dimensions: tuple
+        The shape of the reference volume for the streamlines.
+
+    Returns
+    -------
+    A tuple containing
+        ndarray: A ndarray where voxel values represent the density of
+            head endpoints.
+        ndarray: A ndarray where voxel values represent the density of
+            tail endpoints.
+    """
+    endpoints_map_head = np.zeros(dimensions)
+    endpoints_map_tail = np.zeros(dimensions)
+
+    for streamline in streamlines:
+        xyz = streamline[0, :].astype(int)
+        endpoints_map_head[xyz[0], xyz[1], xyz[2]] += 1
+
+        xyz = streamline[-1, :].astype(int)
+        endpoints_map_tail[xyz[0], xyz[1], xyz[2]] += 1
+
+    return endpoints_map_head, endpoints_map_tail
+
+
+def approximate_surface_node(roi):
+    """
+    Compute the number of surface voxels (i.e. nodes connected to at least one
+    zero-valued neighboring voxel)
+    Parameters
+    ----------
+    roi: ndarray
+        A ndarray where voxel values represent the density of a bundle and
+        it is binarized.
+
+    Returns
+    -------
+    int: the number of surface voxels
+    """
+    ind = np.argwhere(roi > 0)
+    tree = KDTree(ind)
+    count = np.sum(7 - tree.query_radius(ind, r=1.0,
+                                         count_only=True))
+
+    return count
 
 
 def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
@@ -247,7 +299,8 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
 
 def compute_dice_voxel(density_1, density_2):
     """
-    Compute the overlap (dice coefficient) between two density maps (or binary).
+    Compute the overlap (dice coefficient) between two
+    density maps (or binary).
     Parameters
     ----------
     density_1: ndarray
@@ -285,9 +338,9 @@ def compute_dice_voxel(density_1, density_2):
 
 def compute_correlation(density_1, density_2):
     """
-    Compute the overlap (dice coefficient) between two density maps (or binary).
-    Correlation being less robust to extreme case (no overlap, identical array),
-    a lot of check a needed to prevent NaN.
+    Compute the overlap (dice coefficient) between two density
+    maps (or binary). Correlation being less robust to extreme
+    case (no overlap, identical array), a lot of check a needed to prevent NaN.
     Parameters
     ----------
     density_1: ndarray

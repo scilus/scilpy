@@ -6,7 +6,9 @@ Evaluate basic measurements of bundles, all at once.
 All tractograms must be in the same space (aligned to one reference)
 The computed measures are:
 volume, volume_endpoints, streamlines_count, avg_length, std_length,
-min_length, max_length, span, curl, diameter, elongation, mean_curvature
+min_length, max_length, span, curl, diameter, elongation, surface area,
+irregularity, end surface area, radius, end surface irregularity,
+mean_curvature
 
 The set average contains the average measures of all input bundles. The
 measures that are dependent on the streamline count are weighted by the number
@@ -39,7 +41,9 @@ from scilpy.io.utils import (add_json_args,
                              validate_nbr_processes)
 
 from scilpy.tractanalysis.reproducibility_measures \
-    import get_endpoints_density_map
+    import (get_endpoints_density_map,
+            get_head_tail_density_maps,
+            approximate_surface_node)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import uniformize_bundle_sft
 
@@ -58,8 +62,7 @@ def _build_arg_parser():
     p.add_argument('out_json',
                    help='Path of the output file.')
     p.add_argument('--group_statistics', action='store_true',
-                   help='Compute and show the average of each measure of \n'
-                        'the input bundles \n'
+                   help='Show average measures \n'
                         '[%(default)s].')
     add_reference_arg(p)
     add_processes_arg(p)
@@ -79,10 +82,15 @@ def compute_measures(filename_tuple):
         return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                          'avg_length', 'std_length', 'min_length',
                          'max_length', 'span', 'curl', 'diameter',
-                         'elongation', 'mean_curvature'],
-                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                         'elongation', 'surface_area', 'end_surface_area1',
+                         'end_surface_area2', 'radius1', 'radius2',
+                         'irregularity', 'irregularity_of_end_surface1',
+                         'irregularity_of_end_surface2', 'mean_curvature'],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0, 0, 0]))
 
-    length_list = list(length(list(sft.streamlines)))
+    streamline_cords = list(sft.streamlines)
+    length_list = list(length(streamline_cords))
     length_avg = float(np.average(length_list))
     length_std = float(np.std(length_list))
     length_min = float(np.min(length_list))
@@ -94,12 +102,64 @@ def compute_measures(filename_tuple):
     density = compute_tract_counts_map(streamlines, dimensions)
     endpoints_density = get_endpoints_density_map(streamlines, dimensions)
 
-    span_list = list(map(compute_span, list(sft.streamlines)))
+    span_list = list(map(compute_span, streamline_cords))
     span = float(np.average(span_list))
     curl = length_avg / span
     volume = np.count_nonzero(density) * np.product(voxel_size)
     diameter = 2 * np.sqrt(volume / (np.pi * length_avg))
     elon = length_avg / diameter
+    roi = np.where(density != 0, 1, density)
+
+    surf_area = approximate_surface_node(roi) * (voxel_size[0] ** 2)
+    irregularity = surf_area / (np.pi * diameter * length_avg)
+
+    endpoints_map_head, endpoints_map_tail = \
+        get_head_tail_density_maps(sft.streamlines, dimensions)
+    endpoints_map_head_roi = \
+        np.where(endpoints_map_head != 0, 1, endpoints_map_head)
+    endpoints_map_tail_roi = \
+        np.where(endpoints_map_tail != 0, 1, endpoints_map_tail)
+    end_sur_area1 = \
+        approximate_surface_node(endpoints_map_head_roi) * (voxel_size[0] ** 2)
+    end_sur_area2 = \
+        approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
+
+    endpoints_coords_head, endpoints_coords_tail = \
+        compute_endpoints_coordinates(sft)
+    radius1 = 1.5 * np.average(
+        np.sqrt(((endpoints_coords_head - np.average(
+            endpoints_coords_head, axis=0))
+                 ** 2).sum(axis=1)))
+    radius2 = 1.5 * np.average(
+        np.sqrt(((endpoints_coords_tail - np.average(
+            endpoints_coords_tail, axis=0))
+                 ** 2).sum(axis=1)))
+    end_irreg1 = (np.pi * radius1 ** 2) / end_sur_area1
+    end_irreg2 = (np.pi * radius2 ** 2) / end_sur_area2
+
+    endpoints_map_head, endpoints_map_tail = \
+        get_head_tail_density_maps(sft.streamlines, dimensions)
+    endpoints_map_head_roi = \
+        np.where(endpoints_map_head != 0, 1, endpoints_map_head)
+    endpoints_map_tail_roi = \
+        np.where(endpoints_map_tail != 0, 1, endpoints_map_tail)
+    end_sur_area1 = \
+        approximate_surface_node(endpoints_map_head_roi) * (voxel_size[0] ** 2)
+    end_sur_area2 = \
+        approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
+
+    endpoints_coords_head, endpoints_coords_tail = \
+        compute_endpoints_coordinates(sft)
+    radius1 = 1.5 * np.average(
+        np.sqrt(((endpoints_coords_head - np.average(
+            endpoints_coords_head, axis=0))
+                 ** 2).sum(axis=1)))
+    radius2 = 1.5 * np.average(
+        np.sqrt(((endpoints_coords_tail - np.average(
+            endpoints_coords_tail, axis=0))
+                 ** 2).sum(axis=1)))
+    end_irreg1 = (np.pi * radius1 ** 2) / end_sur_area1
+    end_irreg2 = (np.pi * radius2 ** 2) / end_sur_area2
 
     curvature_list = np.zeros((nbr_streamlines,))
     for i in range(nbr_streamlines):
@@ -107,12 +167,17 @@ def compute_measures(filename_tuple):
 
     return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                      'avg_length', 'std_length', 'min_length', 'max_length',
-                     'span', 'curl', 'diameter', 'elongation',
-                     'mean_curvature'],
+                     'span', 'curl', 'diameter', 'elongation', 'surface_area',
+                     'end_surface_area1', 'end_surface_area2',
+                     'radius1', 'radius2',
+                     'irregularity', 'irregularity_of_end_surface1',
+                     'irregularity_of_end_surface2', 'mean_curvature'],
                     [volume, np.count_nonzero(endpoints_density) *
                      np.product(voxel_size), nbr_streamlines,
                      length_avg, length_std, length_min, length_max,
-                     span, curl, diameter, elon,
+                     span, curl, diameter, elon, surf_area, end_sur_area1,
+                     end_sur_area2, radius1, radius2, irregularity,
+                     end_irreg1, end_irreg2,
                      float(np.mean(curvature_list))]))
 
 
@@ -122,6 +187,23 @@ def compute_span(streamline_coords):
         return 0
     dists = np.sqrt((np.diff([xyz[0], xyz[-1]], axis=0) ** 2).sum(axis=1))
     return np.sum(dists)
+
+
+def compute_endpoints_coordinates(sft):
+    endpoints_coords_head = np.zeros((len(sft.streamlines), 3))
+    endpoints_coords_tail = np.zeros((len(sft.streamlines), 3))
+    for i, streamline in enumerate(sft.streamlines):
+        xyz = streamline[0, :].astype(int)
+        endpoints_coords_head[i, 0] = xyz[0]
+        endpoints_coords_head[i, 1] = xyz[1]
+        endpoints_coords_head[i, 2] = xyz[2]
+
+        xyz = streamline[-1, :].astype(int)
+        endpoints_coords_tail[i, 0] = xyz[0]
+        endpoints_coords_tail[i, 1] = xyz[1]
+        endpoints_coords_tail[i, 2] = xyz[2]
+
+    return endpoints_coords_head, endpoints_coords_tail
 
 
 def main():
@@ -157,7 +239,6 @@ def main():
                     measure_dict[measure_name])
     # add group stats if user wants
     if args.group_statistics:
-        num_of_bundles = len(bundles_references_tuple_extended)
         # length and span are weighted by streamline count
         group_total_length = np.sum(
             np.multiply(output_measures_dict['avg_length'],
@@ -169,19 +250,21 @@ def main():
             np.sum(output_measures_dict['streamlines_count'])
         group_avg_length = group_total_length / group_streamlines_count
         group_avg_span = group_total_span / group_streamlines_count
-        group_avg_vol = np.sum(output_measures_dict['volume']) / num_of_bundles
+        group_avg_vol = np.average(output_measures_dict['volume'])
         group_avg_diam = \
             2 * np.sqrt(group_avg_vol / (np.pi * group_avg_length))
         output_measures_dict['group_stats'] = {}
         output_measures_dict['group_stats']['total_streamlines_count'] = \
             float(group_streamlines_count)
-        output_measures_dict['group_stats']['avg_length'] = group_avg_length
+        output_measures_dict['group_stats']['avg_streamline_length'] = \
+            group_avg_length
         # max and min length of all streamlines in all input bundles
-        output_measures_dict['group_stats']['max_length'] = \
+        output_measures_dict['group_stats']['max_streamline_length'] = \
             float(np.max(output_measures_dict['max_length']))
-        output_measures_dict['group_stats']['min_length'] = \
+        output_measures_dict['group_stats']['min_streamline_length'] = \
             float(np.min(output_measures_dict['min_length']))
-        output_measures_dict['group_stats']['avg_span'] = group_avg_span
+        output_measures_dict['group_stats']['avg_streamline_span'] = \
+            group_avg_span
         # computed with other set averages and not weighted by streamline count
         output_measures_dict['group_stats']['avg_volume'] = group_avg_vol
         output_measures_dict['group_stats']['avg_curl'] = \
@@ -189,6 +272,22 @@ def main():
         output_measures_dict['group_stats']['avg_diameter'] = group_avg_diam
         output_measures_dict['group_stats']['avg_elongation'] = \
             group_avg_length / group_avg_diam
+        output_measures_dict['group_stats']['avg_surface_area'] = \
+            np.average(output_measures_dict['surface_area'])
+        output_measures_dict['group_stats']['avg_irreg'] = \
+            np.average(output_measures_dict['irregularity'])
+        output_measures_dict['group_stats']['avg_end_surface_area1'] = \
+            np.average(output_measures_dict['end_surface_area1'])
+        output_measures_dict['group_stats']['avg_end_surface_area2'] = \
+            np.average(output_measures_dict['end_surface_area2'])
+        output_measures_dict['group_stats']['avg_radius1'] = \
+            np.average(output_measures_dict['radius1'])
+        output_measures_dict['group_stats']['avg_radius2'] = \
+            np.average(output_measures_dict['radius2'])
+        output_measures_dict['group_stats']['avg_irregularity1'] = \
+            np.average(output_measures_dict['irregularity_of_end_surface1'])
+        output_measures_dict['group_stats']['avg_irregularity2'] = \
+            np.average(output_measures_dict['irregularity_of_end_surface2'])
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
