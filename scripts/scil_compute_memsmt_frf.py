@@ -127,7 +127,7 @@ def buildArgsParser():
              'inside the GM mask defined by gm_mask. Each voxel below this '
              'threshold will be selected. [%(default)s]')
     p.add_argument(
-        '--thr_md_csf', default=0.002, type=float,
+        '--thr_md_csf', default=0.003, type=float,
         help='If supplied, use this threshold to select CSF voxels from the MD '
              'inside the CSF mask defined by csf_mask. Each voxel below this '
              'threshold will be selected. [%(default)s]')
@@ -141,7 +141,7 @@ def buildArgsParser():
         help='The tolerated gap between the b-values to '
              'extract\nand the current b-value. [%(default)s]')
     p.add_argument(
-        '--roi_radii', default=[10], nargs='+', type=int,
+        '--roi_radii', default=[20], nargs='+', type=int,
         help='If supplied, use those radii to select a cuboid roi '
              'to estimate the response functions. The roi will be '
              'a cuboid spanning from the middle of the volume in '

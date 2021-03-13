@@ -338,6 +338,9 @@ def main():
         vf = mdmsmt_fit.volume_fractions
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
+        # vf_max = np.repeat(np.max(vf, axis=-1), 3).reshape(vf.shape) 
+        # vf_rgb = vf / vf_max * 255
+        # vf_rgb = np.clip(vf_rgb, 0, 255)
         nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
                                  affine), args.vf_rgb)
 
