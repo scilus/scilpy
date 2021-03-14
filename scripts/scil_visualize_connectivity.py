@@ -148,7 +148,7 @@ def main():
         parser.error('Lookup table axis naming requires --labels_list.')
 
     matrix = load_matrix_in_any_format(args.in_matrix)
-
+    matrix[np.isnan(matrix)] = 0
     if args.log:
         matrix[matrix > EPSILON] = np.log10(matrix[matrix > EPSILON])
         min_value = np.min(matrix)
@@ -247,6 +247,7 @@ def main():
             matrix_hist = matrix[matrix != 0]
         else:
             matrix_hist = matrix.ravel()
+        print(matrix_hist)
         _, _, patches = ax.hist(matrix_hist, bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
