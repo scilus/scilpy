@@ -246,7 +246,7 @@ def main():
             matrix_hist = matrix[matrix != 0]
         else:
             matrix_hist = matrix.ravel()
-        print(matrix_hist)
+
         _, _, patches = ax.hist(matrix_hist, bins=args.nb_bins)
         nbr_bins = len(patches)
         color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
