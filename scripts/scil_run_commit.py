@@ -223,8 +223,8 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
             for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
                 old_group = hdf5_file[key]
-                tmp_commit_weights = commit_weights[offsets_list[i]
-                    :offsets_list[i+1]]
+                tmp_commit_weights = \
+                    commit_weights[offsets_list[i]:offsets_list[i+1]]
 
                 if args.threshold_weights is None:
                     args.threshold_weights = -1
@@ -254,8 +254,10 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                         new_group.create_dataset(
                             key, data=hdf5_file[key][dps_key][essential_ind])
 
-                dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
-                dps_key_tot = 'tot_commit2_weights' if is_commit_2 else 'tot_commit1_weights'
+                dps_key = 'commit2_weights' if is_commit_2 else \
+                    'commit1_weights'
+                dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
+                    'tot_commit1_weights'
                 new_group.create_dataset(dps_key,
                                          data=tmp_commit_weights)
                 new_group.create_dataset(dps_key_tot,
@@ -268,8 +270,10 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     # Save split tractogram (essential/nonessential) and/or saving the
     # tractogram with data_per_streamline updated
     if args.keep_whole_tractogram or args.threshold_weights is not None:
-        dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
-        dps_key_tot = 'tot_commit2_weights' if is_commit_2 else 'tot_commit1_weights'
+        dps_key = 'commit2_weights' if is_commit_2 else \
+            'commit1_weights'
+        dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
+            'tot_commit1_weights'
         # Reload is needed because of COMMIT handling its file by itself
         sft.data_per_streamline[dps_key] = commit_weights
         sft.data_per_streamline[dps_key_tot] = commit_weights*length_list
