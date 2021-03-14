@@ -161,7 +161,6 @@ def main():
         min_value = args.legend_min_max[0]
         max_value = args.legend_min_max[1]
 
-
     fig, ax = plt.subplots()
     im = ax.imshow(matrix.T,
                    interpolation='nearest',
