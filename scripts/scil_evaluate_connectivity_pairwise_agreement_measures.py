@@ -59,7 +59,8 @@ def main():
     for i in pairs:
         ssd = np.sum((pairs[0] - pairs[1]) ** 2)
         output_measures_dict['SSD'].append(ssd)
-        corrcoef = np.corrcoef(all_matrices[0], all_matrices[1])  # only calculates for the first two arrays
+        # only calculates for the first two arrays
+        corrcoef = np.corrcoef(all_matrices[0], all_matrices[1])
         output_measures_dict['Correlation'].append(corrcoef)
 
     with open(args.out_json, 'w') as outfile:
