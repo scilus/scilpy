@@ -100,6 +100,7 @@ def main():
         with h5py.File(filename, 'r') as curr_file:
             keys.extend(curr_file.keys())
 
+    keys = set(keys)
     nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
     if nbr_cpu == 1:
         for key in keys:
