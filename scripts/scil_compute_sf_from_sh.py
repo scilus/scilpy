@@ -34,19 +34,28 @@ def _build_arg_parser():
                    help='Name of the output SF file to save (bvals/bvecs will '
                         'be automatically named when necessary).')
 
-    # Optional arguments to generate a DWI-like volume
-    p.add_argument('--in_bval',
-                   help='Optional b-value file, in FSL format, used to '
-                        'generate a DWI-like volume + bvals/bvecs.')
-    p.add_argument('--in_b0',
-                   help='Optional b0 volume, to concatenate to the '
-                        'final SF volume if a DWI representation is needed.')
-
     # Sphere choice for SF
     p.add_argument('--sphere', default='repulsion724',
                    choices=sorted(SPHERE_FILES.keys()),
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
+
+    # Optional subparser for a DWI-like volume
+    sub = p.add_subparsers(help="Optional arguments to generate a "
+                                "DWI-like output")
+    dwi_subparser = sub.add_parser("dwi_like",
+                                   description="Generate a DWI-like output, "
+                                               "including a `.bval` file and "
+                                               "b0 images in the sf file.")
+    dwi_subparser.add_argument('--in_bval',
+                               required=True,
+                               help='b-value file, in FSL format, '
+                                    'used to assign a b-value to the '
+                                    'output SF and generate a `.bval` file.')
+    dwi_subparser.add_argument('--in_b0',
+                               required=True,
+                               help='b0 volume to concatenate to the '
+                                    'final SF volume.')
     add_sh_basis_args(p)
 
     add_overwrite_arg(p)
