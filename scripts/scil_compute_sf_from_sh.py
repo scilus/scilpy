@@ -68,19 +68,21 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_sh])
+    assert_inputs_exist(parser, args.in_sh,
+                        optional=[args.in_bval, args.in_b0])
 
     out_bvecs = args.out_sf.replace(".nii.gz", ".bvec")
-    assert_outputs_exist(parser, args, [args.out_sf, out_bvecs])
+    out_bvals = None
+    if args.in_bval:
+        out_bvals = args.out_sf.replace(".nii.gz", ".bval")
+
+    assert_outputs_exist(parser, args, [args.out_sf, out_bvecs],
+                         optional=out_bvals)
 
     # Either both --in_bval and --in_b0 are provided, or none
     if xor(bool(args.in_bval), bool(args.in_b0)):
         parser.error("If one of --in_bval or --in_b0 is provided, both "
                      "are required.")
-
-    out_bvals = args.out_sf.replace(".nii.gz", ".bval")
-    if args.in_bval:
-        assert_outputs_exist(parser, args, [out_bvals])
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
