@@ -84,7 +84,18 @@ def union(left, right):
 
 
 def uniformize_bundle_sft(sft, axis=None, swap=False):
-    """Uniformize a bundle"""
+    """Uniformize the streamlines in the given tractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+         The tractogram that contains the list of streamlines to be uniformized
+    axis: int, optional
+        Orient endpoints in the given axis
+    swap: boolean, optional
+        Swap the orientation of streamlines
+
+    """
     axis_name = ['x', 'y', 'z']
     if axis is None:
         centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
