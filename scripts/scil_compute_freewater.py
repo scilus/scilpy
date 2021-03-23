@@ -68,7 +68,7 @@ def _build_arg_parser():
                     help='Radial diffusivity (RD) maximum. [%(default)s]')
     g1.add_argument('--lambda1', type=float, default=0.0,
                     help='First regularization parameter. [%(default)s]')
-    g1.add_argument('--lambda2', type=float, default=1e-3,
+    g1.add_argument('--lambda2', type=float, default=0.25,
                     help='Second regularization parameter. [%(default)s]')
 
     g2 = p.add_argument_group(title='Kernels options')
