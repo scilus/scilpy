@@ -47,10 +47,11 @@ def _build_arg_parser():
                        help='Extract all b0. Index number will be appended to '
                             'the output file.')
     group.add_argument('--mean', action='store_true', help='Extract mean b0.')
-
-    p.add_argument('--cluster', action='store_true',
-                   help='Apply the extraction strategy to clusters of '
-                        'continuous b0 volumes in the data')
+    group.add_argument('--cluster-mean', action='store_true',
+                       help='Extracts mean of each continuous cluster of b0s')
+    group.add_argument('--cluster-first', action='store_true',
+                       help='Extracts first b0 of each '
+                            'continuous cluster of b0s')
 
     p.add_argument('--block-size', '-s',
                    metavar='INT', type=int,
@@ -102,16 +103,19 @@ def main():
 
     logger.info('Number of b0 images in the data: {}'.format(len(b0_idx)))
 
-    strategy = B0ExtractionStrategy.FIRST
-    if args.mean:
+    strategy, extract_in_cluster = B0ExtractionStrategy.FIRST, False
+    if args.mean or args.cluster_mean:
         strategy = B0ExtractionStrategy.MEAN
+        extract_in_cluster = args.cluster_mean
     elif args.all:
         strategy = B0ExtractionStrategy.ALL
+    elif args.cluster_first:
+        extract_in_cluster = True
 
     image = nib.load(args.in_dwi)
 
     b0_volumes = extract_b0(
-        image, gtab.b0s_mask, args.cluster, strategy, args.block_size)
+        image, gtab.b0s_mask, extract_in_cluster, strategy, args.block_size)
 
     if len(b0_volumes.shape) > 3 and not args.single_image:
         _split_time_steps(b0_volumes, image.affine, image.header, args.out_b0)
