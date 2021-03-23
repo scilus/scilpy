@@ -13,9 +13,10 @@ measures that are dependent on the streamline count are weighted by the number
 of streamlines of each bundle. Each of these average measure is computed by
 first summing the multiple of a measure and the streamline count of each
 bundle and divide the sum by the total number of streamlines. Thus, measures
-including length and span are essentially streamline averages all input
-bundles. Whereas, measures, such as volume, are not weighted by streamline
-count because they are not dependent on streamline count.
+including length and span are essentially averages of all the streamlines.
+Other streamline-related set measure are computed with other set averages.
+Whereas, bundle-related measures are computed as an average of all bundles.
+These measures include volume and surface area.
 """
 
 import argparse
@@ -166,21 +167,21 @@ def main():
         set_avg_vol = np.sum(output_measures_dict['volume']) / num_of_bundles
         set_avg_diam = 2 * np.sqrt(set_avg_vol / (np.pi * set_avg_length))
         output_measures_dict['set_stats'] = {}
-        output_measures_dict['set_stats']['set_streamlines_count'] = \
+        output_measures_dict['set_stats']['total_streamlines_count'] = \
             float(set_streamlines_count)
-        output_measures_dict['set_stats']['set_avg_length'] = set_avg_length
+        output_measures_dict['set_stats']['avg_length'] = set_avg_length
         # max and min length of all streamlines in all input bundles
-        output_measures_dict['set_stats']['set_max_length'] = \
+        output_measures_dict['set_stats']['max_length'] = \
             float(np.max(output_measures_dict['max_length']))
-        output_measures_dict['set_stats']['set_min_length'] = \
+        output_measures_dict['set_stats']['min_length'] = \
             float(np.min(output_measures_dict['min_length']))
-        output_measures_dict['set_stats']['set_avg_span'] = set_avg_span
+        output_measures_dict['set_stats']['avg_span'] = set_avg_span
         # computed with other set averages and not weighted by streamline count
-        output_measures_dict['set_stats']['set_avg_volume'] = set_avg_vol
-        output_measures_dict['set_stats']['set_avg_curl'] = \
+        output_measures_dict['set_stats']['avg_volume'] = set_avg_vol
+        output_measures_dict['set_stats']['avg_curl'] = \
             set_avg_length / set_avg_span
-        output_measures_dict['set_stats']['set_avg_diameter'] = set_avg_diam
-        output_measures_dict['set_stats']['set_avg_elongation'] = \
+        output_measures_dict['set_stats']['avg_diameter'] = set_avg_diam
+        output_measures_dict['set_stats']['avg_elongation'] = \
             set_avg_length / set_avg_diam
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
