@@ -27,10 +27,17 @@ The output from COMMIT is:
 - commit_weights.txt
     Text file containing the commit weights for each streamline of the
     input tractogram.
+- streamlines_length.txt
+    Text file containing the length (mm) of each streamline
+- tot_commit_weights
+    Text file containing the total commit weights of each streamline.
+    Equal to commit_weights * streamlines_length (W_i * L_i)
+- commit_weights.txt
+    Text file containing the commit weights for each streamline of the
+    input tractogram.
 - essential.trk / non_essential.trk
     Tractograms containing the streamlines below or equal (essential) and
     above (non_essential) the --threshold_weights argument.
-
 
 This script can divide the input tractogram in two using a threshold to apply
 on the streamlines' weight. Typically, the threshold should be 0, keeping only
@@ -60,6 +67,7 @@ from dipy.io.stateful_tractogram import (Origin, Space,
 from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.gradients import read_bvals_bvecs
+from dipy.tracking.streamlinespeed import length
 import h5py
 import numpy as np
 import nibabel as nib
@@ -77,10 +85,10 @@ from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 EPILOG = """
 References:
-    [1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
+[1] Daducci, Alessandro, et al. "COMMIT: convex optimization modeling for
     microstructure informed tractography." IEEE transactions on medical
     imaging 34.1 (2014): 246-257.
-    [2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
+[2] Schiavi, Simona, et al. "A new method for accurate in vivo mapping of
     human brain connections using microstructural and anatomical information."
     Science advances 6.31 (2020): eaba8245.
 """
@@ -191,11 +199,16 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
     commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
-    np.savetxt(os.path.join(commit_results_dir,
-                            'commit_weights.txt'),
+    np.savetxt(os.path.join(commit_results_dir, 'commit_weights.txt'),
                commit_weights)
 
     sft = load_tractogram(args.in_tractogram, 'same')
+    length_list = length(sft.streamlines)
+    np.savetxt(os.path.join(commit_results_dir, 'streamlines_length.txt'),
+               length_list)
+    np.savetxt(os.path.join(commit_results_dir, 'tot_commit_weights.txt'),
+               commit_weights*length_list)
+
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
                                     'decompose_commit.h5')
@@ -210,8 +223,8 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
             for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
                 old_group = hdf5_file[key]
-                tmp_commit_weights = commit_weights[offsets_list[i]
-                    :offsets_list[i+1]]
+                tmp_commit_weights = \
+                    commit_weights[offsets_list[i]:offsets_list[i+1]]
 
                 if args.threshold_weights is None:
                     args.threshold_weights = -1
@@ -220,30 +233,35 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                 tmp_commit_weights = tmp_commit_weights[essential_ind]
 
                 tmp_streamlines = reconstruct_streamlines(old_group['data'],
-                                                            old_group['offsets'],
-                                                            old_group['lengths'],
-                                                            indices=essential_ind)
-
+                                                          old_group['offsets'],
+                                                          old_group['lengths'],
+                                                          indices=essential_ind)
+                tmp_length_list = length(tmp_streamlines)
                 # Replacing the data with the one above the threshold
                 # Safe since this hdf5 was a copy in the first place
                 new_group.create_dataset('data',
-                                            data=tmp_streamlines.get_data(),
-                                            dtype=np.float32)
+                                         data=tmp_streamlines.get_data(),
+                                         dtype=np.float32)
                 new_group.create_dataset('offsets',
-                                            data=tmp_streamlines._offsets,
-                                            dtype=np.int64)
+                                         data=tmp_streamlines._offsets,
+                                         dtype=np.int64)
                 new_group.create_dataset('lengths',
-                                            data=tmp_streamlines._lengths,
-                                            dtype=np.int32)
+                                         data=tmp_streamlines._lengths,
+                                         dtype=np.int32)
 
                 for dps_key in hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
                         new_group.create_dataset(
                             key, data=hdf5_file[key][dps_key][essential_ind])
 
-                dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+                dps_key = 'commit2_weights' if is_commit_2 else \
+                    'commit1_weights'
+                dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
+                    'tot_commit1_weights'
                 new_group.create_dataset(dps_key,
                                          data=tmp_commit_weights)
+                new_group.create_dataset(dps_key_tot,
+                                         data=tmp_commit_weights*tmp_length_list)
 
     files = os.listdir(commit_results_dir)
     for f in files:
@@ -252,9 +270,13 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     # Save split tractogram (essential/nonessential) and/or saving the
     # tractogram with data_per_streamline updated
     if args.keep_whole_tractogram or args.threshold_weights is not None:
-        dps_key = 'commit2_weights' if is_commit_2 else 'commit1_weights'
+        dps_key = 'commit2_weights' if is_commit_2 else \
+            'commit1_weights'
+        dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
+            'tot_commit1_weights'
         # Reload is needed because of COMMIT handling its file by itself
         sft.data_per_streamline[dps_key] = commit_weights
+        sft.data_per_streamline[dps_key_tot] = commit_weights*length_list
 
         if args.threshold_weights is None:
             args.threshold_weights = -1
@@ -263,23 +285,23 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
         nonessential_ind = np.where(
             commit_weights <= args.threshold_weights)[0]
         logging.debug('{} essential streamlines were kept at '
-                        'threshold {}'.format(len(essential_ind),
+                      'threshold {}'.format(len(essential_ind),
                                             args.threshold_weights))
         logging.debug('{} nonessential streamlines were kept at '
-                        'threshold {}'.format(len(nonessential_ind),
+                      'threshold {}'.format(len(nonessential_ind),
                                             args.threshold_weights))
 
         save_tractogram(sft[essential_ind],
                         os.path.join(out_dir,
-                                        'essential_tractogram.trk'))
+                                     'essential_tractogram.trk'))
         save_tractogram(sft[nonessential_ind],
                         os.path.join(out_dir,
-                                        'nonessential_tractogram.trk'))
+                                     'nonessential_tractogram.trk'))
         if args.keep_whole_tractogram:
             output_filename = os.path.join(out_dir, 'tractogram.trk')
             logging.debug('Saving tractogram with weights as {}'.format(
                 output_filename))
-            shutil.copy(tmp_tractogram_filename, output_filename)
+            save_tractogram(sft, output_filename)
 
 
 def main():
@@ -456,7 +478,8 @@ def main():
         mit.set_threads(args.nbr_processes)
 
         mit.build_operator(build_dir=os.path.join(tmp_dir.name, 'build/'))
-        mit.fit(tol_fun=1e-3, max_iter=args.nbr_iter, verbose=False)
+        tol_fun = 1e-2 if args.commit2 else 1e-3
+        mit.fit(tol_fun=tol_fun, max_iter=args.nbr_iter, verbose=False)
         mit.save_results()
         _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                               'commit_1/', False)
