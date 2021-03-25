@@ -43,11 +43,18 @@ from scilpy.tractanalysis.reproducibility_measures \
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import uniformize_bundle_sft
 
+EPILOG = """
+References:
+[1] Fang-Cheng Yeh. 2020.
+    Shape analysis of the human association pathways. NeuroImage.
+"""
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
+                                formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
     p.add_argument('out_json',
@@ -150,7 +157,7 @@ def main():
                     output_measures_dict[measure_name] = []
                 output_measures_dict[measure_name].append(
                     measure_dict[measure_name])
-    # add set stats if there are more than one bundle
+    # add set stats if user wants
     if args.group_statistics:
         num_of_bundles = len(bundles_references_tuple_extended)
         # length and span are weighted by streamline count
