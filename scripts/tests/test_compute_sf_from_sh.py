@@ -22,6 +22,7 @@ def test_execution_processing(script_runner):
     in_b0 = os.path.join(get_home(), 'processing', 'fa.nii.gz')
     in_bval = os.path.join(get_home(), 'processing', '1000.bval')
 
-    ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh, in_b0, in_bval,
-                            'sf_724.nii.gz')
+    ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh,
+                            'sf_724.nii.gz', 'dwi_like', '--in_bval', in_bval,
+                            '--in_b0', in_b0)
     assert ret.success
