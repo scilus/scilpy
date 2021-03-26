@@ -123,7 +123,7 @@ def main():
         sf = np.concatenate((sf, data_b0), axis=-1)
 
     # Save new bvecs
-    np.savetxt(out_bvecs, new_bvecs, fmt='%.8f')
+    np.savetxt(out_bvecs, new_bvecs.T, fmt='%.8f')
 
     # Save SF
     nib.save(nib.Nifti1Image(sf.astype(np.float32), vol_sh.affine), args.out_sf)
