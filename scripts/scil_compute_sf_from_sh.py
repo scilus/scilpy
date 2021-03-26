@@ -41,7 +41,8 @@ def _build_arg_parser():
                         '[%(default)s]')
 
     # Optional subparser for a DWI-like volume
-    sub = p.add_subparsers(help="Optional arguments to generate a "
+    sub = p.add_subparsers(dest="mode",
+                           help="Optional arguments to generate a "
                                 "DWI-like output")
     dwi_subparser = sub.add_parser("dwi_like",
                                    description="Generate a DWI-like output, "
@@ -68,21 +69,15 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_sh,
-                        optional=[args.in_bval, args.in_b0])
+    assert_inputs_exist(parser, args.in_sh)
 
     out_bvecs = args.out_sf.replace(".nii.gz", ".bvec")
-    out_bvals = None
-    if args.in_bval:
+    assert_outputs_exist(parser, args, [args.out_sf, out_bvecs])
+
+    if args.mode == "dwi_like":
+        assert_inputs_exist(parser, [args.in_bval, args.in_b0])
         out_bvals = args.out_sf.replace(".nii.gz", ".bval")
-
-    assert_outputs_exist(parser, args, [args.out_sf, out_bvecs],
-                         optional=out_bvals)
-
-    # Either both --in_bval and --in_b0 are provided, or none
-    if xor(bool(args.in_bval), bool(args.in_b0)):
-        parser.error("If one of --in_bval or --in_b0 is provided, both "
-                     "are required.")
+        assert_outputs_exist(parser, args, out_bvals)
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -96,7 +91,7 @@ def main():
     sf = sh_to_sf(data_sh, sphere, sh_order=sh_order, basis_type=args.sh_basis)
     new_bvecs = sphere.vertices
 
-    if args.in_bval and args.in_b0:
+    if args.mode == "dwi_like":
         # Load b0
         vol_b0 = nib.load(args.in_b0)
         data_b0 = vol_b0.get_fdata(dtype=np.float32)
