@@ -55,27 +55,20 @@ def main():
         all_matrices.append(tmp_mat / np.max(tmp_mat))
 
     output_measures_dict = {'SSD': [], 'correlation': []}
-    pairs = list(itertools.combinations(all_matrices, r=2))
+
+    if args.single_compare:
+        if args.single_compare in args.in_matrices:
+            args.in_matrices.remove(args.single_compare)
+        matrices_list = args.in_matrices + [args.single_compare]
+        pairs = list(itertools.product(matrices_list[:-1], matrices_list[-1]))
+    else:
+        pairs = list(itertools.combinations(all_matrices, r=2))
+
     for i in pairs:
         ssd = np.sum((i[0] - i[1]) ** 2)
         output_measures_dict['SSD'].append(ssd)
         corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
         output_measures_dict['correlation'].append(corrcoef[0][1])
-
-    if args.single_compare:
-        # Move the single_compare only once, at the end.
-        if args.single_compare in args.in_matrices:
-            args.in_matrices.remove(args.single_compare)
-        matrices_list = args.in_matrices + [args.single_compare]
-        last_matrix = matrices_list[matrices_list.len-1]
-        single_compare_pairs = list(itertools.product(matrices_list, last_matrix))
-        for i in single_compare_pairs:
-            ssd = np.sum((i[0] - i[1]) ** 2)
-            output_measures_dict['SSD'].append(ssd)
-            corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
-            output_measures_dict['correlation'].append(corrcoef[0][1])
-    else :
-        matrices_list = args.in_matrices
 
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
