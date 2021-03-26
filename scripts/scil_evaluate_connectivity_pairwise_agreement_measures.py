@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_matrices)
-    assert_outputs_exist(parser, args, [args.out_json])
+    assert_outputs_exist(parser, args, args.out_json)
 
     all_matrices = []
     for filename in args.in_matrices:
