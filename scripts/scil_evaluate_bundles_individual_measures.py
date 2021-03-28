@@ -49,6 +49,7 @@ References:
     Shape analysis of the human association pathways. NeuroImage.
 """
 
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -118,8 +119,8 @@ def compute_measures(filename_tuple):
                      float(np.mean(curvature_list))]))
 
 
-def compute_span(streamline_cords):
-    xyz = np.asarray(streamline_cords)
+def compute_span(streamline_coords):
+    xyz = np.asarray(streamline_coords)
     if xyz.shape[0] < 2:
         return 0
     dists = np.sqrt((np.diff([xyz[0], xyz[-1]], axis=0) ** 2).sum(axis=1))
@@ -157,39 +158,40 @@ def main():
                     output_measures_dict[measure_name] = []
                 output_measures_dict[measure_name].append(
                     measure_dict[measure_name])
-    # add set stats if user wants
+    # add group stats if user wants
     if args.group_statistics:
         num_of_bundles = len(bundles_references_tuple_extended)
         # length and span are weighted by streamline count
-        set_total_length = np.sum(
+        group_total_length = np.sum(
             np.multiply(output_measures_dict['avg_length'],
                         output_measures_dict['streamlines_count']))
-        set_total_span = np.sum(
+        group_total_span = np.sum(
             np.multiply(output_measures_dict['span'],
                         output_measures_dict['streamlines_count']))
-        set_streamlines_count = \
+        group_streamlines_count = \
             np.sum(output_measures_dict['streamlines_count'])
-        set_avg_length = set_total_length / set_streamlines_count
-        set_avg_span = set_total_span / set_streamlines_count
-        set_avg_vol = np.sum(output_measures_dict['volume']) / num_of_bundles
-        set_avg_diam = 2 * np.sqrt(set_avg_vol / (np.pi * set_avg_length))
-        output_measures_dict['set_stats'] = {}
-        output_measures_dict['set_stats']['total_streamlines_count'] = \
-            float(set_streamlines_count)
-        output_measures_dict['set_stats']['avg_length'] = set_avg_length
+        group_avg_length = group_total_length / group_streamlines_count
+        group_avg_span = group_total_span / group_streamlines_count
+        group_avg_vol = np.sum(output_measures_dict['volume']) / num_of_bundles
+        group_avg_diam = \
+            2 * np.sqrt(group_avg_vol / (np.pi * group_avg_length))
+        output_measures_dict['group_stats'] = {}
+        output_measures_dict['group_stats']['total_streamlines_count'] = \
+            float(group_streamlines_count)
+        output_measures_dict['group_stats']['avg_length'] = group_avg_length
         # max and min length of all streamlines in all input bundles
-        output_measures_dict['set_stats']['max_length'] = \
+        output_measures_dict['group_stats']['max_length'] = \
             float(np.max(output_measures_dict['max_length']))
-        output_measures_dict['set_stats']['min_length'] = \
+        output_measures_dict['group_stats']['min_length'] = \
             float(np.min(output_measures_dict['min_length']))
-        output_measures_dict['set_stats']['avg_span'] = set_avg_span
+        output_measures_dict['group_stats']['avg_span'] = group_avg_span
         # computed with other set averages and not weighted by streamline count
-        output_measures_dict['set_stats']['avg_volume'] = set_avg_vol
-        output_measures_dict['set_stats']['avg_curl'] = \
-            set_avg_length / set_avg_span
-        output_measures_dict['set_stats']['avg_diameter'] = set_avg_diam
-        output_measures_dict['set_stats']['avg_elongation'] = \
-            set_avg_length / set_avg_diam
+        output_measures_dict['group_stats']['avg_volume'] = group_avg_vol
+        output_measures_dict['group_stats']['avg_curl'] = \
+            group_avg_length / group_avg_span
+        output_measures_dict['group_stats']['avg_diameter'] = group_avg_diam
+        output_measures_dict['group_stats']['avg_elongation'] = \
+            group_avg_length / group_avg_diam
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
