@@ -20,7 +20,6 @@ the bounding box), three strategies are available:
 
 import argparse
 import os
-import shutil
 
 from dipy.io.stateful_tractogram import Space, Origin, StatefulTractogram
 from dipy.io.utils import create_nifti_header, get_reference_info
@@ -81,7 +80,6 @@ def main():
         os.remove(args.out_hdf5)
 
     with h5py.File(args.in_hdf5, 'r') as in_hdf5_file:
-        shutil.copy(args.in_hdf5, args.out_hdf5)
         with h5py.File(args.out_hdf5, 'a') as out_hdf5_file:
             transfo = load_matrix_in_any_format(args.in_transfo)
 
@@ -92,6 +90,7 @@ def main():
             target_img = nib.load(args.in_target_file)
 
             for key in in_hdf5_file.keys():
+                group = out_hdf5_file.create_group(key)
                 affine = in_hdf5_file.attrs['affine']
                 dimensions = in_hdf5_file.attrs['dimensions']
                 voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
@@ -100,10 +99,16 @@ def main():
 
                 if len(streamlines) == 0:
                     continue
-
                 header = create_nifti_header(affine, dimensions, voxel_sizes)
                 moving_sft = StatefulTractogram(streamlines, header, Space.VOX,
                                                 origin=Origin.TRACKVIS)
+                for dps_key in in_hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        print(type(in_hdf5_file[key][dps_key].value))
+                        if in_hdf5_file[key][dps_key].value.shape \
+                                == in_hdf5_file[key]['offsets']:
+                            moving_sft.data_per_streamline[dps_key] \
+                                = in_hdf5_file[key][dps_key]
 
                 new_sft = transform_warp_streamlines(
                     moving_sft, transfo, target_img,
@@ -122,15 +127,21 @@ def main():
                 out_hdf5_file.attrs['voxel_order'] = voxel_order
 
                 group = out_hdf5_file[key]
-                del group['data']
                 group.create_dataset('data',
-                                     data=new_sft.streamlines.get_data())
-                del group['offsets']
+                                     data=new_sft.streamlines._data.astype(np.float32))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
-                del group['lengths']
                 group.create_dataset('lengths',
                                      data=new_sft.streamlines._lengths)
+                for dps_key in in_hdf5_file[key].keys():
+                    if dps_key not in ['data', 'offsets', 'lengths']:
+                        if in_hdf5_file[key][dps_key].value.shape \
+                                == in_hdf5_file[key]['offsets']:
+                            group.create_dataset(dps_key,
+                                                 data=new_sft.data_per_streamline[dps_key])
+                        else:
+                            group.create_dataset(dps_key,
+                                                 data=in_hdf5_file[key][dps_key].value)
 
 
 if __name__ == "__main__":

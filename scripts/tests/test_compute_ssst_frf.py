@@ -16,6 +16,25 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+def test_roi_center_parameter(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(get_home(), 'processing',
+                          'dwi_crop.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing',
+                           'dwi.bval')
+    in_bvec = os.path.join(get_home(), 'processing',
+                           'dwi.bvec')
+    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_center',
+                            '15', '15', '15', '-f')
+    assert ret.success
+
+    ret = script_runner.run('scil_compute_ssst_frf.py', in_dwi,
+                            in_bval, in_bvec, 'frf.txt', '--roi_center',
+                            '15', '-f')
+
+    assert (not ret.success)
+
 def test_roi_radii_shape_parameter(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',

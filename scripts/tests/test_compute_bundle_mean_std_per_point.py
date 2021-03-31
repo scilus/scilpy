@@ -13,7 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_bundle_mean_std.py', '--help')
+    ret = script_runner.run('scil_compute_bundle_mean_std_per_point.py',
+                            '--help')
     assert ret.success
 
 

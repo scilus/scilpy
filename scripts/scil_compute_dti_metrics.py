@@ -57,11 +57,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals',
+    p.add_argument('in_bval',
                    help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
+    p.add_argument('in_bvec',
                    help='Path of the bvecs file, in FSL format.')
 
     add_overwrite_arg(p)
@@ -164,10 +164,10 @@ def main():
                      'one metric to output.')
 
     assert_inputs_exist(
-        parser, [args.input, args.bvals, args.bvecs], args.mask)
+        parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
-    img = nib.load(args.input)
+    img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
     if args.mask is None:
@@ -177,7 +177,7 @@ def main():
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')

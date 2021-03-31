@@ -10,7 +10,7 @@ import argparse
 from operator import itemgetter
 import os
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import qbx_and_merge
 
@@ -32,13 +32,13 @@ def _build_arg_parser():
     p.add_argument('dist_thresh', type=float,
                    help='Last QuickBundlesX threshold in mm. Typically \n'
                         'the value are between 10-20mm.')
-    p.add_argument('output_clusters_dir',
+    p.add_argument('out_clusters_dir',
                    help='Path to the clusters directory.')
 
     p.add_argument('--nb_points', type=int, default='20',
                    help='Streamlines will be resampled to have this '
                         'number of points [%(default)s].')
-    p.add_argument('--output_centroids',
+    p.add_argument('--out_centroids',
                    help='Output tractogram filename.\n'
                         'Format must be readable by the Nibabel API.')
 
@@ -53,11 +53,10 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
-    assert_outputs_exist(parser, args, [], optional=args.output_centroids)
-    if args.output_clusters_dir:
-        assert_output_dirs_exist_and_empty(parser, args,
-                                           args.output_clusters_dir,
-                                           create_dir=True)
+    assert_outputs_exist(parser, args, [], optional=args.out_centroids)
+    assert_output_dirs_exist_and_empty(parser, args,
+                                       args.out_clusters_dir,
+                                       create_dir=True)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
@@ -71,13 +70,13 @@ def main():
         else:
             cluster_streamlines = streamlines[cluster.indices]
 
-        new_sft = StatefulTractogram(cluster_streamlines, sft, Space.RASMM)
-        save_tractogram(new_sft, os.path.join(args.output_clusters_dir,
+        new_sft = StatefulTractogram.from_sft(cluster_streamlines, sft)
+        save_tractogram(new_sft, os.path.join(args.out_clusters_dir,
                                               'cluster_{}.trk'.format(i)))
 
-    if args.output_centroids:
-        new_sft = StatefulTractogram(clusters.centroids, sft, Space.RASMM)
-        save_tractogram(new_sft, args.output_centroids)
+    if args.out_centroids:
+        new_sft = StatefulTractogram.from_sft(clusters.centroids, sft)
+        save_tractogram(new_sft, args.out_centroids)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,8 @@ def get_data_as_mask(in_img, dtype=np.uint8):
                 logging.warning('The two unique values in mask were not 0 and'
                                 ' 1. Tha mask has been binarised.')
                 data[data != 0] = 1
+        elif len(unique_vals) == 1:
+            data[data != 0] = 1
         else:
             raise IOError('The image {} contains more than 2 values. '
                           'It can\'t be loaded as mask.'.format(basename))

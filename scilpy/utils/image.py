@@ -44,7 +44,7 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
                                dim, grid2world,
                                moving_data.shape, moving_affine)
         resampled = affine_map.transform(moving_data.astype(np.float64),
-                                         interp=interp)
+                                         interpolation=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     elif len(moving_data[0, 0, 0]) > 1:
@@ -57,14 +57,14 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
 
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,
-                                  interp=interp)
+                                  interpolation=interp)
         nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
                  filename_to_save)
     else:
         raise ValueError('Does not support this dataset (shape, type, etc)')
 
 
-def transform_dwi(reg_obj, static, dwi, interp='linear'):
+def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     """
     Iteratively apply transformation to 4D image using Dipy's tool
 
@@ -76,13 +76,14 @@ def transform_dwi(reg_obj, static, dwi, interp='linear'):
         Target image data
     dwi: numpy.ndarray
         4D numpy array containing a scalar in each voxel (moving image data)
-    interp : string, either 'linear' or 'nearest'
+    interpolation : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
-        trans_dwi[..., i] = reg_obj.transform(dwi[..., i], interp=interp)
+        trans_dwi[..., i] = reg_obj.transform(dwi[..., i],
+                                              interpolation=interpolation)
 
     return trans_dwi
 
