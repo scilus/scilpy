@@ -6,6 +6,7 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from sklearn.cluster import KMeans
 
 from scilpy.image.operations import intersection
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.reproducibility_measures import \
@@ -80,8 +81,8 @@ def identify_overlapping_roi(mask_1, mask_2):
 
 
 def remove_duplicate_streamlines(sft, fc_streamlines, roi1_name, roi2_name):
-    roi1 = nib.load(roi1_name).get_fdata().astype(np.int16)
-    roi2 = nib.load(roi2_name).get_fdata().astype(np.int16)
+    roi1 = get_data_as_mask(roi1_name)
+    roi2 = get_data_as_mask(roi2_name)
     tmp_sft, _ = filter_grid_roi(sft, roi1, 'either_end', False)
     tmp_sft, _ = filter_grid_roi(tmp_sft, roi2, 'either_end', False)
     duplicate_streamlines = tmp_sft.streamlines
@@ -112,7 +113,7 @@ def compute_gt_masks(gt_bundles, parser, args):
         _, ext = split_name_with_nii(gt_bundle)
         if ext in ['.gz', '.nii.gz']:
             gt_img = nib.load(gt_bundle)
-            gt_mask = gt_img.get_fdata().astype(np.int16)
+            gt_mask = get_data_as_mask(gt_img)
             affine = gt_img.affine
             dimensions = gt_mask.shape
         else:

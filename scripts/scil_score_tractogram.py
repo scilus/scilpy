@@ -7,18 +7,22 @@ Scores input tractogram overall and bundlewise. Outputs a results.json
 containing a full report and splits the input tractogram into resulting
 .trk : *_tc.trk, *_fc.trk, nc.trk and *_wpc.trk, where * is the current bundle.
 
-Definitions: tc: true connections, streamlines joining a correct combination
-of ROIs.
-fc: false connections, streamlines joining an incorrect combination of ROIs.
-nc: no connections, streamlines not joining two ROIs.
-wpc: wrong path connections, streamlines that go outside of the ground truth
-mask, joining a correct combination of ROIs.
-Bundle overlap : ground truth voxels containing tc streamline(s). Either input
-gt_endpoints or gt_heads and gt_tails. Ground truth and ROIs must be in the
-same order i.e.
-groundTruth1.nii.gz .... groundTruthN.nii.gz \
-        --gt_tails tail1.nii.gz ... tailN.nii.gz \
-        --gt_heads head1.nii.gz ... headN.nii.gz
+Definitions:
+    tc: true connections, streamlines joining a correct combination
+        of ROIs.
+    fc: false connections, streamlines joining an incorrect combination of
+        ROIs.
+    nc: no connections, streamlines not joining two ROIs.
+    wpc: wrong path connections, streamlines that go outside of the ground
+        truth mask, joining a correct combination of ROIs.
+    Bundle overlap : ground truth voxels containing tc streamline(s). Either
+        input gt_endpoints or gt_heads and gt_tails. Ground truth and ROIs
+        must be in the same order i.e. groundTruth1.nii.gz .... \
+                groundTruthN.nii.gz --gt_tails tail1.nii.gz ... \
+                tailN.nii.gz --gt_heads head1.nii.gz ... headN.nii.gz
+
+Masks can be dilated with --dilate_endpoints for bundle recognition.
+
 """
 
 import argparse
@@ -31,6 +35,7 @@ import os
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from scipy.ndimage import binary_dilation
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -62,17 +67,16 @@ def _build_arg_parser():
                    help="Input tractogram to score(.trk)")
     p.add_argument('gt_bundles', nargs='+',
                    help="Bundles ground truth(.trk, .nii or .nii.gz).")
-    p.add_argument('--gt_endpoints', nargs='+',
+    g = p.add_argument_group('ROIs')
+    g.add_argument('--gt_endpoints', nargs='+',
                    help="Bundles endpoints, both bundle's ROIs\
                        (.nii or .nii.gz).")
-    p.add_argument('--gt_tails', nargs='+',
+    g.add_argument('--gt_tails', nargs='+', required=True,
                    help="Bundles tails, bundle's first ROI(.nii or .nii.gz).")
-    p.add_argument('--gt_heads', nargs='+',
+    g.add_argument('--gt_heads', nargs='+', required=True,
                    help="Bundles heads, bundle's second ROI(.nii or .nii.gz).")
-
-    # p.add_argument('--dilate_endpoints', metavar='NB_PASS',
-    #                help='heuristic')
-
+    p.add_argument('--dilate_endpoints', metavar='NB_PASS', default=1, type=int,
+                   help='Dilate masks n-times.')
     p.add_argument('--gt_config', metavar='FILE',
                    help=".json dict to specify bundles streamlines min, \
                     max length and max angles.")
@@ -121,9 +125,12 @@ def main():
 
     if (args.gt_tails and not args.gt_heads) \
             or (args.gt_heads and not args.gt_tails):
-        parser.error('Both gt_heads and gt_tails are needed.')
+        parser.error('Both --gt_heads and --gt_tails are needed.')
+    if args.gt_endpoints and (args.gt_tails or args.gt_heads):
+        parser.error('Can only provide --gt_endpoints or --gt_tails/gt_heads')
     if not args.gt_endpoints and (not args.gt_tails and not args.gt_heads):
-        parser.error('Either input gt_endpoints or gt_heads and gt_tails.')
+        parser.error(
+            'Either input --gt_endpoints or --gt_heads and --gt_tails.')
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -168,7 +175,11 @@ def main():
 
         mask_1 = nib.load(mask_1_filename).get_fdata().astype(np.int16)
         mask_2 = nib.load(mask_2_filename).get_fdata().astype(np.int16)
-        # TODO: if args.dilate_endpoints:
+
+        if args.dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=args.dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=args.dilate_endpoints)
+
         tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
 
         streamlines = tmp_sft.streamlines
@@ -260,7 +271,10 @@ def main():
 
         mask_1 = nib.load(mask_1_filename).get_fdata().astype(np.int16)
         mask_2 = nib.load(mask_2_filename).get_fdata().astype(np.int16)
-        # TODO: if args.dilate_endpoints:
+
+        if args.dilate_endpoints:
+            mask_1 = binary_dilation(mask_1, iterations=args.dilate_endpoints)
+            mask_2 = binary_dilation(mask_2, iterations=args.dilate_endpoints)
 
         tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
 
