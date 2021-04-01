@@ -7,6 +7,8 @@ from dipy.tracking.metrics import length
 from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.vox2track import _streamlines_in_mask
 from nibabel.affines import apply_affine
+from scipy.ndimage import map_coordinates
+
 import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -80,11 +82,11 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
         line_based_indices_1 = []
         line_based_indices_2 = []
         for i, line_vox in enumerate(streamline_vox):
-            voxel_1 = tuple(line_vox[0].astype(np.int16))
-            voxel_2 = tuple(line_vox[-1].astype(np.int16))
-            if mask[voxel_1]:
+            voxel_1 = line_vox[0].astype(np.int16)[:, None]
+            voxel_2 = line_vox[-1].astype(np.int16)[:, None]
+            if map_coordinates(mask, voxel_1, order=0, mode='nearest'):
                 line_based_indices_1.append(i)
-            if mask[voxel_2]:
+            if map_coordinates(mask, voxel_2, order=0, mode='nearest'):
                 line_based_indices_2.append(i)
 
         # Both endpoints need to be in the mask (AND)
