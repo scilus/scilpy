@@ -54,13 +54,15 @@ def main():
         tmp_mat = load_matrix_in_any_format(filename)
         all_matrices.append(tmp_mat / np.max(tmp_mat))
 
-    output_measures_dict = {'SSD': [], 'correlation': []}
+    tmp_mat = load_matrix_in_any_format(filename)
+    all_matrices.append(tmp_mat / np.max(tmp_mat))
+
+    output_measures_dict = {'SSD': [], 'correlation': [], 'w_dice_voxels' : [], 'dice_voxels' : []}
 
     if args.single_compare:
         if args.single_compare in args.in_matrices:
-            args.in_matrices.remove(args.single_compare)
-        matrices_list = args.in_matrices + [args.single_compare]
-        pairs = list(itertools.product(matrices_list[:-1], matrices_list[-1]))
+            all_matrices.remove(all_matrices[-1])
+        pairs = list(itertools.product(all_matrices[:-1], [all_matrices[-1]]))
     else:
         pairs = list(itertools.combinations(all_matrices, r=2))
 
@@ -69,6 +71,9 @@ def main():
         output_measures_dict['SSD'].append(ssd)
         corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
         output_measures_dict['correlation'].append(corrcoef[0][1])
+        w_dice, dice = compute_dice_voxel(i[0], i[1])
+        output_measures_dict['w_dice_voxels'].append(w_dice)
+        output_measures_dict['dice_voxels'].append(dice)
 
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
