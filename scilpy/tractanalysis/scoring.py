@@ -3,12 +3,16 @@ import numpy as np
 import os
 
 from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.tracking.utils import length
+from nibabel.streamlines import ArraySequence
+from scipy.ndimage import binary_dilation
 from sklearn.cluster import KMeans
 
 from scilpy.image.operations import intersection
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi
+from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
     get_endpoints_density_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -159,3 +163,90 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
         heads.append(head_filename)
 
     return tails, heads, affine, dimensions
+
+
+def extract_true_connections(
+    sft, mask_1_filename, mask_2_filename, gt_config, length_dict,
+    gt_bundle, gt_bundle_inv_mask, dilate_endpoints, wrong_path_as_separate
+):
+    mask_1_img = nib.load(mask_1_filename)
+    mask_2_img = nib.load(mask_2_filename)
+    mask_1 = get_data_as_mask(mask_1_img)
+    mask_2 = get_data_as_mask(mask_2_img)
+
+    if dilate_endpoints:
+        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+
+    tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
+
+    streamlines = tmp_sft.streamlines
+    tc_streamlines = streamlines
+    wpc_streamlines = []
+    fc_streamlines = []
+    nc_streamlines = []
+
+    # Config file for each 'bundle'
+    # Loops => no connection (nc) # TODO Is this legit ?
+    # Length => false connection (fc) # TODO Is this legit ?
+    if gt_config:
+        min_len, max_len = \
+            length_dict[gt_bundle]['length']
+
+        lengths = np.array(list(length(streamlines)))
+        valid_min_length_mask = lengths > min_len
+        valid_max_length_mask = lengths < max_len
+        valid_length_mask = np.logical_and(valid_min_length_mask,
+                                           valid_max_length_mask)
+        streamlines = ArraySequence(streamlines)
+
+        val_len_streamlines = streamlines[valid_length_mask]
+        fc_streamlines = streamlines[~valid_length_mask]
+
+        angle = length_dict[gt_bundle]['angle']
+        tc_streamlines, loops = remove_loops_and_sharp_turns(
+            val_len_streamlines, angle)
+
+        if loops:
+            nc_streamlines = loops
+
+    # Streamlines getting out of the bundle mask can be considered
+    # separately as wrong path connection (wpc)
+    # TODO: Can they ? Maybe only consider if they cross another
+    # GT bundle ?
+    if wrong_path_as_separate:
+        tmp_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
+        wpc_stf, _ = filter_grid_roi(
+            tmp_sft, gt_bundle_inv_mask, 'any', False)
+        wpc_streamlines = wpc_stf.streamlines
+        tc_streamlines, _ = perform_streamlines_operation(
+            difference, [tc_streamlines, wpc_streamlines], precision=0)
+
+    tc_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
+    wpc_sft = StatefulTractogram.from_sft([], sft)
+    fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
+    if wrong_path_as_separate:
+        wpc_sft = StatefulTractogram.from_sft(wpc_streamlines, sft)
+
+    return tc_sft, wpc_sft, fc_sft, nc_streamlines, sft
+
+
+def extract_false_connections(
+    sft, mask_1_filename, mask_2_filename, dilate_endpoints
+):
+    mask_1_img = nib.load(mask_1_filename)
+    mask_2_img = nib.load(mask_2_filename)
+    mask_1 = get_data_as_mask(mask_1_img)
+    mask_2 = get_data_as_mask(mask_2_img)
+
+    if dilate_endpoints:
+        mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
+        mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
+
+    tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
+
+    streamlines = tmp_sft.streamlines
+    fc_streamlines = streamlines
+
+    fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
+    return fc_sft, sft
