@@ -66,9 +66,9 @@ def _build_arg_parser():
     g.add_argument('--gt_endpoints', nargs='+',
                    help="Bundles endpoints, both bundle's ROIs\
                        (.nii or .nii.gz).")
-    g.add_argument('--gt_tails', nargs='+', required=True,
+    g.add_argument('--gt_tails', nargs='+',
                    help="Bundles tails, bundle's first ROI(.nii or .nii.gz).")
-    g.add_argument('--gt_heads', nargs='+', required=True,
+    g.add_argument('--gt_heads', nargs='+',
                    help="Bundles heads, bundle's second ROI(.nii or .nii.gz).")
     p.add_argument('--dilate_endpoints',
                    metavar='NB_PASS', default=1, type=int,
