@@ -77,7 +77,6 @@ def _build_arg_parser():
                     max length and max angles.")
     p.add_argument('--out_dir', default='gt_out/',
                    help="Output directory")
-
     p.add_argument('--wrong_path_as_separate', action='store_true',
                    help="Separates streamlines that go outside of the ground \
                         truth mask from true connections, outputs as \
@@ -95,13 +94,11 @@ def _build_arg_parser():
     return p
 
 
-def extract_prefix(mask_1_filename, mask_2_filename):
-    prefix_1 = os.path.basename(mask_1_filename)
-    prefix_1, _ = split_name_with_nii(prefix_1)
-    prefix_2 = os.path.basename(mask_2_filename)
-    prefix_2, _ = split_name_with_nii(prefix_2)
+def extract_prefix(filename):
+    prefix = os.path.basename(filename)
+    prefix, _ = split_name_with_nii(prefix)
 
-    return prefix_1, prefix_2
+    return prefix
 
 
 def main():
@@ -124,8 +121,11 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
+    _, ext = os.path.splitext(args.in_tractogram)
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
+
+    initial_count = len(sft)
 
     logging.info('Computing ground-truth masks')
     gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions,  = \
@@ -145,8 +145,6 @@ def main():
     # separately from all the possible combinations
     tc_filenames = list(zip(gt_tails, gt_heads))
 
-    _, ext = os.path.splitext(args.in_tractogram)
-
     length_dict = {}
     if args.gt_config:
         with open(args.gt_config, 'r') as json_file:
@@ -161,13 +159,15 @@ def main():
     for i, (mask_1_filename, mask_2_filename) in enumerate(tc_filenames):
 
         # Automatically generate filename for Q/C
-        prefix_1, prefix_2 = extract_prefix(mask_1_filename, mask_2_filename)
+        prefix_1 = extract_prefix(mask_1_filename)
+        prefix_2 = extract_prefix(mask_2_filename)
+
         logging.info('Scoring {} and {}'.format(prefix_1, prefix_2))
 
         tc_sft, wpc_sft, fc_sft, nc_sft, sft = extract_true_connections(
             sft, mask_1_filename, mask_2_filename, args.gt_config, length_dict,
-            args.gt_bundles[i], gt_bundle_inv_masks[i], args.dilate_endpoints,
-            args.wrong_path_as_separate)
+            extract_prefix(args.gt_bundles[i]), gt_bundle_inv_masks[i],
+            args.dilate_endpoints, args.wrong_path_as_separate)
 
         if len(tc_sft) > 0:
             save_tractogram(tc_sft, os.path.join(
@@ -204,7 +204,8 @@ def main():
 
         # That would be done here.
         # Automatically generate filename for Q/C
-        prefix_1, prefix_2 = extract_prefix(mask_1_filename, mask_2_filename)
+        prefix_1 = extract_prefix(mask_1_filename)
+        prefix_2 = extract_prefix(mask_2_filename)
         _, ext = os.path.splitext(args.in_tractogram)
 
         logging.info('Scoring {} and {}'.format(prefix_1, prefix_2))
@@ -220,6 +221,7 @@ def main():
         fc_streamlines_list.append(fc_sft.streamlines)
 
     nc_streamlines.extend(sft.streamlines)
+
     final_results = {}
     no_conn_sft = StatefulTractogram.from_sft(nc_streamlines, sft)
     save_tractogram(no_conn_sft, os.path.join(
@@ -239,6 +241,8 @@ def main():
     nc_streamlines_count = len(nc_streamlines)
     total_count = tc_streamlines_count + fc_streamlines_count + \
         wpc_streamlines_count + nc_streamlines_count
+
+    assert total_count == initial_count
 
     final_results['tractogram_filename'] = str(args.in_tractogram)
     final_results['tractogram_overlap'] = 0.0

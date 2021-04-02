@@ -193,7 +193,14 @@ def extract_true_connections(
         min_len, max_len = \
             length_dict[gt_bundle]['length']
 
+        # Bring streamlines to world coordinates so proper length
+        # is calculated
+        tmp_sft.to_rasmm()
+        streamlines = tmp_sft.streamlines
         lengths = np.array(list(length(streamlines)))
+        tmp_sft.to_vox()
+        streamlines = tmp_sft.streamlines
+
         valid_min_length_mask = lengths > min_len
         valid_max_length_mask = lengths < max_len
         valid_length_mask = np.logical_and(valid_min_length_mask,
@@ -204,28 +211,34 @@ def extract_true_connections(
         fc_streamlines = streamlines[~valid_length_mask]
 
         angle = length_dict[gt_bundle]['angle']
-        tc_streamlines, loops = remove_loops_and_sharp_turns(
+        tc_streamlines_ids = remove_loops_and_sharp_turns(
             val_len_streamlines, angle)
 
+        loop_ids = np.setdiff1d(
+            range(len(val_len_streamlines)), tc_streamlines_ids)
+
+        loops = val_len_streamlines[list(loop_ids)]
+        tc_streamlines = val_len_streamlines[list(tc_streamlines_ids)]
+
         if loops:
+            print(loop_ids)
             nc_streamlines = loops
 
     # Streamlines getting out of the bundle mask can be considered
     # separately as wrong path connection (wpc)
-    # TODO: Can they ? Maybe only consider if they cross another
-    # GT bundle ?
+    # TODO: Maybe only consider if they cross another GT bundle ?
     if wrong_path_as_separate:
         tmp_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
-        wpc_stf, _ = filter_grid_roi(
+        _, wp_ids = filter_grid_roi(
             tmp_sft, gt_bundle_inv_mask, 'any', False)
-        wpc_streamlines = wpc_stf.streamlines
-        tc_streamlines, _ = perform_streamlines_operation(
-            difference, [tc_streamlines, wpc_streamlines], precision=0)
+        wpc_streamlines = tmp_sft.streamlines[list(wp_ids)]
+        tc_ids = np.setdiff1d(range(len(tmp_sft)), wp_ids)
+        tc_streamlines = tmp_sft.streamlines[list(tc_ids)]
 
     tc_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
     wpc_sft = StatefulTractogram.from_sft([], sft)
     fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
-    if wrong_path_as_separate:
+    if wrong_path_as_separate and len(wpc_streamlines):
         wpc_sft = StatefulTractogram.from_sft(wpc_streamlines, sft)
 
     return tc_sft, wpc_sft, fc_sft, nc_streamlines, sft
