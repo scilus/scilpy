@@ -5,7 +5,8 @@
 """
 Scores input tractogram overall and bundlewise. Outputs a results.json
 containing a full report and splits the input tractogram into resulting
-.trk : *_tc.trk, *_fc.trk, nc.trk and *_wpc.trk, where * is the current bundle.
+tractogram : *_tc.tck, *_fc.tck, nc.tck and *_wpc.tck,
+where * is the current bundle.
 
 Definitions:
     tc: true connections, streamlines joining a correct combination
@@ -58,9 +59,9 @@ def _build_arg_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     p.add_argument('in_tractogram',
-                   help="Input tractogram to score(.trk)")
+                   help="Input tractogram to score")
     p.add_argument('gt_bundles', nargs='+',
-                   help="Bundles ground truth(.trk, .nii or .nii.gz).")
+                   help="Bundles ground truth(.[trk|tck], .nii or .nii.gz).")
     g = p.add_argument_group('ROIs')
     g.add_argument('--gt_endpoints', nargs='+',
                    help="Bundles endpoints, both bundle's ROIs\
@@ -80,7 +81,7 @@ def _build_arg_parser():
     p.add_argument('--wrong_path_as_separate', action='store_true',
                    help="Separates streamlines that go outside of the ground \
                         truth mask from true connections, outputs as \
-                        *_wpc.trk.")
+                        *_wpc.[tck|trk].")
     p.add_argument('--remove_duplicate', action='store_true',
                    help='Remove duplicate streamlines before scoring.')
     p.add_argument('--remove_invalid', action='store_true',
@@ -162,13 +163,11 @@ def main():
         prefix_1 = extract_prefix(mask_1_filename)
         prefix_2 = extract_prefix(mask_2_filename)
 
-        logging.info('Scoring {} and {}'.format(prefix_1, prefix_2))
-
-        tc_sft, wpc_sft, fc_sft, nc_sft, sft = extract_true_connections(
+        tc_sft, wpc_sft, fc_sft, nc, sft = extract_true_connections(
             sft, mask_1_filename, mask_2_filename, args.gt_config, length_dict,
             extract_prefix(args.gt_bundles[i]), gt_bundle_inv_masks[i],
             args.dilate_endpoints, args.wrong_path_as_separate)
-
+        nc_streamlines.extend(nc)
         if len(tc_sft) > 0:
             save_tractogram(tc_sft, os.path.join(
                 args.out_dir, '{}_{}_tc{}'.format(prefix_1, prefix_2, ext)),
@@ -187,6 +186,10 @@ def main():
         tc_streamlines_list.append(tc_sft.streamlines)
         wpc_streamlines_list.append(wpc_sft.streamlines)
         fc_streamlines_list.append(fc_sft.streamlines)
+
+        logging.info('Recognized {} streamlines between {} and {}'.format(
+            len(tc_sft.streamlines) + len(wpc_sft.streamlines) +
+            len(fc_sft.streamlines) + len(nc), prefix_1, prefix_2))
 
     # Again keep the keep the correct combinations
     comb_filename = list(itertools.combinations(
@@ -208,8 +211,6 @@ def main():
         prefix_2 = extract_prefix(mask_2_filename)
         _, ext = os.path.splitext(args.in_tractogram)
 
-        logging.info('Scoring {} and {}'.format(prefix_1, prefix_2))
-
         fc_sft, sft = extract_false_connections(
             sft, mask_1_filename, mask_2_filename, args.dilate_endpoints)
 
@@ -217,6 +218,9 @@ def main():
             save_tractogram(fc_sft, os.path.join(
                 args.out_dir, '{}_{}_fc{}'.format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
+
+        logging.info('Recognized {} streamlines between {} and {}'.format(
+            len(fc_sft.streamlines), prefix_1, prefix_2))
 
         fc_streamlines_list.append(fc_sft.streamlines)
 

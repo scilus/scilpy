@@ -178,6 +178,7 @@ def extract_true_connections(
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
+    # TODO: Handle streamline IDs instead of streamlines
     tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
 
     streamlines = tmp_sft.streamlines
