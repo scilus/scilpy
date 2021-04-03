@@ -16,11 +16,12 @@ Definitions:
     nc: no connections, streamlines not joining two ROIs.
     wpc: wrong path connections, streamlines that go outside of the ground
         truth mask, joining a correct combination of ROIs.
-    Bundle overlap : ground truth voxels containing tc streamline(s). Either
-        input gt_endpoints or gt_heads and gt_tails. Ground truth and ROIs
-        must be in the same order i.e. groundTruth1.nii.gz .... \
-                groundTruthN.nii.gz --gt_tails tail1.nii.gz ... \
-                tailN.nii.gz --gt_heads head1.nii.gz ... headN.nii.gz
+    Bundle overlap : ground truth voxels containing tc streamline(s).
+
+Either input gt_endpoints or gt_heads and gt_tails. Ground truth and ROIs
+must be in the same order i.e. groundTruth1.nii.gz .... groundTruthN.nii.gz \
+    --gt_tails tail1.nii.gz ... tailN.nii.gz \
+    --gt_heads head1.nii.gz ... headN.nii.gz
 
 Masks can be dilated with --dilate_endpoints for bundle recognition.
 
