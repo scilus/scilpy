@@ -51,9 +51,6 @@ References:
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
