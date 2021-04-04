@@ -61,7 +61,8 @@ def main():
 
     if args.single_compare:
         if args.single_compare in args.in_matrices:
-            all_matrices.remove(all_matrices[-1])
+            id = args.in_matrices.index(args.single_compare)
+            all_matrices.pop(id)
         pairs = list(itertools.product(all_matrices[:-1], [all_matrices[-1]]))
     else:
         pairs = list(itertools.combinations(all_matrices, r=2))
@@ -71,9 +72,9 @@ def main():
         output_measures_dict['SSD'].append(ssd)
         corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
         output_measures_dict['correlation'].append(corrcoef[0][1])
-        w_dice, dice = compute_dice_voxel(i[0], i[1])
-        output_measures_dict['w_dice_voxels'].append(w_dice)
+        dice, w_dice = compute_dice_voxel(i[0], i[1])
         output_measures_dict['dice_voxels'].append(dice)
+        output_measures_dict['w_dice_voxels'].append(w_dice)
 
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
