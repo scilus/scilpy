@@ -54,8 +54,9 @@ def main():
         tmp_mat = load_matrix_in_any_format(filename)
         all_matrices.append(tmp_mat / np.max(tmp_mat))
 
-    tmp_mat = load_matrix_in_any_format(filename)
-    all_matrices.append(tmp_mat / np.max(tmp_mat))
+    if args.single_comapre:
+        tmp_mat = load_matrix_in_any_format(args.single_compare)
+        all_matrices.append(tmp_mat / np.max(tmp_mat))
 
     output_measures_dict = {'SSD': [], 'correlation': [], 'w_dice_voxels' : [], 'dice_voxels' : []}
 
