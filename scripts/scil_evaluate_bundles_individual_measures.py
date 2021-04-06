@@ -108,34 +108,10 @@ def compute_measures(filename_tuple):
     volume = np.count_nonzero(density) * np.product(voxel_size)
     diameter = 2 * np.sqrt(volume / (np.pi * length_avg))
     elon = length_avg / diameter
-    roi = np.where(density != 0, 1, density)
 
+    roi = np.where(density != 0, 1, density)
     surf_area = approximate_surface_node(roi) * (voxel_size[0] ** 2)
     irregularity = surf_area / (np.pi * diameter * length_avg)
-
-    endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft.streamlines, dimensions)
-    endpoints_map_head_roi = \
-        np.where(endpoints_map_head != 0, 1, endpoints_map_head)
-    endpoints_map_tail_roi = \
-        np.where(endpoints_map_tail != 0, 1, endpoints_map_tail)
-    end_sur_area1 = \
-        approximate_surface_node(endpoints_map_head_roi) * (voxel_size[0] ** 2)
-    end_sur_area2 = \
-        approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
-
-    endpoints_coords_head, endpoints_coords_tail = \
-        compute_endpoints_coordinates(sft)
-    radius1 = 1.5 * np.average(
-        np.sqrt(((endpoints_coords_head - np.average(
-            endpoints_coords_head, axis=0))
-                 ** 2).sum(axis=1)))
-    radius2 = 1.5 * np.average(
-        np.sqrt(((endpoints_coords_tail - np.average(
-            endpoints_coords_tail, axis=0))
-                 ** 2).sum(axis=1)))
-    end_irreg1 = (np.pi * radius1 ** 2) / end_sur_area1
-    end_irreg2 = (np.pi * radius2 ** 2) / end_sur_area2
 
     endpoints_map_head, endpoints_map_tail = \
         get_head_tail_density_maps(sft.streamlines, dimensions)
