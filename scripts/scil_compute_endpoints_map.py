@@ -64,6 +64,7 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
+    sft.to_corner()
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return

@@ -137,23 +137,23 @@ def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
     for streamline in streamlines:
+        nb_point = max(2,  int(length(streamline))*2)
         streamline = set_number_of_points(streamline,
-                                          int(length(streamline))*2)
+                                          nb_point)
         points_list_head = \
-            list(streamline[0:point_to_select, :].astype(int))
+            list(streamline[0:point_to_select, :])
         points_list_tail = \
-            list(streamline[-(point_to_select+1):-1, :].astype(int))
+            list(streamline[-point_to_select:, :])
         for xyz in points_list_head:
-            x_val = int(np.clip(xyz[0], 0, dimensions[0]-1))
-            y_val = int(np.clip(xyz[1], 0, dimensions[1]-1))
-            z_val = int(np.clip(xyz[2], 0, dimensions[2]-1))
+            x_val = np.clip(xyz[0], 0, dimensions[0]-1).astype(int)
+            y_val = np.clip(xyz[1], 0, dimensions[1]-1).astype(int)
+            z_val = np.clip(xyz[2], 0, dimensions[2]-1).astype(int)
             endpoints_map_head[x_val, y_val, z_val] += 1
         for xyz in points_list_tail:
-            x_val = int(np.clip(xyz[0], 0, dimensions[0]-1))
-            y_val = int(np.clip(xyz[1], 0, dimensions[1]-1))
-            z_val = int(np.clip(xyz[2], 0, dimensions[2]-1))
+            x_val = np.clip(xyz[0], 0, dimensions[0]-1).astype(int)
+            y_val = np.clip(xyz[1], 0, dimensions[1]-1).astype(int)
+            z_val = np.clip(xyz[2], 0, dimensions[2]-1).astype(int)
             endpoints_map_tail[x_val, y_val, z_val] += 1
-
     return endpoints_map_head, endpoints_map_tail
 
 

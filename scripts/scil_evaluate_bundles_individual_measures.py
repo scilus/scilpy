@@ -82,10 +82,10 @@ def compute_measures(filename_tuple):
         return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                          'avg_length', 'std_length', 'min_length',
                          'max_length', 'span', 'curl', 'diameter',
-                         'elongation', 'surface_area', 'end_surface_area1',
-                         'end_surface_area2', 'radius1', 'radius2',
-                         'irregularity', 'irregularity_of_end_surface1',
-                         'irregularity_of_end_surface2', 'mean_curvature'],
+                         'elongation', 'surface_area', 'end_surface_area_head',
+                         'end_surface_area_tail', 'radius_head', 'radius_tail',
+                         'irregularity', 'irregularity_of_end_surface_head',
+                         'irregularity_of_end_surface_tail', 'mean_curvature'],
                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 0, 0, 0]))
 
@@ -119,23 +119,23 @@ def compute_measures(filename_tuple):
         np.where(endpoints_map_head != 0, 1, endpoints_map_head)
     endpoints_map_tail_roi = \
         np.where(endpoints_map_tail != 0, 1, endpoints_map_tail)
-    end_sur_area1 = \
+    end_sur_area_head = \
         approximate_surface_node(endpoints_map_head_roi) * (voxel_size[0] ** 2)
-    end_sur_area2 = \
+    end_sur_area_tail = \
         approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
 
     endpoints_coords_head, endpoints_coords_tail = \
         compute_endpoints_coordinates(sft)
-    radius1 = 1.5 * np.average(
+    radius_head = 1.5 * np.average(
         np.sqrt(((endpoints_coords_head - np.average(
             endpoints_coords_head, axis=0))
                  ** 2).sum(axis=1)))
-    radius2 = 1.5 * np.average(
+    radius_tail = 1.5 * np.average(
         np.sqrt(((endpoints_coords_tail - np.average(
             endpoints_coords_tail, axis=0))
                  ** 2).sum(axis=1)))
-    end_irreg1 = (np.pi * radius1 ** 2) / end_sur_area1
-    end_irreg2 = (np.pi * radius2 ** 2) / end_sur_area2
+    end_irreg_head = (np.pi * radius_head ** 2) / end_sur_area_head
+    end_irreg_tail = (np.pi * radius_tail ** 2) / end_sur_area_tail
 
     curvature_list = np.zeros((nbr_streamlines,))
     for i in range(nbr_streamlines):
@@ -144,16 +144,16 @@ def compute_measures(filename_tuple):
     return dict(zip(['volume', 'volume_endpoints', 'streamlines_count',
                      'avg_length', 'std_length', 'min_length', 'max_length',
                      'span', 'curl', 'diameter', 'elongation', 'surface_area',
-                     'end_surface_area1', 'end_surface_area2',
-                     'radius1', 'radius2',
-                     'irregularity', 'irregularity_of_end_surface1',
-                     'irregularity_of_end_surface2', 'mean_curvature'],
+                     'end_surface_area_head', 'end_surface_area_tail',
+                     'radius_head', 'radius_tail',
+                     'irregularity', 'irregularity_of_end_surface_head',
+                     'irregularity_of_end_surface_tail', 'mean_curvature'],
                     [volume, np.count_nonzero(endpoints_density) *
                      np.product(voxel_size), nbr_streamlines,
                      length_avg, length_std, length_min, length_max,
-                     span, curl, diameter, elon, surf_area, end_sur_area1,
-                     end_sur_area2, radius1, radius2, irregularity,
-                     end_irreg1, end_irreg2,
+                     span, curl, diameter, elon, surf_area, end_sur_area_head,
+                     end_sur_area_tail, radius_head, radius_tail, irregularity,
+                     end_irreg_head, end_irreg_tail,
                      float(np.mean(curvature_list))]))
 
 
@@ -252,18 +252,20 @@ def main():
             np.average(output_measures_dict['surface_area'])
         output_measures_dict['group_stats']['avg_irreg'] = \
             np.average(output_measures_dict['irregularity'])
-        output_measures_dict['group_stats']['avg_end_surface_area1'] = \
-            np.average(output_measures_dict['end_surface_area1'])
-        output_measures_dict['group_stats']['avg_end_surface_area2'] = \
-            np.average(output_measures_dict['end_surface_area2'])
-        output_measures_dict['group_stats']['avg_radius1'] = \
-            np.average(output_measures_dict['radius1'])
-        output_measures_dict['group_stats']['avg_radius2'] = \
-            np.average(output_measures_dict['radius2'])
-        output_measures_dict['group_stats']['avg_irregularity1'] = \
-            np.average(output_measures_dict['irregularity_of_end_surface1'])
-        output_measures_dict['group_stats']['avg_irregularity2'] = \
-            np.average(output_measures_dict['irregularity_of_end_surface2'])
+        output_measures_dict['group_stats']['avg_end_surface_area_head'] = \
+            np.average(output_measures_dict['end_surface_area_head'])
+        output_measures_dict['group_stats']['avg_end_surface_area_tail'] = \
+            np.average(output_measures_dict['end_surface_area_tail'])
+        output_measures_dict['group_stats']['avg_radius_head'] = \
+            np.average(output_measures_dict['radius_head'])
+        output_measures_dict['group_stats']['avg_radius_tail'] = \
+            np.average(output_measures_dict['radius_tail'])
+        output_measures_dict['group_stats']['avg_irregularity_head'] = \
+            np.average(
+                output_measures_dict['irregularity_of_end_surface_head'])
+        output_measures_dict['group_stats']['avg_irregularity_tail'] = \
+            np.average(
+                output_measures_dict['irregularity_of_end_surface_tail'])
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
