@@ -124,8 +124,8 @@ def compute_measures(filename_tuple):
     end_sur_area_tail = \
         approximate_surface_node(endpoints_map_tail_roi) * (voxel_size[0] ** 2)
 
-    endpoints_coords_head, endpoints_coords_tail = \
-        compute_endpoints_coordinates(sft)
+    endpoints_coords_head = np.array(np.where(endpoints_map_head_roi)).T
+    endpoints_coords_tail = np.array(np.where(endpoints_map_tail_roi)).T
     radius_head = 1.5 * np.average(
         np.sqrt(((endpoints_coords_head - np.average(
             endpoints_coords_head, axis=0))
@@ -163,23 +163,6 @@ def compute_span(streamline_coords):
         return 0
     dists = np.sqrt((np.diff([xyz[0], xyz[-1]], axis=0) ** 2).sum(axis=1))
     return np.sum(dists)
-
-
-def compute_endpoints_coordinates(sft):
-    endpoints_coords_head = np.zeros((len(sft.streamlines), 3))
-    endpoints_coords_tail = np.zeros((len(sft.streamlines), 3))
-    for i, streamline in enumerate(sft.streamlines):
-        xyz = streamline[0, :].astype(int)
-        endpoints_coords_head[i, 0] = xyz[0]
-        endpoints_coords_head[i, 1] = xyz[1]
-        endpoints_coords_head[i, 2] = xyz[2]
-
-        xyz = streamline[-1, :].astype(int)
-        endpoints_coords_tail[i, 0] = xyz[0]
-        endpoints_coords_tail[i, 1] = xyz[1]
-        endpoints_coords_tail[i, 2] = xyz[2]
-
-    return endpoints_coords_head, endpoints_coords_tail
 
 
 def main():
