@@ -108,22 +108,12 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
     -------
     ndarray: A ndarray where voxel values represent the density of endpoints.
     """
-    endpoints_map = np.zeros(dimensions)
-    for streamline in streamlines:
-        streamline = set_number_of_points(streamline,
-                                          int(length(streamline))*2)
-        points_list = list(streamline[0:point_to_select, :].astype(int))
-        points_list.extend(streamline[-(point_to_select+1):-1, :].astype(int))
-        for xyz in points_list:
-            x_val = int(np.clip(xyz[0], 0, dimensions[0]-1))
-            y_val = int(np.clip(xyz[1], 0, dimensions[1]-1))
-            z_val = int(np.clip(xyz[2], 0, dimensions[2]-1))
-            endpoints_map[x_val, y_val, z_val] += 1
-
-    return endpoints_map
+    endpoints_map_head, endpoints_map_tail = \
+        get_head_tail_density_maps(streamlines, dimensions, point_to_select)
+    return endpoints_map_head + endpoints_map_tail
 
 
-def get_head_tail_density_maps(streamlines, dimensions):
+def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
     """
     Compute two separate endpoints density maps for the head and tail
     Parameters
@@ -132,7 +122,10 @@ def get_head_tail_density_maps(streamlines, dimensions):
         The list of streamlines to compute endpoints density from.
     dimensions: tuple
         The shape of the reference volume for the streamlines.
-
+    point_to_select: int
+        Instead of computing the density based on the first and last points,
+        select more than one at each end. To support compressed streamlines,
+        a resampling to 0.5mm per segment is performed.
     Returns
     -------
     A tuple containing
@@ -143,13 +136,23 @@ def get_head_tail_density_maps(streamlines, dimensions):
     """
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
-
     for streamline in streamlines:
-        xyz = streamline[0, :].astype(int)
-        endpoints_map_head[xyz[0], xyz[1], xyz[2]] += 1
-
-        xyz = streamline[-1, :].astype(int)
-        endpoints_map_tail[xyz[0], xyz[1], xyz[2]] += 1
+        streamline = set_number_of_points(streamline,
+                                          int(length(streamline))*2)
+        points_list_head = \
+            list(streamline[0:point_to_select, :].astype(int))
+        points_list_tail = \
+            list(streamline[-(point_to_select+1):-1, :].astype(int))
+        for xyz in points_list_head:
+            x_val = int(np.clip(xyz[0], 0, dimensions[0]-1))
+            y_val = int(np.clip(xyz[1], 0, dimensions[1]-1))
+            z_val = int(np.clip(xyz[2], 0, dimensions[2]-1))
+            endpoints_map_head[x_val, y_val, z_val] += 1
+        for xyz in points_list_tail:
+            x_val = int(np.clip(xyz[0], 0, dimensions[0]-1))
+            y_val = int(np.clip(xyz[1], 0, dimensions[1]-1))
+            z_val = int(np.clip(xyz[2], 0, dimensions[2]-1))
+            endpoints_map_tail[x_val, y_val, z_val] += 1
 
     return endpoints_map_head, endpoints_map_tail
 
