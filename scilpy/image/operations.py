@@ -127,7 +127,7 @@ def lower_threshold_eq(input_list, ref_img):
     """
     lower_threshold_eq: IMG THRESHOLD
         All values below the threshold will be set to zero.
-        All values above (or equal) the threshold will be set to one.
+        All values above or equal the threshold will be set to one.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -144,7 +144,7 @@ def lower_threshold_eq(input_list, ref_img):
 def upper_threshold_eq(input_list, ref_img):
     """
     upper_threshold_eq: IMG THRESHOLD
-        All values below (or equal) the threshold will be set to one.
+        All values below or equal the threshold will be set to one.
         All values above the threshold will be set to zero.
         Equivalent to lower_threshold followed by an inversion.
     """
@@ -172,7 +172,7 @@ def lower_threshold(input_list, ref_img):
 
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     data = input_list[0].get_fdata(dtype=np.float64)
-    output_data[data < input_list[1]] = 0
+    output_data[data <= input_list[1]] = 0
     output_data[data > input_list[1]] = 1
 
     return output_data
@@ -192,7 +192,7 @@ def upper_threshold(input_list, ref_img):
     output_data = np.zeros(ref_img.header.get_data_shape(), dtype=np.float64)
     data = input_list[0].get_fdata(dtype=np.float64)
     output_data[data < input_list[1]] = 1
-    output_data[data > input_list[1]] = 0
+    output_data[data >= input_list[1]] = 0
 
     return output_data
 
