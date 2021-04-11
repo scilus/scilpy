@@ -179,7 +179,6 @@ def approximate_surface_node(roi):
     return count
 
 
-
 def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
                               box_size_max=None, base=2.0,
                               threshold=0.0, box_size=None):
