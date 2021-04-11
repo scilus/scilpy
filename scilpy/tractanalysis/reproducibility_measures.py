@@ -195,8 +195,8 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
         The minimum size of a box.
     box_size_max: float
         The maximum size of a box.
-    base: loat
-        base of log
+    base: float
+        Base of log.
     threshold: float
         The threshold to filter the density.
     box_size: ndarray
