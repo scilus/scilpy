@@ -179,6 +179,58 @@ def approximate_surface_node(roi):
     return count
 
 
+
+def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
+                              box_size_max=None, base=2.0,
+                              threshold=0.0, box_size=None):
+    """
+    Compute the fractal dimension of a bundle to measure the roughness.
+    The code is extracted from https://github.com/FBK-NILab/fractal_dimension
+    Parameters
+    ----------
+    density: ndarray
+        A ndarray where voxel values represent the density of a bundle.
+    n_steps: int
+    box_size_min: float
+        The minimum size of a box.
+    box_size_max: float
+        The maximum size of a box.
+    base: loat
+        base of log
+    threshold: float
+        The threshold to filter the density.
+    box_size: ndarray
+        A ndarray of the sizes of boxes.
+    Returns
+    -------
+    float: fractal dimension of a bundle
+    """
+    pixels = np.array(np.where(density > threshold)).T
+    if box_size_max is None:
+        box_size_max = np.max(density.shape)
+
+    if box_size is None:
+        box_size = np.logspace(np.log(box_size_min) / np.log(base),
+                               np.log(box_size_max) / np.log(base),
+                               num=n_steps, endpoint=False, base=base)
+
+    counts = np.zeros(len(box_size))
+    for i, bs in enumerate(box_size):
+        bins = \
+            [np.arange(0, image_side + bs, bs) for image_side in density.shape]
+        H, edges = np.histogramdd(pixels, bins=bins)
+        counts[i] = (H > 0).sum()
+
+    if (counts < 1).any():
+        fractal_dimension = 0.0
+    else:
+        # linear regression:
+        coefficients = np.polyfit(np.log(box_size), np.log(counts), 1)
+        fractal_dimension = -coefficients[0]
+
+    return fractal_dimension
+
+
 def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
                                          centroids_1=None, centroids_2=None):
     """

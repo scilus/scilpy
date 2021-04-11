@@ -8,7 +8,7 @@ The computed measures are:
 volume, volume_endpoints, streamlines_count, avg_length, std_length,
 min_length, max_length, span, curl, diameter, elongation, surface area,
 irregularity, end surface area, radius, end surface irregularity,
-mean_curvature
+mean_curvature, fractal dimension.
 
 The set average contains the average measures of all input bundles. The
 measures that are dependent on the streamline count are weighted by the number
@@ -43,7 +43,8 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.tractanalysis.reproducibility_measures \
     import (get_endpoints_density_map,
             get_head_tail_density_maps,
-            approximate_surface_node)
+            approximate_surface_node,
+            compute_fractal_dimension)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import uniformize_bundle_sft
 
@@ -85,9 +86,10 @@ def compute_measures(filename_tuple):
                          'elongation', 'surface_area', 'end_surface_area_head',
                          'end_surface_area_tail', 'radius_head', 'radius_tail',
                          'irregularity', 'irregularity_of_end_surface_head',
-                         'irregularity_of_end_surface_tail', 'mean_curvature'],
+                         'irregularity_of_end_surface_tail', 'mean_curvature',
+                         'fractal_dimension'],
                         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0]))
+                         0, 0, 0, 0, 0, 0, 0, 0]))
 
     streamline_cords = list(sft.streamlines)
     length_list = list(length(streamline_cords))
@@ -137,6 +139,12 @@ def compute_measures(filename_tuple):
     end_irreg_head = (np.pi * radius_head ** 2) / end_sur_area_head
     end_irreg_tail = (np.pi * radius_tail ** 2) / end_sur_area_tail
 
+    n_steps = 100
+    box_size = np.arange(1, 15)
+    fractal_dimension = compute_fractal_dimension(density,
+                                                  n_steps=n_steps,
+                                                  box_size=box_size)
+
     curvature_list = np.zeros((nbr_streamlines,))
     for i in range(nbr_streamlines):
         curvature_list[i] = mean_curvature(sft.streamlines[i])
@@ -147,14 +155,15 @@ def compute_measures(filename_tuple):
                      'end_surface_area_head', 'end_surface_area_tail',
                      'radius_head', 'radius_tail',
                      'irregularity', 'irregularity_of_end_surface_head',
-                     'irregularity_of_end_surface_tail', 'mean_curvature'],
+                     'irregularity_of_end_surface_tail', 'mean_curvature',
+                     'fractal_dimension'],
                     [volume, np.count_nonzero(endpoints_density) *
                      np.product(voxel_size), nbr_streamlines,
                      length_avg, length_std, length_min, length_max,
                      span, curl, diameter, elon, surf_area, end_sur_area_head,
                      end_sur_area_tail, radius_head, radius_tail, irregularity,
                      end_irreg_head, end_irreg_tail,
-                     float(np.mean(curvature_list))]))
+                     float(np.mean(curvature_list)), fractal_dimension]))
 
 
 def compute_span(streamline_coords):
