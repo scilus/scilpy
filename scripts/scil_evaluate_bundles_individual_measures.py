@@ -258,6 +258,8 @@ def main():
         output_measures_dict['group_stats']['avg_irregularity_tail'] = \
             np.average(
                 output_measures_dict['irregularity_of_end_surface_tail'])
+        output_measures_dict['group_stats']['avg_fractal_dimension'] = \
+            np.average(output_measures_dict['fractal_dimension'])
     with open(args.out_json, 'w') as outfile:
         json.dump(output_measures_dict, outfile,
                   indent=args.indent, sort_keys=args.sort_keys)
