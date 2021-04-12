@@ -29,10 +29,10 @@ pre-computed maps (LABEL1_LABEL2.nii.gz) following the same naming convention
 as the input directory. Each will generate a matrix. The average non-zeros
 value in the map will be reported in the matrices nodes.
 
-The parameters --lesion_load will compute 3 lesion related matrices:
+The parameters --lesion_load will compute 3 lesion(s) related matrices:
 lesion_count.npy, lesion_vol.npy, lesion_sc.npy and put it inside of a
 specified folder. They represent the number of lesion, the total volume of
-lesion and the total of streamlines going through the lesion for  of each
+lesion(s) and the total of streamlines going through the lesion(s) for  of each
 connection. Each connection can be seen as a 'bundle' and then something
 similar to scil_analyse_lesion_load.py is run for each 'bundle'.
 """
@@ -252,7 +252,7 @@ def _build_arg_parser():
                         'weighted matrix.')
     p.add_argument('--lesion_load', nargs=2, metavar=('IN_FILE', 'OUT_DIR'),
                    help='Input binary mask (.nii.gz) and output directory '
-                        'for all lesion related matrices.')
+                        'for all lesion-related matrices.')
 
     p.add_argument('--density_weighting', action="store_true",
                    help='Use density-weighting for the metric weighted matrix.')

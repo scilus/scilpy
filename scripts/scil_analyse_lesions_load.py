@@ -5,6 +5,10 @@
 This script will output informations about lesion load in bundle(s).
 The input can either be streamlines, binary bundle map, or a bundle voxel
 label map.
+
+To be considered a valid lesion, the lesion volume must be at least
+min_lesion_vol mm3. This avoid the detection of thousand of single voxel
+lesions if an automatic lesion segmentation tool is used.
 """
 
 import argparse
@@ -34,7 +38,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_lesion',
-                   help='Binary mask of the lesion (.nii.gz).')
+                   help='Binary mask of the lesion(s) (.nii.gz).')
     p.add_argument('out_json',
                    help='Output file (.json) for lesion information')
     p1 = p.add_mutually_exclusive_group()
@@ -48,11 +52,11 @@ def _build_arg_parser():
     p.add_argument('--min_lesion_vol', type=float, default=7,
                    help='Minimum lesion volume in mm3 [%(default)s].')
     p.add_argument('--out_lesion_atlas', metavar='FILE',
-                   help='Save the lesion as an atlas.')
+                   help='Save the labelized lesion(s) map (.nii.gz).')
     p.add_argument('--out_lesion_stats', metavar='FILE',
-                   help='Save the lesion-wise.')
+                   help='Save the lesion-wise volume measure (.json).')
     p.add_argument('--out_streamlines_stats', metavar='FILE',
-                   help='Save the lesion-wise streamlines count.')
+                   help='Save the lesion-wise streamline count (.json).')
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -112,13 +116,18 @@ def main():
         nib.save(nib.Nifti1Image(lesion_atlas, lesion_img.affine),
                  args.out_lesion_atlas)
 
-    if args.out_lesion_stats:
+    volume_dict = {bundle_name: lesion_load_dict}
+    with open(args.out_json, 'w') as outfile:
+        json.dump(volume_dict, outfile,
+                  sort_keys=args.sort_keys, indent=args.indent)
+
+    if args.out_streamlines_stats or args.out_lesion_stats:
         lesion_dict = {}
         for lesion in np.unique(lesion_atlas)[1:]:
             curr_vol = np.count_nonzero(lesion_atlas[lesion_atlas == lesion]) \
                 * np.prod(voxel_sizes)
             if curr_vol >= args.min_lesion_vol:
-                key = str(lesion).zfill(3)
+                key = str(lesion).zfill(4)
                 lesion_dict[key] = {'volume': curr_vol}
                 if args.bundle:
                     tmp = np.zeros(lesion_atlas.shape)
@@ -126,23 +135,17 @@ def main():
                     new_sft, _ = filter_grid_roi(sft, tmp, 'any', False)
                     lesion_dict[key]['strs_count'] = len(new_sft)
 
-    volume_dict = {bundle_name: lesion_load_dict}
-    with open(args.out_json, 'w') as outfile:
-        json.dump(volume_dict, outfile,
-                  sort_keys=args.sort_keys, indent=args.indent)
-
-    if args.out_streamlines_stats or args.out_lesion_stats:
-        vol_dict = {bundle_name: {}}
+        lesion_vol_dict = {bundle_name: {}}
         streamlines_count_dict = {bundle_name: {'streamlines_count': {}}}
         for key in lesion_dict.keys():
-            vol_dict[bundle_name][key] = lesion_dict[key]['volume']
+            lesion_vol_dict[bundle_name][key] = lesion_dict[key]['volume']
             if args.bundle:
                 streamlines_count_dict[bundle_name]['streamlines_count'][key] = \
                     lesion_dict[key]['strs_count']
 
         if args.out_lesion_stats:
             with open(args.out_lesion_stats, 'w') as outfile:
-                json.dump(vol_dict, outfile,
+                json.dump(lesion_vol_dict, outfile,
                           sort_keys=args.sort_keys, indent=args.indent)
         if args.out_streamlines_stats:
             with open(args.out_streamlines_stats, 'w') as outfile:
