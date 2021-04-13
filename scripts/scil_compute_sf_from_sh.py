@@ -11,7 +11,6 @@ bvals file. Otherwise, no .bval file will be created.
 """
 
 import argparse
-from operator import xor
 
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
@@ -40,23 +39,17 @@ def _build_arg_parser():
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
 
-    # Optional subparser for a DWI-like volume
-    sub = p.add_subparsers(dest="mode",
-                           help="Optional arguments to generate a "
-                                "DWI-like output")
-    dwi_subparser = sub.add_parser("dwi_like",
-                                   description="Generate a DWI-like output, "
-                                               "including a `.bval` file and "
-                                               "b0 images in the sf file.")
-    dwi_subparser.add_argument('--in_bval',
-                               required=True,
-                               help='b-value file, in FSL format, '
-                                    'used to assign a b-value to the '
-                                    'output SF and generate a `.bval` file.')
-    dwi_subparser.add_argument('--in_b0',
-                               required=True,
-                               help='b0 volume to concatenate to the '
-                                    'final SF volume.')
+    # Optional args for a DWI-like volume
+    p.add_argument("--extract_as_dwi", action="store_true",
+                   help="Generate a DWI-like output, including a `.bval` file "
+                        "and b0 images in the sf file.")
+    p.add_argument('--bval', required=True,
+                   help='b-value file, in FSL format, '
+                        'used to assign a b-value to the '
+                        'output SF and generate a `.bval` file.')
+    p.add_argument('--b0', required=True,
+                   help='b0 volume to concatenate to the '
+                        'final SF volume.')
     add_sh_basis_args(p)
 
     add_overwrite_arg(p)
@@ -74,10 +67,14 @@ def main():
     out_bvecs = args.out_sf.replace(".nii.gz", ".bvec")
     assert_outputs_exist(parser, args, [args.out_sf, out_bvecs])
 
-    if args.mode == "dwi_like":
-        assert_inputs_exist(parser, [args.in_bval, args.in_b0])
+    if args.extract_as_dwi:
+        assert_inputs_exist(parser, [args.bval, args.b0])
         out_bvals = args.out_sf.replace(".nii.gz", ".bval")
         assert_outputs_exist(parser, args, out_bvals)
+    else:
+        if args.bval or args.b0:
+            parser.error("--bval and --b0 are required only when "
+                         "--extract_as_dwi is used.")
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -91,15 +88,15 @@ def main():
     sf = sh_to_sf(data_sh, sphere, sh_order=sh_order, basis_type=args.sh_basis)
     new_bvecs = sphere.vertices
 
-    if args.mode == "dwi_like":
+    if args.extract_as_dwi:
         # Load b0
-        vol_b0 = nib.load(args.in_b0)
+        vol_b0 = nib.load(args.b0)
         data_b0 = vol_b0.get_fdata(dtype=np.float32)
         if data_b0.ndim == 3:
             data_b0 = data_b0[..., np.newaxis]
 
         # Load bvals
-        bvals, _ = read_bvals_bvecs(args.in_bval, None)
+        bvals, _ = read_bvals_bvecs(args.bval, None)
 
         # Compute average bval
         check_b0_threshold(args.force_b0_threshold, bvals.min())
