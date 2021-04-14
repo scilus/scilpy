@@ -21,5 +21,5 @@ def test_execution_processing(script_runner):
     in_encoding = os.path.join(get_home(), 'processing',
                                '1000.b')
     ret = script_runner.run('scil_swap_gradient_axis.py', in_encoding,
-                            '1000_swaped.b', 'x', 'y', '-f')
+                            '1000_swaped.b', 'x', 'y', '--mrtrix', '-f')
     assert ret.success
