@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Validate and correct b-vectors using a fiber coherence index as presented
-in Schilling et al, 2019. The script takes as input the principal direction(s)
-at each voxel, the b-vectors and the fractional anisotropy map and outputs
-a corrected b-vectors file.
+Validate and correct b-vectors using a fiber coherence index from Schilling
+et al, 2019. The script takes as input the principal direction(s) at each
+voxel, the b-vectors and the fractional anisotropy map and outputs a corrected
+b-vectors file.
 
 A typical pipeline could be:
 >>> scil_compute_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
@@ -35,18 +35,24 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
 
-    p.add_argument('in_bvecs', help='Path to bvecs file.')
-    p.add_argument('in_peaks', help='Path to peaks file.')
-    p.add_argument('in_fa', help='Path to the fractional anisotropy file.')
-    p.add_argument('out_bvecs', help='Path to corrected bvecs file.')
+    p.add_argument('in_bvec',
+                   help='Path to bvec file.')
+    p.add_argument('in_peaks',
+                   help='Path to peaks file.')
+    p.add_argument('in_FA',
+                   help='Path to the fractional anisotropy file.')
+    p.add_argument('out_bvec',
+                   help='Path to corrected bvec file (FSL format).')
 
-    p.add_argument('--mask', help='Path to an optional mask.')
-    p.add_argument('--peaks_vals', help='Path to peaks values file.')
+    p.add_argument('--mask',
+                   help='Path to an optional mask.')
+    p.add_argument('--peaks_vals',
+                   help='Path to peaks values file.')
     p.add_argument('--fa_th', default=0.2, type=float,
                    help='FA threshold. Only voxels with FA higher '
                         'than fa_th will be considered. [%(default)s]')
     p.add_argument('--column_wise', action='store_true',
-                   help='Specify input peaks are given column-wise (..., 3, N)'
+                   help='Specify input peaks are column-wise (..., 3, N)'
                         ' instead of row-wise (..., N, 3).')
 
     add_verbose_arg(p)
@@ -60,21 +66,15 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    inputs = [args.in_bvecs, args.in_peaks, args.in_fa]
-    if args.mask:
-        inputs.append(args.mask)
-    if args.peaks_vals:
-        inputs.append(args.peaks_vals)
+    inputs = [args.in_bvec, args.in_peaks, args.in_FA]
+    optional = [args.mask, args.peaks_vals]
 
-    assert_inputs_exist(parser, inputs)
-    assert_outputs_exist(parser, args, args.out_bvecs)
+    assert_inputs_exist(parser, inputs, optional=optional)
+    assert_outputs_exist(parser, args, args.out_bvec)
 
-    _, bvecs = read_bvals_bvecs(None, args.in_bvecs)
-    fa = nib.load(args.in_fa).get_fdata()
+    _, bvecs = read_bvals_bvecs(None, args.in_bvec)
+    fa = nib.load(args.in_FA).get_fdata()
     peaks = nib.load(args.in_peaks).get_fdata()
-
-    # TODO: Detect row-wise vs column-wise. Raise warning
-    #       when detection is impossible.
 
     # convert peaks to a volume of shape (H, W, D, N, 3)
     if args.column_wise:
@@ -111,8 +111,10 @@ def main():
                      'Transform is: \n{0}.'.format(best_t))
         correct_bvecs = np.dot(bvecs, best_t)
 
-    logging.info('Saving bvecs to file: {0}.'.format(args.out_bvecs))
-    np.savetxt(args.out_bvecs, correct_bvecs, "%.8f")
+    logging.info('Saving bvecs to file: {0}.'.format(args.out_bvec))
+
+    # FSL format (3, N)
+    np.savetxt(args.out_bvec, correct_bvecs.T, '%.8f')
 
 
 if __name__ == "__main__":
