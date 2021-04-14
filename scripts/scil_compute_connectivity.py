@@ -86,6 +86,7 @@ def _processing_wrapper(args):
         similarity_directory = args[4][0]
     weighted = args[5]
     include_dps = args[6]
+    min_lesion_vol = args[7]
 
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
@@ -186,6 +187,7 @@ def _processing_wrapper(args):
                 tmp_dict = compute_lesion_stats(
                     density.astype(np.bool), lesion_atlas,
                     voxel_sizes=voxel_sizes, single_label=True,
+                    min_lesion_vol=min_lesion_vol,
                     precomputed_lesion_labels=computed_lesion_labels)
 
                 tmp_ind = _streamlines_in_mask(list(streamlines),
@@ -253,6 +255,8 @@ def _build_arg_parser():
     p.add_argument('--lesion_load', nargs=2, metavar=('IN_FILE', 'OUT_DIR'),
                    help='Input binary mask (.nii.gz) and output directory '
                         'for all lesion-related matrices.')
+    p.add_argument('--min_lesion_vol', type=float, default=7,
+                   help='Minimum lesion volume in mm3 [%(default)s].')
 
     p.add_argument('--density_weighting', action="store_true",
                    help='Use density-weighting for the metric weighted matrix.')
@@ -374,7 +378,8 @@ def main():
                                                            measures_to_compute,
                                                            args.similarity,
                                                            args.density_weighting,
-                                                           args.include_dps]))
+                                                           args.include_dps,
+                                                           args.min_lesion_vol]))
     else:
         pool = multiprocessing.Pool(nbr_cpu)
         measures_dict_list = pool.map(_processing_wrapper,
@@ -386,7 +391,8 @@ def main():
                                           itertools.repeat(args.similarity),
                                           itertools.repeat(
                                           args.density_weighting),
-                                          itertools.repeat(args.include_dps)))
+                                          itertools.repeat(args.include_dps),
+                                          itertools.repeat(args.min_lesion_vol)))
         pool.close()
         pool.join()
 
