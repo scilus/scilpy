@@ -139,11 +139,7 @@ def compute_measures(filename_tuple):
     end_irreg_head = (np.pi * radius_head ** 2) / end_sur_area_head
     end_irreg_tail = (np.pi * radius_tail ** 2) / end_sur_area_tail
 
-    n_steps = 100
-    box_size = np.arange(1, 15)
-    fractal_dimension = compute_fractal_dimension(density,
-                                                  n_steps=n_steps,
-                                                  box_size=box_size)
+    fractal_dimension = compute_fractal_dimension(density)
 
     curvature_list = np.zeros((nbr_streamlines,))
     for i in range(nbr_streamlines):
