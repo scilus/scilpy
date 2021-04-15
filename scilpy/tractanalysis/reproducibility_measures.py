@@ -180,8 +180,7 @@ def approximate_surface_node(roi):
 
 
 def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
-                              box_size_max=None, base=2.0,
-                              threshold=0.0, box_size=None):
+                              box_size_max=2.0, threshold=0.0, box_size=None):
     """
     Compute the fractal dimension of a bundle to measure the roughness.
     The code is extracted from https://github.com/FBK-NILab/fractal_dimension
@@ -190,12 +189,11 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     density: ndarray
         A ndarray where voxel values represent the density of a bundle.
     n_steps: int
+        The number of box sizes used to approximate fractal dimension.
     box_size_min: float
         The minimum size of a box.
     box_size_max: float
         The maximum size of a box.
-    base: float
-        Base of log.
     threshold: float
         The threshold to filter the density.
     box_size: ndarray
@@ -205,13 +203,9 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     float: fractal dimension of a bundle
     """
     pixels = np.array(np.where(density > threshold)).T
-    if box_size_max is None:
-        box_size_max = np.max(density.shape)
 
     if box_size is None:
-        box_size = np.logspace(np.log(box_size_min) / np.log(base),
-                               np.log(box_size_max) / np.log(base),
-                               num=n_steps, endpoint=False, base=base)
+        box_size = np.linspace(box_size_min, box_size_max, n_steps)
 
     counts = np.zeros(len(box_size))
     for i, bs in enumerate(box_size):
