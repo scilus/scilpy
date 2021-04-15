@@ -187,17 +187,24 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     Parameters
     ----------
     density: ndarray
-        A ndarray where voxel values represent the density of a bundle.
+        A ndarray where voxel values represent the density of a bundle. This
+        function computes the fractal dimension of the bundle.
     n_steps: int
-        The number of box sizes used to approximate fractal dimension.
+        The number of box sizes used to approximate fractal dimension. A larger
+        number of steps will increase the accuracy of the approximation, but
+        will also take more time. The default number of boxes is 10.
     box_size_min: float
-        The minimum size of a box.
+        The minimum size of boxes. This number should be larger than 1.0 and is
+        defaulted to 1.0.
     box_size_max: float
-        The maximum size of a box.
+        The maximum size of boxes. This number should be larger than the
+        minimum size of boxes.
     threshold: float
-        The threshold to filter the density.
+        The threshold to filter the voxels in the density array. The default is
+        set to 0, so only nonzero voxels will be considered.
     box_size: ndarray
-        A ndarray of the sizes of boxes.
+        A ndarray of different sizes of boxes in a linear space in an ascending
+        order.
     Returns
     -------
     float: fractal dimension of a bundle
