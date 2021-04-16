@@ -184,7 +184,8 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     """
     Compute the fractal dimension of a bundle to measure the roughness.
     The code is extracted from https://github.com/FBK-NILab/fractal_dimension
-    Parameters
+    Parameters. The result is dependent on voxel size and the number of voxels.
+    If data comparison is performed, the bundles should be in same resolution.
     ----------
     density: ndarray
         A ndarray where voxel values represent the density of a bundle. This
@@ -192,10 +193,10 @@ def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
     n_steps: int
         The number of box sizes used to approximate fractal dimension. A larger
         number of steps will increase the accuracy of the approximation, but
-        will also take more time. The default number of boxes is 10.
+        will also take more time. The default number of boxes sizes is 10.
     box_size_min: float
-        The minimum size of boxes. This number should be larger than 1.0 and is
-        defaulted to 1.0.
+        The minimum size of boxes. This number should be larger than or equal
+        to 1.0 and is defaulted to 1.0.
     box_size_max: float
         The maximum size of boxes. This number should be larger than the
         minimum size of boxes.
