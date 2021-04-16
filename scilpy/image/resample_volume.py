@@ -12,8 +12,8 @@ def _interp_code_to_order(interp_code):
     return orders[interp_code]
 
 
-def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
-                    enforce_dimensions=False):
+def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
+                    interp='lin', enforce_dimensions=False):
     """
     Function to resample a dataset to match the resolution of another
     reference dataset or to the resolution specified as in argument.
@@ -46,23 +46,31 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
         Resampled image.
     """
     data = img.get_fdata(dtype=np.float32)
+    original_res = data.shape
     affine = img.affine
+    offset = img.header['vox_offset']
     original_zooms = img.header.get_zooms()[:3]
 
     if ref is not None:
-        if res is not None or iso_min:
+        if iso_min or zoom or res:
             raise ValueError('Please only provide one option amongst ref, res '
-                             'or iso_min.')
+                             ', zoom or iso_min.')
         ref_img = nib.load(ref)
         new_zooms = ref_img.header.get_zooms()[:3]
     elif res is not None:
-        if iso_min:
+        if iso_min or zoom:
             raise ValueError('Please only provide one option amongst ref, res '
-                             'or iso_min.')
-        new_zooms = [res] * 3
+                             ', zoom or iso_min.')
+        if len(res) == 1:
+            res = res * 3
+        new_zooms = tuple((o / r) * z for o, r, z in zip(original_res, res, original_zooms))
+
     elif iso_min:
-        min_zoom = min(original_zooms)
-        new_zooms = (min_zoom, min_zoom, min_zoom)
+        if zoom:
+            min_zoom = min(original_zooms)
+            new_zooms = (min_zoom, min_zoom, min_zoom)
+    elif zoom:
+        new_zooms = tuple(o * zoom for o in original_zooms)
     else:
         raise ValueError("You must choose the resampling method. Either with"
                          "a reference volume, or a chosen isometric resolution,"
@@ -79,7 +87,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, interp='lin',
     logging.debug('Resampling data to %s with mode %s', new_zooms, interp)
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
-                             _interp_code_to_order(interp))
+                             _interp_code_to_order(interp), offset=offset)
 
     logging.debug('Resampled data shape: %s', data2.shape)
     logging.debug('Resampled data affine: %s', affine2)
