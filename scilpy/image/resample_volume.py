@@ -63,7 +63,8 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
                              ', zoom or iso_min.')
         if len(res) == 1:
             res = res * 3
-        new_zooms = tuple((o / r) * z for o, r, z in zip(original_res, res, original_zooms))
+        new_zooms = tuple((o / r) * z for o, r,
+                          z in zip(original_res, res, original_zooms))
 
     elif iso_min:
         if zoom:

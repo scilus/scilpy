@@ -34,7 +34,7 @@ def _build_arg_parser():
         help='Resolution to resample to. If the value it is set to is Y, it '
              'will resample to an isotropic resolution of Y x Y x Y.')
     res_group.add_argument('--zoom', type=float,
-        help='Zoom uniformly into the image.')
+                           help='Zoom uniformly into the image.')
     res_group.add_argument(
         '--iso_min', action='store_true',
         help='Resample the volume to R x R x R with R being the smallest '
@@ -77,7 +77,8 @@ def main():
 
     # Resampling volume
     resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
-                                    iso_min=args.iso_min, zoom=args.zoom, interp=args.interp,
+                                    iso_min=args.iso_min, zoom=args.zoom,
+                                    interp=args.interp,
                                     enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
