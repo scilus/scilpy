@@ -37,7 +37,7 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='Path of the bvecs file, in FSL format.')
 
-    p.add_argument('in_roi', action='store', metavar='mask_roi',
+    p.add_argument('in_mask',
                    help='Binary mask of the region used to estimate SNR.')
 
     p.add_argument('--noise', action='store', dest='noise_mask',
@@ -49,7 +49,7 @@ def _build_arg_parser():
                         'to b0_thr are considered as b0s i.e. without '
                         'diffusion weighting. [Default: 0.0]')
 
-    p.add_argument('-out_basename',
+    p.add_argument('--out_basename',
                    help='Path and prefix for the various saved file.')
 
     add_verbose_arg(p)
@@ -66,9 +66,9 @@ def main():
                                  args.in_bvec, args.in_mask])
 
     compute_snr(args.in_dwi, args.in_bval, args.in_bvec, args.b0_thr,
-                args.mask_roi,
+                args.in_mask,
                 noise_mask=args.noise_mask,
-                basename=args.basename,
+                basename=args.out_basename,
                 verbose=args.verbose)
 
 
