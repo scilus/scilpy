@@ -45,7 +45,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     resampled_image: nib.Nifti1Image
         Resampled image.
     """
-    data = img.get_fdata(dtype=np.float32)
+    data = np.asanyarray(img.dataobj)
     original_res = data.shape
     affine = img.affine
     offset = img.header['vox_offset']
@@ -68,8 +68,10 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
 
     elif iso_min:
         if zoom:
-            min_zoom = min(original_zooms)
-            new_zooms = (min_zoom, min_zoom, min_zoom)
+            raise ValueError('Please only provide one option amongst ref, res '
+                             ', zoom or iso_min.')
+        min_zoom = min(original_zooms)
+        new_zooms = (min_zoom, min_zoom, min_zoom)
     elif zoom:
         new_zooms = tuple(o * zoom for o in original_zooms)
     else:
@@ -111,4 +113,4 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
                     data2[:x_dim, :y_dim, :z_dim]
                 data2 = fix_dim_volume
 
-    return nib.Nifti1Image(data2, affine2)
+    return nib.Nifti1Image(data2.astype(data.dtype), affine2)
