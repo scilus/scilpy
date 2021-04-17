@@ -19,6 +19,9 @@ including length and span are essentially averages of all the streamlines.
 Other streamline-related set measure are computed with other set averages.
 Whereas, bundle-related measures are computed as an average of all bundles.
 These measures include volume and surface area.
+
+The fractal dimension is dependent on the voxel size and the number of voxels.
+If data comparison is performed, the bundles MUST be in same resolution.
 """
 
 import argparse
