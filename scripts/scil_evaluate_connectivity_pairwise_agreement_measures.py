@@ -54,7 +54,7 @@ def main():
         tmp_mat = load_matrix_in_any_format(filename)
         all_matrices.append(tmp_mat / np.max(tmp_mat))
 
-    if args.single_comapre:
+    if args.single_compare:
         tmp_mat = load_matrix_in_any_format(args.single_compare)
         all_matrices.append(tmp_mat / np.max(tmp_mat))
 

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_evaluate_connectivity_graph_measures.py', '--help')
+    ret = script_runner.run('scil_evaluate_connectivity_pairwise_agreement_measures.py', '--help')
     assert ret.success
 
 
@@ -23,7 +23,6 @@ def test_execution_connectivity(script_runner):
                          'sc_norm.npy')
     in_len = os.path.join(get_home(), 'connectivity',
                           'len.npy')
-    ret = script_runner.run('scil_evaluate_connectivity_graph_measures.py', in_sc,
-                            in_len, 'gtm.json', '--avg_node_wise',
-                            '--small_world')
+    ret = script_runner.run('scil_evaluate_connectivity_pairwise_agreement_measures.py', in_sc,
+                            in_len, 'diff.json', '--single_compare', in_sc)
     assert ret.success
