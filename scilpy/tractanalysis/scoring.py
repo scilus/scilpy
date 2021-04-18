@@ -144,7 +144,7 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
     heads = []
     for mask_filename in gt_endpoints:
         mask_img = nib.load(mask_filename)
-        mask = mask_img.get_fdata().astype(np.int16)
+        mask = get_data_as_mask(mask_img)
         affine = mask_img.affine
         dimensions = mask.shape
 
@@ -156,8 +156,10 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
             out_dir, '{}_tail.nii.gz'.format(basename))
         head_filename = os.path.join(
             out_dir, '{}_head.nii.gz'.format(basename))
-        nib.save(nib.Nifti1Image(head, affine), head_filename)
-        nib.save(nib.Nifti1Image(tail, affine), tail_filename)
+        nib.save(nib.Nifti1Image(head.astype(
+            mask.dtype), affine), head_filename)
+        nib.save(nib.Nifti1Image(tail.astype(
+            mask.dtype), affine), tail_filename)
 
         tails.append(tail_filename)
         heads.append(head_filename)
@@ -222,7 +224,6 @@ def extract_true_connections(
         tc_streamlines = val_len_streamlines[list(tc_streamlines_ids)]
 
         if loops:
-            print(loop_ids)
             nc_streamlines = loops
 
     # Streamlines getting out of the bundle mask can be considered

@@ -126,7 +126,6 @@ def main():
     _, ext = os.path.splitext(args.in_tractogram)
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
-
     initial_count = len(sft)
 
     logging.info('Computing ground-truth masks')
