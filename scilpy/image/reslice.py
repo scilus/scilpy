@@ -39,6 +39,8 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
     cval : float
         Value used for points outside the boundaries of the input if
         mode='constant'.
+    offset: float
+        Offset for values in the image
     num_processes : int
         Split the calculation to a pool of children processes. This only
         applies to 4D `data` arrays. If a positive integer then it defines
