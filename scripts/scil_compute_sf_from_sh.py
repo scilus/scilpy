@@ -14,13 +14,14 @@ import argparse
 
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
-from dipy.reconst.shm import order_from_ncoef, sh_to_sf
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
-                             add_sh_basis_args, assert_inputs_exist,
+                             add_processes_arg, add_sh_basis_args,
+                             assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.reconst.multi_processes import convert_sh_to_sf
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold)
 
 
@@ -51,6 +52,7 @@ def _build_arg_parser():
                    help='b0 volume to concatenate to the '
                         'final SF volume.')
     add_sh_basis_args(p)
+    add_processes_arg(p)
 
     add_overwrite_arg(p)
     add_force_b0_arg(p)
@@ -80,13 +82,12 @@ def main():
     vol_sh = nib.load(args.in_sh)
     data_sh = vol_sh.get_fdata(dtype=np.float32)
 
-    # Figure out SH order
-    sh_order = order_from_ncoef(data_sh.shape[-1], full_basis=False)
-
     # Sample SF from SH
     sphere = get_sphere(args.sphere)
-    sf = sh_to_sf(data_sh, sphere, sh_order=sh_order, basis_type=args.sh_basis)
-    new_bvecs = sphere.vertices
+    sf = convert_sh_to_sf(data_sh, sphere,
+                          input_basis=args.sh_basis,
+                          nbr_processes=args.nbr_processes)
+    new_bvecs = sphere.vertices.astype(np.float32)
 
     if args.extract_as_dwi:
         # Load b0
