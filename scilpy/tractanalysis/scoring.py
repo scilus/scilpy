@@ -8,7 +8,6 @@ from nibabel.streamlines import ArraySequence
 from scipy.ndimage import binary_dilation
 from sklearn.cluster import KMeans
 
-from scilpy.image.operations import intersection
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi
@@ -17,11 +16,28 @@ from scilpy.tractanalysis.reproducibility_measures import \
     get_endpoints_density_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.streamlines import \
-    (difference, perform_streamlines_operation)
 
 
 def extract_streamlines(mask_1, mask_2, sft):
+    """
+    Recognize streamlines between two masks
+
+    Parameters
+    ----------
+    mask_1 : numpy.ndarray
+        Mask containing one end of the bundle to be recognized.
+    mask_2 : numpy.ndarray
+        Mask containing the other end of the bundle to be recognized.
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+
+    Returns
+    -------
+    extracted_sft: StatefulTractogram
+        Tractogram containing the streamlines recognized.
+    remaining_sft : StatefulTractogram
+        Tractogram containing the streamlines not recognized.
+    """
 
     tmp_sft, mask_1_ids = filter_grid_roi(
         sft, mask_1, 'either_end', False)
@@ -35,6 +51,28 @@ def extract_streamlines(mask_1, mask_2, sft):
 
 
 def get_binary_maps(streamlines, dimensions, sft, invalid):
+    """
+    Extract a mask from a bundle
+
+    Parameters
+    ----------
+    streamlines: list
+        List of streamlines.
+    dimensions: tuple of ints
+        Dimensions of the mask.
+    sft : StatefulTractogram
+        Reference tractogram.
+    invalid: bool
+        If true, remove invalid streamlines from tractogram.
+
+    Returns
+    -------
+    bundles_voxels: numpy.ndarray
+        Mask representing the bundle volume.
+    endpoints_voxels: numpy.ndarray
+        Mask representing the bundle's endpoints.
+    """
+
     if not len(streamlines):
         return np.zeros(dimensions), np.zeros(dimensions)
     elif len(streamlines) == 1:
@@ -60,54 +98,29 @@ def get_binary_maps(streamlines, dimensions, sft, invalid):
     return bundles_voxels, endpoints_voxels
 
 
-def identify_overlapping_roi(mask_1, mask_2):
-    overlapping_roi = []
-
-    if not os.path.isfile(mask_1):
-        raise ValueError('Input file {} does not exist.'.format(mask_1))
-    roi_1 = nib.load(mask_1)
-    roi1 = roi_1.get_fdata(dtype=np.float64)
-
-    if not os.path.isfile(mask_2):
-        raise ValueError('Input file {} does not exist.'.format(mask_2))
-    roi_2 = nib.load(mask_2)
-    roi2 = roi_2.get_fdata(dtype=np.float64)
-
-    rois = [roi1, roi2]
-    overlap = intersection(rois, roi_1)
-    nb_voxels = np.count_nonzero(overlap)
-
-    if nb_voxels > 0:
-        overlapping_roi.append((mask_1, mask_2))
-        overlapping_roi.append((mask_2, mask_1))
-
-    return overlapping_roi
-
-
-def remove_duplicate_streamlines(sft, fc_streamlines, roi1_name, roi2_name):
-    roi1 = get_data_as_mask(roi1_name)
-    roi2 = get_data_as_mask(roi2_name)
-    tmp_sft, _ = filter_grid_roi(sft, roi1, 'either_end', False)
-    tmp_sft, _ = filter_grid_roi(tmp_sft, roi2, 'either_end', False)
-    duplicate_streamlines = tmp_sft.streamlines
-    fc_streamlines, _ = perform_streamlines_operation(
-        difference, [fc_streamlines, duplicate_streamlines], precision=0)
-    return fc_streamlines
-
-
-def split_heads_tails_kmeans(data):
-    X = np.argwhere(data)
-    k_means = KMeans(n_clusters=2).fit(X)
-    mask_1 = np.zeros(data.shape)
-    mask_2 = np.zeros(data.shape)
-
-    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
-    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
-
-    return mask_1, mask_2
-
-
 def compute_gt_masks(gt_bundles, parser, args):
+    """
+    Compute ground-truth masks. If the ground-truth is
+    already a mask, load it. If the ground-truth is a
+    bundle, compute the mask.
+
+    Parameters
+    ----------
+    gt_bundles: list
+        List of either StatefulTractograms or niftis.
+    parser: ArgumentParser
+        Argument parser which handles the script's arguments.
+    args: Namespace
+        List of arguments passed to the script.
+
+    Returns
+    -------
+    mask_1: numpy.ndarray
+        "Head" of the mask.
+    mask_2: numpy.ndarray
+        "Tail" of the mask.
+    """
+
     gt_bundle_masks = []
     gt_bundle_inv_masks = []
 
@@ -139,7 +152,55 @@ def compute_gt_masks(gt_bundles, parser, args):
     return gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions
 
 
+def split_heads_tails_kmeans(data):
+    """
+    Split a mask between head and tail with k means
+
+    Parameters
+    ----------
+    data: numpy.ndarray
+        Mask to be split.
+
+    Returns
+    -------
+    mask_1: numpy.ndarray
+        "Head" of the mask.
+    mask_2: numpy.ndarray
+        "Tail" of the mask.
+    """
+
+    X = np.argwhere(data)
+    k_means = KMeans(n_clusters=2).fit(X)
+    mask_1 = np.zeros(data.shape)
+    mask_2 = np.zeros(data.shape)
+
+    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
+    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
+
+    return mask_1, mask_2
+
+
 def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
+    """
+    Extract two masks from a single mask containing two regions.
+
+    Parameters
+    ----------
+    gt_endpoints: list of str
+        List of ground-truth mask filenames.
+
+    Returns
+    -------
+    tails: list
+        List of tail filenames.
+    heads: list
+        List of head filenames.
+    affine: numpy.ndarray
+        Affine of mask image.
+    dimensions: tuple of int
+        Dimensions of the mask image.
+    """
+
     tails = []
     heads = []
     for mask_filename in gt_endpoints:
@@ -171,6 +232,45 @@ def extract_true_connections(
     sft, mask_1_filename, mask_2_filename, gt_config, length_dict,
     gt_bundle, gt_bundle_inv_mask, dilate_endpoints, wrong_path_as_separate
 ):
+    """
+    Extract true connections based on two regions from a tractogram.
+    May extract false and no connections if the config is passed.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        Tractogram containing the streamlines to be extracted.
+    mask_1_filename: str
+        Filename of the "head" of the bundle.
+    mask_2_filename: str
+        Filename of the "tail" of the bundle.
+    gt_config: dict or None
+        Dictionary containing the bundle's parameters.
+    length_dict: dict or None
+        Dictionary containing the bundle's length parameters.
+    gt_bundle: str
+        Bundle's name.
+    gt_bundle_inv_mask: np.ndarray
+        Inverse mask of the bundle.
+    dilate_endpoints: int or None
+        If set, dilate the masks for n iterations.
+    wrong_path_as_separate: bool
+        If true, save the WPCs as separate from TCs.
+
+    Returns
+    -------
+    tc_sft: StatefulTractogram
+        SFT of true connections.
+    wpc_sft: StatefulTractogram
+        SFT of wrong-path-connections.
+    fc_sft: StatefulTractogram
+        SFT of false connections (streamlines that are too long).
+    nc_streamlines: StatefulTractogram
+        SFT of no connections (streamlines that loop)
+    sft: StatefulTractogram
+        SFT of remaining streamlines.
+    """
+
     mask_1_img = nib.load(mask_1_filename)
     mask_2_img = nib.load(mask_2_filename)
     mask_1 = get_data_as_mask(mask_1_img)
@@ -249,6 +349,28 @@ def extract_true_connections(
 def extract_false_connections(
     sft, mask_1_filename, mask_2_filename, dilate_endpoints
 ):
+    """
+    Extract false connections based on two regions from a tractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        Tractogram containing the streamlines to be extracted.
+    mask_1_filename: str
+        Filename of the "head" of the bundle.
+    mask_2_filename: str
+        Filename of the "tail" of the bundle.
+    dilate_endpoints: int or None
+        If set, dilate the masks for n iterations.
+
+    Returns
+    -------
+    fc_sft: StatefulTractogram
+        SFT of false connections.
+    sft: StatefulTractogram
+        SFT of remaining streamlines.
+    """
+
     mask_1_img = nib.load(mask_1_filename)
     mask_2_img = nib.load(mask_2_filename)
     mask_1 = get_data_as_mask(mask_1_img)

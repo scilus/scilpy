@@ -25,6 +25,23 @@ must be in the same order i.e. groundTruth1.nii.gz .... groundTruthN.nii.gz \
 
 Masks can be dilated with --dilate_endpoints for bundle recognition.
 
+Config dictionnary needs to be a json containing a dict of the ground-truth
+bundles as keys and the value being a dictionnary with the relevant info.
+
+Example usage:
+    ```
+    $ scil_score_tractogram.py tracking.tck \
+            scoring_data/ground_truth_bundles/*.tck \
+            --gt_heads scoring_data/ground_truth_masks/heads/*.nii.gz \
+            --gt_tails scoring_data/ground_truth_masks/tails/*.nii.gz \
+            --gt_config scoring_data/config.json \
+            --reference scoring_data/dwi.nii.gz \
+            --dilate_endpoints 1 \
+            --wrong_path_as_separate \
+            --out_dir scoring \
+            -f \
+            -v
+    ```
 """
 
 import argparse
