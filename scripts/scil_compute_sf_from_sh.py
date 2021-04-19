@@ -43,11 +43,11 @@ def _build_arg_parser():
     p.add_argument("--extract_as_dwi", action="store_true",
                    help="Generate a DWI-like output, including a `.bval` file "
                         "and b0 images in the sf file.")
-    p.add_argument('--bval', required=True,
+    p.add_argument('--bval',
                    help='b-value file, in FSL format, '
                         'used to assign a b-value to the '
                         'output SF and generate a `.bval` file.')
-    p.add_argument('--b0', required=True,
+    p.add_argument('--b0',
                    help='b0 volume to concatenate to the '
                         'final SF volume.')
     add_sh_basis_args(p)
