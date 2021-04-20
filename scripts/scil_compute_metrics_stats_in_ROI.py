@@ -61,7 +61,7 @@ def _build_arg_parser():
                         'this is equivalent to nb_voxel for binary mask.')
 
     p.add_argument('--output_file',
-                   help='Save all average to a file (txt, csv, npy, json)')
+                   help='Save all average to a file (txt, json).')
 
     add_overwrite_arg(p)
     add_json_args(p)
@@ -124,29 +124,21 @@ def main():
     # Compute the mean values and standard deviations
     nb_mask = len(mask_list)
     nb_metric = len(metrics_files)
-    stats_list = []
-    for i in range(nb_mask):
-        mask_data = mask_list[i]
-        stats = get_roi_metrics_mean_std(mask_data, metrics_files)
-        stats_list.append(stats)
-
     json_stats = {}
     avg_array = np.zeros([nb_mask, nb_metric], dtype=np.float)
     for i in range(nb_mask):
-        mask_fname = args.in_mask[i]
-        roi_name = split_name_with_nii(os.path.basename(mask_fname))[0]
+        roi_name = split_name_with_nii(os.path.basename(args.in_mask[i]))[0]
+        stats = get_roi_metrics_mean_std(mask_list[i], metrics_files)
         json_stats[roi_name] = {}
 
-        j = 0
-        for metric_file, (mean, std) in zip(metrics_files, stats_list[i]):
+        for j, (mean, std) in enumerate(stats):
             metric_name = split_name_with_nii(
-                os.path.basename(metric_file.get_filename()))[0]
+                os.path.basename(metrics_files[j].get_filename()))[0]
             json_stats[roi_name][metric_name] = {
                 'mean': mean.item(),
                 'std': std.item()
             }
             avg_array[i, j] = mean.item()
-            j += 1
 
         if args.compute_mask_sum:
             json_stats[roi_name]['sum'] = float(sum_list[i])
@@ -164,11 +156,6 @@ def main():
             with open(args.output_file, 'w') as fp:
                 json.dump(json_stats, fp, indent=args.indent,
                           sort_keys=args.sort_keys)
-
-        elif file_ext == ".npy":
-            np.save(args.output_file, avg_array)
-        elif file_ext == ".csv":
-            np.savetxt(args.output_file, avg_array, delimiter=",")
         else:
             np.savetxt(args.output_file, avg_array, delimiter=",", newline=";")
 
