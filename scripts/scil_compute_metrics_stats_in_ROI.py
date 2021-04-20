@@ -5,7 +5,7 @@
 Compute the statistics (mean, std) of scalar maps, which can represent
 diffusion metrics, in a ROI (or multiples ROIs).
 
-ROIs mask can either be binary, or a weighted map. If the ROI is
+ROI mask can either be binary, or a weighted map. If the ROI is
 a weighting map it should either contain floats between 0 and 1 or should be
 normalized with --normalize_weights.
 
