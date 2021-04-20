@@ -36,7 +36,8 @@ def _build_arg_parser():
     p.add_argument('--single_compare',
                    help='Compare inputs to this single file.')
     p.add_argument('--normalize', action='store_true',
-                   help='If set, will normalize all matrices from zero to one.')
+                   help='If set, will normalize all matrices '
+                        'from zero to one.')
 
     add_json_args(p)
     add_overwrite_arg(p)
