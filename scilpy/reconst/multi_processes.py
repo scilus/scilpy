@@ -477,11 +477,13 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
 def convert_sh_to_sf_parallel(args):
     sh = args[0]
     B_in = args[1]
-    chunk_id = args[2]
+    new_output_dim = args[2]
+    chunk_id = args[3]
+    sf = np.zeros((sh.shape[0], new_output_dim), dtype=np.float32)
 
     for idx in range(sh.shape[0]):
         if sh[idx].any():
-            sf = np.dot(sh[idx], B_in)
+            sf[idx] = np.dot(sh[idx], B_in)
 
     return chunk_id, sf
 
@@ -534,6 +536,7 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None,
     results = pool.map(convert_sh_to_sf_parallel,
                        zip(shm_coeff_chunks,
                            itertools.repeat(B_in),
+                           itertools.repeat(len(sphere.vertices)),
                            np.arange(len(shm_coeff_chunks))))
     pool.close()
     pool.join()
