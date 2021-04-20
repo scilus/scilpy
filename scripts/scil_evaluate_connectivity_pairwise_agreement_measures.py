@@ -35,6 +35,8 @@ def _build_arg_parser():
                    help='Path of the output json file.')
     p.add_argument('--single_compare',
                    help='Compare inputs to this single file.')
+    p.add_argument('--normalize', action='store_true',
+                   help='If set, will normalize all matricies zero to one.')
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -52,11 +54,19 @@ def main():
     all_matrices = []
     for filename in args.in_matrices:
         tmp_mat = load_matrix_in_any_format(filename)
-        all_matrices.append(tmp_mat / np.max(tmp_mat))
+        tmp_mat = tmp_mat.astype(float)
+        if args.normalize:
+            all_matrices.append(tmp_mat / np.max(tmp_mat))
+        else:
+            all_matrices.append(tmp_mat)
 
-    if args.single_comapre:
+    if args.single_compare:
         tmp_mat = load_matrix_in_any_format(args.single_compare)
-        all_matrices.append(tmp_mat / np.max(tmp_mat))
+        tmp_mat = tmp_mat.astype(float)
+        if args.normalize:
+            all_matrices.append(tmp_mat / np.max(tmp_mat))
+        else:
+            all_matrices.append(tmp_mat)
 
     output_measures_dict = {'SSD': [], 'correlation': [], 'w_dice_voxels' : [], 'dice_voxels' : []}
 
