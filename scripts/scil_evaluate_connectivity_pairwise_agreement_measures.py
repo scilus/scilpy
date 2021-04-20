@@ -36,7 +36,7 @@ def _build_arg_parser():
     p.add_argument('--single_compare',
                    help='Compare inputs to this single file.')
     p.add_argument('--normalize', action='store_true',
-                   help='If set, will normalize all matricies zero to one.')
+                   help='If set, will normalize all matrices from zero to one.')
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -55,6 +55,7 @@ def main():
     for filename in args.in_matrices:
         tmp_mat = load_matrix_in_any_format(filename)
         tmp_mat = tmp_mat.astype(float)
+        tmp_mat -= np.min(tmp_mat)
         if args.normalize:
             all_matrices.append(tmp_mat / np.max(tmp_mat))
         else:
@@ -63,6 +64,7 @@ def main():
     if args.single_compare:
         tmp_mat = load_matrix_in_any_format(args.single_compare)
         tmp_mat = tmp_mat.astype(float)
+        tmp_mat -= np.min(tmp_mat)
         if args.normalize:
             all_matrices.append(tmp_mat / np.max(tmp_mat))
         else:
