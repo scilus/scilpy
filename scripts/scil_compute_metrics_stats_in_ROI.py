@@ -56,10 +56,6 @@ def _build_arg_parser():
                    help='If set, the weights will be normalized to the [0,1] '
                         'range.')
 
-    p.add_argument('--compute_mask_sum', action='store_true',
-                   help='Compute the sum of values for each input mask,\n '
-                        'this is equivalent to nb_voxel for binary mask.')
-
     p.add_argument('--out_file',
                    help='Save all average to a file (txt, json).')
 
@@ -84,7 +80,6 @@ def main():
 
     # Load masks and validate content depending on flags
     mask_list = []
-    sum_list = []
     for mask_file in args.in_mask:
         mask_img = nib.load(mask_file)
 
@@ -109,9 +104,6 @@ def main():
         if args.bin:
             mask_data[np.where(mask_data > 0.0)] = 1.0
 
-        if args.compute_mask_sum:
-            sum_list.append(np.sum(mask_data))
-
         mask_list.append(mask_data)
 
     # Load all metrics files.
@@ -129,7 +121,8 @@ def main():
         stats = get_roi_metrics_mean_std(mask_list[i], metrics_files)
         json_stats[roi_name] = {}
 
-        for j, (metric_file, (mean, std)) in enumerate(zip(metrics_files, stats)):
+        for j, (metric_file, (mean, std)) \
+                in enumerate(zip(metrics_files, stats)):
             metric_name = split_name_with_nii(
                 os.path.basename(metric_file.get_filename()))[0]
             json_stats[roi_name][metric_name] = {
@@ -138,17 +131,10 @@ def main():
             }
             avg_array[i, j] = mean.item()
 
-        if args.compute_mask_sum:
-            json_stats[roi_name]['sum'] = float(sum_list[i])
-
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
 
     if args.out_file:
         _, file_ext = os.path.splitext(args.out_file)
-
-        if args.compute_mask_sum:
-            sum_array = np.asarray(sum_list).reshape((len(mask_list), 1))
-            avg_array = np.hstack([avg_array, sum_array])
 
         if file_ext == ".json":
             with open(args.out_file, 'w') as fp:
