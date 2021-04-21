@@ -24,5 +24,5 @@ def test_execution_tractometry(script_runner):
                           'mni_masked.nii.gz')
     ret = script_runner.run('scil_compute_metrics_stats_in_ROI.py',
                             in_mask, '--metrics', in_ref,
-                            '--output_file', 'IFGWM_avg.txt', '-f')
+                            '--out_file', 'IFGWM_avg.txt', '-f')
     assert ret.success

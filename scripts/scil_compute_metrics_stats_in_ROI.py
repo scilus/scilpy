@@ -60,7 +60,7 @@ def _build_arg_parser():
                    help='Compute the sum of values for each input mask,\n '
                         'this is equivalent to nb_voxel for binary mask.')
 
-    p.add_argument('--output_file',
+    p.add_argument('--out_file',
                    help='Save all average to a file (txt, json).')
 
     add_overwrite_arg(p)
@@ -80,7 +80,7 @@ def main():
     elif args.metrics_file_list:
         assert_inputs_exist(parser, args.in_mask + args.metrics_file_list)
 
-    assert_outputs_exist(parser, args, [], optional=args.output_file)
+    assert_outputs_exist(parser, args, [], optional=args.out_file)
 
     # Load masks and validate content depending on flags
     mask_list = []
@@ -92,7 +92,7 @@ def main():
             logging.error('Masks should be a 3D image.')
 
         # Can be a weighted image
-        mask_data = mask_img.get_fdata(dtype=np.float32)
+        mask_data = mask_img.get_fdata()
 
         if np.min(mask_data) < 0:
             logging.error('Masks should not contain negative values.')
@@ -122,18 +122,16 @@ def main():
         metrics_files = [nib.load(f) for f in args.metrics_file_list]
 
     # Compute the mean values and standard deviations
-    nb_mask = len(mask_list)
-    nb_metric = len(metrics_files)
     json_stats = {}
-    avg_array = np.zeros([nb_mask, nb_metric], dtype=np.float)
-    for i in range(nb_mask):
-        roi_name = split_name_with_nii(os.path.basename(args.in_mask[i]))[0]
+    avg_array = np.zeros([len(mask_list), len(metrics_files)], dtype=float)
+    for i, mask_file in enumerate(args.in_mask):
+        roi_name = split_name_with_nii(os.path.basename(mask_file))[0]
         stats = get_roi_metrics_mean_std(mask_list[i], metrics_files)
         json_stats[roi_name] = {}
 
-        for j, (mean, std) in enumerate(stats):
+        for j, (metric_file, (mean, std)) in enumerate(zip(metrics_files, stats)):
             metric_name = split_name_with_nii(
-                os.path.basename(metrics_files[j].get_filename()))[0]
+                os.path.basename(metric_file.get_filename()))[0]
             json_stats[roi_name][metric_name] = {
                 'mean': mean.item(),
                 'std': std.item()
@@ -145,19 +143,19 @@ def main():
 
     print(json.dumps(json_stats, indent=args.indent, sort_keys=args.sort_keys))
 
-    if args.output_file:
-        _, file_ext = os.path.splitext(args.output_file)
+    if args.out_file:
+        _, file_ext = os.path.splitext(args.out_file)
 
         if args.compute_mask_sum:
-            sum_array = np.asarray(sum_list).reshape((nb_mask, 1))
+            sum_array = np.asarray(sum_list).reshape((len(mask_list), 1))
             avg_array = np.hstack([avg_array, sum_array])
 
         if file_ext == ".json":
-            with open(args.output_file, 'w') as fp:
+            with open(args.out_file, 'w') as fp:
                 json.dump(json_stats, fp, indent=args.indent,
                           sort_keys=args.sort_keys)
         else:
-            np.savetxt(args.output_file, avg_array, delimiter=",", newline=";")
+            np.savetxt(args.out_file, avg_array, delimiter=",", newline=";")
 
 
 if __name__ == "__main__":
