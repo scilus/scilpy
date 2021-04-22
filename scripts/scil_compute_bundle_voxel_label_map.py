@@ -127,19 +127,21 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    if np.count_nonzero(binary_bundle) > 10000:
+    if np.count_nonzero(binary_bundle) > 10000 and len(sft_bundle) > 100:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
         binary_bundle = ndi.binary_erosion(binary_bundle,
                                            structure=structure, iterations=2)
 
-    bundle_disjoint, _ = ndi.label(binary_bundle)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
-    val = unique[np.argmax(count[1:])+1]
-    binary_bundle[bundle_disjoint != val] = 0
+        bundle_disjoint, _ = ndi.label(binary_bundle)
+        unique, count = np.unique(bundle_disjoint, return_counts=True)
+        val = unique[np.argmax(count[1:])+1]
+        binary_bundle[bundle_disjoint != val] = 0
 
-    # Chop off some streamlines
-    cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+        # Chop off some streamlines
+        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+    else:
+        cut_sft = sft_bundle
 
     if args.nb_pts is not None:
         sft_centroid = resample_streamlines_num_points(sft_centroid,
