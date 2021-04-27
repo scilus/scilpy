@@ -16,7 +16,7 @@ def _affine_transform(kwargs):
 
 
 def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
-            offset=-0.5, num_processes=1):
+            offset=-0.0, num_processes=1):
     """Reslice data with new voxel resolution defined by ``new_zooms``
 
     Parameters

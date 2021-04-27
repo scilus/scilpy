@@ -51,7 +51,6 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     data = np.asanyarray(img.dataobj)
     original_res = data.shape
     affine = img.affine
-    offset = img.header['vox_offset']
     original_zooms = img.header.get_zooms()[:3]
 
     if ref is not None:
@@ -79,9 +78,9 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
         new_zooms = tuple(o * zoom for o in original_zooms)
     else:
         raise ValueError("You must choose the resampling method. Either with"
-                         "a reference volume, or a chosen isometric resolution,"
-                         "or an isometric resampling to the smallest current "
-                         "voxel dimension!")
+                         "a reference volume, or a chosen isometric resolution"
+                         ", or an isometric resampling to the smallest current"
+                         " voxel dimension!")
 
     interp_choices = ['nn', 'lin', 'quad', 'cubic']
     if interp not in interp_choices:
@@ -93,7 +92,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     logging.debug('Resampling data to %s with mode %s', new_zooms, interp)
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
-                             _interp_code_to_order(interp), offset=offset)
+                             _interp_code_to_order(interp))
 
     logging.debug('Resampled data shape: %s', data2.shape)
     logging.debug('Resampled data affine: %s', affine2)
