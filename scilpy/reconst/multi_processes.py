@@ -488,7 +488,7 @@ def convert_sh_to_sf_parallel(args):
     return chunk_id, sf
 
 
-def convert_sh_to_sf(shm_coeff, sphere, mask=None,
+def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                      input_basis='descoteaux07', nbr_processes=None):
     """Converts spherical harmonic coefficients to an SF sphere
 
@@ -501,6 +501,9 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None,
     mask : np.ndarray, optional
         If `mask` is provided, only the data inside the mask will be
         used for computations.
+    dtype : str
+        Datatype to use for computation and output array.
+        Either `float32` or `float64`. Default: `float32`
     input_basis : str, optional
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
@@ -514,16 +517,19 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None,
     shm_coeff_array : np.ndarray
         Spherical harmonic coefficients in the desired basis.
     """
+    assert dtype in ["float32", "float64"], "Only `float32` and `float64` " \
+                                            "should be used."
+
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis)
-    B_in = B_in.astype(np.float32)
+    B_in = B_in.astype(dtype)
 
     data_shape = shm_coeff.shape
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
-    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-                                                   or nbr_processes < 0 else nbr_processes
+    nbr_processes = multiprocessing.cpu_count() \
+        if nbr_processes is None or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
@@ -543,9 +549,9 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None,
 
     # Re-assemble the chunk together in the original shape.
     new_shape = data_shape[:3] + (len(sphere.vertices),)
-    sf_array = np.zeros(new_shape, dtype=np.float32)
+    sf_array = np.zeros(new_shape, dtype=dtype)
     tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[3]),
-                            dtype=np.float32)
+                            dtype=dtype)
     for i, new_sf in results:
         tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
 

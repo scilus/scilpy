@@ -40,6 +40,11 @@ def _build_arg_parser():
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
 
+    p.add_argument('--dtype', default="float32",
+                   choices=["float32", "float64"],
+                   help="Datatype to use for SF computation and output array."
+                        "'[%(default)s]'")
+
     # Optional args for a DWI-like volume
     p.add_argument("--extract_as_dwi", action="store_true",
                    help="Generate a DWI-like output, including a `.bval` file "
@@ -86,6 +91,7 @@ def main():
     sphere = get_sphere(args.sphere)
     sf = convert_sh_to_sf(data_sh, sphere,
                           input_basis=args.sh_basis,
+                          dtype=args.dtype,
                           nbr_processes=args.nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)
 
