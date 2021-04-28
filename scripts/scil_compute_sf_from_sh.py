@@ -49,16 +49,18 @@ def _build_arg_parser():
                         "'[%(default)s]'")
 
     # Optional args for a DWI-like volume
-    p.add_argument("--extract_as_dwi", action="store_true",
-                   help="Generate a DWI-like output, including a `.bval` file "
-                        "and b0 images in the sf file.")
-    p.add_argument('--bval',
+    p.add_argument('--in_bval',
                    help='b-value file, in FSL format, '
                         'used to assign a b-value to the '
                         'output SF and generate a `.bval` file.')
-    p.add_argument('--b0',
+    p.add_argument('--in_b0',
                    help='b0 volume to concatenate to the '
                         'final SF volume.')
+    p.add_argument('--out_bval',
+                   help="Optional output bval file.")
+    p.add_argument('--out_bvec',
+                   help="Optional output bvec file.")
+
     add_sh_basis_args(p)
     p.add_argument('--full_basis', action="store_true",
                    help="If true, use a full basis for the input SH "
@@ -76,18 +78,15 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_sh, optional=args.in_bvec)
-    out_bvecs = args.out_sf.replace(".nii.gz", ".bvec")
-    assert_outputs_exist(parser, args, [args.out_sf, out_bvecs])
+    assert_inputs_exist(parser, args.in_sh,
+                        optional=[args.in_bvec, args.in_bval, args.in_b0])
+    assert_outputs_exist(parser, args, args.out_sf,
+                         optional=[args.out_bvec, args.out_bval])
 
-    if args.extract_as_dwi:
-        assert_inputs_exist(parser, [args.bval, args.b0])
-        out_bvals = args.out_sf.replace(".nii.gz", ".bval")
-        assert_outputs_exist(parser, args, out_bvals)
-    else:
-        if args.bval or args.b0:
-            parser.error("--bval and --b0 are required only when "
-                         "--extract_as_dwi is used.")
+    if (args.in_bval and not args.out_bval) or (
+            args.out_bval and not args.in_bval):
+        parser.error("--out_bval is required if --in_bval is provided, "
+                     "and vice-versa.")
 
     # Load SH
     vol_sh = nib.load(args.in_sh)
@@ -107,34 +106,43 @@ def main():
                           nbr_processes=args.nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)
 
-    if args.extract_as_dwi:
-        # Load b0
-        vol_b0 = nib.load(args.b0)
-        data_b0 = vol_b0.get_fdata(dtype=args.dtype)
-        if data_b0.ndim == 3:
-            data_b0 = data_b0[..., np.newaxis]
-
+    # Assign bval to SF if --in_bval was provided
+    new_bvals = []
+    if args.in_bval:
         # Load bvals
-        bvals, _ = read_bvals_bvecs(args.bval, None)
+        bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
         # Compute average bval
         check_b0_threshold(args.force_b0_threshold, bvals.min())
         b0s_mask = bvals <= bvals.min()
         avg_bval = np.mean(bvals[np.logical_not(b0s_mask)])
-        new_bvals = ([avg_bval] * len(sphere.theta)) + ([0] * data_b0.shape[-1])
 
-        # Save new bvals
-        np.savetxt(out_bvals, np.array(new_bvals)[None, :], fmt='%.3f')
+        new_bvals = ([avg_bval] * len(sphere.theta))
+
+    # Add b0 images to SF (and bvals if necessary) if --in_b0 was provided
+    if args.in_b0:
+        # Load b0
+        vol_b0 = nib.load(args.in_b0)
+        data_b0 = vol_b0.get_fdata(dtype=args.dtype)
+        if data_b0.ndim == 3:
+            data_b0 = data_b0[..., np.newaxis]
+
+        new_bvals = ([0] * data_b0.shape[-1]) + new_bvals
 
         # Append zeros to bvecs
         new_bvecs = np.concatenate(
-            (new_bvecs, np.zeros((data_b0.shape[-1], 3))), axis=0)
+            (np.zeros((data_b0.shape[-1], 3)), new_bvecs), axis=0)
 
         # Append b0 images to SF
-        sf = np.concatenate((sf, data_b0), axis=-1)
+        sf = np.concatenate((data_b0, sf), axis=-1)
+
+    # Save new bvals
+    if args.out_bval:
+        np.savetxt(args.out_bval, np.array(new_bvals)[None, :], fmt='%.3f')
 
     # Save new bvecs
-    np.savetxt(out_bvecs, new_bvecs.T, fmt='%.8f')
+    if args.out_bvec:
+        np.savetxt(args.out_bvec, new_bvecs.T, fmt='%.8f')
 
     # Save SF
     nib.save(nib.Nifti1Image(sf, vol_sh.affine), args.out_sf)
