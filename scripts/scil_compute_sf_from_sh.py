@@ -12,6 +12,7 @@ bvals file. Otherwise, no .bval file will be created.
 
 import argparse
 
+from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 import nibabel as nib
@@ -34,15 +35,14 @@ def _build_arg_parser():
                    help='Name of the output SF file to save (bvals/bvecs will '
                         'be automatically named when necessary).')
 
-    p.add_argument('--full_basis', action="store_true",
-                   help="If true, use a full basis for the input SH "
-                        "coefficients.")
+    # Sphere vs bvecs choice for SF
+    directions = p.add_mutually_exclusive_group(required=True)
+    directions.add_argument('--sphere',
+                            choices=sorted(SPHERE_FILES.keys()),
+                            help='Sphere used for the SH to SF projection. ')
+    directions.add_argument('--in_bvec',
+                            help="Directions used for the SH to SF projection.")
 
-    # Sphere choice for SF
-    p.add_argument('--sphere', default='repulsion724',
-                   choices=sorted(SPHERE_FILES.keys()),
-                   help='Sphere used for the SH to SF projection. '
-                        '[%(default)s]')
     p.add_argument('--dtype', default="float32",
                    choices=["float32", "float64"],
                    help="Datatype to use for SF computation and output array."
@@ -60,6 +60,10 @@ def _build_arg_parser():
                    help='b0 volume to concatenate to the '
                         'final SF volume.')
     add_sh_basis_args(p)
+    p.add_argument('--full_basis', action="store_true",
+                   help="If true, use a full basis for the input SH "
+                        "coefficients.")
+
     add_processes_arg(p)
 
     add_overwrite_arg(p)
@@ -72,8 +76,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_sh)
-
+    assert_inputs_exist(parser, args.in_sh, optional=args.in_bvec)
     out_bvecs = args.out_sf.replace(".nii.gz", ".bvec")
     assert_outputs_exist(parser, args, [args.out_sf, out_bvecs])
 
@@ -91,7 +94,12 @@ def main():
     data_sh = vol_sh.get_fdata(dtype=np.float32)
 
     # Sample SF from SH
-    sphere = get_sphere(args.sphere)
+    if args.sphere:
+        sphere = get_sphere(args.sphere)
+    elif args.in_bvec:
+        _, bvecs = read_bvals_bvecs(None, args.in_bvec)
+        sphere = Sphere(xyz=bvecs)
+
     sf = convert_sh_to_sf(data_sh, sphere,
                           input_basis=args.sh_basis,
                           input_full_basis=args.full_basis,
