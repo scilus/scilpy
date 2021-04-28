@@ -489,7 +489,8 @@ def convert_sh_to_sf_parallel(args):
 
 
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
-                     input_basis='descoteaux07', nbr_processes=None):
+                     input_basis='descoteaux07', input_full_basis=False,
+                     nbr_processes=None):
     """Converts spherical harmonic coefficients to an SF sphere
 
     Parameters
@@ -508,6 +509,9 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
         Type of spherical harmonic basis used for `shm_coeff`. Either
         `descoteaux07` or `tournier07`.
         Default: `descoteaux07`
+    input_full_basis : bool
+        If True, use a full SH basis (even and odd orders) for the input SH
+        coefficients.
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
@@ -521,7 +525,8 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                                             "should be used."
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis)
+    B_in, _ = sh_to_sf_matrix(sphere, sh_order, basis_type=input_basis,
+                              full_basis=input_full_basis)
     B_in = B_in.astype(dtype)
 
     data_shape = shm_coeff.shape

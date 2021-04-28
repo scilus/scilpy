@@ -34,12 +34,15 @@ def _build_arg_parser():
                    help='Name of the output SF file to save (bvals/bvecs will '
                         'be automatically named when necessary).')
 
+    p.add_argument('--full_basis', action="store_true",
+                   help="If true, use a full basis for the input SH "
+                        "coefficients.")
+
     # Sphere choice for SF
     p.add_argument('--sphere', default='repulsion724',
                    choices=sorted(SPHERE_FILES.keys()),
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
-
     p.add_argument('--dtype', default="float32",
                    choices=["float32", "float64"],
                    help="Datatype to use for SF computation and output array."
@@ -91,6 +94,7 @@ def main():
     sphere = get_sphere(args.sphere)
     sf = convert_sh_to_sf(data_sh, sphere,
                           input_basis=args.sh_basis,
+                          input_full_basis=args.full_basis,
                           dtype=args.dtype,
                           nbr_processes=args.nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)
