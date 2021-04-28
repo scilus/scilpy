@@ -102,7 +102,7 @@ def main():
     if args.extract_as_dwi:
         # Load b0
         vol_b0 = nib.load(args.b0)
-        data_b0 = vol_b0.get_fdata(dtype=np.float32)
+        data_b0 = vol_b0.get_fdata(dtype=args.dtype)
         if data_b0.ndim == 3:
             data_b0 = data_b0[..., np.newaxis]
 
@@ -129,7 +129,7 @@ def main():
     np.savetxt(out_bvecs, new_bvecs.T, fmt='%.8f')
 
     # Save SF
-    nib.save(nib.Nifti1Image(sf.astype(np.float32), vol_sh.affine), args.out_sf)
+    nib.save(nib.Nifti1Image(sf, vol_sh.affine), args.out_sf)
 
 
 if __name__ == "__main__":
