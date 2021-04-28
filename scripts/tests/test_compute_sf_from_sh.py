@@ -23,6 +23,8 @@ def test_execution_processing(script_runner):
     in_bval = os.path.join(get_home(), 'processing', '1000.bval')
 
     ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh,
-                            'sf_724.nii.gz', '--extract_as_dwi', '--bval',
-                            in_bval, '--b0', in_b0)
+                            'sf_724.nii.gz', '--in_bval',
+                            in_bval, '--in_b0', in_b0, '--out_bval',
+                            'sf_724.bval', '--out_bvec', 'sf_724.bvec',
+                            '--sphere', 'symmetric724', '--dtype', 'float32')
     assert ret.success
