@@ -313,7 +313,7 @@ def assert_outputs_exist(parser, args, required, optional=None,
         if check_dir_exists:
             path_dir = os.path.dirname(path)
             if path_dir and not os.path.isdir(path_dir):
-                parser.error('Directory {} \n for a given output file '
+                parser.error('Directory {}/ \n for a given output file '
                              'does not exists.'.format(path_dir))
 
     if isinstance(required, str):

@@ -10,6 +10,8 @@ import argparse
 import json
 import os
 
+import numpy as np
+
 from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
 
@@ -42,6 +44,20 @@ def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
     return new_dict
 
 
+def _average_dict(dict_1):
+    for key in dict_1.keys():
+        if isinstance(dict_1[key], dict):
+            dict_1[key] = _average_dict(dict_1[key])
+        elif isinstance(dict_1[key], list) or np.isscalar(dict_1[key]):
+            new_dict = {}
+            for subkey in dict_1.keys():
+                new_dict[subkey] = {'mean': np.average(dict_1[subkey]),
+                                    'std': np.std(dict_1[subkey])}
+            return new_dict
+
+    return dict_1
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
@@ -61,6 +77,8 @@ def _build_arg_parser():
                    help='Merge ignoring parent key (e.g for population).')
     p.add_argument('--recursive', action='store_true',
                    help='Merge all entries at the lowest layers.')
+    p.add_argument('--average_last_layer', action='store_true',
+                   help='Average all entries at the lowest layers.')
     add_json_args(p)
     add_overwrite_arg(p)
 
@@ -86,6 +104,9 @@ def main():
                 out_dict = _merge_dict(out_dict, in_dict,
                                        no_list=args.no_list,
                                        recursive=args.recursive)
+
+    if args.average_last_layer:
+        out_dict = _average_dict(out_dict)
 
     with open(args.out_json, 'w') as outfile:
         if args.add_parent_key:
