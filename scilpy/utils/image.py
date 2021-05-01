@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import os
 import logging
 
-from datetime import datetime
 from dipy.align.imaffine import (AffineMap,
                                  AffineRegistration,
                                  MutualInformationMetric,
@@ -13,7 +11,6 @@ from dipy.align.transforms import (AffineTransform3D,
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
 from dipy.segment.mask import median_otsu
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
@@ -180,8 +177,6 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
     mask = get_data_as_mask(nib.load(mask), dtype=bool)
-
-
     bvals, bvecs = read_bvals_bvecs(bval, bvec)
 
     if split_shells:
@@ -213,13 +208,14 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         nib.save(nib.Nifti1Image(noise_mask, affine),
                  basename + '_noise_mask.nii.gz')
     elif noise_mask:
-        noise_mask = get_data_as_mask(nib.load(noise_mask), dtype=bool).squeeze()
+        noise_mask = get_data_as_mask(nib.load(noise_mask),
+                                      dtype=bool).squeeze()
     elif noise_map:
         img_noisemap = nib.load(noise_map)
         data_noisemap = img_noisemap.get_fdata(dtype=np.float32)
 
     # Val = np array (mean_signal, std_noise)
-    val = {0 : {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
+    val = {0: {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
     for idx in range(data.shape[-1]):
         val[idx] = {}
         val[idx]['bvec'] = bvecs[idx]
