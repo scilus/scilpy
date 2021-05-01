@@ -19,7 +19,7 @@ import numpy as np
 
 from scipy.ndimage.morphology import binary_dilation
 from scilpy.io.image import get_data_as_mask
-from scilpy.utils.filenames import split_name_with_nii
+from scilpy.utils.bvec_bval_tools import identify_shells
 
 
 def transform_anatomy(transfo, reference, moving, filename_to_save,
@@ -145,7 +145,9 @@ def register_image(static, static_grid2world, moving, moving_grid2world,
 
 
 def compute_snr(dwi, bval, bvec, b0_thr, mask,
-                noise_mask=None, basename=None, verbose=False):
+                noise_mask=None, noise_map=None,
+                split_shells=False,
+                basename=None, verbose=False):
     """
     Compute snr
 
@@ -163,8 +165,11 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         Path to the mask
     noise_mask: string
         Path to the noise mask
+    noise_map: string
+        Path to the noise map
     basename: string
         Basename used for naming all output files
+
     verbose: boolean
         Set to use logging
     """
@@ -176,16 +181,18 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
     affine = img.affine
     mask = get_data_as_mask(nib.load(mask), dtype=bool)
 
-    if basename is None:
-        filename, ext = split_name_with_nii(dwi)
-    else:
-        filename = basename
 
-    logging.info('Basename: {}'.format(filename))
     bvals, bvecs = read_bvals_bvecs(bval, bvec)
+
+    if split_shells:
+        centroids, shell_indices = identify_shells(bvals, threshold=40.0,
+                                                   roundCentroids=False,
+                                                   sort=False)
+        bvals = centroids[shell_indices]
+
     b0s_location = bvals <= b0_thr
 
-    if noise_mask is None:
+    if noise_mask is None and noise_map is None:
         b0_mask, noise_mask = median_otsu(data, vol_idx=b0s_location)
 
         # we inflate the mask, then invert it to recover only the noise
@@ -204,61 +211,25 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
                      'in volume : {}'.format(np.size(noise_mask)))
 
         nib.save(nib.Nifti1Image(noise_mask, affine),
-                 filename + '_noise_mask.nii.gz')
+                 basename + '_noise_mask.nii.gz')
+    elif noise_mask:
+        noise_mask = get_data_as_mask(nib.load(noise_mask), dtype=bool).squeeze()
+    elif noise_map:
+        img_noisemap = nib.load(noise_map)
+        data_noisemap = img_noisemap.get_fdata(dtype=np.float32)
 
-    else:
-        noise_mask = nib.load(noise_mask).get_data().squeeze()
-
-    signal_mean = np.zeros(data.shape[-1])
-    noise_std = np.zeros(data.shape[-1])
-    SNR = np.zeros(data.shape[-1])
-
-    # Write everything that is printed to a txt file
-    report = open(filename + '_info.txt', 'a')
-    report_header = '\n\n--------------------------------------------\n'
-    report_header += 'Now beginning processing of {} image '\
-                     'at: {}'.format(os.path.dirname(os.path.realpath(dwi)),
-                                     str(datetime.now()))
-    report_header += '\n\n\n---------------------------------------------\n\n'
-    report.write(report_header)
-
+    # Val = np array (mean_signal, std_noise)
+    val = {0 : {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
     for idx in range(data.shape[-1]):
-        signal_mean[idx] = np.mean(data[..., idx:idx+1][mask > 0])
-        noise_std[idx] = np.std(data[..., idx:idx+1][noise_mask > 0])
-        SNR[idx] = signal_mean[idx] / noise_std[idx]
+        val[idx] = {}
+        val[idx]['bvec'] = bvecs[idx]
+        val[idx]['bval'] = bvals[idx]
+        val[idx]['mean'] = np.mean(data[..., idx:idx+1][mask > 0])
+        if noise_map:
+            val[idx]['std'] = np.std(data_noisemap[mask > 0])
+        else:
+            val[idx]['std'] = np.std(data[..., idx:idx+1][noise_mask > 0])
 
-        message = '\nNow processing image {} '\
-                  'of {}'.format(str(idx),
-                                 str(data.shape[-1]-1))
-        message += '\nSignal mean is {}\n'.format(str(signal_mean[idx]))
-        message += 'Noise Standard deviation is {}'.format(str(noise_std[idx]))
-        message += '\nEstimated SNR is {}'.format(str(SNR[idx]))
-        message += '\nGradient direction is {}\n'.format(str(bvecs[idx, :]))
-        logging.info(message)
-        report.write(message)
+        val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 
-    SNR_b0 = SNR[b0s_location]
-    report_SNR_b0 = '\nSNR for b0 is {}\n'.format(str(SNR_b0))
-    report_SNR = 'Max SNR (located at gradient direction {} ) '\
-                 'is {}\n'.format(str(bvecs[:, np.argmax(SNR)]),
-                                  str(np.max(SNR)))
-    report_SNR += 'Min SNR (located at gradient direction {} ) '\
-                  'is {}'.format(str(bvecs[:, np.argmin(SNR)]),
-                                 str(np.min(SNR)))
-
-    logging.info(report_SNR_b0 + report_SNR)
-    report.write(report_SNR_b0 + report_SNR)
-    report.close()
-
-    plt.plot(SNR)
-    plt.legend(["SNR"])
-    plt.xlabel("Volume (excluding B0)")
-    plt.ylabel("Estimated SNR")
-    plt.text(1, 1, 'SNR B0 = ' + str(SNR_b0))
-
-    plt.savefig(filename + "_graph_SNR.png", bbox_inches='tight', dpi=300)
-
-    # Save the numpy arrays used for SNR calculation
-    np.save(filename + '_std', noise_std)
-    np.save(filename + '_mean', signal_mean)
-    np.save(filename + '_SNR', SNR)
+    return val

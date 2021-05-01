@@ -6,10 +6,11 @@ Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
 of a DWI volume.
 
 It will compute the SNR for all DWI volumes of the input image seperately.
-The output will contain the SNR
+The output will contain the SNR.
 The mean of the signal is computed inside the mask.
-The standard deviation of the noise is estimated inside noise_mask.
-If it's not supplied, it will be estimated using the data outside medotsu.
+The standard deviation of the noise is estimated inside the noise_mask.
+If it's not supplied, it will be estimated using the data outside the brain,
+computed with Dipy medotsu
 
 If verbose is True, the SNR for every DWI volume will be outputed.
 
@@ -18,8 +19,16 @@ It is heavily dependent on the ROI and its quality.
 """
 
 import argparse
+import logging
 
-from scilpy.io.utils import (add_verbose_arg, assert_inputs_exist)
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
+                             assert_inputs_exist)
+from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.image import compute_snr
 
 
@@ -40,18 +49,26 @@ def _build_arg_parser():
     p.add_argument('in_mask',
                    help='Binary mask of the region used to estimate SNR.')
 
-    p.add_argument('--noise', action='store', dest='noise_mask',
-                   metavar='noise_mask',
-                   help='Binary mask used to estimate the noise.')
+    g1 = p.add_argument_group(title='Masks options')
+    mask = g1.add_mutually_exclusive_group()
+    mask.add_argument('--noise_mask',
+                      help='Binary mask used to estimate the noise'
+                           'from the DWI.')
+    mask.add_argument('--noise_map',
+                      help='Noise map.')
 
-    p.add_argument('--b0_thr', type=float, default=0.0,
+    p.add_argument('--b0_thr',
+                   type=float, default=0.0,
                    help='All b-values with values less than or equal '
                         'to b0_thr are considered as b0s i.e. without '
-                        'diffusion weighting. [Default: 0.0]')
-
+                        'diffusion weighting. [%(default)s]')
     p.add_argument('--out_basename',
                    help='Path and prefix for the various saved file.')
+    p.add_argument('--split_shells',
+                   action='store_true',
+                   help='SNR will be split into shells.')
 
+    add_json_args(p)
     add_verbose_arg(p)
 
     return p
@@ -62,14 +79,81 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_dwi, args.in_bval,
-                                 args.in_bvec, args.in_mask])
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
-    compute_snr(args.in_dwi, args.in_bval, args.in_bvec, args.b0_thr,
-                args.in_mask,
-                noise_mask=args.noise_mask,
-                basename=args.out_basename,
-                verbose=args.verbose)
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval,
+                                 args.in_bvec, args.in_mask],
+                                [args.noise_mask, args.noise_map])
+
+    basename, ext = split_name_with_nii(args.in_dwi)
+
+    if args.out_basename:
+        basename = args.out_basename
+
+    logging.info('Basename: {}'.format(basename))
+
+    values = compute_snr(args.in_dwi, args.in_bval, args.in_bvec, args.b0_thr,
+                         args.in_mask,
+                         noise_mask=args.noise_mask,
+                         noise_map=args.noise_map,
+                         split_shells=args.split_shells,
+                         basename=basename,
+                         verbose=args.verbose)
+
+    df = pd.DataFrame.from_dict(values).T
+
+    if args.split_shells:
+        for curr_shell in np.unique(df['bval']):
+            curr_values = df.loc[df['bval'] == curr_shell]['snr']
+            plt.plot(curr_values,
+                     marker='+', linestyle='--')
+            plt.legend(["SNR for bval: " + str(curr_shell)])
+            plt.xlabel("Directions")
+            plt.xlim([-1, len(df)])
+            plt.ylim([0, np.max(df['snr'])])
+            plt.ylabel("Estimated SNR")
+            plt.text(1, -9, 'Min SNR = ' + str(np.min(curr_values)))
+            plt.text(1, -13, 'Max SNR = ' + str(np.max(curr_values)))
+            plt.text(1, -17, 'Mean SNR = ' + str(np.mean(curr_values)))
+            out_png = basename + "_graph_SNR_bval_" + str(curr_shell) + ".png"
+            plt.savefig(out_png, bbox_inches='tight', dpi=300)
+            plt.clf()
+
+            logging.info('Min SNR for B={} is {}'.format(str(curr_shell),
+                                                         str(np.min(curr_values))))
+            logging.info('Max SNR for B={} is {}'.format(str(curr_shell),
+                                                         str(np.max(curr_values))))
+            logging.info('Mean SNR for B={} is {}'.format(str(curr_shell),
+                                                          str(np.mean(curr_values))))
+
+    else:
+        b0_values = df.loc[df['bval'] == 0.0]['snr']
+
+        logging.info('Mean SNR for b0 is {}'.format(str(np.mean(b0_values))))
+
+        curr_values = df.loc[df['bval'] != 0.0]['snr']
+        plt.plot(range(len(curr_values)), curr_values,
+                 marker='+', linestyle='--')
+        plt.legend(["SNR"])
+        plt.xlabel("Volume (excluding B0)")
+        plt.ylabel("Estimated SNR")
+        plt.xlim([-1, len(df)])
+        plt.text(1, 9, 'Min SNR B0 = ' + str(np.min(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.text(1, 5, 'Max SNR B0 = ' + str(np.max(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.text(1, 1, 'Mean SNR B0 = ' + str(np.mean(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.savefig(basename + "_graph.png", bbox_inches='tight', dpi=300)
+        plt.close()
+
+    min_value = df[df['snr'] == np.min(df['snr'])].index[0]
+    max_value = df[df['snr'] == np.max(df['snr'])].index[0]
+    logging.info('Min SNR is {} and from B={}'.format(str(df['snr'][min_value]),
+                                                      str(df['bval'][min_value])))
+    logging.info('Max SNR is {} and from B={}'.format(str(df['snr'][max_value]),
+                                                      str(df['bval'][max_value])))
+
+    with open(basename + "_SNR.json", "w") as f:
+        df.T.to_json(f, indent=args.indent)
 
 
 if __name__ == "__main__":
