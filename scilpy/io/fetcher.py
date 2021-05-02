@@ -65,7 +65,7 @@ def get_testing_files_dict():
              '3e27625a1e7f2484b7fa5028c95324cc'],
             'stats.zip':
             ['1vsM7xuU0jF5fL5PIgN6stAH7oO683tw0',
-             '19d4892ceb8d6e823c0f78c862584521']}
+             'bcc21835cf0bf7210bdc99ba5d8df44b']}
 
 
 def _get_file_md5(filename):

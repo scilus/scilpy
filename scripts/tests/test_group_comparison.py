@@ -21,14 +21,14 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_json = os.path.join(get_home(), 'participants.tsv')
-    in_participants = os.path.join(get_home(), 'meanstd_all.json')
+    in_json = os.path.join(get_home(), 'stats', 'participants.tsv')
+    in_participants = os.path.join(get_home(), 'stats', 'meanstd_all.json')
 
     ret = script_runner.run('scil_group_comparison.py',
-                            in_participants, in_json, 'Group', 'data',
+                            in_participants, in_json, 'Group',
                             '-b', 'AF_L',
                             '-m', 'FIT_FW',
                             '--va', 'mean',
-                            '--gg', '--gc')
+                            '--gg')
 
     assert ret.success

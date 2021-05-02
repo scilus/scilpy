@@ -35,17 +35,16 @@ https://en.wikipedia.org/wiki/Kruskal%E2%80%93Wallis_one-way_analysis_of_varianc
 """
 
 import argparse
-import csv
 import json
 import logging
 import os
 
 from itertools import product
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.stats.stats import (verify_group_difference,
                                 verify_homoscedasticity,
@@ -54,8 +53,7 @@ from scilpy.stats.stats import (verify_group_difference,
 from scilpy.stats.utils import (data_for_stat,
                                 get_group_data_sample,
                                 visualise_distribution,
-                                write_current_dictionnary,
-                                write_csv_from_json)
+                                write_current_dictionnary)
 
 
 def _build_arg_parser():
@@ -64,39 +62,39 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_json', metavar='IN_JSON',
-                   help='input JSON file from tractometry nextflow pipeline'
+                   help='Input JSON file from tractometry nextflow pipeline'
                         ' or equivalent.')
 
     p.add_argument('in_participants', metavar='IN_PARTICIPANTS',
-                   help='input tsv participants file.'
-                   'See doc in scilpy/doc/construct_participants_tsv_file.md.')
+                   help='Input tsv participants file.'
+                        'See doc in https://scilpy.readthedocs.io/en/latest/documentation/construct_participants_tsv_file.html.')
 
     p.add_argument('group_by', metavar='GROUP',
-                   help='variable that will be used to compare group '
+                   help='Variable that will be used to compare group '
                         'together.')
 
-    p.add_argument('o_json', metavar='O_JSON',
-                   help='The name of the result json output file. '
-                        'No need to add the extension .json')
+    p.add_argument('--out_dir', metavar='OUT_DIR',
+                   default='stats',
+                   help='Name of the output folder path. [%(default)s]')
+
+    p.add_argument('--out_json',
+                   help='The name of the result json output file otherwise '
+                        'it will be printed.')
 
     p.add_argument('--bundles', '-b',
                    default='all', nargs='+',
-                   help='bundle(s) in which you want to do stats. '
+                   help='Bundle(s) in which you want to do stats. '
                         '[%(default)s]')
 
     p.add_argument('--metrics', '-m',
                    default='all', nargs='+',
-                   help='metric(s) on which you want to do stats. '
+                   help='Metric(s) on which you want to do stats. '
                         '[%(default)s]')
 
     p.add_argument('--values', '--va',
                    default='all', nargs='+',
-                   help='value(s) on which you want to do stats (mean, std).'
+                   help='Value(s) on which you want to do stats (mean, std).'
                         ' [%(default)s]')
-
-    p.add_argument('--out_dir', '-o',
-                   default='stats',
-                   help='name of the output folder path. [%(default)s]')
 
     p.add_argument('--alpha_error', '-a',
                    default=0.05,
@@ -107,10 +105,7 @@ def _build_arg_parser():
                    help='Generate a simple plot of every metric across '
                         'groups.')
 
-    p.add_argument('--generate_csv',
-                   '--gc', action='store_true',
-                   help='Generate the result of the script in a csv format.')
-
+    add_json_args(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -144,13 +139,6 @@ def main():
 
     req_folder = os.path.join(args.out_dir, 'Graph')
     assert_output_dirs_exist_and_empty(parser, args, req_folder)
-
-    basename, ext = os.path.splitext(args.o_json)
-    assert_outputs_exist(parser, args,
-                         os.path.join(args.out_dir, basename + '.json'),
-                         optional=os.path.join(args.out_dir,
-                                               basename + '.csv'),
-                         check_dir_exists=True)
 
     alpha_error = float(args.alpha_error)
 
@@ -257,35 +245,14 @@ def main():
         result_dict[curr_comparison_measure] = curr_dict
 
     # Saving the result dictionnary into a json file and csv if necessary
-    if args.o_json.endswith(".json"):
-        base = os.path.splitext(args.o_json)
-        with open(os.path.join(args.out_dir,
-                               args.o_json), "w") as fp:
-            json.dump(result_dict, fp, indent=4)
-        if args.generate_csv:
-            with open(os.path.join(args.out_dir,
-                                   base[0] + ".csv"), "w") as fp:
-                csv_writer = csv.writer(fp, delimiter=',')
-                write_csv_from_json(csv_writer, result_dict)
-    elif args.o_json.endswith(".csv"):
-        base = os.path.splitext(args.o_json)
-        with open(os.path.join(args.out_dir,
-                               base[0] + ".json"), "w") as fp:
-            json.dump(result_dict, fp, indent=4)
-        if args.generate_csv:
-            with open(os.path.join(args.out_dir,
-                                   args.o_json), "w") as fp:
-                csv_writer = csv.writer(fp, delimiter=',')
-                write_csv_from_json(csv_writer, result_dict)
+    if args.out_json:
+        with open(os.path.join(args.out_dir, args.out_json), 'w') as outfile:
+            json.dump(result_dict, outfile, indent=args.indent,
+                      sort_keys=args.sort_keys)
     else:
-        with open(os.path.join(args.out_dir,
-                               args.o_json + ".json"), "w") as fp:
-            json.dump(result_dict, fp, indent=4)
-        if args.generate_csv:
-            with open(os.path.join(args.out_dir,
-                                   args.o_json + ".csv"), "w") as fp:
-                csv_writer = csv.writer(fp, delimiter=',')
-                write_csv_from_json(csv_writer, result_dict)
+        print(json.dumps(result_dict,
+                         indent=args.indent,
+                         sort_keys=args.sort_keys))
 
 
 if __name__ == '__main__':
