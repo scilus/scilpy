@@ -16,7 +16,7 @@ def _affine_transform(kwargs):
 
 
 def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
-            offset=-0.0, num_processes=1):
+            offset=-0.5, num_processes=1):
     """Reslice data with new voxel resolution defined by ``new_zooms``
 
     Parameters
@@ -40,7 +40,7 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
         Value used for points outside the boundaries of the input if
         mode='constant'.
     offset: float
-        Offset for values in the image
+        Offset for voxels in the volume
     num_processes : int
         Split the calculation to a pool of children processes. This only
         applies to 4D `data` arrays. If a positive integer then it defines

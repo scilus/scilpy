@@ -13,7 +13,7 @@ def _interp_code_to_order(interp_code):
 
 
 def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
-                    interp='lin', enforce_dimensions=False):
+                    interp='lin', enforce_dimensions=False, offset=-0.5):
     """
     Function to resample a dataset to match the resolution of another
     reference dataset or to the resolution specified as in argument.
@@ -92,7 +92,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
     logging.debug('Resampling data to %s with mode %s', new_zooms, interp)
 
     data2, affine2 = reslice(data, affine, original_zooms, new_zooms,
-                             _interp_code_to_order(interp))
+                             _interp_code_to_order(interp), offset=offset)
 
     logging.debug('Resampled data shape: %s', data2.shape)
     logging.debug('Resampled data affine: %s', affine2)
