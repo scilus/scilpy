@@ -16,7 +16,7 @@ def _affine_transform(kwargs):
 
 
 def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
-            num_processes=1):
+            offset=-0.5, num_processes=1):
     """Reslice data with new voxel resolution defined by ``new_zooms``
 
     Parameters
@@ -39,6 +39,8 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
     cval : float
         Value used for points outside the boundaries of the input if
         mode='constant'.
+    offset: float
+        Offset for voxels in the volume
     num_processes : int
         Split the calculation to a pool of children processes. This only
         applies to 4D `data` arrays. If a positive integer then it defines
@@ -83,7 +85,7 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
         new_shape = zooms / new_zooms * np.array(data.shape[:3])
         new_shape = tuple(np.round(new_shape).astype('i8'))
         kwargs = {'matrix': R, 'output_shape': new_shape, 'order': order,
-                  'mode': mode, 'cval': cval, 'offset': -0.5 * R}
+                  'mode': mode, 'cval': cval, 'offset': offset * R}
         if data.ndim == 3:
             data2 = affine_transform(input=data, **kwargs)
         if data.ndim == 4:
