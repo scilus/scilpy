@@ -187,6 +187,10 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
 
     b0s_location = bvals <= b0_thr
 
+    if not np.any(b0s_location):
+        raise ValueError('You should ajust --b0_thr={} '
+                         'since no b0s where find.'.format(b0_thr))
+
     if noise_mask is None and noise_map is None:
         b0_mask, noise_mask = median_otsu(data, vol_idx=b0s_location)
 
@@ -225,6 +229,9 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
             val[idx]['std'] = np.std(data_noisemap[mask > 0])
         else:
             val[idx]['std'] = np.std(data[..., idx:idx+1][noise_mask > 0])
+            if val[idx]['std'] == 0:
+                raise ValueError('Your noise mask does not capture any data'
+                                 '(std=0). Please check your noise mask.')
 
         val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 

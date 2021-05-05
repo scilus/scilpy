@@ -8,7 +8,7 @@ of a DWI volume.
 It will compute the SNR for all DWI volumes of the input image seperately.
 The output will contain the SNR.
 The mean of the signal is computed inside the mask.
-The standard deviation of the noise is estimated inside the noise_mask 
+The standard deviation of the noise is estimated inside the noise_mask
 or inside the same mask if a noise_map is provided.
 If it's not supplied, it will be estimated using the data outside the brain,
 computed with Dipy medotsu
