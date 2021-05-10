@@ -49,6 +49,12 @@ def _build_arg_parser():
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
                         'Default is the number of points of the centroid.')
+    p.add_argument('--min_streamline_count', type=int, default=100,
+                   help='Minimum number of streamlines for filtering/cutting'
+                        'operation [%(default)s].')
+    p.add_argument('--min_voxel_count', type=int, default=1000,
+                   help='Minimum number of voxels for filtering/cutting'
+                        'operation [%(default)s].')
 
     p.add_argument('--out_labels_npz', metavar='FILE',
                    help='File mapping of points to labels.')
@@ -127,7 +133,8 @@ def main():
                                                  np.bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    if np.count_nonzero(binary_bundle) > 10000 and len(sft_bundle) > 100:
+    if np.count_nonzero(binary_bundle) > args.min_voxel_count \
+        and len(sft_bundle) > args.min_streamline_count:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
         binary_bundle = ndi.binary_erosion(binary_bundle,
