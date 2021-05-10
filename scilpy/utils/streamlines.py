@@ -11,6 +11,7 @@ from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
@@ -80,6 +81,39 @@ def union(left, right):
     result = right.copy()
     result.update(left)
     return result
+
+
+def uniformize_bundle_sft(sft, axis=None, swap=False):
+    """Uniformize the streamlines in the given tractogram.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+         The tractogram that contains the list of streamlines to be uniformized
+    axis: int, optional
+        Orient endpoints in the given axis
+    swap: boolean, optional
+        Swap the orientation of streamlines
+
+    """
+    axis_name = ['x', 'y', 'z']
+    if axis is None:
+        centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
+        main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
+        main_dir_displacement = np.argmax(
+            np.abs(np.sum(np.gradient(centroid, axis=0), axis=0)))
+        if main_dir_displacement != main_dir_ends:
+            logging.info('Ambiguity in orientation, you should use --axis')
+        axis = axis_name[main_dir_displacement]
+    logging.info('Orienting endpoints in the {} axis'.format(axis))
+    axis_pos = axis_name.index(axis)
+    for i in range(len(sft.streamlines)):
+        # Bitwise XOR
+        if bool(sft.streamlines[i][0][axis_pos] >
+                sft.streamlines[i][-1][axis_pos]) ^ bool(swap):
+            sft.streamlines[i] = sft.streamlines[i][::-1]
+            for key in sft.data_per_point[i]:
+                sft.data_per_point[key][i] = sft.data_per_point[key][i][::-1]
 
 
 def perform_streamlines_operation(operation, streamlines, precision=None):
