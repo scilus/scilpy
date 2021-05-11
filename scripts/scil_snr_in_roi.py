@@ -6,7 +6,7 @@ Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
 of a DWI volume.
 
 It will compute the SNR for all DWI volumes of the input image seperately.
-The output will contain the SNR.
+The output will contain the SNR which is the ratio of mean(signal) / std(noise).
 The mean of the signal is computed inside the mask.
 The standard deviation of the noise is estimated inside the noise_mask
 or inside the same mask if a noise_map is provided.
@@ -17,6 +17,12 @@ If verbose is True, the SNR for every DWI volume will be outputed.
 
 This works best in a well-defined ROI such as the corpus callosum.
 It is heavily dependent on the ROI and its quality.
+
+We highly recommend using a noise_map if you can acquire one.
+See refs [1, 2] that describe the noise map acquisition.
+[1] St-Jean, et al (2016). Non Local Spatial and Angular Matching... https://doi.org/10.1016/j.media.2016.02.010
+[2] Reymbaut, et al (2021). Magic DIAMOND... https://doi.org/10.1016/j.media.2021.101988
+
 """
 
 import argparse
@@ -53,7 +59,7 @@ def _build_arg_parser():
     g1 = p.add_argument_group(title='Masks options')
     mask = g1.add_mutually_exclusive_group()
     mask.add_argument('--noise_mask',
-                      help='Binary mask used to estimate the noise'
+                      help='Binary mask used to estimate the noise '
                            'from the DWI.')
     mask.add_argument('--noise_map',
                       help='Noise map.')
