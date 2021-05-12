@@ -47,7 +47,6 @@ import itertools
 
 import nibabel as nib
 import numpy as np
-from sklearn.neighbors import KDTree
 
 
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
@@ -57,6 +56,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
+from scilpy.tractanalysis.reproducibility_measures import \
+    approximate_surface_node
 
 
 def _build_arg_parser():
@@ -100,17 +101,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def approximate_surface_node(atlas, node_id):
-    roi = np.zeros(atlas.shape)
-    roi[atlas == node_id] = 1
-    ind = np.argwhere(roi > 0)
-    tree = KDTree(ind)
-    count = np.sum(7 - tree.query_radius(ind, r=1.0,
-                                         count_only=True))
-
-    return count
 
 
 def main():
@@ -178,8 +168,10 @@ def main():
                     atlas_data == label) * voxels_vol)
             else:
                 if np.count_nonzero(atlas_data == label):
-                    factor_list.append(approximate_surface_node(
-                        atlas_data, label) * voxels_sur)
+                    roi = np.zeros(atlas_data.shape)
+                    roi[atlas_data == label] = 1
+                    factor_list.append(
+                        approximate_surface_node(roi) * voxels_sur)
                 else:
                     factor_list.append(0)
 
