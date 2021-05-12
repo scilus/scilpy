@@ -154,11 +154,6 @@ def _parse_args(parser):
         inputs.append(args.background)
 
     if args.peaks:
-        if args.full_basis:
-            # FURY doesn't support asymmetric peaks visualization
-            warnings.warn('Asymmetric peaks visualization is not supported '
-                          'by FURY. Peaks shown as symmetric peaks.',
-                          UserWarning)
         inputs.append(args.peaks)
         if args.peaks_values:
             inputs.append(args.peaks_values)
@@ -286,7 +281,8 @@ def main():
                                           peaks_values,
                                           mask,
                                           args.peaks_color,
-                                          args.peaks_width)
+                                          args.peaks_width,
+                                          not args.full_basis)
 
         actors.append(peaks_actor)
 

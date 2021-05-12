@@ -238,7 +238,8 @@ def create_texture_slicer(texture, mask, slice_index, value_range=None,
 
 
 def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
-                        mask=None, color=None, peaks_width=1.0):
+                        mask=None, color=None, peaks_width=1.0,
+                        symmetric=False):
     """
     Create a peaks slicer actor rendering a slice of the fODF peaks
     """
@@ -249,7 +250,8 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     # Instantiate peaks slicer
     peaks_slicer = actor.peak_slicer(data, peaks_values=peak_values,
                                      mask=mask, colors=color,
-                                     linewidth=peaks_width)
+                                     linewidth=peaks_width,
+                                     symmetric=symmetric)
     set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 
     return peaks_slicer
