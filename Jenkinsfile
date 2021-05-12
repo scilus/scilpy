@@ -54,9 +54,7 @@ pipeline {
         always {
             cleanWs()
             script {
-                if ("arnaudbore" not in pullRequest.requestedReviewers){
-                    pullRequest.createReviewRequests(['arnaudbore'])
-                }
+                pullRequest.createReviewRequests(['arnaudbore'])
             }
         }
         failure {
