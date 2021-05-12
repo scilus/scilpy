@@ -21,7 +21,7 @@ import numpy as np
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.multi_processes import convert_sh_to_sf
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold)
 
@@ -88,6 +88,8 @@ def main():
         parser.error("--out_bval is required if --in_bval is provided, "
                      "and vice-versa.")
 
+    nbr_processes = validate_nbr_processes(parser, args)
+
     # Load SH
     vol_sh = nib.load(args.in_sh)
     data_sh = vol_sh.get_fdata(dtype=np.float32)
@@ -103,7 +105,7 @@ def main():
                           input_basis=args.sh_basis,
                           input_full_basis=args.full_basis,
                           dtype=args.dtype,
-                          nbr_processes=args.nbr_processes)
+                          nbr_processes=nbr_processes)
     new_bvecs = sphere.vertices.astype(np.float32)
 
     # Assign bval to SF if --in_bval was provided

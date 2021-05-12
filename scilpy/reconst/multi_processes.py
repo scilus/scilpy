@@ -491,7 +491,7 @@ def convert_sh_to_sf_parallel(args):
 
 def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
                      input_basis='descoteaux07', input_full_basis=False,
-                     nbr_processes=None):
+                     nbr_processes=multiprocessing.cpu_count()):
     """Converts spherical harmonic coefficients to an SF sphere
 
     Parameters
@@ -534,9 +534,6 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     data_shape = shm_coeff.shape
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
-
-    nbr_processes = multiprocessing.cpu_count() \
-        if nbr_processes is None or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
