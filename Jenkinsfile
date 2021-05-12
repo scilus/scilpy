@@ -53,6 +53,25 @@ pipeline {
     post {
         always {
             cleanWs()
+            script {
+                pullRequest.createReviewRequests(['arnaudbore'])
+            }
+        }
+        failure {
+            script {
+                // CHANGE_ID is set only for pull requests, so it is safe to access the pullRequest global variable
+                if (env.CHANGE_ID) {
+                    pullRequest.comment('Build Failed :boom: \n' + env.BUILD_URL)
+                }
+            }
+        }
+        success {
+            script {
+                // CHANGE_ID is set only for pull requests, so it is safe to access the pullRequest global variable
+                if (env.CHANGE_ID) {
+                    pullRequest.comment('Build passed ! Good Job :beers: !')
+                }
+            }
         }
     }
 }
