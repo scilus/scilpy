@@ -54,7 +54,9 @@ pipeline {
         always {
             cleanWs()
             script {
-                pullRequest.createReviewRequests(['arnaudbore'])
+                if (env.CHANGE_ID) {
+                    pullRequest.createReviewRequests(['arnaudbore'])
+                }
             }
         }
         failure {
