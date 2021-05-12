@@ -40,7 +40,7 @@ def _build_arg_parser():
     p.add_argument('--b0_thr', type=float, default=0.0,
                    help='All b-values with values less than or equal '
                         'to b0_thr are considered as b0s i.e. without '
-                        'diffusion weighting.')
+                        'diffusion weighting. [%(default)s]')
 
     group = p.add_mutually_exclusive_group()
     group.add_argument('--all', action='store_true',
