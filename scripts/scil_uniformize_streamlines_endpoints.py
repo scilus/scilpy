@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist,
                              assert_inputs_exist)
-from scilpy.tractanalysis.features import get_streamlines_centroid
+from scilpy.utils.streamlines import uniformize_bundle_sft
 
 
 def _build_arg_parser():
@@ -66,28 +66,9 @@ def main():
     assert_outputs_exist(parser, args, args.out_bundle)
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-    axis = ['x', 'y', 'z']
     if args.auto:
-        centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
-        main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
-        main_dir_displacement = np.argmax(np.abs(np.sum(np.gradient(centroid,
-                                                                    axis=0),
-                                                        axis=0)))
-        if main_dir_displacement != main_dir_ends:
-            logging.info('Ambiguity in orientation, you should use --axis')
-        args.axis = axis[main_dir_displacement]
-        logging.info('Orienting endpoints of {} in the {} axis'.format(
-            args.in_bundle, args.axis))
-
-    axis_pos = axis.index(args.axis)
-    for i in range(len(sft.streamlines)):
-        # Bitwise XOR
-        if bool(sft.streamlines[i][0][axis_pos] > sft.streamlines[i][-1][axis_pos]) \
-                ^ bool(args.swap):
-            sft.streamlines[i] = sft.streamlines[i][::-1]
-            for key in sft.data_per_point[i]:
-                sft.data_per_point[key][i] = sft.data_per_point[key][i][::-1]
-
+        args.axis = None
+    uniformize_bundle_sft(sft, args.axis, swap=args.swap)
     save_tractogram(sft, args.out_bundle)
 
 

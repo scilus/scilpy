@@ -274,6 +274,7 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
+    sft.remove_invalid_streamlines()
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
