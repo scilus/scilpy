@@ -19,84 +19,6 @@ class CamParams(Enum):
     ZOOM_FACTOR = 'zoom_factor'
 
 
-class InteractableSlicer():
-    def __init__(self, slicer, shape, orientation, slice_index):
-        self.slicer = slicer
-        self.shape = shape
-        if orientation not in ['sagittal', 'coronal', 'axial']:
-            raise ValueError('Invalid orientation for slicer.')
-        self.orientation = orientation
-        if slice_index is None:
-            slice_index = get_middle_slice_index(orientation, shape)
-        self.slice_index = slice_index
-
-    def next_slice(self):
-        if self.orientation == 'sagittal':
-            index = min(self.slice_index + 1, self.shape[0] - 1)
-            self.slicer.display_extent(index, index, 0,
-                                       self.shape[1] - 1,
-                                       0, self.shape[2] - 1)
-        elif self.orientation == 'coronal':
-            index = min(self.slice_index + 1, self.shape[1] - 1)
-            self.slicer.display_extent(0, self.shape[0] - 1,
-                                       index, index,
-                                       0, self.shape[2] - 1)
-        elif self.orientation == 'axial':
-            index = min(self.slice_index + 1, self.shape[2] - 1)
-            self.slicer.display_extent(0, self.shape[0] - 1,
-                                       0, self.shape[1] - 1,
-                                       index, index)
-        self.slice_index = index
-
-    def prev_slice(self):
-        if self.orientation == 'sagittal':
-            index = max(self.slice_index - 1, 0)
-            self.slicer.display_extent(index, index, 0,
-                                       self.shape[1] - 1,
-                                       0, self.shape[2] - 1)
-        elif self.orientation == 'coronal':
-            index = max(self.slice_index - 1, 0)
-            self.slicer.display_extent(0, self.shape[0] - 1,
-                                       index, index,
-                                       0, self.shape[2] - 1)
-        elif self.orientation == 'axial':
-            index = max(self.slice_index - 1, 0)
-            self.slicer.display_extent(0, self.shape[0] - 1,
-                                       0, self.shape[1] - 1,
-                                       index, index)
-        self.slice_index = index
-
-
-class KeyUpDownCallback(object):
-    """
-    Callback for keyboard up/down interaction.
-    """
-    def __init__(self, interactables):
-        self.interactables = interactables
-
-    def __call__(self, caller, ev):
-        key = caller.GetKeySym()
-        if key == 'Up':
-            for i in self.interactables:
-                i.next_slice()
-        elif key == 'Down':
-            for i in self.interactables:
-                i.prev_slice()
-        caller.Render()
-
-
-def get_middle_slice_index(orientation, shape):
-    if orientation == 'sagittal':
-        slice_index = shape[0] // 2
-    elif orientation == 'coronal':
-        slice_index = shape[1] // 2
-    elif orientation == 'axial':
-        slice_index = shape[2] // 2
-    else:
-        raise ValueError('Invalid axis name: {0}'.format(orientation))
-    return slice_index
-
-
 def initialize_camera(orientation, slice_index, volume_shape):
     """
     Initialize a camera for a given orientation.
@@ -281,7 +203,7 @@ def create_scene(actors, orientation, slice_index, volume_shape):
 
 
 def render_scene(scene, window_size, interactor,
-                 output, silent, interactables=[], title='Viewer'):
+                 output, silent, title='Viewer'):
     """
     Render a scene. If a output is supplied, a snapshot of the rendered
     scene is taken.
@@ -291,10 +213,6 @@ def render_scene(scene, window_size, interactor,
                                    size=window_size,
                                    reset_camera=False,
                                    interactor_style=interactor)
-
-        if len(interactables) > 0:
-            showm.iren.AddObserver('KeyReleaseEvent',
-                                   KeyUpDownCallback(interactables))
 
         showm.initialize()
         showm.start()
