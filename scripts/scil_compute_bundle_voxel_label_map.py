@@ -91,6 +91,7 @@ def _affine_slr(sft_bundle, sft_centroid):
                                                      slm.matrix)
     return sft_centroid
 
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -134,7 +135,7 @@ def main():
 
     structure = ndi.generate_binary_structure(3, 1)
     if np.count_nonzero(binary_bundle) > args.min_voxel_count \
-        and len(sft_bundle) > args.min_streamline_count:
+            and len(sft_bundle) > args.min_streamline_count:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
         binary_bundle = ndi.binary_erosion(binary_bundle,
