@@ -51,6 +51,7 @@ import logging
 import numpy as np
 import os
 
+from dipy.io.utils import is_header_compatible
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 
@@ -76,34 +77,32 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    p.add_argument('in_tractogram',
+    p.add_argument("in_tractogram",
                    help="Input tractogram to score")
-    p.add_argument('gt_bundles', nargs='+',
-                   help="Bundles ground truth(.[trk|tck], .nii or .nii.gz).")
-    g = p.add_argument_group('ROIs')
-    g.add_argument('--gt_endpoints', nargs='+',
+    p.add_argument("gt_bundles", nargs="+",
+                   help="Bundles ground truth (.[trk|.tck|.nii|.nii.gz]).")
+    g = p.add_argument_group("ROIs")
+    g.add_argument("--gt_endpoints", nargs="+",
                    help="Bundles endpoints, both bundle's ROIs\
                        (.nii or .nii.gz).")
-    g.add_argument('--gt_tails', nargs='+',
+    g.add_argument("--gt_tails", nargs="+",
                    help="Bundles tails, bundle's first ROI(.nii or .nii.gz).")
-    g.add_argument('--gt_heads', nargs='+',
+    g.add_argument("--gt_heads", nargs="+",
                    help="Bundles heads, bundle's second ROI(.nii or .nii.gz).")
-    p.add_argument('--dilate_endpoints',
-                   metavar='NB_PASS', default=1, type=int,
-                   help='Dilate masks n-times.')
-    p.add_argument('--gt_config', metavar='FILE',
+    p.add_argument("--dilate_endpoints",
+                   metavar="NB_PASS", default=1, type=int,
+                   help="Dilate masks n-times.")
+    p.add_argument("--gt_config", metavar="FILE",
                    help=".json dict to specify bundles streamlines min, \
                     max length and max angles.")
-    p.add_argument('--out_dir', default='gt_out/',
+    p.add_argument("--out_dir", default="gt_out/",
                    help="Output directory")
-    p.add_argument('--wrong_path_as_separate', action='store_true',
+    p.add_argument("--wrong_path_as_separate", action="store_true",
                    help="Separates streamlines that go outside of the ground \
                         truth mask from true connections, outputs as \
                         *_wpc.[tck|trk].")
-    p.add_argument('--remove_duplicate', action='store_true',
-                   help='Remove duplicate streamlines before scoring.')
-    p.add_argument('--remove_invalid', action='store_true',
-                   help='Remove invalid streamlines before scoring.')
+    p.add_argument("--remove_invalid", action="store_true",
+                   help="Remove invalid streamlines before scoring.")
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -130,12 +129,12 @@ def main():
 
     if (args.gt_tails and not args.gt_heads) \
             or (args.gt_heads and not args.gt_tails):
-        parser.error('Both --gt_heads and --gt_tails are needed.')
+        parser.error("Both --gt_heads and --gt_tails are needed.")
     if args.gt_endpoints and (args.gt_tails or args.gt_heads):
-        parser.error('Can only provide --gt_endpoints or --gt_tails/gt_heads')
+        parser.error("Can only provide --gt_endpoints or --gt_tails/gt_heads")
     if not args.gt_endpoints and (not args.gt_tails and not args.gt_heads):
         parser.error(
-            'Either input --gt_endpoints or --gt_heads and --gt_tails.')
+            "Either input --gt_endpoints or --gt_heads and --gt_tails.")
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -143,21 +142,39 @@ def main():
     _, ext = os.path.splitext(args.in_tractogram)
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
+
+    if args.remove_invalid:
+        sft.remove_invalid_streamlines()
+
     initial_count = len(sft)
 
-    logging.info('Computing ground-truth masks')
+    logging.info("Verifying compatibility with ground-truth")
+    for gt in args.gt_bundles:
+        compatible = is_header_compatible(sft, gt)
+        if not compatible:
+            parser.error("Input tractogram incompatible with"
+                         " {}".format(gt))
+
+    logging.info("Computing ground-truth masks")
     gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions,  = \
         compute_gt_masks(args.gt_bundles, parser, args)
 
     # If endpoints without heads/tails are loaded, split them and continue
     # normally after. Q/C of the output is important
     if args.gt_endpoints:
-        logging.info('Extracting ground-truth end and tail masks')
+        logging.info("Extracting ground-truth end and tail masks")
         gt_tails, gt_heads, affine, dimensions = \
             extract_tails_heads_from_endpoints(
                 args.gt_endpoints, args.out_dir)
     else:
         gt_tails, gt_heads = args.gt_tails, args.gt_heads
+
+    logging.info("Verifying compatibility with endpoints")
+    for gt in gt_tails + gt_heads:
+        compatible = is_header_compatible(sft, gt)
+        if not compatible:
+            parser.error("Input tractogram incompatible with"
+                         " {}".format(gt))
 
     # Load the endpoints heads/tails, keep the correct combinations
     # separately from all the possible combinations
@@ -165,7 +182,7 @@ def main():
 
     length_dict = {}
     if args.gt_config:
-        with open(args.gt_config, 'r') as json_file:
+        with open(args.gt_config, "r") as json_file:
             length_dict = json.load(json_file)
 
     tc_streamlines_list = []
@@ -173,7 +190,7 @@ def main():
     fc_streamlines_list = []
     nc_streamlines = []
 
-    logging.info('Scoring true connections')
+    logging.info("Scoring true connections")
     for i, (mask_1_filename, mask_2_filename) in enumerate(tc_filenames):
 
         # Automatically generate filename for Q/C
@@ -187,24 +204,24 @@ def main():
         nc_streamlines.extend(nc)
         if len(tc_sft) > 0:
             save_tractogram(tc_sft, os.path.join(
-                args.out_dir, '{}_{}_tc{}'.format(prefix_1, prefix_2, ext)),
+                args.out_dir, "{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
 
         if len(wpc_sft) > 0:
             save_tractogram(
-                wpc_sft, os.path.join(args.out_dir, '{}_{}_wpc{}'.format(
+                wpc_sft, os.path.join(args.out_dir, "{}_{}_wpc{}".format(
                     prefix_1, prefix_2, ext)), bbox_valid_check=False)
 
         if len(fc_sft) > 0:
             save_tractogram(fc_sft, os.path.join(
-                args.out_dir, '{}_{}_fc{}'.format(prefix_1, prefix_2, ext)),
+                args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
 
         tc_streamlines_list.append(tc_sft.streamlines)
         wpc_streamlines_list.append(wpc_sft.streamlines)
         fc_streamlines_list.append(fc_sft.streamlines)
 
-        logging.info('Recognized {} streamlines between {} and {}'.format(
+        logging.info("Recognized {} streamlines between {} and {}".format(
             len(tc_sft.streamlines) + len(wpc_sft.streamlines) +
             len(fc_sft.streamlines) + len(nc), prefix_1, prefix_2))
 
@@ -217,7 +234,7 @@ def main():
     for tc_f in tc_filenames:
         comb_filename.remove(tc_f)
 
-    logging.info('Scoring false connections')
+    logging.info("Scoring false connections")
     # Go through all the possible combinations of endpoints masks
     for i, roi in enumerate(comb_filename):
         mask_1_filename, mask_2_filename = roi
@@ -233,10 +250,10 @@ def main():
 
         if len(fc_sft) > 0:
             save_tractogram(fc_sft, os.path.join(
-                args.out_dir, '{}_{}_fc{}'.format(prefix_1, prefix_2, ext)),
+                args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
 
-        logging.info('Recognized {} streamlines between {} and {}'.format(
+        logging.info("Recognized {} streamlines between {} and {}".format(
             len(fc_sft.streamlines), prefix_1, prefix_2))
 
         fc_streamlines_list.append(fc_sft.streamlines)
@@ -246,10 +263,10 @@ def main():
     final_results = {}
     no_conn_sft = StatefulTractogram.from_sft(nc_streamlines, sft)
     save_tractogram(no_conn_sft, os.path.join(
-        args.out_dir, 'nc{}'.format(ext)), bbox_valid_check=False)
+        args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
 
     # Total number of streamlines for each category
-    # and statistic that are not 'bundle-wise'
+    # and statistic that are not "bundle-wise"
     tc_streamlines_count = len(list(itertools.chain(*tc_streamlines_list)))
     fc_streamlines_count = len(list(itertools.chain(*fc_streamlines_list)))
 
@@ -265,27 +282,27 @@ def main():
 
     assert total_count == initial_count
 
-    final_results['tractogram_filename'] = str(args.in_tractogram)
-    final_results['tractogram_overlap'] = 0.0
-    final_results['tc_streamlines'] = tc_streamlines_count
-    final_results['fc_streamlines'] = fc_streamlines_count
-    final_results['nc_streamlines'] = nc_streamlines_count
+    final_results["tractogram_filename"] = str(args.in_tractogram)
+    final_results["tractogram_overlap"] = 0.0
+    final_results["tc_streamlines"] = tc_streamlines_count
+    final_results["fc_streamlines"] = fc_streamlines_count
+    final_results["nc_streamlines"] = nc_streamlines_count
 
-    final_results['tc_bundle'] = len([x for x in tc_streamlines_list if x])
-    final_results['fc_bundle'] = len([x for x in fc_streamlines_list if x])
+    final_results["tc_bundle"] = len([x for x in tc_streamlines_list if x])
+    final_results["fc_bundle"] = len([x for x in fc_streamlines_list if x])
 
-    final_results['tc_streamlines_ratio'] = tc_streamlines_count / total_count
-    final_results['fc_streamlines_ratio'] = fc_streamlines_count / total_count
-    final_results['nc_streamlines_ratio'] = nc_streamlines_count / total_count
+    final_results["tc_streamlines_ratio"] = tc_streamlines_count / total_count
+    final_results["fc_streamlines_ratio"] = fc_streamlines_count / total_count
+    final_results["nc_streamlines_ratio"] = nc_streamlines_count / total_count
 
     if args.wrong_path_as_separate:
-        final_results['wpc_streamlines'] = wpc_streamlines_count
-        final_results['wpc_streamlines_ratio'] = \
+        final_results["wpc_streamlines"] = wpc_streamlines_count
+        final_results["wpc_streamlines_ratio"] = \
             wpc_streamlines_count / total_count
-        final_results['wpc_bundle'] = len(
+        final_results["wpc_bundle"] = len(
             [x for x in wpc_streamlines_list if x])
 
-    final_results['total_streamlines'] = total_count
+    final_results["total_streamlines"] = total_count
     final_results["bundle_wise"] = {}
     final_results["bundle_wise"]["true_connections"] = {}
     final_results["bundle_wise"]["false_connections"] = {}
@@ -294,17 +311,17 @@ def main():
     for i, filename in enumerate(tc_filenames):
         current_tc_streamlines = tc_streamlines_list[i]
         current_tc_voxels, current_tc_endpoints_voxels = get_binary_maps(
-            current_tc_streamlines, dimensions, sft, args.remove_invalid)
+            current_tc_streamlines, sft)
 
         if args.wrong_path_as_separate:
             current_wpc_streamlines = wpc_streamlines_list[i]
             current_wpc_voxels, _ = get_binary_maps(
-                current_wpc_streamlines, dimensions, sft, args.remove_invalid)
+                current_wpc_streamlines, sft)
 
         tmp_dict = {}
-        tmp_dict['tc_streamlines'] = len(current_tc_streamlines)
+        tmp_dict["tc_streamlines"] = len(current_tc_streamlines)
 
-        tmp_dict['tc_dice'] = compute_dice_voxel(gt_bundle_masks[i],
+        tmp_dict["tc_dice"] = compute_dice_voxel(gt_bundle_masks[i],
                                                  current_tc_voxels)[0]
 
         bundle_overlap = gt_bundle_masks[i] * current_tc_voxels
@@ -316,23 +333,23 @@ def main():
             (gt_bundle_masks[i] == 1) & (current_tc_voxels == 0))] = 1
 
         if args.wrong_path_as_separate:
-            tmp_dict['wpc_streamlines'] = len(current_wpc_streamlines)
-            tmp_dict['wpc_dice'] = \
+            tmp_dict["wpc_streamlines"] = len(current_wpc_streamlines)
+            tmp_dict["wpc_dice"] = \
                 compute_dice_voxel(gt_bundle_masks[i],
                                    current_wpc_voxels)[0]
             # Add wrong path to overreach
             bundle_overreach[np.where(
                 (gt_bundle_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
 
-        tmp_dict['tc_bundle_overlap'] = np.count_nonzero(bundle_overlap)
-        tmp_dict['tc_bundle_overreach'] = \
+        tmp_dict["tc_bundle_overlap"] = np.count_nonzero(bundle_overlap)
+        tmp_dict["tc_bundle_overreach"] = \
             np.count_nonzero(bundle_overreach)
-        tmp_dict['tc_bundle_lacking'] = np.count_nonzero(bundle_lacking)
-        tmp_dict['tc_bundle_overlap_PCT'] = \
-            tmp_dict['tc_bundle_overlap'] / \
-            (tmp_dict['tc_bundle_overlap'] +
-                tmp_dict['tc_bundle_lacking'])
-        tractogram_overlap += tmp_dict['tc_bundle_overlap_PCT']
+        tmp_dict["tc_bundle_lacking"] = np.count_nonzero(bundle_lacking)
+        tmp_dict["tc_bundle_overlap_PCT"] = \
+            tmp_dict["tc_bundle_overlap"] / \
+            (tmp_dict["tc_bundle_overlap"] +
+                tmp_dict["tc_bundle_lacking"])
+        tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
 
         endpoints_overlap = \
             gt_bundle_masks[i] * current_tc_endpoints_voxels
@@ -340,9 +357,9 @@ def main():
         endpoints_overreach[np.where(
             (gt_bundle_masks[i] == 0) &
             (current_tc_endpoints_voxels >= 1))] = 1
-        tmp_dict['tc_endpoints_overlap'] = np.count_nonzero(
+        tmp_dict["tc_endpoints_overlap"] = np.count_nonzero(
             endpoints_overlap)
-        tmp_dict['tc_endpoints_overreach'] = np.count_nonzero(
+        tmp_dict["tc_endpoints_overreach"] = np.count_nonzero(
             endpoints_overreach)
 
         final_results["bundle_wise"]["true_connections"][str(filename)] = \
@@ -352,25 +369,25 @@ def main():
     for i, filename in enumerate(comb_filename):
         current_fc_streamlines = fc_streamlines_list[i]
         current_fc_voxels, _ = get_binary_maps(
-            current_fc_streamlines, dimensions, sft, args.remove_invalid)
+            current_fc_streamlines, sft)
 
         tmp_dict = {}
 
         if len(current_fc_streamlines):
-            tmp_dict['fc_streamlines'] = len(current_fc_streamlines)
-            tmp_dict['fc_voxels'] = np.count_nonzero(current_fc_voxels)
+            tmp_dict["fc_streamlines"] = len(current_fc_streamlines)
+            tmp_dict["fc_voxels"] = np.count_nonzero(current_fc_voxels)
 
             final_results["bundle_wise"]["false_connections"][str(filename)] =\
                 tmp_dict
 
-    final_results['tractogram_overlap'] = \
+    final_results["tractogram_overlap"] = \
         tractogram_overlap / len(gt_bundle_masks)
 
-    with open(os.path.join(args.out_dir, 'results.json'), 'w') as f:
+    with open(os.path.join(args.out_dir, "results.json"), "w") as f:
         json.dump(final_results, f,
                   indent=args.indent,
                   sort_keys=args.sort_keys)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

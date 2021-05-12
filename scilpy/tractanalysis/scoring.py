@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.segment.streamlines import filter_grid_roi
+from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
     get_endpoints_density_map
@@ -39,18 +39,15 @@ def extract_streamlines(mask_1, mask_2, sft):
         Tractogram containing the streamlines not recognized.
     """
 
-    tmp_sft, mask_1_ids = filter_grid_roi(
-        sft, mask_1, 'either_end', False)
-    extracted_sft, mask_2_ids = filter_grid_roi(
-        tmp_sft, mask_2, 'either_end', False)
-    remaining_ids = np.setdiff1d(range(len(sft.streamlines)),
-                                 mask_1_ids[list(mask_2_ids)])
+    extracted_sft, ids = filter_grid_roi_both(
+        sft, mask_1, mask_2)
+    remaining_ids = np.setdiff1d(range(len(sft.streamlines)), ids)
     remaining_sft = sft[list(remaining_ids)]
 
     return extracted_sft, remaining_sft
 
 
-def get_binary_maps(streamlines, dimensions, sft, invalid):
+def get_binary_maps(streamlines, sft):
     """
     Extract a mask from a bundle
 
@@ -72,7 +69,7 @@ def get_binary_maps(streamlines, dimensions, sft, invalid):
     endpoints_voxels: numpy.ndarray
         Mask representing the bundle's endpoints.
     """
-
+    dimensions = sft.dimensions
     if not len(streamlines):
         return np.zeros(dimensions), np.zeros(dimensions)
     elif len(streamlines) == 1:
@@ -80,8 +77,6 @@ def get_binary_maps(streamlines, dimensions, sft, invalid):
     tmp_sft = StatefulTractogram.from_sft(streamlines, sft)
     tmp_sft.to_vox()
     tmp_sft.to_corner()
-    if invalid:
-        tmp_sft.remove_invalid_streamlines()
 
     if len(tmp_sft) == 1:
         return np.zeros(dimensions), np.zeros(dimensions)
@@ -136,8 +131,6 @@ def compute_gt_masks(gt_bundles, parser, args):
         else:
             gt_sft = load_tractogram_with_reference(
                 parser, args, gt_bundle, bbox_check=False)
-            if args.remove_invalid:
-                gt_sft.remove_invalid_streamlines()
             gt_sft.to_vox()
             gt_sft.to_corner()
             affine, dimensions, _, _ = gt_sft.space_attributes
@@ -346,9 +339,8 @@ def extract_true_connections(
     return tc_sft, wpc_sft, fc_sft, nc_streamlines, sft
 
 
-def extract_false_connections(
-    sft, mask_1_filename, mask_2_filename, dilate_endpoints
-):
+def extract_false_connections(sft, mask_1_filename, mask_2_filename,
+                              dilate_endpoints):
     """
     Extract false connections based on two regions from a tractogram.
 

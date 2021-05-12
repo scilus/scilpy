@@ -51,6 +51,58 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
         return np.where(streamlines_case == [0, 1][True])[0].tolist()
 
 
+def filter_grid_roi_both(sft, mask_1, mask_2):
+    """ Filters streamlines with one end in a mask and the other in
+    another mask.
+
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        StatefulTractogram containing the streamlines to segment.
+    mask_1: numpy.ndarray
+        Binary mask in which the streamlines should start or end.
+    mask_2: numpy.ndarray
+        Binary mask in which the streamlines should start or end.
+    Returns
+    -------
+    ids : tuple
+        Filtered sft.
+        Ids of the streamlines passing through the mask.
+    """
+    line_based_indices = []
+    sft.to_vox()
+    sft.to_corner()
+    streamline_vox = sft.streamlines
+    # For endpoint filtering, we need to keep 2 separately
+    # Could be faster for either end, but the code look cleaner like this
+    line_based_indices = []
+    voxel_beg = np.asarray([s[0] for s in streamline_vox]).astype(np.int16).transpose(1, 0)
+    voxel_end = np.asarray([s[-1] for s in streamline_vox]).astype(np.int16).transpose(1, 0)
+
+    map1_beg = map_coordinates(mask_1, voxel_beg, order=0, mode='nearest')
+    map2_beg = map_coordinates(mask_2, voxel_beg, order=0, mode='nearest')
+
+    map1_end = map_coordinates(mask_1, voxel_end, order=0, mode='nearest')
+    map2_end = map_coordinates(mask_2, voxel_end, order=0, mode='nearest')
+    line_based_indices = np.logical_or(
+        np.logical_and(map1_beg, map2_end), np.logical_and(map1_end, map2_beg))
+
+    line_based_indices = \
+        np.arange(len(line_based_indices))[line_based_indices].astype(np.int32)
+
+    # From indices to sft
+    streamlines = sft.streamlines[line_based_indices]
+    data_per_streamline = sft.data_per_streamline[line_based_indices]
+    data_per_point = sft.data_per_point[line_based_indices]
+
+    new_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
+
+    return new_sft, line_based_indices
+
+
 def filter_grid_roi(sft, mask, filter_type, is_exclude):
     """
     Parameters
@@ -109,9 +161,10 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
     data_per_streamline = sft.data_per_streamline[line_based_indices]
     data_per_point = sft.data_per_point[line_based_indices]
 
-    new_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                          data_per_streamline=data_per_streamline,
-                                          data_per_point=data_per_point)
+    new_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
 
     return new_sft, line_based_indices
 
@@ -261,9 +314,10 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     data_per_streamline = sft.data_per_streamline[line_based_indices]
     data_per_point = sft.data_per_point[line_based_indices]
 
-    new_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                          data_per_streamline=data_per_streamline,
-                                          data_per_point=data_per_point)
+    new_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
 
     return new_sft, line_based_indices
 
@@ -357,8 +411,9 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     data_per_streamline = sft.data_per_streamline[line_based_indices]
     data_per_point = sft.data_per_point[line_based_indices]
 
-    new_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                          data_per_streamline=data_per_streamline,
-                                          data_per_point=data_per_point)
+    new_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
 
     return new_sft, line_based_indices
