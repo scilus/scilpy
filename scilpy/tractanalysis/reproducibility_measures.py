@@ -179,6 +179,59 @@ def approximate_surface_node(roi):
     return count
 
 
+def compute_fractal_dimension(density, n_steps=10, box_size_min=1.0,
+                              box_size_max=2.0, threshold=0.0, box_size=None):
+    """
+    Compute the fractal dimension of a bundle to measure the roughness.
+    The code is extracted from https://github.com/FBK-NILab/fractal_dimension
+    Parameters. The result is dependent on voxel size and the number of voxels.
+    If data comparison is performed, the bundles MUST be in same resolution.
+    ----------
+    density: ndarray
+        A ndarray where voxel values represent the density of a bundle. This
+        function computes the fractal dimension of the bundle.
+    n_steps: int
+        The number of box sizes used to approximate fractal dimension. A larger
+        number of steps will increase the accuracy of the approximation, but
+        will also take more time. The default number of boxes sizes is 10.
+    box_size_min: float
+        The minimum size of boxes. This number should be larger than or equal
+        to 1.0 and is defaulted to 1.0.
+    box_size_max: float
+        The maximum size of boxes. This number should be larger than the
+        minimum size of boxes.
+    threshold: float
+        The threshold to filter the voxels in the density array. The default is
+        set to 0, so only nonzero voxels will be considered.
+    box_size: ndarray
+        A ndarray of different sizes of boxes in a linear space in an ascending
+        order.
+    Returns
+    -------
+    float: fractal dimension of a bundle
+    """
+    pixels = np.array(np.where(density > threshold)).T
+
+    if box_size is None:
+        box_size = np.linspace(box_size_min, box_size_max, n_steps)
+
+    counts = np.zeros(len(box_size))
+    for i, bs in enumerate(box_size):
+        bins = \
+            [np.arange(0, image_side + bs, bs) for image_side in density.shape]
+        H, edges = np.histogramdd(pixels, bins=bins)
+        counts[i] = (H > 0).sum()
+
+    if (counts < 1).any():
+        fractal_dimension = 0.0
+    else:
+        # linear regression:
+        coefficients = np.polyfit(np.log(box_size), np.log(counts), 1)
+        fractal_dimension = -coefficients[0]
+
+    return fractal_dimension
+
+
 def compute_bundle_adjacency_streamlines(bundle_1, bundle_2, non_overlap=False,
                                          centroids_1=None, centroids_2=None):
     """
