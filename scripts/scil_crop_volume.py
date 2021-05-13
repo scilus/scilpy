@@ -74,44 +74,37 @@ def crop_nifti(img, wbbox):
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    # TODO Rename argparse p
-    # TODO Rename variable in_*
-    # TODO First line argument
-    parser.add_argument(
-        'input_path', help='Path of the nifti file to crop.')
-    parser.add_argument(
-        'output_path', help='Path of the cropped nifti file to write.')
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description=__doc__)
+    p.add_argument('in_image',
+                   help='Path of the nifti file to crop.')
+    p.add_argument('out_image',
+                   help='Path of the cropped nifti file to write.')
 
-    parser.add_argument(
-        '--ignore_voxel_size', action='store_true',
-        help='Ignore voxel size compatibility test between input bounding '
-             'box and data. Warning, use only if you know what you are doing.')
-    add_overwrite_arg(parser)
+    p.add_argument('--ignore_voxel_size', action='store_true',
+                   help='Ignore voxel size compatibility test between input '
+                        'bounding box and data. Warning, use only if you '
+                        'know what you are doing.')
+    add_overwrite_arg(p)
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        '--input_bbox', metavar='path',
-        help='Path of the pickle file from which to take the bounding box to '
-             'crop input file.')
-    group.add_argument(
-        '--output_bbox', metavar='path',
-        help='Path of the pickle file where to write the computed bounding '
-             'box.')
-
-    return parser
+    g1 = p.add_mutually_exclusive_group()
+    g1.add_argument('--input_bbox',
+                    help='Path of the pickle file from which to take '
+                         'the bounding box to crop input file.')
+    g1.add_argument('--output_bbox',
+                    help='Path of the pickle file where to write the '
+                         'computed bounding box.')
+    return p
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input_path, args.input_bbox)
-    assert_outputs_exist(parser, args, args.output_path, args.output_bbox)
+    assert_inputs_exist(parser, args.in_image, args.input_bbox)
+    assert_outputs_exist(parser, args, args.out_image, args.output_bbox)
 
-    img = nib.load(args.input_path)
+    img = nib.load(args.in_image)
     if args.input_bbox:
         with open(args.input_bbox, 'rb') as bbox_file:
             wbbox = pickle.load(bbox_file)
@@ -128,7 +121,7 @@ def main():
                 pickle.dump(wbbox, bbox_file)
 
     out_nifti_file = crop_nifti(img, wbbox)
-    nib.save(out_nifti_file, args.output_path)
+    nib.save(out_nifti_file, args.out_image)
 
 
 if __name__ == "__main__":

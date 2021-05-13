@@ -28,11 +28,11 @@ def _build_arg_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="References: [1] Tournier et al. NeuroImage 2007")
 
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals',
+    p.add_argument('in_bval',
                    help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
+    p.add_argument('in_bvec',
                    help='Path of the bvecs file, in FSL format.')
     p.add_argument('frf_file',
                    help='Path to the output FRF file, in .txt format, '
@@ -40,41 +40,42 @@ def _build_arg_parser():
 
     add_force_b0_arg(p)
 
-    # TODO Start one first line
-    p.add_argument(
-        '--mask',
-        help='Path to a binary mask. Only the data inside the mask will be '
-             'used for computations and reconstruction. Useful if no white '
-             'matter mask is available.')
-    p.add_argument(
-        '--mask_wm', metavar='',
-        help='Path to a binary white matter mask. Only the data inside this '
-             'mask and above the threshold defined by --fa will be used to '
-             'estimate the fiber response function.')
-    p.add_argument(
-        '--fa', dest='fa_thresh', default=0.7, type=float,
-        help='If supplied, use this threshold as the initial threshold '
-             'to select single fiber voxels. [%(default)s]')
-    p.add_argument(
-        '--min_fa', dest='min_fa_thresh', default=0.5, type=float,
-        help='If supplied, this is the minimal value that will be tried '
-             'when looking for single fiber voxels. [%(default)s]')
-    p.add_argument(
-        '--min_nvox', default=300, type=int,
-        help='Minimal number of voxels needing to be identified as single '
-             'fiber voxels in the automatic estimation. [%(default)s]')
+    p.add_argument('--mask',
+                   help='Path to a binary mask. Only the data inside the '
+                        'mask will be used for computations and '
+                        'reconstruction. Useful if no white matter mask '
+                        'is available.')
+    p.add_argument('--mask_wm',
+                   help='Path to a binary white matter mask. Only the data '
+                        'inside this mask and above the threshold defined '
+                        'by --fa will be used to estimate the fiber response '
+                        'function.')
+    p.add_argument('--fa', dest='fa_thresh',
+                   default=0.7, type=float,
+                   help='If supplied, use this threshold as the initial '
+                        'threshold to select single fiber voxels. '
+                        '[%(default)s]')
+    p.add_argument('--min_fa', dest='min_fa_thresh',
+                   default=0.5, type=float,
+                   help='If supplied, this is the minimal value that will be '
+                        'tried when looking for single fiber '
+                        'voxels. [%(default)s]')
+    p.add_argument('--min_nvox',
+                   default=300, type=int,
+                   help='Minimal number of voxels needing to be identified '
+                        'as single fiber voxels in the automatic '
+                        'estimation. [%(default)s]')
 
-    p.add_argument(
-        '--roi_radii', default=[10], nargs='+', type=int,
-        help='If supplied, use those radii to select a cuboid roi '
-             'to estimate the response functions. The roi will be '
-             'a cuboid spanning from the middle of the volume in '
-             'each direction with the different radii. The type is '
-             'either an int or an array-like (3,). [%(default)s]')
-    p.add_argument(
-        '--roi_center', metavar='tuple(3)',
-        help='If supplied, use this center to span the roi of size '
-             'roi_radius. [center of the 3D volume]')
+    p.add_argument('--roi_radii', nargs='+',
+                   default=[20],  type=int,
+                   help='If supplied, use those radii to select a cuboid roi '
+                        'to estimate the response functions. The roi will be '
+                        'a cuboid spanning from the middle of the volume in '
+                        'each direction with the different radii. The type is '
+                        'either an int or an array-like (3,). [%(default)s]')
+    p.add_argument('--roi_center', metavar='tuple(3)', nargs=3, type=int,
+                   help='If supplied, use this center to span the roi of size '
+                        'roi_radius. [center of the 3D volume]')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -91,7 +92,7 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.input, args.bvals, args.bvecs])
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, args.frf_file)
 
     if len(args.roi_radii) == 1:
@@ -102,10 +103,10 @@ def main():
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
                      'or an array of size (3,)')
 
-    vol = nib.load(args.input)
+    vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)
 
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     mask = None
     if args.mask:

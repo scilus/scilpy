@@ -83,10 +83,10 @@ def _build_arg_parser():
                    help='The type of operation to be performed on the '
                         'streamlines. Must\nbe one of the following: '
                         '%(choices)s.')
-    p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
+    p.add_argument('in_tractograms', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
                         'streamlines to operate on.')
-    p.add_argument('output', metavar='OUTPUT_FILE',
+    p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                         'are saved.')
 
@@ -124,8 +124,9 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.inputs)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_tractograms)
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.save_indices)
 
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '
@@ -138,7 +139,7 @@ def main():
                 for s in tractogram_file.streamlines:
                     yield s
         header = None
-        for in_file in args.inputs:
+        for in_file in args.in_tractograms:
             _, ext = os.path.splitext(in_file)
             if ext == '.trk':
                 if header is None:
@@ -147,15 +148,16 @@ def main():
                 elif not is_header_compatible(header, in_file):
                     logging.warning('Incompatible headers in the list.')
 
-        generator = list_generator_from_nib(args.inputs)
+        generator = list_generator_from_nib(args.in_tractograms)
         out_tractogram = LazyTractogram(lambda: generator,
                                         affine_to_rasmm=np.eye(4))
-        nib.streamlines.save(out_tractogram, args.output, header=header)
+        nib.streamlines.save(out_tractogram, args.out_tractogram,
+                             header=header)
         return
 
     # Load all input streamlines.
     sft_list = []
-    for f in args.inputs:
+    for f in args.in_tractograms:
         sft_list.append(load_tractogram_with_reference(
             parser, args, f, bbox_check=not args.ignore_invalid))
 
@@ -173,14 +175,15 @@ def main():
                                              precision=args.precision)
         else:
             _, indices = perform_streamlines_operation(
-                OPERATIONS[op_name], streamlines_list, precision=args.precision)
+                OPERATIONS[op_name], streamlines_list,
+                precision=args.precision)
 
     # Save the indices to a file if requested.
     if args.save_indices:
         start = 0
         out_dict = {}
         streamlines_len_cumsum = [len(sft) for sft in sft_list]
-        for name, nb in zip(args.inputs, streamlines_len_cumsum):
+        for name, nb in zip(args.in_tractograms, streamlines_len_cumsum):
             end = start + nb
             # Switch to int32 for json
             out_dict[name] = [int(i - start)
@@ -194,8 +197,8 @@ def main():
 
     # Save the new streamlines (and metadata)
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
-                                                       args.output))
-    save_tractogram(new_sft[indices], args.output,
+                                                       args.out_tractogram))
+    save_tractogram(new_sft[indices], args.out_tractogram,
                     bbox_valid_check=not args.ignore_invalid)
 
 

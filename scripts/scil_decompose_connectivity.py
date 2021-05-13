@@ -233,7 +233,8 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels])
+    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels],
+                        args.reference)
     assert_outputs_exist(parser, args, args.out_hdf5)
 
     # HDF5 will not overwrite the file
@@ -273,6 +274,7 @@ def main():
     time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
+    sft.remove_invalid_streamlines()
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))

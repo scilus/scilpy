@@ -20,8 +20,8 @@ from scilpy.io.utils import assert_inputs_exist
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input_filename', metavar='IN_FILE',
-                   help='input file name, in nifti format.')
+    p.add_argument('in_image', metavar='IN_FILE',
+                   help='Input file name, in nifti format.')
 
     p.add_argument(
         '--out', metavar='OUT_FILE', dest='out_filename',
@@ -44,11 +44,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.input_filename)
+    assert_inputs_exist(parser, args.in_image)
     # out_filename can exist or not
 
     # Load image file
-    nb_voxels = count_non_zero_voxels(args.input_filename)
+    nb_voxels = count_non_zero_voxels(args.in_image)
 
     if args.out_filename is not None:
         open_mode = 'w'

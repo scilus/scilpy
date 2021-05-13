@@ -116,8 +116,10 @@ def main():
                     else:
                         means[i, _nan] = -1
                         stds[i, _nan] = -1
-
-            fig = plot_metrics_stats(np.array(means), np.array(stds),
+            if not args.stats_over_population:
+                means = np.squeeze(means)
+                stds = np.squeeze(stds)
+            fig = plot_metrics_stats(means, stds,
                                      title=bundle_name,
                                      xlabel='Location along the streamline',
                                      ylabel=metric,
