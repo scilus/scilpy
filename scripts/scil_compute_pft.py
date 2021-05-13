@@ -75,7 +75,7 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use (must be "det" or "prob"). '
                               '[%(default)s]')
-    track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
+    track_g.add_argument('--step', dest='step_size', type=float, default=0.2,
                          help='Step size in mm. [%(default)s]')
     track_g.add_argument('--min_length', type=float, default=10.,
                          help='Minimum length of a streamline in mm. '

@@ -107,6 +107,15 @@ def main():
             found_ref = True
             break
 
+    # If there's a 4D image, replace the previous 3D image with
+    #  this one for reference
+    for input_arg in args.in_images:
+        if not is_float(input_arg):
+            ref_img = nib.load(input_arg)
+            if len(ref_img.shape) == 4:
+                mask = np.zeros(ref_img.shape)
+                break
+
     if not found_ref:
         raise ValueError('Requires at least one nifti image.')
 
@@ -137,7 +146,10 @@ def main():
 
         if isinstance(img, nib.Nifti1Image):
             data = img.get_fdata(dtype=np.float64)
-            mask[data > 0] = 1
+            if data.ndim == 4:
+                mask[np.sum(data, axis=3).astype(bool) > 0] = 1
+            else:
+                mask[data > 0] = 1
             img.uncache()
         input_img.append(img)
 

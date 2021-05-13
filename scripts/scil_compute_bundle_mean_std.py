@@ -14,6 +14,7 @@ import json
 import os
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.image import assert_same_resolution
@@ -39,7 +40,8 @@ def _build_arg_parser():
                    action='store_true',
                    help='If set, weight statistics by the number of '
                         'fibers passing through each voxel.')
-
+    p.add_argument('--include_dps', action='store_true',
+                   help='Save values from data_per_streamline.')
     add_reference_arg(p)
     add_json_args(p)
 
@@ -74,7 +76,14 @@ def main():
             'mean': mean,
             'std': std
         }
-
+    if args.include_dps:
+        for metric in sft.data_per_streamline.keys():
+            mean = float(np.average(sft.data_per_streamline[metric]))
+            std = float(np.std(sft.data_per_streamline[metric]))
+            stats[bundle_name][metric] = {
+                'mean': mean,
+                'std': std
+            }
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
 

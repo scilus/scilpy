@@ -25,8 +25,9 @@ def test_execution_bst(script_runner):
                            'mask.nii.gz')
     ret = script_runner.run('scil_compute_todi.py', in_bundle, '--mask',
                             in_mask, '--out_mask', 'todi_mask.nii.gz',
-                            '--out_lw_tdi', 'out_lw_tdi.nii.gz',
-                            '--out_lw_todi_sh', 'lw_todi_sh.nii.gz',
-                            '--sh_order', '6', '--sh_normed', '--smooth',
+                            '--out_tdi', 'tdi.nii.gz',
+                            '--out_todi_sh', 'todi_sh.nii.gz',
+                            '--sh_order', '6',
+                            '--normalize_per_voxel', '--smooth_todi',
                             '--sh_basis', 'descoteaux07')
     assert ret.success

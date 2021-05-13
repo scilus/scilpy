@@ -14,8 +14,7 @@ Based on [1].
 
 import argparse
 
-# TODO switch to nib
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import assert_same_resolution
@@ -33,42 +32,40 @@ Reference:
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
-        description=__doc__, epilog=EPILOG,
-        formatter_class=argparse.RawTextHelpFormatter)
-    # TODO Rename argparse p
-    # TODO Rename variable in_*
-    parser.add_argument('sh_files', nargs="+",
-                        help='List of SH files.')
-    parser.add_argument('out_sh',
-                        help='output SH file.')
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description=__doc__, epilog=EPILOG)
 
-    add_overwrite_arg(parser)
+    p.add_argument('in_shs', nargs="+",
+                   help='List of SH files.')
+    p.add_argument('out_sh',
+                   help='output SH file.')
 
-    return parser
+    add_overwrite_arg(p)
+
+    return p
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.sh_files)
+    assert_inputs_exist(parser, args.in_shs)
     assert_outputs_exist(parser, args, args.out_sh)
-    assert_same_resolution(args.sh_files)
+    assert_same_resolution(args.in_shs)
 
-    first_im = nb.load(args.sh_files[0])
+    first_im = nib.load(args.in_shs[0])
     out_coeffs = first_im.get_fdata(dtype=np.float32)
 
-    for sh_file in args.sh_files[1:]:
-        im = nb.load(sh_file)
+    for sh_file in args.in_shs[1:]:
+        im = nib.load(sh_file)
         im_dat = im.get_fdata(dtype=np.float32)
 
         out_coeffs = np.where(np.abs(im_dat) > np.abs(out_coeffs),
                               im_dat, out_coeffs)
 
-    # TODO remove header or add optional argument name
-    nb.save(nb.Nifti1Image(out_coeffs, first_im.affine, first_im.header),
-            args.out_sh)
+    nib.save(nib.Nifti1Image(out_coeffs, first_im.affine,
+                             header=first_im.header),
+             args.out_sh)
 
 
 if __name__ == '__main__':

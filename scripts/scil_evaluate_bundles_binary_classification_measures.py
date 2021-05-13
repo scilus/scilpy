@@ -216,6 +216,7 @@ def main():
             voxels_dict.append(compute_voxel_measures(
                 [i, tracking_mask_data, gs_binary_3d]))
     else:
+        pool = multiprocessing.Pool(nbr_cpu)
         voxels_dict = pool.map(compute_voxel_measures,
                                zip(bundles_references_tuple_extended,
                                    itertools.repeat(tracking_mask_data),
