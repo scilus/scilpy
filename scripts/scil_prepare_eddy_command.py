@@ -16,6 +16,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import (create_acqparams,
                                                         create_index,
+                                                        create_multi_topup_index,
                                                         create_non_zero_norm_bvecs)
 
 
@@ -35,11 +36,19 @@ def _build_arg_parser():
     p.add_argument('in_mask',
                    help='binary brain mask.')
 
+    p.add_argument('--n_reverse', type=int, default=0,
+                   help='Number of reverse phase volumes included '
+                        'in the DWI image [%(default)s].')
+
     p.add_argument('--topup',
                    help='topup output name. ' +
                         'If given, apply topup during eddy.\n' +
                         'Should be the same as --out_prefix from ' +
                         'scil_prepare_topup_command.py')
+
+    p.add_argument('--topup_params', default='',
+                   help='Parameters file (typically named acqparams) '
+                        'used to run topup.')
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
                    choices=['eddy_openmp', 'eddy_cuda'],
@@ -48,7 +57,7 @@ def _build_arg_parser():
     p.add_argument('--b0_thr', type=float, default=20,
                    help='All b-values with values less than or equal ' +
                         'to b0_thr are considered\nas b0s i.e. without ' +
-                        'diffusion weighting')
+                        'diffusion weighting [%(default)s].')
 
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
@@ -62,6 +71,12 @@ def _build_arg_parser():
     p.add_argument('--slice_drop_correction', action='store_true',
                    help="if set, will activate eddy's outlier correction,\n"
                         "which includes slice drop correction.")
+
+    p.add_argument('--lsr_resampling', action='store_true',
+                   help='perform least-square resampling, allowing eddy to '
+                        'combine forward and reverse phase acquisitions for '
+                        'better reconstruction. Only works if directions and '
+                        'b-values are identical in both phase direction.')
 
     p.add_argument('--out_directory', default='.',
                    help='output directory for eddy files [%(default)s].')
@@ -119,9 +134,33 @@ def main():
                          'your data to ensure everything is correct. '
                          'Value found: {1}'.format(b0_threshold, bvals_min))
 
-    acqparams = create_acqparams(args.readout, args.encoding_direction,
-                                 nb_rev_b0s=0)
-    index = create_index(bvals)
+    n_rev = args.n_reverse
+
+    if args.topup_params:
+        acqparams = np.loadtxt(args.topup_params)
+
+        if acqparams.shape[0] == 2:
+            index = create_index(bvals, n_rev=n_rev)
+        elif acqparams.shape[0] == np.sum(bvals <= b0_threshold):
+            index = create_multi_topup_index(
+                bvals, 'none', n_rev, b0_threshold)
+        else:
+            b_mask = np.ma.array(bvals, mask=[bvals > b0_threshold])
+            n_b0_clusters = len(np.ma.clump_unmasked(b_mask[:n_rev])) + \
+                len(np.ma.clump_unmasked(b_mask[n_rev:]))
+            if acqparams.shape[0] == n_b0_clusters:
+                index = create_multi_topup_index(
+                    bvals, 'cluster', n_rev, b0_threshold)
+            else:
+                raise ValueError('Could not determine a valid index file '
+                                 'from the provided acquisition parameters '
+                                 'file: {}'.format(args.topup_params))
+    else:
+        acqparams = create_acqparams(args.readout, args.encoding_direction,
+                                     nb_rev_b0s=int(n_rev > 0))
+
+        index = create_index(bvals, n_rev=n_rev)
+
     bvecs = create_non_zero_norm_bvecs(bvecs)
 
     if not os.path.exists(args.out_directory):
@@ -129,10 +168,10 @@ def main():
 
     acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
     np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
-    bvecs_path = os.path.join(args.out_directory, 'non_zero_norm.bvecs')
-    np.savetxt(bvecs_path, bvecs.T, fmt="%.8f")
     index_path = os.path.join(args.out_directory, 'index.txt')
     np.savetxt(index_path, index, fmt='%i', newline=" ")
+    bvecs_path = os.path.join(args.out_directory, 'non_zero_norm.bvecs')
+    np.savetxt(bvecs_path, bvecs.T, fmt="%.8f")
 
     additional_args = ""
     if args.topup is not None:
@@ -143,6 +182,19 @@ def main():
 
     if args.fix_seed:
         additional_args += "--initrand "
+
+    if args.lsr_resampling:
+        if len(bvals) - n_rev == n_rev:
+            forward_bb = bvals[:n_rev, None] * bvecs[:n_rev, :]
+            reverse_bb = bvals[n_rev:, None] * bvecs[n_rev:, :]
+            if np.allclose(forward_bb, reverse_bb):
+                additional_args += "--resamp lsr "
+            else:
+                logging.warning('Least-square resampling disabled since '
+                                'directions in both phase directions differ.')
+        else:
+            logging.warning('Least-square resampling disabled since number of '
+                            'directions in both phase directions differ.')
 
     if args.eddy_options:
         additional_args += args.eddy_options

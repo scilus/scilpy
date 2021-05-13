@@ -33,7 +33,7 @@ def create_acqparams(readout, encoding_direction, nb_b0s=1, nb_rev_b0s=1):
     return acqparams
 
 
-def create_index(bvals):
+def create_index(bvals, n_rev=0):
     """
     Create index of bvals for Eddy
 
@@ -46,7 +46,55 @@ def create_index(bvals):
     -------
     index: np.array
     """
-    index = np.ones(len(bvals), dtype=int).tolist()
+    index = np.ones(len(bvals), dtype=int)
+    index[n_rev:] += 1
+
+    return index.tolist()
+
+
+def create_multi_topup_index(bvals, mean, n_rev, b0_thr=0):
+    index = np.zeros_like(bvals, dtype=int)
+    cnt = 1
+
+    mask = np.ma.masked_array(bvals, bvals <= b0_thr)
+    whole_b0_clumps = [list(np.ma.clump_masked(mask[:-n_rev]))]
+    whole_dw_clumps = [list(np.ma.clump_unmasked(mask[:-n_rev]))]
+
+    if n_rev > 0:
+        n_for = len(bvals) - n_rev
+        whole_b0_clumps += [[slice(s.start + n_for, s.stop + n_for)
+                            for s in list(np.ma.clump_masked(mask[n_rev:]))]]
+        whole_dw_clumps += [[slice(s.start + n_for, s.stop + n_for)
+                            for s in list(np.ma.clump_unmasked(mask[n_rev:]))]]
+
+    for b0_clumps, dw_clumps in zip(whole_b0_clumps, whole_dw_clumps):
+        if b0_clumps[0].start > dw_clumps[0].start:
+            index[dw_clumps[0]] = 1
+            dw_clumps = dw_clumps[1:]
+
+        for s1, s2 in zip(b0_clumps[:len(dw_clumps)], dw_clumps):
+            if mean is "none":
+                index[s1] = np.arange(cnt, cnt + s1.stop - s1.start)
+                index[s2] = index[s1.stop - 1]
+                cnt += s1.stop - s1.start
+            elif mean is "cluster":
+                index[s1] = index[s2] = cnt
+                cnt += 1
+            else:
+                raise ValueError('Undefined mean category for '
+                                 'index determination : {}'.format(mean))
+
+        if len(b0_clumps) > len(dw_clumps):
+            if mean is "none":
+                index[b0_clumps[-1]] = np.arange(
+                    cnt, cnt + b0_clumps[-1].stop - b0_clumps[-1].start)
+                cnt += b0_clumps[-1].stop - b0_clumps[-1].start
+            elif mean is "cluster":
+                index[b0_clumps[-1]] = cnt
+                cnt += 1
+            else:
+                raise ValueError('Undefined mean category for '
+                                 'index determination : {}'.format(mean))
 
     return index
 
