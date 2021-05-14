@@ -85,7 +85,7 @@ def remove_loops_and_sharp_turns(streamlines,
             ids.append(i)
             streamlines_clean.append(s)
         else:
-            streamlines_clean.append = np.empty((1,3))
+            streamlines_clean.append = np.empty((1, 3))
 
     if use_qb:
         ids = []
