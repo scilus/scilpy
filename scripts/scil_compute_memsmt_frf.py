@@ -45,51 +45,51 @@ def buildArgsParser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('wm_frf',
+    p.add_argument('out_wm_frf',
                    help='Path to the output WM frf file, in .txt format.')
-    p.add_argument('gm_frf',
+    p.add_argument('out_gm_frf',
                    help='Path to the output GM frf file, in .txt format.')
-    p.add_argument('csf_frf',
+    p.add_argument('out_csf_frf',
                    help='Path to the output CSF frf file, in .txt format.')
 
     p.add_argument(
-        '--input_linear', metavar='file', default=None,
+        '--in_dwi_linear', metavar='file', default=None,
         help='Path of the linear input diffusion volume.')
     p.add_argument(
-        '--bvals_linear', metavar='file', default=None,
+        '--in_bval_linear', metavar='file', default=None,
         help='Path of the linear bvals file, in FSL format.')
     p.add_argument(
-        '--bvecs_linear', metavar='file', default=None,
+        '--in_bvec_linear', metavar='file', default=None,
         help='Path of the linear bvecs file, in FSL format.')
     p.add_argument(
-        '--input_planar', metavar='file', default=None,
+        '--in_dwi_planar', metavar='file', default=None,
         help='Path of the planar input diffusion volume.')
     p.add_argument(
-        '--bvals_planar', metavar='file', default=None,
+        '--in_bval_planar', metavar='file', default=None,
         help='Path of the planar bvals file, in FSL format.')
     p.add_argument(
-        '--bvecs_planar', metavar='file', default=None,
+        '--in_bvec_planar', metavar='file', default=None,
         help='Path of the planar bvecs file, in FSL format.')
     p.add_argument(
-        '--input_spherical', metavar='file', default=None,
+        '--in_dwi_spherical', metavar='file', default=None,
         help='Path of the spherical input diffusion volume.')
     p.add_argument(
-        '--bvals_spherical', metavar='file', default=None,
+        '--in_bval_spherical', metavar='file', default=None,
         help='Path of the spherical bvals file, in FSL format.')
     p.add_argument(
-        '--bvecs_spherical', metavar='file', default=None,
+        '--in_bvec_spherical', metavar='file', default=None,
         help='Path of the spherical bvecs file, in FSL format.')
     p.add_argument(
-        '--input_custom', metavar='file', default=None,
+        '--in_dwi_custom', metavar='file', default=None,
         help='Path of the custom input diffusion volume.')
     p.add_argument(
-        '--bvals_custom', metavar='file', default=None,
+        '--in_bval_custom', metavar='file', default=None,
         help='Path of the custom bvals file, in FSL format.')
     p.add_argument(
-        '--bvecs_custom', metavar='file', default=None,
+        '--in_bvec_custom', metavar='file', default=None,
         help='Path of the custom bvecs file, in FSL format.')
     p.add_argument(
-        '--bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
+        '--in_bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
         help='Value of the b_delta for the custom encoding.')
     p.add_argument(
         '--mask',
@@ -97,14 +97,17 @@ def buildArgsParser():
              'used for computations and reconstruction. Useful if no tissue '
              'masks are available.')
     p.add_argument(
-        '--wm_mask',
-        help='Path to the WM mask file.')
+        '--mask_wm',
+        help='Path to the input WM mask file, used to improve the'
+             ' final WM frf mask.')
     p.add_argument(
-        '--gm_mask',
-        help='Path to the GM mask file.')
+        '--mask_gm',
+        help='Path to the input GM mask file, used to improve the '
+             'final GM frf mask.')
     p.add_argument(
-        '--csf_mask',
-        help='Path to the CSF mask file.')
+        '--mask_csf',
+        help='Path to the input CSF mask file, used to improve the'
+             ' final CSF frf mask.')
 
     p.add_argument(
         '--thr_fa_wm', default=0.7, type=float,
@@ -187,23 +190,23 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [],
-                    optional=[args.input_linear, args.bvals_linear,
-                                args.bvecs_linear,
-                                args.input_planar, args.bvals_planar,
-                                args.bvecs_planar,
-                                args.input_spherical, args.bvals_spherical,
-                                args.bvecs_spherical])
-    assert_outputs_exist(parser, args, [args.wm_frf, args.gm_frf,
-                                        args.csf_frf])
+                    optional=[args.in_dwi_linear, args.in_bval_linear,
+                                args.in_bvec_linear,
+                                args.in_dwi_planar, args.in_bval_planar,
+                                args.in_bvec_planar,
+                                args.in_dwi_spherical, args.in_bval_spherical,
+                                args.in_bvec_spherical])
+    assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
+                                        args.out_csf_frf])
 
     # Loading data
-    input_files = [args.input_linear, args.input_planar,
-                            args.input_spherical, args.input_custom]
-    bvals_files = [args.bvals_linear, args.bvals_planar,
-                           args.bvals_spherical, args.bvals_custom]
-    bvecs_files = [args.bvecs_linear, args.bvecs_planar, 
-                           args.bvecs_spherical, args.bvecs_custom]
-    b_deltas_list = [1.0, -0.5, 0, args.bdelta_custom]
+    input_files = [args.in_dwi_linear, args.in_dwi_planar,
+                            args.in_dwi_spherical, args.in_dwi_custom]
+    bvals_files = [args.in_bval_linear, args.in_bval_planar,
+                           args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
+                           args.in_bvec_spherical, args.in_bvec_custom]
+    b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
     gtab, data, ubvals, ubdeltas = generate_btensor_input(input_files,
                                                           bvals_files,
@@ -250,14 +253,14 @@ def main():
         mask_gm *= mask
         mask_csf *= mask
 
-    if args.wm_mask:
-        tissue_mask_wm = get_data_as_mask(nib.load(args.wm_mask), dtype=bool)
+    if args.mask_wm:
+        tissue_mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
         mask_wm *= tissue_mask_wm
-    if args.gm_mask:
-        tissue_mask_gm = get_data_as_mask(nib.load(args.gm_mask), dtype=bool)
+    if args.mask_gm:
+        tissue_mask_gm = get_data_as_mask(nib.load(args.mask_gm), dtype=bool)
         mask_gm *= tissue_mask_gm
-    if args.csf_mask:
-        tissue_mask_csf = get_data_as_mask(nib.load(args.csf_mask), dtype=bool)
+    if args.mask_csf:
+        tissue_mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool)
         mask_csf *= tissue_mask_csf
 
     msg = """Could not find at least {0} voxels for the {1} mask. Look at
@@ -286,7 +289,7 @@ def main():
                                                                      mask_csf,
                                                                      tol=0)
 
-    frf_out = [args.wm_frf, args.gm_frf, args.csf_frf]
+    frf_out = [args.out_wm_frf, args.out_gm_frf, args.out_csf_frf]
     responses = [response_wm, response_gm, response_csf]
 
     for frf, response in zip(frf_out, responses):
