@@ -31,10 +31,10 @@ def _build_arg_parser():
         help='Reference volume to resample to.')
     res_group.add_argument(
         '--resolution', nargs='+', type=int,
-        help='Resolution to resample to. If the value it is set to is Y, it '
-             'will resample to an isotropic resolution of Y x Y x Y.')
+        help='New resolution for the volume. If the value it is set to is Y, '
+             'it will resample to an isotropic resolution of Y x Y x Y.')
     res_group.add_argument('--zoom', type=float,
-                           help='Zoom uniformly into the image.')
+                           help='Set the zoom of the image.')
     res_group.add_argument(
         '--iso_min', action='store_true',
         help='Resample the volume to R x R x R with R being the smallest '
@@ -48,7 +48,7 @@ def _build_arg_parser():
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
     p.add_argument('--offset', default=-0.5, type=float,
-                   help='Add offset to voxels in the volume.')
+                   help='Add offset to voxels in the volume [%(default)s].')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)

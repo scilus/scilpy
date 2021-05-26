@@ -34,14 +34,16 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
         If true, resample the volume to R x R x R with R being the smallest
         current voxel dimension. If false, this method is not used.
     zoom: float, optional
-        Zoom into the image by the factor specified. A zoom above 1 will
-        zoom-in, a zoom betweem 0 and 1 will zoom-out.
+        Set the zoom property of the image at the value specified.
     interp: str, optional
         Interpolation mode. 'nn' = nearest neighbour, 'lin' = linear,
         'quad' = quadratic, 'cubic' = cubic. (Default: linear)
     enforce_dimensions: bool, optional
         If True, enforce the reference volume dimension (only if res is not
         None). (Default = False)
+    offset: float
+        Offset property for the volume. Be careful when setting something else
+        than the default. (Default = -0.5)
 
     Returns
     -------
@@ -75,7 +77,7 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
         min_zoom = min(original_zooms)
         new_zooms = (min_zoom, min_zoom, min_zoom)
     elif zoom:
-        new_zooms = tuple(o * zoom for o in original_zooms)
+        new_zooms = [zoom] * 3
     else:
         raise ValueError("You must choose the resampling method. Either with"
                          "a reference volume, or a chosen isometric resolution"
