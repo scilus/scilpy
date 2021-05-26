@@ -31,14 +31,16 @@ def _build_arg_parser():
         help='Reference volume to resample to.')
     res_group.add_argument(
         '--resolution', nargs='+', type=int,
-        help='New resolution for the volume. If the value it is set to is Y, '
+        help='New resolution for the volume. If the value is set to is Y, '
              'it will resample to an isotropic resolution of Y x Y x Y.')
-    res_group.add_argument('--zoom', type=float,
-                           help='Set the zoom of the image.')
+    res_group.add_argument(
+        '--voxel_size', nargs='+', type=float,
+        help='Sets the voxel size. If the value is set to is Y, it will set '
+             'a voxel size of Y x Y x Y.')
     res_group.add_argument(
         '--iso_min', action='store_true',
         help='Resample the volume to R x R x R with R being the smallest '
-             'current voxel dimension ')
+             'current voxel dimension.')
 
     p.add_argument(
         '--interp', default='lin',
@@ -73,6 +75,10 @@ def main():
                             not len(args.resolution) == 3):
         parser.error('Invalid dimensions for --resolution.')
 
+    if args.voxel_size and (not len(args.voxel_size) == 1 and
+                            not len(args.voxel_size) == 3):
+        parser.error('Invalid dimensions for --voxel_size.')
+
     if args.offset != parser.get_default('offset'):
         logging.warning('--offset is a dangerous parameter to modify. Make '
                         'sure you know what you are doing.')
@@ -83,7 +89,7 @@ def main():
 
     # Resampling volume
     resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
-                                    iso_min=args.iso_min, zoom=args.zoom,
+                                    iso_min=args.iso_min, zoom=args.voxel_size,
                                     interp=args.interp,
                                     enforce_dimensions=args.enforce_dimensions,
                                     offset=args.offset)
