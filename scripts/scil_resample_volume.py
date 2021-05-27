@@ -30,9 +30,9 @@ def _build_arg_parser():
         '--ref',
         help='Reference volume to resample to.')
     res_group.add_argument(
-        '--resolution', nargs='+', type=int,
-        help='New resolution for the volume. If the value is set to is Y, '
-             'it will resample to an isotropic resolution of Y x Y x Y.')
+        '--volume_size', nargs='+', type=int,
+        help='Sets the size for the volume. If the value is set to is Y, '
+             'it will resample to a shape of Y x Y x Y.')
     res_group.add_argument(
         '--voxel_size', nargs='+', type=float,
         help='Sets the voxel size. If the value is set to is Y, it will set '
@@ -71,9 +71,9 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    if args.resolution and (not len(args.resolution) == 1 and
-                            not len(args.resolution) == 3):
-        parser.error('Invalid dimensions for --resolution.')
+    if args.volume_size and (not len(args.volume_size) == 1 and
+                             not len(args.volume_size) == 3):
+        parser.error('Invalid dimensions for --volume_size.')
 
     if args.voxel_size and (not len(args.voxel_size) == 1 and
                             not len(args.voxel_size) == 3):
@@ -88,7 +88,7 @@ def main():
     img = nib.load(args.in_image)
 
     # Resampling volume
-    resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
+    resampled_img = resample_volume(img, ref=args.ref, res=args.volume_size,
                                     iso_min=args.iso_min, zoom=args.voxel_size,
                                     interp=args.interp,
                                     enforce_dimensions=args.enforce_dimensions,

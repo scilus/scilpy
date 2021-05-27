@@ -22,5 +22,5 @@ def test_execution_others(script_runner):
     in_img = os.path.join(get_home(), 'others',
                           'fa.nii.gz')
     ret = script_runner.run('scil_resample_volume.py', in_img,
-                            'fa_resample.nii.gz', '--resolution', '2')
+                            'fa_resample.nii.gz', '--voxel_size', '2')
     assert ret.success
