@@ -132,12 +132,13 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     return full_response
 
 
-def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
-                     bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
-                     mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
-                     fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.003,
-                     min_nvox=300, roi_radii=10, roi_center=None,
-                     tol=20, force_b0_threshold=False):
+def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
+                     bvals_dti=None, bvecs_dti=None, btens_dti=None,
+                     mask=None, mask_wm=None, mask_gm=None, mask_csf=None,
+                     fa_thr_wm=0.7, fa_thr_gm=0.2, fa_thr_csf=0.1,
+                     md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
+                     roi_radii=10, roi_center=None, tol=20,
+                     force_b0_threshold=False):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -222,7 +223,7 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
 
     check_b0_threshold(force_b0_threshold, bvals.min())
 
-    gtab = gradient_table(bvals, bvecs)
+    gtab = gradient_table(bvals, bvecs, btens=btens)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -243,7 +244,7 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
         check_b0_threshold(force_b0_threshold, bvals_dti.min())
-        gtab_dti = gradient_table(bvals_dti, bvecs_dti)
+        gtab_dti = gradient_table(bvals_dti, bvecs_dti, btens=btens_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
             = mask_for_response_msmt(gtab_dti, data_dti,
