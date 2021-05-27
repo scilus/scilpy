@@ -111,7 +111,9 @@ def _build_arg_parser():
 
     return p
 
+
 def single_tensor_btensor(gtab, evals, b_delta, S0=1):
+    # This function should be moved to Dipy at some point
 
     if b_delta > 1 or b_delta < -0.5:
         msg = """The value of b_delta must be between -0.5 and 1."""
@@ -138,6 +140,8 @@ def single_tensor_btensor(gtab, evals, b_delta, S0=1):
 
 def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
                                b_deltas=None, sphere=None, tol=20):
+    # This function should be moved to Dipy at some point
+
     bvals = np.array(bvals, copy=True)
 
     n = np.arange(0, sh_order + 1, 2)
@@ -167,7 +171,8 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
 
         for i, bvalue in enumerate(bvals[1:]):
             gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i], wm_rf[i, 3])
+            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i],
+                                                wm_rf[i, 3])
             response[i+1, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
 
             response[i+1, 1] = gm_rf[i, 3] * np.exp(-bvalue * gm_rf[i, 0]) / A
@@ -179,7 +184,8 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
         warnings.warn("""No b0 was given. Proceeding either way.""", UserWarning)
         for i, bvalue in enumerate(bvals):
             gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i], wm_rf[i, 3])
+            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i],
+                                                wm_rf[i, 3])
             response[i, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
 
             response[i, 1] = gm_rf[i, 3] * np.exp(-bvalue * gm_rf[i, 0]) / A
