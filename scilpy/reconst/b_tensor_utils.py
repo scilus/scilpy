@@ -12,7 +12,6 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 
-
 def generate_btensor_input(input_files, bvals_files, bvecs_files,
                            b_deltas_list, force_b0_threshold, tol=20):
     data_conc = []
@@ -51,25 +50,34 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                         ubvals_conc = [0]
                         ub_deltas_conc = [1]
                     else:
-                        data_b0 = np.concatenate((data_b0, data[..., indices]), axis=-1)
-                        bvals_b0 = np.concatenate((bvals_b0, np.zeros(len(indices))))
+                        data_b0 = np.concatenate((data_b0, data[..., indices]),
+                                                  axis=-1)
+                        bvals_b0 = np.concatenate((bvals_b0,
+                                                   np.zeros(len(indices))))
                         bvecs_b0 = np.concatenate((bvecs_b0, bvecs[indices]))
                         if np.sum([ubvals_conc < tol]) < 1:
                             ubvals_conc = np.concatenate((ubvals_conc, [0]))
-                            ub_deltas_conc = np.concatenate((ub_deltas_conc, [1]))
+                            ub_deltas_conc = np.concatenate((ub_deltas_conc,
+                                                             [1]))
                 else:
                     if data_conc == []:
                         data_conc = data[..., indices]
                         bvals_conc = np.ones(len(indices)) * ubval
                         bvecs_conc = bvecs[indices]
                         b_deltas = np.ones(len(indices)) * b_delta
-                        b_shapes = np.repeat(np.array([bshapes[b_delta]]), len(indices))
+                        b_shapes = np.repeat(np.array([bshapes[b_delta]]),
+                                             len(indices))
                     else:
-                        data_conc = np.concatenate((data_conc, data[..., indices]), axis=-1)
-                        bvals_conc = np.concatenate((bvals_conc, np.ones(len(indices)) * ubval))
+                        data_conc = np.concatenate((data_conc,
+                                                    data[..., indices]), axis=-1)
+                        bvals_conc = np.concatenate((bvals_conc,
+                                                     np.ones(len(indices)) * ubval))
                         bvecs_conc = np.concatenate((bvecs_conc, bvecs[indices]))
-                        b_deltas = np.concatenate((b_deltas, np.ones(len(indices)) * b_delta))
-                        b_shapes = np.concatenate((b_shapes, np.repeat(np.array([bshapes[b_delta]]), len(indices))))
+                        b_deltas = np.concatenate((b_deltas,
+                                                   np.ones(len(indices)) * b_delta))
+                        b_shapes = np.concatenate((b_shapes,
+                                                   np.repeat(np.array([bshapes[b_delta]]),
+                                                                      len(indices))))
                     ubvals_conc = np.concatenate((ubvals_conc, [ubval]))
                     ub_deltas_conc = np.concatenate((ub_deltas_conc, [b_delta]))
     
@@ -77,7 +85,8 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     bvals_conc = np.concatenate((bvals_b0, bvals_conc))
     bvecs_conc = np.concatenate((bvecs_b0, bvecs_conc))
     b_deltas = np.concatenate((np.ones(len(bvals_b0)), b_deltas))
-    b_shapes = np.concatenate((np.repeat(np.array(["LTE"]), len(bvals_b0)), b_shapes))
+    b_shapes = np.concatenate((np.repeat(np.array(["LTE"]), len(bvals_b0)),
+                               b_shapes))
 
     ubvals = []
     ub_deltas = []
@@ -92,8 +101,8 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                 if ubvals_conc[i] == bval:
                     ubvals_conc[i] += 1
                     bvals_conc = np.where(np.logical_and(bvals_conc == bval,
-                                            b_deltas != ub_deltas_conc[indices[0]]),
-                                            bval + 1, bvals_conc)
+                                          b_deltas != ub_deltas_conc[indices[0]]),
+                                          bval + 1, bvals_conc)
             ubvals_conc = np.delete(ubvals_conc, indices[0])
             ub_deltas_conc = np.delete(ub_deltas_conc, indices[0])
         else:
@@ -104,9 +113,13 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
 
     sorted_indices = np.argsort(bvals_conc, axis=0)
     bvals_conc = np.take_along_axis(bvals_conc, sorted_indices, axis=0)
-    bvecs_conc = np.take_along_axis(bvecs_conc, sorted_indices.reshape(len(bvals_conc), 1), axis=0)
+    bvecs_conc = np.take_along_axis(bvecs_conc,
+                                    sorted_indices.reshape(len(bvals_conc), 1),
+                                    axis=0)
     b_shapes = np.take_along_axis(b_shapes, sorted_indices, axis=0)
-    data_conc = np.take_along_axis(data_conc, sorted_indices.reshape(1, 1, 1, len(bvals_conc)), axis=-1)
+    data_conc = np.take_along_axis(data_conc,
+                                   sorted_indices.reshape(1, 1, 1, len(bvals_conc)),
+                                   axis=-1)
 
     sorted_indices = np.argsort(np.asarray(ubvals), axis=0)
     ubvals = np.take_along_axis(np.asarray(ubvals), sorted_indices, axis=0)
