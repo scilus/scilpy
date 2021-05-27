@@ -78,6 +78,7 @@ def buildArgsParser():
                    help='Path of the custom bvecs file, in FSL format.')
     p.add_argument('--in_bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
                    help='Value of the b_delta for the custom encoding.')
+
     p.add_argument('--mask',
                    help='Path to a binary mask. Only the data inside the mask '
                         'will be used for\ncomputations and reconstruction. '
@@ -186,11 +187,11 @@ def main():
 
     assert_inputs_exist(parser, [],
                     optional=[args.in_dwi_linear, args.in_bval_linear,
-                                args.in_bvec_linear,
-                                args.in_dwi_planar, args.in_bval_planar,
-                                args.in_bvec_planar,
-                                args.in_dwi_spherical, args.in_bval_spherical,
-                                args.in_bvec_spherical])
+                              args.in_bvec_linear,
+                              args.in_dwi_planar, args.in_bval_planar,
+                              args.in_bvec_planar,
+                              args.in_dwi_spherical, args.in_bval_spherical,
+                              args.in_bvec_spherical])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
 

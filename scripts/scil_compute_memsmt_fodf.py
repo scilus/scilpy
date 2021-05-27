@@ -35,52 +35,39 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('wm_frf',
+    p.add_argument('in_wm_frf',
                    help='Text file of WM response function.')
-    p.add_argument('gm_frf',
+    p.add_argument('in_gm_frf',
                    help='Text file of GM response function.')
-    p.add_argument('csf_frf',
+    p.add_argument('in_csf_frf',
                    help='Text file of CSF response function.')
 
-    p.add_argument(
-        '--input_linear', metavar='file', default=None,
-        help='Path of the linear input diffusion volume.')
-    p.add_argument(
-        '--bvals_linear', metavar='file', default=None,
-        help='Path of the linear bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_linear', metavar='file', default=None,
-        help='Path of the linear bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_planar', metavar='file', default=None,
-        help='Path of the planar input diffusion volume.')
-    p.add_argument(
-        '--bvals_planar', metavar='file', default=None,
-        help='Path of the planar bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_planar', metavar='file', default=None,
-        help='Path of the planar bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_spherical', metavar='file', default=None,
-        help='Path of the spherical input diffusion volume.')
-    p.add_argument(
-        '--bvals_spherical', metavar='file', default=None,
-        help='Path of the spherical bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_spherical', metavar='file', default=None,
-        help='Path of the spherical bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_custom', metavar='file', default=None,
-        help='Path of the custom input diffusion volume.')
-    p.add_argument(
-        '--bvals_custom', metavar='file', default=None,
-        help='Path of the custom bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_custom', metavar='file', default=None,
-        help='Path of the custom bvecs file, in FSL format.')
-    p.add_argument(
-        '--bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
-        help='Value of the b_delta for the custom encoding.')
+    p.add_argument('--in_dwi_linear', metavar='file', default=None,
+                   help='Path of the linear input diffusion volume.')
+    p.add_argument('--in_bval_linear', metavar='file', default=None,
+                   help='Path of the linear bvals file, in FSL format.')
+    p.add_argument('--in_bvec_linear', metavar='file', default=None,
+                   help='Path of the linear bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_planar', metavar='file', default=None,
+                   help='Path of the planar input diffusion volume.')
+    p.add_argument('--in_bval_planar', metavar='file', default=None,
+                   help='Path of the planar bvals file, in FSL format.')
+    p.add_argument('--in_bvec_planar', metavar='file', default=None,
+                   help='Path of the planar bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_spherical', metavar='file', default=None,
+                   help='Path of the spherical input diffusion volume.')
+    p.add_argument('--in_bval_spherical', metavar='file', default=None,
+                   help='Path of the spherical bvals file, in FSL format.')
+    p.add_argument('--in_bvec_spherical', metavar='file', default=None,
+                   help='Path of the spherical bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_custom', metavar='file', default=None,
+                   help='Path of the custom input diffusion volume.')
+    p.add_argument('--in_bval_custom', metavar='file', default=None,
+                   help='Path of the custom bvals file, in FSL format.')
+    p.add_argument('--in_bvec_custom', metavar='file', default=None,
+                   help='Path of the custom bvecs file, in FSL format.')
+    p.add_argument('--in_bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
+                   help='Value of the b_delta for the custom encoding.')
 
     p.add_argument(
         '--sh_order', metavar='int', default=8, type=int,
@@ -94,34 +81,33 @@ def _build_arg_parser():
         help='The tolerated gap between the b-values to '
              'extract\nand the current b-value. [%(default)s]')
 
+    add_force_b0_arg(p)
+    add_sh_basis_args(p)
+    add_processes_arg(p)
+    add_overwrite_arg(p)
+
     p.add_argument(
         '--not_all', action='store_true',
         help='If set, only saves the files specified using the '
              'file flags. (Default: False)')
 
-    add_force_b0_arg(p)
-    add_sh_basis_args(p)
-    add_processes_arg(p)
-
     g = p.add_argument_group(title='File flags')
 
     g.add_argument(
-        '--wm_fodf', metavar='file', default='',
-        help='Output filename for the WM ODF coefficients.')
+        '--wm_out_fODF', metavar='file', default='',
+        help='Output filename for the WM fODF coefficients.')
     g.add_argument(
-        '--gm_fodf', metavar='file', default='',
-        help='Output filename for the GM ODF coefficients.')
+        '--gm_out_fODF', metavar='file', default='',
+        help='Output filename for the GM fODF coefficients.')
     g.add_argument(
-        '--csf_fodf', metavar='file', default='',
-        help='Output filename for the CSF ODF coefficients.')
+        '--csf_out_fODF', metavar='file', default='',
+        help='Output filename for the CSF fODF coefficients.')
     g.add_argument(
         '--vf', metavar='file', default='',
         help='Output filename for the volume fractions map.')
     g.add_argument(
         '--vf_rgb', metavar='file', default='',
         help='Output filename for the volume fractions map in rgb.')
-
-    add_overwrite_arg(p)
 
     return p
 
@@ -205,51 +191,73 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
 
 
 def main():
-    parser = _build_arg_parser() # !!!!!!!!!!!!!!!!!!!!!!!!! Add to parser : all linear input mandatory if input_linear is given (for example)
+    parser = _build_arg_parser()
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
-        args.wm_fodf = args.wm_fodf or 'wm_fodf.nii.gz'
-        args.gm_fodf = args.gm_fodf or 'gm_fodf.nii.gz'
-        args.csf_fodf = args.csf_fodf or 'csf_fodf.nii.gz'
+        args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'
+        args.gm_out_fODF = args.gm_out_fODF or 'gm_fodf.nii.gz'
+        args.csf_out_fODF = args.csf_out_fODF or 'csf_fodf.nii.gz'
         args.vf = args.vf or 'vf.nii.gz'
         args.vf_rgb = args.vf_rgb or 'vf_rgb.nii.gz'
 
-    arglist = [args.wm_fodf, args.gm_fodf, args.csf_fodf, args.vf, args.vf_rgb]
+    arglist = [args.wm_out_fODF, args.gm_out_fODF, args.csf_out_fODF,
+               args.vf, args.vf_rgb]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least ' +
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=[args.input_linear, args.bvals_linear,
-                                  args.bvecs_linear, args.input_planar,
-                                  args.bvals_planar, args.bvecs_planar,
-                                  args.input_spherical, args.bvals_spherical,
-                                  args.bvecs_spherical])
+                    optional=[args.in_dwi_linear, args.in_bval_linear,
+                              args.in_bvec_linear,
+                              args.in_dwi_planar, args.in_bval_planar,
+                              args.in_bvec_planar,
+                              args.in_dwi_spherical, args.in_bval_spherical,
+                              args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
-    # Loading data
-    input_files = [args.input_linear, args.input_planar,
-                            args.input_spherical, args.input_custom]
-    bvals_files = [args.bvals_linear, args.bvals_planar,
-                           args.bvals_spherical, args.bvals_custom]
-    bvecs_files = [args.bvecs_linear, args.bvecs_planar, 
-                           args.bvecs_spherical, args.bvecs_custom]
-    b_deltas_list = [1.0, -0.5, 0, args.bdelta_custom]
+    input_files = [args.in_dwi_linear, args.in_dwi_planar,
+                            args.in_dwi_spherical, args.in_dwi_custom]
+    bvals_files = [args.in_bval_linear, args.in_bval_planar,
+                           args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
+                           args.in_bvec_spherical, args.in_bvec_custom]
+    b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
+    for i in range(4):
+        enc = ["linear", "planar", "spherical", "custom"]
+        if input_files[i] is None and bvals_files[i] is None \
+            and bvecs_files[i] is None:
+            inclusive = 1
+            if i == 3 and args.in_bdelta_custom is not None:
+                inclusive = 0
+        elif input_files[i] is not None and bvals_files[i] is not None \
+            and bvecs_files[i] is not None:
+            inclusive = 1
+            if i == 3 and args.in_bdelta_custom is None:
+                inclusive = 0
+        else:
+            inclusive = 0
+        if inclusive == 0:
+            msg = """All of in_dwi, bval and bvec files are mutually needed
+                  for {} encoding."""
+            raise ValueError(msg.format(enc[i]))
+
+    tol = args.tolerance
+    force_b0_thr = args.force_b0_threshold
+
+    wm_frf = np.loadtxt(args.in_wm_frf)
+    gm_frf = np.loadtxt(args.in_gm_frf)
+    csf_frf = np.loadtxt(args.in_csf_frf)
     gtab, data, ubvals, ubdeltas = generate_btensor_input(input_files,
                                                           bvals_files,
                                                           bvecs_files,
                                                           b_deltas_list,
-                                                          args.force_b0_threshold,
-                                                          tol=args.tolerance)
+                                                          force_b0_thr,
+                                                          tol=tol)
 
     affine = extract_affine(input_files)
-
-    wm_frf = np.loadtxt(args.wm_frf)
-    gm_frf = np.loadtxt(args.gm_frf)
-    csf_frf = np.loadtxt(args.csf_frf)
 
     # Checking mask
     if args.mask is None:
@@ -286,63 +294,83 @@ def main():
     if not csf_frf.shape[1] == 4:
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
-    mdmsmt_response = multi_shell_fiber_response(sh_order,
+
+    memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
                                                  ubdeltas[1:],
-                                                 tol=args.tolerance)
+                                                 tol=tol)
 
-    reg_sphere = get_sphere('repulsion724')
+    reg_sphere = get_sphere('repulsion362')
 
     # Computing msmt-CSD
-    mdmsmt_model = MultiShellDeconvModel(gtab, mdmsmt_response,
+    memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
                                        reg_sphere=reg_sphere,
                                        sh_order=sh_order)
 
     # Computing msmt-CSD fit
-    mdmsmt_fit = fit_from_model(mdmsmt_model, data,
-                              mask=mask, nbr_processes=args.nbr_processes)
+    memsmt_fit = fit_from_model(memsmt_model, data,
+                                mask=mask, nbr_processes=args.nbr_processes)
+
+    shm_coeff = memsmt_fit.all_shm_coeff
+
+    nan_count = len(np.argwhere(np.isnan(shm_coeff[..., 0])))
+    voxel_count = np.prod(shm_coeff.shape[:-1])
+
+    if nan_count / voxel_count >= 0.05:
+        msg = """There are {} voxels out of {} that could not be solved by
+        the solver, reaching a critical amount of voxels. Make sure to tune the
+        response functions properly, as the solving process is very sensitive
+        to it. Proceeding to fill the problematic voxels by 0.
+        """
+        logging.warning(msg.format(nan_count, voxel_count))
+    elif nan_count  > 0:
+        msg = """There are {} voxels out of {} that could not be solved by
+        the solver. Make sure to tune the response functions properly, as the
+        solving process is very sensitive to it. Proceeding to fill the
+        problematic voxels by 0.
+        """
+        logging.warning(msg.format(nan_count, voxel_count))
+
+    shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
 
     # Saving results
-    if args.wm_fodf:
-        shm_coeff = mdmsmt_fit.shm_coeff
+    if args.wm_out_fODF:
+        wm_coeff = shm_coeff[..., 2:]
         if args.sh_basis == 'tournier07':
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    affine), args.wm_fodf)
+        nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
+                                 vol.affine), args.wm_out_fODF)
 
-    if args.gm_fodf:
-        shm_coeff = mdmsmt_fit.all_shm_coeff[..., 1]
+    if args.gm_out_fODF:
+        gm_coeff = shm_coeff[..., 1]
         if args.sh_basis == 'tournier07':
-            shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
+            gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    affine), args.gm_fodf)
-                                
-    if args.csf_fodf:
-        shm_coeff = mdmsmt_fit.all_shm_coeff[..., 0]
+        nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
+                                 vol.affine), args.gm_out_fODF)
+
+    if args.csf_out_fODF:
+        csf_coeff = shm_coeff[..., 0]
         if args.sh_basis == 'tournier07':
-            shm_coeff = shm_coeff.reshape(shm_coeff.shape + (1,))
-            shm_coeff = convert_sh_basis(shm_coeff, reg_sphere, mask=mask,
+            csf_coeff = csf_coeff.reshape(csf_coeff.shape + (1,))
+            csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
-        nib.save(nib.Nifti1Image(shm_coeff.astype(np.float32),
-                                    affine), args.csf_fodf)
+        nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
+                                 vol.affine), args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(mdmsmt_fit.volume_fractions.astype(np.float32),
-                                 affine), args.vf)
+        nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
+                                 vol.affine), args.vf)
 
     if args.vf_rgb:
-        vf = mdmsmt_fit.volume_fractions
+        vf = msmt_fit.volume_fractions
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
-        # vf_max = np.repeat(np.max(vf, axis=-1), 3).reshape(vf.shape) 
-        # vf_rgb = vf / vf_max * 255
-        # vf_rgb = np.clip(vf_rgb, 0, 255)
         nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
-                                 affine), args.vf_rgb)
+                                 vol.affine), args.vf_rgb)
 
 
 if __name__ == "__main__":
