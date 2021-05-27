@@ -13,7 +13,6 @@ really two coherent groups. Use the following script to order streamlines:
 scil_uniformize_streamlines_endpoints.py
 """
 
-
 import argparse
 import logging
 import json
@@ -28,6 +27,8 @@ from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tractanalysis.reproducibility_measures import \
+    get_head_tail_density_maps
 
 
 def _build_arg_parser():
@@ -63,14 +64,12 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
+    sft.to_corner()
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
     transfo, dim, _, _ = sft.space_attributes
-
-    endpoints_map_head = np.zeros(dim)
-    endpoints_map_tail = np.zeros(dim)
 
     head_name = args.endpoints_map_head
     tail_name = args.endpoints_map_tail
@@ -79,12 +78,8 @@ def main():
         head_name = args.endpoints_map_tail
         tail_name = args.endpoints_map_head
 
-    for streamline in sft.streamlines:
-        xyz = streamline[0, :].astype(int)
-        endpoints_map_head[xyz[0], xyz[1], xyz[2]] += 1
-
-        xyz = streamline[-1, :].astype(int)
-        endpoints_map_tail[xyz[0], xyz[1], xyz[2]] += 1
+    endpoints_map_head, endpoints_map_tail = \
+        get_head_tail_density_maps(sft.streamlines, dim)
 
     nib.save(nib.Nifti1Image(endpoints_map_head, transfo), head_name)
     nib.save(nib.Nifti1Image(endpoints_map_tail, transfo), tail_name)
