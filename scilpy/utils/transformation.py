@@ -3,6 +3,7 @@
 from dipy.io.stateful_tractogram import StatefulTractogram
 import numpy as np
 
+
 def get_axis_flip_vector(flip_axes):
     flip_vector = np.ones(3)
     if 'x' in flip_axes:
