@@ -2,34 +2,48 @@
 # -*- coding: utf-8 -*-
 
 """
+This script is made to fix DSI-Studio TRK file (unknown space/convention) to
+make it compatible with TrackVis, MI-Brain, Dipy Horizon (Stateful Tractogram).
 
+The script either make it match with an anatomy from DSI-Studio (AC-PC aligned,
+sometimes flipped) or if --in_native_fa is provided it moves it back to native
+DWI space (this involved registration).
+
+Since DSI-Studio sometimes leaves some skull around the brain, the --auto_crop
+aims to stabilize registration. If this option fails, manually BET both FA.
+Registration is more robust at resolution above 2mm (iso), be careful.
+
+If you are fixing bundles, use this script once with --save_transfo and verify
+results. Once satisfied, call the scripts on bundles using a bash for loop with
+--load_transfo to save computation.
+
+We recommand the --cut_invalid to remove invalid points of streamlines rather
+removing entire streamlines.
+
+This script was tested on various datasets and worked on all of them. However,
+always verify the results and if a specific case does not work. Open an issue
+on the Scilpy GitHub repository.
 """
 
 import argparse
 
 from dipy.align.imaffine import (transform_centers_of_mass,
-                                 AffineMap,
                                  MutualInformationMetric,
                                  AffineRegistration)
-from dipy.align.transforms import (TranslationTransform3D,
-                                   RigidTransform3D,
-                                   AffineTransform3D)
-from dipy.io.stateful_tractogram import StatefulTractogram, Space, Origin
+from dipy.align.transforms import RigidTransform3D
+from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info
 from dipy.io.streamline import save_tractogram, load_tractogram
 from dipy.reconst.utils import _roi_in_volume, _mask_from_roi
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_reference_arg,
-                             add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.streamlines import (transform_warp_streamlines,
                                       cut_invalid_streamlines)
-from scilpy.utils.transformation import (get_axis_flip_vector,
-                                         get_shift_vector,
-                                         flip_sft)
+from scilpy.utils.transformation import flip_sft
 
 
 def _build_arg_parser():
@@ -37,7 +51,8 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_dsi_tractogram',
-                   help='Path of the input tractogram file from DSI studio (.trk).')
+                   help='Path of the input tractogram file from DSI studio '
+                        '(.trk).')
     p.add_argument('in_dsi_fa',
                    help='Path of the input FA from DSI Studio (.nii.gz).')
     p.add_argument('out_tractogram',
@@ -70,6 +85,7 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
+
 
 def get_axis_shift_vector(flip_axes):
     shift_vector = np.zeros(3)
@@ -125,7 +141,7 @@ def main():
         static_data = static_img.get_fdata()
         moving_img = nib.load(args.in_dsi_fa)
         moving_data = moving_img.get_fdata()
-        
+
         # DSI-Studio flips the volume without changing the affine (I think)
         # So this has to be reversed (not the same problem as above)
         vox_order = get_reference_info(moving_img)[3]
@@ -150,8 +166,9 @@ def main():
                 moving_data = cube_crop_data(moving_data)
                 static_data = cube_crop_data(static_data)
 
-            # Since DSI Studio register to AC/PC and does not save the transformation
-            # We must estimate the transformation, since its rigid it is 'easy'
+            # Since DSI Studio register to AC/PC and does not save the
+            # transformation We must estimate the transformation, since it's
+            # rigid it is 'easy'
             c_of_mass = transform_centers_of_mass(static_data, static_img.affine,
                                                   moving_data, moving_img.affine)
 
@@ -164,16 +181,10 @@ def main():
             affreg = AffineRegistration(metric=metric, level_iters=level_iters,
                                         sigmas=sigmas, factors=factors)
             transform = RigidTransform3D()
-            nib.save(nib.Nifti1Image(
-                static_data, static_img.affine), 'lol1.nii.gz')
             rigid = affreg.optimize(static_data, moving_data, transform, None,
                                     static_img.affine, moving_img.affine,
                                     starting_affine=c_of_mass.affine)
             transfo = rigid.affine
-            transformed = rigid.transform(moving_data)
-            nib.save(nib.Nifti1Image(
-                transformed, static_img.affine), 'lol.nii.gz')
-
             if args.save_transfo:
                 np.savetxt(args.save_transfo, transfo)
 
