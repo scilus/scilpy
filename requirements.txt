@@ -12,6 +12,7 @@ nibabel==3.0.*
 nilearn==0.6.*
 numpy==1.18.*
 Pillow==7.1.*
+bids-validator==1.6.0
 pybids==0.10.*
 pyparsing==2.2.*
 python-dateutil==2.7.*
