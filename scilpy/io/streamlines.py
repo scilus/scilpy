@@ -10,6 +10,8 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
+from scilpy.io.utils import create_header_from_anat
+
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
     """
@@ -242,3 +244,46 @@ def reconstruct_streamlines(data, offsets, lengths, indices=None):
         streamlines.append(streamline.reshape((lengths[i], 3)))
 
     return ArraySequence(streamlines)
+
+
+def save_streamlines(streamlines, ref_filename, output_filename, seeds=[]):
+    """
+    Parameters
+    ----------
+    streamlines: List of numpy.arrays of numpy.arrays
+        The actual streamlines
+    ref_filename: string
+        File to load the reference affine from
+    output_filename: string
+        Location of the streamlines file
+    seeds: List of numpy.arrays
+        Seeds to save alongside the streamlines
+        Will be an empty array if unwanted
+
+    Returns
+    -------
+
+    """
+    tracts_format = nib.streamlines.detect_format(output_filename)
+    if tracts_format not in [nib.streamlines.TrkFile, nib.streamlines.TckFile]:
+        raise ValueError("Invalid output streamline file format " +
+                         "(must be trk or tck): {0}".format(output_filename))
+    # Create the affine to go from voxmm (expected space) to
+    # ras+ mm.
+    ref_file = nib.load(ref_filename)
+
+    # Use this to remove the scaling component from the reference affine.
+    unscaling_matrix = np.eye(4)
+    unscaling_matrix[range(3), range(3)] = 1. / np.array(
+        ref_file.header.get_zooms())
+    voxmm_to_rasmm = np.dot(ref_file.affine, unscaling_matrix)
+
+    tractogram = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=voxmm_to_rasmm)
+
+    if seeds is not None and len(seeds) > 0:
+        transformed_seeds = nib.affines.apply_affine(voxmm_to_rasmm, seeds)
+        tractogram.data_per_streamline['seeds'] = transformed_seeds
+
+    header = create_header_from_anat(ref_file, tracts_format)
+
+    nib.streamlines.save(tractogram, output_filename, header=header)
