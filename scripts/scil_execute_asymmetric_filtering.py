@@ -53,9 +53,14 @@ def _build_arg_parser():
     p.add_argument('out_sh',
                    help='File name for averaged signal.')
 
-    p.add_argument('--out_asymmetry', default='asym_map.nii.gz',
-                   help='File name for asymmetry map. Can only be outputed'
-                        ' when the output SH basis is full. [%(default)s]')
+    p.add_argument('--out_asym_map', default='asym_map.nii.gz',
+                   help='File name for asymmetry map (Cetin Karayumak et al). '
+                        'Can only be outputed when the output SH basis is '
+                        'full. [%(default)s]')
+
+    p.add_argument('--out_oddpwr_map', default='oddpwr_map.nii.gz',
+                   help='File name for odd power map. Will only be outputed'
+                        ' when output SH basis is full. [%(default)s]')
 
     p.add_argument('--sh_order', default=8, type=int,
                    help='SH order of the input. [%(default)s]')
@@ -83,7 +88,7 @@ def _build_arg_parser():
     return p
 
 
-def compute_asymmetry_map(sh_coeffs):
+def compute_karayumak_asym_map(sh_coeffs):
     order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
     _, l_list = sph_harm_ind_list(order, full_basis=True)
 
@@ -101,6 +106,28 @@ def compute_asymmetry_map(sh_coeffs):
     return asym_map
 
 
+def compute_odd_power_map(sh_coeffs):
+    order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
+    _, l_list = sph_harm_ind_list(order, full_basis=True)
+    odd_l_list = (l_list % 2 == 1).reshape((1, 1, 1, -1))
+
+    odd_order_norm = np.linalg.norm(
+        sh_coeffs * odd_l_list,
+        ord=2,
+        axis=-1)
+
+    full_order_norm = np.linalg.norm(
+        sh_coeffs,
+        ord=2,
+        axis=-1)
+
+    asym_map = np.zeros(sh_coeffs.shape[:-1])
+    mask = full_order_norm > 0
+    asym_map[mask] = odd_order_norm[mask] / full_order_norm[mask]
+
+    return asym_map
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -109,7 +136,8 @@ def main():
 
     outputs = [args.out_sh]
     if not args.out_sym:
-        outputs.append(args.out_asymmetry)
+        outputs.append(args.out_asym_map)
+        outputs.append(args.out_oddpwr_map)
 
     # Checking args
     assert_outputs_exist(parser, args, outputs)
@@ -136,11 +164,16 @@ def main():
         logging.info('Skipping asymmetry map because output is symmetric.')
     else:
         logging.info('Generating asymmetry map from output.')
-        asym_map = compute_asymmetry_map(filtered_sh)
+        asym_map = compute_karayumak_asym_map(filtered_sh)
         logging.info('Saving asymmetry map to file '
-                     '{0}.'.format(args.out_asymmetry))
-        nib.save(nib.Nifti1Image(asym_map, sh_img.affine),
-                 args.out_asymmetry)
+                     '{0}.'.format(args.out_asym_map))
+        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.out_asym_map)
+
+        logging.info('Generating odd power map from output.')
+        asym_map = compute_odd_power_map(filtered_sh)
+        logging.info('Saving asymmetry map to file '
+                     '{0}.'.format(args.out_oddpwr_map))
+        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.out_oddpwr_map)
 
 
 if __name__ == "__main__":
