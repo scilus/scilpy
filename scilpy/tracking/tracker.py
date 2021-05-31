@@ -7,8 +7,8 @@ from scilpy.tracking.tracking_field_bitbucket import TrackingDirection
 
 class abstractPropagator(object):
 
-    def __init__(self, tracker, param):
-        self.step_size = param['step_size']
+    def __init__(self, tracker, step_size):
+        self.step_size = step_size
         self.tracker = tracker
 
     def propagate(self, pos, v_in):
@@ -30,8 +30,8 @@ class rk1Propagator(abstractPropagator):
     The order 1 Runge Kutta propagator is equivalent to the step function
     used before the implementation of the Runge Kutta integration
     """
-    def __init__(self, tracker, param):
-        super(rk1Propagator, self).__init__(tracker, param)
+    def __init__(self, tracker, step_size):
+        super(rk1Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         is_valid_direction, newDir = self.getValidDirection(pos, v_in)
@@ -41,8 +41,8 @@ class rk1Propagator(abstractPropagator):
 
 class rk2Propagator(abstractPropagator):
 
-    def __init__(self, tracker, param):
-        super(rk2Propagator, self).__init__(tracker, param)
+    def __init__(self, tracker, step_size):
+        super(rk2Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         is_valid_direction, dir1 = self.getValidDirection(pos, v_in)
@@ -54,8 +54,8 @@ class rk2Propagator(abstractPropagator):
 
 class rk4Propagator(abstractPropagator):
 
-    def __init__(self, tracker, param):
-        super(rk4Propagator, self).__init__(tracker, param)
+    def __init__(self, tracker, step_size):
+        super(rk4Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         is_valid_direction, dir1 = self.getValidDirection(pos, v_in)
@@ -76,18 +76,18 @@ class rk4Propagator(abstractPropagator):
 
 class abstractTracker(object):
 
-    def __init__(self, tracking_field, param):
+    def __init__(self, tracking_field, step_size, rk_order):
         self.tracking_field = tracking_field
-        self.step_size = param['step_size']
-        if param['rk_order'] == 1:
-            self.propagator = rk1Propagator(self, param)
-        elif param['rk_order'] == 2:
-            self.propagator = rk2Propagator(self, param)
-        elif param['rk_order'] == 4:
-            self.propagator = rk4Propagator(self, param)
+        self.step_size = step_size
+        if rk_order == 1:
+            self.propagator = rk1Propagator(self, step_size)
+        elif rk_order == 2:
+            self.propagator = rk2Propagator(self, step_size)
+        elif rk_order == 4:
+            self.propagator = rk4Propagator(self, step_size)
         else:
             raise ValueError("Invalid runge-kutta order. Is " +
-                             str(param['rk_order']) + ". Choices : 1, 2, 4")
+                             str(rk_order) + ". Choices : 1, 2, 4")
 
     def initialize(self, pos):
         """
@@ -135,9 +135,9 @@ class abstractTracker(object):
 
 class probabilisticTracker(abstractTracker):
 
-    def __init__(self, abstractDiscreteField, param):
+    def __init__(self, tracking_field, step_size, rk_order):
         super(probabilisticTracker, self).__init__(
-            abstractDiscreteField, param)
+            tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):
         """
@@ -153,9 +153,9 @@ class probabilisticTracker(abstractTracker):
 
 class deterministicMaximaTracker(abstractTracker):
 
-    def __init__(self, tracking_field, param):
+    def __init__(self, tracking_field, step_size, rk_order):
         super(deterministicMaximaTracker, self).__init__(
-            tracking_field, param)
+            tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):
         """

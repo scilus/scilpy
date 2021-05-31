@@ -37,8 +37,8 @@ from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
 from scilpy.io.streamlines import save_streamlines
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
 from scilpy.tracking.local_tracking_bitbucket import track
-from scilpy.tracking.tracker_bitbucket import (probabilisticTracker,
-                                               deterministicMaximaTracker)
+from scilpy.tracking.tracker import (probabilisticTracker,
+                                     deterministicMaximaTracker)
 from scilpy.tracking.tracking_field_bitbucket import SphericalHarmonicField
 
 
@@ -47,124 +47,94 @@ def buildArgsParser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
-    p.add_argument(
-        'sh_file', action='store', metavar='sh_file', type=str,
-        help="Spherical Harmonic file. Data must be aligned with \nseed_file" +
-        " (isotropic resolution, nifti, see --sh_basis).")
-    p.add_argument(
-        'seed_file', action='store', metavar='seed_file', type=str,
-        help="Seeding mask (isotropic resolution, nifti).")
-    p.add_argument(
-        'mask_file', action='store', metavar='mask_file', type=str,
-        help="Tracking mask (isotropic resolution, nifti).")
-    p.add_argument(
-        'output_file', action='store', metavar='output_file', type=str,
-        help="Streamline output file (must be trk or tck).")
+    p._optionals.title = 'Generic options'
+    p.add_argument('in_sh',
+                   help='Spherical harmonic file (.nii.gz).')
+    p.add_argument('in_seed',
+                   help='Seeding mask  (.nii.gz).')
+    p.add_argument('in_mask',
+                   help='Seeding mask (.nii.gz).\n'
+                        'Tracking will stop outside this mask.')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
 
     add_sh_basis_args(p)
-    p.add_argument(
-        '--algo', dest='algo', action='store', metavar='ALGO', type=str,
-        default='det', choices=['det', 'prob'],
-        help="Algorithm to use (must be 'det' or 'prob'). [%(default)s]")
+    p.add_argument('--algo', default='det', choices=['det', 'prob'],
+                   help='Algorithm to use (must be \'det\' or \'prob\'). '
+                        '[%(default)s]')
 
     seeding_group = p.add_mutually_exclusive_group()
-    seeding_group.add_argument(
-        '--npv', dest='npv', action='store', metavar='NBR', type=int,
-        help='Number of seeds per voxel. [1]')
-    seeding_group.add_argument(
-        '--nt', dest='nt', action='store', metavar='NBR', type=int,
-        help='Total number of seeds. Replaces --npv and --ns.')
-    seeding_group.add_argument(
-        '--ns', dest='ns', action='store', metavar='NBR', type=int,
-        help='Number of streamlines to estimate. Replaces --npv and\n' +
-        '--nt. No multiprocessing is used.')
+    seeding_group.add_argument('--npv', metavar='NBR', type=int,
+                               help='Number of seeds per voxel. [1]')
+    seeding_group.add_argument('--nt', metavar='NBR', type=int,
+                               help='Total number of seeds. Replaces --npv '
+                                    'and --ns.')
+    seeding_group.add_argument('--ns', metavar='NBR', type=int,
+                               help='Number of streamlines to estimate. ' +
+                                    'Replaces --npv and\n--nt. No ' +
+                                    'multiprocessing is used.')
 
-    p.add_argument(
-        '--skip', dest='skip', action='store',
-        metavar='NBR', type=int, default=0,
-        help='Skip the first NBR generated seeds / NBR seeds per voxel\n' +
-        '(--nt / --npv). Not working with --ns. [%(default)s]')
-    p.add_argument(
-        '--random', dest='random', action='store', metavar='RANDOM', type=int,
-        default=0,
-        help='Initial value for the random number generator. [%(default)s]')
+    p.add_argument('--skip', metavar='NBR', type=int, default=0,
+                   help='Skip the first NBR generated seeds / NBR seeds per' +
+                        ' voxel\n(--nt / --npv). Not working with --ns. ' +
+                        '[%(default)s]')
+    p.add_argument('--random', type=int, default=0,
+                   help='Initial value for the random number generator. ' +
+                        '[%(default)s]')
+    p.add_argument('--step', dest='step_size', type=float, default=0.5,
+                   help='Step size in mm. [%(default)s]')
+    p.add_argument('--rk_order', type=int, default=2, choices=[1, 2, 4],
+                   help='The order of the Runge-Kutta integration used for\n' +
+                        'the step function [%(default)s]\n' +
+                        'As a rule of thumb, doubling the rk_order will \n' +
+                        'double the computation time in the worst case.')
+    p.add_argument('--theta', metavar='ANGLE', type=float,
+                   help='Maximum angle (in degrees) between 2 steps. \n' +
+                        '[\'det\'=45, \'prob\'=20]')
+    p.add_argument('--maxL_no_dir', metavar='MAX', type=float, default=1,
+                   help='Maximum length without valid direction, in mm. ' +
+                        '[%(default)s]')
+    p.add_argument('--sfthres', dest='sf_threshold', metavar='THRES',
+                   type=float, default=0.1,
+                   help='Spherical function relative threshold. [%(default)s]')
+    p.add_argument('--sfthres_init', dest='sf_threshold_init',
+                   metavar='THRES', type=float, default=0.5,
+                   help='Spherical function relative threshold value\n' +
+                        'for the initial direction. [%(default)s]')
+    p.add_argument('--minL', dest='min_length', type=float, default=10,
+                   help='Minimum length of a streamline in mm. [%(default)s]')
+    p.add_argument('--maxL', dest='max_length', type=int, default=300,
+                   help='Maximum length of a streamline in mm. [%(default)s]')
 
-    p.add_argument(
-        '--step', dest='step_size', action='store',
-        metavar='STEP', type=float, default=0.5,
-        help='Step size in mm. [%(default)s]')
+    p.add_argument('--sh_interp', dest='field_interp',
+                   default='tl', choices=['nn', 'tl'],
+                   help="Spherical harmonic interpolation: \n'nn' " +
+                        "(nearest-neighbor) or 'tl' (trilinear). " +
+                        "[%(default)s]")
+    p.add_argument('--mask_interp', dest='mask_interp',
+                   default='nn', choices=['nn', 'tl'],
+                   help="Mask interpolation:\n'nn' (nearest-neighbor) or " +
+                        "'tl' (trilinear). [%(default)s]")
 
-    p.add_argument(
-        '--rk_order', action='store', metavar='ORDER', type=int, default=2,
-        choices=[1, 2, 4],
-        help='The order of the Runge-Kutta integration used for \nthe step ' +
-             'function. Must be 1, 2 or 4. [%(default)s]\nAs a rule of thumb' +
-             ', doubling the rk_order will double \nthe computation time ' +
-             'in the worst case.')
-
-    p.add_argument(
-        '--theta', dest='theta', action='store',
-        metavar='ANGLE', type=float,
-        help="Maximum angle between 2 steps. ['det'=45, 'prob'=20]")
-
-    p.add_argument(
-        '--maxL_no_dir', dest='maxL_no_dir', action='store',
-        metavar='MAX', type=float, default=1,
-        help='Maximum length without valid direction, in mm. [%(default)s]')
-
-    p.add_argument(
-        '--sfthres', dest='sf_threshold', action='store',
-        metavar='THRES', type=float, default=0.1,
-        help='Spherical function relative threshold. [%(default)s]')
-    p.add_argument(
-        '--sfthres_init', dest='sf_threshold_init', action='store',
-        metavar='THRES', type=float, default=0.5,
-        help='Spherical function relative threshold value\nfor the initial ' +
-        'direction. [%(default)s]')
-    p.add_argument(
-        '--minL', dest='min_length', action='store',
-        metavar='MIN', type=float, default=10,
-        help='Minimum length of a streamline in mm. [%(default)s]')
-    p.add_argument(
-        '--maxL', dest='max_length', action='store',
-        metavar='MAX', type=int, default=300,
-        help='Maximum length of a streamline in mm. [%(default)s]')
-
-    p.add_argument(
-        '--sh_interp', dest='field_interp', action='store',
-        metavar='INTERP', type=str, default='tl', choices=['nn', 'tl'],
-        help="Spherical harmonic interpolation: \n'nn' (nearest-neighbor) " +
-        "or 'tl' (trilinear). [%(default)s]")
-    p.add_argument(
-        '--mask_interp', dest='mask_interp', action='store',
-        metavar='INTERP', type=str, default='nn', choices=['nn', 'tl'],
-        help="Mask interpolation:\n'nn' (nearest-neighbor) or 'tl' " +
-        "(trilinear). [%(default)s]")
-
-    p.add_argument(
-        '--single_direction', dest='is_single_direction', action='store_true',
-        help="If set, tracks in one direction only (forward or \nbackward) " +
-             "given the initial seed. The direction is \n" +
-             "randomly drawn from the ODF.")
-    p.add_argument(
-        '--processes', dest='nbr_processes', action='store', metavar='NBR',
-        type=int, default=0,
-        help='Number of sub processes to start. [cpu count]')
-    p.add_argument(
-        '--load_data', action='store_true', dest='isLoadData',
-        help='If set, loads data in memory for all processes. \nIncreases ' +
-             'the speed, and the memory requirements.')
-    p.add_argument(
-        '--compress', action='store', dest='compress', type=float,
-        help='If set, will compress streamlines. The parameter\nvalue is ' +
-             'the distance threshold. A rule of thumb\nis to set it to ' +
-             '0.1mm for deterministic\nstreamlines and ' +
-             '0.2mm for probabilitic streamlines.')
-    p.add_argument(
-        '--save_seeds', action='store_true',
-        help='If set, each streamline generated will save ' +
-             'its 3D seed point in the TRK file using `seed` in ' +
-             'the \'data_per_streamline\' attribute')
+    p.add_argument('--single_direction', dest='is_single_direction',
+                   action='store_true',
+                   help="If set, tracks in one direction only (forward or \n" +
+                        "backward) given the initial seed. The direction is" +
+                        "\nrandomly drawn from the ODF.")
+    p.add_argument('--processes', dest='nbr_processes', type=int, default=0,
+                   help='Number of sub processes to start. [cpu count]')
+    p.add_argument('--load_data', action='store_true', dest='isLoadData',
+                   help='If set, loads data in memory for all processes. \n' +
+                        'Increases the speed, and the memory requirements.')
+    p.add_argument('--compress', type=float,
+                   help='If set, will compress streamlines. The parameter\n' +
+                        'value is the distance threshold. A rule of thumb\n ' +
+                        'is to set it to 0.1mm for deterministic\n' +
+                        'streamlines and 0.2mm for probabilitic streamlines.')
+    p.add_argument('--save_seeds', action='store_true',
+                   help='If set, each streamline generated will save \n' +
+                        'its 3D seed point in the TRK file using `seed` in' +
+                        ' \nthe \'data_per_streamline\' attribute')
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -178,11 +148,9 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    output_filename = args.output_file
-
-    if not nib.streamlines.is_supported(args.output_file):
+    if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.output_file))
+                     'tck): {0}'.format(args.out_tractogram))
 
     if not np.any([args.nt, args.npv, args.ns]):
         args.npv = 1
@@ -243,19 +211,19 @@ def main():
     param['mmap_mode'] = None if args.isLoadData else 'r+'
     logging.debug('Tractography parameters:\n{0}'.format(param))
 
-    seed_img = nib.load(args.seed_file)
+    seed_img = nib.load(args.in_seed)
     seed = Seed(seed_img)
     if args.npv:
         param['nbr_seeds'] = len(seed.seeds) * param['nbr_seeds_voxel']
         param['skip'] = len(seed.seeds) * param['skip']
     if len(seed.seeds) == 0:
         parser.error('"{0}" does not have voxels value > 0.'
-                     .format(args.seed_file))
+                     .format(args.in_seed))
 
     mask = BinaryMask(
-        Dataset(nib.load(args.mask_file), param['mask_interp']))
+        Dataset(nib.load(args.in_mask), param['mask_interp']))
 
-    dataset = Dataset(nib.load(args.sh_file), param['field_interp'])
+    dataset = Dataset(nib.load(args.in_sh), param['field_interp'])
     field = SphericalHarmonicField(dataset,
                                    args.sh_basis,
                                    param['sf_threshold'],
@@ -263,9 +231,10 @@ def main():
                                    param['theta'])
 
     if args.algo == 'det':
-        tracker = deterministicMaximaTracker(field, param)
+        tracker =\
+            deterministicMaximaTracker(field, args.step_size, args.rk_order)
     elif args.algo == 'prob':
-        tracker = probabilisticTracker(field, param)
+        tracker = probabilisticTracker(field, args.step_size, args.rk_order)
     else:
         parser.error("--algo has wrong value. See the help (-h).")
         return
@@ -295,7 +264,7 @@ def main():
             compress_streamlines(s, args.compress)
             for s in streamlines)
 
-    save_streamlines(streamlines, args.seed_file, output_filename, seeds)
+    save_streamlines(streamlines, args.in_seed, args.out_tractogram, seeds)
 
     str_time = "%.2f" % (time.time() - start)
     logging.debug(str(len(streamlines)) + " streamlines, done in " +
