@@ -2,7 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-TOTO
+Script to compute microstructure metrics using the DIVIDE method.
+
+By default, will output all possible files, using default names.
+Specific names can be specified using the file flags specified in the
+"File flags" section.
+
+If --not_all is set, only the files specified explicitly by the flags
+will be output.
+
+Based on Markus Nilsson, Filip Szczepankiewicz, Björn Lampinen, André Ahlgren,
+João P. de Almeida Martins, Samo Lasic, Carl-Fredrik Westin,
+and Daniel Topgaard. An open-source framework for analysis of multidimensional
+diffusion MRI data implemented in MATLAB.
+Proc. Intl. Soc. Mag. Reson. Med. (26), Paris, France, 2018.
 """
 
 import argparse
@@ -29,45 +42,32 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument(
-        '--input_linear', metavar='file', default=None,
-        help='Path of the linear input diffusion volume.')
-    p.add_argument(
-        '--bvals_linear', metavar='file', default=None,
-        help='Path of the linear bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_linear', metavar='file', default=None,
-        help='Path of the linear bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_planar', metavar='file', default=None,
-        help='Path of the planar input diffusion volume.')
-    p.add_argument(
-        '--bvals_planar', metavar='file', default=None,
-        help='Path of the planar bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_planar', metavar='file', default=None,
-        help='Path of the planar bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_spherical', metavar='file', default=None,
-        help='Path of the spherical input diffusion volume.')
-    p.add_argument(
-        '--bvals_spherical', metavar='file', default=None,
-        help='Path of the spherical bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_spherical', metavar='file', default=None,
-        help='Path of the spherical bvecs file, in FSL format.')
-    p.add_argument(
-        '--input_custom', metavar='file', default=None,
-        help='Path of the custom input diffusion volume.')
-    p.add_argument(
-        '--bvals_custom', metavar='file', default=None,
-        help='Path of the custom bvals file, in FSL format.')
-    p.add_argument(
-        '--bvecs_custom', metavar='file', default=None,
-        help='Path of the custom bvecs file, in FSL format.')
-    p.add_argument(
-        '--bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
-        help='Value of the b_delta for the custom encoding.')
+    p.add_argument('--in_dwi_linear', metavar='file', default=None,
+                   help='Path of the linear input diffusion volume.')
+    p.add_argument('--in_bval_linear', metavar='file', default=None,
+                   help='Path of the linear bvals file, in FSL format.')
+    p.add_argument('--in_bvec_linear', metavar='file', default=None,
+                   help='Path of the linear bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_planar', metavar='file', default=None,
+                   help='Path of the planar input diffusion volume.')
+    p.add_argument('--in_bval_planar', metavar='file', default=None,
+                   help='Path of the planar bvals file, in FSL format.')
+    p.add_argument('--in_bvec_planar', metavar='file', default=None,
+                   help='Path of the planar bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_spherical', metavar='file', default=None,
+                   help='Path of the spherical input diffusion volume.')
+    p.add_argument('--in_bval_spherical', metavar='file', default=None,
+                   help='Path of the spherical bvals file, in FSL format.')
+    p.add_argument('--in_bvec_spherical', metavar='file', default=None,
+                   help='Path of the spherical bvecs file, in FSL format.')
+    p.add_argument('--in_dwi_custom', metavar='file', default=None,
+                   help='Path of the custom input diffusion volume.')
+    p.add_argument('--in_bval_custom', metavar='file', default=None,
+                   help='Path of the custom bvals file, in FSL format.')
+    p.add_argument('--in_bvec_custom', metavar='file', default=None,
+                   help='Path of the custom bvecs file, in FSL format.')
+    p.add_argument('--in_bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
+                   help='Value of the b_delta for the custom encoding.')
 
     p.add_argument(
         '--mask',
@@ -75,7 +75,7 @@ def _build_arg_parser():
              'mask will be used for computations and reconstruction.')
     p.add_argument(
         '--fa',
-        help='Path to a FA map.')
+        help='Path to a FA map. Needed for calculating the OP.')
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
@@ -101,13 +101,14 @@ def _build_arg_parser():
         '--do_multiple_s0', action='store_true',
         help='If set, takes into account multiple baseline signals.')
 
+    add_force_b0_arg(p)
+    add_processes_arg(p)
+    add_overwrite_arg(p)
+
     p.add_argument(
         '--not_all', action='store_true',
         help='If set, only saves the files specified using the '
              'file flags. (Default: False)')
-
-    add_force_b0_arg(p)
-    add_processes_arg(p)
 
     g = p.add_argument_group(title='File flags')
 
@@ -130,12 +131,10 @@ def _build_arg_parser():
         '--mk_t', metavar='file', default='',
         help='Output filename for the total mean kurtosis.')
 
-    add_overwrite_arg(p)
-
     return p
 
 def main():
-    parser = _build_arg_parser() # !!!!!!!!!!!!!!!!!!!!!!!!! Add to parser : all linear input mandatory if input_linear is given (for example)
+    parser = _build_arg_parser()
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
@@ -153,28 +152,50 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=[args.input_linear, args.bvals_linear,
-                                  args.bvecs_linear, args.input_planar,
-                                  args.bvals_planar, args.bvecs_planar,
-                                  args.input_spherical, args.bvals_spherical,
-                                  args.bvecs_spherical])
+                        optional=[args.in_dwi_linear, args.in_bval_linear,
+                                args.in_bvec_linear,
+                                args.in_dwi_planar, args.in_bval_planar,
+                                args.in_bvec_planar,
+                                args.in_dwi_spherical, args.in_bval_spherical,
+                                args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
-    # Loading data
-    input_files = [args.input_linear, args.input_planar,
-                            args.input_spherical, args.input_custom]
-    bvals_files = [args.bvals_linear, args.bvals_planar,
-                           args.bvals_spherical, args.bvals_custom]
-    bvecs_files = [args.bvecs_linear, args.bvecs_planar, 
-                           args.bvecs_spherical, args.bvecs_custom]
-    b_deltas_list = [1.0, -0.5, 0, args.bdelta_custom]
+    input_files = [args.in_dwi_linear, args.in_dwi_planar,
+                            args.in_dwi_spherical, args.in_dwi_custom]
+    bvals_files = [args.in_bval_linear, args.in_bval_planar,
+                           args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
+                           args.in_bvec_spherical, args.in_bvec_custom]
+    b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
+
+    for i in range(4):
+        enc = ["linear", "planar", "spherical", "custom"]
+        if input_files[i] is None and bvals_files[i] is None \
+            and bvecs_files[i] is None:
+            inclusive = 1
+            if i == 3 and args.in_bdelta_custom is not None:
+                inclusive = 0
+        elif input_files[i] is not None and bvals_files[i] is not None \
+            and bvecs_files[i] is not None:
+            inclusive = 1
+            if i == 3 and args.in_bdelta_custom is None:
+                inclusive = 0
+        else:
+            inclusive = 0
+        if inclusive == 0:
+            msg = """All of in_dwi, bval and bvec files are mutually needed
+                  for {} encoding."""
+            raise ValueError(msg.format(enc[i]))
+
+    tol = args.tolerance
+    force_b0_thr = args.force_b0_threshold
 
     data, gtab_infos = generate_powder_averaged_data(input_files,
                                                      bvals_files,
                                                      bvecs_files,
                                                      b_deltas_list,
-                                                     args.force_b0_threshold,
-                                                     tol=args.tolerance)
+                                                     force_b0_thr,
+                                                     tol=tol)
 
     affine = extract_affine(input_files)
 
@@ -191,24 +212,22 @@ def main():
         vol = nib.load(args.fa)
         FA = vol.get_fdata(dtype=np.float32)
 
-    #print("Signal input linear: ", data[4,2,5,0:5])
-    #print("Signal input spherical: ", data[4,2,5,5:10])
-    # print(gtab_infos)
     parameters = fit_gamma(data, gtab_infos, mask=mask,
-                                          fit_iters=args.fit_iters,
-                                          random_iters=args.random_iters,
-                                          do_weight_bvals=args.do_weight_bvals,
-                                          do_weight_pa=args.do_weight_pa,
-                                          redo_weight_bvals=args.redo_weight_bvals,
-                                          do_multiple_s0=args.do_multiple_s0,
-                                          nbr_processes=args.nbr_processes)
+                           fit_iters=args.fit_iters,
+                           random_iters=args.random_iters,
+                           do_weight_bvals=args.do_weight_bvals,
+                           do_weight_pa=args.do_weight_pa,
+                           redo_weight_bvals=args.redo_weight_bvals,
+                           do_multiple_s0=args.do_multiple_s0,
+                           nbr_processes=args.nbr_processes)
 
     microFA, MK_I, MK_A, MK_T = gamma_fit2metrics(parameters)
     microFA[np.isnan(microFA)] = 0
     microFA = np.clip(microFA, 0, 1)
 
     if args.md:
-        nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32), affine), args.md)
+        nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32), affine),
+                 args.md)
 
     if args.ufa:
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to estimate response functions for multi-shell multi-tissue (MSMT) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-constrained spherical deconvolution.
+Script to estimate response functions for multi-encoding multi-shell
+multi-tissue (memsmt) constrained spherical deconvolution.
 
 The script computes a response function for white-matter (wm),
 gray-matter (gm), csf and the mean b=0.
@@ -19,6 +19,7 @@ Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
 """
+# Add Karan et al., 2021 when published.
 
 import argparse
 import logging
@@ -186,12 +187,12 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [],
-                    optional=[args.in_dwi_linear, args.in_bval_linear,
-                              args.in_bvec_linear,
-                              args.in_dwi_planar, args.in_bval_planar,
-                              args.in_bvec_planar,
-                              args.in_dwi_spherical, args.in_bval_spherical,
-                              args.in_bvec_spherical])
+                        optional=[args.in_dwi_linear, args.in_bval_linear,
+                                args.in_bvec_linear,
+                                args.in_dwi_planar, args.in_bval_planar,
+                                args.in_bvec_planar,
+                                args.in_dwi_spherical, args.in_bval_spherical,
+                                args.in_bvec_spherical])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
 

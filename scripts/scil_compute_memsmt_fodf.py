@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute Multishell Constrained Spherical Deconvolution ODFs.
+Script to compute multi-encoding multi-shell multi-tissue (memsmt)
+Constrained Spherical Deconvolution ODFs.
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the
@@ -215,12 +216,12 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                    optional=[args.in_dwi_linear, args.in_bval_linear,
-                              args.in_bvec_linear,
-                              args.in_dwi_planar, args.in_bval_planar,
-                              args.in_bvec_planar,
-                              args.in_dwi_spherical, args.in_bval_spherical,
-                              args.in_bvec_spherical])
+                        optional=[args.in_dwi_linear, args.in_bval_linear,
+                                args.in_bvec_linear,
+                                args.in_dwi_planar, args.in_bval_planar,
+                                args.in_bvec_planar,
+                                args.in_dwi_spherical, args.in_bval_spherical,
+                                args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
     input_files = [args.in_dwi_linear, args.in_dwi_planar,

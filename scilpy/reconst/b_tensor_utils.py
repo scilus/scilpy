@@ -133,7 +133,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
 
 
 def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
-                           b_deltas_list, force_b0_threshold, tol=20):
+                                  b_deltas_list, force_b0_threshold, tol=20):
     pa_signals_conc = []
     ub_deltas_conc = []
     ubvals_conc = []
@@ -191,10 +191,6 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
 
     if np.sum([ubvals_conc < tol]) < acq_index_current - 1:
         gtab_infos[3] *= 0
-
-    #index_array = np.argsort(gtab_infos[0])
-    #gtab_infos = gtab_infos[:, index_array]
-    #a_signals = np.take_along_axis(pa_signals, index_array.reshape((1,1,1, len(index_array))), axis=-1)
 
     return(pa_signals, gtab_infos)
 
