@@ -170,7 +170,6 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
 
         response[0, 1] = gm_rf[0, 3] / A
         response[0, 0] = csf_rf[0, 3] / A
-
         for i, bvalue in enumerate(bvals[1:]):
             gtab = GradientTable(big_sphere.vertices * bvalue)
             wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i],
@@ -309,7 +308,7 @@ def main():
                                                  ubdeltas[1:],
                                                  tol=tol)
 
-    reg_sphere = get_sphere('repulsion362')
+    reg_sphere = get_sphere('symmetric362')
 
     # Computing msmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,

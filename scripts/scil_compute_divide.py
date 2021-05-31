@@ -214,6 +214,8 @@ def main():
         vol = nib.load(args.fa)
         FA = vol.get_fdata(dtype=np.float32)
 
+    print(args.do_weight_bvals)
+
     parameters = fit_gamma(data, gtab_infos, mask=mask,
                            fit_iters=args.fit_iters,
                            random_iters=args.random_iters,

@@ -35,9 +35,9 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
+from scilpy.reconst.frf import compute_msmt_frf
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_dwi_shell,
                                           is_normalized_bvecs, normalize_bvecs)
-
 from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
                                            extract_affine)
 
@@ -256,7 +256,7 @@ def main():
             raise ValueError("No encoding available for DTI.")
         vol = nib.Nifti1Image(data, affine)
         outputs = extract_dwi_shell(vol, gtab.bvals, gtab.bvecs,
-                                    dti_ubvals[ubvals <= dti_lim],
+                                    dti_ubvals[dti_ubvals <= dti_lim],
                                     tol=1)
         indices_dti, data_dti, bvals_dti, bvecs_dti = outputs
         # gtab_dti = gradient_table(np.squeeze(bvals_dti), bvecs_dti,
@@ -285,7 +285,7 @@ def main():
         mask_csf = get_data_as_mask(nib.load(args.mask_csf), dtype=bool)
 
     responses, frf_masks = compute_msmt_frf(data, gtab.bvals, gtab.bvecs,
-                                            btens=gtab.btens
+                                            btens=gtab.btens,
                                             data_dti=data_dti,
                                             bvals_dti=bvals_dti,
                                             bvecs_dti=bvecs_dti,
@@ -300,7 +300,7 @@ def main():
                                             min_nvox=args.min_nvox,
                                             roi_radii=roi_radii,
                                             roi_center=roi_center,
-                                            tol=tol,
+                                            tol=0,
                                             force_b0_threshold=force_b0_thr)
 
     masks_files = [args.wm_frf_mask, args.gm_frf_mask, args.csf_frf_mask]
