@@ -45,7 +45,7 @@ class Dataset(object):
 
     def getVoxelAtPosition(self, x, y, z):
         """
-        return: integer value of position/dimention
+        return: integer value of position/dimension
         """
         return [(x + self.size[0] / 2) // self.size[0],
                 (y + self.size[1] / 2) // self.size[1],
@@ -53,7 +53,7 @@ class Dataset(object):
 
     def getVoxelCoordinate(self, x, y, z):
         """
-        return: value of position/dimention
+        return: value of position/dimension
         """
         return [x / self.size[0], y / self.size[1], z / self.size[2]]
 
@@ -150,7 +150,7 @@ class Seed(Dataset):
         ----------
         random_initial_value : int, the "seed" for the random generator
         first_seed_of_chunk : int,
-            number of seeds to skip (skip paramater + multi-processor skip)
+            number of seeds to skip (skip parameter + multi-processor skip)
 
         Return
         ------
@@ -189,7 +189,7 @@ class BinaryMask(object):
 
     def isPropagationContinues(self, pos):
         """
-        The propagation continues if the position is whitin the mask.
+        The propagation continues if the position is within the mask.
 
         Parameters
         ----------
