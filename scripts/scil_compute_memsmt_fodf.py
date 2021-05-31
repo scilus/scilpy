@@ -310,12 +310,12 @@ def main():
 
     reg_sphere = get_sphere('symmetric362')
 
-    # Computing msmt-CSD
+    # Computing memsmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
                                          reg_sphere=reg_sphere,
                                          sh_order=sh_order)
 
-    # Computing msmt-CSD fit
+    # Computing memsmt-CSD fit
     memsmt_fit = fit_from_model(memsmt_model, data,
                                 mask=mask, nbr_processes=args.nbr_processes)
 
@@ -348,7 +348,7 @@ def main():
             wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
                                         nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
-                                 vol.affine), args.wm_out_fODF)
+                                 affine), args.wm_out_fODF)
 
     if args.gm_out_fODF:
         gm_coeff = shm_coeff[..., 1]
@@ -357,7 +357,7 @@ def main():
             gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
                                         nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
-                                 vol.affine), args.gm_out_fODF)
+                                 affine), args.gm_out_fODF)
 
     if args.csf_out_fODF:
         csf_coeff = shm_coeff[..., 0]
@@ -366,18 +366,18 @@ def main():
             csf_coeff = convert_sh_basis(csf_coeff, reg_sphere, mask=mask,
                                          nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(csf_coeff.astype(np.float32),
-                                 vol.affine), args.csf_out_fODF)
+                                 affine), args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
-                                 vol.affine), args.vf)
+        nib.save(nib.Nifti1Image(memsmt_fit.volume_fractions.astype(np.float32),
+                                 affine), args.vf)
 
     if args.vf_rgb:
-        vf = msmt_fit.volume_fractions
+        vf = memsmt_fit.volume_fractions
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
         nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
-                                 vol.affine), args.vf_rgb)
+                                 affine), args.vf_rgb)
 
 
 if __name__ == "__main__":
