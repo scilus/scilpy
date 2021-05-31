@@ -1,6 +1,4 @@
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import logging
 
 import dipy.core.geometry
