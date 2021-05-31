@@ -2,7 +2,7 @@
 import numpy as np
 
 from scilpy.tracking.tools import sample_distribution
-from scilpy.tracking.tracking_field_bitbucket import TrackingDirection
+from scilpy.tracking.utils import TrackingDirection
 
 
 class abstractPropagator(object):

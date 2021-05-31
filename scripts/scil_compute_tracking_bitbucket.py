@@ -39,7 +39,7 @@ from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
 from scilpy.tracking.local_tracking_bitbucket import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
-from scilpy.tracking.tracking_field_bitbucket import SphericalHarmonicField
+from scilpy.tracking.tracking_field import SphericalHarmonicField
 
 
 def buildArgsParser():

@@ -6,18 +6,7 @@ from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
 from scilpy.tracking.tools import sample_distribution
-
-
-class TrackingDirection(list):
-
-    """
-    Tracking direction use as 3D cartesian direction (list(x,y,z))
-    and has an index to work with discrete sphere.
-    """
-
-    def __init__(self, cartesian, index=None):
-        super(TrackingDirection, self).__init__(cartesian)
-        self.index = index
+from scilpy.tracking.utils import TrackingDirection
 
 
 class SphericalHarmonicField(object):
@@ -32,7 +21,7 @@ class SphericalHarmonicField(object):
         self.dirs = np.zeros(len(self.vertices), dtype=np.ndarray)
         for i in range(len(self.vertices)):
             self.dirs[i] = TrackingDirection(self.vertices[i], i)
-        self.maxima_neighbours = self.get_direction_neighbours(np.pi / 16)
+        self.maxima_neighbours = self.get_direction_neighbours(np.pi / 16.)
         self.tracking_neighbours = self.get_direction_neighbours(self.theta)
         self.dataset = odf_dataset
         self.basis = basis
