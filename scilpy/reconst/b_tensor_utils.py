@@ -12,6 +12,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 
+
 def generate_btensor_input(input_files, bvals_files, bvecs_files,
                            b_deltas_list, force_b0_threshold, tol=20):
     data_conc = []
@@ -26,7 +27,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     ub_deltas_conc = []
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
                                                bvecs_files, b_deltas_list):
-        if inputf != None:
+        if inputf is not None:
             vol = nib.load(inputf)
             data = vol.get_fdata(dtype=np.float32)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
@@ -51,7 +52,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                         ub_deltas_conc = [1]
                     else:
                         data_b0 = np.concatenate((data_b0, data[..., indices]),
-                                                  axis=-1)
+                                                 axis=-1)
                         bvals_b0 = np.concatenate((bvals_b0,
                                                    np.zeros(len(indices))))
                         bvecs_b0 = np.concatenate((bvecs_b0, bvecs[indices]))
@@ -69,10 +70,12 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                                              len(indices))
                     else:
                         data_conc = np.concatenate((data_conc,
-                                                    data[..., indices]), axis=-1)
+                                                    data[..., indices]),
+                                                    axis=-1)
                         bvals_conc = np.concatenate((bvals_conc,
                                                      np.ones(len(indices)) * ubval))
-                        bvecs_conc = np.concatenate((bvecs_conc, bvecs[indices]))
+                        bvecs_conc = np.concatenate((bvecs_conc,
+                                                     bvecs[indices]))
                         b_deltas = np.concatenate((b_deltas,
                                                    np.ones(len(indices)) * b_delta))
                         b_shapes = np.concatenate((b_shapes,
@@ -80,7 +83,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                                                                       len(indices))))
                     ubvals_conc = np.concatenate((ubvals_conc, [ubval]))
                     ub_deltas_conc = np.concatenate((ub_deltas_conc, [b_delta]))
-    
+
     data_conc = np.concatenate((data_b0, data_conc), axis=-1)
     bvals_conc = np.concatenate((bvals_b0, bvals_conc))
     bvecs_conc = np.concatenate((bvecs_b0, bvecs_conc))
@@ -145,7 +148,7 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
     acq_index_current = 0
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
                                                bvecs_files, b_deltas_list):
-        if inputf != None:
+        if inputf is not None:
             vol = nib.load(inputf)
             data = vol.get_fdata(dtype=np.float32)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
@@ -165,7 +168,7 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
                 indices = get_bval_indices(bvals, ubval, tol=tol)
                 pa_signals[..., i] = np.nanmean(data[..., indices], axis=-1)
                 nb_ubvecs[i] = len(indices)
-            
+
             if pa_signals_conc == []:
                 pa_signals_conc = pa_signals
                 ub_deltas_conc = ub_deltas
@@ -173,7 +176,8 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
                 nb_ubvecs_conc = nb_ubvecs
                 acq_index_conc = acq_index
             else:
-                pa_signals_conc = np.concatenate((pa_signals_conc, pa_signals), axis=-1)
+                pa_signals_conc = np.concatenate((pa_signals_conc, pa_signals),
+                                                 axis=-1)
                 ub_deltas_conc = np.concatenate((ub_deltas_conc, ub_deltas))
                 ubvals_conc = np.concatenate((ubvals_conc, ubvals))
                 nb_ubvecs_conc = np.concatenate((nb_ubvecs_conc, nb_ubvecs))
@@ -197,6 +201,6 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
 
 def extract_affine(input_files):
     for input_file in input_files:
-        if input_file != None:
+        if input_file is not None:
             vol = nib.load(input_file)
             return vol.get_affine()

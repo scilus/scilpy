@@ -29,7 +29,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
-from scilpy.reconst.b_tensor_utils import generate_btensor_input, extract_affine
+from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
+                                           extract_affine)
 
 
 def _build_arg_parser():
@@ -131,7 +132,7 @@ def single_tensor_btensor(gtab, evals, b_delta, S0=1):
 
     S = np.zeros(len(gradients))
     for (i, g) in enumerate(gradients):
-        theta = np.arctan2(np.sqrt(g[0] **2 + g[1] ** 2), g[2])
+        theta = np.arctan2(np.sqrt(g[0] ** 2 + g[1] ** 2), g[2])
         P_2 = (3 * np.cos(theta) ** 2 - 1) / 2.
         b = gtab.bvals[i]
         S[i] = S0 * np.exp(-b * D_iso * (1 + 2 * b_delta * D_delta * P_2))
@@ -217,30 +218,30 @@ def main():
 
     assert_inputs_exist(parser, [],
                         optional=[args.in_dwi_linear, args.in_bval_linear,
-                                args.in_bvec_linear,
-                                args.in_dwi_planar, args.in_bval_planar,
-                                args.in_bvec_planar,
-                                args.in_dwi_spherical, args.in_bval_spherical,
-                                args.in_bvec_spherical])
+                                  args.in_bvec_linear,
+                                  args.in_dwi_planar, args.in_bval_planar,
+                                  args.in_bvec_planar,
+                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
     input_files = [args.in_dwi_linear, args.in_dwi_planar,
-                            args.in_dwi_spherical, args.in_dwi_custom]
+                   args.in_dwi_spherical, args.in_dwi_custom]
     bvals_files = [args.in_bval_linear, args.in_bval_planar,
-                           args.in_bval_spherical, args.in_bval_custom]
-    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
-                           args.in_bvec_spherical, args.in_bvec_custom]
+                   args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar,
+                   args.in_bvec_spherical, args.in_bvec_custom]
     b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
         if input_files[i] is None and bvals_files[i] is None \
-            and bvecs_files[i] is None:
+        and bvecs_files[i] is None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
         elif input_files[i] is not None and bvals_files[i] is not None \
-            and bvecs_files[i] is not None:
+        and bvecs_files[i] is not None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -312,8 +313,8 @@ def main():
 
     # Computing msmt-CSD
     memsmt_model = MultiShellDeconvModel(gtab, memsmt_response,
-                                       reg_sphere=reg_sphere,
-                                       sh_order=sh_order)
+                                         reg_sphere=reg_sphere,
+                                         sh_order=sh_order)
 
     # Computing msmt-CSD fit
     memsmt_fit = fit_from_model(memsmt_model, data,
@@ -331,7 +332,7 @@ def main():
         to it. Proceeding to fill the problematic voxels by 0.
         """
         logging.warning(msg.format(nan_count, voxel_count))
-    elif nan_count  > 0:
+    elif nan_count > 0:
         msg = """There are {} voxels out of {} that could not be solved by
         the solver. Make sure to tune the response functions properly, as the
         solving process is very sensitive to it. Proceeding to fill the
@@ -346,7 +347,7 @@ def main():
         wm_coeff = shm_coeff[..., 2:]
         if args.sh_basis == 'tournier07':
             wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+                                        nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  vol.affine), args.wm_out_fODF)
 
@@ -355,7 +356,7 @@ def main():
         if args.sh_basis == 'tournier07':
             gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
             gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+                                        nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  vol.affine), args.gm_out_fODF)
 

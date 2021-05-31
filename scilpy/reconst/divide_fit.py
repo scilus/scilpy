@@ -13,7 +13,7 @@ def get_bounds():
     return lb, ub
 
 
-def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):    
+def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
     guess = []
     thr = np.inf
 
@@ -33,11 +33,11 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
                    do_weight_bvals=False, do_weight_pa=False,
                    redo_weight_bvals=False, do_multiple_s0=False):
 
-    if np.sum(gtab_infos[3]) > 0 and do_multiple_s0==True:
+    if np.sum(gtab_infos[3]) > 0 and do_multiple_s0 is True:
         ns = len(np.unique(gtab_infos[3])) - 1
     else:
         ns = 0
-    
+
     unit_to_SI = np.array([np.max(signal), 1e-9, 1e-18, 1e-18])
     unit_to_SI = np.concatenate((unit_to_SI, np.ones(ns)))
 
@@ -76,7 +76,8 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         if do_weight_pa:
             weight *= weight_pa()
 
-        p0_SI = random_p0(signal, gtab_infos, lb_SI, ub_SI, weight, random_iters)
+        p0_SI = random_p0(signal, gtab_infos, lb_SI, ub_SI, weight,
+                          random_iters)
         p0_unit = p0_SI / unit_to_SI
         params_unit, params_cov = curve_fit(my_gamma_fit2data, gtab_infos,
                                             signal * weight, p0=p0_unit,
@@ -87,12 +88,13 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
             weight = weight_bvals(0.07, params_unit[1] * unit_to_SI[1], 2)
             if do_weight_pa:
                 weight *= weight_pa()
-            
+
             params_unit, params_cov = curve_fit(my_gamma_fit2data, gtab_infos,
-                                                signal * weight, p0=params_unit,
+                                                signal * weight,
+                                                p0=params_unit,
                                                 bounds=bounds_unit,
                                                 method="trf")
-        
+
         signal_fit = gamma_fit2data(gtab_infos, params_unit * unit_to_SI)
         residual = np.sum(((signal - signal_fit) * weight) ** 2)
         if residual < res_thr:
@@ -109,7 +111,7 @@ def gamma_fit2data(gtab_infos, params):
     MD = params[1]
     V_I = params[2]
     V_A = params[3]
-    RS = params[4:] # relative signal
+    RS = params[4:]  # relative signal
     if len(RS) != 0:
         RS = np.concatenate(([1], RS))
         RS_tile = np.tile(RS,len(gtab_infos[0])).reshape((len(gtab_infos[0]),
@@ -131,16 +133,16 @@ def gamma_fit2data(gtab_infos, params):
 
 def gamma_fit2metrics(params):
     # Only function that takes the full brain
-    S0 = params[...,0]
-    MD = params[...,1]
-    V_I = params[...,2]
-    V_A = params[...,3]
+    S0 = params[..., 0]
+    MD = params[..., 1]
+    V_I = params[..., 2]
+    V_A = params[..., 3]
     V_T = V_I + V_A
     V_L = 5 / 2. * V_A
 
-    MK_I = 3 * V_I / (MD **2)
-    MK_A = 3 * V_A / (MD **2)
-    MK_T = 3 * V_T / (MD **2)
-    microFA2 = (3/2.) * (V_L / (V_I + V_L + (MD**2)))
+    MK_I = 3 * V_I / (MD ** 2)
+    MK_A = 3 * V_A / (MD ** 2)
+    MK_T = 3 * V_T / (MD ** 2)
+    microFA2 = (3/2.) * (V_L / (V_I + V_L + (MD ** 2)))
     microFA = np.sqrt(microFA2)
     return microFA, MK_I, MK_A, MK_T

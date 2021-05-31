@@ -35,7 +35,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_sh_basis_args, add_processes_arg)
 from scilpy.reconst.multi_processes import fit_gamma
 from scilpy.reconst.divide_fit import gamma_fit2metrics
-from scilpy.reconst.b_tensor_utils import generate_powder_averaged_data, extract_affine
+from scilpy.reconst.b_tensor_utils import (generate_powder_averaged_data,
+                                           extract_affine)
 
 
 def _build_arg_parser():
@@ -133,6 +134,7 @@ def _build_arg_parser():
 
     return p
 
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -153,30 +155,30 @@ def main():
 
     assert_inputs_exist(parser, [],
                         optional=[args.in_dwi_linear, args.in_bval_linear,
-                                args.in_bvec_linear,
-                                args.in_dwi_planar, args.in_bval_planar,
-                                args.in_bvec_planar,
-                                args.in_dwi_spherical, args.in_bval_spherical,
-                                args.in_bvec_spherical])
+                                  args.in_bvec_linear,
+                                  args.in_dwi_planar, args.in_bval_planar,
+                                  args.in_bvec_planar,
+                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
     input_files = [args.in_dwi_linear, args.in_dwi_planar,
-                            args.in_dwi_spherical, args.in_dwi_custom]
+                   args.in_dwi_spherical, args.in_dwi_custom]
     bvals_files = [args.in_bval_linear, args.in_bval_planar,
-                           args.in_bval_spherical, args.in_bval_custom]
-    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
-                           args.in_bvec_spherical, args.in_bvec_custom]
+                   args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar,
+                   args.in_bvec_spherical, args.in_bvec_custom]
     b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
         if input_files[i] is None and bvals_files[i] is None \
-            and bvecs_files[i] is None:
+        and bvecs_files[i] is None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
         elif input_files[i] is not None and bvals_files[i] is not None \
-            and bvecs_files[i] is not None:
+        and bvecs_files[i] is not None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -199,7 +201,7 @@ def main():
 
     affine = extract_affine(input_files)
 
-    gtab_infos[0] *= 1e6 # getting bvalues to SI units
+    gtab_infos[0] *= 1e6  # getting bvalues to SI units
 
     if args.mask is None:
         mask = None
@@ -233,7 +235,7 @@ def main():
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)
     if args.op:
         if args.fa is not None:
-            OP = np.sqrt((3 * (microFA ** (-2)) -2) / (3 * (FA ** (-2)) - 2))
+            OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
             OP[microFA < FA] = 0
             nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
         else:
@@ -244,6 +246,7 @@ def main():
         nib.save(nib.Nifti1Image(MK_A.astype(np.float32), affine), args.mk_a)
     if args.mk_t:
         nib.save(nib.Nifti1Image(MK_T.astype(np.float32), affine), args.mk_t)
+
 
 if __name__ == "__main__":
     main()

@@ -38,7 +38,8 @@ from scilpy.io.utils import (add_force_b0_arg,
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_dwi_shell,
                                           is_normalized_bvecs, normalize_bvecs)
 
-from scilpy.reconst.b_tensor_utils import generate_btensor_input, extract_affine
+from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
+                                           extract_affine)
 
 
 def buildArgsParser():
@@ -188,31 +189,31 @@ def main():
 
     assert_inputs_exist(parser, [],
                         optional=[args.in_dwi_linear, args.in_bval_linear,
-                                args.in_bvec_linear,
-                                args.in_dwi_planar, args.in_bval_planar,
-                                args.in_bvec_planar,
-                                args.in_dwi_spherical, args.in_bval_spherical,
-                                args.in_bvec_spherical])
+                                  args.in_bvec_linear,
+                                  args.in_dwi_planar, args.in_bval_planar,
+                                  args.in_bvec_planar,
+                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_bvec_spherical])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
 
     input_files = [args.in_dwi_linear, args.in_dwi_planar,
-                            args.in_dwi_spherical, args.in_dwi_custom]
+                   args.in_dwi_spherical, args.in_dwi_custom]
     bvals_files = [args.in_bval_linear, args.in_bval_planar,
-                           args.in_bval_spherical, args.in_bval_custom]
-    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar, 
-                           args.in_bvec_spherical, args.in_bvec_custom]
+                   args.in_bval_spherical, args.in_bval_custom]
+    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar,
+                   args.in_bvec_spherical, args.in_bvec_custom]
     b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
         if input_files[i] is None and bvals_files[i] is None \
-            and bvecs_files[i] is None:
+        and bvecs_files[i] is None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
         elif input_files[i] is not None and bvals_files[i] is not None \
-            and bvecs_files[i] is not None:
+        and bvecs_files[i] is not None:
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -245,11 +246,11 @@ def main():
                                                           tol=tol)
 
     if not np.all(ubvals <= dti_lim):
-        if np.sum(ubdeltas==1)>0:
+        if np.sum(ubdeltas == 1) > 0:
             dti_ubvals = ubvals[ubdeltas == 1]
-        elif np.sum(ubdeltas==-0.5)>0:
+        elif np.sum(ubdeltas == -0.5) > 0:
             dti_ubvals = ubvals[ubdeltas == -0.5]
-        elif np.sum(ubdeltas==args.in_bdelta_custom)>0:
+        elif np.sum(ubdeltas==args.in_bdelta_custom) > 0:
             dti_ubvals = ubvals[ubdeltas == args.in_bdelta_custom]
         else:
             raise ValueError("No encoding available for DTI.")
