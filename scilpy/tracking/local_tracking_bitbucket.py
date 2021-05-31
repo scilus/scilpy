@@ -1,5 +1,4 @@
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import itertools
 import logging
 import multiprocessing

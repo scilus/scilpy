@@ -1,6 +1,4 @@
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import numpy as np
 
 import scilpy.tracking.tools
@@ -14,7 +12,7 @@ class abstractPropagator(object):
         self.tracker = tracker
 
     def propagate(self, pos, v_in):
-        scilpy.utils.abstract()
+        pass
 
     def getValidDirection(self, pos, v_in):
         is_valid_direction = True
