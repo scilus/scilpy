@@ -3,10 +3,9 @@ import logging
 
 import dipy.core.geometry
 import dipy.data
-import dipy.reconst.shm
+from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
-from scilpy.reconst.utils import SphericalHarmonics
 import scilpy.tracking.tools
 import scilpy.utils.util
 
@@ -221,15 +220,18 @@ class SphericalHarmonicField(AbstractDiscreteField):
             self.basis = basis
 
         sphere = dipy.data.get_sphere(dipy_sphere)
-        self.SH = SphericalHarmonics(odf_dataset.data, self.basis, sphere)
+        sh_order = order_from_ncoef(self.dataset.data.shape[-1])
+        self.B, self.invB = sh_to_sf_matrix(sphere, sh_order, self.basis,
+                                            smooth=0.006)
 
     def get_SF(self, pos):
-        SF = self.SH.get_SF(self.dataset.getPositionValue(*pos))
+        sh = self.dataset.getPositionValue(*pos)
+        sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
-        SF_max = np.max(SF)
-        if SF_max > 0:
-            SF = SF / SF_max
-        return SF
+        sf_max = np.max(sf)
+        if sf_max > 0:
+            sf = sf / sf_max
+        return sf
 
 
 class SphericalFunctionField(AbstractDiscreteField):
