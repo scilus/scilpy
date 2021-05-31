@@ -32,15 +32,11 @@ import nibabel as nib
 import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
-from nibabel.streamlines.tractogram import LazyTractogram
-from scilpy.io.utils import (add_sh_basis_args,
-                             add_overwrite_arg,
+from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              add_verbose_arg)
 from scilpy.io.streamlines import save_streamlines
-from scilpy.tracking.dataset_bitbucket import Dataset
+from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
 from scilpy.tracking.local_tracking_bitbucket import track
-from scilpy.tracking.mask_bitbucket import BinaryMask
-from scilpy.tracking.seed_bitbucket import Seed
 from scilpy.tracking.tracker_bitbucket import (probabilisticTracker,
                                                deterministicMaximaTracker)
 from scilpy.tracking.tracking_field_bitbucket import SphericalHarmonicField
