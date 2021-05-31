@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-import scilpy.tracking.tools
-import scilpy.tracking.tracking_field_bitbucket
+from scilpy.tracking.tools import sample_distribution
+from scilpy.tracking.tracking_field_bitbucket import TrackingDirection
 
 
 class abstractPropagator(object):
@@ -68,8 +68,7 @@ class rk4Propagator(abstractPropagator):
         v4 = np.array(dir4)
 
         newV = (v1 + 2 * v2 + 2 * v3 + v4) / 6
-        newDir = scilpy.tracking.trackingField.TrackingDirection(
-            newV, dir1.index)
+        newDir = TrackingDirection(newV, dir1.index)
         newPos = pos + self.step_size * newV
 
         return newPos, newDir, is_valid_direction
@@ -77,8 +76,8 @@ class rk4Propagator(abstractPropagator):
 
 class abstractTracker(object):
 
-    def __init__(self, trackingField, param):
-        self.trackingField = trackingField
+    def __init__(self, tracking_field, param):
+        self.tracking_field = tracking_field
         self.step_size = param['step_size']
         if param['rk_order'] == 1:
             self.propagator = rk1Propagator(self, param)
@@ -101,7 +100,7 @@ class abstractTracker(object):
         self.forward_pos = pos
         self.backward_pos = pos
         self.forward_dir, self.backward_dir =\
-            self.trackingField.get_init_direction(pos)
+            self.tracking_field.get_init_direction(pos)
         return self.forward_dir is not None and self.backward_dir is not None
 
     def propagate(self, pos, v_in):
@@ -123,15 +122,15 @@ class abstractTracker(object):
         -------
         boolean
         """
-        return self.trackingField.dataset.isPositionInBound(*pos)
+        return self.tracking_field.dataset.isPositionInBound(*pos)
 
     def get_direction(self, pos, v_in):
         """
         return the next tracking direction, given the current position pos
         and the previous direction v_in. This direction must respect tracking
-        constraint defined in the trackingField.
+        constraint defined in the tracking_field.
         """
-        scilpy.utils.abstract()
+        pass
 
 
 class probabilisticTracker(abstractTracker):
@@ -146,24 +145,24 @@ class probabilisticTracker(abstractTracker):
         the spherical function.
         None if the no valid direction are available.
         """
-        sf, directions = self.trackingField.get_tracking_SF(pos, v_in)
+        sf, directions = self.tracking_field.get_tracking_SF(pos, v_in)
         if np.sum(sf) > 0:
-            return directions[scilpy.tracking.tools.sample_distribution(sf)]
+            return directions[sample_distribution(sf)]
         return None
 
 
 class deterministicMaximaTracker(abstractTracker):
 
-    def __init__(self, trackingField, param):
+    def __init__(self, tracking_field, param):
         super(deterministicMaximaTracker, self).__init__(
-            trackingField, param)
+            tracking_field, param)
 
     def get_direction(self, pos, v_in):
         """
         return the maxima the closest to v_in.
         None if the no valid maxima are available.
         """
-        maxima_direction = self.trackingField.get_tracking_maxima(pos, v_in)
+        maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
         cosinus = 0
         v_out = None
         for d in maxima_direction:
@@ -172,31 +171,3 @@ class deterministicMaximaTracker(abstractTracker):
                 cosinus = new_cosinus
                 v_out = d
         return v_out
-
-
-class deterministicTENDPeakTracker(abstractTracker):
-
-    def __init__(self, trackingField, param, g_param, fa):
-        super(deterministicMaximaTracker, self).__init__(trackingField, param)
-        self.g = g_param
-        self.fa = fa
-
-    def get_direction(self, pos, v_in):
-        """
-        See ISMRM 2013 Maxime Chamberland and Maxime Descoteaux.
-        V = f * V_out + (1-f) * ((1-g) * V_in + g * V_out)
-        """
-        v_in = np.array(v_in)
-        maxima_direction = self.trackingField.get_maxima(pos)
-        min_cos = self.trackingField.cos_theta
-        v_out = None
-        for d in maxima_direction:
-            new_cos = np.dot(v_in, d)
-            if new_cos > min_cos:
-                min_cos = new_cos
-                v_out = d
-        if v_out is None:
-            return None
-        v_out = np.array(v_out)
-        f = self.fa.getPositionValue(*pos)
-        return f * v_out + (1.0 - f) * ((1.0 - self.g) * v_in + self.g * v_out)
