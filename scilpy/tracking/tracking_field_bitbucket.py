@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
-import dipy.core.geometry
 import dipy.data
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
 import scilpy.tracking.tools
-import scilpy.utils.util
 
 
 class TrackingDirection(list):
@@ -73,68 +71,6 @@ class AbstractField(object):
         return the opposite direction.
         """
         pass
-
-
-class MaximaField(AbstractField):
-
-    def __init__(self, maxima_dataset, sf_threshold, sf_threshold_init, theta):
-        super(MaximaField, self).__init__(
-            sf_threshold, sf_threshold_init, theta)
-        self.dataset = maxima_dataset
-
-    def get_SF(self, pos):
-        scilpy.utils.util.not_implemented()
-
-    def get_tracking_SF(self, pos, direction):
-        peaks = self.dataset.getPositionValue(*pos).reshape(-1, 3)
-        directions = []
-        peaks_values = []
-        for i in range(peaks.shape[0]):
-            norm = np.linalg.norm(peaks[i])
-            if norm > self.sf_threshold:
-                d = peaks[i] / norm
-                if np.dot(direction, d) > self.cos_theta:
-                    directions.append(TrackingDirection(d))
-                    peaks_values.append(norm)
-                elif (np.dot(direction, self.get_opposite_direction(d))
-                      > self.cos_theta):
-                    directions.append(self.get_opposite_direction(d))
-                    peaks_values.append(norm)
-        return (np.array(peaks_values), directions)
-
-    def get_maxima(self, pos, threshold=None):
-        maxima = []
-        peaks = self.dataset.getPositionValue(*pos).reshape(-1, 3)
-        for i in range(peaks.shape[0]):
-            if not np.isnan(peaks[i][0]) and not np.isnan(peaks[i][1]) \
-                    and not np.isnan(peaks[i][2]):
-                norm = np.linalg.norm(peaks[i])
-                if norm > self.sf_threshold:
-                    direction = TrackingDirection(list(peaks[i] / norm))
-                    maxima.append(direction)
-                    maxima.append(self.get_opposite_direction(direction))
-        return maxima
-
-    def get_tracking_maxima(self, pos, direction):
-        valid_maxima = []
-        maxima = self.get_maxima(pos)
-        for m in maxima:
-            if np.dot(direction, m) > self.cos_theta:
-                valid_maxima.append(m)
-        return valid_maxima
-
-    def get_init_direction(self, pos):
-        peaks = self.dataset.getPositionValue(*pos).reshape(-1, 3)
-        dist = np.array([np.linalg.norm(p) for p in peaks])
-        dist[dist < self.sf_threshold_init] = 0
-        if np.sum(dist) > 0:
-            ind = scilpy.tracking.tools.sample_distribution(dist)
-            direction = TrackingDirection(peaks[ind] / dist[ind])
-            return direction, self.get_opposite_direction(direction)
-        return None, None
-
-    def get_opposite_direction(self, direction):
-        return TrackingDirection(np.array(direction) * -1)
 
 
 class AbstractDiscreteField(AbstractField):
@@ -210,14 +146,7 @@ class SphericalHarmonicField(AbstractDiscreteField):
         super(SphericalHarmonicField, self).__init__(
             sf_threshold, sf_threshold_init, theta, dipy_sphere)
         self.dataset = odf_dataset
-        if basis in ["dipy", "fibernavigator"]:
-            logging.info('SH matrix computed using dipy basis.')
-            self.basis = "descoteaux07"
-        elif basis in ["mrtrix"]:
-            logging.info('SH matrix computed using mrtrix basis.')
-            self.basis = "tournier07"
-        else:
-            self.basis = basis
+        self.basis = basis
 
         sphere = dipy.data.get_sphere(dipy_sphere)
         sh_order = order_from_ncoef(self.dataset.data.shape[-1])
@@ -232,19 +161,3 @@ class SphericalHarmonicField(AbstractDiscreteField):
         if sf_max > 0:
             sf = sf / sf_max
         return sf
-
-
-class SphericalFunctionField(AbstractDiscreteField):
-
-    def __init__(self, sf_dataset, sf_threshold, sf_threshold_init, theta,
-                 dipy_sphere='symmetric724'):
-        super(SphericalFunctionField, self).__init__(
-            sf_threshold, sf_threshold_init, theta, dipy_sphere)
-        self.dataset = sf_dataset
-
-    def get_SF(self, pos):
-        SF = self.dataset.getPositionValue(*pos)
-        SF_max = np.max(SF)
-        if SF_max > 0:
-            SF = SF / SF_max
-        return SF
