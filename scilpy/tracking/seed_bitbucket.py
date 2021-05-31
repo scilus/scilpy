@@ -1,6 +1,4 @@
-
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import numpy as np
 
 from scilpy.tracking.dataset_bitbucket import Dataset

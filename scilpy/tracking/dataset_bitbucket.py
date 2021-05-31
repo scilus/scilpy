@@ -1,5 +1,4 @@
-from __future__ import division
-
+# -*- coding: utf-8 -*-
 import numpy as np
 from dipy.core.interpolation import trilinear_interpolate4d, \
                                     nearestneighbor_interpolate
