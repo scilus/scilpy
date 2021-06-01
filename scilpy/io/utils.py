@@ -8,7 +8,6 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
-import nibabel as nib
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
