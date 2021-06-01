@@ -89,18 +89,19 @@ def _build_arg_parser():
         help='The number of iterations for the initial parameters search. '
              '[%(default)s]')
     p.add_argument(
-        '--do_weight_bvals', action='store_true',
-        help='If set, does a weighting on the bvalues in the gamma fit.')
+        '--do_weight_bvals', action='store_false',
+        help='If set, does not do a weighting on the bvalues in the gamma fit.')
     p.add_argument(
-        '--do_weight_pa', action='store_true',
-        help='If set, does a powder averaging weighting in the gamma fit.')
+        '--do_weight_pa', action='store_false',
+        help='If set, does not do a powder averaging weighting in the gamma '
+             'fit.')
     p.add_argument(
-        '--redo_weight_bvals', action='store_true',
-        help='If set, does a second gamma fit with a weighting on the bvalues '
-             'using the newly found MD.')
+        '--redo_weight_bvals', action='store_false',
+        help='If set, does not do a second gamma fit with a weighting on the '
+             'bvalues using the newly found MD.')
     p.add_argument(
-        '--do_multiple_s0', action='store_true',
-        help='If set, takes into account multiple baseline signals.')
+        '--do_multiple_s0', action='store_false',
+        help='If set, does not take into account multiple baseline signals.')
 
     add_force_b0_arg(p)
     add_processes_arg(p)
