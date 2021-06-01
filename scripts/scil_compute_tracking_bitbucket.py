@@ -27,7 +27,7 @@ import math
 import os
 import time
 
-import dipy.core.geometry as gm
+from dipy.core.geometry import math
 import nibabel as nib
 import numpy as np
 
@@ -40,6 +40,7 @@ from scilpy.tracking.local_tracking_bitbucket import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
+from scilpy.tracking.utils import TrackingParams
 
 
 def buildArgsParser():
@@ -143,7 +144,6 @@ def buildArgsParser():
 def main():
     parser = buildArgsParser()
     args = parser.parse_args()
-    param = {}
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
@@ -163,11 +163,11 @@ def main():
                      .format(args.min_length, args.max_length))
 
     if args.theta is not None:
-        theta = gm.math.radians(args.theta)
+        theta = math.radians(args.theta)
     elif args.algo == 'prob':
-        theta = gm.math.radians(20)
+        theta = math.radians(20)
     else:
-        theta = gm.math.radians(45)
+        theta = math.radians(45)
 
     if args.mask_interp == 'nn':
         mask_interpolation = 'nearest'
@@ -185,50 +185,50 @@ def main():
         parser.error("--sh_interp has wrong value. See the help (-h).")
         return
 
-    param['random'] = args.random
-    param['skip'] = args.skip
-    param['algo'] = args.algo
-    param['mask_interp'] = mask_interpolation
-    param['field_interp'] = field_interpolation
-    param['theta'] = theta
-    param['sf_threshold'] = args.sf_threshold
-    param['sf_threshold_init'] = args.sf_threshold_init
-    param['step_size'] = args.step_size
-    param['rk_order'] = args.rk_order
-    param['max_length'] = args.max_length
-    param['min_length'] = args.min_length
-    param['max_nbr_pts'] = int(param['max_length'] / param['step_size'])
-    param['min_nbr_pts'] = int(param['min_length'] / param['step_size']) + 1
-    param['is_single_direction'] = args.is_single_direction
-    param['nbr_seeds'] = args.nt if args.nt is not None else 0
-    param['nbr_seeds_voxel'] = args.npv if args.npv is not None else 0
-    param['nbr_streamlines'] = args.ns if args.ns is not None else 0
-    param['max_no_dir'] = int(math.ceil(args.maxL_no_dir / param['step_size']))
-    param['is_all'] = False
-    param['is_keep_single_pts'] = False
+    param = TrackingParams()
+    param.random = args.random
+    param.skip = args.skip
+    param.algo = args.algo
+    param.mask_interp = mask_interpolation
+    param.field_interp = field_interpolation
+    param.theta = theta
+    param.sf_threshold = args.sf_threshold
+    param.sf_threshold_init = args.sf_threshold_init
+    param.step_size = args.step_size
+    param.rk_order = args.rk_order
+    param.max_length = args.max_length
+    param.min_length = args.min_length
+    param.max_nbr_pts = int(param.max_length / param.step_size)
+    param.min_nbr_pts = int(param.min_length / param.step_size) + 1
+    param.is_single_direction = args.is_single_direction
+    param.nbr_seeds = args.nt if args.nt is not None else 0
+    param.nbr_seeds_voxel = args.npv if args.npv is not None else 0
+    param.nbr_streamlines = args.ns if args.ns is not None else 0
+    param.max_no_dir = int(math.ceil(args.maxL_no_dir / param.step_size))
+    param.is_all = False
+    param.is_keep_single_pts = False
     # r+ is necessary for interpolation function in cython who
     # need read/write right
-    param['mmap_mode'] = None if args.isLoadData else 'r+'
+    param.mmap_mode = None if args.isLoadData else 'r+'
     logging.debug('Tractography parameters:\n{0}'.format(param))
 
     seed_img = nib.load(args.in_seed)
     seed = Seed(seed_img)
     if args.npv:
-        param['nbr_seeds'] = len(seed.seeds) * param['nbr_seeds_voxel']
-        param['skip'] = len(seed.seeds) * param['skip']
+        param.nbr_seeds = len(seed.seeds) * param.nbr_seeds_voxel
+        param.skip = len(seed.seeds) * param.skip
     if len(seed.seeds) == 0:
         parser.error('"{0}" does not have voxels value > 0.'
                      .format(args.in_seed))
 
-    mask = BinaryMask(
-        Dataset(nib.load(args.in_mask), param['mask_interp']))
+    mask = BinaryMask(Dataset(nib.load(args.in_mask), param.mask_interp))
 
-    dataset = Dataset(nib.load(args.in_sh), param['field_interp'])
+    dataset = Dataset(nib.load(args.in_sh), param.field_interp)
     field = SphericalHarmonicField(dataset,
                                    args.sh_basis,
-                                   param['sf_threshold'],
-                                   param['sf_threshold_init'],
-                                   param['theta'])
+                                   param.sf_threshold,
+                                   param.sf_threshold_init,
+                                   param.theta)
 
     if args.algo == 'det':
         tracker =\
@@ -260,9 +260,8 @@ def main():
                                    save_seeds=args.save_seeds)
 
     if args.compress:
-        streamlines = (
-            compress_streamlines(s, args.compress)
-            for s in streamlines)
+        streamlines = (compress_streamlines(s, args.compress)
+                       for s in streamlines)
 
     save_streamlines(streamlines, args.in_seed, args.out_tractogram, seeds)
 
