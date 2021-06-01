@@ -476,6 +476,95 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     return shm_coeff_array
 
 
+def convert_sh_to_sf_parallel(args):
+    sh = args[0]
+    B_in = args[1]
+    new_output_dim = args[2]
+    chunk_id = args[3]
+    sf = np.zeros((sh.shape[0], new_output_dim), dtype=np.float32)
+
+    for idx in range(sh.shape[0]):
+        if sh[idx].any():
+            sf[idx] = np.dot(sh[idx], B_in)
+
+    return chunk_id, sf
+
+
+def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
+                     input_basis='descoteaux07', input_full_basis=False,
+                     nbr_processes=multiprocessing.cpu_count()):
+    """Converts spherical harmonic coefficients to an SF sphere
+
+    Parameters
+    ----------
+    shm_coeff : np.ndarray
+        Spherical harmonic coefficients
+    sphere : Sphere
+        The Sphere providing discrete directions for evaluation.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    dtype : str
+        Datatype to use for computation and output array.
+        Either `float32` or `float64`. Default: `float32`
+    input_basis : str, optional
+        Type of spherical harmonic basis used for `shm_coeff`. Either
+        `descoteaux07` or `tournier07`.
+        Default: `descoteaux07`
+    input_full_basis : bool
+        If True, use a full SH basis (even and odd orders) for the input SH
+        coefficients.
+    nbr_processes: int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    shm_coeff_array : np.ndarray
+        Spherical harmonic coefficients in the desired basis.
+    """
+    assert dtype in ["float32", "float64"], "Only `float32` and `float64` " \
+                                            "should be used."
+
+    sh_order = order_from_ncoef(shm_coeff.shape[-1],
+                                full_basis=input_full_basis)
+    B_in, _ = sh_to_sf_matrix(sphere, sh_order, basis_type=input_basis,
+                              full_basis=input_full_basis)
+    B_in = B_in.astype(dtype)
+
+    data_shape = shm_coeff.shape
+    if mask is None:
+        mask = np.sum(shm_coeff, axis=3).astype(bool)
+
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    shm_coeff = shm_coeff[mask].reshape(
+        (np.count_nonzero(mask), data_shape[3]))
+    shm_coeff_chunks = np.array_split(shm_coeff, nbr_processes)
+    chunk_len = np.cumsum([0] + [len(c) for c in shm_coeff_chunks])
+
+    pool = multiprocessing.Pool(nbr_processes)
+    results = pool.map(convert_sh_to_sf_parallel,
+                       zip(shm_coeff_chunks,
+                           itertools.repeat(B_in),
+                           itertools.repeat(len(sphere.vertices)),
+                           np.arange(len(shm_coeff_chunks))))
+    pool.close()
+    pool.join()
+
+    # Re-assemble the chunk together in the original shape.
+    new_shape = data_shape[:3] + (len(sphere.vertices),)
+    sf_array = np.zeros(new_shape, dtype=dtype)
+    tmp_sf_array = np.zeros((np.count_nonzero(mask), new_shape[3]),
+                            dtype=dtype)
+    for i, new_sf in results:
+        tmp_sf_array[chunk_len[i]:chunk_len[i + 1], :] = new_sf
+
+    sf_array[mask] = tmp_sf_array
+
+    return sf_array
+
+
 def fit_gamma_parallel(args):
     data = args[0]
     gtab_infos = args[1]
