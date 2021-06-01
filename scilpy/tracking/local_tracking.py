@@ -17,7 +17,7 @@ data_file_info = None
 
 
 def track(tracker, mask, seed, param, compress=False,
-          compression_error_threshold=0.1, nbr_processes=1,
+          compression_th=0.1, nbr_processes=1,
           pft_tracker=None, save_seeds=False):
     """
     Generate a set of streamline from seed, mask and odf files.
@@ -27,9 +27,10 @@ def track(tracker, mask, seed, param, compress=False,
     tracker : Tracker, tracking object.
     mask : Mask, tracking volume(s).
     seed : Seed, seeding volume.
-    param: dict, tracking parameters, see param.py.
+    param: TrackingParams,
+        tracking parameters, see scilpy.tracking.utils.py.
     compress : bool, enable streamlines compression.
-    compression_error_threshold : float,
+    compression_th : float,
         maximal distance threshold for compression.
     nbr_processes: int, number of sub processes to use.
     pft_tracker: Tracker, tracking object for pft module.
@@ -40,7 +41,7 @@ def track(tracker, mask, seed, param, compress=False,
     streamlines: list of numpy.array
     seeds: list of numpy.array
     """
-    if param['nbr_streamlines'] == 0:
+    if param.nbr_streamlines == 0:
         if nbr_processes <= 0:
             try:
                 nbr_processes = multiprocessing.cpu_count()
@@ -49,18 +50,18 @@ def track(tracker, mask, seed, param, compress=False,
                     returns nbr_processes set to 1.")
                 nbr_processes = 1
 
-        param['processes'] = nbr_processes
-        if param['processes'] > param['nbr_seeds']:
-            nbr_processes = param['nbr_seeds']
-            param['processes'] = param['nbr_seeds']
+        param.processes = nbr_processes
+        if param.processes > param.nbr_seeds:
+            nbr_processes = param.nbr_seeds
+            param.processes = param.nbr_seeds
             logging.debug('Setting number of processes to ' +
-                          str(param['processes']) +
+                          str(param.processes) +
                           ' since there were less seeds than processes.')
         chunk_id = np.arange(nbr_processes)
         if nbr_processes < 2:
             lines, seeds = get_streamlines(tracker, mask, seed, chunk_id,
                                            pft_tracker, param, compress,
-                                           compression_error_threshold,
+                                           compression_th,
                                            save_seeds=save_seeds)
         else:
 
@@ -75,8 +76,9 @@ def track(tracker, mask, seed, param, compress=False,
                 pool = multiprocessing.Pool(nbr_processes,
                                             initializer=_init_sub_process,
                                             initargs=(data_file_name,
-                                                      param['mmap_mode']))
+                                                      param.mmap_mode))
 
+                max_tries = 100  # default value for max_tries
                 lines_per_process, seeds_per_process = zip(*pool.map(
                     _get_streamlines_sub, zip(itertools.repeat(tracker),
                                               itertools.repeat(mask),
@@ -85,8 +87,8 @@ def track(tracker, mask, seed, param, compress=False,
                                               itertools.repeat(pft_tracker),
                                               itertools.repeat(param),
                                               itertools.repeat(compress),
-                                              itertools.repeat(compression_error_threshold),
-                                              itertools.repeat(100),  # default value for max_tries
+                                              itertools.repeat(compression_th),
+                                              itertools.repeat(max_tries),
                                               itertools.repeat(save_seeds))))
                 pool.close()
                 # Make sure all worker processes have exited before leaving
@@ -105,7 +107,7 @@ def track(tracker, mask, seed, param, compress=False,
                           "a fixed number of streamlines.")
         lines, seeds = get_n_streamlines(tracker, mask, seed,
                                          pft_tracker, param, compress,
-                                         compression_error_threshold,
+                                         compression_th,
                                          save_seeds=save_seeds)
 
     return lines, seeds
@@ -154,7 +156,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     mask : Mask, tracking volume(s).
     seeding_mask : Seed, seeding volume.
     pft_tracker: Tracker, tracking object for pft module.
-    param: Dict, tracking parameters.
+    param: TrackingParams, tracking parameters.
     compress : bool, enable streamlines compression.
     compression_error_threshold : float,
         maximal distance threshold for compression.
@@ -170,15 +172,15 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     skip = 0
     # Initialize the random number generator, skip,
     # which voxel to seed and the subvoxel random position
-    first_seed_of_chunk = np.int32(param['skip'])
+    first_seed_of_chunk = np.int32(param.skip)
     random_generator, indices =\
-        seeding_mask.init_pos(param['random'], first_seed_of_chunk)
-    while (len(streamlines) < param['nbr_streamlines'] and
-           skip < param['nbr_streamlines'] * max_tries):
+        seeding_mask.init_pos(param.random, first_seed_of_chunk)
+    while (len(streamlines) < param.nbr_streamlines and
+           skip < param.nbr_streamlines * max_tries):
         if i % 1000 == 0:
             print(str(os.getpid()) + " : " +
                   str(len(streamlines)) + " / " +
-                  str(param['nbr_streamlines']))
+                  str(param.nbr_streamlines))
         seed = seeding_mask.get_next_pos(random_generator,
                                          indices,
                                          first_seed_of_chunk + i)
@@ -212,7 +214,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     seeding_mask : Seed, seeding volume.
     chunk_id: int, chunk id.
     pft_tracker: Tracker, tracking object for pft module.
-    param: Dict, tracking parameters.
+    param: TrackingParams, tracking parameters.
     compress : bool, enable streamlines compression.
     compression_error_threshold : float,
         maximal distance threshold for compression.
@@ -226,16 +228,16 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     seeds = []
     # Initialize the random number generator to cover multiprocessing, skip,
     # which voxel to seed and the subvoxel random position
-    chunk_size = int(param['nbr_seeds'] / param['processes'])
-    skip = param['skip']
+    chunk_size = int(param.nbr_seeds / param.processes)
+    skip = param.skip
 
     first_seed_of_chunk = chunk_id * chunk_size + skip
     random_generator, indices =\
-        seeding_mask.init_pos(param['random'],
+        seeding_mask.init_pos(param.random,
                               first_seed_of_chunk)
 
-    if chunk_id == param['processes'] - 1:
-        chunk_size += param['nbr_seeds'] % param['processes']
+    if chunk_id == param.processes - 1:
+        chunk_size += param.nbr_seeds % param.processes
     for s in range(chunk_size):
         if s % 1000 == 0:
             print(str(os.getpid()) + " : " + str(
@@ -271,21 +273,21 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
     mask : Mask, tracking volume(s).
     pos : tuple, 3D position, the seed position.
     pft_tracker: Tracker, tracking object for pft module.
-    param: Dict, tracking parameters.
+    param: TrackingParams, tracking parameters.
 
     Returns
     -------
     line: list of 3D positions
     """
 
-    np.random.seed(np.uint32(hash((pos, param['random']))))
+    np.random.seed(np.uint32(hash((pos, param.random))))
     line = []
     if tracker.initialize(pos):
         forward = _get_line(tracker, mask, pft_tracker, param, True)
         if forward is not None and len(forward) > 0:
             line.extend(forward)
 
-        if not param['is_single_direction'] and forward is not None:
+        if not param.is_single_direction and forward is not None:
             backward = _get_line(tracker, mask, pft_tracker, param, False)
             if backward is not None and len(backward) > 0:
                 line.reverse()
@@ -297,15 +299,15 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
         if ((len(line) > 1 and
              forward is not None and
              backward is not None and
-             len(line) >= param['min_nbr_pts'] and
-             len(line) <= param['max_nbr_pts'])):
+             len(line) >= param.min_nbr_pts and
+             len(line) <= param.max_nbr_pts)):
             return line
-        elif (param['is_keep_single_pts'] and
-              param['min_nbr_pts'] == 1):
+        elif (param.is_keep_single_pts and
+              param.min_nbr_pts == 1):
             return [pos]
         return None
-    if ((param['is_keep_single_pts'] and
-         param['min_nbr_pts'] == 1)):
+    if ((param.is_keep_single_pts and
+         param.min_nbr_pts == 1)):
         return [pos]
     return None
 
@@ -330,7 +332,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
     ----------
     tracker : Tracker, tracking object.
     mask : Mask, tracking volume(s).
-    param: Dict, tracking parameters.
+    param: TrackingParams, tracking parameters.
     is_forward: bool, track in forward direction if True,
                       track in backward direction if False.
 
@@ -343,7 +345,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
 
     no_valid_direction_count = 0
 
-    while (len(line) < param['max_nbr_pts'] and
+    while (len(line) < param.max_nbr_pts and
            mask.isPropagationContinues(line[-1])):
         new_pos, new_dir, is_valid_direction = tracker.propagate(
             line[-1], line_dirs[-1])
@@ -355,7 +357,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
         else:
             no_valid_direction_count += 1
 
-        if no_valid_direction_count > param['max_no_dir']:
+        if no_valid_direction_count > param.max_no_dir:
             return line
 
     # make a last step in the last direction
