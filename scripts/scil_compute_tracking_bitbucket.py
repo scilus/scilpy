@@ -24,7 +24,6 @@ from __future__ import division
 import argparse
 import logging
 import math
-import os
 import time
 
 from dipy.core.geometry import math
@@ -32,11 +31,12 @@ import nibabel as nib
 import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
+from dipy.io.utils import get_reference_info, create_tractogram_header
+from nibabel.streamlines.tractogram import LazyTractogram
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              add_verbose_arg)
-from scilpy.io.streamlines import save_streamlines
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
-from scilpy.tracking.local_tracking_bitbucket import track
+from scilpy.tracking.local_tracking import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
@@ -141,6 +141,20 @@ def buildArgsParser():
     return p
 
 
+def get_voxmm_to_rasmm(ref_img):
+    """
+    Create the affine to go from voxmm (expected space) to ras+ mm.
+    """
+    # Use this to remove the scaling component from the reference affine.
+    # (voxel size is included in streamlines)
+    unscaling_matrix = np.eye(4)
+    unscaling_matrix[range(3), range(3)] = 1. / np.array(
+        ref_img.header.get_zooms())
+    voxmm_to_rasmm = np.dot(ref_img.affine, unscaling_matrix)
+
+    return voxmm_to_rasmm
+
+
 def main():
     parser = buildArgsParser()
     args = parser.parse_args()
@@ -175,7 +189,6 @@ def main():
         mask_interpolation = 'trilinear'
     else:
         parser.error("--mask_interp has wrong value. See the help (-h).")
-        return
 
     if args.field_interp == 'nn':
         field_interpolation = 'nearest'
@@ -183,7 +196,6 @@ def main():
         field_interpolation = 'trilinear'
     else:
         parser.error("--sh_interp has wrong value. See the help (-h).")
-        return
 
     param = TrackingParams()
     param.random = args.random
@@ -237,7 +249,6 @@ def main():
         tracker = probabilisticTracker(field, args.step_size, args.rk_order)
     else:
         parser.error("--algo has wrong value. See the help (-h).")
-        return
 
     start = time.time()
     if args.compress:
@@ -263,7 +274,23 @@ def main():
         streamlines = (compress_streamlines(s, args.compress)
                        for s in streamlines)
 
-    save_streamlines(streamlines, args.in_seed, args.out_tractogram, seeds)
+    # save seeds if args.save_seeds is given
+    data_per_streamlines = {'seed': lambda: seeds} if args.save_seeds else {}
+
+    # get affine transform for tractogram
+    voxmm_to_rasmm = get_voxmm_to_rasmm(seed_img)
+
+    tractogram = LazyTractogram(lambda: streamlines,
+                                data_per_streamlines,
+                                affine_to_rasmm=voxmm_to_rasmm)
+
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
+    _, dims, vox_size, vox_order = get_reference_info(seed_img)
+    header = create_tractogram_header(filetype, voxmm_to_rasmm, dims,
+                                      vox_size, vox_order)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
     str_time = "%.2f" % (time.time() - start)
     logging.debug(str(len(streamlines)) + " streamlines, done in " +
