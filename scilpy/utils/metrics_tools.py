@@ -328,7 +328,7 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
     if figlabel is not None:
         fig.set_label(figlabel)
 
-    if means.shape[-1] > 1:
+    if means.ndim > 1:
         mean = np.average(means, axis=1)
         std = np.std(means, axis=1)
         alpha = 0.5
