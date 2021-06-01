@@ -18,15 +18,12 @@ References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
             reducing tractography biases. Neuroimage, 98, 266-278.
 """
-
-from __future__ import division
-
 import argparse
 import logging
 import math
 import time
 
-from dipy.core.geometry import math
+import dipy.core.geometry as gm
 import nibabel as nib
 import numpy as np
 
@@ -177,11 +174,11 @@ def main():
                      .format(args.min_length, args.max_length))
 
     if args.theta is not None:
-        theta = math.radians(args.theta)
+        theta = gm.math.radians(args.theta)
     elif args.algo == 'prob':
-        theta = math.radians(20)
+        theta = gm.math.radians(20)
     else:
-        theta = math.radians(45)
+        theta = gm.math.radians(45)
 
     if args.mask_interp == 'nn':
         mask_interpolation = 'nearest'
