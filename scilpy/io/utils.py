@@ -507,22 +507,3 @@ def snapshot(scene, filename, **kwargs):
     out = window.snapshot(scene, **kwargs)
     image = Image.fromarray(out[::-1])
     image.save(filename)
-
-
-def create_header_from_anat(reference, base_filetype=nib.streamlines.TrkFile):
-    if isinstance(reference, six.string_types):
-        reference = nib.load(reference)
-
-    new_header = base_filetype.create_empty_header()
-
-    new_header[nib.streamlines.Field.VOXEL_SIZES] = tuple(reference.header.
-                                                          get_zooms())[:3]
-    new_header[nib.streamlines.Field.DIMENSIONS] = tuple(reference.shape)[:3]
-    new_header[nib.streamlines.Field.VOXEL_TO_RASMM] = (reference.header.
-                                                        get_best_affine())
-    affine = new_header[nib.streamlines.Field.VOXEL_TO_RASMM]
-
-    new_header[nib.streamlines.Field.VOXEL_ORDER] = ''.join(
-        nib.aff2axcodes(affine))
-
-    return new_header
