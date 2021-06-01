@@ -273,12 +273,14 @@ def save_streamlines(streamlines, ref_filename, output_filename, seeds=[]):
     ref_file = nib.load(ref_filename)
 
     # Use this to remove the scaling component from the reference affine.
+    # (voxel size is included in streamlines)
     unscaling_matrix = np.eye(4)
     unscaling_matrix[range(3), range(3)] = 1. / np.array(
         ref_file.header.get_zooms())
     voxmm_to_rasmm = np.dot(ref_file.affine, unscaling_matrix)
 
-    tractogram = nib.streamlines.Tractogram(streamlines, affine_to_rasmm=voxmm_to_rasmm)
+    tractogram = nib.streamlines.Tractogram(streamlines,
+                                            affine_to_rasmm=voxmm_to_rasmm)
 
     if seeds is not None and len(seeds) > 0:
         transformed_seeds = nib.affines.apply_affine(voxmm_to_rasmm, seeds)

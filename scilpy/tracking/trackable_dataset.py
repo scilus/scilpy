@@ -12,7 +12,7 @@ class Dataset(object):
 
     def __init__(self, img, interpolation='trilinear'):
         self.interpolation = interpolation
-        self.size = img.header['pixdim'][1:4]
+        self.pixdim = img.header.get_zooms()[:3]
         self.data = img.get_fdata(caching='unchanged', dtype=np.float64)
 
         # Expand dimensionality to support uniform 4d interpolation
@@ -47,15 +47,15 @@ class Dataset(object):
         """
         return: integer value of position/dimension
         """
-        return [(x + self.size[0] / 2) // self.size[0],
-                (y + self.size[1] / 2) // self.size[1],
-                (z + self.size[2] / 2) // self.size[2]]
+        return [(x + self.pixdim[0] / 2) // self.pixdim[0],
+                (y + self.pixdim[1] / 2) // self.pixdim[1],
+                (z + self.pixdim[2] / 2) // self.pixdim[2]]
 
     def getVoxelCoordinate(self, x, y, z):
         """
         return: value of position/dimension
         """
-        return [x / self.size[0], y / self.size[1], z / self.size[2]]
+        return [x / self.pixdim[0], y / self.pixdim[1], z / self.pixdim[2]]
 
     def getVoxelValueAtPosition(self, x, y, z):
         """
@@ -72,12 +72,12 @@ class Dataset(object):
         """
         if not self.isPositionInBound(x, y, z):
             eps = float(1e-8)  # Epsilon to exclude upper borders
-            x = max(-self.size[0] / 2,
-                    min(self.size[0] * (self.dim[0] - 0.5 - eps), x))
-            y = max(-self.size[1] / 2,
-                    min(self.size[1] * (self.dim[1] - 0.5 - eps), y))
-            z = max(-self.size[2] / 2,
-                    min(self.size[2] * (self.dim[2] - 0.5 - eps), z))
+            x = max(-self.pixdim[0] / 2,
+                    min(self.pixdim[0] * (self.dim[0] - 0.5 - eps), x))
+            y = max(-self.pixdim[1] / 2,
+                    min(self.pixdim[1] * (self.dim[1] - 0.5 - eps), y))
+            z = max(-self.pixdim[2] / 2,
+                    min(self.pixdim[2] * (self.dim[2] - 0.5 - eps), z))
         coord = np.array(self.getVoxelCoordinate(x, y, z), dtype=np.float64)
 
         if self.interpolation == 'nearest':
@@ -122,9 +122,9 @@ class Seed(Dataset):
         if len_seeds == 0:
             return []
 
-        half_voxel_range = [self.size[0] / 2,
-                            self.size[1] / 2,
-                            self.size[2] / 2]
+        half_voxel_range = [self.pixdim[0] / 2,
+                            self.pixdim[1] / 2,
+                            self.pixdim[2] / 2]
 
         # Voxel selection from the seeding mask
         ind = which_seed % len_seeds
@@ -138,8 +138,8 @@ class Seed(Dataset):
         r_z = random_generator.uniform(-half_voxel_range[2],
                                        half_voxel_range[2])
 
-        return x * self.size[0] + r_x, y * self.size[1] \
-            + r_y, z * self.size[2] + r_z
+        return x * self.pixdim[0] + r_x, y * self.pixdim[1] \
+            + r_y, z * self.pixdim[2] + r_z
 
     def init_pos(self, random_initial_value, first_seed_of_chunk):
         """
