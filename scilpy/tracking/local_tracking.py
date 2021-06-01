@@ -70,8 +70,8 @@ def track(tracker, mask, seed, param, compress=False,
                 # must be better designed for dipy
                 # the tracking should not know which data to deal with
                 data_file_name = os.path.join(tmpdir, 'data.npy')
-                np.save(data_file_name, tracker.trackingField.dataset.data)
-                tracker.trackingField.dataset.data = None
+                np.save(data_file_name, tracker.tracking_field.dataset.data)
+                tracker.tracking_field.dataset.data = None
 
                 pool = multiprocessing.Pool(nbr_processes,
                                             initializer=_init_sub_process,
@@ -132,8 +132,8 @@ def _get_streamlines_sub(args):
     lines: list, list of list of 3D positions (streamlines).
     """
     global data_file_info
-    args[0].trackingField.dataset.data = np.load(data_file_info[0],
-                                                 mmap_mode=data_file_info[1])
+    args[0].tracking_field.dataset.data = np.load(data_file_info[0],
+                                                  mmap_mode=data_file_info[1])
 
     try:
         streamlines, seeds = get_streamlines(*args[0:9])
