@@ -31,7 +31,8 @@ from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.io.utils import get_reference_info, create_tractogram_header
 from nibabel.streamlines.tractogram import LazyTractogram
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
-                             add_verbose_arg)
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
 from scilpy.tracking.local_tracking import track
 from scilpy.tracking.tracker import (probabilisticTracker,
@@ -162,6 +163,10 @@ def main():
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
+
+    inputs = [args.in_sh, args.in_seed, args.in_mask]
+    assert_inputs_exist(parser, inputs)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
     if not np.any([args.nt, args.npv, args.ns]):
         args.npv = 1
