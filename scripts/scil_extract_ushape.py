@@ -69,22 +69,20 @@ def main():
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.remaining_tractogram])
 
-    #if min(args.ufactor) <= 0 or max(args.ufactor) > 1:
-    #    parser.error('U-factor "{}" '.format(args.ufactor) +
-    #                 'must be greater than 0 and lower or equal to 1.')
+    if not( -1 <= min(args.ufactor) <= 1 and -1 <= max(args.ufactor) <= 1):
+        parser.error('U-factor "{}" '.format(args.ufactor) +
+                     'must be between -1 and 1.')
 
     tractogram = load_tractogram_with_reference(
         parser, args, args.in_tractogram)
-
-    streamlines = tractogram.streamlines
 
     ids_c = []
 
     ids_l = []
 
-    if len(streamlines) > 1:
-        ids_c = detect_ushape(streamlines, args.ufactor)
-        ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
+    if len(tractogram.streamlines) > 1:
+        ids_c = detect_ushape(tractogram, args.ufactor)
+        ids_l = np.setdiff1d(np.arange(len(tractogram.streamlines)), ids_c)
     else:
         parser.error(
             'Zero or one streamline in {}'.format(args.in_tractogram) +

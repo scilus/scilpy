@@ -7,16 +7,16 @@ from dipy.segment.clustering import QuickBundles, qbx_and_merge
 from dipy.segment.metric import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
+from scilpy.tracking.tools import resample_streamlines_num_points
 import numpy as np
 
 
-def detect_ushape(streamlines, ufactor=[0.5, 1]):
+def detect_ushape(sft, ufactor=[0.5, 1]):
     """
     Remove loops and sharp turns from a list of streamlines.
     Parameters
     ----------
-    streamlines: list of ndarray
-        The list of streamlines from which to remove loops and sharp turns.
+    sft: State Full tractogram used to remove loops and sharp turns.
     threshold:  float
         Threshold bla bla bla
 
@@ -26,12 +26,13 @@ def detect_ushape(streamlines, ufactor=[0.5, 1]):
         Only the ids are returned so proper filtering can be done afterwards
     """
     ids = []
-    for i, s in enumerate(streamlines):
-        if len(s) >= 4:
+    new_sft = resample_streamlines_num_points(sft, 4)
+    for i, s in enumerate(new_sft.streamlines):
+        if len(s) == 4:
             first_point = s[0]
             last_point = s[-1]
-            second_point = s[round(len(s)/3)]
-            third_point = s[round(2*len(s)/3)]
+            second_point = s[1]
+            third_point = s[2]
 
             v1 = first_point - second_point
             v2 = second_point - third_point
@@ -43,7 +44,7 @@ def detect_ushape(streamlines, ufactor=[0.5, 1]):
 
             val = np.dot(np.cross(v1, v2), np.cross(v2, v3))
 
-            if min(ufactor) < val < max(ufactor):
+            if min(ufactor) <= val <= max(ufactor):
                 ids.append(i)
 
     return ids
