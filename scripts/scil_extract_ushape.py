@@ -73,30 +73,29 @@ def main():
         parser.error('U-factor "{}" '.format(args.ufactor) +
                      'must be between -1 and 1.')
 
-    tractogram = load_tractogram_with_reference(
+    sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram)
 
     ids_c = []
-
     ids_l = []
 
-    if len(tractogram.streamlines) > 1:
-        ids_c = detect_ushape(tractogram, args.ufactor)
-        ids_l = np.setdiff1d(np.arange(len(tractogram.streamlines)), ids_c)
+    if len(sft.streamlines) > 1:
+        ids_c = detect_ushape(sft, args.ufactor)
+        ids_l = np.setdiff1d(np.arange(len(sft.streamlines)), ids_c)
     else:
         parser.error(
             'Zero or one streamline in {}'.format(args.in_tractogram) +
             '. The file must have more than one streamline.')
 
     if len(ids_c) > 0:
-        sft_c = filter_tractogram_data(tractogram, ids_c)
+        sft_c = sft[ids_c]
         save_tractogram(sft_c, args.out_tractogram)
     else:
         logging.warning(
-            'No clean streamlines in {}'.format(args.in_tractogram))
+            'No u-shape streamlines in {}'.format(args.in_tractogram))
 
     if args.display_counts:
-        sc_bf = len(tractogram.streamlines)
+        sc_bf = len(sft.streamlines)
         sc_af = len(sft_c.streamlines)
         print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
                          'streamline_count_after_filtering': int(sc_af)},
@@ -105,7 +104,7 @@ def main():
     if len(ids_l) == 0:
         logging.warning('No loops in {}'.format(args.in_tractogram))
     elif args.remaining_tractogram:
-        sft_l = filter_tractogram_data(tractogram, ids_l)
+        sft_l = sft[ids_l]
         save_tractogram(sft_l, args.remaining_tractogram)
 
 
