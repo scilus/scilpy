@@ -55,7 +55,12 @@ pipeline {
             cleanWs()
             script {
                 if (env.CHANGE_ID) {
-                    pullRequest.createReviewRequests(['arnaudbore'])
+                    if (pullRequest.createdBy != "arnaudbore"){
+                        pullRequest.createReviewRequests(['arnaudbore'])
+                    }
+                    else{
+                        pullRequest.createReviewRequests(['GuillaumeTh'])
+                    }
                 }
             }
         }
