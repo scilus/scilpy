@@ -17,6 +17,7 @@ def create_acqparams(readout, encoding_direction, nb_b0s=1, nb_rev_b0s=1):
         Number of B=0 images
     nb_rev_b0s: int
         number of reverse b=0 images
+
     Returns
     -------
     acqparams: np.array
@@ -41,6 +42,8 @@ def create_index(bvals, n_rev=0):
     ----------
     bvals: np.array
         b-values
+    n_rev: int, optional
+        Number of reverse phase images to take into account
 
     Returns
     -------
@@ -53,6 +56,29 @@ def create_index(bvals, n_rev=0):
 
 
 def create_multi_topup_index(bvals, mean, n_rev, b0_thr=0):
+    """
+    Create index of bvals for Eddy in cases where Topup ran on more
+    than one b0 volume in both phase directions. The volumes must be
+    ordered such as all forward phase acquisition are followed by all
+    reverse phase ones (In the case of AP-PA, PA_1, PA_2, ..., PA_N,
+    AP_1, AP_2, ..., AP_N).
+
+    Parameters
+    ----------
+    bvals: np.array
+        b-values
+    mean: string
+        Mean strategy used to subset the b0 volumes
+        passed to topup (cluster or none)
+    n_rev: int, optional
+        Number of reverse phase images to take into account
+    b0_thr: int
+        All bvals under or equal to this threshold are considered as b0
+
+    Returns
+    -------
+    index: np.array
+    """
     index = np.zeros_like(bvals, dtype=int)
     cnt = 1
 

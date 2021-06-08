@@ -34,14 +34,14 @@ def _build_arg_parser():
                    help='b-vectors file in FSL format')
 
     p.add_argument('in_mask',
-                   help='binary brain mask.')
+                   help='Binary brain mask.')
 
     p.add_argument('--n_reverse', type=int, default=0,
                    help='Number of reverse phase volumes included '
                         'in the DWI image [%(default)s].')
 
     p.add_argument('--topup',
-                   help='topup output name. ' +
+                   help='Topup output name. ' +
                         'If given, apply topup during eddy.\n' +
                         'Should be the same as --out_prefix from ' +
                         'scil_prepare_topup_command.py')
@@ -52,7 +52,7 @@ def _build_arg_parser():
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
                    choices=['eddy_openmp', 'eddy_cuda'],
-                   help='eddy command [%(default)s].')
+                   help='Eddy command [%(default)s].')
 
     p.add_argument('--b0_thr', type=float, default=20,
                    help='All b-values with values less than or equal ' +
@@ -61,36 +61,36 @@ def _build_arg_parser():
 
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
-                   help='acquisition direction, default is AP-PA '
+                   help='Acquisition direction, default is AP-PA '
                         '[%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata '
+                   help='Total readout time from the DICOM metadata '
                         '[%(default)s].')
 
     p.add_argument('--slice_drop_correction', action='store_true',
-                   help="if set, will activate eddy's outlier correction,\n"
+                   help="If set, will activate eddy's outlier correction,\n"
                         "which includes slice drop correction.")
 
     p.add_argument('--lsr_resampling', action='store_true',
-                   help='perform least-square resampling, allowing eddy to '
+                   help='Perform least-square resampling, allowing eddy to '
                         'combine forward and reverse phase acquisitions for '
                         'better reconstruction. Only works if directions and '
                         'b-values are identical in both phase direction.')
 
     p.add_argument('--out_directory', default='.',
-                   help='output directory for eddy files [%(default)s].')
+                   help='Output directory for eddy files [%(default)s].')
 
     p.add_argument('--out_prefix', default='dwi_eddy_corrected',
-                   help='prefix of the eddy-corrected DWI [%(default)s].')
+                   help='Prefix of the eddy-corrected DWI [%(default)s].')
 
     p.add_argument('--out_script', action='store_true',
-                   help='if set, will output a .sh script (eddy.sh).\n' +
+                   help='If set, will output a .sh script (eddy.sh).\n' +
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 
     p.add_argument('--fix_seed', action='store_true',
-                   help='if set, will use the fixed seed strategy for eddy.\n'
+                   help='If set, will use the fixed seed strategy for eddy.\n'
                         'Enhances reproducibility.')
 
     p.add_argument('--eddy_options',  default='',
@@ -188,7 +188,7 @@ def main():
             forward_bb = bvals[:n_rev, None] * bvecs[:n_rev, :]
             reverse_bb = bvals[n_rev:, None] * bvecs[n_rev:, :]
             if np.allclose(forward_bb, reverse_bb):
-                additional_args += "--resamp lsr "
+                additional_args += "--resamp=lsr --fep=true "
             else:
                 logging.warning('Least-square resampling disabled since '
                                 'directions in both phase directions differ.')
