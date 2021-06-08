@@ -292,7 +292,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         The tolerated gap between the b-values to extract and the actual
         b-values.
     block_size : int
-        Loads the data using this block size. Useful when the data is too
+        Load the data using this block size. Useful when the data is too
         large to be loaded in memory.
 
     Returns
@@ -362,7 +362,7 @@ def extract_b0(dwi, b0_mask, extract_in_cluster=False,
         parameter set to True, the strategy is applied individually on each
         continuous set found.
     block_size : int
-        Loads the data using this block size. Useful when the data is too
+        Load the data using this block size. Useful when the data is too
         large to be loaded in memory.
 
     Returns
