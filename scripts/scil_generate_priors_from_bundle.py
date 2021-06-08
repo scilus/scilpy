@@ -12,13 +12,14 @@ import logging
 import os
 
 from dipy.data import get_sphere
-from dipy.io.streamline import load_tractogram
 from dipy.reconst.shm import sf_to_sh, sh_to_sf
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              add_sh_basis_args,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -60,6 +61,7 @@ def _build_arg_parser():
                         'default is current directory.')
 
     add_overwrite_arg(p)
+    add_reference_arg(p)
 
     return p
 
@@ -93,8 +95,7 @@ def main():
     sh_order = find_order_from_nb_coeff(sh_shape)
     img_mask = nib.load(args.in_mask)
 
-    sft = load_tractogram(args.in_bundle, args.in_fodf,
-                          trk_header_check=True)
+    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     if len(sft.streamlines) < 1:
         raise ValueError('The input bundle contains no streamline.')
@@ -108,7 +109,8 @@ def main():
 
         # Fancy masking of 1d indices to limit spatial dilation to WM
         sub_mask_3d = np.logical_and(get_data_as_mask(img_mask),
-                                     todi_obj.reshape_to_3d(todi_obj.get_mask()))
+                                     todi_obj.reshape_to_3d(
+                                         todi_obj.get_mask()))
         sub_mask_1d = sub_mask_3d.flatten()[todi_obj.get_mask()]
         todi_sf = todi_obj.get_todi()[sub_mask_1d] ** 2
 
