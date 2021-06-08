@@ -19,6 +19,7 @@ import numpy as np
 from dipy.data import get_sphere
 from dipy.reconst.shm import order_from_ncoef
 
+from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
@@ -61,10 +62,6 @@ def _build_arg_parser():
 
     # Optional FODF personalization arguments
     add_sh_basis_args(p)
-
-    p.add_argument('--full_basis', action='store_true',
-                   help='Use full SH basis to reconstruct fODF from '
-                        'coefficients.')
 
     sphere_choices = {'symmetric362', 'symmetric642', 'symmetric724',
                       'repulsion724', 'repulsion100', 'repulsion200'}
@@ -215,28 +212,12 @@ def _get_data_from_inputs(args):
     return data
 
 
-def validate_order(sh_order, ncoeffs, full_basis):
-    """
-    Check that the sh order agrees with the number
-    of coefficients in the input
-    """
-    if full_basis:
-        expected_ncoeffs = (sh_order + 1)**2
-    else:
-        expected_ncoeffs = (sh_order + 1) * (sh_order + 2) // 2
-    return ncoeffs == expected_ncoeffs
-
-
 def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
     data = _get_data_from_inputs(args)
     sph = get_sphere(args.sphere)
-    sh_order = order_from_ncoef(data['fodf'].shape[-1], args.full_basis)
-    if not validate_order(sh_order, data['fodf'].shape[-1], args.full_basis):
-        parser.error('Invalid number of coefficients for fODF. '
-                     'Use --full_basis if your input is in '
-                     'full SH basis.')
+    sh_order, full_basis = get_sh_order_and_fullness(data['fodf'].shape[-1])
 
     actors = []
 
@@ -249,7 +230,7 @@ def main():
     # Instantiate the ODF slicer actor
     odf_actor = create_odf_slicer(data['fodf'], mask, sph,
                                   args.sph_subdivide, sh_order,
-                                  args.sh_basis, args.full_basis,
+                                  args.sh_basis, full_basis,
                                   args.axis_name, args.scale,
                                   not args.radial_scale_off,
                                   not args.norm_off, args.colormap,
@@ -282,7 +263,7 @@ def main():
                                           mask,
                                           args.peaks_color,
                                           args.peaks_width,
-                                          not args.full_basis)
+                                          not full_basis)
 
         actors.append(peaks_actor)
 
