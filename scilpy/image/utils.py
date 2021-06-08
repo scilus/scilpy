@@ -43,6 +43,11 @@ def volume_iterator(img, blocksize=1, start=0, end=0):
         Image of a 4D volume with shape X,Y,Z,N
     blocksize : int, optional
         Number of volumes to return in a single batch
+    start : int, optional
+        Starting iteration index in the 4D volume
+    end : int, optional
+        Stopping iteration index in the 4D volume
+        (the volume at this index is excluded)
 
     Yields
     -------

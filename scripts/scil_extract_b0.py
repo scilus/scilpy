@@ -48,14 +48,14 @@ def _build_arg_parser():
                             'the output file.')
     group.add_argument('--mean', action='store_true', help='Extract mean b0.')
     group.add_argument('--cluster-mean', action='store_true',
-                       help='Extracts mean of each continuous cluster of b0s')
+                       help='Extract mean of each continuous cluster of b0s.')
     group.add_argument('--cluster-first', action='store_true',
-                       help='Extracts first b0 of each '
-                            'continuous cluster of b0s')
+                       help='Extract first b0 of each '
+                            'continuous cluster of b0s.')
 
     p.add_argument('--block-size', '-s',
                    metavar='INT', type=int,
-                   help='Loads the data using this block size. '
+                   help='Load the data using this block size. '
                         'Useful\nwhen the data is too large to be '
                         'loaded in memory.')
 
