@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This script can be used to extract U-Shape streamlines.
+This script extracts streamlines depending on the U-shapeness.
 The main idea comes from trackvis code:
 
 pt 1: 1 st end point
@@ -15,8 +15,13 @@ v1: pt1 -> pt2
 v2: pt2 -> pt3
 v3: pt3 -> pt4
 
-U-factor:dot product of  v1 X v2 and v2 X v3.
+ufactor:dot product of  v1 X v2 and v2 X v3.
 X is the cross product of two vectors.
+
+When ufactor is close to:
+*  0 it defines straight streamlines
+*  1 it defines U-fibers
+* -1 it defines S-fibers
 ----------------------------------------------------------------------------
 """
 
@@ -44,9 +49,14 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_tractogram',
-                   help='Output tractogram with ushape.')
-    p.add_argument('--ufactor', default=[0.5, 1], type=float, nargs=2,
-                   help='U factor defines U-shapeness of the track.')
+                   help='Output tractogram file name.')
+    p.add_argument('--minU',
+                   default=0.5, type=float,
+                   help='Min ufactor value. [%(default)s]')
+    p.add_argument('--maxU',
+                   default=1.0, type=float,
+                   help='Max ufactor value. [%(default)s]')
+
     p.add_argument('--remaining_tractogram',
                    help='If set, saves remaining streamlines.')
     p.add_argument('--display_counts', action='store_true',
@@ -69,8 +79,8 @@ def main():
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.remaining_tractogram])
 
-    if not( -1 <= min(args.ufactor) <= 1 and -1 <= max(args.ufactor) <= 1):
-        parser.error('U-factor "{}" '.format(args.ufactor) +
+    if not( -1 <= args.minU <= 1 and -1 <= args.maxU <= 1):
+        parser.error('Min-Max ufactor "{},{}" '.format(args.minU, args.maxU) +
                      'must be between -1 and 1.')
 
     sft = load_tractogram_with_reference(
@@ -80,7 +90,7 @@ def main():
     ids_l = []
 
     if len(sft.streamlines) > 1:
-        ids_c = detect_ushape(sft, args.ufactor)
+        ids_c = detect_ushape(sft, args.minU, args.maxU)
         ids_l = np.setdiff1d(np.arange(len(sft.streamlines)), ids_c)
     else:
         parser.error(

@@ -11,19 +11,22 @@ from scilpy.tracking.tools import resample_streamlines_num_points
 import numpy as np
 
 
-def detect_ushape(sft, ufactor=[0.5, 1]):
+def detect_ushape(sft, minU, maxU):
     """
-    Remove loops and sharp turns from a list of streamlines.
+    Extract streamlines depending of their "u-shapeness".
     Parameters
     ----------
-    sft: State Full tractogram used to remove loops and sharp turns.
-    threshold:  float
-        Threshold bla bla bla
+    sft: Statefull tractogram
+        Tractogram used to extract streamlines depending on their ushapeness.
+    minU: Float
+        Minimum ufactor of a streamline.
+    maxU: Float
+        Maximum ufactor of a streamline.
 
     Returns
     -------
     list: the ids of clean streamlines
-        Only the ids are returned so proper filtering can be done afterwards
+        Only the ids are returned so proper filtering can be done afterwards.
     """
     ids = []
     new_sft = resample_streamlines_num_points(sft, 4)
@@ -44,7 +47,7 @@ def detect_ushape(sft, ufactor=[0.5, 1]):
 
             val = np.dot(np.cross(v1, v2), np.cross(v2, v3))
 
-            if min(ufactor) <= val <= max(ufactor):
+            if minU <= val <= maxU:
                 ids.append(i)
 
     return ids

@@ -17,13 +17,15 @@ def test_help_option(script_runner):
                             '--help')
     assert ret.success
 
+
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_trk = os.path.join(get_home(), 'tracking', 'union.trk')
     out_trk = 'ushape.trk'
     remaining_trk = 'remaining.trk'
     ret = script_runner.run('scil_extract_ushape.py', in_trk, out_trk,
-                            '--ufactor', '0.5', '1',
-                            '--remaining_tractogram' , remaining_trk,
+                            '--minU', '0.5',
+                            '--maxU', '1',
+                            '--remaining_tractogram', remaining_trk,
                             '--display_counts')
     assert ret.success
