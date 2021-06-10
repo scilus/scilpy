@@ -79,7 +79,7 @@ def main():
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.remaining_tractogram])
 
-    if not( -1 <= args.minU <= 1 and -1 <= args.maxU <= 1):
+    if not(-1 <= args.minU <= 1 and -1 <= args.maxU <= 1):
         parser.error('Min-Max ufactor "{},{}" '.format(args.minU, args.maxU) +
                      'must be between -1 and 1.')
 
