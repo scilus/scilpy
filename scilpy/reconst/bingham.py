@@ -115,7 +115,7 @@ def compute_fiber_density(bingham_lobe, sphere):
         delta.append(np.abs(sphere.vertices[edge[0]] -
                             sphere.vertices[edge[1]]))
     delta = np.mean(delta)
-    sf = np.ones(len(sphere.vertices))  # bingham_lobe.evaluate(sphere.vertices)
+    sf = bingham_lobe.evaluate(sphere.vertices)
     # we approximate the area under the area under the curve
     # with a sum of cone elements of radius delta
     # TODO: Replace with better approximation or analytical formula

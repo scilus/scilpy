@@ -48,11 +48,11 @@ def visualize_overlay(sf, bingham_fit, sphere):
 
 
 def gen_odf(sphere):
-    mevals = np.array(([0.0050, 0.0002, 0.0003],
+    mevals = np.array(([0.0015, 0.0002, 0.0006],
                        [0.0015, 0.0003, 0.0003],
                        [0.0015, 0.0003, 0.0003]))
     angles = [(0, 0), (60, 0), (60, 60)]
-    odf = multi_tensor_odf(sphere.vertices, mevals, angles, [100, 0, 0])
+    odf = multi_tensor_odf(sphere.vertices, mevals, angles, [30, 30, 40])
     odf /= odf.max()
     return odf
 
