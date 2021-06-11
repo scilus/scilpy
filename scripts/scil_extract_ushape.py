@@ -22,7 +22,6 @@ When ufactor is close to:
 *  0 it defines straight streamlines
 *  1 it defines U-fibers
 * -1 it defines S-fibers
-----------------------------------------------------------------------------
 """
 
 import argparse
@@ -98,8 +97,7 @@ def main():
             '. The file must have more than one streamline.')
 
     if len(ids_c) > 0:
-        sft_c = sft[ids_c]
-        save_tractogram(sft_c, args.out_tractogram)
+        save_tractogram(sft[ids_c], args.out_tractogram)
     else:
         logging.warning(
             'No u-shape streamlines in {}'.format(args.in_tractogram))
@@ -112,10 +110,9 @@ def main():
                          indent=args.indent))
 
     if len(ids_l) == 0:
-        logging.warning('No loops in {}'.format(args.in_tractogram))
+        logging.warning('No u-shape streamlines in {}'.format(args.in_tractogram))
     elif args.remaining_tractogram:
-        sft_l = sft[ids_l]
-        save_tractogram(sft_l, args.remaining_tractogram)
+        save_tractogram(sft[ids_l], args.remaining_tractogram)
 
 
 if __name__ == "__main__":
