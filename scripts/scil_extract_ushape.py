@@ -2,21 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This script extracts streamlines depending on the U-shapeness.
-The main idea comes from trackvis code:
-
-pt 1: 1 st end point
-pt 2: 1/3 location on the track
-pt 3: 2/3 location on the track
-pt 4: 2nd end point
-
-Compute 3 normalized vectors:
-v1: pt1 -> pt2
-v2: pt2 -> pt3
-v3: pt3 -> pt4
-
-ufactor:dot product of  v1 X v2 and v2 X v3.
-X is the cross product of two vectors.
+This script extracts streamlines depending on their U-shapeness.
+This script is a replica of Trackvis method.
 
 When ufactor is close to:
 *  0 it defines straight streamlines
@@ -38,7 +25,6 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              check_tracts_same_format)
-from scilpy.utils.streamlines import filter_tractogram_data
 from scilpy.tractanalysis.features import detect_ushape
 
 
@@ -110,7 +96,8 @@ def main():
                          indent=args.indent))
 
     if len(ids_l) == 0:
-        logging.warning('No remaining streamlines in {}'.format(args.remaining_tractogram))
+        logging.warning('No remaining streamlines '
+                        'in {}'.format(args.remaining_tractogram))
     elif args.remaining_tractogram:
         save_tractogram(sft[ids_l], args.remaining_tractogram)
 
