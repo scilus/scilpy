@@ -110,7 +110,7 @@ def main():
                          indent=args.indent))
 
     if len(ids_l) == 0:
-        logging.warning('No u-shape streamlines in {}'.format(args.in_tractogram))
+        logging.warning('No remaining streamlines in {}'.format(args.remaining_tractogram))
     elif args.remaining_tractogram:
         save_tractogram(sft[ids_l], args.remaining_tractogram)
 
