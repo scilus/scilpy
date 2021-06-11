@@ -45,7 +45,7 @@ def _build_arg_parser():
     p.add_argument('--remaining_tractogram',
                    help='If set, saves remaining streamlines.')
     p.add_argument('--display_counts', action='store_true',
-                   help='Print streamline count before and after filtering')
+                   help='Print streamline count before and after filtering.')
 
     add_overwrite_arg(p)
     add_reference_arg(p)
