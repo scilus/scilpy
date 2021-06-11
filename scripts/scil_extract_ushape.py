@@ -104,7 +104,7 @@ def main():
 
     if args.display_counts:
         sc_bf = len(sft.streamlines)
-        sc_af = len(sft_c.streamlines)
+        sc_af = len(ids_c)
         print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
