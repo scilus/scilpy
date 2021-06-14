@@ -2,6 +2,7 @@
 
 from math import cos, radians
 import numpy as np
+from scipy.integrate import nquad
 
 from dipy.direction import peak_directions
 
@@ -110,17 +111,18 @@ def compute_fiber_density(bingham_lobe, sphere):
     Fiber density (FS) is the integral of the bingham function
     over the sphere.
     """
-    delta = []
-    for edge in sphere.edges:
-        delta.append(np.abs(sphere.vertices[edge[0]] -
-                            sphere.vertices[edge[1]]))
-    delta = np.mean(delta)
-    sf = bingham_lobe.evaluate(sphere.vertices)
-    # we approximate the area under the area under the curve
-    # with a sum of cone elements of radius delta
-    # TODO: Replace with better approximation or analytical formula
-    fd = np.sum(sf * np.pi * (delta)**2 / 3.)
-    return fd
+    r = 1.
+    print('surface: ', 4.*np.pi*r**2.)
+    print('volume: ', 4./3.*np.pi*r**3.)
+
+    def _integrate_bingham(phi, theta):
+        u = np.array([[np.cos(phi) * np.sin(theta),
+                       np.sin(phi) * np.sin(theta),
+                       np.cos(theta)]])
+        return r**2. * np.sin(theta)  # bingham_lobe.evaluate(u) * np.sin(theta)
+
+    volume = nquad(_integrate_bingham, [(0, np.pi * 2), (0, np.pi)])
+    return volume[0]
 
 
 def compute_fiber_spread(bingham_lobe, sphere):

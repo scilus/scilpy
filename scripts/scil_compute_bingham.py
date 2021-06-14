@@ -93,13 +93,14 @@ def main():
     odf = gen_odf(sphere)
 
     bingham_odf_fit = bingham_fit_multi_peaks(odf, sphere)
-    visualize_overlay(odf, bingham_odf_fit, sphere)
+    # visualize_overlay(odf, bingham_odf_fit, sphere)
 
     lobe = bingham_odf_fit.lobes[0]
     fd = compute_fiber_density(lobe, sphere)
-    fs = compute_fiber_spread(lobe, sphere)
+    # fs = compute_fiber_spread(lobe, sphere)
+
     print('fd: ', fd)
-    print('fs: ', fs)
+    # print('fs: ', fs)
     return
 
 
