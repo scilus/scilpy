@@ -10,8 +10,10 @@ The default forward microstructure model is stick-zeppelin-ball, which requires
 multi-shell data and a peak file (principal fiber directions in each voxel,
 typically from a field of fODFs).
 
-It is possible to use the ball-and-stick model for single-shell data. In this
-case, the peak file is not mandatory.
+It is possible to use the ball-and-stick model for single-shell and multi-shell
+data. In this case, the peak file is not mandatory. Multi-shell should follow a
+"NODDI protocol" (low and high b-values), multiple shells with similar b-values
+should not be used with COMMIT.
 
 The output from COMMIT is:
 - fit_NRMSE.nii.gz
@@ -37,14 +39,23 @@ The output from COMMIT is:
     above (non_essential) a threshold_weights of 0.
 
 This script can divide the input tractogram in two using a threshold to apply
-on the streamlines' weight. Typically, the threshold should be 0, keeping only
+on the streamlines' weight. The threshold used is 0.0, keeping only
 streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
 
 COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
-longer computation time.
+longer computation time. This wrapper offers a simplify way to call COMMIT, but
+does not allow to use (or fine-tune) every parameters. If you want to use COMMIT
+with full access to all parameters, visit: https://github.com/daducci/COMMIT
+
+When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
+--lambda_commit_2 you should evaluate the quality of results by:
+    - Looking at the 'density' (GTM) of the connnectome (essential tractogram)
+    - Confirm the quality of WM bundles reconstruction (essential tractogram)
+    - Inspect the (N)RMSE map and look for peaks or anomalies
+    - Compare the density map before and after (essential tractogram)
 """
 
 import argparse
