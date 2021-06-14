@@ -16,8 +16,9 @@ Both `sharpness` and `sigma` must be positive.
 
 The resulting SF can be expressed using a full SH basis or a symmetric SH basis
 (where the effect of the filtering is a simple denoising). When a full SH basis
-is used, an asymmetry map is also generated using an asymmetry measure (Cetin
-Karayumak et al, 2018).
+is used, asymmetry maps are generated using an asymmetry measure from Cetin
+Karayumak et al, 2018, and our own asymmetry measure defined as the ratio of
+the L2-norm of odd SH coefficients on the L2-norm of all SH coefficients.
 
 Using default parameters, the script completes in about 15-20 minutes for a
 HCP subject fiber ODF processed with tractoflow. Also note the bigger the
