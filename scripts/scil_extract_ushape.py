@@ -73,16 +73,8 @@ def main():
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram)
 
-    ids_c = []
-    ids_l = []
-
-    if len(sft.streamlines) > 1:
-        ids_c = detect_ushape(sft, args.minU, args.maxU)
-        ids_l = np.setdiff1d(np.arange(len(sft.streamlines)), ids_c)
-    else:
-        parser.error(
-            'Zero or one streamline in {}'.format(args.in_tractogram) +
-            '. The file must have more than one streamline.')
+    ids_c = detect_ushape(sft, args.minU, args.maxU)
+    ids_l = np.setdiff1d(np.arange(len(sft.streamlines)), ids_c)
 
     if len(ids_c) == 0:
         if args.no_empty:
@@ -102,10 +94,15 @@ def main():
                          'streamline_count_after_filtering': int(sc_af)},
                          indent=args.indent))
 
-    if len(ids_l) == 0:
-        logging.warning('No remaining streamlines '
-                        'in {}'.format(args.remaining_tractogram))
-    elif args.remaining_tractogram:
+    if args.remaining_tractogram:
+        if len(ids_l) == 0:
+            if args.no_empty:
+                logging.debug("The file {} won't be written (0 streamline"
+                              ").".format(args.remaining_tractogram))
+                return
+
+            logging.warning('No remaining streamlines.')
+
         save_tractogram(sft[ids_l], args.remaining_tractogram)
 
 
