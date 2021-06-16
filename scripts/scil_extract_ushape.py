@@ -44,6 +44,8 @@ def _build_arg_parser():
 
     p.add_argument('--remaining_tractogram',
                    help='If set, saves remaining streamlines.')
+    p.add_argument('--no_empty', action='store_true',
+                   help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering.')
 
@@ -82,11 +84,16 @@ def main():
             'Zero or one streamline in {}'.format(args.in_tractogram) +
             '. The file must have more than one streamline.')
 
-    if len(ids_c) > 0:
-        save_tractogram(sft[ids_c], args.out_tractogram)
-    else:
-        logging.warning(
-            'No u-shape streamlines in {}'.format(args.in_tractogram))
+    if len(ids_c) == 0:
+        if args.no_empty:
+            logging.debug("The file {} won't be written "
+                          "(0 streamline).".format(args.out_tractogram))
+            return
+
+        logging.debug('The file {} contains 0 streamline.'.format(
+            args.out_tractogram))
+
+    save_tractogram(sft[ids_c], args.out_tractogram)
 
     if args.display_counts:
         sc_bf = len(sft.streamlines)
