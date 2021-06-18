@@ -488,4 +488,4 @@ def single_recognize(args):
                                          round(time() - recognize_timer, 2)))
     if recognized_indices is None:
         recognized_indices = []
-    return bundle_id, np.asarray(recognized_indices, dtype=np.int)
+    return bundle_id, np.asarray(recognized_indices, dtype=int)
