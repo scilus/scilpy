@@ -172,7 +172,7 @@ class TrackOrientationDensityImaging(object):
             Gaussian blurring factor (default 0.5).
         """
         # This operation changes the mask as well as the TODI
-        mask_3d = self.reshape_to_3d(self.mask).astype(float) 
+        mask_3d = self.reshape_to_3d(self.mask).astype(float)
         mask_3d = gaussian_filter(
             mask_3d, sigma, truncate=GAUSSIAN_TRUNCATE).flatten()
         new_mask = mask_3d > MINIMUM_TODI_EPSILON
@@ -336,7 +336,7 @@ class TrackOrientationDensityImaging(object):
             error_map = np.arccos(
                 np.clip(np.abs(np.sum(avg_dir * peak_img, axis=1)), 0.0, 1.0))
         else:
-            error_map = np.zeros((len(peak_img)), dtype=float) 
+            error_map = np.zeros((len(peak_img)), dtype=float)
             for i in range(self.nb_sphere_vts):
                 count_i = self.todi[:, i]
                 error_i = np.dot(peak_img, self.sphere.vertices[i])
@@ -345,7 +345,7 @@ class TrackOrientationDensityImaging(object):
                 error_map[mask] += count_i[mask] * arccos_i
 
             if normalize_count:
-                tdi = self.get_tdi().astype(float) 
+                tdi = self.get_tdi().astype(float)
                 tdi_zero = tdi < MINIMUM_TODI_EPSILON
                 error_map[tdi_zero] = 0.0
                 error_map[~tdi_zero] /= tdi[~tdi_zero]
@@ -366,7 +366,7 @@ class TrackOrientationDensityImaging(object):
         avg_dir : numpy.ndarray (4D)
             Volume containing a single 3-vector (peak) per voxel.
         """
-        avg_dir = np.zeros((len(self.todi), 3), dtype=float) 
+        avg_dir = np.zeros((len(self.todi), 3), dtype=float)
 
         sym_dir_index = self.nb_sphere_vts // 2
         for i in range(sym_dir_index):
