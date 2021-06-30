@@ -40,6 +40,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist)
 
+from scilpy.io.image import get_data_as_mask
+
 from scilpy.denoise.asym_enhancement import local_asym_gaussian_filtering
 
 
@@ -86,6 +88,13 @@ def _build_arg_parser():
                         'the average. The filter is updated and normalized for'
                         ' each voxel. [%(default)s]')
 
+    mask_group = p.add_mutually_exclusive_group()
+    mask_group.add_argument('--mask',
+                            help='Mask when edge_mode is \'wall\'.')
+    mask_group.add_argument('--sh0_th', type=float,
+                            help='Threshold on SH0 coefficient '
+                                 'when edge_mode is \'wall\'.')
+
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -110,6 +119,18 @@ def compute_asymmetry_map(sh_coeffs):
     return asym_map
 
 
+def _assert_edge_mode(parser, args):
+    if args.edge_mode == 'same':
+        if args.mask is not None:
+            parser.error('Cannot specify mask with edge_mode \'same\'.')
+        if args.sh0_th is not None:
+            parser.error('Cannot specify sh0_th with edge_mode \'same\'.')
+    elif args.edge_mode == 'wall':
+        if args.mask is None and args.sh0_th is None:
+            parser.error('Missing required mask of sh0_th '
+                         'argument for edge_mode \'wall\'.')
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -120,13 +141,25 @@ def main():
     if not args.out_sym:
         outputs.append(args.out_asymmetry)
 
+    _assert_edge_mode(parser, args)
+    inputs = [args.in_sh]
+    if args.mask:
+        inputs.append(args.mask)
+
     # Checking args
     assert_outputs_exist(parser, args, outputs)
-    assert_inputs_exist(parser, args.in_sh)
+    assert_inputs_exist(parser, inputs)
 
     # Prepare data
     sh_img = nib.load(args.in_sh)
     data = sh_img.get_fdata(dtype=np.float32)
+
+    mask = None
+    if args.edge_mode == 'wall':
+        if args.mask:
+            mask = get_data_as_mask(nib.load(args.mask), bool)
+        else:
+            mask = data[..., 0] > args.sh0_th
 
     logging.info('Executing locally asymmetric Gaussian filtering.')
     filtered_sh = local_asym_gaussian_filtering(
@@ -136,7 +169,7 @@ def main():
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
         sigma=args.sigma,
-        edge_mode=args.edge_mode)
+        mask=mask)
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)

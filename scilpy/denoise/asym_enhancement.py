@@ -10,7 +10,7 @@ from scipy.ndimage import correlate
 def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
                                   out_full_basis=True, dot_sharpness=1.0,
                                   sphere_str='repulsion724', sigma=1.0,
-                                  edge_mode='same'):
+                                  mask=None):
     """Average the SH projected on a sphere using a first-neighbor gaussian
     blur and a dot product weight between sphere directions and the direction
     to neighborhood voxels, forcing to 0 negative values and thus performing
@@ -33,12 +33,9 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         Name of the sphere used to project SH coefficients to SF.
     sigma: float, optional
         Sigma for the Gaussian.
-    edge_mode: str, optional
-        How to manage edges (i.e. voxels bordering the background).
-        Available options are:
-            'same': Behave the same way near edges and anywhere else.
-            'wall': Discard empty voxels from average. Filter is updated
-                         and normalized for each voxel.
+    mask: ndarray (x, y, z), optional
+        Mask identifying voxels to average. If None,
+        then all voxels are averaged.
 
     Returns
     -------
@@ -66,16 +63,12 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis)
 
-    # Based on edge_mode generate a mask to separate background and foreground
-    if edge_mode == 'wall':
-        mask = in_sh[..., 0] > 0.
-
     # Apply filter to each sphere vertice
     for dir_i in range(nb_dir):
         w_filter = weights[..., dir_i]
         curr_dir_eval = np.dot(in_sh, B[:, dir_i])
         opposite_dir_eval = np.dot(in_sh, neg_B[:, dir_i])
-        if edge_mode == 'same':
+        if mask is None:
             # Calculate contribution of center voxel
             mean_sf[..., dir_i] = w_filter[1, 1, 1] * curr_dir_eval
 
@@ -83,12 +76,10 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
             w_filter[1, 1, 1] = 0.0
             mean_sf[..., dir_i] += correlate(opposite_dir_eval, w_filter,
                                              mode='constant')
-        elif edge_mode == 'wall':
+        else:
             mean_sf[..., dir_i] = _apply_naive_correlation(curr_dir_eval,
                                                            opposite_dir_eval,
                                                            w_filter, mask)
-        else:
-            raise ValueError('Invalid edge_mode: {0}'.format(edge_mode))
 
     # Convert back to SH coefficients
     _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
