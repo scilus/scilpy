@@ -1,10 +1,43 @@
 # -*- coding: utf-8 -*-
 
 from math import cos, radians
+from dipy.data import get_sphere
 import numpy as np
 from scipy.integrate import nquad
 
 from dipy.direction import peak_directions
+from dipy.reconst.shm import sh_to_sf_matrix
+from scilpy.reconst.utils import get_sh_order_and_fullness
+
+
+def bingham_fit_sh_volume(data, max_lobes, abs_th=0.,
+                          rel_th=0., min_sep_angle=25.):
+    order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+    shape = data.shape
+    out = np.zeros((shape[0], shape[1], shape[2], max_lobes*9))
+
+    sphere = get_sphere('symmetric724')
+    B_mat = sh_to_sf_matrix(sphere, order,
+                            full_basis=full_basis,
+                            return_inv=False)
+
+    for ii in range(shape[0]):
+        for jj in range(shape[1]):
+            for kk in range(shape[2]):
+                print(ii, jj, kk)
+                odf = data[ii, jj, kk].dot(B_mat)
+                odf[odf < abs_th] = 0.
+                if (odf > 0.).any():
+                    peaks, _, _ = peak_directions(odf, sphere, rel_th,
+                                                  min_sep_angle)
+                    n = peaks.shape[0]\
+                        if peaks.shape[0] < max_lobes\
+                        else max_lobes
+                    for nn in range(n):
+                        fit = bingham_fit_peak(odf, peaks[nn], sphere)
+                        out[ii, jj, kk, nn*9:(nn+1)*9] = fit.get_flatten()
+
+    return out
 
 
 class BinghamDistribution(object):
@@ -25,6 +58,13 @@ class BinghamDistribution(object):
     def peak_direction(self):
         return np.cross(self.mu1, self.mu2)
 
+    def get_flatten(self):
+        ret = np.zeros((9))
+        ret[:3] = self.mu1.reshape((-1))
+        ret[3:6] = self.mu2.reshape((-1))
+        ret[6:] = np.array([self.f0, self.k1, self.k2])
+        return ret
+
 
 class MultiPeakBingham(object):
     def __init__(self):
@@ -32,12 +72,6 @@ class MultiPeakBingham(object):
 
     def add_lobe(self, bingham_function):
         self.lobes.append(bingham_function)
-
-    def evaluate(self, vertices):
-        sf = np.zeros(len(vertices))
-        for lobe in self.lobes:
-            sf += lobe.evaluate(vertices)
-        return sf
 
 
 def bingham_fit_peak(sf, peak, sphere, max_angle=6., verbose=False):
@@ -71,9 +105,15 @@ def bingham_fit_peak(sf, peak, sphere, max_angle=6., verbose=False):
     A = np.zeros((len(v), 2), dtype=float)  # (N, 2)
     A[:, 0:1] = p.dot(mu1)**2
     A[:, 1:] = p.dot(mu2)**2
+    print(A)
+
+    # Test that AT.A is invertible for pseudo-inverse
+    ATA = A.T.dot(A)
+    if np.linalg.matrix_rank(ATA) != ATA.shape[0]:
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
 
     B = np.log(v / f0)  # (N, 1)
-    k = np.abs(np.linalg.inv(A.T.dot(A)).dot(A.T).dot(B))
+    k = np.abs(np.linalg.inv(ATA).dot(A.T).dot(B))
     k1 = k[0]
     k2 = k[1]
     if k[0] > k[1]:
@@ -119,7 +159,7 @@ def compute_fiber_density(bingham_lobe, sphere):
         u = np.array([[np.cos(phi) * np.sin(theta),
                        np.sin(phi) * np.sin(theta),
                        np.cos(theta)]])
-        return r**2. * np.sin(theta)  # bingham_lobe.evaluate(u) * np.sin(theta)
+        return r**2. * np.sin(theta)  # bingham_lobe.evaluate(u)*np.sin(theta)
 
     volume = nquad(_integrate_bingham, [(0, np.pi * 2), (0, np.pi)])
     return volume[0]
