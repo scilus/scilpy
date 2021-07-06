@@ -200,7 +200,8 @@ class TrackOrientationDensityImaging(object):
                 new_todi = deepcopy(tmp_todi)
             else:
                 new_todi = np.hstack((new_todi, tmp_todi))
-            self.todi = np.delete(self.todi, range(0, chunk_size), axis=1)
+            self.todi = np.delete(self.todi, range(
+                0, min(self.todi.shape[1], chunk_size)), axis=1)
             chunk_count -= 1
 
         self.mask = new_mask

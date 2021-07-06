@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from enum import Enum
 
 import numpy as np
 
@@ -9,6 +10,12 @@ from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampli
                                                             save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
+
+
+class B0ExtractionStrategy(Enum):
+    FIRST = "first"
+    MEAN = "mean"
+    ALL = "all"
 
 
 def is_normalized_bvecs(bvecs):
@@ -282,11 +289,11 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     bvals_to_extract : list of int
         The list of b-values to extract.
     tol : int
-        Loads the data using this block size. Useful when the data is too
-        large to be loaded in memory.
-    block_size : int
         The tolerated gap between the b-values to extract and the actual
         b-values.
+    block_size : int
+        Load the data using this block size. Useful when the data is too
+        large to be loaded in memory.
 
     Returns
     -------
@@ -333,6 +340,89 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     output_bvecs = bvecs[indices, :]
 
     return indices, shell_data, output_bvals, output_bvecs
+
+
+def extract_b0(dwi, b0_mask, extract_in_cluster=False,
+               strategy=B0ExtractionStrategy.MEAN, block_size=None):
+    """
+    Extract a set of b0 volumes from a dwi dataset
+
+    Parameters
+    ----------
+    dwi : nib.Nifti1Image
+        Original multi-shell volume.
+    b0_mask: array of bool
+        Mask over the time dimension (4th) identifying b0 volumes.
+    extract_in_cluster: bool
+        Specify to extract b0's in each continuous sets of b0 volumes
+        appearing in the input data.
+    strategy: Enum
+        The extraction strategy, of either select the first b0 found, select
+        them all or average them. When used in conjunction with the batch
+        parameter set to True, the strategy is applied individually on each
+        continuous set found.
+    block_size : int
+        Load the data using this block size. Useful when the data is too
+        large to be loaded in memory.
+
+    Returns
+    -------
+    b0_data : ndarray
+        Extracted b0 volumes.
+    """
+
+    indices = np.where(b0_mask)[0]
+
+    if block_size is None:
+        block_size = dwi.shape[-1]
+
+    if not extract_in_cluster and strategy == B0ExtractionStrategy.FIRST:
+        idx = np.min(indices)
+        output_b0 = dwi.dataobj[..., idx:idx + 1].squeeze()
+    else:
+        # Generate list of clustered b0 in the data
+        mask = np.ma.masked_array(b0_mask)
+        mask[~b0_mask] = np.ma.masked
+        b0_clusters = np.ma.notmasked_contiguous(mask, axis=0)
+
+        if extract_in_cluster or strategy == B0ExtractionStrategy.ALL:
+            if strategy == B0ExtractionStrategy.ALL:
+                time_d = len(indices)
+            else:
+                time_d = len(b0_clusters)
+
+            output_b0 = np.zeros(dwi.shape[:-1] + (time_d,))
+
+            for idx, cluster in enumerate(b0_clusters):
+                if strategy == B0ExtractionStrategy.FIRST:
+                    data = dwi.dataobj[..., cluster.start:cluster.start + 1]
+                    output_b0[..., idx] = data.squeeze()
+                else:
+                    vol_it = volume_iterator(dwi, block_size,
+                                             cluster.start, cluster.stop)
+
+                    for vi, data in vol_it:
+                        if strategy == B0ExtractionStrategy.ALL:
+                            in_volume = np.array([i in vi for i in indices])
+                            output_b0[..., in_volume] = data
+                        elif strategy == B0ExtractionStrategy.MEAN:
+                            output_b0[..., idx] += np.sum(data, -1)
+
+                    if strategy == B0ExtractionStrategy.MEAN:
+                        output_b0[..., idx] /= cluster.stop - cluster.start
+
+        else:
+            output_b0 = np.zeros(dwi.shape[:-1])
+            for cluster in b0_clusters:
+                vol_it = volume_iterator(dwi, block_size,
+                                         cluster.start, cluster.stop)
+
+                for _, data in vol_it:
+                    output_b0 += np.sum(data, -1)
+
+            output_b0 /= len(indices)
+
+    return output_b0
 
 
 def flip_mrtrix_gradient_sampling(gradient_sampling_filename,

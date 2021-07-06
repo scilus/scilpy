@@ -288,13 +288,13 @@ class VotingScheme(object):
                                                 slr_transform_type, seed])
 
         tmp_dir, tmp_memmap_filenames = streamlines_to_memmap(wb_streamlines)
+        del wb_streamlines
         comb_param_cluster = product(self.tractogram_clustering_thr, seeds)
 
         # Clustring is now parallelize
         pool = multiprocessing.Pool(nbr_processes)
         all_rbx_dict = pool.map(single_clusterize_and_rbx_init,
-                                zip(repeat(wb_streamlines),
-                                    repeat(tmp_memmap_filenames),
+                                zip(repeat(tmp_memmap_filenames),
                                     comb_param_cluster,
                                     repeat(self.nb_points)))
         pool.close()
@@ -363,8 +363,6 @@ def single_clusterize_and_rbx_init(args):
 
     Parameters
     ----------
-    wb_streamlines : list or ArraySequence
-        All streamlines of the tractogram to segment.
     tmp_memmap_filename: tuple (3)
         Temporary filename for the data, offsets and lengths.
 
@@ -381,11 +379,11 @@ def single_clusterize_and_rbx_init(args):
     rbx : dict
         Initialisation of the recobundles class using specific parameters.
     """
-    wb_streamlines = args[0]
-    tmp_memmap_filename = args[1]
-    clustering_thr = args[2][0]
-    seed = args[2][1]
-    nb_points = args[3]
+    tmp_memmap_filename = args[0]
+    wb_streamlines = reconstruct_streamlines_from_memmap(tmp_memmap_filename)
+    clustering_thr = args[1][0]
+    seed = args[1][1]
+    nb_points = args[2]
 
     rbx = {}
     base_thresholds = [45, 35, 25]
