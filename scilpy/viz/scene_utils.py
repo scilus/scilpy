@@ -7,6 +7,7 @@ from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
 
 from scilpy.io.utils import snapshot
+from scilpy.reconst.bingham import BinghamDistribution
 
 
 class CamParams(Enum):
@@ -177,6 +178,39 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 
     return peaks_slicer
+
+
+def create_bingham_slicer(data, orientation, slice_index, sphere):
+    """
+    Create a bingham fit slicer using a combination of odf_slicer actors
+    """
+    n_params = 9
+    shape = data.shape
+    nb_lobes = shape[-1] // n_params
+    nb_vertices = len(sphere.vertices)
+
+    # lmax norm for normalization
+    lmaxnorm = np.max(np.abs(data[..., ::n_params]), axis=-1)
+
+    sf = np.zeros((shape[0], shape[1], shape[2], nb_vertices))
+    actors = []
+    for nn in range(nb_lobes):
+        nn_dat = data[..., nn*n_params:(nn+1)*n_params]
+        for ii in range(shape[0]):
+            for jj in range(shape[1]):
+                for kk in range(shape[2]):
+                    params = nn_dat[ii, jj, kk]
+                    fit = BinghamDistribution(params[0], params[1:4],
+                                              params[4:7], params[7],
+                                              params[8])
+                    sf[ii, jj, kk, :] = fit.evaluate(sphere.vertices)  # (1, N)
+
+        sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
+        odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False)
+        set_display_extent(odf_actor, orientation, shape[:3], slice_index)
+        actors.append(odf_actor)
+
+    return actors
 
 
 def create_scene(actors, orientation, slice_index, volume_shape):
