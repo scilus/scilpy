@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import itertools
+import multiprocessing
+
 from math import cos, radians
 from dipy.data import get_sphere
 import numpy as np
@@ -10,9 +13,23 @@ from dipy.reconst.shm import sh_to_sf_matrix
 from scilpy.reconst.utils import get_sh_order_and_fullness
 
 
+# Constants
+NB_PARAMS = 9
+
+
 class BinghamDistribution(object):
     """
-    Bingham distribution.
+    Scaled bingham distribution.
+        B(u) = f0 * exp(-k1 * (mu1 * u)**2 - k2 * (mu2 * u)**2)
+
+    Params
+    ------
+    f0: float
+        Scaling parameter.
+    mu1, mu2: ndarray (3,)
+        Axes.
+    k1, k2: float
+        Concentration parameters.
     """
     def __init__(self, f0, mu1, mu2, k1, k2):
         self.f0 = f0  # scaling factor
@@ -65,7 +82,60 @@ def bingham_from_array(arr):
     return BinghamDistribution(arr[0], arr[1:4], arr[4:7], arr[7], arr[8])
 
 
-def bingham_fit_peak(sf, peak, sphere, max_angle=6.):
+def bingham_fit_sh_parallel(data, max_lobes, abs_th=0.,
+                            rel_th=0., min_sep_angle=25.):
+    order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+    shape = data.shape
+
+    sphere = get_sphere('symmetric724').subdivide(2)
+    B_mat = sh_to_sf_matrix(sphere, order,
+                            full_basis=full_basis,
+                            return_inv=False)
+
+    data = data.reshape((-1, data.shape[-1]))
+    nbr_processes = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(nbr_processes)
+    out = pool.map(_bingham_fit_sh, zip(data, itertools.repeat(B_mat),
+                                        itertools.repeat(sphere),
+                                        itertools.repeat(abs_th),
+                                        itertools.repeat(min_sep_angle),
+                                        itertools.repeat(rel_th),
+                                        itertools.repeat(max_lobes)))
+    pool.close()
+    pool.join()
+
+    out = np.array(out)
+    out = out.reshape(np.append(shape[:3], max_lobes*NB_PARAMS))
+    return out
+
+
+def _bingham_fit_sh(args):
+    sh = args[0]
+    B_mat = args[1]
+    sphere = args[2]
+    abs_th = args[3]
+    min_sep_angle = args[4]
+    rel_th = args[5]
+    max_lobes = args[6]
+
+    odf = sh.dot(B_mat)
+    odf[odf < abs_th] = 0.
+    out = np.zeros(max_lobes*NB_PARAMS)
+    if (odf > 0.).any():
+        lobes = \
+            _bingham_fit_multi_peaks(odf, sphere,
+                                     min_sep_angle=min_sep_angle,
+                                     rel_th=rel_th)
+        for ll in range(min(len(lobes), max_lobes)):
+            lobe = lobes[ll]
+            out[ll*NB_PARAMS:(ll+1)*NB_PARAMS] = lobe.get_flatten()
+    return out
+
+
+def _bingham_fit_peak(sf, peak, sphere, max_angle):
+    """
+    Fit bingham function on the lobe aligned with peak.
+    """
     # abs for twice the number of pts to fit
     dot_prod = np.abs(sphere.vertices.dot(peak))
     min_dot = cos(radians(max_angle))
@@ -116,8 +186,8 @@ def bingham_fit_peak(sf, peak, sphere, max_angle=6.):
     return BinghamDistribution(f0, mu1, mu2, k1, k2)
 
 
-def bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
-                            min_sep_angle=25., rel_th=0.1):
+def _bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
+                             min_sep_angle=25., rel_th=0.1):
     """
     Peak extraction followed by Bingham fit for each peak.
     """
@@ -127,46 +197,68 @@ def bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
 
     lobes = []
     for peak in peaks:  # peaks could be fitted in parallel
-        peak_fit = bingham_fit_peak(odf, peak, sphere,
-                                    max_angle=max_angle,
-                                    verbose=False)
+        peak_fit = _bingham_fit_peak(odf, peak, sphere, max_angle)
         lobes.append(peak_fit)
 
     return lobes
 
 
-def bingham_fit_sh_volume(data, max_lobes, abs_th=0.,
-                          rel_th=0., min_sep_angle=25.):
-    order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+def compute_fiber_density_parallel(data):
     shape = data.shape
-    nparams = 9
-    out = np.zeros(np.append(shape[:3], max_lobes*nparams))
+    nbr_processes = multiprocessing.cpu_count()
+    data = data.reshape((-1, shape[-1]))
 
-    sphere = get_sphere('symmetric724').subdivide(2)
-    B_mat = sh_to_sf_matrix(sphere, order,
-                            full_basis=full_basis,
-                            return_inv=False)
+    pool = multiprocessing.Pool(nbr_processes)
+    res = pool.map(_compute_fiber_density, data)
+    pool.close()
+    pool.join()
 
-    # iteration through SH volume could be multithreaded
-    for ii in range(shape[0]):
-        for jj in range(shape[1]):
-            for kk in range(shape[2]):
-                odf = data[ii, jj, kk].dot(B_mat)
-                odf[odf < abs_th] = 0.
-                if (odf > 0.).any():
-                    lobes = \
-                        bingham_fit_multi_peaks(odf, sphere,
-                                                min_sep_angle=min_sep_angle,
-                                                rel_th=rel_th)
-                    for ll in range(min(len(lobes), max_lobes)):
-                        lobe = lobes[ll]
-                        out[ii, jj, kk, ll*nparams:(ll+1)*nparams] = \
-                            lobe.get_flatten()
+    nbr_lobes = shape[-1] // NB_PARAMS
+    res = np.reshape(np.array(res), np.append(shape[:3], nbr_lobes))
+    return res
 
+
+def _compute_fiber_density(args):
+    binghams = args
+    nbr_lobes = len(binghams) // NB_PARAMS
+    out = np.zeros(nbr_lobes)
+    for lobe_i in range(nbr_lobes):
+        lobe = bingham_from_array(binghams[lobe_i*NB_PARAMS:
+                                           (lobe_i+1)*NB_PARAMS])
+        if lobe.f0 > 0:
+            out[lobe_i] = fiber_density(lobe)
     return out
 
 
-def compute_fiber_density(lobe):
+def compute_fiber_spread(binghams, fd):
+    """
+    Fiber spread (FS) characterizes the spread of the lobe.
+    The higher FS is, the wider the lobe. The unit of the
+    FS is radians.
+    """
+    f0 = binghams[..., ::NB_PARAMS]
+    fs = np.zeros_like(fd)
+    fs[f0 > 0] = fd[f0 > 0] / f0[f0 > 0]
+
+    return fs
+
+
+def compute_structural_complexity(fd):
+    """
+    Structural complexity (CX) increases when the fiber structure
+    becomes more complex inside a voxel and fewer of the fibers in
+    the voxel are contained in the largest bundle alone. This value
+    is normalized between 0 and 1.
+    """
+    cx = np.zeros(fd.shape[:3])
+    n = fd.shape[-1]
+    mask = np.max(fd, axis=-1) > 0
+    cx[mask] = n / (n - 1) * \
+        (1 - np.max(fd, axis=-1)[mask]/np.sum(fd, axis=-1)[mask])
+    return cx
+
+
+def fiber_density(lobe):
     """
     Fiber density (FD) is given by integrating
     the bingham function over the sphere. Its unit is
@@ -178,31 +270,5 @@ def compute_fiber_density(lobe):
                       np.cos(theta)]])
         return lobe.evaluate(u) * np.sin(theta)
 
-    volume = nquad(_integrate_bingham, [(0, np.pi * 2), (0, np.pi)])
-    return volume[0]
-
-
-def compute_fiber_spread(lobe):
-    """
-    Fiber spread (FS) characterizes the spread of the lobe.
-    The higher FS is, the wider the lobe. The unit of the
-    FS is radians.
-    """
-    fd = compute_fiber_density(lobe)
-    afd_max = lobe.f0
-    return fd / afd_max
-
-
-def compute_structural_complexity(lobes):
-    """
-    Structural complexity (CX) increases when the fiber structure
-    becomes more complex inside a voxel and fewer of the fibers in
-    the voxel are contained in the largest bundle alone. This value
-    is normalized between 0 and 1.
-    """
-    if len(lobes) > 1:
-        n = len(lobes)
-        fd = np.array([compute_fiber_density(lobe) for lobe in lobes])
-
-    # if a single fiber is present, CX is 0
-    return 0
+    fd, error = nquad(_integrate_bingham, [(0, np.pi * 2), (0, np.pi)])
+    return fd
