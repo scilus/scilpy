@@ -196,7 +196,7 @@ def _bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
                                   min_separation_angle=min_sep_angle)
 
     lobes = []
-    for peak in peaks:  # peaks could be fitted in parallel
+    for peak in peaks:
         peak_fit = _bingham_fit_peak(odf, peak, sphere, max_angle)
         lobes.append(peak_fit)
 
