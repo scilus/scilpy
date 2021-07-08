@@ -25,38 +25,38 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_forward_b0',
-                   help='input b0 Nifti image with forward phase encoding')
+                   help='Input b0 Nifti image with forward phase encoding.')
 
     p.add_argument('in_reverse_b0',
-                   help='input b0 Nifti image with reversed phase encoding.')
+                   help='Input b0 Nifti image with reversed phase encoding.')
 
     p.add_argument('--config', default='b02b0.cnf',
-                   help='topup config file [%(default)s].')
+                   help='Topup config file [%(default)s].')
 
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
-                   help='acquisition direction of the forward b0 '
+                   help='Acquisition direction of the forward b0 '
                         'image, default is AP [%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata '
+                   help='Total readout time from the DICOM metadata '
                         '[%(default)s].')
 
     p.add_argument('--out_b0s', default='fused_b0s.nii.gz',
-                   help='output fused b0 file [%(default)s].')
+                   help='Output fused b0 file [%(default)s].')
 
     p.add_argument('--out_directory', default='.',
-                   help='output directory for topup files [%(default)s].')
+                   help='Output directory for topup files [%(default)s].')
 
     p.add_argument('--out_prefix', default='topup_results',
-                   help='prefix of the topup results [%(default)s].')
+                   help='Prefix of the topup results [%(default)s].')
 
     p.add_argument('--out_params', default='acqparams.txt',
-                   help='filename for the acquisition '
+                   help='Filename for the acquisition '
                         'parameters file [%(default)s].')
 
     p.add_argument('--out_script', action='store_true',
-                   help='if set, will output a .sh script (topup.sh).\n' +
+                   help='If set, will output a .sh script (topup.sh).\n' +
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 

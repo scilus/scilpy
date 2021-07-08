@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prepare a typical command for eddy and create the necessary files.
+Prepare a typical command for eddy and create the necessary files. When using
+multiple acquisitions and/or opposite phase directions, images, b-values and
+b-vectors should be merged together using scil_concatenate_dwi.py. If using
+topup prior to calling this script, images should be concatenated in the same
+order as the b0s used with prepare_topup.
 """
 
 import argparse
@@ -25,13 +29,16 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_dwi',
-                   help='input DWI Nifti image')
+                   help='Input DWI Nifti image. If using multiple '
+                        'acquisition and/or opposite phase directions, please '
+                        'merge in the same order as for prepare_topup using '
+                        'scil_concatenate_dwi.py.')
 
     p.add_argument('in_bvals',
-                   help='b-values file in FSL format')
+                   help='Input b-values file in FSL format.')
 
     p.add_argument('in_bvecs',
-                   help='b-vectors file in FSL format')
+                   help='Input b-vectors file in FSL format.')
 
     p.add_argument('in_mask',
                    help='Binary brain mask.')
@@ -44,7 +51,7 @@ def _build_arg_parser():
                    help='Topup output name. ' +
                         'If given, apply topup during eddy.\n' +
                         'Should be the same as --out_prefix from ' +
-                        'scil_prepare_topup_command.py')
+                        'scil_prepare_topup_command.py.')
 
     p.add_argument('--topup_params', default='',
                    help='Parameters file (typically named acqparams) '
@@ -124,6 +131,13 @@ def main():
 
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
+
+    if args.n_reverse and not args.lsr_resampling:
+        logging.warning(
+            'Multiple reverse phase images supplied, but least-square '
+            'resampling is disabled. If the reverse phase image was acquired '
+            'with the same sampling as the forward phase image, '
+            'use --lsr_resampling for better results from Eddy.')
 
     bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
     bvals_min = bvals.min()
