@@ -20,7 +20,7 @@ def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
 
     Parameters
     ------------
-    map_data : StatefulTractogram
+    map_data : np.ndarray
         Either a binary mask (uint8) or a voxel labels map (int16).
     lesion_atlas : np.ndarray (3)
         Labelled atlas of lesion. Should be int16.
@@ -353,10 +353,6 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
-    # print(mean)
-    # print(mean - std)
-    # print(mean + std)
-    # print()
     plt.fill_between(dim, mean - std, mean + std,
                      facecolor=fill_color, alpha=alpha)
 
