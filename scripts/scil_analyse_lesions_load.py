@@ -40,7 +40,7 @@ def _build_arg_parser():
     p.add_argument('in_lesion',
                    help='Binary mask of the lesion(s) (.nii.gz).')
     p.add_argument('out_json',
-                   help='Output file (.json) for lesion information')
+                   help='Output file for lesion information (.json).')
     p1 = p.add_mutually_exclusive_group()
     p1.add_argument('--bundle',
                     help='Path of the bundle file (.trk).')
