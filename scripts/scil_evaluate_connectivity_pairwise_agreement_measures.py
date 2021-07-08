@@ -11,9 +11,6 @@ sum of square difference and pearson correlation coefficent
 import argparse
 import itertools
 import json
-import logging
-import os
-import shutil
 
 import numpy as np
 
@@ -71,7 +68,8 @@ def main():
         else:
             all_matrices.append(tmp_mat)
 
-    output_measures_dict = {'SSD': [], 'correlation': [], 'w_dice_voxels' : [], 'dice_voxels' : []}
+    output_measures_dict = {'RMSE': [], 'correlation': [],
+                            'w_dice_voxels': [], 'dice_voxels': []}
 
     if args.single_compare:
         if args.single_compare in args.in_matrices:
@@ -82,8 +80,8 @@ def main():
         pairs = list(itertools.combinations(all_matrices, r=2))
 
     for i in pairs:
-        ssd = np.sum((i[0] - i[1]) ** 2)
-        output_measures_dict['SSD'].append(ssd)
+        rmse = np.sqrt(np.mean((i[0]-i[1])**2))
+        output_measures_dict['RMSE'].append(rmse)
         corrcoef = np.corrcoef(i[0].ravel(), i[1].ravel())
         output_measures_dict['correlation'].append(corrcoef[0][1])
         dice, w_dice = compute_dice_voxel(i[0], i[1])
