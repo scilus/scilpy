@@ -23,6 +23,9 @@ removing entire streamlines.
 This script was tested on various datasets and worked on all of them. However,
 always verify the results and if a specific case does not work. Open an issue
 on the Scilpy GitHub repository.
+
+WARNING: This script is still experimental, DSI-Studio evolves quickly and
+results may vary depending on the data itself as well as DSI-studio version.
 """
 
 import argparse
