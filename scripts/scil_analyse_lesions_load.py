@@ -81,7 +81,7 @@ def main():
                                    args.out_streamlines_stats])
 
     lesion_img = nib.load(args.in_lesion)
-    lesion_data = get_data_as_mask(lesion_img, dtype=np.bool)
+    lesion_data = get_data_as_mask(lesion_img, dtype=bool)
 
     if args.bundle:
         bundle_name, _ = split_name_with_nii(os.path.basename(args.bundle))
@@ -112,7 +112,6 @@ def main():
         voxel_sizes=voxel_sizes, min_lesion_vol=args.min_lesion_vol)
 
     if args.out_lesion_atlas:
-        # lesion_atlas *= map_data.astype(np.bool)
         nib.save(nib.Nifti1Image(lesion_atlas, lesion_img.affine),
                  args.out_lesion_atlas)
 

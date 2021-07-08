@@ -185,7 +185,7 @@ def _processing_wrapper(args):
                 lesion_img.set_filename('tmp.nii.gz')
                 lesion_atlas = get_data_as_label(lesion_img)
                 tmp_dict = compute_lesion_stats(
-                    density.astype(np.bool), lesion_atlas,
+                    density.astype(bool), lesion_atlas,
                     voxel_sizes=voxel_sizes, single_label=True,
                     min_lesion_vol=min_lesion_vol,
                     precomputed_lesion_labels=computed_lesion_labels)
@@ -329,7 +329,7 @@ def main():
     if args.lesion_load is not None:
         in_name = args.lesion_load[0]
         lesion_img = nib.load(in_name)
-        lesion_data = get_data_as_mask(lesion_img, dtype=np.bool)
+        lesion_data = get_data_as_mask(lesion_img, dtype=bool)
         lesion_atlas, _ = ndi.label(lesion_data)
         measures_to_compute.append(((in_name, np.unique(lesion_atlas)[1:]),
                                     nib.Nifti1Image(lesion_atlas,
