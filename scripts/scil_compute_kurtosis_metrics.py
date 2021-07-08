@@ -178,7 +178,7 @@ def main():
         mask = None
     else:
         mask_img = nib.load(args.mask)
-        mask = get_data_as_mask(mask_img, dtype=np.bool)
+        mask = get_data_as_mask(mask_img, dtype=bool)
 
     # Validate bvals and bvecs
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
