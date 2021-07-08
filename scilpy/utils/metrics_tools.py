@@ -134,7 +134,7 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     # Each tuple has S elements, where S is the number of streamlines.
     # We then convert each tuple to a numpy array
     for metric_values in zip(*metrics_per_strl):
-        converted.append(np.asarray(metric_values))
+        converted.append(np.asarray(metric_values, dtype=float))
 
     return converted
 

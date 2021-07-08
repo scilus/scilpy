@@ -41,7 +41,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     else:
         filter_stream = []
 
-    filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
+    filtered_streamlines = list(np.asarray(sft.streamlines, dtype=float)[filter_stream])
     filtered_data_per_point = sft.data_per_point[filter_stream]
     filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
 
@@ -80,7 +80,7 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     ind = np.arange(len(sft.streamlines))
     rng.shuffle(ind)
 
-    subset_streamlines = list(np.asarray(sft.streamlines)[
+    subset_streamlines = list(np.asarray(sft.streamlines, dtype=np.float)[
                               ind[:max_streamlines]])
     subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
     subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
@@ -205,7 +205,7 @@ def smooth_line_gaussian(streamline, sigma):
     x3 = gaussian_filter1d(x, sigma)
     y3 = gaussian_filter1d(y, sigma)
     z3 = gaussian_filter1d(z, sigma)
-    smoothed_streamline = np.asarray([x3, y3, z3]).T
+    smoothed_streamline = np.asarray([x3, y3, z3], dtype=float).T
 
     # Ensure first and last point remain the same
     smoothed_streamline[0] = streamline[0]
