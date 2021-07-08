@@ -112,6 +112,7 @@ def main():
         voxel_sizes=voxel_sizes, min_lesion_vol=args.min_lesion_vol)
 
     if args.out_lesion_atlas:
+        lesion_atlas *= map_data.astype(bool)
         nib.save(nib.Nifti1Image(lesion_atlas, lesion_img.affine),
                  args.out_lesion_atlas)
 
