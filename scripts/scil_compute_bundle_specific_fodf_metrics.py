@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Script to compute bundle-specific fODF metrics.
+
+Takes approximately 30 minutes for bingham fitting, then ~10 minutes
+for fiber density estimation. Other metrics take very little time.
+"""
 
 import nibabel as nib
+import time
 import argparse
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -53,11 +60,17 @@ def main():
     sh_im = nib.load(args.in_sh)
     data = sh_im.get_fdata()
 
+    t0 = time.perf_counter()
     bingham = bingham_fit_sh_parallel(data, args.max_lobes)
     nib.save(nib.Nifti1Image(bingham, sh_im.affine), args.out_bingham)
+    t1 = time.perf_counter()
+    print('bingham fit: ', t1 - t0)
 
+    t0 = time.perf_counter()
     fd = compute_fiber_density_parallel(bingham)
     nib.save(nib.Nifti1Image(fd, sh_im.affine), args.out_fd)
+    t1 = time.perf_counter()
+    print('fiber density: ', t1 - t0)
 
     fs = compute_fiber_spread(bingham, fd)
     nib.save(nib.Nifti1Image(fs, sh_im.affine), args.out_fs)

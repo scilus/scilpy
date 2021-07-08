@@ -92,8 +92,9 @@ def bingham_fit_sh_parallel(data, max_lobes, abs_th=0.,
                             full_basis=full_basis,
                             return_inv=False)
 
-    data = data.reshape((-1, data.shape[-1]))
     nbr_processes = multiprocessing.cpu_count()
+    data = data.reshape((-1, data.shape[-1]))
+    data = np.array_split(data, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
     out = pool.map(_bingham_fit_sh, zip(data, itertools.repeat(B_mat),
                                         itertools.repeat(sphere),
@@ -104,13 +105,13 @@ def bingham_fit_sh_parallel(data, max_lobes, abs_th=0.,
     pool.close()
     pool.join()
 
-    out = np.array(out)
+    out = np.concatenate(out, axis=0)
     out = out.reshape(np.append(shape[:3], max_lobes*NB_PARAMS))
     return out
 
 
 def _bingham_fit_sh(args):
-    sh = args[0]
+    sh_chunk = args[0]
     B_mat = args[1]
     sphere = args[2]
     abs_th = args[3]
@@ -118,17 +119,18 @@ def _bingham_fit_sh(args):
     rel_th = args[5]
     max_lobes = args[6]
 
-    odf = sh.dot(B_mat)
-    odf[odf < abs_th] = 0.
-    out = np.zeros(max_lobes*NB_PARAMS)
-    if (odf > 0.).any():
-        lobes = \
-            _bingham_fit_multi_peaks(odf, sphere,
-                                     min_sep_angle=min_sep_angle,
-                                     rel_th=rel_th)
-        for ll in range(min(len(lobes), max_lobes)):
-            lobe = lobes[ll]
-            out[ll*NB_PARAMS:(ll+1)*NB_PARAMS] = lobe.get_flatten()
+    out = np.zeros((len(sh_chunk), max_lobes*NB_PARAMS))
+    for i, sh in enumerate(sh_chunk):
+        odf = sh.dot(B_mat)
+        odf[odf < abs_th] = 0.
+        if (odf > 0.).any():
+            lobes = \
+                _bingham_fit_multi_peaks(odf, sphere,
+                                         min_sep_angle=min_sep_angle,
+                                         rel_th=rel_th)
+            for ll in range(min(len(lobes), max_lobes)):
+                lobe = lobes[ll]
+                out[i, ll*NB_PARAMS:(ll+1)*NB_PARAMS] = lobe.get_flatten()
     return out
 
 
@@ -140,12 +142,17 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     dot_prod = np.abs(sphere.vertices.dot(peak))
     min_dot = cos(radians(max_angle))
 
-    p = sphere.vertices[dot_prod > min_dot].astype('float64')
-    v = sf[dot_prod > min_dot].reshape((-1, 1)).astype('float64')  # (N, 1)
+    p = sphere.vertices[dot_prod > min_dot]
+    v = sf[dot_prod > min_dot].reshape((-1, 1))  # (N, 1)
+
+    # test that the peak contains at least 3 non-zero directions
+    if np.count_nonzero(v) < 3:
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
+
     x, y, z = (p[:, 0:1], p[:, 1:2], p[:, 2:])
 
     # create an orientation matrix to approximate mu0, mu1 and mu2
-    T = np.zeros((3, 3), dtype='float64')
+    T = np.zeros((3, 3))
     T[0, 0] = np.sum(x**2 * v)
     T[1, 1] = np.sum(y**2 * v)
     T[2, 2] = np.sum(z**2 * v)
@@ -158,10 +165,15 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     T = T / np.sum(v)
 
     eval, evec = np.linalg.eig(T)
+
     ordered = np.argsort(eval)
     mu1 = evec[:, ordered[1]].reshape((3, 1))
     mu2 = evec[:, ordered[0]].reshape((3, 1))
     f0 = v.max()
+
+    if np.iscomplex(mu1).any() or np.iscomplex(mu2).any():
+        print('uh oh... \n', eval)
+        1/0
 
     A = np.zeros((len(v), 2), dtype=float)  # (N, 2)
     A[:, 0:1] = p.dot(mu1)**2
@@ -203,30 +215,57 @@ def _bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
     return lobes
 
 
-def compute_fiber_density_parallel(data):
+def compute_fiber_density_parallel(data, m=50):
+    """
+    Fiber density (FD) is given by integrating
+    the bingham function over the sphere. Its unit is
+    in 1/mm**3.
+    """
     shape = data.shape
+
+    phi = np.linspace(0, 2 * np.pi, 2 * m, endpoint=False)  # [0, 2pi[
+    theta = np.linspace(0, np.pi, m)  # [0, pi]
+    coords = np.array([[p, t] for p in phi for t in theta]).T
+    dphi = phi[1] - phi[0]
+    dtheta = theta[1] - theta[0]
+
     nbr_processes = multiprocessing.cpu_count()
     data = data.reshape((-1, shape[-1]))
-
+    data = np.array_split(data, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
-    res = pool.map(_compute_fiber_density, data)
+    res = pool.map(_compute_fiber_density,
+                   zip(data,
+                       itertools.repeat(coords),
+                       itertools.repeat(dphi),
+                       itertools.repeat(dtheta)))
     pool.close()
     pool.join()
 
     nbr_lobes = shape[-1] // NB_PARAMS
+    res = np.concatenate(res, axis=0)
     res = np.reshape(np.array(res), np.append(shape[:3], nbr_lobes))
     return res
 
 
 def _compute_fiber_density(args):
-    binghams = args
-    nbr_lobes = len(binghams) // NB_PARAMS
-    out = np.zeros(nbr_lobes)
-    for lobe_i in range(nbr_lobes):
-        lobe = bingham_from_array(binghams[lobe_i*NB_PARAMS:
-                                           (lobe_i+1)*NB_PARAMS])
-        if lobe.f0 > 0:
-            out[lobe_i] = fiber_density(lobe)
+    binghams_chunk = args[0]
+    coords = args[1]
+    dphi = args[2]
+    dtheta = args[3]
+    theta = coords[1]
+    u = np.array([np.cos(coords[0]) * np.sin(coords[1]),
+                  np.sin(coords[0]) * np.sin(coords[1]),
+                  np.cos(coords[1])]).T
+
+    nbr_lobes = binghams_chunk.shape[1] // NB_PARAMS
+    out = np.zeros((len(binghams_chunk), nbr_lobes))
+    for i, binghams in enumerate(binghams_chunk):
+        for lobe_i in range(nbr_lobes):
+            lobe = bingham_from_array(binghams[lobe_i*NB_PARAMS:
+                                               (lobe_i+1)*NB_PARAMS])
+            if lobe.f0 > 0:
+                fd = np.sum(lobe.evaluate(u) * np.sin(theta) * dtheta * dphi)
+                out[i, lobe_i] = fd
     return out
 
 
@@ -256,19 +295,3 @@ def compute_structural_complexity(fd):
     cx[mask] = n / (n - 1) * \
         (1 - np.max(fd, axis=-1)[mask]/np.sum(fd, axis=-1)[mask])
     return cx
-
-
-def fiber_density(lobe):
-    """
-    Fiber density (FD) is given by integrating
-    the bingham function over the sphere. Its unit is
-    in 1/mm**3.
-    """
-    def _integrate_bingham(phi, theta):
-        u = np.array([[np.cos(phi) * np.sin(theta),
-                      np.sin(phi) * np.sin(theta),
-                      np.cos(theta)]])
-        return lobe.evaluate(u) * np.sin(theta)
-
-    fd, error = nquad(_integrate_bingham, [(0, np.pi * 2), (0, np.pi)])
-    return fd
