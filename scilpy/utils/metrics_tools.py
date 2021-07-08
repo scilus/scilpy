@@ -31,7 +31,7 @@ def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
     min_lesion_vol : float
         Minimum lesion volume in mm3 (default: 7, cross-shape).
     precomputed_lesion_labels : np.ndarray (N)
-        For connectivity analysis, when the unique lesion labels are know,
+        For connectivity analysis, when the unique lesion labels are known,
         provided a pre-computed list of labels save computation.
     Returns
     ---------
