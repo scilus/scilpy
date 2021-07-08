@@ -11,9 +11,6 @@ sum of square difference and pearson correlation coefficent
 import argparse
 import itertools
 import json
-import logging
-import os
-import shutil
 
 import numpy as np
 
@@ -71,7 +68,8 @@ def main():
         else:
             all_matrices.append(tmp_mat)
 
-    output_measures_dict = {'RMSE': [], 'correlation': [], 'w_dice_voxels' : [], 'dice_voxels' : []}
+    output_measures_dict = {'RMSE': [], 'correlation': [],
+                            'w_dice_voxels': [], 'dice_voxels': []}
 
     if args.single_compare:
         if args.single_compare in args.in_matrices:
