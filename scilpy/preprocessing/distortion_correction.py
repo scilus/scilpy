@@ -46,7 +46,7 @@ def create_index(bvals):
     -------
     index: np.array
     """
-    index = np.ones(len(bvals), dtype=np.int).tolist()
+    index = np.ones(len(bvals), dtype=int).tolist()
 
     return index
 

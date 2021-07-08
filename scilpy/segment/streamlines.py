@@ -31,7 +31,7 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
     sft.to_corner()
     # Copy-Paste from Dipy to get indices
     if all_in:
-        target_mask = np.array(target_mask, dtype=np.bool, copy=True)
+        target_mask = np.array(target_mask, dtype=bool, copy=True)
         target_mask = np.invert(target_mask)
         tractogram_mask = compute_tract_counts_map(sft.streamlines,
                                                    target_mask.shape)

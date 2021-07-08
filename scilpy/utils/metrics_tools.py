@@ -109,9 +109,9 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     streamlines = sft.streamlines
 
     def _get_profile_one_streamline(streamline, metrics_files):
-        x_ind = np.floor(streamline[:, 0]).astype(np.int)
-        y_ind = np.floor(streamline[:, 1]).astype(np.int)
-        z_ind = np.floor(streamline[:, 2]).astype(np.int)
+        x_ind = np.floor(streamline[:, 0]).astype(int)
+        y_ind = np.floor(streamline[:, 1]).astype(int)
+        z_ind = np.floor(streamline[:, 2]).astype(int)
 
         return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
                         metrics_files))
