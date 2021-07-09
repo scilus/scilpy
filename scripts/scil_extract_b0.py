@@ -17,8 +17,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (assert_inputs_exist, assert_outputs_exist,
-                             add_force_b0_arg, add_overwrite_arg,
+from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
                              add_verbose_arg)
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_b0,
                                           B0ExtractionStrategy)
@@ -67,7 +66,6 @@ def _build_arg_parser():
 
     add_force_b0_arg(p)
     add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     return p
 
@@ -90,13 +88,14 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
-    assert_outputs_exist(parser, args, [args.out_b0])
+
+    # Outputs are not checked, since multiple use cases
+    # are possible and hard to check
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    bvals_min = bvals.min()
-    b0_threshold = args.b0_thr
 
-    check_b0_threshold(args.force_b0_threshold, bvals_min)
+    b0_threshold = check_b0_threshold(
+        args.force_b0_threshold, bvals.min(), args.b0_thr)
 
     gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
     b0_idx = np.where(gtab.b0s_mask)[0]
