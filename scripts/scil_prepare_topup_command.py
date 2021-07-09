@@ -9,6 +9,7 @@ The reversed b0 must be in a different file.
 import argparse
 import logging
 import os
+import subprocess
 
 from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
@@ -24,46 +25,39 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_dwi',
-                   help='input DWI Nifti image')
-
-    p.add_argument('in_bvals',
-                   help='b-values file in FSL format')
-
-    p.add_argument('in_bvecs',
-                   help='b-vectors file in FSL format')
+    p.add_argument('in_forward_b0',
+                   help='Input b0 Nifti image with forward phase encoding.')
 
     p.add_argument('in_reverse_b0',
-                   help='b0 image with reversed phase encoding.')
+                   help='Input b0 Nifti image with reversed phase encoding.')
 
     p.add_argument('--config', default='b02b0.cnf',
-                   help='topup config file [%(default)s].')
-
-    p.add_argument('--b0_thr', type=float, default=20,
-                   help='All b-values with values less than or equal ' +
-                        'to b0_thr are considered as b0s i.e. without ' +
-                        'diffusion weighting')
+                   help='Topup config file [%(default)s].')
 
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
-                   help='acquisition direction, default is AP-PA '
-                        '[%(default)s].')
+                   help='Acquisition direction of the forward b0 '
+                        'image, default is AP [%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata '
+                   help='Total readout time from the DICOM metadata '
                         '[%(default)s].')
 
     p.add_argument('--out_b0s', default='fused_b0s.nii.gz',
-                   help='output fused b0 file [%(default)s].')
+                   help='Output fused b0 file [%(default)s].')
 
     p.add_argument('--out_directory', default='.',
-                   help='output directory for topup files [%(default)s].')
+                   help='Output directory for topup files [%(default)s].')
 
     p.add_argument('--out_prefix', default='topup_results',
-                   help='prefix of the topup results [%(default)s].')
+                   help='Prefix of the topup results [%(default)s].')
+
+    p.add_argument('--out_params', default='acqparams.txt',
+                   help='Filename for the acquisition '
+                        'parameters file [%(default)s].')
 
     p.add_argument('--out_script', action='store_true',
-                   help='if set, will output a .sh script (topup.sh).\n' +
+                   help='If set, will output a .sh script (topup.sh).\n' +
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 
@@ -82,11 +76,19 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    try:
+        devnull = open(os.devnull)
+        subprocess.call("topup", stderr=devnull)
+    except:
+        logging.warning(
+            "topup not found. If executing locally, please install "
+            "the command from the FSL library and make sure it is "
+            "available in your path.")
+
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    required_args = [args.in_dwi, args.in_bvals, args.in_bvecs,
-                     args.in_reverse_b0]
+    required_args = [args.in_forward_b0, args.in_reverse_b0]
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, [], args.out_b0s)
@@ -95,52 +97,37 @@ def main():
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
 
-    bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
-    bvals_min = bvals.min()
+    b0_img = nib.load(args.in_forward_b0)
+    b0 = b0_img.get_fdata(dtype=np.float32)
 
-    # TODO refactor this
-    b0_threshold = args.b0_thr
-    if bvals_min < 0 or bvals_min > b0_threshold:
-        raise ValueError('The minimal b-value is lesser than 0 or greater '
-                         'than {0}. This is highly suspicious. Please check '
-                         'your data to ensure everything is correct. '
-                         'Value found: {1}'.format(b0_threshold, bvals_min))
+    if len(b0.shape) == 4 and b0.shape[3] > 1:
+        logging.warning("B0 is 4D. To speed up Topup, we recommend "
+                        "using only one b0 in both phase encoding "
+                        "direction, unless necessary.")
+    elif len(b0.shape) == 3:
+        b0 = b0[..., None]
 
     rev_b0_img = nib.load(args.in_reverse_b0)
     rev_b0 = rev_b0_img.get_fdata(dtype=np.float32)
 
-    if len(rev_b0.shape) == 4:
-        logging.warning("Reverse B0 is 4D. To speed up Topup, the mean of all "
-                        "reverse B0 will be taken.")
-        rev_b0 = np.mean(rev_b0, axis=3)
+    if len(rev_b0.shape) == 4 and rev_b0.shape[3] > 1:
+        logging.warning("Reverse B0 is 4D. To speed up Topup, we "
+                        "recommend using only one b0 in both phase "
+                        "encoding direction, unless necessary.")
+    elif len(rev_b0.shape) == 3:
+        rev_b0 = rev_b0[..., None]
 
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
-
-    dwi_image = nib.load(args.in_dwi)
-    dwi = dwi_image.get_fdata(dtype=np.float32)
-    b0 = dwi[..., gtab.b0s_mask]
-
-    if b0.shape[3] > 1:
-        logging.warning("More than one B0 was found. To speed up Topup, "
-                        "the mean of all B0 will be taken.")
-        b0 = np.mean(b0, axis=3)
-    else:
-        b0 = np.squeeze(b0, axis=3)
-
-    fused_b0s = np.zeros(b0.shape+(2,))
-    fused_b0s[..., 0] = b0
-    fused_b0s[..., 1] = rev_b0
+    fused_b0s = np.concatenate((b0, rev_b0), axis=-1)
     fused_b0s_path = os.path.join(args.out_directory, args.out_b0s)
-    nib.save(nib.Nifti1Image(fused_b0s,
-                             rev_b0_img.affine),
-             fused_b0s_path)
+    nib.save(nib.Nifti1Image(fused_b0s, b0_img.affine), fused_b0s_path)
 
-    acqparams = create_acqparams(args.readout, args.encoding_direction)
+    acqparams = create_acqparams(
+        args.readout, args.encoding_direction, b0.shape[-1], rev_b0.shape[-1])
 
     if not os.path.exists(args.out_directory):
         os.makedirs(args.out_directory)
 
-    acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
+    acqparams_path = os.path.join(args.out_directory, args.out_params)
     np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
 
     output_path = os.path.join(args.out_directory, args.out_prefix)
