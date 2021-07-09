@@ -248,3 +248,22 @@ def get_theta(requested_theta, tracking_type):
     else:
         theta = 45
     return theta
+
+
+def sample_distribution(dist):
+    """
+    Parameters
+    ----------
+    dist: numpy.array
+        The empirical distribution to sample from.
+
+    Return
+    ------
+    ind: int
+        The index of the sampled element.
+    """
+    cdf = dist.cumsum()
+    if cdf[-1] == 0:
+        return None
+    return cdf.searchsorted(np.random.random() * cdf[-1])
+

@@ -1,0 +1,381 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Local streamline HARDI tractography. The tracking is done inside a binary mask.
+Streamlines greater than minL and shorter than maxL are outputted.
+
+The tracking direction is chosen in the aperture cone defined by the previous
+tracking direction and the angular constraint. The relation between theta and
+the curvature is theta=2*arcsin(step_size/(2*R)).
+
+Hard-to-track regions can be tracked at a lower resolution, if a mask and a
+voxel size is probided.
+
+Algo 'det': the maxima of the spherical function (SF) the most closely
+aligned to the previous direction.
+
+Algo 'prob': a direction drawn from the empirical distribution function
+defined from the SF. Default parameters as in [1].
+
+References: [1] Girard, G., Whittingstall K., Deriche, R., and
+            Descoteaux, M. (2014). Towards quantitative connectivity analysis:
+            reducing tractography biases. Neuroimage, 98, 266-278.
+"""
+import argparse
+import logging
+import math
+import time
+import os
+
+import dipy.core.geometry as gm
+import nibabel as nib
+import numpy as np
+
+from dipy.tracking.streamlinespeed import compress_streamlines
+from dipy.io.utils import get_reference_info, create_tractogram_header
+from nibabel.streamlines.tractogram import LazyTractogram
+from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
+                             add_verbose_arg)
+from scilpy.image.resample_volume import resample_volume
+from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
+from scilpy.tracking.local_tracking import track
+from scilpy.tracking.tracker import (probabilisticTracker,
+                                     deterministicMaximaTracker)
+from scilpy.tracking.tracking_field import SphericalHarmonicField
+from scilpy.tracking.utils import TrackingParams
+
+
+def buildArgsParser():
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=__doc__)
+
+    p._optionals.title = 'Generic options'
+    p.add_argument('in_sh',
+                   help='Spherical harmonic file (.nii.gz).')
+    p.add_argument('in_seed',
+                   help='Seeding mask  (.nii.gz).')
+    p.add_argument('in_mask',
+                   help='Seeding mask (.nii.gz).\n'
+                        'Tracking will stop outside this mask.')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
+
+    add_sh_basis_args(p)
+    p.add_argument('--algo', default='det', choices=['det', 'prob'],
+                   help='Algorithm to use (must be \'det\' or \'prob\'). '
+                        '[%(default)s]')
+    # MULTIRESOLUTION
+    p.add_argument('--mask_multi',
+                   help='Path to a binary mask of hard-to-track regions.'
+                   ' Tracking in these regions will be computed at a lower '
+                   'resolution.')
+    p.add_argument('--voxel_size', nargs='+', type=float,
+                   help='Sets the tracking resolution of hard-to-track regions'
+                   ' If the value is set to is Y, it will set a voxel size of'
+                   ' Y x Y x Y.')
+
+    seeding_group = p.add_mutually_exclusive_group()
+    seeding_group.add_argument('--npv', metavar='NBR', type=int,
+                               help='Number of seeds per voxel. [1]')
+    seeding_group.add_argument('--nt', metavar='NBR', type=int,
+                               help='Total number of seeds. Replaces --npv '
+                                    'and --ns.')
+    seeding_group.add_argument('--ns', metavar='NBR', type=int,
+                               help='Number of streamlines to estimate. ' +
+                                    'Replaces --npv and\n--nt. No ' +
+                                    'multiprocessing is used.')
+
+    p.add_argument('--skip', metavar='NBR', type=int, default=0,
+                   help='Skip the first NBR generated seeds / NBR seeds per' +
+                        ' voxel\n(--nt / --npv). Not working with --ns. ' +
+                        '[%(default)s]')
+    p.add_argument('--random', type=int, default=0,
+                   help='Initial value for the random number generator. ' +
+                        '[%(default)s]')
+    p.add_argument('--step', dest='step_size', type=float, default=0.5,
+                   help='Step size in mm. [%(default)s]')
+    p.add_argument('--rk_order', type=int, default=2, choices=[1, 2, 4],
+                   help='The order of the Runge-Kutta integration used for\n' +
+                        'the step function [%(default)s]\n' +
+                        'As a rule of thumb, doubling the rk_order will \n' +
+                        'double the computation time in the worst case.')
+    p.add_argument('--theta', metavar='ANGLE', type=float,
+                   help='Maximum angle (in degrees) between 2 steps. \n' +
+                        '[\'det\'=45, \'prob\'=20]')
+    p.add_argument('--maxL_no_dir', metavar='MAX', type=float, default=1,
+                   help='Maximum length without valid direction, in mm. ' +
+                        '[%(default)s]')
+    p.add_argument('--sfthres', dest='sf_threshold', metavar='THRES',
+                   type=float, default=0.1,
+                   help='Spherical function relative threshold. [%(default)s]')
+    p.add_argument('--sfthres_init', dest='sf_threshold_init',
+                   metavar='THRES', type=float, default=0.5,
+                   help='Spherical function relative threshold value\n' +
+                        'for the initial direction. [%(default)s]')
+    p.add_argument('--minL', dest='min_length', type=float, default=20,
+                   help='Minimum length of a streamline in mm. [%(default)s]')
+    p.add_argument('--maxL', dest='max_length', type=int, default=300,
+                   help='Maximum length of a streamline in mm. [%(default)s]')
+
+    p.add_argument('--sh_interp', dest='field_interp',
+                   default='tl', choices=['nn', 'tl'],
+                   help="Spherical harmonic interpolation: \n'nn' " +
+                        "(nearest-neighbor) or 'tl' (trilinear). " +
+                        "[%(default)s]")
+    p.add_argument('--mask_interp', dest='mask_interp',
+                   default='nn', choices=['nn', 'tl'],
+                   help="Mask interpolation:\n'nn' (nearest-neighbor) or " +
+                        "'tl' (trilinear). [%(default)s]")
+
+    p.add_argument('--single_direction', dest='is_single_direction',
+                   action='store_true',
+                   help="If set, tracks in one direction only (forward or \n" +
+                        "backward) given the initial seed. The direction is" +
+                        "\nrandomly drawn from the ODF.")
+    p.add_argument('--processes', dest='nbr_processes', type=int, default=0,
+                   help='Number of sub processes to start. [cpu count]')
+    p.add_argument('--load_data', action='store_true', dest='isLoadData',
+                   help='If set, loads data in memory for all processes. \n' +
+                        'Increases the speed, and the memory requirements.')
+    p.add_argument('--compress', type=float,
+                   help='If set, will compress streamlines. The parameter\n' +
+                        'value is the distance threshold. A rule of thumb\n ' +
+                        'is to set it to 0.1mm for deterministic\n' +
+                        'streamlines and 0.2mm for probabilitic streamlines.')
+    p.add_argument('--save_seeds', action='store_true',
+                   help='If set, each streamline generated will save \n' +
+                        'its 3D seed point in the TRK file using `seed` in' +
+                        ' \nthe \'data_per_streamline\' attribute')
+    p.add_argument('--save_type', dest='save_type',
+                   default='links', choices=['links', 'density'],
+                   help="Save type:\n How you want your streamlines to be \
+                        saved links to keep the links, density to keep the \
+                        density")
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
+    return p
+
+
+def get_voxmm_to_rasmm(ref_img):
+    """
+    Create the affine to go from voxmm (expected space) to ras+ mm.
+    """
+    # Use this to remove the scaling component from the reference affine.
+    # (voxel size is included in streamlines)
+    unscaling_matrix = np.eye(4)
+    unscaling_matrix[range(3), range(3)] = 1. / np.array(
+        ref_img.header.get_zooms())
+    print(ref_img.affine)
+    print(unscaling_matrix)
+    voxmm_to_rasmm = np.dot(ref_img.affine, unscaling_matrix)
+
+    return voxmm_to_rasmm
+
+
+def main():
+    parser = buildArgsParser()
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
+    if not nib.streamlines.is_supported(args.out_tractogram):
+        parser.error('Invalid output streamline file format (must be trk or ' +
+                     'tck): {0}'.format(args.out_tractogram))
+
+    if not np.any([args.nt, args.npv, args.ns]):
+        args.npv = 1
+
+    if not args.min_length > 0:
+        parser.error('minL must be > 0, {0}mm was provided.'
+                     .format(args.min_length))
+    if args.max_length < args.min_length:
+        parser.error('maxL must be > than minL, (minL={0}mm, maxL={1}mm).'
+                     .format(args.min_length, args.max_length))
+
+    if args.theta is not None:
+        theta = gm.math.radians(args.theta)
+    elif args.algo == 'prob':
+        theta = gm.math.radians(20)
+    else:
+        theta = gm.math.radians(45)
+
+    if args.mask_interp == 'nn':
+        mask_interpolation = 'nearest'
+    elif args.mask_interp == 'tl':
+        mask_interpolation = 'trilinear'
+    else:
+        parser.error("--mask_interp has wrong value. See the help (-h).")
+
+    if args.field_interp == 'nn':
+        field_interpolation = 'nearest'
+    elif args.field_interp == 'tl':
+        field_interpolation = 'trilinear'
+    else:
+        parser.error("--sh_interp has wrong value. See the help (-h).")
+
+    # Ensure that both voxel size and new mask are provided for multiresolution
+    if args.voxel_size and not args.mask_multi:
+        parser.error('You must specify a mask for multiresolution.')
+
+    if args.mask_multi and not args.voxel_size:
+        parser.error('You must specify a voxel size for multiresolution.')
+
+    param = TrackingParams()
+    param.random = args.random
+    param.skip = args.skip
+    param.algo = args.algo
+    param.mask_interp = mask_interpolation
+    param.field_interp = field_interpolation
+    param.theta = theta
+    param.sf_threshold = args.sf_threshold
+    param.sf_threshold_init = args.sf_threshold_init
+    param.step_size = args.step_size
+    param.rk_order = args.rk_order
+    param.max_length = args.max_length
+    param.min_length = args.min_length
+    param.max_nbr_pts = int(param.max_length / param.step_size)
+    param.min_nbr_pts = int(param.min_length / param.step_size) + 1
+    param.is_single_direction = args.is_single_direction
+    param.nbr_seeds = args.nt if args.nt is not None else 0
+    param.nbr_seeds_voxel = args.npv if args.npv is not None else 0
+    param.nbr_streamlines = args.ns if args.ns is not None else 0
+    param.max_no_dir = int(math.ceil(args.maxL_no_dir / param.step_size))
+    param.is_all = False
+    param.is_keep_single_pts = False
+    param.save_type = args.save_type
+    param.is_mr = False
+
+    # r+ is necessary for interpolation function in cython who
+    # need read/write right
+    param.mmap_mode = None if args.isLoadData else 'r+'
+    logging.debug('Tractography parameters:\n{0}'.format(param))
+
+    seed_img = nib.load(args.in_seed)
+    seed = Seed(seed_img)
+    if args.npv:
+        param.nbr_seeds = len(seed.seeds) * param.nbr_seeds_voxel
+        param.skip = len(seed.seeds) * param.skip
+    if len(seed.seeds) == 0:
+        parser.error('"{0}" does not have voxels value > 0.'
+                     .format(args.in_seed))
+
+    mask = BinaryMask(Dataset(nib.load(args.in_mask), param.mask_interp))
+    dataset = Dataset(nib.load(args.in_sh), param.field_interp)
+    field = SphericalHarmonicField(dataset,
+                                   args.sh_basis,
+                                   param.sf_threshold,
+                                   param.sf_threshold_init,
+                                   param.theta)
+
+    fieldTest = field.get_direction_neighbours(param.theta)
+
+    resampled_tracker = None
+    region_mr = None
+    resampled_mask = None
+    out_path, _ = os.path.split(args.out_tractogram)
+
+    if args.voxel_size:
+        param.is_mr = True
+
+        # Load hard-to-track regions mask
+        region_mr = BinaryMask(Dataset(nib.load(args.mask_multi),
+                                       param.mask_interp))
+
+        # Resample mask at desired lower resolution
+        mask_mr = resample_volume(nib.load(args.in_mask), zoom=args.voxel_size)
+        resampled_mask = BinaryMask(Dataset(mask_mr, param.mask_interp))
+
+        # Resample sh at desired lower resolution and create a new field
+        sh_mr = resample_volume(nib.load(args.in_sh), zoom=args.voxel_size)
+        dataset_mr = Dataset(sh_mr, param.field_interp)
+        field_mr = SphericalHarmonicField(dataset_mr, args.sh_basis,
+                                          param.sf_threshold,
+                                          param.sf_threshold_init,
+                                          param.theta)
+        # nib.save(mask_mr, os.path.join(out_path, 'resampled_mask.nii.gz'))
+        # nib.save(sh_mr, os.path.join(out_path, 'resampled_sh.nii.gz'))
+
+    if args.algo == 'det':
+        tracker =\
+            deterministicMaximaTracker(field, args.step_size, args.rk_order)
+    elif args.algo == 'prob':
+        tracker = probabilisticTracker(field, args.step_size, args.rk_order)
+        # Create a new tracker to use in lower resolution
+        if args.voxel_size:
+            voxel_size = sh_mr.header.get_zooms()[0]
+            # Adjust step size according to new voxel size
+            step_size_mr = param.step_size * voxel_size
+            resampled_tracker = probabilisticTracker(field_mr, step_size_mr,
+                                                     args.rk_order)
+    else:
+        parser.error("--algo has wrong value. See the help (-h).")
+
+    start = time.time()
+
+    if args.compress:
+        if args.compress < 0.001 or args.compress > 1:
+            logging.warn('You are using an error rate of {}.\n'
+                         .format(args.compress) +
+                         'We recommend setting it between 0.001 and 1.\n' +
+                         '0.001 will do almost nothing to the tracts while ' +
+                         '1 will higly compress/linearize the tracts')
+    # Add possible new tracker, region of tracking and resampled mask for
+    # multiresolution
+        streamlines, seeds = track(tracker, mask, seed, param,
+                                   resample_tracker=resampled_tracker,
+                                   region_mr=region_mr,
+                                   resampled_mask=resampled_mask,
+                                   compress=True,
+                                   compression_error_threshold=args.compress,
+                                   nbr_processes=args.nbr_processes,
+                                   pft_tracker=None,
+                                   save_seeds=args.save_seeds)
+    else:
+        streamlines, seeds = track(tracker, mask, seed, param,
+                                   resampled_tracker=resampled_tracker,
+                                   region_mr=region_mr,
+                                   resampled_mask=resampled_mask,
+                                   nbr_processes=args.nbr_processes,
+                                   pft_tracker=None,
+                                   save_seeds=args.save_seeds)
+
+    if args.compress:
+        streamlines = (compress_streamlines(s, args.compress)
+                       for s in streamlines)
+
+    # save seeds if args.save_seeds is given
+    data_per_streamlines = {'seed': lambda: seeds} if args.save_seeds else {}
+
+    # get affine transform for tractogram
+    voxmm_to_rasmm = get_voxmm_to_rasmm(seed_img)
+
+    tractogram = LazyTractogram(lambda: streamlines,
+                                data_per_streamlines,
+                                affine_to_rasmm=voxmm_to_rasmm)
+
+    # filetype = nib.streamlines.detect_format(args.out_tractogram)
+    # _, dims, vox_size, vox_order = get_reference_info(seed_img)
+    # header = create_tractogram_header(filetype, voxmm_to_rasmm, dims,
+    #                                  vox_size, vox_order)
+
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
+    reference = get_reference_info(seed_img)
+    header = create_tractogram_header(filetype, *reference)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+
+    str_time = "%.2f" % (time.time() - start)
+    logging.debug(str(len(streamlines)) + " streamlines, done in " +
+                  str_time + " seconds.")
+    print(str(len(streamlines)) +
+          " streamlines, done in " + str_time + " seconds.")
+
+
+if __name__ == "__main__":
+    main()
