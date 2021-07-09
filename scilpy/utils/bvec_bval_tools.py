@@ -109,14 +109,13 @@ def check_b0_threshold(
                 '.'.format(bvals_min, b0_thr, bvals_min))
             return bvals_min
         else:
-            raise ValueError('The minimal bvalue is greater than the '
+            raise ValueError('The minimal bvalue ({}) is greater than the '
                              'threshold ({}). No b0 volumes can be found.\n'
                              'Please check your data to ensure everything '
                              'is correct.\n'
-                             'Value found: {}\n'
                              'Use --force_b0_threshold to execute '
                              'regardless.'
-                             .format(b0_thr, bvals_min))
+                             .format(bvals_min, b0_thr))
 
     return b0_thr
 
