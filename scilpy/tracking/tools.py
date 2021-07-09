@@ -41,7 +41,8 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     else:
         filter_stream = []
 
-    filtered_streamlines = list(np.asarray(sft.streamlines, dtype=float)[filter_stream])
+    filtered_streamlines = list(np.asarray(sft.streamlines,
+                                           dtype=float)[filter_stream])
     filtered_data_per_point = sft.data_per_point[filter_stream]
     filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
 
