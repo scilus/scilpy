@@ -81,7 +81,7 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     ind = np.arange(len(sft.streamlines))
     rng.shuffle(ind)
 
-    subset_streamlines = list(np.asarray(sft.streamlines, dtype=np.float)[
+    subset_streamlines = list(np.asarray(sft.streamlines, dtype=object)[
                               ind[:max_streamlines]])
     subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
     subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
