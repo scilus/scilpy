@@ -119,7 +119,10 @@ def main():
         devnull = open(os.devnull)
         subprocess.call(args.eddy_cmd, stderr=devnull)
     except:
-        parser.error("Please download the {} command.".format(args.eddy_cmd))
+        logging.warning(
+            "{} not found. If executing locally, please install "
+            "the command from the FSL library and make sure it is "
+            "available in your path.".format(args.eddy_cmd))
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)

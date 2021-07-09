@@ -9,6 +9,7 @@ The reversed b0 must be in a different file.
 import argparse
 import logging
 import os
+import subprocess
 
 from dipy.core.gradients import gradient_table
 from dipy.io.gradients import read_bvals_bvecs
@@ -74,6 +75,15 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    try:
+        devnull = open(os.devnull)
+        subprocess.call("topup", stderr=devnull)
+    except:
+        logging.warning(
+            "topup not found. If executing locally, please install "
+            "the command from the FSL library and make sure it is "
+            "available in your path.")
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
