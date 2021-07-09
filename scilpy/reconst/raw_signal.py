@@ -59,7 +59,7 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
     b0_threshold = check_b0_threshold(force_b0_threshold, bvals.min())
 
     # Ensure that this is on a single shell.
-    shell_values, _ = identify_shells(bvals,)
+    shell_values, _ = identify_shells(bvals)
     shell_values.sort()
     if shell_values.shape[0] != 2 or shell_values[0] > b0_threshold:
         raise ValueError("Can only work on single shell signals.")

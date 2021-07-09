@@ -242,7 +242,7 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        bo_thr = check_b0_threshold(
+        b0_thr = check_b0_threshold(
             force_b0_threshold, bvals_dti.min(), bvals_dti.min())
         gtab_dti = gradient_table(bvals_dti, bvecs_dti, b0_threshold=b0_thr)
 
