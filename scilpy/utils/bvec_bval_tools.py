@@ -250,7 +250,7 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     # Finding centroids
     bval_centroids = [bvals[0]]
     for bval in bvals[1:]:
-        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        diffs = np.abs(np.asarray(bval_centroids, dtype=float) - bval)
         if not len(np.where(diffs < threshold)[0]):
             # Found no bval in bval centroids close enough to the current one.
             # Create new centroid (i.e. new shell)
