@@ -81,7 +81,7 @@ def main():
             used_indices_all = True
             indices_per_volume.append("all")
         else:
-            indices_per_volume.append(np.asarray(v_args[1:], dtype=np.int))
+            indices_per_volume.append(np.asarray(v_args[1:], dtype=int))
 
     if used_indices_all and args.out_labels_ids:
         logging.error("'all' indices cannot be used with 'out_labels_ids'")
