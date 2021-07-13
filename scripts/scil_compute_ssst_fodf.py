@@ -83,7 +83,8 @@ def main():
     sh_order = args.sh_order
 
     # Checking data and sh_order
-    check_b0_threshold(args.force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(
+        args.force_b0_threshold, bvals.min(), bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWI volumes, but you '
@@ -95,7 +96,7 @@ def main():
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:

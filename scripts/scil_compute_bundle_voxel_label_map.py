@@ -49,6 +49,12 @@ def _build_arg_parser():
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
                         'Default is the number of points of the centroid.')
+    p.add_argument('--min_streamline_count', type=int, default=100,
+                   help='Minimum number of streamlines for filtering/cutting'
+                        'operation [%(default)s].')
+    p.add_argument('--min_voxel_count', type=int, default=1000,
+                   help='Minimum number of voxels for filtering/cutting'
+                        'operation [%(default)s].')
 
     p.add_argument('--out_labels_npz', metavar='FILE',
                    help='File mapping of points to labels.')
@@ -84,6 +90,7 @@ def _affine_slr(sft_bundle, sft_centroid):
     sft_centroid.streamlines = transform_streamlines(sft_centroid.streamlines,
                                                      slm.matrix)
     return sft_centroid
+
 
 def main():
     parser = _build_arg_parser()
@@ -124,22 +131,25 @@ def main():
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
                                              sft_bundle.dimensions).astype(
-                                                 np.bool)
+                                                 bool)
 
     structure = ndi.generate_binary_structure(3, 1)
-    if np.count_nonzero(binary_bundle) > 10000:
+    if np.count_nonzero(binary_bundle) > args.min_voxel_count \
+            and len(sft_bundle) > args.min_streamline_count:
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=np.ones((3, 3, 3)))
         binary_bundle = ndi.binary_erosion(binary_bundle,
                                            structure=structure, iterations=2)
 
-    bundle_disjoint, _ = ndi.label(binary_bundle)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
-    val = unique[np.argmax(count[1:])+1]
-    binary_bundle[bundle_disjoint != val] = 0
+        bundle_disjoint, _ = ndi.label(binary_bundle)
+        unique, count = np.unique(bundle_disjoint, return_counts=True)
+        val = unique[np.argmax(count[1:])+1]
+        binary_bundle[bundle_disjoint != val] = 0
 
-    # Chop off some streamlines
-    cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+        # Chop off some streamlines
+        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
+    else:
+        cut_sft = sft_bundle
 
     if args.nb_pts is not None:
         sft_centroid = resample_streamlines_num_points(sft_centroid,
@@ -155,7 +165,7 @@ def main():
     # Map every streamlines points to the centroids
     binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
                                                sft_centroid.dimensions).astype(
-                                                   np.bool)
+                                                   bool)
     # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
     min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines._data,
                                                     sft_centroid.streamlines._data)
