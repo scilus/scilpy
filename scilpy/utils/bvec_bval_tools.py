@@ -65,10 +65,12 @@ def normalize_bvecs(bvecs, filename=None):
     return bvecs
 
 
-def check_b0_threshold(force_b0_threshold, bvals_min):
-    """Check if the minimal bvalue is under zero or over the default threshold.
+def check_b0_threshold(
+    force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
+):
+    """Check if the minimal bvalue is under zero or over the threshold.
     If `force_b0_threshold` is true, don't raise an error even if the minimum
-    bvalue is suspiciously high.
+    bvalue is over the threshold.
 
     Parameters
     ----------
@@ -76,33 +78,46 @@ def check_b0_threshold(force_b0_threshold, bvals_min):
         If True, don't raise an error.
     bvals_min : float
         Minimum bvalue.
+    b0_thr : float
+        Maximum bvalue considered as a b0.
 
     Raises
     ------
     ValueError
-        If the minimal bvalue is under zero or over the default threshold, and
+        If the minimal bvalue is over the threshold, and
         `force_b0_threshold` is False.
     """
-    if bvals_min != 0:
-        if bvals_min < 0 or bvals_min > DEFAULT_B0_THRESHOLD:
-            if force_b0_threshold:
-                logging.warning(
-                    'Warning: Your minimal bval is {}. This is highly '
-                    'suspicious. The script will nonetheless proceed since '
-                    '--force_b0_threshold was specified.'.format(bvals_min))
-            else:
-                raise ValueError('The minimal bval is lesser than 0 or '
-                                 'greater than {}. This is highly '
-                                 'suspicious.\n'
-                                 'Please check your data to ensure everything '
-                                 'is correct.\n'
-                                 'Value found: {}\n'
-                                 'Use --force_b0_threshold to execute '
-                                 'regardless.'
-                                 .format(DEFAULT_B0_THRESHOLD, bvals_min))
+    if b0_thr > DEFAULT_B0_THRESHOLD:
+        logging.warning(
+            'Warning: Your defined threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher '
+            'than {} as b0s.'.format(b0_thr, DEFAULT_B0_THRESHOLD)
+        )
+
+    if bvals_min < 0:
+        logging.warning(
+            'Warning: Your dataset contains negative b-values (minimal '
+            'bvalue of {}). This is suspicious. We recommend you check '
+            'your data.')
+
+    if bvals_min > b0_thr:
+        if force_b0_threshold:
+            logging.warning(
+                'Warning: Your minimal bvalue is {}, but the threshold '
+                'is set to {}. Since --force_b0_threshold was specified, '
+                'the script will proceed with a threshold of {}'
+                '.'.format(bvals_min, b0_thr, bvals_min))
+            return bvals_min
         else:
-            logging.warning('Warning: No b=0 image. Setting b0_threshold to '
-                            'the minimum bval: {}'.format(bvals_min))
+            raise ValueError('The minimal bvalue ({}) is greater than the '
+                             'threshold ({}). No b0 volumes can be found.\n'
+                             'Please check your data to ensure everything '
+                             'is correct.\n'
+                             'Use --force_b0_threshold to execute '
+                             'regardless.'
+                             .format(bvals_min, b0_thr))
+
+    return b0_thr
 
 
 def get_shell_indices(bvals, shell, tol=10):
@@ -235,7 +250,7 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     # Finding centroids
     bval_centroids = [bvals[0]]
     for bval in bvals[1:]:
-        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        diffs = np.abs(np.asarray(bval_centroids, dtype=float) - bval)
         if not len(np.where(diffs < threshold)[0]):
             # Found no bval in bval centroids close enough to the current one.
             # Create new centroid (i.e. new shell)

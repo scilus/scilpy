@@ -131,7 +131,7 @@ def main():
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
                                              sft_bundle.dimensions).astype(
-                                                 np.bool)
+                                                 bool)
 
     structure = ndi.generate_binary_structure(3, 1)
     if np.count_nonzero(binary_bundle) > args.min_voxel_count \
@@ -165,7 +165,7 @@ def main():
     # Map every streamlines points to the centroids
     binary_centroid = compute_tract_counts_map(sft_centroid.streamlines,
                                                sft_centroid.dimensions).astype(
-                                                   np.bool)
+                                                   bool)
     # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
     min_dist_label, min_dist = min_dist_to_centroid(cut_sft.streamlines._data,
                                                     sft_centroid.streamlines._data)

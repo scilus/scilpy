@@ -115,8 +115,9 @@ def main():
         bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
         # Compute average bval
-        check_b0_threshold(args.force_b0_threshold, bvals.min())
-        b0s_mask = bvals <= bvals.min()
+        b0_thr = check_b0_threshold(
+            args.force_b0_threshold, bvals.min(), bvals.min())
+        b0s_mask = bvals <= b0_thr
         avg_bval = np.mean(bvals[np.logical_not(b0s_mask)])
 
         new_bvals = ([avg_bval] * len(sphere.theta))

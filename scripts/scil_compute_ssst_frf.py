@@ -110,11 +110,11 @@ def main():
 
     mask = None
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     mask_wm = None
     if args.mask_wm:
-        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=np.bool)
+        mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
 
     full_response = compute_ssst_frf(
         data, bvals, bvecs, mask=mask,
