@@ -155,7 +155,7 @@ def _assert_edge_mode(parser, args):
             parser.error('Cannot specify sh0_th with edge_mode \'same\'.')
     elif args.edge_mode == 'wall':
         if args.mask is None and args.sh0_th is None:
-            parser.error('Missing required mask of sh0_th '
+            parser.error('Missing required \'mask\' or \'sh0_th\' '
                          'argument for edge_mode \'wall\'.')
 
 
