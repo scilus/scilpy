@@ -57,12 +57,12 @@ def _build_arg_parser():
                    help='File name for averaged signal.')
 
     p.add_argument('--out_asym_map', default='asym_map.nii.gz',
-                   help='File name for asymmetry map (Cetin Karayumak et al). '
-                        'Can only be outputed when the output SH basis is '
+                   help='File name for asymmetry map (Cetin Karayumak et al).'
+                        '\nCan only be outputed when the output SH basis is '
                         'full. [%(default)s]')
 
     p.add_argument('--out_oddpwr_map', default='oddpwr_map.nii.gz',
-                   help='File name for odd power map. Will only be outputed'
+                   help='File name for odd power map.\nWill only be outputed'
                         ' when output SH basis is full. [%(default)s]')
 
     p.add_argument('--sh_order', default=8, type=int,
@@ -91,8 +91,10 @@ def _build_arg_parser():
                         '    \'same\': Edges are processed in the same way as'
                         ' the rest of the image;\n'
                         '    \'wall\': Background voxels are discarded from '
-                        'the average. The filter is updated and normalized for'
-                        ' each voxel. [%(default)s]')
+                        'the average. The filter is\n            '
+                        'updated and normalized for each voxel. Requires '
+                        '\'--mask\' or\n            \'--sh0_th\'.'
+                        ' [%(default)s]')
 
     mask_group = p.add_mutually_exclusive_group()
     mask_group.add_argument('--mask',
