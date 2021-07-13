@@ -61,10 +61,10 @@ class BinghamDistribution(object):
 def bingham_from_array(arr):
     """
     Instantiate and return a bingham distribution
-    with parameters contained in `arr`.
+    with parameters contained in ``arr``.
 
-    Params
-    ======
+    Parameters
+    ----------
     arr: ndarray (9,)
         Parameters for the bingham distribution, with:
         arr[0]   => f0
@@ -74,7 +74,7 @@ def bingham_from_array(arr):
         arr[8]   => k2
 
     Returns
-    =======
+    -------
     out: BinghamDistribution
         Bingham distribution initialized with the parameters
         from `arr`.
@@ -82,26 +82,63 @@ def bingham_from_array(arr):
     return BinghamDistribution(arr[0], arr[1:4], arr[4:7], arr[7], arr[8])
 
 
-def bingham_fit_sh_parallel(data, max_lobes, abs_th=0.,
-                            rel_th=0., min_sep_angle=25.):
-    order, full_basis = get_sh_order_and_fullness(data.shape[-1])
-    shape = data.shape
+def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
+                   rel_th=0., min_sep_angle=25.,
+                   max_fit_angle=15,
+                   nbr_processes=None):
+    """
+    Approximate SH field by fitting Bingham distributions to
+    up to ``max_lobes`` lobes per voxel, sorted in descending order
+    by the amplitude of their peak direction.
+
+    Parameters
+    ----------
+    sh: ndarray (X, Y, Z, ncoeffs)
+        SH coefficients array.
+    max_lobes: unsigned int, optional
+        Maximum number of lobes to fit per voxel.
+    abs_th: float, optional
+        Absolute threshold for peak extraction.
+    rel_th: float, optional
+        Relative threshold for peak extraction in the range [0, 1].
+    min_sep_angle: float, optional
+        Minimum separation angle between two adjacent peaks in degrees.
+    max_fit_angle: float, optional
+        The maximum distance in degrees around a peak direction for
+        fitting the Bingham function.
+    nbr_processes: unsigned int, optional
+        The number of processes to use. If None, than
+        ``multiprocessing.cpu_count()`` processes are executed.
+
+    Returns
+    -------
+    out: ndarray (X, Y, Z, max_lobes*9)
+        Bingham functions array.
+    """
+    order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
+    shape = sh.shape
 
     sphere = get_sphere('symmetric724').subdivide(2)
     B_mat = sh_to_sf_matrix(sphere, order,
                             full_basis=full_basis,
                             return_inv=False)
 
-    nbr_processes = multiprocessing.cpu_count()
-    data = data.reshape((-1, data.shape[-1]))
-    data = np.array_split(data, nbr_processes)
+    nbr_processes = multiprocessing.cpu_count()\
+        if nbr_processes is None \
+        or nbr_processes < 0 \
+        or nbr_processes > multiprocessing.cpu_count() \
+        else nbr_processes
+
+    sh = sh.reshape((-1, sh.shape[-1]))
+    sh = np.array_split(sh, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
-    out = pool.map(_bingham_fit_sh, zip(data, itertools.repeat(B_mat),
-                                        itertools.repeat(sphere),
-                                        itertools.repeat(abs_th),
-                                        itertools.repeat(min_sep_angle),
-                                        itertools.repeat(rel_th),
-                                        itertools.repeat(max_lobes)))
+    out = pool.map(_bingham_fit_sh_chunk, zip(sh, itertools.repeat(B_mat),
+                                              itertools.repeat(sphere),
+                                              itertools.repeat(abs_th),
+                                              itertools.repeat(min_sep_angle),
+                                              itertools.repeat(rel_th),
+                                              itertools.repeat(max_lobes),
+                                              itertools.repeat(max_fit_angle)))
     pool.close()
     pool.join()
 
@@ -110,7 +147,10 @@ def bingham_fit_sh_parallel(data, max_lobes, abs_th=0.,
     return out
 
 
-def _bingham_fit_sh(args):
+def _bingham_fit_sh_chunk(args):
+    """
+    Fit Bingham functions on a (N, ncoeffs) chunk taken from a SH field.
+    """
     sh_chunk = args[0]
     B_mat = args[1]
     sphere = args[2]
@@ -118,6 +158,7 @@ def _bingham_fit_sh(args):
     min_sep_angle = args[4]
     rel_th = args[5]
     max_lobes = args[6]
+    max_angle = args[7]
 
     out = np.zeros((len(sh_chunk), max_lobes*NB_PARAMS))
     for i, sh in enumerate(sh_chunk):
@@ -125,13 +166,29 @@ def _bingham_fit_sh(args):
         odf[odf < abs_th] = 0.
         if (odf > 0.).any():
             lobes = \
-                _bingham_fit_multi_peaks(odf, sphere,
-                                         min_sep_angle=min_sep_angle,
-                                         rel_th=rel_th)
+                _bingham_fit_multi_peaks(odf, sphere, max_angle,
+                                         min_sep_angle, rel_th)
             for ll in range(min(len(lobes), max_lobes)):
                 lobe = lobes[ll]
                 out[i, ll*NB_PARAMS:(ll+1)*NB_PARAMS] = lobe.get_flatten()
     return out
+
+
+def _bingham_fit_multi_peaks(odf, sphere, max_angle,
+                             min_sep_angle, rel_th):
+    """
+    Peak extraction followed by Bingham fit for each peak.
+    """
+    peaks, _, _ = peak_directions(odf, sphere,
+                                  relative_peak_threshold=rel_th,
+                                  min_separation_angle=min_sep_angle)
+
+    lobes = []
+    for peak in peaks:
+        peak_fit = _bingham_fit_peak(odf, peak, sphere, max_angle)
+        lobes.append(peak_fit)
+
+    return lobes
 
 
 def _bingham_fit_peak(sf, peak, sphere, max_angle):
@@ -198,30 +255,31 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     return BinghamDistribution(f0, mu1, mu2, k1, k2)
 
 
-def _bingham_fit_multi_peaks(odf, sphere, max_angle=15.,
-                             min_sep_angle=25., rel_th=0.1):
+def compute_fiber_density(bingham, m=50, nbr_processes=None):
     """
-    Peak extraction followed by Bingham fit for each peak.
-    """
-    peaks, _, _ = peak_directions(odf, sphere,
-                                  relative_peak_threshold=rel_th,
-                                  min_separation_angle=min_sep_angle)
+    Compute fiber density for each lobe for a given Bingham volume.
 
-    lobes = []
-    for peak in peaks:
-        peak_fit = _bingham_fit_peak(odf, peak, sphere, max_angle)
-        lobes.append(peak_fit)
-
-    return lobes
-
-
-def compute_fiber_density_parallel(data, m=50):
-    """
     Fiber density (FD) is given by integrating
     the bingham function over the sphere. Its unit is
     in 1/mm**3.
+
+    Parameters
+    ----------
+    bingham: ndarray (X, Y, Z, max_lobes*9)
+        Input Bingham volume.
+    m: unsigned int, optional
+        Number of steps along theta axis for the integration. The number of
+        steps along the phi axis is 2*m.
+    nbr_processes: unsigned int, optional
+        The number of processes to use. If None, then
+        ``multithreading.cpu_count()`` processes are launched.
+
+    Returns
+    -------
+    res: ndarray (X, Y, Z, max_lobes)
+        FD per lobe for each voxel.
     """
-    shape = data.shape
+    shape = bingham.shape
 
     phi = np.linspace(0, 2 * np.pi, 2 * m, endpoint=False)  # [0, 2pi[
     theta = np.linspace(0, np.pi, m)  # [0, pi]
@@ -229,12 +287,17 @@ def compute_fiber_density_parallel(data, m=50):
     dphi = phi[1] - phi[0]
     dtheta = theta[1] - theta[0]
 
-    nbr_processes = multiprocessing.cpu_count()
-    data = data.reshape((-1, shape[-1]))
-    data = np.array_split(data, nbr_processes)
+    nbr_processes = multiprocessing.cpu_count()\
+        if nbr_processes is None \
+        or nbr_processes < 0 \
+        or nbr_processes > multiprocessing.cpu_count() \
+        else nbr_processes
+
+    bingham = bingham.reshape((-1, shape[-1]))
+    bingham = np.array_split(bingham, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
-    res = pool.map(_compute_fiber_density,
-                   zip(data,
+    res = pool.map(_compute_fiber_density_chunk,
+                   zip(bingham,
                        itertools.repeat(coords),
                        itertools.repeat(dphi),
                        itertools.repeat(dtheta)))
@@ -247,7 +310,10 @@ def compute_fiber_density_parallel(data, m=50):
     return res
 
 
-def _compute_fiber_density(args):
+def _compute_fiber_density_chunk(args):
+    """
+    Compute fiber density for a chunk taken from a Bingham volume.
+    """
     binghams_chunk = args[0]
     coords = args[1]
     dphi = args[2]
@@ -271,9 +337,23 @@ def _compute_fiber_density(args):
 
 def compute_fiber_spread(binghams, fd):
     """
+    Compute fiber spread for each lobe for a given Bingham volume.
+
     Fiber spread (FS) characterizes the spread of the lobe.
     The higher FS is, the wider the lobe. The unit of the
     FS is radians.
+
+    Parameters
+    ----------
+    binghams: ndarray (X, Y, Z, max_lobes*9)
+        Bingham volume.
+    fd: ndarray (X, Y, Z, max_lobes)
+        Fiber density image.
+
+    Returns
+    -------
+    fs: ndarray (X, Y, Z, max_lobes)
+        Fiber spread image.
     """
     f0 = binghams[..., ::NB_PARAMS]
     fs = np.zeros_like(fd)
@@ -282,16 +362,27 @@ def compute_fiber_spread(binghams, fd):
     return fs
 
 
-def compute_structural_complexity(fd):
+def compute_fiber_fraction(fd):
     """
-    Structural complexity (CX) increases when the fiber structure
-    becomes more complex inside a voxel and fewer of the fibers in
-    the voxel are contained in the largest bundle alone. This value
-    is normalized between 0 and 1.
+    Compute the fiber fraction for each lobe at each voxel.
+
+    The fiber fraction (FF) represents the fraction of the current lobe's
+    FD on the total FD for all lobes. For each voxel, the FF sums to 1.
+
+    Parameters
+    ----------
+    fd: ndarray (X, Y, Z, max_lobes)
+        Fiber density image.
+
+    Returns
+    -------
+    ff: ndarray (X, Y, Z, max_lobes)
+        Fiber fraction image.
     """
-    cx = np.zeros(fd.shape[:3])
-    n = fd.shape[-1]
-    mask = np.max(fd, axis=-1) > 0
-    cx[mask] = n / (n - 1) * \
-        (1 - np.max(fd, axis=-1)[mask]/np.sum(fd, axis=-1)[mask])
-    return cx
+    ff = np.zeros_like(fd)
+    sum = np.sum(fd, axis=-1)
+    mask = sum > 0
+    for ll in range(ff.shape[-1]):
+        ff[..., ll][mask] = fd[..., ll][mask] / sum[mask]
+
+    return ff

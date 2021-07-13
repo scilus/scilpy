@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Visualize 2-dimensional fODF slice loaded from disk.
+Visualize 2-dimensional Bingham volume slice loaded from disk.
 
-Given an image of SH coefficients, this script displays a slice in a
-given orientation. The user can also add a background on top of which the
-fODF are to be displayed. Using a full SH basis, the script can be used to
-visualize asymmetric fODF. The user can supply a peaks image to visualize
-peaks on top of fODF.
+Given an image of Bingham coefficients, this script displays a slice in a
+given orientation.
 """
 
 import argparse
@@ -21,7 +18,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.viz.scene_utils import (create_bingham_slicer,
-                                    create_texture_slicer,
                                     create_scene, render_scene)
 
 
@@ -62,23 +58,6 @@ def _build_arg_parser():
     p.add_argument('--sphere', default='symmetric362', choices=sphere_choices,
                    help='Name of the sphere used to reconstruct SF. '
                         '[%(default)s]')
-
-    p.add_argument('--sph_subdivide', type=int,
-                   help='Number of subdivisions for given sphere. If not '
-                        'supplied, use the given sphere as is.')
-
-    p.add_argument('--colormap', default=None,
-                   help='Colormap for the ODF slicer. If None, '
-                        'then a RGB colormap will be used. [%(default)s]')
-
-    p.add_argument('--scale', default=0.5, type=float,
-                   help='Scaling factor for FODF. [%(default)s]')
-
-    p.add_argument('--radial_scale_off', action='store_true',
-                   help='Disable radial scale for ODF slicer.')
-
-    p.add_argument('--norm_off', action='store_true',
-                   help='Disable normalization of ODF slicer.')
 
     return p
 
