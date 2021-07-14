@@ -2,6 +2,7 @@ import itertools
 import logging
 import multiprocessing
 
+from scilpy.direction.peaks import peak_directions_asym
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
@@ -98,6 +99,7 @@ def peaks_from_sh_parallel(args):
     npeaks = args[6]
     normalize_peaks = args[7]
     chunk_id = args[8]
+    is_symmetric = args[9]
 
     data_shape = shm_coeff.shape[0]
     peak_dirs = np.zeros((data_shape, npeaks, 3))
@@ -105,13 +107,16 @@ def peaks_from_sh_parallel(args):
     peak_indices = np.zeros((data_shape, npeaks), dtype='int')
     peak_indices.fill(-1)
 
+    peak_dir_func = peak_directions if is_symmetric else peak_directions_asym
+
     for idx in range(len(shm_coeff)):
         if shm_coeff[idx].any():
             odf = np.dot(shm_coeff[idx], B)
             odf[odf < absolute_threshold] = 0.
-            dirs, peaks, ind = peak_directions(odf, sphere,
-                                               relative_peak_threshold,
-                                               min_separation_angle)
+
+            dirs, peaks, ind = peak_dir_func(odf, sphere,
+                                             relative_peak_threshold,
+                                             min_separation_angle)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
@@ -130,7 +135,8 @@ def peaks_from_sh_parallel(args):
 def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                   absolute_threshold=0, min_separation_angle=25,
                   normalize_peaks=False, npeaks=5,
-                  sh_basis_type='descoteaux07', nbr_processes=None):
+                  sh_basis_type='descoteaux07', nbr_processes=None,
+                  full_basis=False, is_symmetric=True):
     """Computes peaks from given spherical harmonic coefficients
 
     Parameters
@@ -167,21 +173,24 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
+    full_basis: bool, optional
+        If True, SH coefficients are expressed using a full basis.
+        Default: False
 
     Returns
     -------
     tuple of np.ndarray
         peak_dirs, peak_values, peak_indices
     """
-    sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type)
+    sh_order = order_from_ncoef(shm_coeff.shape[-1], full_basis)
+    B, _ = sh_to_sf_matrix(sphere, sh_order, sh_basis_type, full_basis)
 
     data_shape = shm_coeff.shape
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
     nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-                                                   or nbr_processes < 0 else nbr_processes
+        or nbr_processes < 0 else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
@@ -200,7 +209,8 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
                            itertools.repeat(min_separation_angle),
                            itertools.repeat(npeaks),
                            itertools.repeat(normalize_peaks),
-                           np.arange(len(chunks))))
+                           np.arange(len(chunks)),
+                           itertools.repeat(is_symmetric)))
     pool.close()
     pool.join()
 
