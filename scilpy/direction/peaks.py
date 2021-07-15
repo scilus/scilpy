@@ -72,7 +72,6 @@ def peak_directions_asym(odf, sphere, relative_peak_threshold=.5,
 
 
 def remove_similar_vertices(vertices, theta,
-                            return_mapping=False,
                             return_index=False,
                             asym=False):
     """Remove vertices that are less than `theta` degrees from any other
@@ -120,39 +119,30 @@ def remove_similar_vertices(vertices, theta,
     n = vertices.shape[0]
     cos_similarity = np.cos(np.pi/180 * theta)
     unique_vertices = np.empty((n, 3), dtype=float)
-    if return_mapping:
-        mapping = np.empty(n, dtype=np.uint16)
     if return_index:
         index = np.empty(n, dtype=np.uint16)
 
     for i in range(n):
         pass_all = True
         # Check all other accepted vertices for similarity to this one
-        for j in range(n_unique):
-            sim = vertices[i].dot(unique_vertices[j])
-            if not asym:
-                sim = np.abs(sim)
-            if sim > cos_similarity:  # too similar, drop
-                pass_all = False
-                if return_mapping:
-                    mapping[i] = j
-                # This point unique_vertices[j] already has an entry in index,
-                # so we do not need to update.
-                break
+        sim = vertices[i].dot(unique_vertices.T)
+        if not asym:
+            sim = np.abs(sim)
+        if (sim > cos_similarity).any():  # too similar, drop
+            pass_all = False
+            # This point unique_vertices[j] already has an entry in index,
+            # so we do not need to update.
+            break
         if pass_all:  # none similar, keep
             unique_vertices[n_unique] = vertices[i]
-            if return_mapping:
-                mapping[i] = n_unique
             if return_index:
                 index[n_unique] = i
             n_unique += 1
 
     verts = unique_vertices[:n_unique].copy()
-    if not return_mapping and not return_index:
+    if not return_index:
         return verts
     out = [verts]
-    if return_mapping:
-        out.append(mapping)
     if return_index:
         out.append(index[:n_unique].copy())
     return out
@@ -200,17 +190,9 @@ def search_descending(a, relative_threshold):
     if a.shape[0] == 0:
         return 0
 
-    left = 0
-    right = a.shape[0]
     threshold = relative_threshold * a[0]
-
-    while left != right:
-        mid = (left + right) // 2
-        if a[mid] >= threshold:
-            left = mid + 1
-        else:
-            right = mid
-    return left
+    indice = np.where(a > threshold)[0][-1] + 1
+    return indice
 
 
 def local_maxima(odf, edges):
@@ -318,19 +300,19 @@ def _compare_neighbors(odf, edges):
         odf1 = odf[find1]
 
         """
-        Here `wpeak_ptr` is used as an indicator array that can take one of
-        three values.  If `wpeak_ptr[i]` is:
+        Here `wpeak` is used as an indicator array that can take one of
+        three values.  If `wpeak[i]` is:
         * -1 : point i of the sphere is smaller than at least one neighbor.
         *  0 : point i is equal to all its neighbors.
         *  1 : point i is > at least one neighbor and >= all its neighbors.
 
         Each iteration of the loop is a comparison between neighboring points
-        (the two point of an edge). At each iteration we update wpeak_ptr in
+        (the two point of an edge). At each iteration we update wpeak in
         the following way::
 
-            wpeak_ptr[smaller_point] = -1
-            if wpeak_ptr[larger_point] == 0:
-                wpeak_ptr[larger_point] = 1
+            wpeak[smaller_point] = -1
+            if wpeak[larger_point] == 0:
+                wpeak[larger_point] = 1
 
         If the two points are equal, wpeak is left unchanged.
         """
