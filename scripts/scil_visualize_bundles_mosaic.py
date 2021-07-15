@@ -10,7 +10,6 @@ import argparse
 import logging
 import os
 import random
-import shutil
 
 from dipy.io.utils import is_header_compatible
 from fury import actor, window
