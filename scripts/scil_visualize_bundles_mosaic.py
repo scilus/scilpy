@@ -10,6 +10,7 @@ import argparse
 import logging
 import os
 import random
+import shutil
 
 from dipy.io.utils import is_header_compatible
 from fury import actor, window
@@ -64,6 +65,12 @@ def _build_arg_parser():
                    help='Resolution of thumbnails used in mosaic '
                         '[%(default)s].')
 
+    p.add_argument('--light_screenshot', action='store_true',
+                   help='Keep only 3 views instead of 6 '
+                        '[%(default)s].')
+    p.add_argument('--no_information', action='store_true',
+                   help='Don\'t display axis and bundle information '
+                        '[%(default)s].')
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p
@@ -99,15 +106,15 @@ def get_font(args):
 
 
 def draw_column_with_names(draw, output_names, text_pos_x,
-                           text_pos_y, height, font):
+                           text_pos_y, height, font, view_number):
     """
     Draw the first column with row's description
     (views and bundle information to display).
     """
     # Orientation's names
     for num, name in enumerate(output_names):
-        i = 0
         j = height * num + 50
+        i = 0
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
                   name[:name.find('_')], font=font)
@@ -115,9 +122,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
                   name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
-    view_number = 6
-    i = 0
     j = height * view_number
+    i = 0
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
     draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
@@ -161,6 +167,10 @@ def main():
     output_names = ['axial_superior', 'axial_inferior',
                     'coronal_posterior', 'coronal_anterior',
                     'sagittal_left', 'sagittal_right']
+    if args.light_screenshot:
+        output_names = ['axial_superior',
+                        'coronal_posterior',
+                        'sagittal_left']
 
     for filename in args.in_bundles:
         _, ext = os.path.splitext(filename)
@@ -188,12 +198,17 @@ def main():
     width = args.resolution_of_thumbnails
     height = args.resolution_of_thumbnails
     rows = 6
+    if args.light_screenshot:
+        rows = 3
     cols = len(args.in_bundles)
     text_pos_x = 50
     text_pos_y = 50
 
     # Creates a new empty image, RGB mode
-    mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
+    if args.no_information:
+        mosaic = Image.new('RGB', (cols * width, rows * height))
+    else:
+        mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
 
     # Prepare draw and font objects to render text
     draw = ImageDraw.Draw(mosaic)
@@ -207,8 +222,9 @@ def main():
     value_range = (mean - 0.5 * std, mean + 1.5 * std)
 
     # First column with rows description
-    draw_column_with_names(draw, output_names, text_pos_x,
-                           text_pos_y, height, font)
+    if not args.no_information:
+        draw_column_with_names(draw, output_names, text_pos_x,
+                               text_pos_y, height, font, rows)
 
     # ----------------------------------------------------------------------- #
     # Columns with bundles
@@ -219,14 +235,17 @@ def main():
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, bundle_ext = split_name_with_nii(bundle_file_name)
 
-        i = (idx_bundle + 1)*width
+        if args.no_information:
+            i = idx_bundle * width
+        else:
+            i = (idx_bundle + 1) * width
 
-        if not os.path.isfile(bundle_file):
+        if not os.path.isfile(bundle_file) and not args.no_information:
             print('\nInput file {} doesn\'t exist.'.format(bundle_file))
 
             number_streamlines = 0
 
-            view_number = 6
+            view_number = rows
             j = height * view_number
 
             draw_bundle_information(draw, bundle_file_name, number_streamlines,
@@ -274,11 +293,12 @@ def main():
             view_number = 0
             set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.pitch(180)
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 1
-            set_img_in_cell(mosaic, ren, view_number, width, height, i)
+            if not args.light_screenshot:
+                ren.pitch(180)
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor)
             slice_actor2 = slice_actor.copy()
@@ -290,15 +310,16 @@ def main():
             ren.set_camera(view_up=(0, 0, 1))
             ren.reset_camera()
             ren.zoom(zoom)
-            view_number = 2
+            view_number += 1
             set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.pitch(180)
-            ren.set_camera(view_up=(0, 0, 1))
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 3
-            set_img_in_cell(mosaic, ren, view_number, width, height, i)
+            if not args.light_screenshot:
+                ren.pitch(180)
+                ren.set_camera(view_up=(0, 0, 1))
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor2)
             slice_actor3 = slice_actor.copy()
@@ -309,19 +330,21 @@ def main():
             ren.yaw(90)
             ren.reset_camera()
             ren.zoom(zoom)
-            view_number = 4
+            view_number += 1
             set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.yaw(180)
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 5
-            set_img_in_cell(mosaic, ren, view_number, width, height, i)
+            if not args.light_screenshot:
+                ren.yaw(180)
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            view_number = 6
-            j = height * view_number
-            draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
-                                    i + text_pos_x, j + text_pos_y, font)
+            if not args.no_information:
+                view_number = rows
+                j = height * view_number
+                draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
+                                        i + text_pos_x, j + text_pos_y, font)
 
     # Save image to file
     mosaic.save(args.out_image)
