@@ -1,57 +1,180 @@
 #!/usr/bin/env python3
 import argparse
-from scilpy.direction.peaks import peak_directions_asym
-
+import nibabel as nib
 import numpy as np
-from dipy.sims.voxel import multi_tensor, multi_tensor_odf
-from dipy.data import get_sphere
+
+from dipy.data import get_sphere, SPHERE_FILES
+from dipy.direction.peaks import reshape_peaks_for_visualization
+from dipy.reconst.shm import sph_harm_ind_list
 
 from scilpy.reconst.multi_processes import peaks_from_sh
-
-from dipy.viz import window, actor
+from scilpy.reconst.utils import get_sh_order_and_fullness
+from scilpy.io.utils import (add_processes_arg,
+                             add_sh_basis_args,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_overwrite_arg)
+from scilpy.io.image import get_data_as_mask
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh', help='Input SH image.')
-    p.add_argument('--out_asym', default='asym_map.nii.gz')
-    p.add_argument('--out_odd_power', default='odd_power_map.nii.gz')
+
+    p.add_argument('--mask', default='',
+                   help='Optional mask.')
+    p.add_argument('--asym_map', default='',
+                   help='Output asymmetry map using Cetin '
+                        'Karayumak et al., 2018 asymmetry measure.')
+    p.add_argument('--odd_power_map', default='',
+                   help='Output odd power map.')
+    p.add_argument('--peaks', default='',
+                   help='Output filename for the extracted peaks.')
+    p.add_argument('--peak_values', default='',
+                   help='Output filename for the extracted peaks values.')
+    p.add_argument('--peak_indices', default='',
+                   help='Output filename for the generated peaks indices on '
+                        'the sphere.')
+    p.add_argument('--nupeaks', default='',
+                   help='Output filename for the nupeaks file.')
+    p.add_argument('--not_all', action='store_true',
+                   help='If set, only saves the files specified using the '
+                        'file flags [%(default)s].')
+
+    p.add_argument('--at', dest='a_threshold', type=float, default='0.0',
+                   help='Absolute threshold on fODF amplitude. This '
+                        'value should be set to\napproximately 1.5 to 2 times '
+                        'the maximum fODF amplitude in isotropic voxels\n'
+                        '(ie. ventricles).\n'
+                        'Use compute_fodf_max_in_ventricles.py to find the '
+                        'maximal value.\n'
+                        'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
+    p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
+                   help='Relative threshold on fODF amplitude in percentage '
+                        '[%(default)s].')
+    p.add_argument('--sphere', default='symmetric724',
+                   choices=sorted(SPHERE_FILES.keys()),
+                   help='Sphere to use for peak directions estimates '
+                        '[%(default)s].')
+
+    add_processes_arg(p)
+    add_sh_basis_args(p)
+    add_overwrite_arg(p)
+    return p
+
+
+def compute_karayumak_asym_map(sh_coeffs, order, mask):
+    _, l_list = sph_harm_ind_list(order, full_basis=True)
+
+    sign = np.power(-1.0, l_list)
+    sign = np.reshape(sign, (1, 1, 1, len(l_list)))
+    sh_squared = sh_coeffs**2
+    mask = np.logical_and(sh_squared.sum(axis=-1) > 0., mask)
+
+    asym_map = np.zeros(sh_coeffs.shape[:-1])
+    asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
+        np.sum(sh_squared, axis=-1)[mask]
+
+    asym_map = np.sqrt(1 - asym_map**2) * mask
+
+    return asym_map
+
+
+def compute_odd_power_map(sh_coeffs, order, mask):
+    _, l_list = sph_harm_ind_list(order, full_basis=True)
+    odd_l_list = (l_list % 2 == 1).reshape((1, 1, 1, -1))
+
+    odd_order_norm = np.linalg.norm(sh_coeffs * odd_l_list,
+                                    ord=2, axis=-1)
+
+    full_order_norm = np.linalg.norm(sh_coeffs, ord=2, axis=-1)
+
+    asym_map = np.zeros(sh_coeffs.shape[:-1])
+    mask = np.logical_and(full_order_norm > 0, mask)
+    asym_map[mask] = odd_order_norm[mask] / full_order_norm[mask]
+
+    return asym_map
 
 
 def main():
-    mevals = np.array([[0.0015, 0.0003, 0.0003],
-                       [0.0015, 0.0003, 0.0003]])
+    parser = _build_arg_parser()
+    args = parser.parse_args()
 
-    angles = [(0, 0), (60, 0)]
+    if not args.not_all:
+        args.asym_map = args.asym_map or 'asym_map.nii.gz'
+        args.odd_power_map = args.odd_power_map or 'odd_power_map.nii.gz'
+        args.peaks = args.peaks or 'asym_peaks.nii.gz'
+        args.peak_values = args.peak_values or 'asym_peak_values.nii.gz'
+        args.peak_indices = args.peak_indices or 'asym_peak_indices.nii.gz'
+        args.nupeaks = args.nupeaks or 'nupeaks.nii.gz'
 
-    fractions = [50, 50]
+    arglist = [args.asym_map, args.odd_power_map, args.peaks,
+               args.peak_values, args.peak_indices, args.nupeaks]
+    if args.not_all and not any(arglist):
+        parser.error('When using --not_all, you need to specify at least '
+                     'one file to output.')
 
-    sphere = get_sphere('repulsion724')
-    sphere = sphere.subdivide(2)
+    inputs = [args.in_sh]
+    if args.mask:
+        inputs.append(args.mask)
 
-    odf = multi_tensor_odf(sphere.vertices, mevals, angles, fractions)
-    odf += np.random.normal(scale=0.001, size=odf.shape)
+    assert_inputs_exist(parser, inputs)
+    assert_outputs_exist(parser, args, arglist)
 
-    # Enables/disables interactive visualization
-    interactive = True
+    sh_img = nib.load(args.in_sh)
+    sh = sh_img.get_fdata()
 
-    scene = window.Scene()
+    sphere = get_sphere(args.sphere)
 
-    odf_actor = actor.odf_slicer(odf[None, None, None, :],
-                                 sphere=sphere,
-                                 colormap='plasma')
-    odf_actor.RotateX(90)
+    sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
+    if not full_basis:
+        parser.error('Invalid SH image. A full SH basis is expected.')
 
-    scene.add(odf_actor)
+    if args.mask:
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
+    else:
+        mask = np.sum(np.abs(sh), axis=-1) > 0
 
-    peaks, _, _ = peak_directions_asym(odf, sphere)
-    peak_actor = actor.peak_slicer(peaks[None, None, None, :], symmetric=False)
-    peak_actor.RotateX(90)
-    scene.add(peak_actor)
+    if args.asym_map:
+        asym_map = compute_karayumak_asym_map(sh, sh_order, mask)
+        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.asym_map)
 
-    if interactive:
-        window.show(scene)
+    if args.odd_power_map:
+        odd_power_map = compute_odd_power_map(sh, sh_order, mask)
+        nib.save(nib.Nifti1Image(odd_power_map, sh_img.affine),
+                 args.odd_power_map)
+
+    if args.peaks or args.peak_values or args.peak_indices or args.nupeaks:
+        peaks, values, indices =\
+            peaks_from_sh(sh, sphere, mask=mask,
+                          relative_peak_threshold=args.r_threshold,
+                          absolute_threshold=args.a_threshold,
+                          min_separation_angle=25,
+                          normalize_peaks=False,
+                          # because v and -v are unique, we want twice
+                          # the usual default value (5) of npeaks
+                          npeaks=10,
+                          sh_basis_type=args.sh_basis,
+                          nbr_processes=args.nbr_processes,
+                          full_basis=True,
+                          is_symmetric=False)
+
+        if args.peaks:
+            nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peaks),
+                                     sh_img.affine), args.peaks)
+
+        if args.peak_values:
+            nib.save(nib.Nifti1Image(values, sh_img.affine),
+                     args.peak_values)
+
+        if args.peak_indices:
+            nib.save(nib.Nifti1Image(indices.astype(np.uint8), sh_img.affine),
+                     args.peak_indices)
+
+        if args.nupeaks:
+            nupeaks = np.count_nonzero(values, axis=-1).astype(np.uint8)
+            nib.save(nib.Nifti1Image(nupeaks, sh_img.affine), args.nupeaks)
 
 
 if __name__ == '__main__':

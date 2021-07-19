@@ -4,13 +4,17 @@ import numpy as np
 
 def peak_directions_asym(odf, sphere, relative_peak_threshold=.5,
                          min_separation_angle=25):
-    """Get the directions of odf peaks.
+    """Get the directions of odf peaks. Adapted from
+    dipy.direction.peak.peak_directions.
 
     Peaks are defined as points on the odf that are greater than at least one
     neighbor and greater than or equal to all neighbors. Peaks are sorted in
     descending order by their values then filtered based on their relative size
     and spacing on the sphere. An odf may have 0 peaks, for example if the odf
     is perfectly isotropic.
+
+    Differs from dipy.direction.peak.peak_directions in that we consider
+    sphere directions v and -v as distinct directions.
 
     Parameters
     ----------
@@ -63,23 +67,20 @@ def peak_directions_asym(odf, sphere, relative_peak_threshold=.5,
 
     # Remove peaks too close together
     directions, uniq = remove_similar_vertices(directions,
-                                               min_separation_angle,
-                                               return_index=True,
-                                               asym=True)
+                                               min_separation_angle)
     values = values[uniq]
     indices = indices[uniq]
     return directions, values, indices
 
 
-def remove_similar_vertices(vertices, theta,
-                            return_index=False,
-                            asym=False):
-    """Remove vertices that are less than `theta` degrees from any other
+def remove_similar_vertices(vertices, theta):
+    """Remove vertices that are less than `theta` degrees from any other.
+    Originally taken from dipy.reconst.recspeed.
 
     Returns vertices that are at least theta degrees from any other vertex.
     Vertex v and -v are considered the same so if v and -v are both in
     `vertices` only one is kept. Also if v and w are both in vertices, w must
-    be separated by theta degrees from both v and -v to be unique.
+    be separated by theta degrees from v to be unique.
 
     Parameters
     ----------
@@ -87,12 +88,6 @@ def remove_similar_vertices(vertices, theta,
         N unit vectors.
     theta : float
         The minimum separation between vertices in degrees.
-    return_mapping : {False, True}, optional
-        If True, return `mapping` as well as `vertices` and maybe `indices`
-        (see below).
-    return_indices : {False, True}, optional
-        If True, return `indices` as well as `vertices` and maybe `mapping`
-        (see below).
 
     Returns
     -------
@@ -119,37 +114,33 @@ def remove_similar_vertices(vertices, theta,
     n = vertices.shape[0]
     cos_similarity = np.cos(np.pi/180 * theta)
     unique_vertices = np.empty((n, 3), dtype=float)
-    if return_index:
-        index = np.empty(n, dtype=np.uint16)
+
+    index = np.empty(n, dtype=np.uint16)
 
     for i in range(n):
         pass_all = True
         # Check all other accepted vertices for similarity to this one
-        sim = vertices[i].dot(unique_vertices.T)
-        if not asym:
-            sim = np.abs(sim)
-        if (sim > cos_similarity).any():  # too similar, drop
-            pass_all = False
-            # This point unique_vertices[j] already has an entry in index,
-            # so we do not need to update.
-            break
+        for j in range(n_unique):
+            sim = vertices[i].dot(unique_vertices[j])
+            if sim > cos_similarity:  # too similar, drop
+                pass_all = False
+                # This point unique_vertices[j] already has an entry in index,
+                # so we do not need to update.
+                break
         if pass_all:  # none similar, keep
             unique_vertices[n_unique] = vertices[i]
-            if return_index:
-                index[n_unique] = i
+
+            index[n_unique] = i
             n_unique += 1
 
     verts = unique_vertices[:n_unique].copy()
-    if not return_index:
-        return verts
-    out = [verts]
-    if return_index:
-        out.append(index[:n_unique].copy())
+    out = [verts, index[:n_unique].copy()]
     return out
 
 
 def search_descending(a, relative_threshold):
     """`i` in descending array `a` so `a[i] < a[0] * relative_threshold`
+    Originally taken from dipy.reconst.recspeed.
 
     Call ``T = a[0] * relative_threshold``. Return value `i` will be the
     smallest index in the descending array `a` such that ``a[i] < T``.
@@ -197,6 +188,7 @@ def search_descending(a, relative_threshold):
 
 def local_maxima(odf, edges):
     """Local maxima of a function evaluated on a discrete set of points.
+    Originally taken from dipy.reconst.recspeed.
 
     If a function is evaluated on some set of points where each pair of
     neighboring points is an edge in edges, find the local maxima.
@@ -244,25 +236,17 @@ def local_maxima(odf, edges):
 
 
 def _cosort(A, B):
-    """Sorts `A` in-place and applies the same reordering to `B`"""
-    n = A.shape[0]
-
-    for i in range(1, n):
-        insert_A = A[i]
-        insert_B = B[i]
-        hole = i
-        while hole > 0 and insert_A > A[hole - 1]:
-            A[hole] = A[hole - 1]
-            B[hole] = B[hole - 1]
-            hole -= 1
-        A[hole] = insert_A
-        B[hole] = insert_B
-
+    """Sorts `A` in descending order and applies the same reordering to `B`
+    Originally taken from dipy.reconst.recspeed."""
+    sorted = A.argsort()[::-1]
+    A = A[sorted]
+    B = B[sorted]
     return A, B
 
 
 def _compare_neighbors(odf, edges):
-    """Compares every pair of points in edges
+    """Compares every pair of points in edges.
+    Taken from dipy.reconst.recspeed.
 
     Parameters
     ----------
@@ -300,19 +284,19 @@ def _compare_neighbors(odf, edges):
         odf1 = odf[find1]
 
         """
-        Here `wpeak` is used as an indicator array that can take one of
-        three values.  If `wpeak[i]` is:
+        Here `wpeak_ptr` is used as an indicator array that can take one of
+        three values.  If `wpeak_ptr[i]` is:
         * -1 : point i of the sphere is smaller than at least one neighbor.
         *  0 : point i is equal to all its neighbors.
         *  1 : point i is > at least one neighbor and >= all its neighbors.
 
         Each iteration of the loop is a comparison between neighboring points
-        (the two point of an edge). At each iteration we update wpeak in
+        (the two point of an edge). At each iteration we update wpeak_ptr in
         the following way::
 
-            wpeak[smaller_point] = -1
-            if wpeak[larger_point] == 0:
-                wpeak[larger_point] = 1
+            wpeak_ptr[smaller_point] = -1
+            if wpeak_ptr[larger_point] == 0:
+                wpeak_ptr[larger_point] = 1
 
         If the two points are equal, wpeak is left unchanged.
         """
@@ -331,9 +315,8 @@ def _compare_neighbors(odf, edges):
 
     # Count the number of peaks and use first count elements of wpeak_ptr to
     # hold indices of those peaks
-    for i in range(lenodf):
-        if wpeak[i] > 0:
-            wpeak[count] = i
-            count += 1
+    count = np.count_nonzero(wpeak > 0)
+    nonzero = np.nonzero(wpeak > 0)
+    wpeak[:count] = nonzero[0]
 
     return wpeak, count

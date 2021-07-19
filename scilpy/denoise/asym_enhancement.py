@@ -8,9 +8,9 @@ from scipy.ndimage import correlate
 
 
 def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
-                                  out_full_basis=True, dot_sharpness=1.0,
-                                  sphere_str='repulsion724', sigma=1.0,
-                                  mask=None):
+                                  in_full_basis=False, out_full_basis=True,
+                                  dot_sharpness=1.0, sphere_str='repulsion724',
+                                  sigma=1.0, mask=None):
     """Average the SH projected on a sphere using a first-neighbor gaussian
     blur and a dot product weight between sphere directions and the direction
     to neighborhood voxels, forcing to 0 negative values and thus performing
@@ -24,6 +24,8 @@ def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         Maximum order of the SH series.
     sh_basis: {'descoteaux07', 'tournier07'}, optional
         SH basis of the input signal.
+    in_full_basis: bool, optional
+        True if the input is in full SH basis.
     out_full_basis: bool, optional
         If True, save output SH using full SH basis.
     dot_sharpness: float, optional

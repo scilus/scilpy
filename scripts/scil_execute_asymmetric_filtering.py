@@ -28,12 +28,12 @@ compute time.
 
 import argparse
 import logging
+from scilpy.reconst.utils import get_sh_order_and_fullness
 
 import nibabel as nib
 import numpy as np
 
 from dipy.data import SPHERE_FILES
-from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -55,18 +55,6 @@ def _build_arg_parser():
 
     p.add_argument('out_sh',
                    help='File name for averaged signal.')
-
-    p.add_argument('--out_asym_map', default='asym_map.nii.gz',
-                   help='File name for asymmetry map (Cetin Karayumak et al).'
-                        '\nCan only be outputed when the output SH basis is '
-                        'full. [%(default)s]')
-
-    p.add_argument('--out_oddpwr_map', default='oddpwr_map.nii.gz',
-                   help='File name for odd power map.\nWill only be outputed'
-                        ' when output SH basis is full. [%(default)s]')
-
-    p.add_argument('--sh_order', default=8, type=int,
-                   help='SH order of the input. [%(default)s]')
 
     add_sh_basis_args(p)
 
@@ -109,46 +97,6 @@ def _build_arg_parser():
     return p
 
 
-def compute_karayumak_asym_map(sh_coeffs):
-    order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
-    _, l_list = sph_harm_ind_list(order, full_basis=True)
-
-    sign = np.power(-1.0, l_list)
-    sign = np.reshape(sign, (1, 1, 1, len(l_list)))
-    sh_squared = sh_coeffs**2
-    mask = sh_squared.sum(axis=-1) > 0.
-
-    asym_map = np.zeros(sh_coeffs.shape[:-1])
-    asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
-        np.sum(sh_squared, axis=-1)[mask]
-
-    asym_map = np.sqrt(1 - asym_map**2) * mask
-
-    return asym_map
-
-
-def compute_odd_power_map(sh_coeffs):
-    order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
-    _, l_list = sph_harm_ind_list(order, full_basis=True)
-    odd_l_list = (l_list % 2 == 1).reshape((1, 1, 1, -1))
-
-    odd_order_norm = np.linalg.norm(
-        sh_coeffs * odd_l_list,
-        ord=2,
-        axis=-1)
-
-    full_order_norm = np.linalg.norm(
-        sh_coeffs,
-        ord=2,
-        axis=-1)
-
-    asym_map = np.zeros(sh_coeffs.shape[:-1])
-    mask = full_order_norm > 0
-    asym_map[mask] = odd_order_norm[mask] / full_order_norm[mask]
-
-    return asym_map
-
-
 def _assert_edge_mode(parser, args):
     if args.edge_mode == 'same':
         if args.mask is not None:
@@ -167,18 +115,13 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    outputs = [args.out_sh]
-    if not args.out_sym:
-        outputs.append(args.out_asym_map)
-        outputs.append(args.out_oddpwr_map)
-
     _assert_edge_mode(parser, args)
     inputs = [args.in_sh]
     if args.mask:
         inputs.append(args.mask)
 
     # Checking args
-    assert_outputs_exist(parser, args, outputs)
+    assert_outputs_exist(parser, args, args.out_sh)
     assert_inputs_exist(parser, inputs)
 
     # Prepare data
@@ -192,10 +135,13 @@ def main():
         else:
             mask = data[..., 0] > args.sh0_th
 
+    sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+
     logging.info('Executing locally asymmetric Gaussian filtering.')
     filtered_sh = local_asym_gaussian_filtering(
-        data, sh_order=args.sh_order,
+        data, sh_order=sh_order,
         sh_basis=args.sh_basis,
+        in_full_basis=full_basis,
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
@@ -204,22 +150,6 @@ def main():
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
-
-    # Save asymmetry measure map when the output is in full SH basis
-    if args.out_sym:
-        logging.info('Skipping asymmetry map because output is symmetric.')
-    else:
-        logging.info('Generating asymmetry map from output.')
-        asym_map = compute_karayumak_asym_map(filtered_sh)
-        logging.info('Saving asymmetry map to file '
-                     '{0}.'.format(args.out_asym_map))
-        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.out_asym_map)
-
-        logging.info('Generating odd power map from output.')
-        asym_map = compute_odd_power_map(filtered_sh)
-        logging.info('Saving asymmetry map to file '
-                     '{0}.'.format(args.out_oddpwr_map))
-        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.out_oddpwr_map)
 
 
 if __name__ == "__main__":

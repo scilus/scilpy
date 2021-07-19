@@ -176,6 +176,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     full_basis: bool, optional
         If True, SH coefficients are expressed using a full basis.
         Default: False
+    is_symmetric: bool, optional
+        If False, antipodal sphere directions are considered distinct.
+        Default: True
 
     Returns
     -------
