@@ -11,7 +11,7 @@ This script can either display the axis labels as:
 - Labels (using --labels_list)
 - Names (using --labels_list and --lookup_table)
 Examples of labels_list.txt and lookup_table.json can be found in the
-freesurfer_flow output (https://github.com/scilus/freesurfer_flow) 
+freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
 provide the text file(s), using --labels_list and/or --reorder_txt.
