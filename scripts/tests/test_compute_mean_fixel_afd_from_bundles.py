@@ -25,6 +25,6 @@ def test_execution_processing(script_runner):
                            'fodf_descoteaux07.nii.gz')
     ret = script_runner.run('scil_compute_mean_fixel_afd_from_bundles.py',
                             in_tracking, in_fodf,
-                            'afd_test.nii.gz', 'rd_test.nii.gz',
+                            'afd_test.nii.gz', 
                             '--sh_basis', 'descoteaux07', '--length_weighting')
     assert ret.success
