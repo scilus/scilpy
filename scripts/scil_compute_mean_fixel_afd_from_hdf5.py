@@ -7,11 +7,6 @@ maps along a bundle.
 
 This is the "real" fixel-based fODF amplitude along every streamline
 of the bundle provided, averaged at every voxel.
-Radial fODF comes for free from the mathematics, it is the great circle
-integral of the fODF orthogonal to the fixel of interest, similar to
-a Funk-Radon transform. Hence, radfODF is the fixel-based or HARDI-based
-generalization of the DTI radial diffusivity and AFD
-the generalization of axial diffusivity.
 
 Please use a bundle file rather than a whole tractogram.
 """
@@ -69,9 +64,8 @@ def _afd_rd_wrapper(args):
                                                           sh_basis,
                                                           length_weighting)
     afd_mean = np.average(afd_mean_map[afd_mean_map > 0])
-    rd_mean = np.average(rd_mean_map[rd_mean_map > 0])
 
-    return key, afd_mean, rd_mean
+    return key, afd_mean
 
 
 def _build_arg_parser():
@@ -140,14 +134,11 @@ def main():
 
     shutil.copy(args.in_hdf5, args.out_hdf5)
     with h5py.File(args.out_hdf5, 'a') as out_hdf5_file:
-        for key, afd_fixel, rd_fixel in results_list:
+        for key, afd_fixel in results_list:
             group = out_hdf5_file[key]
             if 'afd_fixel' in group:
                 del group['afd_fixel']
             group.create_dataset('afd_fixel', data=afd_fixel)
-            if 'rd_fixel' in group:
-                del group['rd_fixel']
-            group.create_dataset('rd_fixel', data=rd_fixel)
 
 
 if __name__ == '__main__':
