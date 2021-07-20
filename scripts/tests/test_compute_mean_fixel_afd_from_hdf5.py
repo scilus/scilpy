@@ -25,7 +25,7 @@ def test_execution_connectivity(script_runner):
     in_fodf = os.path.join(get_home(), 'connectivity',
                            'fodf.nii.gz')
     ret = script_runner.run('scil_compute_mean_fixel_afd_from_hdf5.py',
-                            in_h5, in_fodf, 'decompose_afd_rd.nii.gz',
+                            in_h5, in_fodf, 'decompose_afd.nii.gz',
                             '--length_weighting', '--sh_basis', 'descoteaux07',
                             '--processes', '1')
     assert ret.success
