@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import logging
 import os
 
@@ -8,6 +9,80 @@ import numpy as np
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
+
+
+def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
+                         voxel_sizes=[1.0, 1.0, 1.0], min_lesion_vol=7,
+                         precomputed_lesion_labels=None):
+    """
+    Returns information related to lesion inside of a binary mask or voxel
+    labels map (bundle, for tractometry).
+
+    Parameters
+    ------------
+    map_data : np.ndarray
+        Either a binary mask (uint8) or a voxel labels map (int16).
+    lesion_atlas : np.ndarray (3)
+        Labelled atlas of lesion. Should be int16.
+    single_label : boolean
+        If true, does not add an extra layer for number of labels.
+    voxel_sizes : np.ndarray (3)
+        If not specified, returns voxel count (instead of  volume)
+    min_lesion_vol : float
+        Minimum lesion volume in mm3 (default: 7, cross-shape).
+    precomputed_lesion_labels : np.ndarray (N)
+        For connectivity analysis, when the unique lesion labels are known,
+        provided a pre-computed list of labels save computation.
+    Returns
+    ---------
+    lesion_load_dict : dict
+        For each label, volume and lesion count
+    """
+    voxel_vol = np.prod(voxel_sizes)
+
+    if single_label:
+        labels_list = [1]
+    else:
+        labels_list = np.unique(map_data)[1:].astype(np.int32)
+
+    section_dict = {'lesion_total_volume': {}, 'lesion_volume': {},
+                    'lesion_count': {}}
+    for label in labels_list:
+        zlabel = str(label).zfill(3)
+        if not single_label:
+            tmp_mask = np.zeros(map_data.shape, dtype=np.int16)
+            tmp_mask[map_data == label] = 1
+            tmp_mask *= lesion_atlas
+        else:
+            tmp_mask = lesion_atlas * map_data
+
+        lesion_vols = []
+        if precomputed_lesion_labels is None:
+            computed_lesion_labels = np.unique(tmp_mask)[1:]
+        else:
+            computed_lesion_labels = precomputed_lesion_labels
+
+        for lesion in computed_lesion_labels:
+            curr_vol = np.count_nonzero(tmp_mask[tmp_mask == lesion]) \
+                * voxel_vol
+            if curr_vol >= min_lesion_vol:
+                lesion_vols.append(curr_vol)
+        if lesion_vols:
+            section_dict['lesion_total_volume'][zlabel] = round(
+                np.sum(lesion_vols), 3)
+            section_dict['lesion_volume'][zlabel] = np.round(lesion_vols, 3).tolist()
+            section_dict['lesion_count'][zlabel] = float(len(lesion_vols))
+        else:
+            section_dict['lesion_total_volume'][zlabel] = 0.0
+            section_dict['lesion_volume'][zlabel] = [0.0]
+            section_dict['lesion_count'][zlabel] = 0.0
+
+    if single_label:
+        section_dict = {'lesion_total_volume': section_dict['lesion_total_volume']['001'],
+                        'lesion_volume': section_dict['lesion_volume']['001'],
+                        'lesion_count': section_dict['lesion_count']['001']}
+
+    return section_dict
 
 
 def get_bundle_metrics_profiles(sft, metrics_files):
@@ -34,16 +109,17 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     streamlines = sft.streamlines
 
     def _get_profile_one_streamline(streamline, metrics_files):
-        x_ind = np.floor(streamline[:, 0]).astype(np.int)
-        y_ind = np.floor(streamline[:, 1]).astype(np.int)
-        z_ind = np.floor(streamline[:, 2]).astype(np.int)
+        x_ind = np.floor(streamline[:, 0]).astype(int)
+        y_ind = np.floor(streamline[:, 1]).astype(int)
+        z_ind = np.floor(streamline[:, 2]).astype(int)
 
         return list(map(lambda metric_file: metric_file[x_ind, y_ind, z_ind],
-                    metrics_files))
+                        metrics_files))
 
     # We preload the data to avoid loading it for each streamline
-    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(),
-                        metrics_files))
+    metrics_data = list(map(lambda metric_file: metric_file.get_fdata(
+        dtype=np.float64),
+        metrics_files))
 
     # The root list has S elements, where S == the number of streamlines.
     # Each element from S is a sublist with N elements, where N is the number
@@ -51,14 +127,14 @@ def get_bundle_metrics_profiles(sft, metrics_files):
     # encountered along the current streamline.
     metrics_per_strl =\
         list(map(lambda strl: _get_profile_one_streamline(strl, metrics_data),
-             streamlines))
+                 streamlines))
 
     converted = []
     # Here, the zip gives us a list of N tuples, so one tuple for each metric.
     # Each tuple has S elements, where S is the number of streamlines.
     # We then convert each tuple to a numpy array
     for metric_values in zip(*metrics_per_strl):
-        converted.append(np.asarray(metric_values))
+        converted.append(np.asarray(metric_values, dtype=float))
 
     return converted
 
@@ -120,13 +196,14 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
     return map(lambda metric_file:
                weighted_mean_std(weights,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)
 
 
 def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                           distances_to_centroid_streamline,
-                                          metrics, labels, density_weighting=False,
+                                          metrics, labels,
+                                          density_weighting=False,
                                           distance_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
@@ -156,23 +233,24 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     """
     # Computing infos on bundle
     unique_labels = np.unique(labels)
-    num_digits_labels = len(str(np.max(unique_labels)))
+    num_digits_labels = 3
     if density_weighting:
-        track_count = compute_tract_counts_map(streamlines,
-                                               metrics[0].shape).astype(np.float64)
+        streamlines_count = compute_tract_counts_map(streamlines,
+                                                     metrics[0].shape)
     else:
-        track_count = np.ones(metrics[0].shape)
+        streamlines_count = np.ones(metrics[0].shape)
+    streamlines_count = streamlines_count.astype(np.float64)
 
     # Bigger weight near the centroid streamline
     distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
 
     # Keep data as int to get the underlying voxel
-    bundle_data_int = streamlines.data.astype(np.int)
+    bundle_data_int = streamlines.get_data().astype(np.int16)
 
     # Get stats
     stats = {bundle_name: {}}
     for metric in metrics:
-        metric_data = metric.get_fdata()
+        metric_data = metric.get_fdata(dtype=np.float64)
         current_metric_fname, _ = split_name_with_nii(
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}
@@ -186,9 +264,9 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
             label_metric = metric_data[label_indices[:, 0],
                                        label_indices[:, 1],
                                        label_indices[:, 2]]
-            track_weight = track_count[label_indices[:, 0],
-                                       label_indices[:, 1],
-                                       label_indices[:, 2]]
+            track_weight = streamlines_count[label_indices[:, 0],
+                                             label_indices[:, 1],
+                                             label_indices[:, 2]]
             label_weight = track_weight
             if distance_weighting:
                 label_weight *= distances_to_centroid_streamline[labels == i]
@@ -207,16 +285,17 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     return stats
 
 
-def plot_metrics_stats(mean, std, title=None, xlabel=None,
-                       ylabel=None, figlabel=None, fill_color=None):
+def plot_metrics_stats(means, stds, title=None, xlabel=None,
+                       ylabel=None, figlabel=None, fill_color=None,
+                       display_means=False):
     """
     Plots the mean of a metric along n points with the standard deviation.
 
     Parameters
     ----------
-    mean: Numpy 1D array of size n
+    mean: Numpy 1D (or 2D) array of size n
         Mean of the metric along n points.
-    std: Numpy 1D array of size n
+    std: Numpy 1D (or 2D) array of size n
         Standard deviation of the metric along n points.
     title: string
         Title of the figure.
@@ -229,7 +308,8 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     fill_color: string
         Hexadecimal RGB color filling the region between mean ± std. The
         hexadecimal RGB color should be formatted as #RRGGBB
-
+    display_means: bool
+        Display the subjects means as semi-transparent line
     Return
     ------
     The figure object.
@@ -248,6 +328,15 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
     if figlabel is not None:
         fig.set_label(figlabel)
 
+    if means.ndim > 1:
+        mean = np.average(means, axis=1)
+        std = np.std(means, axis=1)
+        alpha = 0.5
+    else:
+        mean = np.array(means).ravel()
+        std = np.array(stds).ravel()
+        alpha = 0.9
+
     dim = np.arange(1, len(mean)+1, 1)
 
     if len(mean) <= 20:
@@ -255,11 +344,17 @@ def plot_metrics_stats(mean, std, title=None, xlabel=None,
 
     ax.set_xlim(0, len(mean)+1)
 
+    if means.ndim > 1 and display_means:
+        for i in range(means.shape[-1]):
+            ax.plot(dim, means[:, i], color="k", linewidth=1,
+                    solid_capstyle='round', alpha=0.1)
+
     # Plot the mean line.
     ax.plot(dim, mean, color="k", linewidth=5, solid_capstyle='round')
 
     # Plot the std
-    plt.fill_between(dim, mean - std, mean + std, facecolor=fill_color)
+    plt.fill_between(dim, mean - std, mean + std,
+                     facecolor=fill_color, alpha=alpha)
 
     plt.close(fig)
     return fig
@@ -288,5 +383,5 @@ def get_roi_metrics_mean_std(density_map, metrics_files):
 
     return map(lambda metric_file:
                weighted_mean_std(density_map,
-                                 metric_file.get_fdata()),
+                                 metric_file.get_fdata(dtype=np.float64)),
                metrics_files)

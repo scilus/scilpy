@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -30,13 +30,17 @@ def _build_arg_parser():
         '--ref',
         help='Reference volume to resample to.')
     res_group.add_argument(
-        '--resolution', type=float,
-        help='Resolution to resample to. If the value it is set to is Y, it '
-             'will resample to an isotropic resolution of Y x Y x Y.')
+        '--volume_size', nargs='+', type=int,
+        help='Sets the size for the volume. If the value is set to is Y, '
+             'it will resample to a shape of Y x Y x Y.')
+    res_group.add_argument(
+        '--voxel_size', nargs='+', type=float,
+        help='Sets the voxel size. If the value is set to is Y, it will set '
+             'a voxel size of Y x Y x Y.')
     res_group.add_argument(
         '--iso_min', action='store_true',
         help='Resample the volume to R x R x R with R being the smallest '
-             'current voxel dimension ')
+             'current voxel dimension.')
 
     p.add_argument(
         '--interp', default='lin',
@@ -45,6 +49,8 @@ def _build_arg_parser():
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
+    p.add_argument('--offset', default=-0.5, type=float,
+                   help='Add offset to voxels in the volume [%(default)s].')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -65,14 +71,28 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug('Loading Raw data from %s', args.in_image)
+    if args.volume_size and (not len(args.volume_size) == 1 and
+                             not len(args.volume_size) == 3):
+        parser.error('Invalid dimensions for --volume_size.')
+
+    if args.voxel_size and (not len(args.voxel_size) == 1 and
+                            not len(args.voxel_size) == 3):
+        parser.error('Invalid dimensions for --voxel_size.')
+
+    if args.offset != parser.get_default('offset'):
+        logging.warning('--offset is a dangerous parameter to modify. Make '
+                        'sure you know what you are doing.')
+
+    logging.debug('Loading raw data from %s', args.in_image)
 
     img = nib.load(args.in_image)
 
     # Resampling volume
-    resampled_img = resample_volume(img, ref=args.ref, res=args.resolution,
-                                    iso_min=args.iso_min, interp=args.interp,
-                                    enforce_dimensions=args.enforce_dimensions)
+    resampled_img = resample_volume(img, ref=args.ref, res=args.volume_size,
+                                    iso_min=args.iso_min, zoom=args.voxel_size,
+                                    interp=args.interp,
+                                    enforce_dimensions=args.enforce_dimensions,
+                                    offset=args.offset)
 
     # Saving results
     logging.debug('Saving resampled data to %s', args.out_image)

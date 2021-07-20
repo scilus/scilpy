@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -66,7 +66,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     in_img = nib.load(args.in_image)
-    in_data = in_img.get_data()
+    in_data = in_img.get_fdata(dtype=np.float32)
 
     if np.average(in_data[in_data > 0]) > 0.1:
         logging.warning('Be careful, your image doesn\'t seem to be an ad, '

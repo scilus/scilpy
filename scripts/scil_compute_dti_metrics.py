@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -22,7 +22,6 @@ signals, pulsation and misalignment artifacts, see
 MRM 2011].
 """
 
-from builtins import range
 import argparse
 import logging
 
@@ -58,11 +57,11 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
-    p.add_argument('bvals',
+    p.add_argument('in_bval',
                    help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
+    p.add_argument('in_bvec',
                    help='Path of the bvecs file, in FSL format.')
 
     add_overwrite_arg(p)
@@ -165,12 +164,12 @@ def main():
                      'one metric to output.')
 
     assert_inputs_exist(
-        parser, [args.input, args.bvals, args.bvecs], args.mask)
+        parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
-    img = nib.load(args.input)
+    img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
-    affine = img.get_affine()
+    affine = img.affine
     if args.mask is None:
         mask = None
     else:
@@ -178,14 +177,15 @@ def main():
 
     # Validate bvals and bvecs
     logging.info('Tensor estimation with the {} method...'.format(args.method))
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(args.force_b0_threshold, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    b0_thr = check_b0_threshold(
+        args.force_b0_threshold, bvals.min(), bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     # Get tensors
     if args.method == 'restore':
@@ -212,9 +212,13 @@ def main():
             tensor_vals_reordered.astype(np.float32), affine)
         nib.save(fiber_tensors, args.tensor)
 
+        del tensor_vals, fiber_tensors, tensor_vals_reordered
+
     if args.fa:
         fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
         nib.save(fa_img, args.fa)
+
+        del fa_img
 
     if args.ga:
         GA = geodesic_anisotropy(tenfit.evals)
@@ -223,25 +227,35 @@ def main():
         ga_img = nib.Nifti1Image(GA.astype(np.float32), affine)
         nib.save(ga_img, args.ga)
 
+        del GA, ga_img
+
     if args.rgb:
         RGB = color_fa(FA, tenfit.evecs)
         rgb_img = nib.Nifti1Image(np.array(255 * RGB, 'uint8'), affine)
         nib.save(rgb_img, args.rgb)
+
+        del RGB, rgb_img
 
     if args.md:
         MD = mean_diffusivity(tenfit.evals)
         md_img = nib.Nifti1Image(MD.astype(np.float32), affine)
         nib.save(md_img, args.md)
 
+        del MD, md_img
+
     if args.ad:
         AD = axial_diffusivity(tenfit.evals)
         ad_img = nib.Nifti1Image(AD.astype(np.float32), affine)
         nib.save(ad_img, args.ad)
 
+        del AD, ad_img
+
     if args.rd:
         RD = radial_diffusivity(tenfit.evals)
         rd_img = nib.Nifti1Image(RD.astype(np.float32), affine)
         nib.save(rd_img, args.rd)
+
+        del RD, rd_img
 
     if args.mode:
         # Compute tensor mode
@@ -256,10 +270,14 @@ def main():
         mode_img = nib.Nifti1Image(mode.astype(np.float32), affine)
         nib.save(mode_img, args.mode)
 
+        del inter_mode, mode_img, mode
+
     if args.norm:
         NORM = norm(tenfit.quadratic_form)
         norm_img = nib.Nifti1Image(NORM.astype(np.float32), affine)
         nib.save(norm_img, args.norm)
+
+        del NORM, norm_img
 
     if args.evecs:
         evecs = tenfit.evecs.astype(np.float32)
@@ -267,13 +285,12 @@ def main():
         nib.save(evecs_img, args.evecs)
 
         # save individual e-vectors also
-        e1_img = nib.Nifti1Image(evecs[..., 0], affine)
-        e2_img = nib.Nifti1Image(evecs[..., 1], affine)
-        e3_img = nib.Nifti1Image(evecs[..., 2], affine)
+        for i in range(3):
+            e_img = nib.Nifti1Image(evecs[..., i], affine)
+            nib.save(e_img, add_filename_suffix(args.evecs, '_v'+str(i+1)))
+            del e_img
 
-        nib.save(e1_img, add_filename_suffix(args.evecs, '_v1'))
-        nib.save(e2_img, add_filename_suffix(args.evecs, '_v2'))
-        nib.save(e3_img, add_filename_suffix(args.evecs, '_v3'))
+        del evecs, evecs_img
 
     if args.evals:
         evals = tenfit.evals.astype(np.float32)
@@ -281,13 +298,12 @@ def main():
         nib.save(evals_img, args.evals)
 
         # save individual e-values also
-        e1_img = nib.Nifti1Image(evals[..., 0], affine)
-        e2_img = nib.Nifti1Image(evals[..., 1], affine)
-        e3_img = nib.Nifti1Image(evals[..., 2], affine)
+        for i in range(3):
+            e_img = nib.Nifti1Image(evals[..., i], affine)
+            nib.save(e_img, add_filename_suffix(args.evals, '_e' + str(i+1)))
+            del e_img
 
-        nib.save(e1_img, add_filename_suffix(args.evals, '_e1'))
-        nib.save(e2_img, add_filename_suffix(args.evals, '_e2'))
-        nib.save(e3_img, add_filename_suffix(args.evals, '_e3'))
+        del evals, evals_img
 
     if args.p_i_signal:
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1, keepdims=True)
@@ -299,6 +315,8 @@ def main():
 
         pis_img = nib.Nifti1Image(pis_mask.astype(np.int16), affine)
         nib.save(pis_img, args.p_i_signal)
+
+        del pis_img, S0, DWI
 
     if args.pulsation:
         STD = np.std(data[..., ~gtab.b0s_mask], axis=-1)
@@ -325,18 +343,32 @@ def main():
             std_img = nib.Nifti1Image(STD.astype(np.float32), affine)
             nib.save(std_img, add_filename_suffix(args.pulsation, '_std_b0'))
 
+        del STD, std_img
+
     if args.residual:
         # Mean residual image
         S0 = np.mean(data[..., gtab.b0s_mask], axis=-1)
-        data_p = tenfit.predict(gtab, S0)
-        R = np.mean(np.abs(data_p[..., ~gtab.b0s_mask] -
-                           data[..., ~gtab.b0s_mask]), axis=-1)
+        data_diff = np.zeros(data.shape, dtype=np.float32)
+
+        for i in range(data.shape[0]):
+            if args.mask is not None:
+                tenfit2 = tenmodel.fit(data[i, :, :, :], mask[i, :, :])
+            else:
+                tenfit2 = tenmodel.fit(data[i, :, :, :])
+
+            data_diff[i, :, :, :] = np.abs(
+                tenfit2.predict(gtab, S0[i, :, :]).astype(
+                    np.float32) - data[i, :, :])
+
+        R = np.mean(data_diff[..., ~gtab.b0s_mask], axis=-1, dtype=np.float32)
 
         if args.mask is not None:
             R *= mask
 
         R_img = nib.Nifti1Image(R.astype(np.float32), affine)
         nib.save(R_img, args.residual)
+
+        del R, R_img, S0
 
         # Each volume's residual statistics
         if args.mask is None:
@@ -348,15 +380,15 @@ def main():
         # Note that stats will be computed manually and plotted using bxp
         # but could be computed using stats = cbook.boxplot_stats
         # or pyplot.boxplot(x)
-        R_k = np.zeros(data.shape[-1])    # mean residual per DWI
-        std = np.zeros(data.shape[-1])  # std residual per DWI
-        q1 = np.zeros(data.shape[-1])   # first quartile per DWI
-        q3 = np.zeros(data.shape[-1])   # third quartile per DWI
-        iqr = np.zeros(data.shape[-1])  # interquartile per DWI
-        percent_outliers = np.zeros(data.shape[-1])
+        R_k = np.zeros(data.shape[-1], dtype=np.float32)    # mean residual per DWI
+        std = np.zeros(data.shape[-1], dtype=np.float32)  # std residual per DWI
+        q1 = np.zeros(data.shape[-1], dtype=np.float32)   # first quartile per DWI
+        q3 = np.zeros(data.shape[-1], dtype=np.float32)   # third quartile per DWI
+        iqr = np.zeros(data.shape[-1], dtype=np.float32)  # interquartile per DWI
+        percent_outliers = np.zeros(data.shape[-1], dtype=np.float32)
         nb_voxels = np.count_nonzero(mask)
         for k in range(data.shape[-1]):
-            x = np.abs(data_p[..., k] - data[..., k])[mask]
+            x = data_diff[..., k]
             R_k[k] = np.mean(x)
             std[k] = np.std(x)
             q3[k], q1[k] = np.percentile(x, [75, 25])

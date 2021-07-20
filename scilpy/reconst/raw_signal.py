@@ -55,15 +55,12 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
     if not is_normalized_bvecs(bvecs):
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
-    check_b0_threshold(force_b0_threshold, bvals.min())
+
+    b0_threshold = check_b0_threshold(force_b0_threshold, bvals.min())
 
     # Ensure that this is on a single shell.
     shell_values, _ = identify_shells(bvals)
     shell_values.sort()
-    if force_b0_threshold:
-        b0_threshold = bvals.min()
-    else:
-        b0_threshold = DEFAULT_B0_THRESHOLD
     if shell_values.shape[0] != 2 or shell_values[0] > b0_threshold:
         raise ValueError("Can only work on single shell signals.")
 
@@ -81,7 +78,7 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         sphere = Sphere(xyz=bvecs)
 
     # Fit SH
-    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth)
+    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth)
 
     # Apply mask
     if mask is not None:

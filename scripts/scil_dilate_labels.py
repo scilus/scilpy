@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Dilate regions (with or without masking) from a labeled volume:
@@ -91,7 +91,7 @@ def main():
                       np.asarray(args.label_not_to_dilate)[fill_and_not]))
 
     # Create background mask
-    is_background_mask = np.zeros(img_shape, dtype=np.bool)
+    is_background_mask = np.zeros(img_shape, dtype=bool)
     for i in args.label_to_fill:
         is_background_mask = np.logical_or(is_background_mask, data == i)
 
@@ -126,7 +126,7 @@ def main():
                           np.asarray(args.label_to_dilate)[dil_and_fill]))
 
         # Create new label to dilate list
-        new_label_mask = np.zeros_like(data, dtype=np.bool)
+        new_label_mask = np.zeros_like(data, dtype=bool)
         for i in args.label_to_dilate:
             new_label_mask = np.logical_or(new_label_mask, data == i)
 

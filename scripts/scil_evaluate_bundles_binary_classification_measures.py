@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -33,6 +33,7 @@ from dipy.io.streamline import load_tractogram
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
@@ -45,8 +46,7 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      intersection)
+from scilpy.utils.streamlines import intersection_robust
 
 
 def _build_arg_parser():
@@ -127,10 +127,7 @@ def compute_streamlines_measures(args):
         logging.info('{} is empty'.format(bundle_filename))
         return None
 
-    _, streamlines_indices = perform_streamlines_operation(intersection,
-                                                           [wb_streamlines,
-                                                               bundle_streamlines],
-                                                           precision=0)
+    _, streamlines_indices = intersection_robust([wb_streamlines, bundle_streamlines])
 
     streamlines_binary = binary_classification(streamlines_indices,
                                                gs_streamlines_indices,
@@ -181,19 +178,23 @@ def main():
         _, gs_dimensions, _, _ = gs_sft.space_attributes
 
         # Prepare the gold standard only once
-        _, gs_streamlines_indices = perform_streamlines_operation(intersection,
-                                                                  [wb_streamlines,
-                                                                   gs_streamlines],
-                                                                  precision=0)
+        _, gs_streamlines_indices = intersection_robust([wb_streamlines, gs_streamlines])
 
-        pool = multiprocessing.Pool(nbr_cpu)
-        streamlines_dict = pool.map(compute_streamlines_measures,
-                                    zip(bundles_references_tuple_extended,
-                                        itertools.repeat(wb_streamlines),
-                                        itertools.repeat(gs_streamlines_indices)))
+        if nbr_cpu == 1:
+            streamlines_dict = []
+            for i in bundles_references_tuple_extended:
+                streamlines_dict.append(compute_streamlines_measures(
+                    [i, wb_streamlines, gs_streamlines_indices]))
+        else:
+            pool = multiprocessing.Pool(nbr_cpu)
+            streamlines_dict = pool.map(
+                compute_streamlines_measures,
+                zip(bundles_references_tuple_extended,
+                    itertools.repeat(wb_streamlines),
+                    itertools.repeat(gs_streamlines_indices)))
+            pool.close()
+            pool.join()
         all_binary_metrics.extend(streamlines_dict)
-        pool.close()
-        pool.join()
 
     if not args.voxels_measures:
         gs_binary_3d = compute_tract_counts_map(gs_streamlines,
@@ -204,21 +205,25 @@ def main():
                                                       gs_dimensions)
         tracking_mask_data[tracking_mask_data > 0] = 1
     else:
-        gs_binary_3d = nib.load(
-            args.voxels_measures[0]).get_fdata().astype(np.uint8)
+        gs_binary_3d = get_data_as_mask(nib.load(args.voxels_measures[0]))
         gs_binary_3d[gs_binary_3d > 0] = 1
-        tracking_mask_data = nib.load(
-            args.voxels_measures[1]).get_fdata().astype(np.uint8)
+        tracking_mask_data = get_data_as_mask(nib.load(args.voxels_measures[1]))
         tracking_mask_data[tracking_mask_data > 0] = 1
 
-    pool = multiprocessing.Pool(nbr_cpu)
-    voxels_binary = pool.map(compute_voxel_measures,
-                             zip(bundles_references_tuple_extended,
-                                 itertools.repeat(tracking_mask_data),
-                                 itertools.repeat(gs_binary_3d)))
-    all_binary_metrics.extend(voxels_binary)
-    pool.close()
-    pool.join()
+    if nbr_cpu == 1:
+        voxels_dict = []
+        for i in bundles_references_tuple_extended:
+            voxels_dict.append(compute_voxel_measures(
+                [i, tracking_mask_data, gs_binary_3d]))
+    else:
+        pool = multiprocessing.Pool(nbr_cpu)
+        voxels_dict = pool.map(compute_voxel_measures,
+                               zip(bundles_references_tuple_extended,
+                                   itertools.repeat(tracking_mask_data),
+                                   itertools.repeat(gs_binary_3d)))
+        pool.close()
+        pool.join()
+    all_binary_metrics.extend(voxels_dict)
 
     # After all processing, write the json file and skip None value
     output_binary_dict = {}

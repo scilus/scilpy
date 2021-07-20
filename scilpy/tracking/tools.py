@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 
+import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
@@ -32,13 +32,17 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     orig_space = sft.space
     sft.to_rasmm()
 
-    # Compute streamlines lengths
-    lengths = length(sft.streamlines)
+    if sft.streamlines:
+        # Compute streamlines lengths
+        lengths = length(sft.streamlines)
+        # Filter lengths
+        filter_stream = np.logical_and(lengths >= min_length,
+                                       lengths <= max_length)
+    else:
+        filter_stream = []
 
-    # Filter lengths
-    filter_stream = np.logical_and(lengths >= min_length,
-                                   lengths <= max_length)
-    filtered_streamlines = list(np.asarray(sft.streamlines)[filter_stream])
+    filtered_streamlines = list(np.asarray(sft.streamlines,
+                                           dtype=object)[filter_stream])
     filtered_data_per_point = sft.data_per_point[filter_stream]
     filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
 
@@ -77,7 +81,8 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
     ind = np.arange(len(sft.streamlines))
     rng.shuffle(ind)
 
-    subset_streamlines = list(np.asarray(sft.streamlines)[ind[:max_streamlines]])
+    subset_streamlines = list(np.asarray(sft.streamlines, dtype=object)[
+                              ind[:max_streamlines]])
     subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
     subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
 
@@ -201,7 +206,7 @@ def smooth_line_gaussian(streamline, sigma):
     x3 = gaussian_filter1d(x, sigma)
     y3 = gaussian_filter1d(y, sigma)
     z3 = gaussian_filter1d(z, sigma)
-    smoothed_streamline = np.asarray([x3, y3, z3]).T
+    smoothed_streamline = np.asarray([x3, y3, z3], dtype=float).T
 
     # Ensure first and last point remain the same
     smoothed_streamline[0] = streamline[0]

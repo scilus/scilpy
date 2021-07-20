@@ -1,12 +1,12 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
 
 import glob
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
-_version_major = 0
+_version_major = 1
 _version_minor = 1
-_version_micro = ''  # use '' for first of series, number for 1 and above
-_version_extra = 'dev0'
+_version_micro = ''
+_version_extra = ''
 
 # Construct full version string from these.
 _ver = [_version_major, _version_minor]
@@ -29,7 +29,6 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
 description = "Scilpy: diffusion MRI tools and utilities"
 # Long description will go up on the pypi page
 long_description = """
-
 Scilpy
 ========
 Scilpy is a small library mainly containing small tools and utilities
@@ -51,8 +50,8 @@ Université de Sherbrooke.
 """
 
 NAME = "scilpy"
-MAINTAINER = "Jean-Christophe Houde"
-MAINTAINER_EMAIL = "jean.christophe.houde@gmail.com"
+MAINTAINER = "Arnaud Boré"
+MAINTAINER_EMAIL = "arnaud.bore@gmail.com"
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
 URL = "https://github.com/scilus/scilpy"
@@ -65,5 +64,6 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-REQUIRES = ["numpy"]
 SCRIPTS = glob.glob("scripts/*.py")
+
+PREVIOUS_MAINTAINERS=["Jean-Christophe Houde"]

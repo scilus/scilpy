@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -7,11 +7,6 @@ maps along a bundle.
 
 This is the "real" fixel-based fODF amplitude along every streamline
 of the bundle provided, averaged at every voxel.
-Radial fODF comes for free from the mathematics, it is the great circle
-integral of the fODF orthogonal to the fixel of interest, similar to
-a Funk-Radon transform. Hence, radfODF is the fixel-based or HARDI-based
-generalization of the DTI radial diffusivity and AFD
-the generalization of axial diffusivity.
 
 Please use a bundle file rather than a whole tractogram.
 """
@@ -41,15 +36,13 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Path of the bundle file.')
-    p.add_argument('in_fODF',
+    p.add_argument('in_fodf',
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('afd_mean_map',
                    help='Path of the output mean AFD map.')
-    p.add_argument('rd_mean_map',
-                   help='Path of the output mean radfODF map.')
 
     p.add_argument('--length_weighting', action='store_true',
-                   help='if set, will weigh the AFD values according to '
+                   help='If set, will weigh the AFD values according to '
                         'segment lengths. [%(default)s]')
 
     add_reference_arg(p)
@@ -62,12 +55,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_fODF])
-    assert_outputs_exist(parser, args, [args.afd_mean_map, args.rd_mean_map])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_fodf])
+    assert_outputs_exist(parser, args, [args.afd_mean_map])
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
-
-    fodf_img = nib.load(args.in_fODF)
+    fodf_img = nib.load(args.in_fodf)
 
     afd_mean_map, rd_mean_map = afd_map_along_streamlines(sft,
                                                           fodf_img,
@@ -75,10 +67,8 @@ def main():
                                                           args.length_weighting)
 
     nib.Nifti1Image(afd_mean_map.astype(np.float32),
-                   fodf_img.affine).to_filename(args.afd_mean_map)
+                    fodf_img.affine).to_filename(args.afd_mean_map)
 
-    nib.Nifti1Image(rd_mean_map.astype(np.float32),
-                   fodf_img.affine).to_filename(args.rd_mean_map)
 
 
 if __name__ == '__main__':

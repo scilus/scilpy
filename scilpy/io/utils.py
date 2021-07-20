@@ -1,15 +1,30 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import os
 import multiprocessing
+import re
 import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from fury import window
+from PIL import Image
 from scipy.io import loadmat
 import six
 
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+
+eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
+                "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
+                "cnr_maps", "residuals", "fep", "interp", "s2v_interp",
+                "resamp", "nvoxhp", "ff", "ol_nstd", "ol_nvox", "ol_type",
+                "ol_pos", "ol_sqr", "dont_sep_offs_move", "dont_peas"]
+
+topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
+                 'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
+                 "minmet", 'splineorder', 'numprec', 'interp', 'scale',
+                 'regrid']
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -127,9 +142,9 @@ def add_json_args(parser):
 
 def add_processes_arg(parser):
     parser.add_argument('--processes', dest='nbr_processes',
-                        metavar='NBR', type=int,
+                        metavar='NBR', type=int, default=1,
                         help='Number of sub-processes to start. \n'
-                        'Default: CPU count')
+                        'Default: [%(default)s]')
 
 
 def add_reference_arg(parser, arg_name=None):
@@ -272,7 +287,7 @@ def assert_inputs_exist(parser, required, optional=None):
 
 
 def assert_outputs_exist(parser, args, required, optional=None,
-                         check_dir_exists=False):
+                         check_dir_exists=True):
     """
     Assert that all outputs don't exist or that if they exist, -f was used.
     If not, print parser's usage and exit.
@@ -298,7 +313,7 @@ def assert_outputs_exist(parser, args, required, optional=None,
         if check_dir_exists:
             path_dir = os.path.dirname(path)
             if path_dir and not os.path.isdir(path_dir):
-                parser.error('Directory {} \n for a given output file '
+                parser.error('Directory {}/ \n for a given output file '
                              'does not exists.'.format(path_dir))
 
     if isinstance(required, str):
@@ -310,11 +325,12 @@ def assert_outputs_exist(parser, args, required, optional=None,
     for required_file in required:
         check(required_file)
     for optional_file in optional or []:
-        if optional_file is not None:
+        if optional_file:
             check(optional_file)
 
 
-def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
+def assert_output_dirs_exist_and_empty(parser, args, required,
+                                       optional=None, create_dir=True):
     """
     Assert that all output directories exist.
     If not, print parser's usage and exit.
@@ -329,22 +345,22 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
     dirs: list
         Required directory paths to be checked.
     """
-    for cur_dir in dirs:
-        if not os.path.isdir(cur_dir):
+    def check(path):
+        if not os.path.isdir(path):
             if not create_dir:
                 parser.error(
-                    'Output directory {} doesn\'t exist.'.format(cur_dir))
+                    'Output directory {} doesn\'t exist.'.format(path))
             else:
-                os.makedirs(cur_dir, exist_ok=True)
-        if os.listdir(cur_dir):
+                os.makedirs(path, exist_ok=True)
+        if os.listdir(path):
             if not args.overwrite:
                 parser.error(
                     'Output directory {} isn\'t empty and some files could be '
-                    'overwritten. Use -f option if you want to continue.'
-                    .format(cur_dir))
+                    'overwritten or even deleted. Use -f option if you want '
+                    'to continue.'.format(path))
             else:
-                for the_file in os.listdir(cur_dir):
-                    file_path = os.path.join(cur_dir, the_file)
+                for the_file in os.listdir(path):
+                    file_path = os.path.join(path, the_file)
                     try:
                         if os.path.isfile(file_path):
                             os.unlink(file_path)
@@ -352,6 +368,17 @@ def assert_output_dirs_exist_and_empty(parser, args, *dirs, create_dir=False):
                             shutil.rmtree(file_path)
                     except Exception as e:
                         print(e)
+
+    if isinstance(required, str):
+        required = [required]
+    if isinstance(optional, str):
+        optional = [optional]
+
+    for cur_dir in required:
+        check(cur_dir)
+    for opt_dir in optional or []:
+        if opt_dir:
+            check(opt_dir)
 
 
 def read_info_from_mb_bdo(filename):
@@ -418,3 +445,64 @@ def save_matrix_in_any_format(filepath, output_data):
         np.save('{}.npy'.format(filepath), output_data)
     else:
         raise ValueError('Extension {} is not supported'.format(ext))
+
+
+def assert_fsl_options_exist(parser, options_args, command):
+    """
+    Assert that all options for topup or eddy exist.
+    If not, print parser's usage and exit.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    options_args: string
+        Options for fsl command
+    command: string
+        Command used (eddy or topup).
+    """
+    if command == 'eddy':
+        fsl_options = eddy_options
+    elif command == 'topup':
+        fsl_options = topup_options
+    else:
+        parser.error('{} command is not supported as fsl '
+                     'command.'.format(command))
+
+    options = re.split(r'[ =\s]\s*', options_args)
+    res = [i for i in options if "--" in i]
+    res = list(map(lambda x: x.replace('--', ''), res))
+
+    for nOption in res:
+        if nOption not in fsl_options:
+            parser.error('--{} is not a valid option for '
+                         '{} command.'.format(nOption, command))
+
+
+def parser_color_type(arg):
+    """
+    Validate that a color component is between RBG values, else return an error
+    From https://stackoverflow.com/a/55410582
+    """
+
+    MIN_VAL = 0
+    MAX_VAL = 255
+    try:
+        f = float(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Color component must be a floating "
+                                         "point number")
+    if f < MIN_VAL or f > MAX_VAL:
+        raise argparse.ArgumentTypeError(
+            "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
+    return f
+
+
+def snapshot(scene, filename, **kwargs):
+    """ Wrapper around fury.window.snapshot
+    For some reason, fury.window.snapshot flips the image vertically.
+    This image unflips the image and then saves it.
+    """
+    out = window.snapshot(scene, **kwargs)
+    image = Image.fromarray(out[::-1])
+    image.save(filename)

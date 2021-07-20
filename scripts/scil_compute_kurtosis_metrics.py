@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -40,7 +40,6 @@ therein.
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 """
 
-from builtins import range
 import argparse
 import logging
 
@@ -55,6 +54,7 @@ from dipy.core.gradients import gradient_table
 
 from scipy.ndimage.filters import gaussian_filter
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
@@ -66,12 +66,12 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument('input',
+    p.add_argument('in_dwi',
                    help='Path of the input multi-shell DWI dataset.')
-    p.add_argument('bvals',
-                   help='Path of the bvals file, in FSL format.')
-    p.add_argument('bvecs',
-                   help='Path of the bvecs file, in FSL format.')
+    p.add_argument('in_bval',
+                   help='Path of the b-value file, in FSL format.')
+    p.add_argument('in_bvec',
+                   help='Path of the b-vector file, in FSL format.')
 
     p.add_argument('--mask',
                    help='Path to a binary mask.' +
@@ -168,19 +168,20 @@ def main():
                      'one metric to output.')
 
     assert_inputs_exist(
-        parser, [args.input, args.bvals, args.bvecs], args.mask)
+        parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
     assert_outputs_exist(parser, args, outputs)
 
-    img = nib.load(args.input)
-    data = img.get_fdata()
+    img = nib.load(args.in_dwi)
+    data = img.get_fdata(dtype=np.float32)
     affine = img.affine
     if args.mask is None:
         mask = None
     else:
-        mask = nib.load(args.mask).get_fdata().astype(np.bool)
+        mask_img = nib.load(args.mask)
+        mask = get_data_as_mask(mask_img, dtype=bool)
 
     # Validate bvals and bvecs
-    bvals, bvecs = read_bvals_bvecs(args.bvals, args.bvecs)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
@@ -196,8 +197,8 @@ def main():
         logging.warning('You seem to be using b > 2500 s/mm2 DWI data. ' +
                         'In theory, this is beyond the optimal range for DKI')
 
-    check_b0_threshold(args, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    b0_thr = check_b0_threshold(args, bvals.min(), bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     fwhm = args.smooth
     if fwhm > 0:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -12,13 +12,17 @@ to generate PFT required maps.
 Streamlines longer than min_length and shorter than max_length are kept.
 The tracking direction is chosen in the aperture cone defined by the
 previous tracking direction and the angular constraint.
+Default parameters as suggested in [1].
 
 Algo 'det': the maxima of the spherical function (SF) the most closely aligned
 to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
-Default parameters as suggested in [1].
+For streamline compression, a rule of thumb is to set it to 0.1mm for the
+deterministic algorithm and 0.2mm for probabilitic algorithm.
+
+All the input nifti files must be in isotropic resolution.
 """
 
 import argparse
@@ -38,6 +42,7 @@ import nibabel as nib
 from nibabel.streamlines import LazyTractogram
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
@@ -53,95 +58,80 @@ def _build_arg_parser():
                '266-278.')
     p._optionals.title = 'Generic options'
 
-    p.add_argument(
-        'sh_file',
-        help='Spherical harmonic file. Data must be aligned with \nseed_file '
-             '(isotropic resolution, nifti, see --basis).')
-    p.add_argument(
-        'seed_file',
-        help='Seeding mask (isotropic resolution, nifti).')
-    p.add_argument(
-        'map_include_file',
-        help='The probability map of ending the streamline and \nincluding it '
-             'in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).')
-    p.add_argument(
-        'map_exclude_file',
-        help='The probability map of ending the streamline and \nexcluding it '
-             'in the output (CMC, PFT [1]). \n(isotropic resolution, nifti).')
-    p.add_argument(
-        'output_file',
-        help='Streamline output file (must be trk or tck).')
+    p.add_argument('in_sh',
+                   help='Spherical harmonic file (.nii.gz).')
+    p.add_argument('in_seed',
+                   help='Seeding mask (.nii.gz).')
+    p.add_argument('in_map_include',
+                   help='The probability map (.nii.gz) of ending the streamline\n'
+                        'and including it in the output (CMC, PFT [1])')
+    p.add_argument('map_exclude_file',
+                   help='The probability map (.nii.gz) of ending the streamline\n'
+                        'and excluding it in the output (CMC, PFT [1]).')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
 
     track_g = p.add_argument_group('Tracking options')
-    track_g.add_argument(
-        '--algo', default='prob', choices=['det', 'prob'],
-        help='Algorithm to use (must be "det" or "prob"). [%(default)s]')
-    track_g.add_argument(
-        '--step', dest='step_size', type=float, default=0.5,
-        help='Step size in mm. [%(default)s]')
-    track_g.add_argument(
-        '--min_length', type=float, default=10.,
-        help='Minimum length of a streamline in mm. [%(default)s]')
-    track_g.add_argument(
-        '--max_length', type=float, default=300.,
-        help='Maximum length of a streamline in mm. [%(default)s]')
-    track_g.add_argument(
-        '--theta', type=float,
-        help='Maximum angle between 2 steps. ["det"=45, "prob"=20]')
-    track_g.add_argument(
-        '--act', action='store_true',
-        help='If set, uses anatomically-constrained tractography (ACT)\n'
-             'instead of continuous map criterion (CMC).')
-    track_g.add_argument(
-        '--sfthres', dest='sf_threshold', type=float, default=0.1,
-        help='Spherical function relative threshold. [%(default)s]')
-    track_g.add_argument(
-        '--sfthres_init', dest='sf_threshold_init', type=float, default=0.5,
-        help='Spherical function relative threshold value for the \ninitial '
-             'direction. [%(default)s]')
+    track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
+                         help='Algorithm to use (must be "det" or "prob"). '
+                              '[%(default)s]')
+    track_g.add_argument('--step', dest='step_size', type=float, default=0.2,
+                         help='Step size in mm. [%(default)s]')
+    track_g.add_argument('--min_length', type=float, default=10.,
+                         help='Minimum length of a streamline in mm. '
+                              '[%(default)s]')
+    track_g.add_argument('--max_length', type=float, default=300.,
+                         help='Maximum length of a streamline in mm. '
+                              '[%(default)s]')
+    track_g.add_argument('--theta', type=float,
+                         help='Maximum angle between 2 steps. '
+                         '["det"=45, "prob"=20]')
+    track_g.add_argument('--act', action='store_true',
+                         help='If set, uses anatomically-constrained '
+                              'tractography (ACT) \ninstead of continuous map '
+                              'criterion (CMC).')
+    track_g.add_argument('--sfthres', dest='sf_threshold',
+                         type=float, default=0.1,
+                         help='Spherical function relative threshold. '
+                              '[%(default)s]')
+    track_g.add_argument('--sfthres_init', dest='sf_threshold_init',
+                         type=float, default=0.5,
+                         help='Spherical function relative threshold value '
+                              'for the \ninitial direction. [%(default)s]')
     add_sh_basis_args(track_g)
 
     seed_group = p.add_argument_group(
         'Seeding options',
         'When no option is provided, uses --npv 1.')
     seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
-    seed_sub_exclusive.add_argument(
-        '--npv', type=int,
-        help='Number of seeds per voxel.')
+    seed_sub_exclusive.add_argument('--npv', type=int,
+                                    help='Number of seeds per voxel.')
     seed_sub_exclusive.add_argument('--nt', type=int,
                                     help='Total number of seeds to use.')
 
     pft_g = p.add_argument_group('PFT options')
-    pft_g.add_argument(
-        '--particles', type=int, default=15,
-        help='Number of particles to use for PFT. [%(default)s]')
-    pft_g.add_argument(
-        '--back', dest='back_tracking', type=float, default=2.,
-        help='Length of PFT back tracking in mm. [%(default)s]')
-    pft_g.add_argument(
-        '--forward', dest='forward_tracking', type=float, default=1.,
-        help='Length of PFT forward tracking in mm. [%(default)s]')
+    pft_g.add_argument('--particles', type=int, default=15,
+                       help='Number of particles to use for PFT. [%(default)s]')
+    pft_g.add_argument('--back', dest='back_tracking', type=float, default=2.,
+                       help='Length of PFT back tracking (mm). [%(default)s]')
+    pft_g.add_argument('--forward', dest='forward_tracking',
+                       type=float, default=1.,
+                       help='Length of PFT forward tracking (mm). [%(default)s]')
 
     out_g = p.add_argument_group('Output options')
-    out_g.add_argument(
-        '--compress', type=float,
-        help='If set, will compress streamlines. The parameter\nvalue is the '
-             'distance threshold. A rule of thumb\nis to set it to 0.1mm for '
-             'deterministic\nstreamlines and 0.2mm for probabilitic '
-             'streamlines.')
-    out_g.add_argument(
-        '--all', dest='keep_all', action='store_true',
-        help='If set, keeps "excluded" streamlines.\n'
-             'NOT RECOMMENDED, except for debugging.')
-    out_g.add_argument(
-        '--seed', type=int,
-        help='Random number generator seed.')
+    out_g.add_argument('--compress', type=float,
+                       help='If set, will compress streamlines.\n'
+                            'The parameter value is the distance threshold.')
+    out_g.add_argument('--all', dest='keep_all', action='store_true',
+                       help='If set, keeps "excluded" streamlines.\n'
+                            'NOT RECOMMENDED, except for debugging.')
+    out_g.add_argument('--seed', type=int,
+                       help='Random number generator seed.')
     add_overwrite_arg(out_g)
 
-    out_g.add_argument(
-        '--save_seeds', action='store_true',
-        help='If set, save the seeds used for the tracking in the '
-             'data_per_streamline property of the tractogram.')
+    out_g.add_argument('--save_seeds', action='store_true',
+                       help='If set, save the seeds used for the tracking \n '
+                            'in the data_per_streamline property.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
@@ -156,14 +146,14 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    assert_inputs_exist(parser, [args.sh_file, args.seed_file,
-                                 args.map_include_file,
+    assert_inputs_exist(parser, [args.in_sh, args.in_seed,
+                                 args.in_map_include,
                                  args.map_exclude_file])
-    assert_outputs_exist(parser, args, args.output_file)
+    assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not nib.streamlines.is_supported(args.output_file):
+    if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.output_file))
+                     'tck): {0}'.format(args.out_tractogram))
 
     if not args.min_length > 0:
         parser.error('minL must be > 0, {}mm was provided.'
@@ -195,9 +185,9 @@ def main():
     if args.nt and args.nt <= 0:
         parser.error('Total number of seeds must be > 0.')
 
-    fodf_sh_img = nib.load(args.sh_file)
+    fodf_sh_img = nib.load(args.in_sh)
     if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1.e-3):
+                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
             'SH file is not isotropic. Tracking cannot be ran robustly.')
 
@@ -221,25 +211,25 @@ def main():
     # relative_peak_threshold is for initial directions filtering
     # min_separation_angle is the initial separation angle for peak extraction
     dg = dgklass.from_shcoeff(
-        fodf_sh_img.get_fdata(dtype=np.double),
+        fodf_sh_img.get_fdata(dtype=np.float32),
         max_angle=theta,
         sphere=tracking_sphere,
         basis_type=sh_basis,
         pmf_threshold=args.sf_threshold,
         relative_peak_threshold=args.sf_threshold_init)
 
-    map_include_img = nib.load(args.map_include_file)
+    map_include_img = nib.load(args.in_map_include)
     map_exclude_img = nib.load(args.map_exclude_file)
-    voxel_size = np.average(map_include_img.get_header()['pixdim'][1:4])
+    voxel_size = np.average(map_include_img.header['pixdim'][1:4])
 
     if not args.act:
-        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(),
-                                                 map_exclude_img.get_fdata(),
+        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
+                                                 map_exclude_img.get_fdata(dtype=np.float32),
                                                  step_size=args.step_size,
                                                  average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(),
-                                                 map_exclude_img.get_fdata())
+        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
+                                                 map_exclude_img.get_fdata(dtype=np.float32))
 
     if args.npv:
         nb_seeds = args.npv
@@ -253,9 +243,9 @@ def main():
 
     voxel_size = fodf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.seed_file)
+    seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_fdata(),
+        get_data_as_mask(seed_img, dtype=bool),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
@@ -303,12 +293,12 @@ def main():
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
-    filetype = nib.streamlines.detect_format(args.output_file)
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
     reference = get_reference_info(seed_img)
     header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.output_file, header=header)
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
 if __name__ == '__main__':

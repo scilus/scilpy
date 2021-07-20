@@ -1,17 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Visualize bundles from a list.
-The script will output a mosaic (image) with screenshots,
-6 views per bundle in the list.
+Visualize bundles from a list. The script will output a mosaic (image) with
+screenshots, 6 views per bundle in the list.
 """
 
 import argparse
 import logging
 import os
 import random
-import shutil
 
 from dipy.io.utils import is_header_compatible
 from fury import actor, window
@@ -23,7 +21,9 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -64,6 +64,13 @@ def _build_arg_parser():
                    help='Resolution of thumbnails used in mosaic '
                         '[%(default)s].')
 
+    p.add_argument('--light_screenshot', action='store_true',
+                   help='Keep only 3 views instead of 6 '
+                        '[%(default)s].')
+    p.add_argument('--no_information', action='store_true',
+                   help='Don\'t display axis and bundle information '
+                        '[%(default)s].')
+    add_reference_arg(p)
     add_overwrite_arg(p)
     return p
 
@@ -98,15 +105,15 @@ def get_font(args):
 
 
 def draw_column_with_names(draw, output_names, text_pos_x,
-                           text_pos_y, height, font):
+                           text_pos_y, height, font, view_number):
     """
     Draw the first column with row's description
     (views and bundle information to display).
     """
     # Orientation's names
     for num, name in enumerate(output_names):
-        i = 0
         j = height * num + 50
+        i = 0
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
                   name[:name.find('_')], font=font)
@@ -114,9 +121,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
                   name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
-    view_number = 6
-    i = 0
     j = height * view_number
+    i = 0
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
     draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
@@ -132,11 +138,13 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
               ('{}'.format(nbr_of_elem)), font=font)
 
 
-def set_img_in_cell(mosaic, ren, view_number, path, width, height, i):
+def set_img_in_cell(mosaic, ren, view_number, width, height, i):
     """ Set a snapshot of the bundle in a cell of mosaic """
-    window.snapshot(ren, path, size=(width, height))
+
+    out = window.snapshot(ren, size=(width, height))
     j = height * view_number
-    image = Image.open(path)
+    # fury-gl flips image
+    image = Image.fromarray(out[::-1])
     image.thumbnail((width, height))
     mosaic.paste(image, (i, j))
 
@@ -158,15 +166,30 @@ def main():
     output_names = ['axial_superior', 'axial_inferior',
                     'coronal_posterior', 'coronal_anterior',
                     'sagittal_left', 'sagittal_right']
+    if args.light_screenshot:
+        output_names = ['axial_superior',
+                        'coronal_posterior',
+                        'sagittal_left']
 
     for filename in args.in_bundles:
-        if not is_header_compatible(args.in_volume, filename):
+        _, ext = os.path.splitext(filename)
+        if ext == '.tck':
+            tractogram = load_tractogram_with_reference(parser, args, filename)
+        else:
+            tractogram = filename
+        if not is_header_compatible(args.in_volume, tractogram):
             parser.error('{} does not have a compatible header with {}'.format(
                 filename, args.in_volume))
+        # Delete temporary tractogram
+        else:
+            del tractogram
 
     output_dir = os.path.dirname(args.out_image)
-    assert_output_dirs_exist_and_empty(parser, args, output_dir,
-                                       create_dir=True)
+    if output_dir:
+        assert_output_dirs_exist_and_empty(parser, args, output_dir,
+                                           create_dir=True)
+
+    _, extension = os.path.splitext(args.out_image)
 
     # ----------------------------------------------------------------------- #
     # Mosaic, column 0: orientation names and data description
@@ -174,12 +197,17 @@ def main():
     width = args.resolution_of_thumbnails
     height = args.resolution_of_thumbnails
     rows = 6
+    if args.light_screenshot:
+        rows = 3
     cols = len(args.in_bundles)
     text_pos_x = 50
     text_pos_y = 50
 
     # Creates a new empty image, RGB mode
-    mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
+    if args.no_information:
+        mosaic = Image.new('RGB', (cols * width, rows * height))
+    else:
+        mosaic = Image.new('RGB', ((cols + 1) * width, (rows + 1) * height))
 
     # Prepare draw and font objects to render text
     draw = ImageDraw.Draw(mosaic)
@@ -193,8 +221,9 @@ def main():
     value_range = (mean - 0.5 * std, mean + 1.5 * std)
 
     # First column with rows description
-    draw_column_with_names(draw, output_names, text_pos_x,
-                           text_pos_y, height, font)
+    if not args.no_information:
+        draw_column_with_names(draw, output_names, text_pos_x,
+                               text_pos_y, height, font, rows)
 
     # ----------------------------------------------------------------------- #
     # Columns with bundles
@@ -205,26 +234,17 @@ def main():
         bundle_file_name = os.path.basename(bundle_file)
         bundle_name, bundle_ext = split_name_with_nii(bundle_file_name)
 
-        # !! It creates a temporary folder to create
-        # the images to concatenate in the mosaic !!
-        output_bundle_dir = os.path.join(output_dir, bundle_name)
-        if not os.path.isdir(output_bundle_dir):
-            os.makedirs(output_bundle_dir)
+        if args.no_information:
+            i = idx_bundle * width
+        else:
+            i = (idx_bundle + 1) * width
 
-        output_paths = [
-            os.path.join(output_bundle_dir,
-                         '{}_' + os.path.basename(
-                             output_bundle_dir)).format(name)
-            for name in output_names]
-
-        i = (idx_bundle + 1)*width
-
-        if not os.path.isfile(bundle_file):
+        if not os.path.isfile(bundle_file) and not args.no_information:
             print('\nInput file {} doesn\'t exist.'.format(bundle_file))
 
             number_streamlines = 0
 
-            view_number = 6
+            view_number = rows
             j = height * view_number
 
             draw_bundle_information(draw, bundle_file_name, number_streamlines,
@@ -237,7 +257,8 @@ def main():
                 colors = random_rgb()
             # Select the streamlines to plot
             if bundle_ext in ['.tck', '.trk']:
-                if args.random_coloring is None and args.uniform_coloring is None:
+                if (args.random_coloring is None
+                        and args.uniform_coloring is None):
                     colors = None
                 bundle_tractogram_file = nib.streamlines.load(bundle_file)
                 streamlines = bundle_tractogram_file.streamlines
@@ -255,7 +276,7 @@ def main():
                 nbr_of_elem = np.count_nonzero(roi)
 
             # Render
-            ren = window.Renderer()
+            ren = window.Scene()
             zoom = args.zoom
             opacity = args.opacity_background
 
@@ -269,15 +290,14 @@ def main():
             ren.reset_camera()
             ren.zoom(zoom)
             view_number = 0
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.pitch(180)
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 1
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            if not args.light_screenshot:
+                ren.pitch(180)
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor)
             slice_actor2 = slice_actor.copy()
@@ -289,17 +309,16 @@ def main():
             ren.set_camera(view_up=(0, 0, 1))
             ren.reset_camera()
             ren.zoom(zoom)
-            view_number = 2
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            view_number += 1
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.pitch(180)
-            ren.set_camera(view_up=(0, 0, 1))
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 3
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            if not args.light_screenshot:
+                ren.pitch(180)
+                ren.set_camera(view_up=(0, 0, 1))
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
             ren.rm(slice_actor2)
             slice_actor3 = slice_actor.copy()
@@ -310,23 +329,21 @@ def main():
             ren.yaw(90)
             ren.reset_camera()
             ren.zoom(zoom)
-            view_number = 4
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            view_number += 1
+            set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            ren.yaw(180)
-            ren.reset_camera()
-            ren.zoom(zoom)
-            view_number = 5
-            set_img_in_cell(mosaic, ren, view_number,
-                            output_paths[view_number], width, height, i)
+            if not args.light_screenshot:
+                ren.yaw(180)
+                ren.reset_camera()
+                ren.zoom(zoom)
+                view_number += 1
+                set_img_in_cell(mosaic, ren, view_number, width, height, i)
 
-            view_number = 6
-            j = height * view_number
-            draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
-                                    i + text_pos_x, j + text_pos_y, font)
-
-        shutil.rmtree(output_bundle_dir)
+            if not args.no_information:
+                view_number = rows
+                j = height * view_number
+                draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
+                                        i + text_pos_x, j + text_pos_y, font)
 
     # Save image to file
     mosaic.save(args.out_image)

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from enum import Enum
 
 import numpy as np
 
@@ -9,6 +10,12 @@ from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampli
                                                             save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
+
+
+class B0ExtractionStrategy(Enum):
+    FIRST = "first"
+    MEAN = "mean"
+    ALL = "all"
 
 
 def is_normalized_bvecs(bvecs):
@@ -58,10 +65,12 @@ def normalize_bvecs(bvecs, filename=None):
     return bvecs
 
 
-def check_b0_threshold(force_b0_threshold, bvals_min):
-    """Check if the minimal bvalue is under zero or over the default threshold.
+def check_b0_threshold(
+    force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
+):
+    """Check if the minimal bvalue is under zero or over the threshold.
     If `force_b0_threshold` is true, don't raise an error even if the minimum
-    bvalue is suspiciously high.
+    bvalue is over the threshold.
 
     Parameters
     ----------
@@ -69,33 +78,46 @@ def check_b0_threshold(force_b0_threshold, bvals_min):
         If True, don't raise an error.
     bvals_min : float
         Minimum bvalue.
+    b0_thr : float
+        Maximum bvalue considered as a b0.
 
     Raises
     ------
     ValueError
-        If the minimal bvalue is under zero or over the default threshold, and
+        If the minimal bvalue is over the threshold, and
         `force_b0_threshold` is False.
     """
-    if bvals_min != 0:
-        if bvals_min < 0 or bvals_min > DEFAULT_B0_THRESHOLD:
-            if force_b0_threshold:
-                logging.warning(
-                    'Warning: Your minimal bval is {}. This is highly '
-                    'suspicious. The script will nonetheless proceed since '
-                    '--force_b0_threshold was specified.'.format(bvals_min))
-            else:
-                raise ValueError('The minimal bval is lesser than 0 or '
-                                 'greater than {}. This is highly ' +
-                                 'suspicious.\n'
-                                 'Please check your data to ensure everything '
-                                 'is correct.\n'
-                                 'Value found: {}\n'
-                                 'Use --force_b0_threshold to execute '
-                                 'regardless.'
-                                 .format(DEFAULT_B0_THRESHOLD, bvals_min))
+    if b0_thr > DEFAULT_B0_THRESHOLD:
+        logging.warning(
+            'Warning: Your defined threshold is {}. This is suspicious. We '
+            'recommend using volumes with bvalues no higher '
+            'than {} as b0s.'.format(b0_thr, DEFAULT_B0_THRESHOLD)
+        )
+
+    if bvals_min < 0:
+        logging.warning(
+            'Warning: Your dataset contains negative b-values (minimal '
+            'bvalue of {}). This is suspicious. We recommend you check '
+            'your data.')
+
+    if bvals_min > b0_thr:
+        if force_b0_threshold:
+            logging.warning(
+                'Warning: Your minimal bvalue is {}, but the threshold '
+                'is set to {}. Since --force_b0_threshold was specified, '
+                'the script will proceed with a threshold of {}'
+                '.'.format(bvals_min, b0_thr, bvals_min))
+            return bvals_min
         else:
-            logging.warning('Warning: No b=0 image. Setting b0_threshold to '
-                            'the minimum bval: {}'.format(bvals_min))
+            raise ValueError('The minimal bvalue ({}) is greater than the '
+                             'threshold ({}). No b0 volumes can be found.\n'
+                             'Please check your data to ensure everything '
+                             'is correct.\n'
+                             'Use --force_b0_threshold to execute '
+                             'regardless.'
+                             .format(bvals_min, b0_thr))
+
+    return b0_thr
 
 
 def get_shell_indices(bvals, shell, tol=10):
@@ -189,7 +211,7 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
                                filename_bvec=fsl_bvec_filename)
 
 
-def identify_shells(bvals, threshold=40.0):
+def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     """
     Guessing the shells from the b-values. Returns the list of shells and, for
     each b-value, the associated shell.
@@ -209,7 +231,10 @@ def identify_shells(bvals, threshold=40.0):
     threshold: float
         Limit value to consider that a b-value is on an existing shell. Above
         this limit, the b-value is placed on a new shell.
-    remove_b0
+    roundCentroids: bool
+        If true will round shell values to the nearest 10.
+    sort: bool
+        Sort centroids and shell_indices associated.
 
     Returns
     -------
@@ -225,7 +250,7 @@ def identify_shells(bvals, threshold=40.0):
     # Finding centroids
     bval_centroids = [bvals[0]]
     for bval in bvals[1:]:
-        diffs = np.abs(np.asarray(bval_centroids) - bval)
+        diffs = np.abs(np.asarray(bval_centroids, dtype=float) - bval)
         if not len(np.where(diffs < threshold)[0]):
             # Found no bval in bval centroids close enough to the current one.
             # Create new centroid (i.e. new shell)
@@ -237,6 +262,18 @@ def identify_shells(bvals, threshold=40.0):
                               (1, centroids.shape[0]))
 
     shell_indices = np.argmin(np.abs(bvals_for_diffs - centroids), axis=1)
+
+    if roundCentroids:
+        centroids = np.round(centroids, decimals=-1)
+
+    if sort:
+        sort_index = np.argsort(centroids)
+        sorted_centroids = np.zeros(centroids.shape)
+        sorted_indices = np.zeros(shell_indices.shape)
+        for i in range(len(centroids)):
+            sorted_centroids[i] = centroids[sort_index[i]]
+            sorted_indices[shell_indices == i] = sort_index[i]
+        return sorted_centroids, sorted_indices
 
     return centroids, shell_indices
 
@@ -267,11 +304,11 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     bvals_to_extract : list of int
         The list of b-values to extract.
     tol : int
-        Loads the data using this block size. Useful when the data is too
-        large to be loaded in memory.
-    block_size : int
         The tolerated gap between the b-values to extract and the actual
         b-values.
+    block_size : int
+        Load the data using this block size. Useful when the data is too
+        large to be loaded in memory.
 
     Returns
     -------
@@ -297,7 +334,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         "Extracting shells [{}], with number of images per shell [{}], "
         "from {} images from {}."
         .format(" ".join([str(b) for b in bvals_to_extract]),
-                " ".join([str(len(get_shell_indices(bvals, shell)))
+                " ".join([str(len(get_shell_indices(bvals, shell, tol=tol)))
                           for shell in bvals_to_extract]),
                 len(bvals), dwi.get_filename()))
 
@@ -318,6 +355,89 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
     output_bvecs = bvecs[indices, :]
 
     return indices, shell_data, output_bvals, output_bvecs
+
+
+def extract_b0(dwi, b0_mask, extract_in_cluster=False,
+               strategy=B0ExtractionStrategy.MEAN, block_size=None):
+    """
+    Extract a set of b0 volumes from a dwi dataset
+
+    Parameters
+    ----------
+    dwi : nib.Nifti1Image
+        Original multi-shell volume.
+    b0_mask: array of bool
+        Mask over the time dimension (4th) identifying b0 volumes.
+    extract_in_cluster: bool
+        Specify to extract b0's in each continuous sets of b0 volumes
+        appearing in the input data.
+    strategy: Enum
+        The extraction strategy, of either select the first b0 found, select
+        them all or average them. When used in conjunction with the batch
+        parameter set to True, the strategy is applied individually on each
+        continuous set found.
+    block_size : int
+        Load the data using this block size. Useful when the data is too
+        large to be loaded in memory.
+
+    Returns
+    -------
+    b0_data : ndarray
+        Extracted b0 volumes.
+    """
+
+    indices = np.where(b0_mask)[0]
+
+    if block_size is None:
+        block_size = dwi.shape[-1]
+
+    if not extract_in_cluster and strategy == B0ExtractionStrategy.FIRST:
+        idx = np.min(indices)
+        output_b0 = dwi.dataobj[..., idx:idx + 1].squeeze()
+    else:
+        # Generate list of clustered b0 in the data
+        mask = np.ma.masked_array(b0_mask)
+        mask[~b0_mask] = np.ma.masked
+        b0_clusters = np.ma.notmasked_contiguous(mask, axis=0)
+
+        if extract_in_cluster or strategy == B0ExtractionStrategy.ALL:
+            if strategy == B0ExtractionStrategy.ALL:
+                time_d = len(indices)
+            else:
+                time_d = len(b0_clusters)
+
+            output_b0 = np.zeros(dwi.shape[:-1] + (time_d,))
+
+            for idx, cluster in enumerate(b0_clusters):
+                if strategy == B0ExtractionStrategy.FIRST:
+                    data = dwi.dataobj[..., cluster.start:cluster.start + 1]
+                    output_b0[..., idx] = data.squeeze()
+                else:
+                    vol_it = volume_iterator(dwi, block_size,
+                                             cluster.start, cluster.stop)
+
+                    for vi, data in vol_it:
+                        if strategy == B0ExtractionStrategy.ALL:
+                            in_volume = np.array([i in vi for i in indices])
+                            output_b0[..., in_volume] = data
+                        elif strategy == B0ExtractionStrategy.MEAN:
+                            output_b0[..., idx] += np.sum(data, -1)
+
+                    if strategy == B0ExtractionStrategy.MEAN:
+                        output_b0[..., idx] /= cluster.stop - cluster.start
+
+        else:
+            output_b0 = np.zeros(dwi.shape[:-1])
+            for cluster in b0_clusters:
+                vol_it = volume_iterator(dwi, block_size,
+                                         cluster.start, cluster.stop)
+
+                for _, data in vol_it:
+                    output_b0 += np.sum(data, -1)
+
+            output_b0 /= len(indices)
+
+    return output_b0
 
 
 def flip_mrtrix_gradient_sampling(gradient_sampling_filename,
@@ -361,3 +481,50 @@ def flip_fsl_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
         bvecs[axis, :] *= -1
 
     np.savetxt(bvecs_flipped_filename, bvecs, "%.8f")
+
+
+def swap_fsl_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
+    """
+    Swap FSL bvecs
+
+    Parameters
+    ----------
+    bvecs_filename: str
+        Bvecs filename
+    bvecs_swapped_filename: str
+        Bvecs swapped filename
+    axes: list of int
+        List of axes to swap (e.g. [0, 1])
+    """
+
+    bvecs = np.loadtxt(bvecs_filename)
+    new_bvecs = np.zeros(bvecs.shape)
+    new_bvecs[axes[0], :] = bvecs[axes[1], :]
+    new_bvecs[axes[1], :] = bvecs[axes[0], :]
+
+    np.savetxt(bvecs_swapped_filename, new_bvecs, "%.8f")
+
+
+def swap_mrtrix_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
+    """
+    Swap MRtrix bvecs
+
+    Parameters
+    ----------
+    bvecs_filename: str
+        Bvecs filename
+    bvecs_swapped_filename: str
+        Bvecs swapped filename
+    axes: list of int
+        List of axes to swap (e.g. [0, 1])
+    """
+
+    bvecs = np.loadtxt(bvecs_filename)
+    new_bvecs = np.zeros(bvecs.shape)
+
+    new_bvecs[:, axes[0]] = bvecs[:, axes[1]]
+    new_bvecs[:, axes[1]] = bvecs[:, axes[0]]
+
+    np.savetxt(bvecs_swapped_filename,
+               new_bvecs,
+               "%.8f %.8f %.8f %0.6f")

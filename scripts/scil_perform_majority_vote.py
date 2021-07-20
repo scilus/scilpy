@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Use multiple bundles to perform a voxel-wise vote (occurence across input).
@@ -14,7 +14,7 @@ Input tractograms must have identical header.
 
 import argparse
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
 import nibabel as nib
@@ -28,8 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      intersection, union)
+from scilpy.utils.streamlines import intersection_robust, union_robust
 
 
 def _build_arg_parser():
@@ -74,54 +73,45 @@ def main():
         parser.error('Ratios must be between 0 and 1.')
 
     fusion_streamlines = []
-    for name in args.in_bundles:
-        tmp_sft = load_tractogram_with_reference(parser, args, name)
-        fusion_streamlines.extend(tmp_sft.streamlines)
-
-    fusion_streamlines, _ = perform_streamlines_operation(union,
-                                                          [fusion_streamlines],
-                                                          0)
-    fusion_streamlines = ArraySequence(fusion_streamlines)
     if args.reference:
         reference_file = args.reference
     else:
         reference_file = args.in_bundles[0]
+    sft_list = []
+    for name in args.in_bundles:
+        tmp_sft = load_tractogram_with_reference(parser, args, name)
+        tmp_sft.to_vox()
+        tmp_sft.to_corner()
+
+        if not is_header_compatible(reference_file, tmp_sft):
+            raise ValueError('Headers are not compatible.')
+        sft_list.append(tmp_sft)
+        fusion_streamlines.append(tmp_sft.streamlines)
+
+    fusion_streamlines, _ = union_robust(fusion_streamlines)
 
     transformation, dimensions, _, _ = get_reference_info(reference_file)
     volume = np.zeros(dimensions)
     streamlines_vote = dok_matrix((len(fusion_streamlines),
                                    len(args.in_bundles)))
 
-    for i, name in enumerate(args.in_bundles):
-        if not is_header_compatible(reference_file, name):
-            raise ValueError('Headers are not compatible.')
-        sft = load_tractogram_with_reference(parser, args, name)
-
-        # Needed for streamline-wise representation
-        bundle = sft.get_streamlines_copy()
-        sft.to_vox()
-        sft.to_corner()
-
+    for i in range(len(args.in_bundles)):
+        sft = sft_list[i]
         binary = compute_tract_counts_map(sft.streamlines, dimensions)
         volume[binary > 0] += 1
 
         if args.same_tractogram:
-            _, indices = perform_streamlines_operation(intersection,
-                                                       [fusion_streamlines,
-                                                        bundle], 0)
-            streamlines_vote[list(indices), i] += 1
+            _, indices = intersection_robust([fusion_streamlines,
+                                              sft.streamlines])
+            streamlines_vote[list(indices), [i]] += 1
 
     if args.same_tractogram:
         real_indices = []
-        for i in range(len(fusion_streamlines)):
-            ratio_value = int(args.ratio_streamlines*len(args.in_bundles))
-            if np.sum(streamlines_vote[i]) >= ratio_value:
-                real_indices.append(i)
-
-        new_streamlines = fusion_streamlines[real_indices]
-
-        new_sft = StatefulTractogram(list(new_streamlines), reference_file,
-                                     Space.RASMM)
+        ratio_value = int(args.ratio_streamlines*len(args.in_bundles))
+        real_indices = np.where(np.sum(streamlines_vote,
+                                       axis=1) >= ratio_value)[0]
+        new_sft = StatefulTractogram.from_sft(fusion_streamlines[real_indices],
+                                              sft_list[0])
         save_tractogram(new_sft, output_streamlines_filename)
 
     volume[volume < int(args.ratio_voxels*len(args.in_bundles))] = 0

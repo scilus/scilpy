@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -120,11 +120,12 @@ def main():
         possible_output_paths.append(out_basename + '.png')
         assert_outputs_exist(parser, args, possible_output_paths)
 
-    for b0 in centroids[centroids < 40]:
-        shell_idx[shell_idx == b0] = -1
+    for idx, b0 in enumerate(centroids[centroids < 40]):
+        shell_idx[shell_idx == idx] = -1
         centroids = np.delete(centroids,  np.where(centroids == b0))
 
-    shell_idx[shell_idx != -1] -= 1
+    if len(shell_idx[shell_idx == -1]) > 0:
+        shell_idx[shell_idx != -1] -= 1
 
     sym = args.enable_sym
     sph = args.enable_sph

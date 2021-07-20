@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -74,7 +74,7 @@ def main():
     # Step size (zero for masked vertices)
     if args.vts_mask:
         mask = np.load(args.vts_mask)
-        step_size_per_vts = args.step_size * mask.astype(np.float)
+        step_size_per_vts = args.step_size * mask.astype(float)
     else:
         step_size_per_vts = args.step_size
 

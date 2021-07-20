@@ -1,95 +1,115 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Performs an operation on a list of streamline files. The supported
 operations are:
 
-    difference:  Keep the streamlines from the first file that are not in
-                 any of the following files.
+difference:  Keep the streamlines from the first file that are not in
+                any of the following files.
 
-    intersection: Keep the streamlines that are present in all files.
+intersection: Keep the streamlines that are present in all files.
 
-    union:        Keep all streamlines while removing duplicates.
+union:        Keep all streamlines while removing duplicates.
 
-    concatenate:  Keep all streamlines with duplicates.
+concatenate:  Keep all streamlines with duplicates.
 
-For efficiency, the comparisons are performed using a hash table. This means
-that streamlines must be identical for a match to be found. To allow a soft
-match, use the --precision option to round streamlines before processing.
-Note that the streamlines that are saved in the output are the original
-streamlines, not the rounded ones.
+lazy_concatenate:  Keep all streamlines with duplicates, never load the whole
+                    tractograms in memory. Only works with trk/tck file,
+                    metadata will be lost and invalid streamlines are kept.
+
+If a file 'duplicate.trk' have identical streamlines, calling the script using
+the difference/intersection/union with a single input will remove these
+duplicated streamlines.
+
+To allow a soft match, use the --precision option to increase the allowed
+threshold for similarity. A precision of 1 represents 10**(-1), so a
+maximum distance of 0.1mm is allowed. If the streamlines are identical, the
+default value of 3 (or 0.001mm distance) should work.
+
+If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) the --robust
+option should make it work, but slightly slower.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
---no-data to strip the metadata from the output.
-
-Repeated uses with .trk files will slighly affect coordinate values
-due to precision error.
+--no_metadata to strip the metadata from the output. Or --fake_metadata to
+initialize dummy metadata in the file missing them.
 """
 
 import argparse
-from itertools import chain
 import json
 import logging
+import os
 
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import save_tractogram
+from dipy.io.utils import is_header_compatible
+import nibabel as nib
+from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (perform_streamlines_operation,
-                                      difference, intersection, union)
+from scilpy.utils.streamlines import (difference_robust, difference,
+                                      union_robust, union,
+                                      intersection_robust, intersection,
+                                      perform_streamlines_operation,
+                                      concatenate_sft)
 
 
 OPERATIONS = {
+    'difference_robust': difference_robust,
+    'intersection_robust': intersection_robust,
+    'union_robust': union_robust,
     'difference': difference,
     'intersection': intersection,
     'union': union,
-    'concatenate': 'concatenate'
+    'concatenate': 'concatenate',
+    'lazy_concatenate': 'lazy_concatenate'
 }
 
 
 def _build_arg_parser():
-
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
     p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
                    help='The type of operation to be performed on the '
-                   'streamlines. Must\nbe one of the following: '
-                   '%(choices)s.')
-
-    p.add_argument('inputs', metavar='INPUT_FILES', nargs='+',
+                        'streamlines. Must\nbe one of the following: '
+                        '%(choices)s.')
+    p.add_argument('in_tractograms', metavar='INPUT_FILES', nargs='+',
                    help='The list of files that contain the ' +
-                   'streamlines to operate on.')
-
-    p.add_argument('output', metavar='OUTPUT_FILE',
+                        'streamlines to operate on.')
+    p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
-                   'are saved.')
+                        'are saved.')
 
-    p.add_argument('--precision', '-p', metavar='NUMBER_OF_DECIMALS', type=int,
-                   help='The precision used when comparing streamlines.')
+    p.add_argument('--precision', '-p', metavar='NBR_OF_DECIMALS',
+                   type=int, default=4,
+                   help='Precision used to compare streamlines [%(default)s].')
+    p.add_argument('--robust', '-r', action='store_true',
+                   help='Use version robust to small translation/rotation.')
 
     p.add_argument('--no_metadata', '-n', action='store_true',
                    help='Strip the streamline metadata from the output.')
-
-    p.add_argument('--save_metadata_indices', '-m', action='store_true',
-                   help='Save streamline indices to metadata. Has no '
-                   'effect if --no-data\nis present. Will '
-                   'overwrite \'ids\' metadata if already present.')
-
-    p.add_argument('--save_indices', '-s', metavar='OUTPUT_INDEX_FILE',
+    p.add_argument('--fake_metadata', action='store_true',
+                   help='Skip the metadata verification, create fake metadata '
+                        'if missing, can lead to unexpected behavior.')
+    p.add_argument('--save_indices', '-s', metavar='OUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
-                   'json file.')
+                        'json file.')
 
+    p.add_argument('--ignore_invalid', action='store_true',
+                   help='If set, does not crash because of invalid '
+                        'streamlines.')
+
+    add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -97,86 +117,89 @@ def _build_arg_parser():
     return p
 
 
-def load_data(parser, args, path):
-    logging.info(
-        'Loading streamlines from {0}.'.format(path))
-    sft = load_tractogram_with_reference(parser, args, path)
-    streamlines = list(sft.streamlines)
-    data_per_streamline = sft.data_per_streamline
-    data_per_point = sft.data_per_point
-
-    return streamlines, data_per_streamline, data_per_point
-
-
 def main():
-
     parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.inputs)
-    assert_outputs_exist(parser, args, args.output)
+    assert_inputs_exist(parser, args.in_tractograms)
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.save_indices)
+
+    if args.operation == 'lazy_concatenate':
+        logging.info('Using lazy_concatenate, no spatial or metadata related '
+                     'checks are performed.\nMetadata will be lost, only '
+                     'trk/tck file are supported.')
+
+        def list_generator_from_nib(filenames):
+            for in_file in filenames:
+                tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
+                for s in tractogram_file.streamlines:
+                    yield s
+        header = None
+        for in_file in args.in_tractograms:
+            _, ext = os.path.splitext(in_file)
+            if ext == '.trk':
+                if header is None:
+                    header = nib.streamlines.load(
+                        in_file, lazy_load=True).header
+                elif not is_header_compatible(header, in_file):
+                    logging.warning('Incompatible headers in the list.')
+
+        generator = list_generator_from_nib(args.in_tractograms)
+        out_tractogram = LazyTractogram(lambda: generator,
+                                        affine_to_rasmm=np.eye(4))
+        nib.streamlines.save(out_tractogram, args.out_tractogram,
+                             header=header)
+        return
 
     # Load all input streamlines.
-    data = [load_data(parser, args, f) for f in args.inputs]
-    streamlines, data_per_streamline, data_per_point = zip(*data)
-    nb_streamlines = [len(s) for s in streamlines]
+    sft_list = []
+    for f in args.in_tractograms:
+        sft_list.append(load_tractogram_with_reference(
+            parser, args, f, bbox_check=not args.ignore_invalid))
 
     # Apply the requested operation to each input file.
-    logging.info(
-        'Performing operation \'{}\'.'.format(args.operation))
+    logging.info('Performing operation \'{}\'.'.format(args.operation))
+    new_sft = concatenate_sft(sft_list, args.no_metadata, args.fake_metadata)
     if args.operation == 'concatenate':
-        new_streamlines = sum(streamlines, [])
-        indices = range(len(new_streamlines))
+        indices = np.arange(len(new_sft), dtype=np.uint32)
     else:
-        new_streamlines, indices = perform_streamlines_operation(
-            OPERATIONS[args.operation], streamlines, args.precision)
-
-    # Get the meta data of the streamlines.
-    new_data_per_streamline = {}
-    new_data_per_point = {}
-    if not args.no_metadata:
-
-        for key in data_per_streamline[0].keys():
-            all_data = np.vstack([s[key] for s in data_per_streamline])
-            new_data_per_streamline[key] = all_data[indices, :]
-
-        # Add the indices to the metadata if requested.
-        if args.save_metadata_indices:
-            new_data_per_streamline['ids'] = indices
-
-        for key in data_per_point[0].keys():
-            all_data = list(chain(*[s[key] for s in data_per_point]))
-            new_data_per_point[key] = [all_data[i] for i in indices]
+        streamlines_list = [sft.streamlines for sft in sft_list]
+        op_name = args.operation
+        if args.robust:
+            op_name += '_robust'
+            _, indices = OPERATIONS[op_name](streamlines_list,
+                                             precision=args.precision)
+        else:
+            _, indices = perform_streamlines_operation(
+                OPERATIONS[op_name], streamlines_list,
+                precision=args.precision)
 
     # Save the indices to a file if requested.
-    if args.save_indices is not None:
+    if args.save_indices:
         start = 0
-        indices_dict = {'filenames': args.inputs}
-        for name, nb in zip(args.inputs, nb_streamlines):
+        out_dict = {}
+        streamlines_len_cumsum = [len(sft) for sft in sft_list]
+        for name, nb in zip(args.in_tractograms, streamlines_len_cumsum):
             end = start + nb
-            file_indices = \
-                [i - start for i in indices if start <= i < end]
-            indices_dict[name] = file_indices
+            # Switch to int32 for json
+            out_dict[name] = [int(i - start)
+                              for i in indices if start <= i < end]
             start = end
+
         with open(args.save_indices, 'wt') as f:
-            json.dump(indices_dict, f)
+            json.dump(out_dict, f,
+                      indent=args.indent,
+                      sort_keys=args.sort_keys)
 
-    # Save the new streamlines.
-    logging.info('Saving streamlines to {0}.'.format(args.output))
-
-    # If no reference was provided, it means all input were trk file
-    if args.reference:
-        reference_file = args.reference
-    else:
-        reference_file = args.inputs[0]
-
-    sft = StatefulTractogram(new_streamlines, reference_file, Space.RASMM,
-                             data_per_streamline=new_data_per_streamline,
-                             data_per_point=new_data_per_point)
-    save_tractogram(sft, args.output)
+    # Save the new streamlines (and metadata)
+    logging.info('Saving {} streamlines to {}.'.format(len(indices),
+                                                       args.out_tractogram))
+    save_tractogram(new_sft[indices], args.out_tractogram,
+                    bbox_valid_check=not args.ignore_invalid)
 
 
 if __name__ == "__main__":

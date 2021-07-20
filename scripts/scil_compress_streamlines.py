@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -38,8 +38,8 @@ def _build_arg_parser():
 
 
 def compress_streamlines_wrapper(tractogram, error_rate):
-    return lambda: [(yield compress_streamlines(
-        s, error_rate)) for s in tractogram.streamlines]
+    return lambda: (compress_streamlines(
+        s, error_rate) for s in tractogram.streamlines)
 
 
 def main():

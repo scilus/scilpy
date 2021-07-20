@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -65,10 +65,10 @@ def _build_arg_parser():
                         'for the sagittal plane.')
     p.add_argument('--anat_opacity', type=float, default=0.3,
                    help='Set the opacity for the anatomy, use 0 for complete \n'
-                        'transparency, 1 for opaque.')
+                        'transparency, 1 for opaque. [%(default)s]')
     p.add_argument('--output_suffix',
                    help='Add a suffix to the output, else the axis name is used.')
-    p.add_argument('--output_dir', default='',
+    p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
 
     add_verbose_arg(p)
@@ -84,12 +84,12 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
     # Load and prepare the data
     reference_img = nib.load(reference_filename)
-    reference_data = reference_img.get_fdata()
+    reference_data = reference_img.get_fdata(dtype=np.float32)
     reference_affine = reference_img.affine
 
     if target_template_filename:
         target_template_img = nib.load(target_template_filename)
-        target_template_data = target_template_img.get_fdata()
+        target_template_data = target_template_img.get_fdata(dtype=np.float32)
         target_template_affine = target_template_img.affine
 
         # Register the DWI data to the template
@@ -146,28 +146,27 @@ def main():
     output_filenames_glass = []
     for axis_name in ['sagittal', 'coronal', 'axial']:
         if args.output_suffix:
-            output_filenames_3d.append(os.path.join(args.output_dir,
+            output_filenames_3d.append(os.path.join(args.out_dir,
                                                     '{0}_{1}_3d.png'.format(
                                                         axis_name,
                                                         args.output_suffix)))
 
-            output_filenames_glass.append(os.path.join(args.output_dir,
+            output_filenames_glass.append(os.path.join(args.out_dir,
                                                        '{0}_{1}_glass.png'.format(
                                                            axis_name,
                                                            args.output_suffix)))
         else:
-            output_filenames_3d.append(os.path.join(args.output_dir,
+            output_filenames_3d.append(os.path.join(args.out_dir,
                                                     '{0}_3d.png'.format(
                                                         axis_name)))
-            output_filenames_glass.append(os.path.join(args.output_dir,
+            output_filenames_glass.append(os.path.join(args.out_dir,
                                                        '{0}_glass.png'.format(
                                                            axis_name)))
-
     assert_outputs_exist(parser, args,
                          output_filenames_3d+output_filenames_glass)
 
-    if args.output_dir and not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
+    if args.out_dir and not os.path.isdir(args.out_dir):
+        os.mkdir(args.out_dir)
 
     if args.anat_opacity < 0.0 or args.anat_opacity > 1.0:
         parser.error('Opacity must be between 0 and 1')
@@ -227,7 +226,6 @@ def main():
         colors = None
 
     streamlines_actor = actor.line(streamlines, colors=colors, linewidth=0.2)
-
     # Take a snapshot of each dataset, camera settings are fixed for the
     # known template, won't work with another.
     if args.right:

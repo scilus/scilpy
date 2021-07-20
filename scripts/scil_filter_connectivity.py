@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -17,6 +17,8 @@ This will result in a binary mask where each node with a value of 1 represents
 a node with at least 90% of the population having at least 1 streamline,
 90% of the population is similar to the average (2mm) and 90% of the
 population having at least 40mm of average streamlines length.
+
+All operation are stricly > or <, there is no >= or <=.
 
 --greater_than or --lower_than expect the same convention:
     MATRICES_LIST VALUE_THR POPULATION_PERC
@@ -110,7 +112,7 @@ def main():
         if condition == 'lower':
             empty_matrices[matrices < value_threshold] = 1
         else:
-            empty_matrices[matrices >= value_threshold] = 1
+            empty_matrices[matrices > value_threshold] = 1
 
         population_score = np.sum(empty_matrices, axis=2)
 
@@ -122,7 +124,7 @@ def main():
                                        population_threshold)[0]),
                           np.prod(shape)))
 
-        output_mask[population_score >= population_threshold] += 1
+        output_mask[population_score > population_threshold] += 1
 
     if not args.keep_condition_count:
         output_mask[output_mask < condition_counter] = 0

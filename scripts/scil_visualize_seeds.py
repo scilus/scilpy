@@ -1,9 +1,13 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
-Visualize seeds where streamlines originate from
-in a tractogram
+Visualize seeds used to generate the tractogram or bundle.
+When tractography was run, each streamline produced by the tracking algorithm
+saved its seeding point (its origin).
+
+The tractogram must have been generated from scil_compute_local/pft_tracking.py
+with the --save_seeds option.
 """
 
 import argparse
@@ -18,15 +22,17 @@ from scilpy.io.utils import (add_overwrite_arg,
 
 
 def _build_arg_parser():
-    parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('tractogram', help='Tractogram file (must be trk)')
-    parser.add_argument('--save', help='If set, save a ' +
-                        'screenshot of the result in the ' +
+        formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('tractogram',
+                   help='Tractogram file (must be trk)')
+    p.add_argument('--save',
+                   help='If set, save a screenshot of the result in the '
                         'specified filename')
-    add_overwrite_arg(parser)
-    return parser
+    add_overwrite_arg(p)
+
+    return p
 
 
 def main():
@@ -56,14 +62,14 @@ def main():
     points = actor.dots(seeds, color=(1., 1., 1.))
 
     # Add display objects to canvas
-    r = window.Renderer()
-    r.add(streamlines_actor)
-    r.add(points)
+    s = window.Scene()
+    s.add(streamlines_actor)
+    s.add(points)
 
     # Show and record if needed
     if args.save is not None:
-        window.record(r, out_path=args.save, size=(1000, 1000))
-    window.show(r)
+        window.record(s, out_path=args.save, size=(1000, 1000))
+    window.show(s)
 
 
 if __name__ == '__main__':

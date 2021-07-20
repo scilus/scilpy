@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 Reshape / reslice / resample *.nii or *.nii.gz using a reference.
-For more information on how to use the various registration scripts
-see the doc/tractogram_registration.md readme file.
+This script can be used to align freesurfer/civet output, as .mgz,
+to the original input image.
+
 
 >>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
     --interpolation nearest
@@ -24,13 +25,11 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_file',
-                   help='Path of the volume file to be reshaped.')
-
-    p.add_argument('ref_file',
-                   help='Path of the reference volume.')
-
+                   help='Path of the image (.nii or .mgz) to be reshaped.')
+    p.add_argument('in_ref_file',
+                   help='Path of the reference image (.nii).')
     p.add_argument('out_file',
-                   help='Output filename of the reshaped data.')
+                   help='Output filename of the reshaped image (.nii).')
 
     p.add_argument('--interpolation', default='linear',
                    choices=['linear', 'nearest'],
@@ -44,10 +43,10 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_file, args.ref_file])
+    assert_inputs_exist(parser, [args.in_file, args.in_ref_file])
     assert_outputs_exist(parser, args, args.out_file)
 
-    transform_anatomy(np.eye(4), args.ref_file, args.in_file,
+    transform_anatomy(np.eye(4), args.in_ref_file, args.in_file,
                       args.out_file, interp=args.interpolation)
 
 

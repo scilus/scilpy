@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -59,10 +59,11 @@ def _build_arg_parser():
                    help='Path of the input bundles.')
     p.add_argument('out_json',
                    help='Path of the output json file.')
-
     p.add_argument('--streamline_dice', action='store_true',
-                   help='Streamlines-wise Dice coefficient will be computed \n'
+                   help='Compute streamline-wise dice coefficient.\n'
                         'Tractograms must be identical [%(default)s].')
+    p.add_argument('--bundle_adjency_no_overlap', action='store_true',
+                   help='If set, do not count zeros in the average BA.')
     p.add_argument('--disable_streamline_distance', action='store_true',
                    help='Will not compute the streamlines distance \n'
                         '[%(default)s].')
@@ -70,6 +71,11 @@ def _build_arg_parser():
                    help='Compare inputs to this single file.')
     p.add_argument('--keep_tmp', action='store_true',
                    help='Will not delete the tmp folder at the end.')
+    p.add_argument('--ratio', action='store_true',
+                   help='Compute overlap and overreach as a ratio over the\n'
+                        'reference tractogram in a Tractometer-style way.\n'
+                        'Can only be used if also using the `single_compare` '
+                        'option.')
 
     add_processes_arg(p)
     add_reference_arg(p)
@@ -79,14 +85,12 @@ def _build_arg_parser():
     return p
 
 
-def load_data_tmp_saving_wrapper(args):
-    load_data_tmp_saving(args[0][0], args[0][1],
-                         init_only=args[1],
-                         disable_centroids=args[2])
+def load_data_tmp_saving(args):
+    filename = args[0]
+    reference = args[1]
+    init_only = args[2]
+    disable_centroids = args[3]
 
-
-def load_data_tmp_saving(filename, reference, init_only=False,
-                         disable_centroids=False):
     # Since data is often re-use when comparing multiple bundles, anything
     # that can be computed once is saved temporarily and simply loaded on demand
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
@@ -112,9 +116,9 @@ def load_data_tmp_saving(filename, reference, init_only=False,
         # If initilization, loading the data is useless
         if init_only:
             return None
-        density = nib.load(tmp_density_filename).get_fdata().astype(np.uint16)
+        density = nib.load(tmp_density_filename).get_fdata(dtype=np.float32)
         endpoints_density = nib.load(
-            tmp_endpoints_filename).get_fdata().astype(np.uint16)
+            tmp_endpoints_filename).get_fdata(dtype=np.float32)
         sft_centroids = load_tractogram(tmp_centroids_filename, reference)
         sft_centroids.to_vox()
         sft_centroids.to_corner()
@@ -151,24 +155,24 @@ def compute_all_measures(args):
     filename_1, reference_1 = tuple_1
     filename_2, reference_2 = tuple_2
     streamline_dice = args[1]
-    disable_streamline_distance = args[2]
+    bundle_adjency_no_overlap = args[2]
+    disable_streamline_distance = args[3]
+    ratio = args[4]
 
     if not is_header_compatible(reference_1, reference_2):
         raise ValueError('{} and {} have incompatible headers'.format(
             filename_1, filename_2))
 
-    data_tuple_1 = load_data_tmp_saving(
-        filename_1, reference_1,
-        disable_centroids=disable_streamline_distance)
+    data_tuple_1 = load_data_tmp_saving([filename_1, reference_1, False,
+                                         disable_streamline_distance])
     if data_tuple_1 is None:
         return None
 
     density_1, endpoints_density_1, bundle_1, \
         centroids_1 = data_tuple_1
 
-    data_tuple_2 = load_data_tmp_saving(
-        filename_2, reference_2,
-        disable_centroids=disable_streamline_distance)
+    data_tuple_2 = load_data_tmp_saving([filename_2, reference_2, False,
+                                         disable_streamline_distance])
     if data_tuple_2 is None:
         return None
 
@@ -191,22 +195,29 @@ def compute_all_measures(args):
     volume_overreach_endpoints = np.abs(np.count_nonzero(
         endpoints_density_1 + endpoints_density_2) - volume_overlap_endpoints)
 
+    if ratio:
+        count = np.count_nonzero(binary_1)
+        volume_overlap /= count
+        volume_overlap_endpoints /= count
+        volume_overreach /= count
+        volume_overreach_endpoints /= count
+
     # These measures are in mm
-    bundle_adjacency_voxel = compute_bundle_adjacency_voxel(density_1,
-                                                            density_2,
-                                                            non_overlap=True)
+    bundle_adjacency_voxel = compute_bundle_adjacency_voxel(
+        density_1, density_2,
+        non_overlap=bundle_adjency_no_overlap)
     if streamline_dice and not disable_streamline_distance:
         bundle_adjacency_streamlines = \
-            compute_bundle_adjacency_streamlines(bundle_1,
-                                                 bundle_2,
-                                                 non_overlap=True)
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                non_overlap=bundle_adjency_no_overlap)
     elif not disable_streamline_distance:
         bundle_adjacency_streamlines = \
-            compute_bundle_adjacency_streamlines(bundle_1,
-                                                 bundle_2,
-                                                 centroids_1=centroids_1,
-                                                 centroids_2=centroids_2,
-                                                 non_overlap=True)
+            compute_bundle_adjacency_streamlines(
+                bundle_1, bundle_2,
+                centroids_1=centroids_1,
+                centroids_2=centroids_2,
+                non_overlap=bundle_adjency_no_overlap)
     # These measures are between 0 and 1
     dice_vox, w_dice_vox = compute_dice_voxel(density_1, density_2)
 
@@ -227,6 +238,10 @@ def compute_all_measures(args):
                      'volume_overreach_endpoints',
                      'density_correlation',
                      'density_correlation_endpoints']
+
+    # If computing ratio, voxel size does not make sense
+    if ratio:
+        voxel_size = 1.
     measures = [bundle_adjacency_voxel,
                 dice_vox, w_dice_vox,
                 volume_overlap * voxel_size,
@@ -266,12 +281,15 @@ def main():
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, [args.out_json])
 
+    if args.ratio and not args.single_compare:
+        parser.error('Can only compute ratio if also using `single_compare`')
+
     nbr_cpu = validate_nbr_processes(parser, args)
+    if nbr_cpu > 1:
+        pool = multiprocessing.Pool(nbr_cpu)
 
     if not os.path.isdir('tmp_measures/'):
         os.mkdir('tmp_measures/')
-
-    pool = multiprocessing.Pool(nbr_cpu)
 
     if args.single_compare:
         # Move the single_compare only once, at the end.
@@ -291,20 +309,41 @@ def main():
         bundles_references_tuple = link_bundles_and_reference(parser,
                                                               args,
                                                               bundles_list)
-        pool.map(load_data_tmp_saving_wrapper,
-                 zip(bundles_references_tuple,
-                     itertools.repeat(True),
-                     itertools.repeat(args.disable_streamline_distance)))
+
+        # This approach is only so pytest can run
+        if nbr_cpu == 1:
+            for i in range(len(bundles_references_tuple)):
+                load_data_tmp_saving([bundles_references_tuple[i][0],
+                                      bundles_references_tuple[i][1],
+                                      True, args.disable_streamline_distance])
+        else:
+            pool.map(load_data_tmp_saving,
+                     zip([tup[0] for tup in bundles_references_tuple],
+                         [tup[1] for tup in bundles_references_tuple],
+                         itertools.repeat(True),
+                         itertools.repeat(args.disable_streamline_distance)))
 
         comb_dict_keys = list(itertools.combinations(
             bundles_references_tuple, r=2))
 
-    all_measures_dict = pool.map(compute_all_measures,
-                                 zip(comb_dict_keys,
-                                     itertools.repeat(args.streamline_dice),
-                                     itertools.repeat(args.disable_streamline_distance)))
-    pool.close()
-    pool.join()
+    if nbr_cpu == 1:
+        all_measures_dict = []
+        for i in comb_dict_keys:
+            all_measures_dict.append(compute_all_measures([
+                i, args.streamline_dice,
+                args.bundle_adjency_no_overlap,
+                args.disable_streamline_distance,
+                args.ratio]))
+    else:
+        all_measures_dict = pool.map(
+            compute_all_measures,
+            zip(comb_dict_keys,
+                itertools.repeat(args.streamline_dice),
+                itertools.repeat(args.bundle_adjency_no_overlap),
+                itertools.repeat(args.disable_streamline_distance),
+                itertools.repeat(args.ratio)))
+        pool.close()
+        pool.join()
 
     output_measures_dict = {}
     for measure_dict in all_measures_dict:

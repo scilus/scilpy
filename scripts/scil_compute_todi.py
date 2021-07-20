@@ -1,9 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Compute a length-weighted Track Orientation Density Image (TODI).
-This script can afterwards output a length-weighted Track Density Image
-(TDI) or a length-weighted TODI, based on streamlines' segments.\n\n
+Compute a Track Orientation Density Image (TODI).
+Each segment of the streamlines is weighted by its length
+(to support compressed streamlines).
+This script can afterwards output a Track Density Image (TDI)
+or a TODI with SF or SH representation, based on streamlines' segments.\n\n
 """
 
 import argparse
@@ -12,6 +14,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_sh_basis_args,
@@ -32,38 +35,39 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('tract_filename',
+    p.add_argument('in_tractogram',
                    help='Input streamlines file.')
 
     add_reference_arg(p)
 
     p.add_argument('--sphere', default='repulsion724',
-                   help='sphere used for the angular discretization.')
+                   help='sphere used for the angular discretization. '
+                        '[%(default)s]')
 
     p.add_argument('--mask',
-                   help='Use the given mask')
+                   help='Use the given mask.')
 
     p.add_argument('--out_mask',
                    help='Mask showing where TDI > 0.')
 
-    p.add_argument('--out_lw_tdi',
-                   help='Output length-weighted TDI map.')
+    p.add_argument('--out_tdi',
+                   help='Output Track Density Image (TDI).')
 
-    p.add_argument('--out_lw_todi',
-                   help='Output length-weighted TODI map.')
+    p.add_argument('--out_todi_sf',
+                   help='Output TODI, with SF (each directions\n'
+                        'on the sphere, requires a lot of memory)')
 
-    p.add_argument('--out_lw_todi_sh',
-                   help='Output length-weighted TODI map, '
-                   'with SH coefficient.')
+    p.add_argument('--out_todi_sh',
+                   help='Output TODI, with SH coefficients.')
 
     p.add_argument('--sh_order', type=int, default=8,
-                   help='Order of the original SH.')
+                   help='Order of the original SH. [%(default)s]')
 
-    p.add_argument('--sh_normed', action='store_true',
-                   help='Normalize sh.')
+    p.add_argument('--normalize_per_voxel', action='store_true',
+                   help='Normalize each SF/SH at each voxel [%(default)s].')
 
-    p.add_argument('--smooth', action='store_true',
-                   help='Smooth todi (angular and spatial).')
+    p.add_argument('--smooth_todi', action='store_true',
+                   help='Smooth TODI (angular and spatial) [%(default)s].')
 
     p.add_argument('--asymmetric', action='store_true', default = False,
                    help='Compute asymmetric TODI')
@@ -78,36 +82,39 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.tract_filename,
+    assert_inputs_exist(parser, args.in_tractogram,
                         [args.mask, args.reference])
 
     output_file_list = []
     if args.out_mask:
         output_file_list.append(args.out_mask)
-    if args.out_lw_tdi:
-        output_file_list.append(args.out_lw_tdi)
-    if args.out_lw_todi:
-        output_file_list.append(args.out_lw_todi)
-    if args.out_lw_todi_sh:
-        output_file_list.append(args.out_lw_todi_sh)
+    if args.out_tdi:
+        output_file_list.append(args.out_tdi)
+    if args.out_todi_sf:
+        output_file_list.append(args.out_todi_sf)
+    if args.out_todi_sh:
+        output_file_list.append(args.out_todi_sh)
 
     if not output_file_list:
         parser.error('No output to be done')
 
     assert_outputs_exist(parser, args, output_file_list)
 
-    sft = load_tractogram_with_reference(parser, args, args.tract_filename)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
+
     sft.to_vox()
-    
-    # Make sure the origin of voxel is at the corner and not at the center
-    # sft.to_corner()
+    # Because compute_todi expects streamline points (in voxel coordinates)
+    # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
+    # the voxel origin to corner (will only be done if it's not already the
+    # case).
+    sft.to_corner()
 
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True, asymmetric=args.asymmetric)
 
-    if args.smooth:
+    if args.smooth_todi:
         logging.info('Smoothing ...')
         if args.asymmetric:
             logging.warning('Smooting of asymmetric TODI renders it symmetric!')
@@ -115,7 +122,7 @@ def main():
         todi_obj.smooth_todi_spatial()
 
     if args.mask:
-        mask = nib.load(args.mask).get_data()
+        mask = get_data_as_mask(nib.load(args.mask))
         todi_obj.mask_todi(mask)
 
     logging.info('Saving Outputs ...')
@@ -125,25 +132,25 @@ def main():
         img = nib.Nifti1Image(img.astype(np.int16), affine)
         img.to_filename(args.out_mask)
 
-    if args.out_lw_todi_sh:
-        if args.sh_normed:
+    if args.out_todi_sh:
+        if args.normalize_per_voxel:
             todi_obj.normalize_todi_per_voxel()
         img = todi_obj.get_sh(args.sh_basis, args.sh_order)
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_lw_todi_sh)
+        img.to_filename(args.out_todi_sh)
 
-    if args.out_lw_tdi:
+    if args.out_tdi:
         img = todi_obj.get_tdi()
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_lw_tdi)
+        img.to_filename(args.out_tdi)
 
-    if args.out_lw_todi:
+    if args.out_todi_sf:
         img = todi_obj.get_todi()
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
-        img.to_filename(args.out_lw_todi)
+        img.to_filename(args.out_todi_sf)
 
 
 if __name__ == '__main__':

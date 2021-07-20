@@ -5,8 +5,6 @@
 # http://www.flipcode.com/archives/Raytracing_Topics_Techniques-Part_4_Spatial_Subdivisions.shtml
 
 
-from __future__ import division
-
 cimport cython
 import numpy as np
 cimport numpy as np
@@ -42,18 +40,18 @@ def compute_tract_counts_map(streamlines, vol_dims):
     flags = np.seterr(divide="ignore", under="ignore")
 
     # Inspired from Dipy track_counts
-    vol_dims = np.asarray(vol_dims).astype(np.int)
+    vol_dims = np.asarray(vol_dims).astype(int)
     n_voxels = np.prod(vol_dims)
 
     # This array counts the number of different tracks going through each voxel.
     # Need to keep both the array and the memview on it to be able to
     # reshape and return in the end.
-    traversal_tags = np.zeros((n_voxels,), dtype=np.int)
+    traversal_tags = np.zeros((n_voxels,), dtype=int)
     cdef np.int_t[:] traversal_tags_v = traversal_tags
 
     # This array keeps track of whether the current track has already been
     # flagged in a specific voxel.
-    cdef np.int_t[:] touched_tags_v = np.zeros((n_voxels,), dtype=np.int)
+    cdef np.int_t[:] touched_tags_v = np.zeros((n_voxels,), dtype=int)
 
     cdef int streamlines_len = len(streamlines)
 
@@ -73,7 +71,7 @@ def compute_tract_counts_map(streamlines, vol_dims):
     cdef np.double_t[:] cur_edge = np.zeros(3, dtype=np.double)
 
     # Memview for the coordinates of the current voxel
-    cdef np.int_t[:] cur_voxel_coords = np.zeros(3, dtype=np.int)
+    cdef np.int_t[:] cur_voxel_coords = np.zeros(3, dtype=int)
 
     # various temporary loop and working variables
     #cdef:

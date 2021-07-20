@@ -77,7 +77,7 @@ def afd_and_rd_sums_along_streamlines(sft, fodf, fodf_basis,
     sft.to_vox()
     sft.to_corner()
 
-    fodf_data = np.asanyarray(fodf.dataobj)
+    fodf_data = fodf.get_fdata(dtype=np.float32)
     order = find_order_from_nb_coeff(fodf_data)
     sphere = get_sphere('repulsion724')
     b_matrix, _, n = get_b_matrix(order, sphere, fodf_basis, return_all=True)

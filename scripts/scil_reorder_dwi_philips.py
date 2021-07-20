@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -9,7 +9,7 @@ import argparse
 import logging
 
 from dipy.io.gradients import read_bvals_bvecs
-import nibabel as nb
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
@@ -23,23 +23,18 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('dwi',
-                   help='input dwi file')
-
-    p.add_argument('bvec',
-                   help='input bvec FSL format')
-
-    p.add_argument('bval',
-                   help='input bval FSL format')
-
-    p.add_argument('table',
-                   help='original table - first line is skipped')
-
-    p.add_argument('baseName',
-                   help='basename output file')
+    p.add_argument('in_dwi',
+                   help='Input dwi file.')
+    p.add_argument('in_bvec',
+                   help='Input bvec FSL format.')
+    p.add_argument('in_bval',
+                   help='Input bval FSL format.')
+    p.add_argument('in_table',
+                   help='original table - first line is skipped.')
+    p.add_argument('out_basename',
+                   help='Basename output file.')
 
     add_overwrite_arg(p)
-
     add_verbose_arg(p)
 
     return p
@@ -90,32 +85,35 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    required_args = [args.dwi, args.bvec, args.bval, args.table]
+    required_args = [args.in_dwi, args.in_bvec, args.in_bval, args.in_table]
 
-    baseName, extension = split_name_with_nii(args.dwi)
-    output_filenames = [args.baseName + extension,
-                        args.baseName + '.bval',
-                        args.baseName + '.bvec']
+    _, extension = split_name_with_nii(args.in_dwi)
+    output_filenames = [args.out_basename + extension,
+                        args.out_basename + '.bval',
+                        args.out_basename + '.bvec']
 
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, output_filenames)
 
-    oTable = np.loadtxt(args.table, skiprows=1)
-    bvals, bvecs = read_bvals_bvecs(args.bval, args.bvec)
-    dwis = nb.load(args.dwi)
+    oTable = np.loadtxt(args.in_table, skiprows=1)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    dwis = nib.load(args.in_dwi)
 
     newIndex = valideInputs(oTable, dwis, bvals, bvecs)
-
     bvecs = bvecs[newIndex]
     bvals = bvals[newIndex]
 
-    data = dwis.get_data()
+    data = dwis.dataobj.get_unscaled()
     data = data[:, :, :, newIndex]
 
-    nb.save(nb.Nifti1Image(data.astype(dwis.get_data_dtype()), dwis.affine,
-                           header=dwis.header), output_filenames[0])
-    np.savetxt(args.baseName + '.bval', bvals.reshape(1, len(bvals)), '%d')
-    np.savetxt(args.baseName + '.bvec', bvecs.T, '%0.15f')
+    tmp = nib.Nifti1Image(data, dwis.affine, header=dwis.header)
+    tmp.header['scl_slope'] = dwis.dataobj.slope
+    tmp.header['scl_inter'] = dwis.dataobj.inter
+    tmp.update_header()
+
+    nib.save(tmp, output_filenames[0])
+    np.savetxt(args.out_basename + '.bval', bvals.reshape(1, len(bvals)), '%d')
+    np.savetxt(args.out_basename + '.bvec', bvecs.T, '%0.15f')
 
 
 if __name__ == '__main__':
