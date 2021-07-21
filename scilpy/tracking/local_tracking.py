@@ -91,8 +91,8 @@ def track(tracker, mask, seed, param, resampled_tracker=None, region_mr=None,
                                               itertools.repeat(pft_tracker),
                                               itertools.repeat(param),
                                               itertools.repeat(resampled_tracker),
-                                              itertools.repeat(resampled_mask),
                                               itertools.repeat(region_mr),
+                                              itertools.repeat(resampled_mask),
                                               itertools.repeat(compress),
                                               itertools.repeat(compression_th),
                                               itertools.repeat(max_tries),
@@ -257,7 +257,9 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
                                       first_seed_of_chunk + s)
 
         line = get_line_from_seed(tracker, mask, seed, pft_tracker, param,
-                                  resampled_tracker, region_mr, resampled_mask)
+                                  resampled_tracker=resampled_tracker,
+                                  region_mr=region_mr,
+                                  resampled_mask=resampled_mask)
 
         if line is not None:
             if compress:
@@ -367,6 +369,7 @@ def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
 
     line_dirs = [tracker.forward_dir] if is_forward else [tracker.backward_dir]
     no_valid_direction_count = 0
+    count = 0
 
     while (len(line) < param.max_nbr_pts and
            mask.isPropagationContinues(line[-1])):
@@ -379,7 +382,9 @@ def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
                     mask.isPropagationContinues(line[-1])):
                 new_pos, new_dir, is_valid_direction =\
                     resampled_tracker.propagate(line[-1], line_dirs[-1])
-                # print('is_looking_for_lower_direction')
+                # print(count)
+                # count += 1
+                # print('is_searching_lower')
             else:
                 new_pos, new_dir, is_valid_direction = tracker.propagate(
                     line[-1], line_dirs[-1])

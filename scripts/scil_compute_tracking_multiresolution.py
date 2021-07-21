@@ -166,8 +166,6 @@ def get_voxmm_to_rasmm(ref_img):
     unscaling_matrix = np.eye(4)
     unscaling_matrix[range(3), range(3)] = 1. / np.array(
         ref_img.header.get_zooms())
-    print(ref_img.affine)
-    print(unscaling_matrix)
     voxmm_to_rasmm = np.dot(ref_img.affine, unscaling_matrix)
 
     return voxmm_to_rasmm
