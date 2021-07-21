@@ -84,7 +84,7 @@ class TrackOrientationDensityImaging(object):
 
         mask_vox_lut = np.cumsum(self.mask) - 1
         nb_voxel_with_pts = mask_vox_lut[-1] + 1
-        pts_vox = mask_vox_lut[pts_unmasked_vox] # Continuous indexes of voxels
+        pts_vox = mask_vox_lut[pts_unmasked_vox]
 
         # Bincount of each direction at each voxel position
         todi_bin_shape = (nb_voxel_with_pts, self.nb_sphere_vts)
@@ -227,7 +227,7 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
         return self.todi
 
-    def get_sh(self, sh_basis, sh_order, smooth=0.006):
+    def get_sh(self, sh_basis, sh_order, smooth=0.006, full_basis=False):
         """Spherical Harmonics (SH) coefficients of the TODI map
 
         Compute the SH representation of the TODI map,
@@ -263,7 +263,8 @@ class TrackOrientationDensityImaging(object):
                spherical deconvolution. NeuroImage. 2007;35(4):1459-1472.
         """
         return sf_to_sh(self.todi, self.sphere, sh_order=sh_order,
-                        basis_type=sh_basis, smooth=smooth)
+                        basis_type=sh_basis, full_basis=full_basis,
+                        smooth=smooth)
 
     def reshape_to_3d(self, img_voxelly_masked):
         """Reshape a complex ravelled image to 3D.

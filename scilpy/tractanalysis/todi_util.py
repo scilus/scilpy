@@ -2,6 +2,7 @@
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
+from scipy.sparse import bsr_matrix
 
 
 def streamlines_to_segments(streamlines):
@@ -90,25 +91,29 @@ def get_vectors_dir_and_norm(vectors):
     vectors_dir = vectors / vectors_norm.reshape((-1, 1))
     return vectors_dir, vectors_norm
 
+
 def get_vectors_dir_and_norm_relative_to_center(vectors, seg_mid_pts):
     """ Evaluates vectors direction and norm by taking into account the
-        orientation and position of segments in relation to the center 
+        orientation and position of segments in relation to the center
         of voxel
     """
     vectors_norm = compute_vectors_norm(vectors)
     vectors_dir = vectors / vectors_norm.reshape((-1, 1))
 
     # we create an array of voxel centers for each of our points
-    vox_centers = seg_mid_pts.astype(np.int) + 0.5
+    vox_centers = seg_mid_pts.astype(int) + 0.5
 
     # directions to center of voxel for each segment
-    dir_to_center = vox_centers - seg_mid_pts
+    dir_to_center = (vox_centers - seg_mid_pts).flatten()
+    r, c = (vectors_dir.shape[0], 3 * vectors_dir.shape[0])
+    rows = np.arange(r).repeat(3)
+    cols = np.arange(c)
+    dir_to_center_mat = bsr_matrix((dir_to_center, (rows, cols)), shape=(r, c))
 
     # compute dot product between direction of vectors and direction to center
-    dots = np.einsum('ij,ij->i',vectors_dir, dir_to_center)
-    dots = np.reshape(dots, (dots.size, 1))
+    dots = dir_to_center_mat.dot(vectors_dir.flatten()).reshape((-1, 1))
 
-    # when dot is greater that 0, the vector goes toward the center 
+    # when dot is greater that 0, the vector goes toward the center
     # of the voxel we flip the direction of such vectors
     vectors_dir_rel = np.where(dots > 0, -vectors_dir, vectors_dir)
 

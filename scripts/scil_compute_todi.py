@@ -69,8 +69,8 @@ def _build_arg_parser():
     p.add_argument('--smooth_todi', action='store_true',
                    help='Smooth TODI (angular and spatial) [%(default)s].')
 
-    p.add_argument('--asymmetric', action='store_true', default = False,
-                   help='Compute asymmetric TODI')
+    p.add_argument('--asymmetric', action='store_true',
+                   help='Compute asymmetric TODI [%(default)s].')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -108,16 +108,18 @@ def main():
     # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
     # the voxel origin to corner (will only be done if it's not already the
     # case).
-    sft.to_corner()
+    # sft.to_corner()
 
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
-    todi_obj.compute_todi(sft.streamlines, length_weights=True, asymmetric=args.asymmetric)
+    todi_obj.compute_todi(sft.streamlines, length_weights=True,
+                          asymmetric=args.asymmetric)
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
         if args.asymmetric:
-            logging.warning('Smooting of asymmetric TODI renders it symmetric!')
+            logging.warning('Smooting of asymmetric TODI '
+                            'renders it symmetric!')
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial()
 
@@ -135,7 +137,8 @@ def main():
     if args.out_todi_sh:
         if args.normalize_per_voxel:
             todi_obj.normalize_todi_per_voxel()
-        img = todi_obj.get_sh(args.sh_basis, args.sh_order)
+        img = todi_obj.get_sh(args.sh_basis, args.sh_order,
+                              full_basis=args.asymmetric)
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_todi_sh)
