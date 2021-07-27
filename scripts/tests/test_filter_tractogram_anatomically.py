@@ -21,12 +21,11 @@ def test_help_option(script_runner):
 def test_execution_filtering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(get_home(), 'anatomical_filtering',
-                                 '101006__tractogram_set.trk')
+                                 'tractogram_filter_ana.trk')
     in_wmparc = os.path.join(get_home(), 'anatomical_filtering',
-                             '101006__wmparc.nii.gz')
+                             'wmparc_filter_ana.nii.gz')
     ret = script_runner.run('scil_filter_tractogram_anatomically.py',
                             in_tractogram, in_wmparc,
                             os.path.expanduser(tmp_dir.name),
-                            '--display_counts', '--minL', '40',
-                            '--maxL', '200', '-a', '300')
+                            '--minL', '40', '--maxL', '200', '-a', '300')
     assert ret.success
