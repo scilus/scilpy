@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_bundle_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_compute_bingham_fodf_metrics.py',
                             '--help')
     assert ret.success
 
@@ -21,7 +21,7 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(get_home(), 'processing',
                            'fodf_descoteaux07.nii.gz')
-    ret = script_runner.run('scil_compute_bundle_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_compute_bingham_fodf_metrics.py',
                             in_fodf,
                             '--max_lobes', '1',
                             '--at', '0.0',

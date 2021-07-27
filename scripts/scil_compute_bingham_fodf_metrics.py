@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script to compute bundle-specific fODF metrics, derived for fitting a
-Bingham distribution to each fODF lobe, as described in Riffert et al., 2014.
-Resulting metrics are fiber density (FD), fiber spread (FS) and fiber
-fraction (Schreiber et al., 2014) (FF).
+Script to compute fODF metrics derived for fitting a Bingham distribution
+to each fODF lobe, as described in Riffert et al., 2014. Resulting metrics
+are fiber density (FD), fiber spread (FS) and fiber fraction (FF)
+(Schreiber et al., 2014).
 
 A lobe's FD is the integral of the bingham function on the sphere. It
-represents the density of fiber going through a given voxel for a given
-bundle. A lobe's FS is the ratio of its FD on its maximum AFD. It is at
-its minimum for a sharp lobe and at its maximum for a wide lobe. A lobe's FF
-is the ratio of its FD on the total FD in the voxel.
+represents the density of fibers going through a given voxel for a given
+fODF lobe (fixel). A lobe's FS is the ratio of its FD on its maximum AFD. It
+is at its minimum for a sharp lobe and at its maximum for a wide lobe. A lobe's
+FF is the ratio of its FD on the total FD in the voxel.
 
 The Bingham fit is also saved, where each bingham distribution is described
 by 9 coefficients (for example, for a maximum number of lobes of 5, the number
@@ -38,7 +38,8 @@ from scilpy.reconst.bingham import (bingham_fit_sh,
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh', help='Input SH image.')
 
     p.add_argument('--out_bingham', default='bingham.nii.gz',
