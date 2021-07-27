@@ -62,7 +62,7 @@ def _build_arg_parser():
                         ' extraction. [%(default)s]')
     p.add_argument('--min_sep_angle', type=float, default=25.,
                    help='Minimum separation angle between'
-                        ' two peaks. [%(default)s]')
+                        ' two peaks. [%(default)s]')
     p.add_argument('--max_fit_angle', type=float, default=15.,
                    help='Maximum distance in degrees around a peak direction'
                         ' for fitting the Bingham function. [%(default)s]')
