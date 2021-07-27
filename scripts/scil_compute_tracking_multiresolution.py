@@ -286,7 +286,7 @@ def main():
         resampled_mask = BinaryMask(Dataset(mask_mr, param.mask_interp))
 
         # Resample sh at desired lower resolution and create a new field
-        sh_mr = resample_volume(nib.load(args.in_sh), zoom=args.voxel_size)
+        sh_mr = resample_volume(nib.load(args.in_sh), interp='lin', zoom=args.voxel_size)
         dataset_mr = Dataset(sh_mr, param.field_interp)
         field_mr = SphericalHarmonicField(dataset_mr, args.sh_basis,
                                           param.sf_threshold,
