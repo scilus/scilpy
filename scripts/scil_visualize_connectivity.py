@@ -10,6 +10,8 @@ This script can either display the axis labels as:
 - Coordinates (0..N)
 - Labels (using --labels_list)
 - Names (using --labels_list and --lookup_table)
+Examples of labels_list.txt and lookup_table.json can be found in the
+freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
 provide the text file(s), using --labels_list and/or --reorder_txt.
@@ -59,7 +61,7 @@ def _build_arg_parser():
                          '(.txt).')
     g1.add_argument('--lookup_table',
                     help='Lookup table with the label number as keys and the '
-                         'name as values.')
+                         'name as values (.json).')
 
     g2 = p.add_argument_group(title='Matplotlib options')
     g2.add_argument('--name_axis', action='store_true',

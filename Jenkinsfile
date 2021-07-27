@@ -4,21 +4,11 @@ pipeline {
     stages {
         stage('Build') {
             stages {
-                stage('Python3.6') {
-                    steps {
-                        withPythonEnv('CPython-3.6') {
-                            sh '''
-                                pip3 install numpy==1.18.* wheel
-                                pip3 install -e .
-                            '''
-                        }
-                    }
-                }
                 stage('Python3.7') {
                     steps {
                         withPythonEnv('CPython-3.7') {
                             sh '''
-                                pip3 install numpy==1.18.* wheel
+                                pip3 install numpy==1.20.* wheel
                                 pip3 install -e .
                             '''
                         }
@@ -31,7 +21,7 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.7') {
                     sh '''
-                        pip3 install numpy==1.18.* wheel
+                        pip3 install numpy==1.20.* wheel
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
@@ -55,7 +45,12 @@ pipeline {
             cleanWs()
             script {
                 if (env.CHANGE_ID) {
-                    pullRequest.createReviewRequests(['arnaudbore'])
+                    if (pullRequest.createdBy != "arnaudbore"){
+                        pullRequest.createReviewRequests(['arnaudbore'])
+                    }
+                    else{
+                        pullRequest.createReviewRequests(['GuillaumeTh'])
+                    }
                 }
             }
         }

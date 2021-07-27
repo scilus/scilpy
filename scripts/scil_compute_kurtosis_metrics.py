@@ -178,7 +178,7 @@ def main():
         mask = None
     else:
         mask_img = nib.load(args.mask)
-        mask = get_data_as_mask(mask_img, dtype=np.bool)
+        mask = get_data_as_mask(mask_img, dtype=bool)
 
     # Validate bvals and bvecs
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
@@ -197,8 +197,8 @@ def main():
         logging.warning('You seem to be using b > 2500 s/mm2 DWI data. ' +
                         'In theory, this is beyond the optimal range for DKI')
 
-    check_b0_threshold(args, bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    b0_thr = check_b0_threshold(args, bvals.min(), bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     fwhm = args.smooth
     if fwhm > 0:
