@@ -118,8 +118,7 @@ def main():
     if args.smooth_todi:
         logging.info('Smoothing ...')
         if args.asymmetric:
-            logging.warning('Smooting of asymmetric TODI '
-                            'renders it symmetric!')
+            logging.warning('Smooting of asymmetric TODI makes it symmetric!')
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial()
 
