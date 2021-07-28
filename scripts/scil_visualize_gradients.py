@@ -107,14 +107,17 @@ def main():
         if points.shape[0] == 3:
             points = points.T
         bvals = np.genfromtxt(in_gradient_schemes[0])
-        centroids, shell_idx = identify_shells(bvals, sort=True)
+        centroids, shell_idx = identify_shells(bvals)
     else:
         # MRtrix format X, Y, Z, b
         in_gradient_scheme = args.in_gradient_scheme[0]
         tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
         points = tmp[:, :3]
         bvals = tmp[:, 3]
-        centroids, shell_idx = identify_shells(bvals, sort=True)
+        centroids, shell_idx = identify_shells(bvals)
+
+    if args.verbose:
+        print("Found {} centroids: {}".format(len(centroids), centroids))
 
     if args.out_basename:
         out_basename, ext = os.path.splitext(args.out_basename)
@@ -123,12 +126,20 @@ def main():
         possible_output_paths.append(out_basename + '.png')
         assert_outputs_exist(parser, args, possible_output_paths)
 
-    for idx, b0 in enumerate(centroids[centroids < 40]):
-        shell_idx[shell_idx == idx] = -1
-        centroids = np.delete(centroids,  np.where(centroids == b0))
+    indexes = []
+    for idx in np.where(centroids < 40)[0]:
+        if args.verbose:
+            print("Removing bval = {} from display".format(centroids[idx]))
 
-    if len(shell_idx[shell_idx == -1]) > 0:
-        shell_idx[shell_idx != -1] -= 1
+        indexes.append(idx)
+        shell_idx[shell_idx == idx] = -1
+        centroids = np.delete(centroids,  np.where(centroids == centroids[idx]))
+
+    indexes = np.asarray(indexes)
+    if len(shell_idx[shell_idx == -1]) > 0 :
+       for idx, val in enumerate(shell_idx):
+           if val != 0 and val != -1:
+              shell_idx[idx] -= len(np.where(indexes < val)[0])
 
     sym = args.enable_sym
     sph = args.enable_sph
