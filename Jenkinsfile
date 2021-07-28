@@ -9,6 +9,7 @@ pipeline {
                         withPythonEnv('CPython-3.7') {
                             sh '''
                                 pip3 install numpy==1.20.* wheel
+                                pip3 install pybids==0.10.* wheel
                                 pip3 install -e .
                             '''
                         }
