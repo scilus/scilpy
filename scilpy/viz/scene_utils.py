@@ -5,6 +5,7 @@ import numpy as np
 
 from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
+from fury.colormap import distinguishable_colormap
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import BinghamDistribution
@@ -180,7 +181,8 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     return peaks_slicer
 
 
-def create_bingham_slicer(data, orientation, slice_index, sphere):
+def create_bingham_slicer(data, orientation, slice_index,
+                          sphere, color_per_lobe=False):
     """
     Create a bingham fit slicer using a combination of odf_slicer actors
     """
@@ -188,6 +190,8 @@ def create_bingham_slicer(data, orientation, slice_index, sphere):
     shape = data.shape
     nb_lobes = shape[-1] // n_params
     nb_vertices = len(sphere.vertices)
+    colors = [c * 255 for i, c in zip(range(nb_lobes),
+                                      distinguishable_colormap())]
 
     # lmax norm for normalization
     lmaxnorm = np.max(np.abs(data[..., ::n_params]), axis=-1)
@@ -206,7 +210,9 @@ def create_bingham_slicer(data, orientation, slice_index, sphere):
                     sf[ii, jj, kk, :] = fit.evaluate(sphere.vertices)  # (1, N)
 
         sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
-        odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False)
+        color = colors[nn] if color_per_lobe else None
+        odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False,
+                                     colormap=color)
         set_display_extent(odf_actor, orientation, shape[:3], slice_index)
         actors.append(odf_actor)
 

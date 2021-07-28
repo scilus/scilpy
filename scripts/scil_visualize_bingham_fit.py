@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Visualize 2-dimensional Bingham volume slice loaded from disk.
+Visualize 2-dimensional Bingham volume slice loaded from disk. The volume is
+assumed to be saved from scil_compute_bingham_fodf_metrics.py.
 
 Given an image of Bingham coefficients, this script displays a slice in a
 given orientation.
@@ -59,6 +60,10 @@ def _build_arg_parser():
                    help='Name of the sphere used to reconstruct SF. '
                         '[%(default)s]')
 
+    p.add_argument('--color_per_lobe', action='store_true',
+                   help='Color each bingham distribution with a '
+                        'different color. [%(default)s]')
+
     return p
 
 
@@ -96,7 +101,8 @@ def main():
     sph = get_sphere(args.sphere)
 
     actors = create_bingham_slicer(data, args.axis_name,
-                                   args.slice_index, sph)
+                                   args.slice_index, sph,
+                                   args.color_per_lobe)
 
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
