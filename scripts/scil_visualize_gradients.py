@@ -133,13 +133,13 @@ def main():
 
         indexes.append(idx)
         shell_idx[shell_idx == idx] = -1
-        centroids = np.delete(centroids,  np.where(centroids == centroids[idx]))
+        centroids = np.delete(centroids, np.where(centroids == centroids[idx]))
 
     indexes = np.asarray(indexes)
-    if len(shell_idx[shell_idx == -1]) > 0 :
-       for idx, val in enumerate(shell_idx):
-           if val != 0 and val != -1:
-              shell_idx[idx] -= len(np.where(indexes < val)[0])
+    if len(shell_idx[shell_idx == -1]) > 0:
+        for idx, val in enumerate(shell_idx):
+            if val != 0 and val != -1:
+                shell_idx[idx] -= len(np.where(indexes < val)[0])
 
     sym = args.enable_sym
     sph = args.enable_sph
