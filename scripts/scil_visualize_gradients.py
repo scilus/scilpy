@@ -28,7 +28,7 @@ def _build_arg_parser():
         description=__doc__)
 
     p.add_argument(
-        'gradient_sampling_file', metavar='gradient_sampling_file', nargs='+',
+        'in_gradient_scheme', nargs='+',
         help='Gradient sampling filename. (only accepts .bvec and .bval '
              'together or only .b).')
 
@@ -70,20 +70,23 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    assert_inputs_exist(parser, args.gradient_sampling_file)
+    assert_inputs_exist(parser, args.in_gradient_scheme)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    if len(args.gradient_sampling_file) == 2:
-        assert_gradients_filenames_valid(parser, args.gradient_sampling_file, 'fsl')
-    elif len(args.gradient_sampling_file) == 1:
-        basename, ext = os.path.splitext(args.gradient_sampling_file[0])
+    if len(args.in_gradient_scheme) == 2:
+        assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
+                                         'fsl')
+    elif len(args.in_gradient_scheme) == 1:
+        basename, ext = os.path.splitext(args.in_gradient_scheme[0])
         if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
             parser.error('You should input two files for fsl format (.bvec '
                          'and .bval).')
         else:
-            assert_gradients_filenames_valid(parser, args.gradient_sampling_file, 'mrtrix')
+            assert_gradients_filenames_valid(parser,
+                                             args.in_gradient_scheme,
+                                             'mrtrix')
     else:
         parser.error('Depending on the gradient format you should have '
                      'two files for FSL format and one file for MRtrix')
@@ -96,22 +99,22 @@ def main():
     if not (proj or each):
         parser.error('Select at least one type of rendering (proj or each).')
 
-    if len(args.gradient_sampling_file) == 2:
-        gradient_sampling_files = args.gradient_sampling_file
-        gradient_sampling_files.sort()  # [bval, bvec]
+    if len(args.in_gradient_scheme) == 2:
+        in_gradient_schemes = args.in_gradient_scheme
+        in_gradient_schemes.sort()  # [bval, bvec]
         # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-        points = np.genfromtxt(gradient_sampling_files[1])
+        points = np.genfromtxt(in_gradient_schemes[1])
         if points.shape[0] == 3:
             points = points.T
-        bvals = np.genfromtxt(gradient_sampling_files[0])
-        centroids, shell_idx = identify_shells(bvals)
+        bvals = np.genfromtxt(in_gradient_schemes[0])
+        centroids, shell_idx = identify_shells(bvals, sort=True)
     else:
         # MRtrix format X, Y, Z, b
-        gradient_sampling_file = args.gradient_sampling_file[0]
-        tmp = np.genfromtxt(gradient_sampling_file, delimiter=' ')
+        in_gradient_scheme = args.in_gradient_scheme[0]
+        tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
         points = tmp[:, :3]
         bvals = tmp[:, 3]
-        centroids, shell_idx = identify_shells(bvals)
+        centroids, shell_idx = identify_shells(bvals, sort=True)
 
     if args.out_basename:
         out_basename, ext = os.path.splitext(args.out_basename)
@@ -137,8 +140,8 @@ def main():
                         rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=(args.res, args.res))
     if each:
-        plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph, same_color=same,
-                        rad=0.025, opacity=args.opacity,
+        plot_each_shell(ms, centroids, plot_sym_vecs=sym, use_sphere=sph,
+                        same_color=same, rad=0.025, opacity=args.opacity,
                         ofile=out_basename, ores=(args.res, args.res))
 
 
