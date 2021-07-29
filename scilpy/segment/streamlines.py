@@ -31,7 +31,7 @@ def streamlines_in_mask(sft, target_mask, all_in=False):
     sft.to_corner()
     # Copy-Paste from Dipy to get indices
     if all_in:
-        target_mask = np.array(target_mask, dtype=np.bool, copy=True)
+        target_mask = np.array(target_mask, dtype=bool, copy=True)
         target_mask = np.invert(target_mask)
         tractogram_mask = compute_tract_counts_map(sft.streamlines,
                                                    target_mask.shape)
@@ -76,8 +76,10 @@ def filter_grid_roi_both(sft, mask_1, mask_2):
     # For endpoint filtering, we need to keep 2 separately
     # Could be faster for either end, but the code look cleaner like this
     line_based_indices = []
-    voxel_beg = np.asarray([s[0] for s in streamline_vox]).astype(np.int16).transpose(1, 0)
-    voxel_end = np.asarray([s[-1] for s in streamline_vox]).astype(np.int16).transpose(1, 0)
+    voxel_beg = np.asarray([s[0] for s in streamline_vox],
+                           dtype=np.int16).transpose(1, 0)
+    voxel_end = np.asarray([s[-1] for s in streamline_vox],
+                           dtype=np.int16).transpose(1, 0)
 
     map1_beg = map_coordinates(mask_1, voxel_beg, order=0, mode='nearest')
     map2_beg = map_coordinates(mask_2, voxel_beg, order=0, mode='nearest')
@@ -154,7 +156,7 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
     if is_exclude:
         line_based_indices = np.setdiff1d(range(len(sft)),
                                           np.unique(line_based_indices))
-    line_based_indices = np.asarray(line_based_indices).astype(np.int32)
+    line_based_indices = np.asarray(line_based_indices, dtype=np.int32)
 
     # From indices to sft
     streamlines = sft.streamlines[line_based_indices]
@@ -196,7 +198,7 @@ def pre_filtering_for_geometrical_shape(sft, size,
 
     # Create relevant info about the ellipsoid in vox/world space
     if is_in_vox:
-        center = np.asarray(apply_affine(transfo, center))
+        center = np.asarray(apply_affine(transfo, center), dtype=float)
     bottom_corner = center - size
     top_corner = center + size
     x_val = [bottom_corner[0], top_corner[0]]
@@ -253,7 +255,8 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
 
     if is_in_vox:
         ellipsoid_center = np.asarray(apply_affine(transfo,
-                                                   ellipsoid_center))
+                                                   ellipsoid_center),
+                                      dtype=float)
     selected_by_ellipsoid = []
     line_based_indices_1 = []
     line_based_indices_2 = []
@@ -262,8 +265,8 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     # The result won't be identical to MI-Brain since I am not using the
     # vtkPolydata. Also it won't be identical to TrackVis either,
     # because TrackVis is point-based for Spherical ROI...
-    ellipsoid_radius = np.asarray(ellipsoid_radius)
-    ellipsoid_center = np.asarray(ellipsoid_center)
+    ellipsoid_radius = np.asarray(ellipsoid_radius, dtype=float)
+    ellipsoid_center = np.asarray(ellipsoid_center, dtype=float)
 
     for i, line in enumerate(pre_filtered_streamlines):
         if filter_type in ['any', 'all']:
@@ -307,7 +310,7 @@ def filter_ellipsoid(sft, ellipsoid_radius, ellipsoid_center,
     if is_exclude:
         selected_by_ellipsoid = np.setdiff1d(range(len(sft)),
                                              np.unique(selected_by_ellipsoid))
-    line_based_indices = np.asarray(selected_by_ellipsoid).astype(np.int32)
+    line_based_indices = np.asarray(selected_by_ellipsoid, dtype=np.int32)
 
     # From indices to sft
     streamlines = sft.streamlines[line_based_indices]
@@ -359,8 +362,8 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     line_based_indices_2 = []
     # Also here I am not using a mathematical intersection and
     # I am not using vtkPolyData like in MI-Brain, so not exactly the same
-    cuboid_radius = np.asarray(cuboid_radius)
-    cuboid_center = np.asarray(cuboid_center)
+    cuboid_radius = np.asarray(cuboid_radius, dtype=float)
+    cuboid_center = np.asarray(cuboid_center, dtype=float)
     for i, line in enumerate(pre_filtered_streamlines):
         if filter_type in ['any', 'all']:
             # Resample to 1/10 of the voxel size
@@ -404,7 +407,7 @@ def filter_cuboid(sft, cuboid_radius, cuboid_center,
     if is_exclude:
         selected_by_cuboid = np.setdiff1d(range(len(sft)),
                                           np.unique(selected_by_cuboid))
-    line_based_indices = np.asarray(selected_by_cuboid).astype(np.int32)
+    line_based_indices = np.asarray(selected_by_cuboid, dtype=np.int32)
 
     # From indices to sft
     streamlines = sft.streamlines[line_based_indices]

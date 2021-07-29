@@ -245,7 +245,7 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
-        get_data_as_mask(seed_img, dtype=np.bool),
+        get_data_as_mask(seed_img, dtype=bool),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,

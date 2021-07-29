@@ -514,7 +514,7 @@ def filter_tractogram_data(tractogram, streamline_ids):
         and data
     """
 
-    streamline_ids = np.asarray(streamline_ids, dtype=np.int)
+    streamline_ids = np.asarray(streamline_ids, dtype=int)
 
     assert np.all(
         np.in1d(streamline_ids, np.arange(len(tractogram.streamlines)))
