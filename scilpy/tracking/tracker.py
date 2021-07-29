@@ -45,11 +45,14 @@ class rk2Propagator(abstractPropagator):
         super(rk2Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
+        ##print(str(pos) + str(v_in))
         is_valid_direction, dir1 = self.getValidDirection(pos, v_in)
+        ##print(dir1)t
         newDir = self.getValidDirection(
             pos + 0.5 * self.step_size * np.array(dir1), dir1)[1]
         newPos = pos + self.step_size * np.array(newDir)
         return newPos, newDir, is_valid_direction
+
 
 
 class rk4Propagator(abstractPropagator):
@@ -70,7 +73,6 @@ class rk4Propagator(abstractPropagator):
         newV = (v1 + 2 * v2 + 2 * v3 + v4) / 6
         newDir = TrackingDirection(newV, dir1.index)
         newPos = pos + self.step_size * newV
-
         return newPos, newDir, is_valid_direction
 
 
@@ -108,6 +110,7 @@ class abstractTracker(object):
         return tuple. The new tracking direction and the updated position.
         If no valid tracking direction are available, v_in is choosen.
         """
+
         return self.propagator.propagate(pos, v_in)
 
     def isPositionInBound(self, pos):
@@ -132,6 +135,35 @@ class abstractTracker(object):
         """
         pass
 
+    def get_all_directions(self, pos, v_in):
+        """
+        return all maxima at pos.
+        None if the no valid maxima are available.
+        """
+        maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
+        v_out = []
+        for d in maxima_direction:
+            v_out.append(d)
+        return v_out
+
+    line_map = []
+    tree_map = []
+    _tree = -1
+    def add_line_in_map(self, line, tree):
+        """
+        Add a streamline to the list of streamlines which the tree
+        its associated to. This is used for the save_type : density
+        """
+        self.line_map.append(line)
+        self.tree_map.append(tree)
+
+    def get_last_tree(self):
+        """
+        Return the last tree added to the list and
+        increment to the next. This is used for the save_type : density
+        """
+        self._tree += 1
+        return self._tree
 
 class probabilisticTracker(abstractTracker):
 
@@ -162,6 +194,7 @@ class deterministicMaximaTracker(abstractTracker):
         return the maxima the closest to v_in.
         None if the no valid maxima are available.
         """
+
         maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
         cosinus = 0
         v_out = None
@@ -171,3 +204,5 @@ class deterministicMaximaTracker(abstractTracker):
                 cosinus = new_cosinus
                 v_out = d
         return v_out
+
+
