@@ -664,3 +664,28 @@ def cut_invalid_streamlines(sft):
                                           data_per_point=new_data_per_point)
 
     return new_sft, cutting_counter
+
+
+def downsample_tractogram(sft, nb):
+    """ Downsample a tractogram to a specified number of streamlines.
+    """
+    new_indices = np.random.choice(
+        range(len(sft.streamlines)), nb, replace=False)
+    return filter_tractogram_data(sft, new_indices)
+
+
+def upsample_tractogram(sft, nb, std):
+    """ Generate new streamlines to add to a tractogram samping a gaussian
+    centered around multiple streamlines existing points.
+    """
+    nb_new = nb - len(sft.streamlines)
+    indices = np.random.choice(
+        len(sft.streamlines), nb_new)
+    new_streamlines = sft.streamlines.copy()
+    for s in sft.streamlines[indices]:
+        noise = np.random.normal(scale=std, size=s.shape)
+        new_s = s + noise
+        new_streamlines.append(new_s)
+
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    return new_sft
