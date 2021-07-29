@@ -99,7 +99,7 @@ def buildArgsParser():
                    metavar='THRES', type=float, default=0.5,
                    help='Spherical function relative threshold value\n' +
                         'for the initial direction. [%(default)s]')
-    p.add_argument('--minL', dest='min_length', type=float, default=10,
+    p.add_argument('--minL', dest='min_length', type=float, default=20,
                    help='Minimum length of a streamline in mm. [%(default)s]')
     p.add_argument('--maxL', dest='max_length', type=int, default=300,
                    help='Maximum length of a streamline in mm. [%(default)s]')
@@ -133,6 +133,16 @@ def buildArgsParser():
                    help='If set, each streamline generated will save \n' +
                         'its 3D seed point in the TRK file using `seed` in' +
                         ' \nthe \'data_per_streamline\' attribute')
+    p.add_argument('--mask_branch', dest='mask_branch',
+                   default=[],
+                   help="Mask branching:\n Zone where branching is allowed" )
+    p.add_argument('--save_type', dest='save_type',
+                   default= 'links', choices = ['links','density'],
+                   help="Save type:\n How you want your streamlines to be saved \
+                        links to keep the links, density to keep the density" )
+    p.add_argument('--micro', dest='micro',
+                   action='store_true',
+                   help="Micro:\n Tracking that allows branching, made for the microscope scale" )
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -216,6 +226,8 @@ def main():
     param.max_no_dir = int(math.ceil(args.maxL_no_dir / param.step_size))
     param.is_all = False
     param.is_keep_single_pts = False
+    param.save_type = args.save_type
+    param.micro = args.micro
     # r+ is necessary for interpolation function in cython who
     # need read/write right
     param.mmap_mode = None if args.isLoadData else 'r+'
@@ -231,6 +243,10 @@ def main():
                      .format(args.in_seed))
 
     mask = BinaryMask(Dataset(nib.load(args.in_mask), param.mask_interp))
+    if args.mask_branch == []:
+        param.branching_mask = mask
+    else:
+        param.branching_mask = BinaryMask(Dataset(nib.load(args.mask_branch), param.mask_interp))
 
     dataset = Dataset(nib.load(args.in_sh), param.field_interp)
     field = SphericalHarmonicField(dataset,
@@ -239,11 +255,17 @@ def main():
                                    param.sf_threshold_init,
                                    param.theta)
 
+    fieldTest = field.get_direction_neighbours(param.theta)
+
+
     if args.algo == 'det':
         tracker =\
             deterministicMaximaTracker(field, args.step_size, args.rk_order)
     elif args.algo == 'prob':
         tracker = probabilisticTracker(field, args.step_size, args.rk_order)
+
+    #elif args.algo == 'micro':
+    #    tracker = microscopyTracker(field, args.step_size, args.rk_order)
     else:
         parser.error("--algo has wrong value. See the help (-h).")
 
@@ -292,7 +314,8 @@ def main():
     str_time = "%.2f" % (time.time() - start)
     logging.debug(str(len(streamlines)) + " streamlines, done in " +
                   str_time + " seconds.")
-
+    print(str(len(streamlines)) + " streamlines, done in " +
+                  str_time + " seconds.")
 
 if __name__ == "__main__":
     main()
