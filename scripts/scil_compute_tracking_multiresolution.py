@@ -65,10 +65,9 @@ def buildArgsParser():
     p.add_argument('--algo', default='det', choices=['det', 'prob'],
                    help='Algorithm to use (must be \'det\' or \'prob\'). '
                         '[%(default)s]')
-    # MULTIRESOLUTION
     p.add_argument('--mask_multi',
                    help='Path to a binary mask of hard-to-track regions.'
-                   ' Tracking in these regions will be computed at a lower '
+                   ' Tracking in these regions will be computed at lower '
                    'resolution.')
     p.add_argument('--voxel_size', nargs='+', type=float,
                    help='Sets the tracking resolution of hard-to-track regions'
@@ -286,14 +285,16 @@ def main():
         resampled_mask = BinaryMask(Dataset(mask_mr, param.mask_interp))
 
         # Resample sh at desired lower resolution and create a new field
-        sh_mr = resample_volume(nib.load(args.in_sh), interp='lin', zoom=args.voxel_size)
+        sh_mr = resample_volume(nib.load(args.in_sh), interp='lin',
+                                zoom=args.voxel_size,
+                                offset=0)
         dataset_mr = Dataset(sh_mr, param.field_interp)
         field_mr = SphericalHarmonicField(dataset_mr, args.sh_basis,
                                           param.sf_threshold,
                                           param.sf_threshold_init,
                                           param.theta)
         # nib.save(mask_mr, os.path.join(out_path, 'resampled_mask.nii.gz'))
-        # nib.save(sh_mr, os.path.join(out_path, 'resampled_sh.nii.gz'))
+        nib.save(sh_mr, os.path.join(out_path, 'resampled_sh.nii.gz'))
 
     if args.algo == 'det':
         tracker =\
@@ -319,8 +320,9 @@ def main():
                          'We recommend setting it between 0.001 and 1.\n' +
                          '0.001 will do almost nothing to the tracts while ' +
                          '1 will higly compress/linearize the tracts')
-    # Add possible new tracker, region of tracking and resampled mask for
-    # multiresolution
+
+        # Add hard-to-track mask, lower resolution tracker and resampled mask
+        # for possible multiresolution tracking
         streamlines, seeds = track(tracker, mask, seed, param,
                                    resample_tracker=resampled_tracker,
                                    region_mr=region_mr,
@@ -352,11 +354,6 @@ def main():
     tractogram = LazyTractogram(lambda: streamlines,
                                 data_per_streamlines,
                                 affine_to_rasmm=voxmm_to_rasmm)
-
-    # filetype = nib.streamlines.detect_format(args.out_tractogram)
-    # _, dims, vox_size, vox_order = get_reference_info(seed_img)
-    # header = create_tractogram_header(filetype, voxmm_to_rasmm, dims,
-    #                                  vox_size, vox_order)
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)
     reference = get_reference_info(seed_img)
