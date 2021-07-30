@@ -95,13 +95,13 @@ def psf_from_sphere(sphere_vertices):
 
 # Mask functions
 def generate_mask_indices_1d(nb_voxel, indices_1d):
-    mask_1d = np.zeros(nb_voxel, dtype=np.bool)
+    mask_1d = np.zeros(nb_voxel, dtype=bool)
     mask_1d[indices_1d] = True
     return mask_1d
 
 
 def get_indices_1d(volume_shape, pts):
-    return np.ravel_multi_index(pts.T.astype(np.int), volume_shape)
+    return np.ravel_multi_index(pts.T.astype(int), volume_shape)
 
 
 def get_dir_to_sphere_id(vectors, sphere_vertices):

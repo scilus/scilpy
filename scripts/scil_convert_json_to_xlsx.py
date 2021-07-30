@@ -38,7 +38,6 @@ def _get_metrics_names(stats):
     for bundles in iter(stats.values()):
         for val in iter(bundles.values()):
             mnames |= set(val.keys())
-
     return mnames
 
 
@@ -66,11 +65,17 @@ def _find_stat_name(stats):
 def _get_stats_parse_function(stats, stats_over_population):
     first_sub_stats = stats[list(stats.keys())[0]]
     first_bundle_stats = first_sub_stats[list(first_sub_stats.keys())[0]]
-    first_bundle_substat = first_bundle_stats[list(first_bundle_stats.keys())[0]]
+    first_bundle_substat = first_bundle_stats[list(
+        first_bundle_stats.keys())[0]]
 
     if len(first_bundle_stats.keys()) == 1 and\
             _are_all_elements_scalars(first_bundle_stats):
         return _parse_scalar_stats
+    elif len(first_bundle_stats.keys()) == 4 and \
+            set(first_bundle_stats.keys()) == \
+            set(['lesion_total_vol', 'lesion_avg_vol', 'lesion_std_vol',
+                 'lesion_count']):
+        return _parse_lesion
     elif len(first_bundle_stats.keys()) == 4 and \
             set(first_bundle_stats.keys()) == \
             set(['min_length', 'max_length', 'mean_length', 'std_length']):
@@ -156,6 +161,42 @@ def _parse_scalar_meanstd(stats, subs, bundles):
     return dataframes, df_names
 
 
+def _parse_scalar_lesions(stats, subs, bundles):
+    metric_names = _get_metrics_names(stats)
+    nb_subs = len(subs)
+    nb_bundles = len(bundles)
+    nb_metrics = len(metric_names)
+
+    means = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
+    stddev = np.full((nb_subs, nb_bundles, nb_metrics), np.NaN)
+
+    for sub_id, sub_name in enumerate(subs):
+        for bundle_id, bundle_name in enumerate(bundles):
+            for metric_id, metric_name in enumerate(metric_names):
+                b_stat = stats[sub_name].get(bundle_name)
+
+                if b_stat is not None:
+                    m_stat = b_stat.get(metric_name)
+
+                    if m_stat is not None:
+                        means[sub_id, bundle_id, metric_id] = m_stat['mean']
+                        stddev[sub_id, bundle_id, metric_id] = m_stat['std']
+
+    dataframes = []
+    df_names = []
+
+    for metric_id, metric_name in enumerate(metric_names):
+        dataframes.append(pd.DataFrame(data=means[:, :, metric_id],
+                                       index=subs, columns=bundles))
+        df_names.append(metric_name + "_mean")
+
+        dataframes.append(pd.DataFrame(data=stddev[:, :, metric_id],
+                                       index=subs, columns=bundles))
+        df_names.append(metric_name + "_std")
+
+    return dataframes, df_names
+
+
 def _parse_lengths(stats, subs, bundles):
     nb_subs = len(subs)
     nb_bundles = len(bundles)
@@ -189,6 +230,44 @@ def _parse_lengths(stats, subs, bundles):
                                columns=bundles)]
 
     df_names = ["min_length", "max_length", "mean_length", "std_length"]
+
+    return dataframes, df_names
+
+
+def _parse_lesion(stats, subs, bundles):
+    nb_subs = len(subs)
+    nb_bundles = len(bundles)
+
+    total_volume = np.full((nb_subs, nb_bundles), np.NaN)
+    avg_volume = np.full((nb_subs, nb_bundles), np.NaN)
+    std_volume = np.full((nb_subs, nb_bundles), np.NaN)
+    lesion_count = np.full((nb_subs, nb_bundles), np.NaN)
+
+    for sub_id, sub_name in enumerate(subs):
+        for bundle_id, bundle_name in enumerate(bundles):
+            b_stat = stats[sub_name].get(bundle_name)
+
+            if b_stat is not None:
+                total_volume[sub_id, bundle_id] = b_stat['lesion_total_vol']
+                avg_volume[sub_id, bundle_id] = b_stat['lesion_avg_vol']
+                std_volume[sub_id, bundle_id] = b_stat['lesion_std_vol']
+                lesion_count[sub_id, bundle_id] = b_stat['lesion_count']
+
+    dataframes = [pd.DataFrame(data=total_volume,
+                               index=subs,
+                               columns=bundles),
+                  pd.DataFrame(data=avg_volume,
+                               index=subs,
+                               columns=bundles),
+                  pd.DataFrame(data=std_volume,
+                               index=subs,
+                               columns=bundles),
+                  pd.DataFrame(data=lesion_count,
+                               index=subs,
+                               columns=bundles)]
+
+    df_names = ["lesion_total_vol", "lesion_avg_vol",
+                "lesion_std_vol", "lesion_count"]
 
     return dataframes, df_names
 

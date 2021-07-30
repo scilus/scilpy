@@ -99,7 +99,13 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
+
     sft.to_vox()
+    # Because compute_todi expects streamline points (in voxel coordinates)
+    # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
+    # the voxel origin to corner (will only be done if it's not already the
+    # case).
+    sft.to_corner()
 
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)

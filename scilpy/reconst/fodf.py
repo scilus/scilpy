@@ -68,7 +68,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     """
 
     # Checking data and sh_order
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWI volumes, but you '
@@ -80,7 +80,7 @@ def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     # Checking full_frf and separating it
     if not full_frf.shape[0] == 4:
