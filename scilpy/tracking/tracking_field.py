@@ -5,6 +5,7 @@ import dipy.data
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
+from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
@@ -27,9 +28,12 @@ class SphericalHarmonicField(object):
         self.basis = basis
 
         sphere = dipy.data.get_sphere(dipy_sphere)
-        sh_order = order_from_ncoef(self.dataset.data.shape[-1])
+        sh_order, full_basis =\
+            get_sh_order_and_fullness(self.dataset.data.shape[-1])
         self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
+                                 full_basis=full_basis,
                                  smooth=0.006, return_inv=False)
+        self.full_basis = full_basis
 
     def get_direction_neighbours(self, maxAngle):
         """

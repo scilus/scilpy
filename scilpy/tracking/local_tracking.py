@@ -97,10 +97,12 @@ def track(tracker, mask, seed, param, compress=False,
                 pool.join()
                 lines =\
                     np.array([line for line in
-                              itertools.chain(*lines_per_process)])
+                              itertools.chain(*lines_per_process)],
+                             dtype=object)
                 seeds =\
                     np.array([seed for seed in
-                              itertools.chain(*seeds_per_process)])
+                              itertools.chain(*seeds_per_process)],
+                             dtype=object)
     else:
         if nbr_processes > 1:
             warnings.warn("No multiprocessing implemented while computing " +
