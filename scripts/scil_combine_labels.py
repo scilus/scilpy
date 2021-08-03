@@ -75,7 +75,7 @@ def main():
     used_indices_all = False
     for v_args in args.volume_ids:
         if len(v_args) < 2:
-            logging.error("No indices was given for a given volume")
+            parser.error("No indices was given for a given volume.")
 
         image_files.append(v_args[0])
         if "all" in v_args:
@@ -85,7 +85,12 @@ def main():
             indices_per_volume.append(np.asarray(v_args[1:], dtype=int))
 
     if used_indices_all and args.out_labels_ids:
-        logging.error("'all' indices cannot be used with 'out_labels_ids'")
+        parser.error("'all' indices cannot be used with --out_labels_ids.")
+
+    if args.merge_groups and args.group_in_m or \
+            args.merge_groups and args.unique:
+        parser.error("Cannot use --unique and --group_in_m with "
+                     "--merge_groups.")
 
     # Check inputs / output
     assert_inputs_exist(parser, image_files)
@@ -111,16 +116,17 @@ def main():
         id_list = np.asarray(id_list)
         new_ids = id_list[~np.in1d(id_list, args.background)]
         filtered_ids_per_vol.append(new_ids)
+
     # Prepare output indices
     if args.out_labels_ids:
         out_labels = args.out_labels_ids
         if not args.merge_groups \
                 and len(out_labels) != len(np.hstack(indices_per_volume)):
-            logging.error("--out_labels_ids, requires the same amount"
-                          " of total given input indices")
+            parser.error("--out_labels_ids, requires the same amount"
+                         " of total given input indices.")
         elif len(out_labels) != len(args.volume_ids):
-            logging.error("--out_labels_ids, requires the same amount"
-                          " of total given groups (to merge)")
+            parser.error("--out_labels_ids, requires the same amount"
+                         " of total given groups (to merge).")
     elif args.unique:
         stack = np.hstack(filtered_ids_per_vol)
         ids = np.arange(len(stack) + 1)
