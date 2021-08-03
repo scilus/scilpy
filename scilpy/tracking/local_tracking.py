@@ -18,8 +18,8 @@ data_file_info = None
 
 
 def track(tracker, mask, seed, param, resampled_tracker=None, region_mr=None,
-          resampled_mask=None, compress=False, compression_th=0.1,
-          nbr_processes=1, pft_tracker=None, save_seeds=False):
+          compress=False, compression_th=0.1, nbr_processes=1,
+          pft_tracker=None, save_seeds=False):
     """
     Generate a set of streamline from seed, mask and odf files.
 
@@ -31,8 +31,7 @@ def track(tracker, mask, seed, param, resampled_tracker=None, region_mr=None,
     param: TrackingParams,
         tracking parameters, see scilpy.tracking.utils.py.
     tracker_mr : Tracker, tracking object at lower resolution
-    region_mr : Mask, to limit the multiresolution tracking region
-    mask_mr : Mask, resampled tracking volume(s)
+    region_mr : Mask, to limit tracking at lower resolution
     compress : bool, enable streamlines compression.
     compression_th : float,
         maximal distance threshold for compression.
@@ -67,7 +66,7 @@ def track(tracker, mask, seed, param, resampled_tracker=None, region_mr=None,
                 tracker, mask, seed, chunk_id, pft_tracker, param,
                 compress=compress, compression_error_threshold=compression_th,
                 resampled_tracker=resampled_tracker, region_mr=region_mr,
-                resampled_mask=resampled_mask, save_seeds=save_seeds)
+                save_seeds=save_seeds)
         else:
             with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
 
@@ -84,19 +83,19 @@ def track(tracker, mask, seed, param, resampled_tracker=None, region_mr=None,
 
                 max_tries = 100  # default value for max_tries
                 lines_per_process, seeds_per_process = zip(*pool.map(
-                    _get_streamlines_sub, zip(itertools.repeat(tracker),
-                                              itertools.repeat(mask),
-                                              itertools.repeat(seed),
-                                              chunk_id,
-                                              itertools.repeat(pft_tracker),
-                                              itertools.repeat(param),
-                                              itertools.repeat(resampled_tracker),
-                                              itertools.repeat(region_mr),
-                                              itertools.repeat(resampled_mask),
-                                              itertools.repeat(compress),
-                                              itertools.repeat(compression_th),
-                                              itertools.repeat(max_tries),
-                                              itertools.repeat(save_seeds))))
+                    _get_streamlines_sub,
+                    zip(itertools.repeat(tracker),
+                        itertools.repeat(mask),
+                        itertools.repeat(seed),
+                        chunk_id,
+                        itertools.repeat(pft_tracker),
+                        itertools.repeat(param),
+                        itertools.repeat(resampled_tracker),
+                        itertools.repeat(region_mr),
+                        itertools.repeat(compress),
+                        itertools.repeat(compression_th),
+                        itertools.repeat(max_tries),
+                        itertools.repeat(save_seeds))))
                 pool.close()
                 # Make sure all worker processes have exited before leaving
                 # context manager in order to prevent temporary file deletion
@@ -208,8 +207,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
 
 
 def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
-                    resampled_tracker=None, region_mr=None,
-                    resampled_mask=None, compress=False,
+                    resampled_tracker=None, region_mr=None, compress=False,
                     compression_error_threshold=0.1, save_seeds=True,):
     """
     Generate streamlines from all initial positions
@@ -258,8 +256,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 
         line = get_line_from_seed(tracker, mask, seed, pft_tracker, param,
                                   resampled_tracker=resampled_tracker,
-                                  region_mr=region_mr,
-                                  resampled_mask=resampled_mask)
+                                  region_mr=region_mr)
 
         if line is not None:
             if compress:
@@ -276,8 +273,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 
 
 def get_line_from_seed(tracker, mask, pos, pft_tracker, param,
-                       resampled_tracker=None, region_mr=None,
-                       resampled_mask=None):
+                       resampled_tracker=None, region_mr=None):
     """
     Generate a streamline from an initial position following the tracking
     paramters.
@@ -300,13 +296,13 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param,
     line = []
     if tracker.initialize(pos):
         forward = _get_line(tracker, mask, pft_tracker, param, True,
-                            resampled_tracker, region_mr, resampled_mask)
+                            resampled_tracker, region_mr)
         if forward is not None and len(forward) > 0:
             line.extend(forward)
 
         if not param.is_single_direction and forward is not None:
             backward = _get_line(tracker, mask, pft_tracker, param, False,
-                                 resampled_tracker, region_mr, resampled_mask)
+                                 resampled_tracker, region_mr)
             if backward is not None and len(backward) > 0:
                 line.reverse()
                 line.pop()
@@ -331,9 +327,9 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param,
 
 
 def _get_line(tracker, mask, pft_tracker, param, is_forward,
-              resampled_tracker=None, region_mr=None, resampled_mask=None):
+              resampled_tracker=None, region_mr=None):
     line = _get_line_binary(tracker, mask, param, is_forward,
-                            resampled_tracker, region_mr, resampled_mask)
+                            resampled_tracker, region_mr)
 
     while (line is not None and len(line) > 0 and
            not tracker.isPositionInBound(line[-1])):
@@ -343,7 +339,7 @@ def _get_line(tracker, mask, pft_tracker, param, is_forward,
 
 
 def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
-                     region_mr=None, resampled_mask=None):
+                     region_mr=None):
     """
     This function is use for binary mask.
     Generate a streamline in forward or backward direction from an initial
@@ -358,13 +354,11 @@ def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
                       track in backward direction if False.
     resampled_tracker : Tracker at lower resolution, tracking object.
     region_mr : Mask of hard-to-track regions, used for multiresolution
-    resampled_mask : Mask at lower resolution, tracking volume(s).
 
     Returns
     -------
     line: list of 3D positions
     """
-    # Version 1
     line = [tracker.init_pos]
 
     line_dirs = [tracker.forward_dir] if is_forward else [tracker.backward_dir]
@@ -382,17 +376,12 @@ def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
                     mask.isPropagationContinues(line[-1])):
                 new_pos, new_dir, is_valid_direction =\
                     resampled_tracker.propagate(line[-1], line_dirs[-1])
-                # print(count)
-                # count += 1
-                # print('is_searching_lower')
             else:
                 new_pos, new_dir, is_valid_direction = tracker.propagate(
                     line[-1], line_dirs[-1])
-                # print('tried but is not in mask')
         else:
             new_pos, new_dir, is_valid_direction = tracker.propagate(
                 line[-1], line_dirs[-1])
-            # print('was not in mr mode')
 
         line.append(new_pos)
         line_dirs.append(new_dir)
@@ -404,98 +393,7 @@ def _get_line_binary(tracker, mask, param, is_forward, resampled_tracker=None,
 
         if no_valid_direction_count > param.max_no_dir:
             return line
+
     # make a last step in the last direction
     line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
     return line
-
-    # Version 2
-    # line = [tracker.init_pos]
-
-    # line_dirs = [tracker.forward_dir] if is_forward else [tracker.backward_dir]
-    # no_valid_direction_count = 0
-    # cpt = 0
-    # while (len(line) < param.max_nbr_pts and
-    #        mask.isPropagationContinues(line[-1])):
-    #     new_pos, new_dir, is_valid_direction = tracker.propagate(
-    #         line[-1], line_dirs[-1])
-
-    #     line.append(new_pos)
-    #     line_dirs.append(new_dir)
-
-    #     if is_valid_direction:
-    #         no_valid_direction_count = 0
-    #     else:
-    #         no_valid_direction_count += 1
-
-    #     if no_valid_direction_count > param.max_no_dir:
-    #         if param.is_mr:
-    #             # If there is no valid direction, but is a hard-to-track region
-    #             # Repeat same process, but in lower resolution
-    #             if (region_mr.isPropagationContinues(line[-1]) and
-    #                     resampled_mask.isPropagationContinues(line[-1])):
-    #                 no_valid_direction_count = 0
-    #                 # print('restart with lower res')
-    #                 while (len(line) < param.max_nbr_pts and
-    #                         mask.isPropagationContinues(line[-1])):
-    #                     new_pos, new_dir, is_valid_direction =\
-    #                         resampled_tracker.propagate(line[-1],
-    #                                                     line_dirs[-1])
-    #                     # print('cherche direction en lower res')
-    #                     line.append(new_pos)
-    #                     line_dirs.append(new_dir)
-
-    #                     if is_valid_direction:
-    #                         no_valid_direction_count = 0
-    #                     else:
-    #                         no_valid_direction_count += 1
-
-    #                     if no_valid_direction_count > param.max_no_dir:
-    #                         return line
-    #             else:
-    #                 return line
-    #         else:
-    #             return line
-
-    # # make a last step in the last direction
-    # line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
-    # return line
-
-    # Version 3
-    # line = [tracker.init_pos]
-
-    # line_dirs = [tracker.forward_dir] if is_forward else [tracker.backward_dir]
-    # no_valid_direction_count = 0
-
-    # while (len(line) < param.max_nbr_pts and
-    #        mask.isPropagationContinues(line[-1])):
-
-    #     new_pos, new_dir, is_valid_direction = tracker.propagate(
-    #         line[-1], line_dirs[-1])
-
-    #     # If the direction is not valid in this resolution
-    #     if not is_valid_direction:
-    #         if param.is_mr:
-    #             # If the position is in the region of interest for
-    #             # multiresolution. Use Tracker at lower resolution to get the
-    #             # new position and direction
-    #             if (region_mr.isPropagationContinues(line[-1]) and
-    #                     resampled_mask.isPropagationContinues(line[-1])):
-    #                 new_pos, new_dir, is_valid_direction =\
-    #                     resampled_tracker.propagate(line[-1], line_dirs[-1])
-    #                 print('cherche nouvelle dir en lower res')
-    #                 print(no_valid_direction_count)
-
-    #     line.append(new_pos)
-    #     line_dirs.append(new_dir)
-
-    #     if is_valid_direction:
-    #         no_valid_direction_count = 0
-    #     else:
-    #         no_valid_direction_count += 1
-
-    #     if no_valid_direction_count > param.max_no_dir:
-    #         return line
-    # # make a last step in the last direction
-    # line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
-    # return line
-

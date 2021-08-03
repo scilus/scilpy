@@ -8,14 +8,14 @@ The tracking direction is chosen in the aperture cone defined by the previous
 tracking direction and the angular constraint. The relation between theta and
 the curvature is theta=2*arcsin(step_size/(2*R)).
 
-Hard-to-track regions can be tracked at a lower resolution, if a mask and a
-voxel size is probided.
-
 Algo 'det': the maxima of the spherical function (SF) the most closely
 aligned to the previous direction.
 
 Algo 'prob': a direction drawn from the empirical distribution function
 defined from the SF. Default parameters as in [1].
+
+Mask multiresolution : tracking with lower resolution fodf for hard-to-track
+regions. Voxel size must also be specified if chosen.
 
 References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
@@ -65,7 +65,7 @@ def buildArgsParser():
     p.add_argument('--algo', default='det', choices=['det', 'prob'],
                    help='Algorithm to use (must be \'det\' or \'prob\'). '
                         '[%(default)s]')
-    p.add_argument('--mask_multi',
+    p.add_argument('--mask_multiresolution',
                    help='Path to a binary mask of hard-to-track regions.'
                    ' Tracking in these regions will be computed at lower '
                    'resolution.')
@@ -277,12 +277,8 @@ def main():
         param.is_mr = True
 
         # Load hard-to-track regions mask
-        region_mr = BinaryMask(Dataset(nib.load(args.mask_multi),
+        region_mr = BinaryMask(Dataset(nib.load(args.mask_multiresolution),
                                        param.mask_interp))
-
-        # Resample mask at desired lower resolution
-        mask_mr = resample_volume(nib.load(args.in_mask), zoom=args.voxel_size)
-        resampled_mask = BinaryMask(Dataset(mask_mr, param.mask_interp))
 
         # Resample sh at desired lower resolution and create a new field
         sh_mr = resample_volume(nib.load(args.in_sh), interp='lin',
@@ -293,8 +289,7 @@ def main():
                                           param.sf_threshold,
                                           param.sf_threshold_init,
                                           param.theta)
-        # nib.save(mask_mr, os.path.join(out_path, 'resampled_mask.nii.gz'))
-        nib.save(sh_mr, os.path.join(out_path, 'resampled_sh.nii.gz'))
+        # nib.save(sh_mr, os.path.join(out_path, 'resampled_sh.nii.gz'))
 
     if args.algo == 'det':
         tracker =\
