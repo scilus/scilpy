@@ -69,10 +69,21 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
+EPILOG = """
+    References:
+        [1] Jörgens, D., Descoteaux, M., Moreno, R., 2021. Challenges for
+        tractogram ﬁltering. In: Özarslan, E., Schultz, T., Zhang, E., Fuster,
+        A. (Eds.), Anisotropy Across Fields and Scales. Springer. Mathematics
+        and Visualization.
+        [2] Legarreta, J., Petit, L., Rheault, F., Theaud, G., Lemaire, C.,
+        Descoteaux, M., Jodoin, P.M. Filtering in tractography using
+        autoencoders (FINTA). Medical Image Analysis. 2021
+    """
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                epilog=EPILOG, description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
