@@ -83,7 +83,7 @@ EPILOG = """
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                epilog=EPILOG, description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Path of the input tractogram file.')
