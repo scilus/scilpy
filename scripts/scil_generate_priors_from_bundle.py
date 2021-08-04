@@ -12,6 +12,7 @@ import logging
 import os
 
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.reconst.shm import sf_to_sh, sh_to_sf
 import nibabel as nib
 import numpy as np
@@ -95,7 +96,10 @@ def main():
     sh_order = find_order_from_nb_coeff(sh_shape)
     img_mask = nib.load(args.in_mask)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft_old = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft_old.to_rasmm()
+
+    sft = StatefulTractogram(sft_old.streamlines, args.in_fodf, Space.RASMM)
     sft.to_vox()
     if len(sft.streamlines) < 1:
         raise ValueError('The input bundle contains no streamline.')
@@ -154,7 +158,8 @@ def main():
         np.uint8), img_mask.affine), out_todi_mask)
 
     endpoints_mask = np.zeros(img_mask.shape, dtype=np.uint8)
-    sft.to_corner()
+    sft.to_vox()
+    sft.to_center()
     sft.streamlines._data = sft.streamlines._data.astype(np.uint16)
     for streamline in sft.streamlines:
         endpoints_mask[tuple(streamline[0])] = 1
