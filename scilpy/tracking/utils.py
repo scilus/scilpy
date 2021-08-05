@@ -42,4 +42,4 @@ class TrackingParams(object):
         self.mmap_mode = None
         self.branching_mask = None
         self.save_type = None
-        self.micro = None
+        self.branching = None

@@ -140,9 +140,9 @@ def buildArgsParser():
                    default= 'links', choices = ['links','density'],
                    help="Save type:\n How you want your streamlines to be saved \
                         links to keep the links, density to keep the density" )
-    p.add_argument('--micro', dest='micro',
+    p.add_argument('--branching', dest='branching',
                    action='store_true',
-                   help="Micro:\n Tracking that allows branching, made for the microscope scale" )
+                   help="Branching :\n Tracking that allows branching, made for the microscope scale" )
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -227,7 +227,7 @@ def main():
     param.is_all = False
     param.is_keep_single_pts = False
     param.save_type = args.save_type
-    param.micro = args.micro
+    param.branching = args.branching
     # r+ is necessary for interpolation function in cython who
     # need read/write right
     param.mmap_mode = None if args.isLoadData else 'r+'
@@ -264,8 +264,6 @@ def main():
     elif args.algo == 'prob':
         tracker = probabilisticTracker(field, args.step_size, args.rk_order)
 
-    #elif args.algo == 'micro':
-    #    tracker = microscopyTracker(field, args.step_size, args.rk_order)
     else:
         parser.error("--algo has wrong value. See the help (-h).")
 

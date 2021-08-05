@@ -12,7 +12,6 @@ import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
 
-
 data_file_info = None
 
 
@@ -97,10 +96,10 @@ def track(tracker, mask, seed, param, compress=False,
                 # context manager in order to prevent temporary file deletion
                 # errors in Windows
                 pool.join()
-                lines =\
+                lines = \
                     np.array([line for line in
                               itertools.chain(*lines_per_process)])
-                seeds =\
+                seeds = \
                     np.array([seed for seed in
                               itertools.chain(*seeds_per_process)])
     else:
@@ -174,7 +173,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     # Initialize the random number generator, skip,
     # which voxel to seed and the subvoxel random position
     first_seed_of_chunk = np.int32(param.skip)
-    random_generator, indices =\
+    random_generator, indices = \
         seeding_mask.init_pos(param.random, first_seed_of_chunk)
     while (len(streamlines) < param.nbr_streamlines and
            skip < param.nbr_streamlines * max_tries):
@@ -203,7 +202,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
 
 def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
                     compress=False, compression_error_threshold=0.1,
-                    save_seeds=True,):
+                    save_seeds=True, ):
     """
     Generate streamlines from all initial positions
     following the tracking parameters.
@@ -233,30 +232,31 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     skip = param.skip
 
     first_seed_of_chunk = chunk_id * chunk_size + skip
-    random_generator, indices =\
+    random_generator, indices = \
         seeding_mask.init_pos(param.random,
                               first_seed_of_chunk)
 
     if chunk_id == param.processes - 1:
         chunk_size += param.nbr_seeds % param.processes
     for s in range(chunk_size):
-        if s % 1 == 0:
+        if s % 100 == 0:
             print(str(os.getpid()) + " : " + str(
                 s) + " / " + str(chunk_size))
 
-        seed =\
+        seed = \
             seeding_mask.get_next_pos(random_generator,
                                       indices,
                                       first_seed_of_chunk + s)
-        if param.micro:
+        if param.branching:
             tree = get_tree_from_seed(tracker, mask, seed, pft_tracker, param)
 
             if tree is not None:
-                if param.save_type == 'density' and len(tree) == 2 and np.size(tree[0])+np.size(tree[1]) <= param.min_nbr_pts:
+                if param.save_type == 'density' and len(tree) == 2 and np.size(tree[0]) + np.size(
+                        tree[1]) <= param.min_nbr_pts:
                     """
                     The streamline isnt long enough, therefore it isnt saved
                     """
-                elif param.save_type == 'links' and len(tree)/2 <= param.min_nbr_pts:
+                elif param.save_type == 'links' and len(tree) / 2 <= param.min_nbr_pts:
                     """
                     The streamline isnt long enough, therefore it isnt saved
                     """
@@ -271,34 +271,32 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 
                         if save_seeds:
                             seeds.append(np.asarray(seed, dtype='float32'))
-                    if param.save_type == 'density' :
+                    if param.save_type == 'density':
                         for line in tree:
                             if line is not None:
                                 num = tracker.get_last_tree()
                                 lines += 1
                                 tracker.add_line_in_map(line, num)
-                                #print("line : " + str(lines) + "  tree : " + str(s + 1))
                                 if compress:
                                     streamlines.append(compress_streamlines(np.array(line, dtype='float32'),
-                                                            compression_error_threshold))
+                                                                            compression_error_threshold))
                                 else:
                                     streamlines.append((np.array(line, dtype='float32')))
                                 if save_seeds:
                                     seeds.append(np.asarray(seed, dtype='float32'))
 
-
         else:
             line = get_line_from_seed(tracker, mask, seed, pft_tracker, param)
             if line is not None:
-                    if compress:
-                        streamlines.append(
-                            compress_streamlines(np.array(line, dtype='float32'),
-                                                 compression_error_threshold))
-                    else:
-                        streamlines.append((np.array(line, dtype='float32')))
+                if compress:
+                    streamlines.append(
+                        compress_streamlines(np.array(line, dtype='float32'),
+                                             compression_error_threshold))
+                else:
+                    streamlines.append((np.array(line, dtype='float32')))
 
-                    if save_seeds:
-                        seeds.append(np.asarray(seed, dtype='float32'))
+                if save_seeds:
+                    seeds.append(np.asarray(seed, dtype='float32'))
 
     return streamlines, seeds
 
@@ -341,8 +339,7 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
         if ((len(line) > 1 and
              forward is not None and
              backward is not None and
-             len(line) >= param.min_nbr_pts and
-             len(line) <= param.max_nbr_pts)):
+             param.min_nbr_pts <= len(line) <= param.max_nbr_pts)):
             return line
         elif (param.is_keep_single_pts and
               param.min_nbr_pts == 1):
@@ -404,8 +401,8 @@ def _get_line_binary(tracker, mask, param, is_forward):
     line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
     return line
 
-def get_tree_from_seed(tracker, mask, seed, pft_tracker, param):
 
+def get_tree_from_seed(tracker, mask, seed, pft_tracker, param):
     """
     Generate a branching streamline from a seed
 
@@ -435,26 +432,10 @@ def get_tree_from_seed(tracker, mask, seed, pft_tracker, param):
         if not param.is_single_direction and forward is not None:
             direction = tracker.backward_dir
             position = tracker.init_pos
-            backward = _get_tree(tracker,position, mask, param, direction)
+            backward = _get_tree(tracker, position, mask, param, direction)
             if backward is not None and len(backward) > 0:
                 tree.extend(backward)
-        else:
-            backward = []
         return tree
-        if ((np.size(tree) > 1 and
-             forward is not None and
-             backward is not None and
-             np.size(tree) >= param.min_nbr_pts and
-             np.size(tree) <= param.max_nbr_pts)):
-            return tree
-        elif (param.is_keep_single_pts and
-              param.min_nbr_pts == 1):
-            return [seed]
-        return None
-    if ((param.is_keep_single_pts and
-         param.min_nbr_pts == 1)):
-        return [seed]
-    return None
 
 
 def _get_tree(tracker, position, mask, param, direction):
@@ -474,12 +455,12 @@ def _get_tree(tracker, position, mask, param, direction):
     ------
     streamline: list of 3D positions
     """
-    tree = _get_tree_binary(tracker, position,mask,param,direction)
-    # if param .save_type == 'density' and  tree is None:
-    #     for x in range(0,len(tree)):
-    #         while (tree[x] is not None and len(tree[x]) > 0 and
-    #            not tracker.isPositionInBound(tree[x][-1])):
-    #             tree[x].pop()
+    tree = _get_tree_binary(tracker, position, mask, param, direction)
+    if param .save_type == 'density' and tree is not None:
+        for x in range(0,len(tree)):
+            while (tree[x] is not None and len(tree[x]) > 0 and
+                   not tracker.isPositionInBound(tree[x][-1])):
+                tree[x].pop()
 
     return tree
 
@@ -502,18 +483,18 @@ def _get_tree_binary(tracker, position, mask, param, direction):
     streamline: list of 3D positions
     """
     tree = []
-    line, is_branch, newPos, dirs = get_line_in_tree(tracker, position, mask, param, direction)
+    line, is_branch, new_pos, dirs = get_line_in_tree(tracker, position, mask, param, direction)
     if param.save_type == 'links':
         tree.extend(line)
     if param.save_type == 'density':
         tree.append(line)
     if is_branch:
         for d in dirs:
-            newTree = _get_tree_binary(tracker, newPos, mask, param, d)
+            new_tree = _get_tree_binary(tracker, new_pos, mask, param, d)
             if param.save_type == 'links':
-                tree.extend(newTree)
+                tree.extend(new_tree)
             if param.save_type == 'density':
-                for line in newTree:
+                for line in new_tree:
                     tree.append(line)
     if param.save_type == 'links':
         line.reverse()
@@ -549,7 +530,7 @@ def get_line_in_tree(tracker, pos, mask, param, direction):
             line[-1], line_dirs[-1])
         line.append(new_pos)
         line_dirs.append(new_dir)
-        cpt+=1
+        cpt += 1
 
         if is_valid_direction:
             no_valid_direction_count = 0
@@ -567,6 +548,7 @@ def get_line_in_tree(tracker, pos, mask, param, direction):
     # make a last step in the last direction
     line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
     return line, is_branch, None, None
+
 
 def verify_branching(dirs, cpt, param, pos):
     """
