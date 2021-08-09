@@ -178,6 +178,20 @@ def _bingham_fit_multi_peaks(odf, sphere, max_angle,
                              min_sep_angle, rel_th):
     """
     Peak extraction followed by Bingham fit for each peak.
+
+    Parameters
+    ----------
+    odf: ndarray
+        ODF expressed as a spherical function evaluated on sphere.
+    sphere: DIPY Sphere
+        Sphere on which odf is defined.
+    max_angle: float
+        Maximum angle between a peak and its neighbouring directions
+        to be included when fitting the Bingham distribution.
+    min_sep_angle: float
+        Minimum separation angle between two peaks for peak extraction.
+    rel_th: float
+        Relative threshold used for peak extraction.
     """
     peaks, _, _ = peak_directions(odf, sphere,
                                   relative_peak_threshold=rel_th,
@@ -194,6 +208,24 @@ def _bingham_fit_multi_peaks(odf, sphere, max_angle,
 def _bingham_fit_peak(sf, peak, sphere, max_angle):
     """
     Fit Bingham function on the lobe aligned with peak.
+
+    Parameters
+    ----------
+    sf: ndarray
+        Spherical function evaluated on sphere.
+    peak: ndarray (3, 1)
+        The direction of the lobe to fit.
+    sphere: DIPY Sphere
+        The sphere used to project SH to SF.
+    max_angle: float
+        The maximum angle in degrees of the neighbourhood around
+        peak to consider for fitting.
+
+    Return
+    ------
+    res: BinghamDistribution
+        The Bingham distribution approximating the lobe aligned with peak
+        on the SF.
     """
     # abs for twice the number of pts to fit
     dot_prod = np.abs(sphere.vertices.dot(peak))
@@ -229,8 +261,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     f0 = v.max()
 
     if np.iscomplex(mu1).any() or np.iscomplex(mu2).any():
-        print('uh oh... \n', eval)
-        1/0
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
 
     A = np.zeros((len(v), 2), dtype=float)  # (N, 2)
     A[:, 0:1] = p.dot(mu1)**2
