@@ -240,7 +240,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
         chunk_size += param.nbr_seeds % param.processes
     for s in range(chunk_size):
         if s % 1000 == 0:
-            logging.info(str(os.getpid()) + " : " + str(s) 
+            logging.info(str(os.getpid()) + " : " + str(s)
                          + " / " + str(chunk_size))
 
         seed =\
