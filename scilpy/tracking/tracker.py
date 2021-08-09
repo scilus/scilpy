@@ -25,10 +25,9 @@ class abstractPropagator(object):
 
 
 class rk1Propagator(abstractPropagator):
-
     """
-    The order 1 Runge Kutta propagator is equivalent to the step function
-    used before the implementation of the Runge Kutta integration
+    Implementation of the order 1 Runge Kutta integration, equivalent to
+    the Euler integration method.
     """
     def __init__(self, tracker, step_size):
         super(rk1Propagator, self).__init__(tracker, step_size)
@@ -40,7 +39,9 @@ class rk1Propagator(abstractPropagator):
 
 
 class rk2Propagator(abstractPropagator):
-
+    """
+    Implementation of the Runge Kutta integration method of order 2.
+    """
     def __init__(self, tracker, step_size):
         super(rk2Propagator, self).__init__(tracker, step_size)
 
@@ -53,7 +54,9 @@ class rk2Propagator(abstractPropagator):
 
 
 class rk4Propagator(abstractPropagator):
-
+    """
+    Implementation of the Runge Kutta integration method of order 4.
+    """
     def __init__(self, tracker, step_size):
         super(rk4Propagator, self).__init__(tracker, step_size)
 
