@@ -19,7 +19,7 @@ NB_PARAMS = 9
 
 class BinghamDistribution(object):
     """
-    Scaled bingham distribution.
+    Scaled Bingham distribution.
         B(u) = f0 * exp(-k1 * (mu1 * u)**2 - k2 * (mu2 * u)**2)
 
     Params
@@ -60,13 +60,13 @@ class BinghamDistribution(object):
 
 def bingham_from_array(arr):
     """
-    Instantiate and return a bingham distribution
+    Instantiate and return a Bingham distribution
     with parameters contained in ``arr``.
 
     Parameters
     ----------
     arr: ndarray (9,)
-        Parameters for the bingham distribution, with:
+        Parameters for the Bingham distribution, with:
         arr[0]   => f0
         arr[1:4] => mu1
         arr[4:7] => mu2
@@ -193,7 +193,7 @@ def _bingham_fit_multi_peaks(odf, sphere, max_angle,
 
 def _bingham_fit_peak(sf, peak, sphere, max_angle):
     """
-    Fit bingham function on the lobe aligned with peak.
+    Fit Bingham function on the lobe aligned with peak.
     """
     # abs for twice the number of pts to fit
     dot_prod = np.abs(sphere.vertices.dot(peak))
@@ -260,7 +260,7 @@ def compute_fiber_density(bingham, m=50, nbr_processes=None):
     Compute fiber density for each lobe for a given Bingham volume.
 
     Fiber density (FD) is given by integrating
-    the bingham function over the sphere. Its unit is
+    the Bingham function over the sphere. Its unit is
     in 1/mm**3.
 
     Parameters
