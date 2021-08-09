@@ -150,7 +150,13 @@ def main():
 
     logging.info("Verifying compatibility with ground-truth")
     for gt in args.gt_bundles:
-        compatible = is_header_compatible(sft, gt)
+        _, gt_ext = os.path.splitext(gt)
+        if gt_ext in ['.trk', '.tck']:
+            gt_bundle = load_tractogram_with_reference(
+                parser, args, gt, bbox_check=False)
+        else:
+            gt_bundle = gt
+        compatible = is_header_compatible(sft, gt_bundle)
         if not compatible:
             parser.error("Input tractogram incompatible with"
                          " {}".format(gt))
