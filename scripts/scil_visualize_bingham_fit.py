@@ -13,7 +13,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 
-from dipy.data import get_sphere
+from dipy.data import get_sphere, SPHERE_FILES
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -54,9 +54,8 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
 
-    sphere_choices = {'symmetric362', 'symmetric642', 'symmetric724',
-                      'repulsion724', 'repulsion100', 'repulsion200'}
-    p.add_argument('--sphere', default='symmetric362', choices=sphere_choices,
+    p.add_argument('--sphere', default='symmetric362',
+                   choices=sorted(SPHERE_FILES.keys()),
                    help='Name of the sphere used to reconstruct SF. '
                         '[%(default)s]')
 

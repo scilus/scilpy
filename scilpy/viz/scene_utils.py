@@ -8,7 +8,7 @@ from fury import window, actor
 from fury.colormap import distinguishable_colormap
 
 from scilpy.io.utils import snapshot
-from scilpy.reconst.bingham import BinghamDistribution
+from scilpy.reconst.bingham import BinghamDistribution, NB_PARAMS
 
 
 class CamParams(Enum):
@@ -185,21 +185,39 @@ def create_bingham_slicer(data, orientation, slice_index,
                           sphere, color_per_lobe=False):
     """
     Create a bingham fit slicer using a combination of odf_slicer actors
+
+    Parameters
+    ----------
+    data: ndarray (X, Y, Z, 9 * nb_lobes)
+        The Bingham volume.
+    orientation: string
+        One of 'sagittal', 'coronal', 'axial'.
+    slice_index: int
+        Index of the slice of interest along the chosen orientation.
+    sphere: DIPY Sphere
+        Sphere used for visualization.
+    color_per_lobe: bool, optional
+        If true, each Bingham distribution is colored using a disting color.
+        Else, Bingham distributions are colored by their orientation.
+
+    Return
+    ------
+    actors: list of fury odf_slicer actors
+        ODF slicer actors representing the Bingham distributions.
     """
-    n_params = 9
     shape = data.shape
-    nb_lobes = shape[-1] // n_params
+    nb_lobes = shape[-1] // NB_PARAMS
     nb_vertices = len(sphere.vertices)
     colors = [c * 255 for i, c in zip(range(nb_lobes),
                                       distinguishable_colormap())]
 
     # lmax norm for normalization
-    lmaxnorm = np.max(np.abs(data[..., ::n_params]), axis=-1)
+    lmaxnorm = np.max(np.abs(data[..., ::NB_PARAMS]), axis=-1)
 
     sf = np.zeros((shape[0], shape[1], shape[2], nb_vertices))
     actors = []
     for nn in range(nb_lobes):
-        nn_dat = data[..., nn*n_params:(nn+1)*n_params]
+        nn_dat = data[..., nn*NB_PARAMS:(nn+1)*NB_PARAMS]
         for ii in range(shape[0]):
             for jj in range(shape[1]):
                 for kk in range(shape[2]):
