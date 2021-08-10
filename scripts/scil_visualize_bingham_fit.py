@@ -84,12 +84,40 @@ def _parse_args(parser):
     return args
 
 
+def _axis_name_to_dim(axis_name):
+    """
+    Convert the axis name to its axis index in the data volume.
+    """
+    if axis_name == 'sagittal':
+        return 0
+    if axis_name == 'coronal':
+        return 1
+    if axis_name == 'axial':
+        return 2
+
+
+def _get_slicing_for_axis(axis_name, index, shape):
+    """
+    Get a tuple of slice representing the slice of interest at `index`
+    along the axis `axis_name` in an input volume of dimensions `shape`.
+    """
+    slicing = [slice(shape[0]), slice(shape[1]), slice(shape[2])]
+    slicing[_axis_name_to_dim(axis_name)] = slice(index, index+1)
+    return tuple(slicing)
+
+
 def _get_data_from_inputs(args):
     """
-    Load data given by args. Perform checks to ensure dimensions agree
-    between the data for mask, background, peaks and fODF.
+    Load data given by args.
     """
     bingham = nib.nifti1.load(args.in_bingham).get_fdata(dtype=np.float32)
+    if not args.slice_index:
+        slice_index = bingham.shape[_axis_name_to_dim(args.axis_name)] // 2
+    else:
+        slice_index = args.slice_index
+    bingham = bingham[_get_slicing_for_axis(args.axis_name,
+                                            slice_index,
+                                            bingham.shape)]
     return bingham
 
 
