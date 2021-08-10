@@ -6,7 +6,6 @@ import multiprocessing
 from math import cos, radians
 from dipy.data import get_sphere
 import numpy as np
-from scipy.integrate import nquad
 
 from dipy.direction import peak_directions
 from dipy.reconst.shm import sh_to_sf_matrix
