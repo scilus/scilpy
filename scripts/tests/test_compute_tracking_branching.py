@@ -27,4 +27,3 @@ def test_execution_tracking_fodf(script_runner):
     ret = script_runner.run('scil_compute_tracking_branching.py', in_fodf,
                             in_mask, in_mask, 'local_micro.trk', '--nt', '100')
     assert ret.success
-
