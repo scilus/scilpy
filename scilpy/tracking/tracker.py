@@ -193,6 +193,7 @@ class rk4Propagator(abstractPropagator):
         newV = (v1 + 2 * v2 + 2 * v3 + v4) / 6
         newDir = TrackingDirection(newV, dir1.index)
         newPos = pos + self.step_size * newV
+
         return newPos, newDir, is_valid_direction
 
 
@@ -332,7 +333,19 @@ class abstractTracker(object):
         return self._tree
 
 class probabilisticTracker(abstractTracker):
+    """
+    Probabilistic direction tracker.
 
+
+    Parameters
+    ----------
+    tracking_field: scilpy tracking field object
+        The TrackingField object on which the tracking is done.
+    step_size: float
+        The step size for tracking.
+    rk_order: int
+        Order for the Runge Kutta integration.
+    """
     def __init__(self, tracking_field, step_size, rk_order):
         super(probabilisticTracker, self).__init__(
             tracking_field, step_size, rk_order)

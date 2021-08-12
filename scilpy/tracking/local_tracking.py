@@ -12,6 +12,7 @@ import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
 
+
 data_file_info = None
 
 
@@ -60,8 +61,7 @@ def track(tracker, mask, seed, param, compress=False,
         if nbr_processes < 2:
 
             lines, seeds = get_streamlines(tracker, mask, seed, chunk_id,
-                                           pft_tracker, param,
-                                           compress,
+                                           pft_tracker, param, compress,
                                            compression_th,
                                            save_seeds=save_seeds)
         else:
@@ -96,10 +96,10 @@ def track(tracker, mask, seed, param, compress=False,
                 # context manager in order to prevent temporary file deletion
                 # errors in Windows
                 pool.join()
-                lines = \
+                lines =\
                     np.array([line for line in
                               itertools.chain(*lines_per_process)])
-                seeds = \
+                seeds =\
                     np.array([seed for seed in
                               itertools.chain(*seeds_per_process)])
     else:
@@ -166,6 +166,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     -------
     lines: list, list of list of 3D positions (streamlines)
     """
+
     i = 0
     streamlines = []
     seeds = []
@@ -223,6 +224,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     -------
     lines: list, list of list of 3D positions
     """
+
     streamlines = []
     seeds = []
     lines = 0
@@ -239,11 +241,11 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     if chunk_id == param.processes - 1:
         chunk_size += param.nbr_seeds % param.processes
     for s in range(chunk_size):
-        if s % 100 == 0:
-            print(str(os.getpid()) + " : " + str(
-                s) + " / " + str(chunk_size))
+        if s % 1000 == 0:
+            logging.info(str(os.getpid()) + " : " + str(s)
+                         + " / " + str(chunk_size))
 
-        seed = \
+        seed =\
             seeding_mask.get_next_pos(random_generator,
                                       indices,
                                       first_seed_of_chunk + s)
