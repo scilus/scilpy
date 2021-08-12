@@ -184,12 +184,13 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
         tree = get_tree_from_seed(tracker, mask, seed, pft_tracker, param)
 
         if tree is not None:
-            if param.save_type == 'density' and len(tree) == 2 and np.size(tree[0]) + np.size(
-                    tree[1]) <= param.min_nbr_pts:
+            if param.save_type == 'density' and len(tree) == 2 and \
+                    np.size(tree[0]) + np.size(tree[1]) <= param.min_nbr_pts:
                 """
                 The streamline isnt long enough, therefore it isnt saved
                 """
-            elif param.save_type == 'links' and len(tree) / 2 <= param.min_nbr_pts:
+            elif param.save_type == 'links' and \
+                    len(tree) / 2 <= param.min_nbr_pts:
                 """
                 The streamline isnt long enough, therefore it isnt saved
                 """
@@ -197,7 +198,8 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
                 if param.save_type == 'links':
                     if compress:
                         streamlines.append(
-                            compress_streamlines(np.array(tree, dtype='float32'),
+                            compress_streamlines(np.array(tree,
+                                                          dtype='float32'),
                                                  compression_error_threshold))
                     else:
                         streamlines.append((np.array(tree, dtype='float32')))
@@ -211,12 +213,15 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
                             lines += 1
                             tracker.add_line_in_map(line, num)
                             if compress:
-                                streamlines.append(compress_streamlines(np.array(line, dtype='float32'),
-                                                                        compression_error_threshold))
+                                streamlines.append(compress_streamlines(
+                                    np.array(line, dtype='float32'),
+                                    compression_error_threshold))
                             else:
-                                streamlines.append((np.array(line, dtype='float32')))
+                                streamlines.append((np.array(
+                                    line, dtype='float32')))
                             if save_seeds:
-                                seeds.append(np.asarray(seed, dtype='float32'))
+                                seeds.append(np.asarray(
+                                    seed, dtype='float32'))
 
     return streamlines, seeds
 
@@ -302,7 +307,8 @@ def _get_tree_binary(tracker, position, mask, param, direction):
     streamline: list of 3D positions
     """
     tree = []
-    line, is_branch, new_pos, dirs = get_line_in_tree(tracker, position, mask, param, direction)
+    line, is_branch, new_pos, dirs = get_line_in_tree(tracker, position, mask,
+                                                      param, direction)
     if param.save_type == 'links':
         tree.extend(line)
     if param.save_type == 'density':
@@ -385,5 +391,6 @@ def verify_branching(dirs, cpt, param, pos):
     ------
     is_branch : bool
     """
-    is_branch = len(dirs) > 1 and cpt >= param.min_nbr_pts and param.branching_mask.isPropagationContinues(pos)
+    is_branch = len(dirs) > 1 and cpt >= param.min_nbr_pts and \
+        param.branching_mask.isPropagationContinues(pos)
     return is_branch

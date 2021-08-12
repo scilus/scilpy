@@ -135,11 +135,12 @@ def buildArgsParser():
                         ' \nthe \'data_per_streamline\' attribute')
     p.add_argument('--mask_branch', dest='mask_branch',
                    default=[],
-                   help="Mask branching:\n Zone where branching is allowed" )
+                   help="Mask branching:\n Zone where branching is allowed")
     p.add_argument('--save_type', dest='save_type',
-                   default= 'links', choices = ['links','density'],
-                   help="Save type:\n How you want your streamlines to be saved \
-                        links to keep the links, density to keep the density" )
+                   default='links', choices=['links', 'density'],
+                   help="Save type:\n How you want your streamlines to be \
+                        saved links to keep the links, density \
+                        to keep the density")
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -243,7 +244,8 @@ def main():
     if args.mask_branch == []:
         param.branching_mask = mask
     else:
-        param.branching_mask = BinaryMask(Dataset(nib.load(args.mask_branch), param.mask_interp))
+        param.branching_mask = BinaryMask(Dataset(nib.load(args.mask_branch),
+                                                  param.mask_interp))
 
     dataset = Dataset(nib.load(args.in_sh), param.field_interp)
     field = SphericalHarmonicField(dataset,
@@ -253,7 +255,6 @@ def main():
                                    param.theta)
 
     fieldTest = field.get_direction_neighbours(param.theta)
-
 
     if args.algo == 'det':
         tracker =\
@@ -310,7 +311,8 @@ def main():
     logging.debug(str(len(streamlines)) + " streamlines, done in " +
                   str_time + " seconds.")
     print(str(len(streamlines)) + " streamlines, done in " +
-                  str_time + " seconds.")
+          str_time + " seconds.")
+
 
 if __name__ == "__main__":
     main()

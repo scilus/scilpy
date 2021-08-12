@@ -316,6 +316,7 @@ class abstractTracker(object):
     line_map = []
     tree_map = []
     _tree = -1
+
     def add_line_in_map(self, line, tree):
         """
         Add a streamline to the list of streamlines which the tree

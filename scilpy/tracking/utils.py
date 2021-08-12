@@ -46,4 +46,3 @@ class TrackingParams(object):
         self.branching = None
 
         self.micro = None
-

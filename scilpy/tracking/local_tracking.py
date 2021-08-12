@@ -577,6 +577,6 @@ def verify_branching(dirs, cpt, param, pos):
     is_branch : bool
     """
     is_branch = len(dirs) > 1 and \
-                cpt >= param.min_nbr_pts and \
-                param.branching_mask.isPropagationContinues(pos)
+        cpt >= param.min_nbr_pts and \
+        param.branching_mask.isPropagationContinues(pos)
     return is_branch
