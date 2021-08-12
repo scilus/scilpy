@@ -10,6 +10,24 @@ from scilpy.tracking.utils import TrackingDirection
 
 
 class SphericalHarmonicField(object):
+    """
+    Spherical harmonics tracking field.
+
+    Parameters
+    ----------
+    odf_dataset: scilpy Dataset
+        Trackable Dataset object.
+    basis: string
+        SH basis name. One of 'tournier07' or 'descoteaux07'
+    sf_threshold: float
+        Threshold on spherical function (SF).
+    sf_threshold_init: float
+        Threshold on spherical function when initializing a new streamline.
+    theta: float
+        Maximum angle (radians) between two steps.
+    dipy_sphere: string
+        Name of the DIPY sphere object to use for evaluating SH.
+    """
 
     def __init__(self, odf_dataset, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724'):
@@ -26,6 +44,10 @@ class SphericalHarmonicField(object):
         self.dataset = odf_dataset
         self.basis = basis
 
+        if 'symmetric' not in dipy_sphere:
+            raise ValueError('Sphere must be symmetric. Call to '
+                             'get_opposite_direction will fail.')
+
         sphere = dipy.data.get_sphere(dipy_sphere)
         sh_order = order_from_ncoef(self.dataset.data.shape[-1])
         self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
@@ -33,8 +55,19 @@ class SphericalHarmonicField(object):
 
     def get_direction_neighbours(self, maxAngle):
         """
-        return a matrix of neighbours for each direction on the sphere, within
+        Get a matrix of neighbours for each direction on the sphere, within
         the maxAngle parameter.
+
+        Parameters
+        ----------
+        maxAngle: float
+            Maximum angle in radians defining the neighbourhood
+            of each direction.
+
+        Return
+        ------
+        neighbours: ndarray
+            Neighbour directions for each direction on the sphere.
         """
         xs = self.vertices[:, 0]
         ys = self.vertices[:, 1]
@@ -45,7 +78,18 @@ class SphericalHarmonicField(object):
 
     def get_SF(self, pos):
         """
-        return the spherical function at position pos.
+        Get the spherical function at position pos.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in mm in the trackable dataset.
+
+        Return
+        ------
+        sf: ndarray (len(self.vertices),)
+            Spherical function evaluated at pos, normalized by
+            its maximum amplitude.
         """
         sh = self.dataset.getPositionValue(*pos)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
@@ -57,8 +101,21 @@ class SphericalHarmonicField(object):
 
     def get_tracking_SF(self, pos, direction):
         """
-        return the spherical function thresholded
-        at position pos, for a direction.
+        Get the spherical functions thresholded
+        at position pos, for a given direction.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in trackable dataset, expressed in mm.
+        direction: TrackingDirection
+            A given direction.
+
+        Return
+        ------
+        value: tuple
+            The neighbours SF evaluated at pos in given direction and
+            corresponding tracking directions.
         """
         SF = self.get_SF(pos)
         SF[SF < self.sf_threshold] = 0
@@ -67,7 +124,17 @@ class SphericalHarmonicField(object):
 
     def get_maxima(self, pos):
         """
-        return the set of maxima at position pos from the thresholded SF.
+        Get the set of maxima at position pos from the thresholded SF.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in trackable dataset, expressed in mm.
+
+        Return
+        ------
+        maxima: list
+            Set of maxima directions at position pos.
         """
         SF = self.get_SF(pos)
         maxima = []
@@ -78,8 +145,20 @@ class SphericalHarmonicField(object):
 
     def get_tracking_maxima(self, pos, direction):
         """
-        return the set of maxima from the thresholded
+        Get the set of maxima directions from the thresholded
         SF at position pos, for a direction.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in trackable dataset, expressed in mm.
+        direction: TrackingDirection
+            A given direction.
+
+        Return
+        ------
+        maxima: list
+            List of directions of maxima around the input direction at pos.
         """
         SF = self.get_SF(pos)
         SF[SF < self.sf_threshold] = 0
@@ -91,8 +170,18 @@ class SphericalHarmonicField(object):
 
     def get_init_direction(self, pos):
         """
-        return a tuple with an initial direction to follow from position pos,
+        Get a tuple with an initial direction to follow from position pos,
         with the opposite direction.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in trackable dataset, expressed in mm.
+
+        Return
+        ------
+        value: tuple
+            Initial direction to follow from pos and its opposite direction.
         """
         SF = self.get_SF(pos)
         SF[SF < self.sf_threshold_init] = 0
@@ -105,8 +194,17 @@ class SphericalHarmonicField(object):
 
     def get_opposite_direction(self, ind):
         """
-        return the indice of the opposite direction on the sphere
+        Get the indice of the opposite direction on the sphere
         to the indice ind.
+
+        Parameters
+        ----------
+        ind: int
+            Indice of sphere direction
+
+        Return
+        ------
+        value: int
+            Indice of opposite sphere direction.
         """
-        # !!! WARNING !!! Only works on symmetric spheres
         return (len(self.dirs) // 2 + ind) % len(self.dirs)

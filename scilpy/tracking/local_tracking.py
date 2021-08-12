@@ -140,7 +140,7 @@ def _get_streamlines_sub(args):
         streamlines, seeds = get_streamlines(*args[0:9])
         return streamlines, seeds
     except Exception as e:
-        print("error")
+        logging.error("Operation _get_streamlines_sub() failed.")
         traceback.print_exception(*sys.exc_info(), file=sys.stderr)
         raise e
 
@@ -173,14 +173,14 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     # Initialize the random number generator, skip,
     # which voxel to seed and the subvoxel random position
     first_seed_of_chunk = np.int32(param.skip)
-    random_generator, indices = \
+    random_generator, indices =\
         seeding_mask.init_pos(param.random, first_seed_of_chunk)
     while (len(streamlines) < param.nbr_streamlines and
            skip < param.nbr_streamlines * max_tries):
         if i % 1000 == 0:
-            print(str(os.getpid()) + " : " +
-                  str(len(streamlines)) + " / " +
-                  str(param.nbr_streamlines))
+            logging.info(str(os.getpid()) + " : " +
+                         str(len(streamlines)) + " / " +
+                         str(param.nbr_streamlines))
         seed = seeding_mask.get_next_pos(random_generator,
                                          indices,
                                          first_seed_of_chunk + i)
@@ -202,7 +202,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
 
 def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
                     compress=False, compression_error_threshold=0.1,
-                    save_seeds=True, ):
+                    save_seeds=True):
     """
     Generate streamlines from all initial positions
     following the tracking parameters.
@@ -232,7 +232,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
     skip = param.skip
 
     first_seed_of_chunk = chunk_id * chunk_size + skip
-    random_generator, indices = \
+    random_generator, indices =\
         seeding_mask.init_pos(param.random,
                               first_seed_of_chunk)
 
@@ -304,7 +304,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
     """
     Generate a streamline from an initial position following the tracking
-    paramters.
+    parameters.
 
     Parameters
     ----------
@@ -320,7 +320,6 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
     """
 
     np.random.seed(np.uint32(hash((pos, param.random))))
-
     line = []
     if tracker.initialize(pos):
         forward = _get_line(tracker, mask, pft_tracker, param, True)
@@ -339,7 +338,8 @@ def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
         if ((len(line) > 1 and
              forward is not None and
              backward is not None and
-             param.min_nbr_pts <= len(line) <= param.max_nbr_pts)):
+             len(line) >= param.min_nbr_pts and
+             len(line) <= param.max_nbr_pts)):
             return line
         elif (param.is_keep_single_pts and
               param.min_nbr_pts == 1):
@@ -365,7 +365,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
     """
     This function is use for binary mask.
     Generate a streamline in forward or backward direction from an initial
-    position following the tracking paramters.
+    position following the tracking parameters.
 
     Parameters
     ----------
