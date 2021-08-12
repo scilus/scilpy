@@ -33,7 +33,7 @@ from nibabel.streamlines.tractogram import LazyTractogram
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              add_verbose_arg)
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
-from scilpy.tracking.local_tracking import track
+from scilpy.tracking.local_tracking_branching import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
