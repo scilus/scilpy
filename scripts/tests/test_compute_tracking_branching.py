@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_tracking_bitbucket.py',
+    ret = script_runner.run('scil_compute_tracking_branching.py',
                             '--help')
     assert ret.success
 
@@ -24,8 +24,7 @@ def test_execution_tracking_fodf(script_runner):
                            'fodf.nii.gz')
     in_mask = os.path.join(get_home(), 'tracking',
                            'seeding_mask.nii.gz')
-    ret = script_runner.run('scil_compute_tracking_bitbucket.py', in_fodf,
-                            in_mask, in_mask, 'local_micro.trk', '--nt', '100',
-                            '--micro')
+    ret = script_runner.run('scil_compute_tracking_branching.py', in_fodf,
+                            in_mask, in_mask, 'local_micro.trk', '--nt', '100')
     assert ret.success
 

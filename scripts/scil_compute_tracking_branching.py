@@ -33,7 +33,7 @@ from nibabel.streamlines.tractogram import LazyTractogram
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              add_verbose_arg)
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
-from scilpy.tracking.local_tracking_branching import track
+from scilpy.tracking.local_tracking import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
@@ -140,9 +140,6 @@ def buildArgsParser():
                    default= 'links', choices = ['links','density'],
                    help="Save type:\n How you want your streamlines to be saved \
                         links to keep the links, density to keep the density" )
-    p.add_argument('--branching', dest='branching',
-                   action='store_true',
-                   help="Branching :\n Tracking that allows branching, made for the microscope scale" )
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -227,7 +224,7 @@ def main():
     param.is_all = False
     param.is_keep_single_pts = False
     param.save_type = args.save_type
-    param.branching = args.branching
+    param.branching = True
     # r+ is necessary for interpolation function in cython who
     # need read/write right
     param.mmap_mode = None if args.isLoadData else 'r+'
