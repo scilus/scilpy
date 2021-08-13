@@ -11,14 +11,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_visualize_fodf.py', '--help')
+    ret = script_runner.run('scil_visualize_bingham_fit.py', '--help')
     assert ret.success
 
 
 def test_silent_without_output(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
 
-    ret = script_runner.run('scil_visualize_fodf.py', in_fodf, '--silent')
+    # dummy dataset (the script should raise an error before using it)
+    in_dummy = os.path.join(get_home(), 'tracking', 'fodf.nii.gz')
+
+    ret = script_runner.run('scil_visualize_bingham_fit.py', in_dummy,
+                            '--silent')
 
     assert (not ret.success)
