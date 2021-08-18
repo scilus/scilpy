@@ -55,7 +55,7 @@ def _afd_rd_wrapper(args):
         voxel_sizes = in_hdf5_file.attrs['voxel_sizes']
         streamlines = reconstruct_streamlines_from_hdf5(in_hdf5_file, key)
         if len(streamlines) == 0:
-            return key, 0, 0
+            return key, 0
 
     header = create_nifti_header(affine, dimensions, voxel_sizes)
     sft = StatefulTractogram(streamlines, header, Space.VOX,
