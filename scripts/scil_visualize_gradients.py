@@ -117,7 +117,7 @@ def main():
         centroids, shell_idx = identify_shells(bvals)
 
     if args.verbose:
-        print("Found {} centroids: {}".format(len(centroids), centroids))
+        logging.info("Found {} centroids: {}".format(len(centroids), centroids))
 
     if args.out_basename:
         out_basename, ext = os.path.splitext(args.out_basename)
@@ -129,7 +129,8 @@ def main():
     indexes = []
     for idx in np.where(centroids < 40)[0]:
         if args.verbose:
-            print("Removing bval = {} from display".format(centroids[idx]))
+            logging.info("Removing bval = {} "
+                          "from display".format(centroids[idx]))
 
         indexes.append(idx)
         shell_idx[shell_idx == idx] = -1
