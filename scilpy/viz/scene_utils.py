@@ -5,8 +5,10 @@ import numpy as np
 
 from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
+from fury.colormap import distinguishable_colormap
 
 from scilpy.io.utils import snapshot
+from scilpy.reconst.bingham import BinghamDistribution, NB_PARAMS
 
 
 class CamParams(Enum):
@@ -177,6 +179,62 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 
     return peaks_slicer
+
+
+def create_bingham_slicer(data, orientation, slice_index,
+                          sphere, color_per_lobe=False):
+    """
+    Create a bingham fit slicer using a combination of odf_slicer actors
+
+    Parameters
+    ----------
+    data: ndarray (X, Y, Z, 9 * nb_lobes)
+        The Bingham volume.
+    orientation: string
+        One of 'sagittal', 'coronal', 'axial'.
+    slice_index: int
+        Index of the slice of interest along the chosen orientation.
+    sphere: DIPY Sphere
+        Sphere used for visualization.
+    color_per_lobe: bool, optional
+        If true, each Bingham distribution is colored using a disting color.
+        Else, Bingham distributions are colored by their orientation.
+
+    Return
+    ------
+    actors: list of fury odf_slicer actors
+        ODF slicer actors representing the Bingham distributions.
+    """
+    shape = data.shape
+    nb_lobes = shape[-1] // NB_PARAMS
+    nb_vertices = len(sphere.vertices)
+    colors = [c * 255 for i, c in zip(range(nb_lobes),
+                                      distinguishable_colormap())]
+
+    # lmax norm for normalization
+    lmaxnorm = np.max(np.abs(data[..., ::NB_PARAMS]), axis=-1)
+
+    sf = np.zeros((shape[0], shape[1], shape[2], nb_vertices))
+    actors = []
+    for nn in range(nb_lobes):
+        nn_dat = data[..., nn*NB_PARAMS:(nn+1)*NB_PARAMS]
+        for ii in range(shape[0]):
+            for jj in range(shape[1]):
+                for kk in range(shape[2]):
+                    params = nn_dat[ii, jj, kk]
+                    fit = BinghamDistribution(params[0], params[1:4],
+                                              params[4:7], params[7],
+                                              params[8])
+                    sf[ii, jj, kk, :] = fit.evaluate(sphere.vertices)  # (1, N)
+
+        sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
+        color = colors[nn] if color_per_lobe else None
+        odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False,
+                                     colormap=color)
+        set_display_extent(odf_actor, orientation, shape[:3], slice_index)
+        actors.append(odf_actor)
+
+    return actors
 
 
 def create_scene(actors, orientation, slice_index, volume_shape):

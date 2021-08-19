@@ -36,11 +36,13 @@ def _honor_authorsnames_sh_basis(sh_basis_type):
     if sh_basis_type == 'fibernav':
         sh_basis = 'descoteaux07'
         warnings.warn("'fibernav' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'descoteaux07'.", DeprecationWarning)
+                      "discontinued in favor of 'descoteaux07'.",
+                      DeprecationWarning)
     elif sh_basis_type == 'mrtrix':
         sh_basis = 'tournier07'
         warnings.warn("'mrtrix' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'tournier07'.", DeprecationWarning)
+                      "discontinued in favor of 'tournier07'.",
+                      DeprecationWarning)
     return sh_basis
 
 
