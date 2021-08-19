@@ -59,8 +59,8 @@ def _build_arg_parser():
                    help='Background id, excluded from output [%(default)s],\n'
                         ' the value is used as output background value.')
     p.add_argument('--merge_groups', action='store_true',
-                   help='Each group for the -v option will be merge as a single'
-                        'labels.')
+                   help='Each group for the -v option will be merge as a'
+                        'single labels.')
     add_overwrite_arg(p)
     return p
 
@@ -87,8 +87,7 @@ def main():
     if used_indices_all and args.out_labels_ids:
         parser.error("'all' indices cannot be used with --out_labels_ids.")
 
-    if args.merge_groups and args.group_in_m or \
-            args.merge_groups and args.unique:
+    if args.merge_groups and (args.group_in_m or args.unique):
         parser.error("Cannot use --unique and --group_in_m with "
                      "--merge_groups.")
 
