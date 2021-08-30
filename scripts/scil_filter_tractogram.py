@@ -9,16 +9,16 @@ For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
 
-If any meant any part of the streamline must be in the mask, all means that 
+If any meant any part of the streamline must be in the mask, all means that
 all part of the streamline must be in the mask.
 
 When used with exclude, it means that a streamline entirely in the mask will
 be excluded. Using all it with x/y/z plane works but makes very little sense.
 
-In terms of nifti mask, --drawn_roi MASK.nii.gz all include is 
+In terms of nifti mask, --drawn_roi MASK.nii.gz all include is
 equivalent to --drawn_roi INVERSE_MASK.nii.gz any exclude
-For example, this allows to find out all streamlines entirely in the WM in 
-one command (without manually inverting the mask first) or 
+For example, this allows to find out all streamlines entirely in the WM in
+one command (without manually inverting the mask first) or
 to remove any streamlines staying in GM without getting out.
 
 Multiple filtering tuples can be used and options mixed.
@@ -35,6 +35,7 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
+from scipy import ndimage
 
 from scilpy.io.image import get_data_as_label, get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -80,6 +81,12 @@ def _build_arg_parser():
     p.add_argument('--filtering_list',
                    help='Text file containing one rule per line\n'
                    '(i.e. drawn_roi mask.nii.gz both_ends include).')
+
+    p.add_argument('--soft_distance', type=int,
+                   help='All ROIs are enlarged by the specified value.\n'
+                        'The value is in voxel (NOT mm).\n'
+                        'Anisotropic data will affect each direction '
+                        'differently')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -96,6 +103,13 @@ def _build_arg_parser():
 def prepare_filtering_list(parser, args):
     roi_opt_list = []
     only_filtering_list = True
+
+    if args.soft_distance is not None:
+        if args.soft_distance < 1:
+            parser.error('The minimum soft distance is 1mm.')
+        elif args.soft_distance > 5:
+            logging.warning('Soft distance above 5mm leads to weird results.')
+
     if args.drawn_roi:
         only_filtering_list = False
         for roi_opt in args.drawn_roi:
@@ -157,6 +171,7 @@ def main():
     o_dict = {}
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    bin_struct = ndimage.generate_binary_structure(3, 2)
 
     # Streamline count before filtering
     o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
@@ -188,6 +203,10 @@ def main():
                 atlas = get_data_as_label(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
                 mask[atlas == int(filter_arg_2)] = 1
+
+            if args.soft_distance is not None:
+                mask = ndimage.binary_dilation(mask, bin_struct,
+                                               iterations=args.soft_distance)
             filtered_sft, _ = filter_grid_roi(sft, mask,
                                               filter_mode, is_exclude)
 
@@ -220,11 +239,16 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
+            if args.soft_distance is not None:
+                mask = ndimage.binary_dilation(mask, bin_struct,
+                                               iterations=args.soft_distance)
             filtered_sft, _ = filter_grid_roi(sft, mask,
                                               filter_mode, is_exclude)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
+            if args.soft_distance is not None:
+                radius += args.soft_distance * sft.space_attributes[2]
             if geometry == 'Ellipsoid':
                 filtered_sft, _ = filter_ellipsoid(sft,
                                                    radius, center,
