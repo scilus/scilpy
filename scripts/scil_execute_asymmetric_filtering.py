@@ -73,24 +73,6 @@ def _build_arg_parser():
     p.add_argument('--out_sym', action='store_true',
                    help='If set, saves output in symmetric SH basis.')
 
-    p.add_argument('--edge_mode', default='same',
-                   choices=['same', 'wall'],
-                   help='Specify how edges are processed.\n'
-                        '    \'same\': Edges are processed in the same way as'
-                        ' the rest of the image;\n'
-                        '    \'wall\': Background voxels are discarded from '
-                        'the average. The filter is\n            '
-                        'updated and normalized for each voxel. Requires '
-                        '\'--mask\' or\n            \'--sh0_th\'.'
-                        ' [%(default)s]')
-
-    mask_group = p.add_mutually_exclusive_group()
-    mask_group.add_argument('--mask',
-                            help='Mask when edge_mode is \'wall\'.')
-    mask_group.add_argument('--sh0_th', type=float,
-                            help='Threshold on SH0 coefficient '
-                                 'when edge_mode is \'wall\'.')
-
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -145,8 +127,7 @@ def main():
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
-        sigma=args.sigma,
-        mask=mask)
+        sigma=args.sigma)
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
