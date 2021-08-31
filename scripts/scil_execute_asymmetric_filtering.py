@@ -79,43 +79,19 @@ def _build_arg_parser():
     return p
 
 
-def _assert_edge_mode(parser, args):
-    if args.edge_mode == 'same':
-        if args.mask is not None:
-            parser.error('Cannot specify mask with edge_mode \'same\'.')
-        if args.sh0_th is not None:
-            parser.error('Cannot specify sh0_th with edge_mode \'same\'.')
-    elif args.edge_mode == 'wall':
-        if args.mask is None and args.sh0_th is None:
-            parser.error('Missing required \'mask\' or \'sh0_th\' '
-                         'argument for edge_mode \'wall\'.')
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    _assert_edge_mode(parser, args)
-    inputs = [args.in_sh]
-    if args.mask:
-        inputs.append(args.mask)
-
     # Checking args
     assert_outputs_exist(parser, args, args.out_sh)
-    assert_inputs_exist(parser, inputs)
+    assert_inputs_exist(parser, args.in_sh)
 
     # Prepare data
     sh_img = nib.load(args.in_sh)
     data = sh_img.get_fdata(dtype=np.float32)
-
-    mask = None
-    if args.edge_mode == 'wall':
-        if args.mask:
-            mask = get_data_as_mask(nib.load(args.mask), bool)
-        else:
-            mask = data[..., 0] > args.sh0_th
 
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
