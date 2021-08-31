@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""
+Script to compute various metrics derivated from asymmetric ODF.
+
+These metrics include an asymmetric peak directions image , a number of peaks
+(nupeaks) map, a cosine-similarity-based asymmetry map [1] and an odd-power map
+defined as the ratio of the L2-norm of odd SH coefficients on the L2-norm of
+all SH coefficients.
+"""
+
+
 import argparse
 import nibabel as nib
 import numpy as np
@@ -17,16 +27,26 @@ from scilpy.io.utils import (add_processes_arg,
 from scilpy.io.image import get_data_as_mask
 
 
+EPILOG = """
+References:
+[1] S. Cetin Karayumak, E. Özarslan, and G. Unal,
+“Asymmetric Orientation Distribution Functions (AODFs) revealing
+intravoxel geometry in diffusion MRI,” Magnetic Resonance Imaging,
+vol. 49, pp. 145–158, Jun. 2018, doi: 10.1016/j.mri.2018.03.006.
+"""
+
+
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh', help='Input SH image.')
 
     p.add_argument('--mask', default='',
                    help='Optional mask.')
-    p.add_argument('--asym_map', default='',
-                   help='Output asymmetry map using Cetin '
-                        'Karayumak et al., 2018 asymmetry measure.')
+
+    # outputs
+    p.add_argument('--cos_asym_map', default='',
+                   help='Output asymmetry map using cos similarity.')
     p.add_argument('--odd_power_map', default='',
                    help='Output odd power map.')
     p.add_argument('--peaks', default='',
@@ -64,7 +84,7 @@ def _build_arg_parser():
     return p
 
 
-def compute_karayumak_asym_map(sh_coeffs, order, mask):
+def compute_cos_asym_map(sh_coeffs, order, mask):
     _, l_list = sph_harm_ind_list(order, full_basis=True)
 
     sign = np.power(-1.0, l_list)
@@ -72,13 +92,13 @@ def compute_karayumak_asym_map(sh_coeffs, order, mask):
     sh_squared = sh_coeffs**2
     mask = np.logical_and(sh_squared.sum(axis=-1) > 0., mask)
 
-    asym_map = np.zeros(sh_coeffs.shape[:-1])
-    asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
+    cos_asym_map = np.zeros(sh_coeffs.shape[:-1])
+    cos_asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
         np.sum(sh_squared, axis=-1)[mask]
 
-    asym_map = np.sqrt(1 - asym_map**2) * mask
+    cos_asym_map = np.sqrt(1 - cos_asym_map**2) * mask
 
-    return asym_map
+    return cos_asym_map
 
 
 def compute_odd_power_map(sh_coeffs, order, mask):
@@ -102,14 +122,14 @@ def main():
     args = parser.parse_args()
 
     if not args.not_all:
-        args.asym_map = args.asym_map or 'asym_map.nii.gz'
+        args.cos_asym_map = args.cos_asym_map or 'cos_asym_map.nii.gz'
         args.odd_power_map = args.odd_power_map or 'odd_power_map.nii.gz'
         args.peaks = args.peaks or 'asym_peaks.nii.gz'
         args.peak_values = args.peak_values or 'asym_peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'asym_peak_indices.nii.gz'
         args.nupeaks = args.nupeaks or 'nupeaks.nii.gz'
 
-    arglist = [args.asym_map, args.odd_power_map, args.peaks,
+    arglist = [args.cos_asym_map, args.odd_power_map, args.peaks,
                args.peak_values, args.peak_indices, args.nupeaks]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
@@ -136,9 +156,10 @@ def main():
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 
-    if args.asym_map:
-        asym_map = compute_karayumak_asym_map(sh, sh_order, mask)
-        nib.save(nib.Nifti1Image(asym_map, sh_img.affine), args.asym_map)
+    if args.cos_asym_map:
+        cos_asym_map = compute_cos_asym_map(sh, sh_order, mask)
+        nib.save(nib.Nifti1Image(cos_asym_map, sh_img.affine),
+                 args.cos_asym_map)
 
     if args.odd_power_map:
         odd_power_map = compute_odd_power_map(sh, sh_order, mask)
