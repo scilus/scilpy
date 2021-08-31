@@ -72,6 +72,10 @@ def _build_arg_parser():
     p.add_argument('--asymmetric', action='store_true',
                    help='Compute asymmetric TODI [%(default)s].')
 
+    p.add_argument('--n_steps', default=1, type=int,
+                   help='Number of steps for streamline segments '
+                        'subdivision prior to binning [%(default)s].')
+
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     return p
@@ -113,7 +117,7 @@ def main():
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
     todi_obj.compute_todi(sft.streamlines, length_weights=True,
-                          asymmetric=args.asymmetric)
+                          n_steps=args.n_steps, asymmetric=args.asymmetric)
 
     if args.smooth_todi:
         logging.info('Smoothing ...')

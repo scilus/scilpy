@@ -52,7 +52,8 @@ class TrackOrientationDensityImaging(object):
         self.mask = mask
         self.todi = todi
 
-    def compute_todi(self, streamlines, length_weights=True, asymmetric=False):
+    def compute_todi(self, streamlines, length_weights=True,
+                     n_steps=1, asymmetric=False):
         """Compute the TODI map.
 
         At each voxel an histogram distribution of
@@ -67,7 +68,9 @@ class TrackOrientationDensityImaging(object):
         """
         # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
         pts_pos, pts_dir, pts_norm = \
-            todi_u.streamlines_to_pts_dir_norm(streamlines, asymmetric)
+            todi_u.streamlines_to_pts_dir_norm(streamlines,
+                                               n_steps=n_steps,
+                                               asymmetric=asymmetric)
 
         if not length_weights:
             pts_norm = None
