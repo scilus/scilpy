@@ -102,6 +102,10 @@ def main():
     if not output_file_list:
         parser.error('No output to be done')
 
+    if args.smooth_todi and args.asymmetric:
+        parser.error('Invalid arguments combination. '
+                     'Cannot smooth asymmetric TODI.')
+
     assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
@@ -121,8 +125,6 @@ def main():
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
-        if args.asymmetric:
-            logging.warning('Smooting of asymmetric TODI makes it symmetric!')
         todi_obj.smooth_todi_dir()
         todi_obj.smooth_todi_spatial()
 
