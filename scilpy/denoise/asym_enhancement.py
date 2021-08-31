@@ -7,10 +7,10 @@ from dipy.core.sphere import Sphere
 from scipy.ndimage import correlate
 
 
-def local_asym_gaussian_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
-                                  in_full_basis=False, out_full_basis=True,
-                                  dot_sharpness=1.0, sphere_str='repulsion724',
-                                  sigma=1.0):
+def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
+                         in_full_basis=False, out_full_basis=True,
+                         dot_sharpness=1.0, sphere_str='repulsion724',
+                         sigma=1.0):
     """Average the SH projected on a sphere using a first-neighbor gaussian
     blur and a dot product weight between sphere directions and the direction
     to neighborhood voxels, forcing to 0 negative values and thus performing

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute per-vertices hemisphere-aware (asymmetric) Gaussian
+Script to compute per-vertices hemisphere-aware (asymmetric)
 filtering of spherical functions (SF) given an array of spherical harmonics
 (SH) coefficients. SF are filtered using a first-neighbor Gaussian filter.
 Sphere directions are also weighted by their dot product with the direction
@@ -15,10 +15,7 @@ sharpness of 0 gives the same weight to all sphere directions in an hemisphere.
 Both `sharpness` and `sigma` must be positive.
 
 The resulting SF can be expressed using a full SH basis or a symmetric SH basis
-(where the effect of the filtering is a simple denoising). When a full SH basis
-is used, asymmetry maps are generated using an asymmetry measure from Cetin
-Karayumak et al, 2018, and our own asymmetry measure defined as the ratio of
-the L2-norm of odd SH coefficients on the L2-norm of all SH coefficients.
+(where the effect of the filtering is a simple denoising).
 
 Using default parameters, the script completes in about 15-20 minutes for a
 HCP subject fiber ODF processed with tractoflow. Also note the bigger the
@@ -41,9 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist)
 
-from scilpy.io.image import get_data_as_mask
-
-from scilpy.denoise.asym_enhancement import local_asym_gaussian_filtering
+from scilpy.denoise.asym_enhancement import local_asym_filtering
 
 
 def _build_arg_parser():
@@ -95,8 +90,8 @@ def main():
 
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
-    logging.info('Executing locally asymmetric Gaussian filtering.')
-    filtered_sh = local_asym_gaussian_filtering(
+    logging.info('Executing local asymmetric filtering.')
+    filtered_sh = local_asym_filtering(
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,
         in_full_basis=full_basis,
