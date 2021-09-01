@@ -75,7 +75,7 @@ def _build_arg_parser():
                         '[%(default)s].')
     p.add_argument('--sphere', default='symmetric724',
                    choices=sorted(SPHERE_FILES.keys()),
-                   help='Sphere to use for peak directions estimates '
+                   help='Sphere to use for peak directions estimation '
                         '[%(default)s].')
 
     add_processes_arg(p)
