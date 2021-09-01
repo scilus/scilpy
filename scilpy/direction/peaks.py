@@ -94,12 +94,12 @@ def remove_similar_vertices(vertices, theta):
     unique_vertices : (M, 3) ndarray
         Vertices sufficiently separated from one another.
     mapping : (N,) ndarray
-        For each element ``vertices[i]`` ($i \in 0..N-1$), the index $j$ to a
+        For each element ``vertices[i]`` ($i in 0..N-1$), the index $j$ to a
         vertex in `unique_vertices` that is less than `theta` degrees from
         ``vertices[i]``.  Only returned if `return_mapping` is True.
     indices : (N,) ndarray
         `indices` gives the reverse of `mapping`.  For each element
-        ``unique_vertices[j]`` ($j \in 0..M-1$), the index $i$ to a vertex in
+        ``unique_vertices[j]`` ($j in 0..M-1$), the index $i$ to a vertex in
         `vertices` that is less than `theta` degrees from
         ``unique_vertices[j]``.  If there is more than one element of
         `vertices` that is less than theta degrees from `unique_vertices[j]`,
