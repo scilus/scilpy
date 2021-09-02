@@ -141,7 +141,7 @@ def _get_streamlines_sub(args):
         streamlines, seeds = get_streamlines(*args[0:9])
         return streamlines, seeds
     except Exception as e:
-        print("error")
+        logging.error("Operation _get_streamlines_sub() failed.")
         traceback.print_exception(*sys.exc_info(), file=sys.stderr)
         raise e
 
@@ -180,9 +180,9 @@ def get_n_streamlines(tracker, mask, seeding_mask, pft_tracker, param,
     while (len(streamlines) < param.nbr_streamlines and
            skip < param.nbr_streamlines * max_tries):
         if i % 1000 == 0:
-            print(str(os.getpid()) + " : " +
-                  str(len(streamlines)) + " / " +
-                  str(param.nbr_streamlines))
+            logging.info(str(os.getpid()) + " : " +
+                         str(len(streamlines)) + " / " +
+                         str(param.nbr_streamlines))
         seed = seeding_mask.get_next_pos(random_generator,
                                          indices,
                                          first_seed_of_chunk + i)
@@ -242,8 +242,8 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
         chunk_size += param.nbr_seeds % param.processes
     for s in range(chunk_size):
         if s % 1000 == 0:
-            print(str(os.getpid()) + " : " + str(
-                s) + " / " + str(chunk_size))
+            logging.info(str(os.getpid()) + " : " + str(s)
+                         + " / " + str(chunk_size))
 
         seed =\
             seeding_mask.get_next_pos(random_generator,
@@ -267,7 +267,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 def get_line_from_seed(tracker, mask, pos, pft_tracker, param):
     """
     Generate a streamline from an initial position following the tracking
-    paramters.
+    parameters.
 
     Parameters
     ----------
@@ -328,7 +328,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
     """
     This function is use for binary mask.
     Generate a streamline in forward or backward direction from an initial
-    position following the tracking paramters.
+    position following the tracking parameters.
 
     Parameters
     ----------

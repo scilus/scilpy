@@ -11,6 +11,7 @@ peaks on top of fODF.
 """
 
 import argparse
+import logging
 import warnings
 
 import nibabel as nib
