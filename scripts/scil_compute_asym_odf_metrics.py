@@ -2,9 +2,24 @@
 """
 Script to compute various metrics derivated from asymmetric ODF.
 
-These metrics include an asymmetric peak directions image , a number of peaks
-(nupeaks) map, a cosine-similarity-based asymmetry map [1] and an odd-power map
-defined as the ratio of the L2-norm of odd SH coefficients on the L2-norm of
+These metrics include an asymmetric peak directions image, a number of peaks
+(nupeaks) map [2], a cosine-similarity-based asymmetry map [1] and an
+odd-power map [2].
+
+The asymmetric peak directions image contains peaks per hemisphere, considering
+antipodal sphere directions as distinct. On a symmetric signal, the number of
+asymmetric peaks extracted is then twice the number of symmetric peaks.
+
+The nupeaks map is the asymmetric alternative to NuFO maps. It counts the
+number of asymmetric peaks extracted and ranges in [0..N] with N the maximum
+number of peaks.
+
+The cosine-based asymmetry map is in the range [0..1], with 0 corresponding
+to a perfectly symmetric signal and 1 to a perfectly asymmetric signal.
+
+The odd-power map is also in the range [0..1], with 0 corresponding
+to a perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It
+is given by the ratio of the L2-norm of odd SH coefficients on the L2-norm of
 all SH coefficients.
 """
 
@@ -33,6 +48,11 @@ References:
 “Asymmetric Orientation Distribution Functions (AODFs) revealing
 intravoxel geometry in diffusion MRI,” Magnetic Resonance Imaging,
 vol. 49, pp. 145–158, Jun. 2018, doi: 10.1016/j.mri.2018.03.006.
+
+[2] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
+Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
+[Abstract], In: 2021 ISMRM & SMRT Annual Meeting & Exhibition, 2021 May 15-20,
+Vancouver, BC, 2021, Abstract number 222.
 """
 
 
