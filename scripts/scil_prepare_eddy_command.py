@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Prepare a typical command for eddy and create the necessary files.
+Prepare a typical command for eddy and create the necessary files. When using
+multiple acquisitions and/or opposite phase directions, images, b-values and
+b-vectors should be merged together using scil_concatenate_dwi.py. If using
+topup prior to calling this script, images should be concatenated in the same
+order as the b0s used with prepare_topup.
 """
 
 import argparse
@@ -16,6 +20,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist)
 from scilpy.preprocessing.distortion_correction import (create_acqparams,
                                                         create_index,
+                                                        create_multi_topup_index,
                                                         create_non_zero_norm_bvecs)
 
 
@@ -24,58 +29,75 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_dwi',
-                   help='input DWI Nifti image')
+                   help='Input DWI Nifti image. If using multiple '
+                        'acquisition and/or opposite phase directions, please '
+                        'merge in the same order as for prepare_topup using '
+                        'scil_concatenate_dwi.py.')
 
     p.add_argument('in_bvals',
-                   help='b-values file in FSL format')
+                   help='Input b-values file in FSL format.')
 
     p.add_argument('in_bvecs',
-                   help='b-vectors file in FSL format')
+                   help='Input b-vectors file in FSL format.')
 
     p.add_argument('in_mask',
-                   help='binary brain mask.')
+                   help='Binary brain mask.')
+
+    p.add_argument('--n_reverse', type=int, default=0,
+                   help='Number of reverse phase volumes included '
+                        'in the DWI image [%(default)s].')
 
     p.add_argument('--topup',
-                   help='topup output name. ' +
+                   help='Topup output name. ' +
                         'If given, apply topup during eddy.\n' +
                         'Should be the same as --out_prefix from ' +
-                        'scil_prepare_topup_command.py')
+                        'scil_prepare_topup_command.py.')
+
+    p.add_argument('--topup_params', default='',
+                   help='Parameters file (typically named acqparams) '
+                        'used to run topup.')
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
                    choices=['eddy_openmp', 'eddy_cuda'],
-                   help='eddy command [%(default)s].')
+                   help='Eddy command [%(default)s].')
 
     p.add_argument('--b0_thr', type=float, default=20,
                    help='All b-values with values less than or equal ' +
                         'to b0_thr are considered\nas b0s i.e. without ' +
-                        'diffusion weighting')
+                        'diffusion weighting [%(default)s].')
 
     p.add_argument('--encoding_direction', default='y',
                    choices=['x', 'y', 'z'],
-                   help='acquisition direction, default is AP-PA '
+                   help='Acquisition direction, default is AP-PA '
                         '[%(default)s].')
 
     p.add_argument('--readout', type=float, default=0.062,
-                   help='total readout time from the DICOM metadata '
+                   help='Total readout time from the DICOM metadata '
                         '[%(default)s].')
 
     p.add_argument('--slice_drop_correction', action='store_true',
-                   help="if set, will activate eddy's outlier correction,\n"
+                   help="If set, will activate eddy's outlier correction,\n"
                         "which includes slice drop correction.")
 
+    p.add_argument('--lsr_resampling', action='store_true',
+                   help='Perform least-square resampling, allowing eddy to '
+                        'combine forward and reverse phase acquisitions for '
+                        'better reconstruction. Only works if directions and '
+                        'b-values are identical in both phase direction.')
+
     p.add_argument('--out_directory', default='.',
-                   help='output directory for eddy files [%(default)s].')
+                   help='Output directory for eddy files [%(default)s].')
 
     p.add_argument('--out_prefix', default='dwi_eddy_corrected',
-                   help='prefix of the eddy-corrected DWI [%(default)s].')
+                   help='Prefix of the eddy-corrected DWI [%(default)s].')
 
     p.add_argument('--out_script', action='store_true',
-                   help='if set, will output a .sh script (eddy.sh).\n' +
+                   help='If set, will output a .sh script (eddy.sh).\n' +
                         'else, will output the lines to the ' +
                         'terminal [%(default)s].')
 
     p.add_argument('--fix_seed', action='store_true',
-                   help='if set, will use the fixed seed strategy for eddy.\n'
+                   help='If set, will use the fixed seed strategy for eddy.\n'
                         'Enhances reproducibility.')
 
     p.add_argument('--eddy_options',  default='',
@@ -97,7 +119,10 @@ def main():
         devnull = open(os.devnull)
         subprocess.call(args.eddy_cmd, stderr=devnull)
     except:
-        parser.error("Please download the {} command.".format(args.eddy_cmd))
+        logging.warning(
+            "{} not found. If executing locally, please install "
+            "the command from the FSL library and make sure it is "
+            "available in your path.".format(args.eddy_cmd))
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -110,6 +135,13 @@ def main():
     if os.path.splitext(args.out_prefix)[1] != '':
         parser.error('The prefix must not contain any extension.')
 
+    if args.n_reverse and not args.lsr_resampling:
+        logging.warning(
+            'Multiple reverse phase images supplied, but least-square '
+            'resampling is disabled. If the reverse phase image was acquired '
+            'with the same sampling as the forward phase image, '
+            'use --lsr_resampling for better results from Eddy.')
+
     bvals, bvecs = read_bvals_bvecs(args.in_bvals, args.in_bvecs)
     bvals_min = bvals.min()
     b0_threshold = args.b0_thr
@@ -119,9 +151,33 @@ def main():
                          'your data to ensure everything is correct. '
                          'Value found: {1}'.format(b0_threshold, bvals_min))
 
-    acqparams = create_acqparams(args.readout, args.encoding_direction,
-                                 nb_rev_b0s=0)
-    index = create_index(bvals)
+    n_rev = args.n_reverse
+
+    if args.topup_params:
+        acqparams = np.loadtxt(args.topup_params)
+
+        if acqparams.shape[0] == 2:
+            index = create_index(bvals, n_rev=n_rev)
+        elif acqparams.shape[0] == np.sum(bvals <= b0_threshold):
+            index = create_multi_topup_index(
+                bvals, 'none', n_rev, b0_threshold)
+        else:
+            b_mask = np.ma.array(bvals, mask=[bvals > b0_threshold])
+            n_b0_clusters = len(np.ma.clump_unmasked(b_mask[:n_rev])) + \
+                len(np.ma.clump_unmasked(b_mask[n_rev:]))
+            if acqparams.shape[0] == n_b0_clusters:
+                index = create_multi_topup_index(
+                    bvals, 'cluster', n_rev, b0_threshold)
+            else:
+                raise ValueError('Could not determine a valid index file '
+                                 'from the provided acquisition parameters '
+                                 'file: {}'.format(args.topup_params))
+    else:
+        acqparams = create_acqparams(args.readout, args.encoding_direction,
+                                     nb_rev_b0s=int(n_rev > 0))
+
+        index = create_index(bvals, n_rev=n_rev)
+
     bvecs = create_non_zero_norm_bvecs(bvecs)
 
     if not os.path.exists(args.out_directory):
@@ -129,10 +185,10 @@ def main():
 
     acqparams_path = os.path.join(args.out_directory, 'acqparams.txt')
     np.savetxt(acqparams_path, acqparams, fmt='%1.4f', delimiter=' ')
-    bvecs_path = os.path.join(args.out_directory, 'non_zero_norm.bvecs')
-    np.savetxt(bvecs_path, bvecs.T, fmt="%.8f")
     index_path = os.path.join(args.out_directory, 'index.txt')
     np.savetxt(index_path, index, fmt='%i', newline=" ")
+    bvecs_path = os.path.join(args.out_directory, 'non_zero_norm.bvecs')
+    np.savetxt(bvecs_path, bvecs.T, fmt="%.8f")
 
     additional_args = ""
     if args.topup is not None:
@@ -143,6 +199,19 @@ def main():
 
     if args.fix_seed:
         additional_args += "--initrand "
+
+    if args.lsr_resampling:
+        if len(bvals) - n_rev == n_rev:
+            forward_bb = bvals[:n_rev, None] * bvecs[:n_rev, :]
+            reverse_bb = bvals[n_rev:, None] * bvecs[n_rev:, :]
+            if np.allclose(forward_bb, reverse_bb):
+                additional_args += "--resamp=lsr --fep=true "
+            else:
+                logging.warning('Least-square resampling disabled since '
+                                'directions in both phase directions differ.')
+        else:
+            logging.warning('Least-square resampling disabled since number of '
+                            'directions in both phase directions differ.')
 
     if args.eddy_options:
         additional_args += args.eddy_options

@@ -10,8 +10,10 @@ The default forward microstructure model is stick-zeppelin-ball, which requires
 multi-shell data and a peak file (principal fiber directions in each voxel,
 typically from a field of fODFs).
 
-It is possible to use the ball-and-stick model for single-shell data. In this
-case, the peak file is not mandatory.
+It is possible to use the ball-and-stick model for single-shell and multi-shell
+data. In this case, the peak file is not mandatory. Multi-shell should follow a
+"NODDI protocol" (low and high b-values), multiple shells with similar b-values
+should not be used with COMMIT.
 
 The output from COMMIT is:
 - fit_NRMSE.nii.gz
@@ -20,9 +22,9 @@ The output from COMMIT is:
     fiting error (Root Mean Square Error)
 - results.pickle
     Dictionary containing the experiment parameters and final weights
-- compartment_EC.nii.gz (Extra-Cellular)
-- compartment_IC.nii.gz (Intra-Cellular)
-- compartment_ISO.nii.gz (isotropic volume fraction (freewater comportment))
+- compartment_EC.nii.gz (est. Extra-Cellular signal fraction)
+- compartment_IC.nii.gz (est. Intra-Cellular signal fraction)
+- compartment_ISO.nii.gz (est. isotropic signal fraction (freewater comportment))
     Each of COMMIT compartments
 - commit_weights.txt
     Text file containing the commit weights for each streamline of the
@@ -32,22 +34,28 @@ The output from COMMIT is:
 - tot_commit_weights
     Text file containing the total commit weights of each streamline.
     Equal to commit_weights * streamlines_length (W_i * L_i)
-- commit_weights.txt
-    Text file containing the commit weights for each streamline of the
-    input tractogram.
 - essential.trk / non_essential.trk
     Tractograms containing the streamlines below or equal (essential) and
-    above (non_essential) the --threshold_weights argument.
+    above (non_essential) a threshold_weights of 0.
 
 This script can divide the input tractogram in two using a threshold to apply
-on the streamlines' weight. Typically, the threshold should be 0, keeping only
+on the streamlines' weight. The threshold used is 0.0, keeping only
 streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
 
 COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
-longer computation time.
+longer computation time. This wrapper offers a simplify way to call COMMIT, but
+does not allow to use (or fine-tune) every parameters. If you want to use COMMIT
+with full access to all parameters, visit: https://github.com/daducci/COMMIT
+
+When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
+--lambda_commit_2 you should evaluate the quality of results by:
+    - Looking at the 'density' (GTM) of the connnectome (essential tractogram)
+    - Confirm the quality of WM bundles reconstruction (essential tractogram)
+    - Inspect the (N)RMSE map and look for peaks or anomalies
+    - Compare the density map before and after (essential tractogram)
 """
 
 import argparse
@@ -117,13 +125,13 @@ def _build_arg_parser():
                    help='Number of directions, on the half of the sphere,\n'
                         'representing the possible orientations of the '
                         'response functions [%(default)s].')
-    p.add_argument('--nbr_iter', type=int, default=500,
+    p.add_argument('--nbr_iter', type=int, default=1000,
                    help='Maximum number of iterations [%(default)s].')
     p.add_argument('--in_peaks',
                    help='Peaks file representing principal direction(s) '
                         'locally,\n typically coming from fODFs. This file is '
                         'mandatory for the default\n stick-zeppelin-ball '
-                        'model, when used with multi-shell data.')
+                        'model.')
     p.add_argument('--in_tracking_mask',
                    help='Binary mask where tratography was allowed.\n'
                         'If not set, uses a binary mask computed from '
@@ -138,8 +146,9 @@ def _build_arg_parser():
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
-                    help='Use the ball&Stick model.\nDisable '
-                         'the zeppelin compartment for single-shell data.')
+                    help='Use the ball&Stick model, disable the zeppelin '
+                         'compartment.\nOnly model suitable for single-shell '
+                         'data.')
     g1.add_argument('--para_diff', type=float,
                     help='Parallel diffusivity in mm^2/s.\n'
                          'Default for ball_stick: 1.7E-3\n'
@@ -147,7 +156,7 @@ def _build_arg_parser():
     g1.add_argument('--perp_diff', nargs='+', type=float,
                     help='Perpendicular diffusivity in mm^2/s.\n'
                          'Default for ball_stick: None\n'
-                         'Default for stick_zeppelin_ball: [0.85E-3, 0.51E-3]')
+                         'Default for stick_zeppelin_ball: [0.51E-3]')
     g1.add_argument('--iso_diff', nargs='+', type=float,
                     help='Istropic diffusivity in mm^2/s.\n'
                          'Default for ball_stick: [2.0E-3]\n'
@@ -157,11 +166,6 @@ def _build_arg_parser():
     g2.add_argument('--keep_whole_tractogram', action='store_true',
                     help='Save a tractogram copy with streamlines weights in '
                          'the data_per_streamline\n[%(default)s].')
-    g2.add_argument('--threshold_weights', metavar='THRESHOLD',
-                    default=0.,
-                    help='Split the tractogram in two; essential and\n'
-                         'nonessential, based on the provided threshold '
-                         '[%(default)s].\n Use None to skip this step.')
 
     g3 = p.add_argument_group(title='Kernels options')
     kern = g3.add_mutually_exclusive_group()
@@ -226,10 +230,8 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                 tmp_commit_weights = \
                     commit_weights[offsets_list[i]:offsets_list[i+1]]
 
-                if args.threshold_weights is None:
-                    args.threshold_weights = -1
                 essential_ind = np.where(
-                    tmp_commit_weights > args.threshold_weights)[0]
+                    tmp_commit_weights > 0)[0]
                 tmp_commit_weights = tmp_commit_weights[essential_ind]
 
                 tmp_streamlines = reconstruct_streamlines(old_group['data'],
@@ -267,41 +269,34 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     for f in files:
         shutil.copy(os.path.join(commit_results_dir, f), out_dir)
 
-    # Save split tractogram (essential/nonessential) and/or saving the
-    # tractogram with data_per_streamline updated
-    if args.keep_whole_tractogram or args.threshold_weights is not None:
-        dps_key = 'commit2_weights' if is_commit_2 else \
-            'commit1_weights'
-        dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
-            'tot_commit1_weights'
-        # Reload is needed because of COMMIT handling its file by itself
-        sft.data_per_streamline[dps_key] = commit_weights
-        sft.data_per_streamline[dps_key_tot] = commit_weights*length_list
+    dps_key = 'commit2_weights' if is_commit_2 else \
+        'commit1_weights'
+    dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
+        'tot_commit1_weights'
+    # Reload is needed because of COMMIT handling its file by itself
+    sft.data_per_streamline[dps_key] = commit_weights
+    sft.data_per_streamline[dps_key_tot] = commit_weights*length_list
 
-        if args.threshold_weights is None:
-            args.threshold_weights = -1
-        essential_ind = np.where(
-            commit_weights > args.threshold_weights)[0]
-        nonessential_ind = np.where(
-            commit_weights <= args.threshold_weights)[0]
-        logging.debug('{} essential streamlines were kept at '
-                      'threshold {}'.format(len(essential_ind),
-                                            args.threshold_weights))
-        logging.debug('{} nonessential streamlines were kept at '
-                      'threshold {}'.format(len(nonessential_ind),
-                                            args.threshold_weights))
+    essential_ind = np.where(
+        commit_weights > 0)[0]
+    nonessential_ind = np.where(
+        commit_weights <= 0)[0]
+    logging.debug('{} essential streamlines were kept at'.format(
+        len(essential_ind)))
+    logging.debug('{} nonessential streamlines were kept'.format(
+        len(nonessential_ind)))
 
-        save_tractogram(sft[essential_ind],
-                        os.path.join(out_dir,
-                                     'essential_tractogram.trk'))
-        save_tractogram(sft[nonessential_ind],
-                        os.path.join(out_dir,
-                                     'nonessential_tractogram.trk'))
-        if args.keep_whole_tractogram:
-            output_filename = os.path.join(out_dir, 'tractogram.trk')
-            logging.debug('Saving tractogram with weights as {}'.format(
-                output_filename))
-            save_tractogram(sft, output_filename)
+    save_tractogram(sft[essential_ind],
+                    os.path.join(out_dir,
+                    'essential_tractogram.trk'))
+    save_tractogram(sft[nonessential_ind],
+                    os.path.join(out_dir,
+                    'nonessential_tractogram.trk'))
+    if args.keep_whole_tractogram:
+        output_filename = os.path.join(out_dir, 'tractogram.trk')
+        logging.debug('Saving tractogram with weights as {}'.format(
+            output_filename))
+        save_tractogram(sft, output_filename)
 
 
 def main():
@@ -345,15 +340,6 @@ def main():
                                                   dwi_img):
         parser.error('{} does not have a compatible header with {}'.format(
             args.in_tractogram, args.in_dwi))
-
-    if args.threshold_weights == 'None' or args.threshold_weights == 'none':
-        args.threshold_weights = None
-        if not args.keep_whole_tractogram and ext != '.h5':
-            logging.warning('Not thresholding weight with trk file without '
-                            'the --keep_whole_tractogram will not save a '
-                            'tractogram.')
-    else:
-        args.threshold_weights = float(args.threshold_weights)
 
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output

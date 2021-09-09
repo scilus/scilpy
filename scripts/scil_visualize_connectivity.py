@@ -10,6 +10,8 @@ This script can either display the axis labels as:
 - Coordinates (0..N)
 - Labels (using --labels_list)
 - Names (using --labels_list and --lookup_table)
+Examples of labels_list.txt and lookup_table.json can be found in the
+freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
 If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
 provide the text file(s), using --labels_list and/or --reorder_txt.
@@ -59,7 +61,7 @@ def _build_arg_parser():
                          '(.txt).')
     g1.add_argument('--lookup_table',
                     help='Lookup table with the label number as keys and the '
-                         'name as values.')
+                         'name as values (.json).')
 
     g2 = p.add_argument_group(title='Matplotlib options')
     g2.add_argument('--name_axis', action='store_true',
@@ -176,8 +178,8 @@ def main():
         fig.colorbar(im, ax=ax)
 
     if args.name_axis:
-        y_ticks = np.arange(matrix.shape[0])
-        x_ticks = np.arange(matrix.shape[1])
+        y_ticks = np.arange(matrix.shape[1])
+        x_ticks = np.arange(matrix.shape[0])
 
         if args.labels_list:
             labels_list = np.loadtxt(args.labels_list, dtype=np.int16).tolist()
@@ -187,8 +189,8 @@ def main():
                     or len(labels_list) != matrix.shape[1]:
                 logging.warning('The provided matrix not the same size as '
                                 'the labels list.')
-            y_legend = labels_list[0:matrix.shape[0]]
-            x_legend = labels_list[0:matrix.shape[1]]
+            y_legend = labels_list[0:matrix.shape[1]]
+            x_legend = labels_list[0:matrix.shape[0]]
         else:
             y_legend = y_ticks
             x_legend = x_ticks
@@ -196,8 +198,8 @@ def main():
         if args.reorder_txt:
             with open(args.reorder_txt, 'r') as my_file:
                 lines = my_file.readlines()
-                y_legend = [int(val) for val in lines[0].split()]
-                x_legend = [int(val) for val in lines[1].split()]
+                y_legend = [int(val) for val in lines[1].split()]
+                x_legend = [int(val) for val in lines[0].split()]
 
         if args.lookup_table:
             if args.reorder_txt:
@@ -212,11 +214,11 @@ def main():
             if args.reorder_txt:
                 with open(args.reorder_txt, 'r') as my_file:
                     lines = my_file.readlines()
-                    y_list = [int(val) for val in lines[0].split()]
-                    x_list = [int(val) for val in lines[1].split()]
+                    y_list = [int(val) for val in lines[1].split()]
+                    x_list = [int(val) for val in lines[0].split()]
             else:
-                y_list = labels_list[0:matrix.shape[0]]
-                x_list = labels_list[0:matrix.shape[1]]
+                y_list = labels_list[0:matrix.shape[1]]
+                x_list = labels_list[0:matrix.shape[0]]
 
             y_legend = [lut[str(x)] if str(x) in lut else str(x)
                         for x in y_list]

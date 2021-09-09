@@ -7,11 +7,6 @@ maps along a bundle.
 
 This is the "real" fixel-based fODF amplitude along every streamline
 of the bundle provided, averaged at every voxel.
-Radial fODF comes for free from the mathematics, it is the great circle
-integral of the fODF orthogonal to the fixel of interest, similar to
-a Funk-Radon transform. Hence, radfODF is the fixel-based or HARDI-based
-generalization of the DTI radial diffusivity and AFD
-the generalization of axial diffusivity.
 
 Please use a bundle file rather than a whole tractogram.
 """
@@ -45,8 +40,6 @@ def _build_arg_parser():
                    help='Path of the fODF volume in spherical harmonics (SH).')
     p.add_argument('afd_mean_map',
                    help='Path of the output mean AFD map.')
-    p.add_argument('rd_mean_map',
-                   help='Path of the output mean radfODF map.')
 
     p.add_argument('--length_weighting', action='store_true',
                    help='If set, will weigh the AFD values according to '
@@ -63,7 +56,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_bundle, args.in_fodf])
-    assert_outputs_exist(parser, args, [args.afd_mean_map, args.rd_mean_map])
+    assert_outputs_exist(parser, args, [args.afd_mean_map])
 
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     fodf_img = nib.load(args.in_fodf)
@@ -76,8 +69,6 @@ def main():
     nib.Nifti1Image(afd_mean_map.astype(np.float32),
                     fodf_img.affine).to_filename(args.afd_mean_map)
 
-    nib.Nifti1Image(rd_mean_map.astype(np.float32),
-                    fodf_img.affine).to_filename(args.rd_mean_map)
 
 
 if __name__ == '__main__':

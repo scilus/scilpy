@@ -84,7 +84,7 @@ def main():
     ret = whole_brain_slr(sft_moving.streamlines,
                           sft_static.streamlines,
                           x0=transformation_type,
-                          maxiter=150,
+                          maxiter=150, greater_than=1,
                           verbose=args.verbose)
     _, transfo, _, _ = ret
 

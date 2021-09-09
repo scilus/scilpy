@@ -13,8 +13,9 @@ matrices will follow the same order as the list.
 This script only generates matrices in the form of array, does not visualize
 or reorder the labels (node).
 
-The parameter --similarity expects a folder with density maps (LABEL1_LABEL2.nii.gz)
-following the same naming convention as the input directory.
+The parameter --similarity expects a folder with density maps
+(LABEL1_LABEL2.nii.gz) following the same naming convention as the input
+directory.
 The bundles should be averaged version in the same space. This will
 compute the weighted-dice between each node and their homologuous average
 version.
@@ -27,6 +28,13 @@ The parameters --maps can be used more than once and expect a folder with
 pre-computed maps (LABEL1_LABEL2.nii.gz) following the same naming convention
 as the input directory. Each will generate a matrix. The average non-zeros
 value in the map will be reported in the matrices nodes.
+
+The parameters --lesion_load will compute 3 lesion(s) related matrices:
+lesion_count.npy, lesion_vol.npy, lesion_sc.npy and put it inside of a
+specified folder. They represent the number of lesion, the total volume of
+lesion(s) and the total of streamlines going through the lesion(s) for  of each
+connection. Each connection can be seen as a 'bundle' and then something
+similar to scil_analyse_lesion_load.py is run for each 'bundle'.
 """
 
 import argparse
@@ -39,11 +47,13 @@ import os
 import coloredlogs
 from dipy.io.utils import is_header_compatible, get_reference_info
 from dipy.tracking.streamlinespeed import length
+from dipy.tracking.vox2track import _streamlines_in_mask
 import h5py
 import nibabel as nib
 import numpy as np
+import scipy.ndimage as ndi
 
-from scilpy.io.image import get_data_as_label
+from scilpy.io.image import get_data_as_label, get_data_as_mask
 from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
@@ -51,6 +61,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              validate_nbr_processes)
 from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from scilpy.utils.metrics_tools import compute_lesion_stats
 
 
 def load_node_nifti(directory, in_label, out_label, ref_img):
@@ -75,6 +86,7 @@ def _processing_wrapper(args):
         similarity_directory = args[4][0]
     weighted = args[5]
     include_dps = args[6]
+    min_lesion_vol = args[7]
 
     hdf5_file = h5py.File(hdf5_filename, 'r')
     key = '{}_{}'.format(in_label, out_label)
@@ -132,6 +144,7 @@ def _processing_wrapper(args):
         measures_to_compute.remove('similarity')
 
     for measure in measures_to_compute:
+        # Maps
         if isinstance(measure, str) and os.path.isdir(measure):
             map_dirname = measure
             map_data = load_node_nifti(map_dirname,
@@ -139,23 +152,61 @@ def _processing_wrapper(args):
                                        labels_img)
             measures_to_return[map_dirname] = np.average(
                 map_data[map_data > 0])
-        elif isinstance(measure, tuple) and os.path.isfile(measure[0]):
-            metric_filename = measure[0]
-            metric_img = measure[1]
-            if not is_header_compatible(metric_img, labels_img):
-                logging.error('{} do not have a compatible header'.format(
-                    metric_filename))
-                raise IOError
+        elif isinstance(measure, tuple):
+            if not isinstance(measure[0], tuple) \
+                    and os.path.isfile(measure[0]):
+                metric_filename = measure[0]
+                metric_img = measure[1]
+                if not is_header_compatible(metric_img, labels_img):
+                    logging.error('{} do not have a compatible header'.format(
+                        metric_filename))
+                    raise IOError
 
-            metric_data = metric_img.get_fdata(dtype=np.float64)
-            if weighted:
-                density = density / np.max(density)
-                voxels_value = metric_data * density
-                voxels_value = voxels_value[voxels_value > 0]
+                metric_data = metric_img.get_fdata(dtype=np.float64)
+                if weighted:
+                    density = density / np.max(density)
+                    voxels_value = metric_data * density
+                    voxels_value = voxels_value[voxels_value > 0]
+                else:
+                    voxels_value = metric_data[density > 0]
+
+                measures_to_return[metric_filename] = np.average(voxels_value)
+            # lesion
             else:
-                voxels_value = metric_data[density > 0]
+                lesion_filename = measure[0][0]
+                computed_lesion_labels = measure[0][1]
+                lesion_img = measure[1]
+                if not is_header_compatible(lesion_img, labels_img):
+                    logging.error('{} do not have a compatible header'.format(
+                        lesion_filename))
+                    raise IOError
 
-            measures_to_return[metric_filename] = np.average(voxels_value)
+                voxel_sizes = lesion_img.header.get_zooms()[0:3]
+                lesion_img.set_filename('tmp.nii.gz')
+                lesion_atlas = get_data_as_label(lesion_img)
+                tmp_dict = compute_lesion_stats(
+                    density.astype(bool), lesion_atlas,
+                    voxel_sizes=voxel_sizes, single_label=True,
+                    min_lesion_vol=min_lesion_vol,
+                    precomputed_lesion_labels=computed_lesion_labels)
+
+                tmp_ind = _streamlines_in_mask(list(streamlines),
+                                               lesion_atlas.astype(np.uint8),
+                                               np.eye(3), [0, 0, 0])
+                streamlines_count = len(
+                    np.where(tmp_ind == [0, 1][True])[0].tolist())
+
+                if tmp_dict:
+                    measures_to_return[lesion_filename+'vol'] = \
+                        tmp_dict['lesion_total_volume']
+                    measures_to_return[lesion_filename+'count'] = \
+                        tmp_dict['lesion_count']
+                    measures_to_return[lesion_filename+'sc'] = \
+                        streamlines_count
+                else:
+                    measures_to_return[lesion_filename+'vol'] = 0
+                    measures_to_return[lesion_filename+'count'] = 0
+                    measures_to_return[lesion_filename+'sc'] = 0
 
     if include_dps:
         for dps_key in hdf5_file[key].keys():
@@ -201,6 +252,11 @@ def _build_arg_parser():
                    metavar=('IN_FILE', 'OUT_FILE'),
                    help='Input (.nii.gz). and output file (.npy) for a metric '
                         'weighted matrix.')
+    p.add_argument('--lesion_load', nargs=2, metavar=('IN_FILE', 'OUT_DIR'),
+                   help='Input binary mask (.nii.gz) and output directory '
+                        'for all lesion-related matrices.')
+    p.add_argument('--min_lesion_vol', type=float, default=7,
+                   help='Minimum lesion volume in mm3 [%(default)s].')
 
     p.add_argument('--density_weighting', action="store_true",
                    help='Use density-weighting for the metric weighted matrix.')
@@ -269,6 +325,25 @@ def main():
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
+    dict_lesion_out_name = {}
+    if args.lesion_load is not None:
+        in_name = args.lesion_load[0]
+        lesion_img = nib.load(in_name)
+        lesion_data = get_data_as_mask(lesion_img, dtype=bool)
+        lesion_atlas, _ = ndi.label(lesion_data)
+        measures_to_compute.append(((in_name, np.unique(lesion_atlas)[1:]),
+                                    nib.Nifti1Image(lesion_atlas,
+                                                    lesion_img.affine)))
+
+        out_name_1 = os.path.join(args.lesion_load[1], 'lesion_vol.npy')
+        out_name_2 = os.path.join(args.lesion_load[1], 'lesion_count.npy')
+        out_name_3 = os.path.join(args.lesion_load[1], 'lesion_sc.npy')
+
+        dict_lesion_out_name[in_name+'vol'] = out_name_1
+        dict_lesion_out_name[in_name+'count'] = out_name_2
+        dict_lesion_out_name[in_name+'sc'] = out_name_3
+        measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
+
     assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing '
@@ -303,7 +378,8 @@ def main():
                                                            measures_to_compute,
                                                            args.similarity,
                                                            args.density_weighting,
-                                                           args.include_dps]))
+                                                           args.include_dps,
+                                                           args.min_lesion_vol]))
     else:
         pool = multiprocessing.Pool(nbr_cpu)
         measures_dict_list = pool.map(_processing_wrapper,
@@ -315,7 +391,8 @@ def main():
                                           itertools.repeat(args.similarity),
                                           itertools.repeat(
                                           args.density_weighting),
-                                          itertools.repeat(args.include_dps)))
+                                          itertools.repeat(args.include_dps),
+                                          itertools.repeat(args.min_lesion_vol)))
         pool.close()
         pool.join()
 
@@ -341,6 +418,7 @@ def main():
     # Filling out all the matrices (symmetric) in the order of labels_list
     nbr_of_measures = len(list(measures_dict.values())[0])
     matrix = np.zeros((len(labels_list), len(labels_list), nbr_of_measures))
+
     for in_label, out_label in measures_dict:
         curr_node_dict = measures_dict[(in_label, out_label)]
         measures_ordering = list(curr_node_dict.keys())
@@ -348,7 +426,6 @@ def main():
         for i, measure in enumerate(curr_node_dict):
             in_pos = labels_list.index(in_label)
             out_pos = labels_list.index(out_label)
-
             matrix[in_pos, out_pos, i] = curr_node_dict[measure]
             matrix[out_pos, in_pos, i] = curr_node_dict[measure]
 
@@ -366,6 +443,8 @@ def main():
             matrix_basename = dict_metrics_out_name[measure]
         elif measure in dict_maps_out_name:
             matrix_basename = dict_maps_out_name[measure]
+        elif measure in dict_lesion_out_name:
+            matrix_basename = dict_lesion_out_name[measure]
         else:
             matrix_basename = measure
 

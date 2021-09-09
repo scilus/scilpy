@@ -229,7 +229,7 @@ def main():
         parser.error('Total number of seeds must be > 0.')
 
     mask_img = nib.load(args.in_mask)
-    mask_data = get_data_as_mask(mask_img, dtype=np.bool)
+    mask_data = get_data_as_mask(mask_img, dtype=bool)
 
     # Make sure the mask is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)

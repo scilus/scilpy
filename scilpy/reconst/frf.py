@@ -78,9 +78,9 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
 
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     if mask is not None:
         data = applymask(data, mask)
@@ -221,7 +221,7 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
 
     gtab = gradient_table(bvals, bvecs, btens=btens)
 
