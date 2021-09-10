@@ -111,7 +111,8 @@ def prepare_filtering_list(parser, args):
         if args.soft_distance < 1:
             parser.error('The minimum soft distance is 1 voxel.')
         elif args.soft_distance > 5:
-            logging.warning('Soft distance above 5 voxels leads to weird results.')
+            logging.warning('Soft distance above 5 voxels leads to weird'
+                            ' results.')
 
     if args.drawn_roi:
         only_filtering_list = False
