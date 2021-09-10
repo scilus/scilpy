@@ -24,6 +24,9 @@ to remove any streamlines staying in GM without getting out.
 Multiple filtering tuples can be used and options mixed.
 A logical AND is the only behavior available. All theses filtering
 conditions will be sequentially applied.
+
+WARNING: --soft_distance should be used carefully with large voxel size
+(e.g > 2.5mm).
 """
 
 import argparse
@@ -106,9 +109,9 @@ def prepare_filtering_list(parser, args):
 
     if args.soft_distance is not None:
         if args.soft_distance < 1:
-            parser.error('The minimum soft distance is 1mm.')
+            parser.error('The minimum soft distance is 1 voxel.')
         elif args.soft_distance > 5:
-            logging.warning('Soft distance above 5mm leads to weird results.')
+            logging.warning('Soft distance above 5 voxels leads to weird results.')
 
     if args.drawn_roi:
         only_filtering_list = False
