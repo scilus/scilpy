@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute per-vertices hemisphere-aware (asymmetric) Gaussian
+Script to compute per-vertices hemisphere-aware (asymmetric)
 filtering of spherical functions (SF) given an array of spherical harmonics
 (SH) coefficients. SF are filtered using a first-neighbor Gaussian filter.
 Sphere directions are also weighted by their dot product with the direction
@@ -15,9 +15,7 @@ sharpness of 0 gives the same weight to all sphere directions in an hemisphere.
 Both `sharpness` and `sigma` must be positive.
 
 The resulting SF can be expressed using a full SH basis or a symmetric SH basis
-(where the effect of the filtering is a simple denoising). When a full SH basis
-is used, an asymmetry map is also generated using an asymmetry measure (Cetin
-Karayumak et al, 2018).
+(where the effect of the filtering is a simple denoising).
 
 Using default parameters, the script completes in about 15-20 minutes for a
 HCP subject fiber ODF processed with tractoflow. Also note the bigger the
@@ -27,12 +25,12 @@ compute time.
 
 import argparse
 import logging
+from scilpy.reconst.utils import get_sh_order_and_fullness
 
 import nibabel as nib
 import numpy as np
 
 from dipy.data import SPHERE_FILES
-from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -40,7 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist)
 
-from scilpy.denoise.asym_enhancement import local_asym_gaussian_filtering
+from scilpy.denoise.asym_enhancement import local_asym_filtering
 
 
 def _build_arg_parser():
@@ -52,13 +50,6 @@ def _build_arg_parser():
 
     p.add_argument('out_sh',
                    help='File name for averaged signal.')
-
-    p.add_argument('--out_asymmetry', default='asym_map.nii.gz',
-                   help='File name for asymmetry map. Can only be outputed'
-                        ' when the output SH basis is full. [%(default)s]')
-
-    p.add_argument('--sh_order', default=8, type=int,
-                   help='SH order of the input. [%(default)s]')
 
     add_sh_basis_args(p)
 
@@ -83,46 +74,27 @@ def _build_arg_parser():
     return p
 
 
-def compute_asymmetry_map(sh_coeffs):
-    order = order_from_ncoef(sh_coeffs.shape[-1], full_basis=True)
-    _, l_list = sph_harm_ind_list(order, full_basis=True)
-
-    sign = np.power(-1.0, l_list)
-    sign = np.reshape(sign, (1, 1, 1, len(l_list)))
-    sh_squared = sh_coeffs**2
-    mask = sh_squared.sum(axis=-1) > 0.
-
-    asym_map = np.zeros(sh_coeffs.shape[:-1])
-    asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
-        np.sum(sh_squared, axis=-1)[mask]
-
-    asym_map = np.sqrt(1 - asym_map**2) * mask
-
-    return asym_map
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    outputs = [args.out_sh]
-    if not args.out_sym:
-        outputs.append(args.out_asymmetry)
-
     # Checking args
-    assert_outputs_exist(parser, args, outputs)
+    assert_outputs_exist(parser, args, args.out_sh)
     assert_inputs_exist(parser, args.in_sh)
 
     # Prepare data
     sh_img = nib.load(args.in_sh)
     data = sh_img.get_fdata(dtype=np.float32)
 
-    logging.info('Executing locally asymmetric Gaussian filtering.')
-    filtered_sh = local_asym_gaussian_filtering(
-        data, sh_order=args.sh_order,
+    sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
+
+    logging.info('Executing local asymmetric filtering.')
+    filtered_sh = local_asym_filtering(
+        data, sh_order=sh_order,
         sh_basis=args.sh_basis,
+        in_full_basis=full_basis,
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
@@ -130,17 +102,6 @@ def main():
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
-
-    # Save asymmetry measure map when the output is in full SH basis
-    if args.out_sym:
-        logging.info('Skipping asymmetry map because output is symmetric.')
-    else:
-        logging.info('Generating asymmetry map from output.')
-        asym_map = compute_asymmetry_map(filtered_sh)
-        logging.info('Saving asymmetry map to file '
-                     '{0}.'.format(args.out_asymmetry))
-        nib.save(nib.Nifti1Image(asym_map, sh_img.affine),
-                 args.out_asymmetry)
 
 
 if __name__ == "__main__":
