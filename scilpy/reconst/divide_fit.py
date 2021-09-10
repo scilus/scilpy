@@ -15,7 +15,6 @@ def get_bounds():
         Lower boundaries of the fitting parameters.
     ub : list of floats
         Upper boundaries of the fitting parameters.
-
     """
     S0 = [0, 10]
     MD = [1e-12, 4e-9]
@@ -103,7 +102,6 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
     best_params : np.array
         Array containing the parameters of the fit.
     """
-
     if np.sum(gtab_infos[3]) > 0 and do_multiple_s0 is True:
         ns = len(np.unique(gtab_infos[3])) - 1
     else:
@@ -116,7 +114,6 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         """Compute an array weighting the different components of the signal
         array based on the bvalue.
         """
-
         bthr = -np.log(sthr) / mdthr
         weight = 0.5 * (1 - erf(wthr * (gtab_infos[0] - bthr) / bthr))
         return weight
@@ -125,14 +122,12 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         """Compute an array weighting the different components of the signal
         array based on the number of directions.
         """
-
         weight = np.sqrt(gtab_infos[2] / np.max(gtab_infos[2]))
         return weight
 
     def my_gamma_fit2data(gtab_infos, *args):
         """Compute a signal from gtab infomations and fit parameters.
         """
-
         params_unit = args
         params_SI = params_unit * unit_to_SI
         signal = gamma_fit2data(gtab_infos, params_SI)
@@ -250,7 +245,6 @@ def gamma_fit2metrics(params):
     MK_T : np.ndarray
         Total mean kurtosis values for the whole brain.
     """
-
     S0 = params[..., 0]
     MD = params[..., 1]
     V_I = params[..., 2]
