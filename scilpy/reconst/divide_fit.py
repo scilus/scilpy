@@ -4,7 +4,7 @@ from scipy.special import erf
 
 
 def get_bounds():
-    """Defines the lower (lb) and upper (ub) boundaries of the fitting
+    """Define the lower (lb) and upper (ub) boundaries of the fitting
     parameters, being the signal without diffusion weighting (S0), the mean
     diffusivity (MD), the isotropic variance (V_I) and the anisotropic variance
     (V_A).
@@ -27,7 +27,7 @@ def get_bounds():
 
 
 def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
-    """Produces a guess of initial parameters for the fit, by calculating the
+    """Produce a guess of initial parameters for the fit, by calculating the
     signals of a given number of random sets of parameters and keeping the one
     closest to the input signal.
 
@@ -72,6 +72,37 @@ def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
 def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
                    do_weight_bvals=False, do_weight_pa=False,
                    redo_weight_bvals=False, do_multiple_s0=False):
+    """Fit the gamma model to data
+
+    Parameters
+    ----------
+    signal : np.array
+        Diffusion data of a single voxel.
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function 
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    fit_iters : int, optional
+        Number of iterations in the gamma fit. Defaults to 1.
+    random_iters : int, optional
+        Number of random sets of parameters tested to find the initial
+        parameters. Defaults to 50.
+    do_weight_bvals : bool , optional
+        If set, does a weighting on the bvalues in the gamma fit.
+    do_weight_pa : bool, optional
+        If set, does a powder averaging weighting in the gamma fit.
+    redo_weight_bvals : bool, optional
+        If set, does a second gamma fit with a weighting on the bvalues using
+        the newly found MD.
+    do_multiple_s0 : bool, optional
+        If set, takes into account multiple baseline signals.
+
+    Returns
+    -------
+    best_params : np.array
+        Array containing the parameters of the fit.
+    """
 
     if np.sum(gtab_infos[3]) > 0 and do_multiple_s0 is True:
         ns = len(np.unique(gtab_infos[3])) - 1
@@ -82,15 +113,26 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
     unit_to_SI = np.concatenate((unit_to_SI, np.ones(ns)))
 
     def weight_bvals(sthr, mdthr, wthr):
+        """Compute an array weighting the different components of the signal
+        array based on the bvalue.
+        """
+
         bthr = -np.log(sthr) / mdthr
         weight = 0.5 * (1 - erf(wthr * (gtab_infos[0] - bthr) / bthr))
         return weight
 
     def weight_pa():
+        """Compute an array weighting the different components of the signal
+        array based on the number of directions.
+        """
+
         weight = np.sqrt(gtab_infos[2] / np.max(gtab_infos[2]))
         return weight
 
     def my_gamma_fit2data(gtab_infos, *args):
+        """Compute a signal from gtab infomations and fit parameters.
+        """
+
         params_unit = args
         params_SI = params_unit * unit_to_SI
         signal = gamma_fit2data(gtab_infos, params_SI)
@@ -147,6 +189,23 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
 
 
 def gamma_fit2data(gtab_infos, params):
+    """Compute a signal from gtab infomations and fit parameters.
+
+    Parameters
+    ----------
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function 
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    params : np.array
+        Array containing the parameters of the fit.
+
+    Returns
+    -------
+    signal : np.array
+        Array containing the signal produced by the gamma model.
+    """
     S0 = params[0]
     MD = params[1]
     V_I = params[2]
@@ -172,7 +231,26 @@ def gamma_fit2data(gtab_infos, params):
 
 
 def gamma_fit2metrics(params):
-    # Only function that takes the full brain
+    """Compute metrics from fit parameters. This is the only function that
+    takes the full brain.
+
+    Parameters
+    ----------
+    params : np.ndarray
+        Array containing the parameters of the fit for the whole brain.
+
+    Returns
+    -------
+    microFA : np.ndarray
+        MicroFA values for the whole brain.
+    MK_I : np.ndarray
+        Isotropic mean kurtosis values for the whole brain.
+    MK_A : np.ndarray
+        Anisotropic mean kurtosis values for the whole brain.
+    MK_T : np.ndarray
+        Total mean kurtosis values for the whole brain.
+    """
+
     S0 = params[..., 0]
     MD = params[..., 1]
     V_I = params[..., 2]
@@ -185,4 +263,5 @@ def gamma_fit2metrics(params):
     MK_T = 3 * V_T / (MD ** 2)
     microFA2 = (3/2.) * (V_L / (V_I + V_L + (MD ** 2)))
     microFA = np.sqrt(microFA2)
+
     return microFA, MK_I, MK_A, MK_T
