@@ -202,7 +202,9 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
     commit_output_dict = pickle.load(pk_file)
     nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
-    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
+    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines],
+                                dtype=np.float16)
+
     np.savetxt(os.path.join(commit_results_dir, 'commit_weights.txt'),
                commit_weights)
 
