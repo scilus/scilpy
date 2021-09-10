@@ -139,10 +139,10 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
                      md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
                      roi_radii=10, roi_center=None, tol=20,
                      force_b0_threshold=False):
-    """Compute a single-shell (under b=1500), single-tissue single Fiber
+    """Compute a multi-shell, multi-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
-    found using a threshold on the FA.
+    found using a threshold on the FA and MD.
 
     Parameters
     ----------
