@@ -39,8 +39,6 @@ def test_execution_processing(script_runner):
     mask = os.path.join(get_home(), 'commit_amico',
                            'mask.nii.gz')
     wm_frf = np.loadtxt(in_wm_frf)
-    wm_frf = wm_frf[0:3]
-    np.savetxt(in_wm_frf, wm_frf)
     wm_frf_btensor = np.zeros((wm_frf.shape[0] * 3, wm_frf.shape[1]))
     wm_frf_btensor[0:3] = wm_frf
     wm_frf_btensor[3:6] = wm_frf
@@ -48,8 +46,6 @@ def test_execution_processing(script_runner):
     np.savetxt(out_wm_frf, wm_frf_btensor)
 
     gm_frf = np.loadtxt(in_gm_frf)
-    gm_frf = gm_frf[0:3]
-    np.savetxt(in_gm_frf, gm_frf)
     gm_frf_btensor = np.zeros((gm_frf.shape[0] * 3, gm_frf.shape[1]))
     gm_frf_btensor[0:3] = gm_frf
     gm_frf_btensor[3:6] = gm_frf
@@ -57,8 +53,6 @@ def test_execution_processing(script_runner):
     np.savetxt(out_gm_frf, gm_frf_btensor)
 
     csf_frf = np.loadtxt(in_csf_frf)
-    csf_frf = csf_frf[0:3]
-    np.savetxt(in_csf_frf, csf_frf)
     csf_frf_btensor = np.zeros((csf_frf.shape[0] * 3, csf_frf.shape[1]))
     csf_frf_btensor[0:3] = csf_frf
     csf_frf_btensor[3:6] = csf_frf
