@@ -4,6 +4,19 @@ from scipy.special import erf
 
 
 def get_bounds():
+    """Defines the lower (lb) and upper (ub) boundaries of the fitting
+    parameters, being the signal without diffusion weighting (S0), the mean
+    diffusivity (MD), the isotropic variance (V_I) and the anisotropic variance
+    (V_A).
+
+    Returns
+    -------
+    lb : list of floats
+        Lower boundaries of the fitting parameters.
+    ub : list of floats
+        Upper boundaries of the fitting parameters.
+
+    """
     S0 = [0, 10]
     MD = [1e-12, 4e-9]
     V_I = [1e-24, 5e-18]
@@ -14,6 +27,33 @@ def get_bounds():
 
 
 def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
+    """Produces a guess of initial parameters for the fit, by calculating the
+    signals of a given number of random sets of parameters and keeping the one
+    closest to the input signal.
+
+    Parameters
+    ----------
+    signal : np.array
+        Diffusion data of a single voxel.
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function 
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    lb : list of floats
+        Lower boundaries of the fitting parameters.
+    ub : list of floats
+        Upper boundaries of the fitting parameters.
+    weight : np.array
+        Gives a different weight to each element of `signal`.
+    n_iter : int
+        Number of random sets of parameters tested.
+
+    Returns
+    -------
+    guess : np.array
+        Array containing the guessed initial parameters.
+    """
     guess = []
     thr = np.inf
 

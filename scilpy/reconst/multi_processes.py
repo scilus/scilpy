@@ -591,17 +591,35 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
               do_weight_bvals=False, do_weight_pa=False,
               redo_weight_bvals=False, do_multiple_s0=False,
               nbr_processes=None):
-    """Fit the model to data
+    """Fit the gamma model to data
 
     Parameters
     ----------
-    model : a model instance
-        `model` will be used to fit the data.
     data : np.ndarray (4d)
-        Diffusion data.
+        Diffusion data, powder averaged. Obtained as output of the function 
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function 
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
     mask : np.ndarray, optional
         If `mask` is provided, only the data inside the mask will be
         used for computations.
+    fit_iters : int, optional
+        Number of iterations in the gamma fit. Defaults to 1.
+    random_iters : int, optional
+        Number of random sets of parameters tested to find the initial
+        parameters. Defaults to 50.
+    do_weight_bvals : bool , optional
+        If set, does a weighting on the bvalues in the gamma fit.
+    do_weight_pa : bool, optional
+        If set, does a powder averaging weighting in the gamma fit.
+    redo_weight_bvals : bool, optional
+        If set, does a second gamma fit with a weighting on the bvalues using
+        the newly found MD.
+    do_multiple_s0 : bool, optional
+        If set, takes into account multiple baseline signals.
     nbr_processes : int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
