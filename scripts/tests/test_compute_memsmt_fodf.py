@@ -25,19 +25,19 @@ def test_execution_processing(script_runner):
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
     in_wm_frf = os.path.join(get_home(), 'commit_amico',
-                          'wm_frf.txt')
+                             'wm_frf.txt')
     in_gm_frf = os.path.join(get_home(), 'commit_amico',
-                          'gm_frf.txt')
+                             'gm_frf.txt')
     in_csf_frf = os.path.join(get_home(), 'commit_amico',
-                          'csf_frf.txt')
+                              'csf_frf.txt')
     out_wm_frf = os.path.join(get_home(), 'commit_amico',
-                          'wm_frf_btens.txt')
+                              'wm_frf_btens.txt')
     out_gm_frf = os.path.join(get_home(), 'commit_amico',
-                          'gm_frf_btens.txt')
+                              'gm_frf_btens.txt')
     out_csf_frf = os.path.join(get_home(), 'commit_amico',
-                          'csf_frf_btens.txt')
+                               'csf_frf_btens.txt')
     mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+                        'mask.nii.gz')
     wm_frf = np.loadtxt(in_wm_frf)
     wm_frf_btensor = np.zeros((wm_frf.shape[0] * 3, wm_frf.shape[1]))
     wm_frf_btensor[0:3] = wm_frf
@@ -68,8 +68,8 @@ def test_execution_processing(script_runner):
                             in_dwi, '--in_bval_spherical', in_bval,
                             '--in_bvec_spherical', in_bvec,
                             '--mask', mask, '--wm_out_fODF', 'wm_fodf.nii.gz',
-                            '--gm_out_fODF', 'gm_fodf.nii.gz', '--csf_out_fODF',
-                            'csf_fodf.nii.gz', '--vf', 'vf.nii.gz',
-                            '--sh_order', '4', '--sh_basis', 'tournier07',
-                            '--processes', '1', '-f')
+                            '--gm_out_fODF', 'gm_fodf.nii.gz',
+                            '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
+                            'vf.nii.gz', '--sh_order', '4', '--sh_basis',
+                            'tournier07', '--processes', '1', '-f')
     assert ret.success

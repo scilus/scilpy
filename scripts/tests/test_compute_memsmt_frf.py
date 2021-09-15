@@ -15,7 +15,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_roi_radii_shape_parameter(script_runner):
+def test_roi_center_shape_parameter(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'commit_amico',
                           'dwi.nii.gz')
@@ -24,7 +24,7 @@ def test_roi_radii_shape_parameter(script_runner):
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
     mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+                        'mask.nii.gz')
     ret = script_runner.run('scil_compute_memsmt_frf.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwi_linear',
                             in_dwi, '--in_bval_linear', in_bval,
@@ -58,7 +58,7 @@ def test_roi_radii_shape_parameter(script_runner):
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
     mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+                        'mask.nii.gz')
     ret = script_runner.run('scil_compute_memsmt_frf.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwi_linear',
                             in_dwi, '--in_bval_linear', in_bval,
@@ -103,7 +103,7 @@ def test_execution_processing(script_runner):
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
     mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+                        'mask.nii.gz')
     ret = script_runner.run('scil_compute_memsmt_frf.py', 'wm_frf.txt',
                             'gm_frf.txt', 'csf_frf.txt', '--in_dwi_linear',
                             in_dwi, '--in_bval_linear', in_bval,

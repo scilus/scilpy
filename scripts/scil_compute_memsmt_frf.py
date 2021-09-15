@@ -24,20 +24,15 @@ MRI data. Neuroimage (2014)
 import argparse
 import logging
 
-from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs
-from dipy.reconst.mcsd import mask_for_response_msmt, response_from_mask_msmt
 import nibabel as nib
 import numpy as np
-from pathlib import Path
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_msmt_frf
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_dwi_shell,
-                                          is_normalized_bvecs, normalize_bvecs)
+from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
                                            extract_affine)
 
@@ -192,7 +187,8 @@ def main():
                                   args.in_bvec_linear,
                                   args.in_dwi_planar, args.in_bval_planar,
                                   args.in_bvec_planar,
-                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_dwi_spherical,
+                                  args.in_bval_spherical,
                                   args.in_bvec_spherical])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
@@ -207,13 +203,13 @@ def main():
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
-        if input_files[i] is None and bvals_files[i] is None \
-        and bvecs_files[i] is None:
+        if (input_files[i] is None and bvals_files[i] is None
+           and bvecs_files[i] is None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
-        elif input_files[i] is not None and bvals_files[i] is not None \
-        and bvecs_files[i] is not None:
+        elif (input_files[i] is not None and bvals_files[i] is not None
+              and bvecs_files[i] is not None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -250,7 +246,7 @@ def main():
             dti_ubvals = ubvals[ubdeltas == 1]
         elif np.sum(ubdeltas == -0.5) > 0:
             dti_ubvals = ubvals[ubdeltas == -0.5]
-        elif np.sum(ubdeltas==args.in_bdelta_custom) > 0:
+        elif np.sum(ubdeltas == args.in_bdelta_custom) > 0:
             dti_ubvals = ubvals[ubdeltas == args.in_bdelta_custom]
         else:
             raise ValueError("No encoding available for DTI.")

@@ -21,18 +21,13 @@ Proc. Intl. Soc. Mag. Reson. Med. (26), Paris, France, 2018.
 import argparse
 import logging
 
-from dipy.core.gradients import GradientTable
-from dipy.data import get_sphere, default_sphere
-from dipy.reconst import shm
-from dipy.reconst.mcsd import MultiShellResponse, MultiShellDeconvModel
-from dipy.sims.voxel import single_tensor
 import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg)
+                             add_processes_arg)
 from scilpy.reconst.multi_processes import fit_gamma
 from scilpy.reconst.divide_fit import gamma_fit2metrics
 from scilpy.reconst.b_tensor_utils import (generate_powder_averaged_data,
@@ -90,7 +85,8 @@ def _build_arg_parser():
              '[%(default)s]')
     p.add_argument(
         '--do_weight_bvals', action='store_false',
-        help='If set, does not do a weighting on the bvalues in the gamma fit.')
+        help='If set, does not do a weighting on the bvalues in the gamma '
+             'fit.')
     p.add_argument(
         '--do_weight_pa', action='store_false',
         help='If set, does not do a powder averaging weighting in the gamma '
@@ -159,7 +155,8 @@ def main():
                                   args.in_bvec_linear,
                                   args.in_dwi_planar, args.in_bval_planar,
                                   args.in_bvec_planar,
-                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_dwi_spherical,
+                                  args.in_bval_spherical,
                                   args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
@@ -173,13 +170,13 @@ def main():
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
-        if input_files[i] is None and bvals_files[i] is None \
-        and bvecs_files[i] is None:
+        if (input_files[i] is None and bvals_files[i] is None
+           and bvecs_files[i] is None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
-        elif input_files[i] is not None and bvals_files[i] is not None \
-        and bvecs_files[i] is not None:
+        elif (input_files[i] is not None and bvals_files[i] is not None
+              and bvecs_files[i] is not None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -229,8 +226,8 @@ def main():
     microFA = np.clip(microFA, 0, 1)
 
     if args.md:
-        nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32), affine),
-                 args.md)
+        nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32),
+                                 affine), args.md)
 
     if args.ufa:
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)

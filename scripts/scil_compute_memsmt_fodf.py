@@ -20,7 +20,6 @@ from dipy.core.gradients import GradientTable
 from dipy.data import get_sphere, default_sphere
 from dipy.reconst import shm
 from dipy.reconst.mcsd import MultiShellResponse, MultiShellDeconvModel
-from dipy.sims.voxel import single_tensor
 import nibabel as nib
 import numpy as np
 
@@ -172,20 +171,23 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
         response[0, 0] = csf_rf[0, 3] / A
         for i, bvalue in enumerate(bvals[1:]):
             gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i],
+            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3],
+                                                b_deltas[i],
                                                 wm_rf[i, 3])
             response[i+1, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
 
             response[i+1, 1] = gm_rf[i, 3] * np.exp(-bvalue * gm_rf[i, 0]) / A
-            response[i+1, 0] = csf_rf[i, 3] * np.exp(-bvalue * csf_rf[i, 0]) / A
+            response[i+1, 0] = csf_rf[i, 3] * np.exp(-bvalue
+                                                     * csf_rf[i, 0]) / A
 
         S0 = [csf_rf[0, 3], gm_rf[0, 3], wm_rf[0, 3]]
 
     else:
-        warnings.warn("""No b0 was given. Proceeding either way.""", UserWarning)
+        logging.warning('No b0 was given. Proceeding either way.')
         for i, bvalue in enumerate(bvals):
             gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3], b_deltas[i],
+            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3],
+                                                b_deltas[i],
                                                 wm_rf[i, 3])
             response[i, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
 
@@ -220,7 +222,8 @@ def main():
                                   args.in_bvec_linear,
                                   args.in_dwi_planar, args.in_bval_planar,
                                   args.in_bvec_planar,
-                                  args.in_dwi_spherical, args.in_bval_spherical,
+                                  args.in_dwi_spherical,
+                                  args.in_bval_spherical,
                                   args.in_bvec_spherical])
     assert_outputs_exist(parser, args, arglist)
 
@@ -234,13 +237,13 @@ def main():
 
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
-        if input_files[i] is None and bvals_files[i] is None \
-        and bvecs_files[i] is None:
+        if (input_files[i] is None and bvals_files[i] is None
+           and bvecs_files[i] is None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is not None:
                 inclusive = 0
-        elif input_files[i] is not None and bvals_files[i] is not None \
-        and bvecs_files[i] is not None:
+        elif (input_files[i] is not None and bvals_files[i] is not None
+              and bvecs_files[i] is not None):
             inclusive = 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
@@ -369,8 +372,8 @@ def main():
                                  affine), args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(memsmt_fit.volume_fractions.astype(np.float32),
-                                 affine), args.vf)
+        vf = memsmt_fit.volume_fractions
+        nib.save(nib.Nifti1Image(vf.astype(np.float32), affine), args.vf)
 
     if args.vf_rgb:
         vf = memsmt_fit.volume_fractions

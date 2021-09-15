@@ -24,9 +24,9 @@ def test_execution_processing(script_runner):
     in_bvec = os.path.join(get_home(), 'commit_amico',
                            'dwi.bvec')
     mask = os.path.join(get_home(), 'commit_amico',
-                           'mask.nii.gz')
+                        'mask.nii.gz')
     fa = os.path.join(get_home(), 'commit_amico',
-                          'fa.nii.gz')
+                      'fa.nii.gz')
 
     ret = script_runner.run('scil_compute_divide.py', '--in_dwi_linear',
                             in_dwi, '--in_bval_linear', in_bval,
