@@ -69,6 +69,13 @@ def _build_arg_parser():
     p.add_argument('--smooth_todi', action='store_true',
                    help='Smooth TODI (angular and spatial) [%(default)s].')
 
+    p.add_argument('--asymmetric', action='store_true',
+                   help='Compute asymmetric TODI [%(default)s].')
+
+    p.add_argument('--n_steps', default=1, type=int,
+                   help='Number of steps for streamline segments '
+                        'subdivision prior to binning [%(default)s].')
+
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     return p
@@ -95,15 +102,26 @@ def main():
     if not output_file_list:
         parser.error('No output to be done')
 
+    if args.smooth_todi and args.asymmetric:
+        parser.error('Invalid arguments combination. '
+                     'Cannot smooth asymmetric TODI.')
+
     assert_outputs_exist(parser, args, output_file_list)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     affine, data_shape, _, _ = sft.space_attributes
+
     sft.to_vox()
+    # Because compute_todi expects streamline points (in voxel coordinates)
+    # to be in the range (0..size) rather than (-0.5..size - 0.5), we shift
+    # the voxel origin to corner (will only be done if it's not already the
+    # case).
+    sft.to_corner()
 
     logging.info('Computing length-weighted TODI ...')
     todi_obj = TrackOrientationDensityImaging(tuple(data_shape), args.sphere)
-    todi_obj.compute_todi(sft.streamlines, length_weights=True)
+    todi_obj.compute_todi(sft.streamlines, length_weights=True,
+                          n_steps=args.n_steps, asymmetric=args.asymmetric)
 
     if args.smooth_todi:
         logging.info('Smoothing ...')
@@ -124,7 +142,8 @@ def main():
     if args.out_todi_sh:
         if args.normalize_per_voxel:
             todi_obj.normalize_todi_per_voxel()
-        img = todi_obj.get_sh(args.sh_basis, args.sh_order)
+        img = todi_obj.get_sh(args.sh_basis, args.sh_order,
+                              full_basis=args.asymmetric)
         img = todi_obj.reshape_to_3d(img)
         img = nib.Nifti1Image(img.astype(np.float32), affine)
         img.to_filename(args.out_todi_sh)

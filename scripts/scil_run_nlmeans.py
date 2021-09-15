@@ -90,13 +90,13 @@ def main():
     vol = nib.load(args.in_image)
     data = vol.get_fdata(dtype=np.float32)
     if args.mask is None:
-        mask = np.zeros(data.shape[0:3], dtype=np.bool)
+        mask = np.zeros(data.shape[0:3], dtype=bool)
         if data.ndim == 4:
             mask[np.sum(data, axis=-1) > 0] = 1
         else:
             mask[data > 0] = 1
     else:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     sigma = args.sigma
 

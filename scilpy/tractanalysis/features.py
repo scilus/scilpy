@@ -7,7 +7,50 @@ from dipy.segment.clustering import QuickBundles, qbx_and_merge
 from dipy.segment.metric import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
+from scilpy.tracking.tools import resample_streamlines_num_points
 import numpy as np
+
+
+def detect_ushape(sft, minU, maxU):
+    """
+    Extract streamlines depending of their "u-shapeness".
+    Parameters
+    ----------
+    sft: Statefull tractogram
+        Tractogram used to extract streamlines depending on their ushapeness.
+    minU: Float
+        Minimum ufactor of a streamline.
+    maxU: Float
+        Maximum ufactor of a streamline.
+
+    Returns
+    -------
+    list: the ids of clean streamlines
+        Only the ids are returned so proper filtering can be done afterwards.
+    """
+    ids = []
+    new_sft = resample_streamlines_num_points(sft, 4)
+    for i, s in enumerate(new_sft.streamlines):
+        if len(s) == 4:
+            first_point = s[0]
+            last_point = s[-1]
+            second_point = s[1]
+            third_point = s[2]
+
+            v1 = first_point - second_point
+            v2 = second_point - third_point
+            v3 = third_point - last_point
+
+            v1 = v1 / np.linalg.norm(v1)
+            v2 = v2 / np.linalg.norm(v2)
+            v3 = v3 / np.linalg.norm(v3)
+
+            val = np.dot(np.cross(v1, v2), np.cross(v2, v3))
+
+            if minU <= val <= maxU:
+                ids.append(i)
+
+    return ids
 
 
 def remove_loops_and_sharp_turns(streamlines,

@@ -64,7 +64,7 @@ def main():
 
     mask = None
     if args.mask:
-        mask = get_data_as_mask(nib.load(args.mask), dtype=np.bool)
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     sh = compute_sh_coefficients(dwi, gtab, args.sh_order, args.sh_basis,
                                  args.smooth,

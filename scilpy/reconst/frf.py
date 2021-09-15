@@ -78,9 +78,9 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
 
-    gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     if mask is not None:
         data = applymask(data, mask)
@@ -220,9 +220,9 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    check_b0_threshold(force_b0_threshold, bvals.min())
+    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
 
-    gtab = gradient_table(bvals, bvecs)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -242,8 +242,9 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        check_b0_threshold(force_b0_threshold, bvals_dti.min())
-        gtab_dti = gradient_table(bvals_dti, bvecs_dti)
+        b0_thr = check_b0_threshold(
+            force_b0_threshold, bvals_dti.min(), bvals_dti.min())
+        gtab_dti = gradient_table(bvals_dti, bvecs_dti, b0_threshold=b0_thr)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
             = mask_for_response_msmt(gtab_dti, data_dti,

@@ -15,16 +15,34 @@ def find_order_from_nb_coeff(data):
     return int((-3 + np.sqrt(1 + 8 * shape[-1])) / 2)
 
 
+def get_sh_order_and_fullness(ncoeffs):
+    """
+    Get the order of the SH basis from the number of SH coefficients
+    as well as a boolean indicating if the basis is full.
+    """
+    # the two curves (sym and full) intersect at ncoeffs = 1, in what
+    # case both bases correspond to order 1.
+    sym_order = (-3.0 + np.sqrt(1.0 + 8.0 * ncoeffs)) / 2.0
+    if sym_order.is_integer():
+        return sym_order, False
+    full_order = np.sqrt(ncoeffs) - 1.0
+    if full_order.is_integer():
+        return full_order, True
+    raise ValueError('Invalid number of coefficients for SH basis.')
+
+
 def _honor_authorsnames_sh_basis(sh_basis_type):
     sh_basis = sh_basis_type
     if sh_basis_type == 'fibernav':
         sh_basis = 'descoteaux07'
         warnings.warn("'fibernav' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'descoteaux07'.", DeprecationWarning)
+                      "discontinued in favor of 'descoteaux07'.",
+                      DeprecationWarning)
     elif sh_basis_type == 'mrtrix':
         sh_basis = 'tournier07'
         warnings.warn("'mrtrix' sph basis name is deprecated and will be "
-                      "discontinued in favor of 'tournier07'.", DeprecationWarning)
+                      "discontinued in favor of 'tournier07'.",
+                      DeprecationWarning)
     return sh_basis
 
 

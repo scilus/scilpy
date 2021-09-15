@@ -22,6 +22,6 @@ def test_execution_tractometry(script_runner):
     in_json = os.path.join(get_home(), 'tractometry',
                            'metric_label.json')
     ret = script_runner.run('scil_plot_mean_std_per_point.py', in_json,
-                            'out/')
+                            'out/', '--stats_over_population')
 
     assert ret.success

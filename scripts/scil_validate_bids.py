@@ -152,8 +152,8 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
         nRun = dwi.get_entities()['run']
 
     fmaps = []
-    bval_path = ''
-    bvec_path = ''
+    bval_path = 'todo'
+    bvec_path = 'todo'
     if dwi.filename in associations.keys():
         if "bval" in associations[dwi.filename].keys():
             bval_path = associations[dwi.filename]['bval']
