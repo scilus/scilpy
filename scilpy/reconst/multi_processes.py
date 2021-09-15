@@ -14,6 +14,7 @@ from scilpy.reconst.divide_fit import gamma_data2fit
 from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
+
 def fit_from_model_parallel(args):
     model = args[0]
     data = args[1]
@@ -436,7 +437,8 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     shm_coeff_array : np.ndarray
         Spherical harmonic coefficients in the desired basis.
     """
-    output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'
+    output_basis = 'descoteaux07' if input_basis == 'tournier07' \
+        else 'tournier07'
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis)
@@ -596,12 +598,12 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
     Parameters
     ----------
     data : np.ndarray (4d)
-        Diffusion data, powder averaged. Obtained as output of the function 
+        Diffusion data, powder averaged. Obtained as output of the function
         `reconst.b_tensor_utils.generate_powder_averaged_data`.
     gtab_infos : np.ndarray
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
-        Obtained as output of the function 
+        Obtained as output of the function
         `reconst.b_tensor_utils.generate_powder_averaged_data`.
     mask : np.ndarray, optional
         If `mask` is provided, only the data inside the mask will be

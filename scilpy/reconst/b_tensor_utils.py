@@ -6,8 +6,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
-                                          is_normalized_bvecs)
+from scilpy.utils.bvec_bval_tools import normalize_bvecs, is_normalized_bvecs
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
@@ -71,18 +70,22 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                     else:
                         data_conc = np.concatenate((data_conc,
                                                     data[..., indices]),
-                                                    axis=-1)
+                                                   axis=-1)
                         bvals_conc = np.concatenate((bvals_conc,
-                                                     np.ones(len(indices)) * ubval))
+                                                     np.ones(len(indices))
+                                                     * ubval))
                         bvecs_conc = np.concatenate((bvecs_conc,
                                                      bvecs[indices]))
                         b_deltas = np.concatenate((b_deltas,
-                                                   np.ones(len(indices)) * b_delta))
-                        b_shapes = np.concatenate((b_shapes,
-                                                   np.repeat(np.array([bshapes[b_delta]]),
-                                                                      len(indices))))
+                                                   np.ones(len(indices))
+                                                   * b_delta))
+                        b_shapes \
+                            = np.concatenate((b_shapes,
+                                              np.repeat(np.array([bshapes[b_delta]]),
+                                                        len(indices))))
                     ubvals_conc = np.concatenate((ubvals_conc, [ubval]))
-                    ub_deltas_conc = np.concatenate((ub_deltas_conc, [b_delta]))
+                    ub_deltas_conc = np.concatenate((ub_deltas_conc,
+                                                     [b_delta]))
 
     data_conc = np.concatenate((data_b0, data_conc), axis=-1)
     bvals_conc = np.concatenate((bvals_b0, bvals_conc))
@@ -104,7 +107,8 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                 if ubvals_conc[i] == bval:
                     ubvals_conc[i] += 1
                     bvals_conc = np.where(np.logical_and(bvals_conc == bval,
-                                          b_deltas != ub_deltas_conc[indices[0]]),
+                                          b_deltas
+                                          != ub_deltas_conc[indices[0]]),
                                           bval + 1, bvals_conc)
             ubvals_conc = np.delete(ubvals_conc, indices[0])
             ub_deltas_conc = np.delete(ub_deltas_conc, indices[0])
@@ -121,12 +125,14 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                                     axis=0)
     b_shapes = np.take_along_axis(b_shapes, sorted_indices, axis=0)
     data_conc = np.take_along_axis(data_conc,
-                                   sorted_indices.reshape(1, 1, 1, len(bvals_conc)),
+                                   sorted_indices.reshape(1, 1, 1,
+                                                          len(bvals_conc)),
                                    axis=-1)
 
     sorted_indices = np.argsort(np.asarray(ubvals), axis=0)
     ubvals = np.take_along_axis(np.asarray(ubvals), sorted_indices, axis=0)
-    ub_deltas = np.take_along_axis(np.asarray(ub_deltas), sorted_indices, axis=0)
+    ub_deltas = np.take_along_axis(np.asarray(ub_deltas), sorted_indices,
+                                   axis=0)
 
     gtab_conc = gradient_table(bvals_conc, bvecs_conc,
                                b0_threshold=bvals_conc.min(),
@@ -142,8 +148,6 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
     ubvals_conc = []
     nb_ubvecs_conc = []
     acq_index_conc = []
-
-    b0_conc = []
 
     acq_index_current = 0
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,

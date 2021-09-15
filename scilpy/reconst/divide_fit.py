@@ -37,7 +37,7 @@ def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
     gtab_infos : np.ndarray
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
-        Obtained as output of the function 
+        Obtained as output of the function
         `reconst.b_tensor_utils.generate_powder_averaged_data`.
     lb : list of floats
         Lower boundaries of the fitting parameters.
@@ -80,7 +80,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
     gtab_infos : np.ndarray
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
-        Obtained as output of the function 
+        Obtained as output of the function
         `reconst.b_tensor_utils.generate_powder_averaged_data`.
     fit_iters : int, optional
         Number of iterations in the gamma fit. Defaults to 1.
@@ -177,7 +177,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         if residual < res_thr:
             res_thr = residual
             params_best = params_unit
-            params_cov_best = params_cov
+            # params_cov_best = params_cov
 
     params_best[0] = params_best[0] * unit_to_SI[0]
     return params_best[0:4]
@@ -191,7 +191,7 @@ def gamma_fit2data(gtab_infos, params):
     gtab_infos : np.ndarray
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
-        Obtained as output of the function 
+        Obtained as output of the function
         `reconst.b_tensor_utils.generate_powder_averaged_data`.
     params : np.array
         Array containing the parameters of the fit.
@@ -208,8 +208,8 @@ def gamma_fit2data(gtab_infos, params):
     RS = params[4:]  # relative signal
     if len(RS) != 0:
         RS = np.concatenate(([1], RS))
-        RS_tile = np.tile(RS,len(gtab_infos[0])).reshape((len(gtab_infos[0]),
-                                                          len(RS)))
+        RS_tile = np.tile(RS, len(gtab_infos[0])).reshape((len(gtab_infos[0]),
+                                                           len(RS)))
         RS_index = np.zeros((len(gtab_infos[0]), len(RS)))
         for i in range(len(gtab_infos[0])):
             j = gtab_infos[3][i]
@@ -245,7 +245,7 @@ def gamma_fit2metrics(params):
     MK_T : np.ndarray
         Total mean kurtosis values for the whole brain.
     """
-    S0 = params[..., 0]
+    # S0 = params[..., 0]
     MD = params[..., 1]
     V_I = params[..., 2]
     V_A = params[..., 3]
