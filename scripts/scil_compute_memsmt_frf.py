@@ -311,10 +311,10 @@ def main():
         np.savetxt(frf, response)
 
     if args.frf_table:
-        if list_bvals[0] < tol:
-            bvals = list_bvals[1:]
+        if ubvals[0] < tol:
+            bvals = ubvals[1:]
         else:
-            bvals = list_bvals
+            bvals = ubvals
         response_csf = responses[2]
         response_gm = responses[1]
         response_wm = responses[0]
