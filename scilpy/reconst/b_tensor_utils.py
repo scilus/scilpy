@@ -26,7 +26,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     ub_deltas_conc = []
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
                                                bvecs_files, b_deltas_list):
-        if inputf is not None:
+        if inputf:
             vol = nib.load(inputf)
             data = vol.get_fdata(dtype=np.float32)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
@@ -152,7 +152,7 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
     acq_index_current = 0
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
                                                bvecs_files, b_deltas_list):
-        if inputf is not None:
+        if inputf:
             vol = nib.load(inputf)
             data = vol.get_fdata(dtype=np.float32)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
@@ -201,10 +201,3 @@ def generate_powder_averaged_data(input_files, bvals_files, bvecs_files,
         gtab_infos[3] *= 0
 
     return(pa_signals, gtab_infos)
-
-
-def extract_affine(input_files):
-    for input_file in input_files:
-        if input_file is not None:
-            vol = nib.load(input_file)
-            return vol.get_affine()

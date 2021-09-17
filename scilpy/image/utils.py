@@ -74,3 +74,10 @@ def volume_iterator(img, blocksize=1, start=0, end=0):
             logging.info(
                 "Loading volumes {} to {}.".format(stop, end - 1))
             yield list(range(stop, end)), img.dataobj[..., stop:end]
+
+
+def extract_affine(input_files):
+    for input_file in input_files:
+        if input_file:
+            vol = nib.load(input_file)
+            return vol.affine()
