@@ -54,8 +54,8 @@ def _build_arg_parser():
 
     sub_p = p.add_mutually_exclusive_group()
     sub_p.add_argument('--gaussian', metavar='SIGMA', type=int,
-                       help='Sigma for smoothing. Use the value of surronding\n'
-                            'X,Y,Z points on the streamline to blur the'
+                       help='Sigma for smoothing. Use the value of surronding'
+                            ' X,Y,Z points on the streamline to blur the'
                             ' streamlines.\nA good sigma choice would be '
                             'around 5.')
     sub_p.add_argument('--spline', nargs=2, metavar=('SIGMA', 'NB_CTRL_POINT'),
