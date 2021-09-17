@@ -664,3 +664,54 @@ def cut_invalid_streamlines(sft):
                                           data_per_point=new_data_per_point)
 
     return new_sft, cutting_counter
+
+
+def hack_invalid_streamlines(sft):
+    """
+    Inspired by cut_invalid_streamlines, but rougher and much much faster.
+    Remove the streamline points ouside of the bounding-box.
+
+    Cases:
+        - At leat one end-point out of the bounding-box -> crop the bad points
+        (if there are some bad points in the middle, remove them and stitch the
+         streamline, but that's unlikely to happen)
+        - Both end-points in the bounding-box, but some bad points in the
+        middle of the streamlines -> Remove the whole streamline
+        (refered to below as "bad point in the middle")
+
+    Does not care about which streamline segment is the longest.
+    Does not keep the data_per_point and data_per_streamline.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The sft to remove invalid points from.
+
+    Returns
+    -------
+    StatefulTractogram
+        New object with the invalid points removed from each streamline.
+    """
+    sft.to_vox()
+    sft.to_corner()
+
+    copy_sft = copy.deepcopy(sft)
+    epsilon = 0.001
+
+    def goodPoint(point):  # Return True if point in the bounding-box, else False
+        return (point > epsilon).all() and (point < sft.dimensions-epsilon).all()
+
+    indices_to_remove, _ = copy_sft.remove_invalid_streamlines()
+    # Removing duplicate indices
+    indices_to_remove = list(set(indices_to_remove))
+    # Removing streamlines with bad points in the middle (unlikely)
+    corrected_streamlines = list(filter(
+        lambda strm: not(goodPoint(strm[0]) and goodPoint(strm[-1])),  # "not" in front because "filter" removes False
+        sft.streamlines[indices_to_remove]))
+    # Removing bad points
+    corrected_streamlines = [strm[np.all(strm > epsilon, axis=1)]
+                             for strm in corrected_streamlines]
+    # Removing empty streamlines (unlikely)
+    corrected_streamlines = list(filter(len, corrected_streamlines))
+    corrected_streamlines.extend(copy_sft.streamlines)
+    return StatefulTractogram.from_sft(corrected_streamlines, sft)
