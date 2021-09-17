@@ -27,14 +27,14 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from scilpy.image.utils import extract_affine
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.frf import compute_msmt_frf
 from scilpy.utils.bvec_bval_tools import extract_dwi_shell
-from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
-                                           extract_affine)
+from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 
 def buildArgsParser():
