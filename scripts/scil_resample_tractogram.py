@@ -81,6 +81,11 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    if (args.point_wise_std is not None and args.point_wise_std <= 0) or \
+            (args.streamline_wise_std is not None and
+             args.streamline_wise_std <= 0):
+        parser.error('STD needs to be above 0.')
+
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
