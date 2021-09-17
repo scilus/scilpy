@@ -3,6 +3,7 @@ import copy
 import itertools
 from functools import reduce
 import logging
+import numpy as np
 
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
@@ -10,7 +11,7 @@ from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
-import numpy as np
+from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
@@ -671,20 +672,36 @@ def downsample_tractogram(sft, nb):
     """
     new_indices = np.random.choice(
         range(len(sft.streamlines)), nb, replace=False)
-    return filter_tractogram_data(sft, new_indices)
+    return sft[new_indices]
 
 
-def upsample_tractogram(sft, nb, std):
+def upsample_tractogram(
+    sft, nb, point_wise_std=None,
+    streamline_wise_std=None, gaussian=None, spline=None
+):
     """ Generate new streamlines to add to a tractogram samping a gaussian
     centered around multiple streamlines existing points.
     """
+    assert bool(point_wise_std) ^ bool(streamline_wise_std), \
+        'Can only add either point-wise or streamline-wise noise' + \
+        ', not both nor none.'
     nb_new = nb - len(sft.streamlines)
     indices = np.random.choice(
         len(sft.streamlines), nb_new)
     new_streamlines = sft.streamlines.copy()
     for s in sft.streamlines[indices]:
-        noise = np.random.normal(scale=std, size=s.shape)
+        if point_wise_std:
+            noise = np.random.normal(scale=point_wise_std, size=s.shape)
+        elif streamline_wise_std:
+            noise = np.random.normal(
+                scale=streamline_wise_std, size=s.shape[-1])
         new_s = s + noise
+        if gaussian:
+            new_s = smooth_line_gaussian(new_s, gaussian)
+        elif spline:
+            new_s = smooth_line_spline(new_s, spline[0],
+                                       spline[1])
+
         new_streamlines.append(new_s)
 
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
