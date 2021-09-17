@@ -80,4 +80,4 @@ def extract_affine(input_files):
     for input_file in input_files:
         if input_file:
             vol = nib.load(input_file)
-            return vol.affine()
+            return vol.get_affine()
