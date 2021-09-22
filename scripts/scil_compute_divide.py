@@ -31,7 +31,7 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_processes_arg)
 from scilpy.reconst.multi_processes import fit_gamma
 from scilpy.reconst.divide_fit import gamma_fit2metrics
-from scilpy.reconst.b_tensor_utils import generate_powder_averaged_data
+from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 
 def _build_arg_parser():
@@ -190,12 +190,13 @@ def main():
     tol = args.tolerance
     force_b0_thr = args.force_b0_threshold
 
-    data, gtab_infos = generate_powder_averaged_data(input_files,
-                                                     bvals_files,
-                                                     bvecs_files,
-                                                     b_deltas_list,
-                                                     force_b0_thr,
-                                                     tol=tol)
+    data, gtab_infos = generate_btensor_input(input_files,
+                                              bvals_files,
+                                              bvecs_files,
+                                              b_deltas_list,
+                                              force_b0_thr,
+                                              do_pa_signals=True,
+                                              tol=tol)
 
     affine = extract_affine(input_files)
 
