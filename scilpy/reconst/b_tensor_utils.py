@@ -14,8 +14,8 @@ bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 
 
 def generate_btensor_input(input_files, bvals_files, bvecs_files,
-                               b_deltas_list, force_b0_threshold,
-                               do_pa_signals=False, tol=20):
+                           b_deltas_list, force_b0_threshold,
+                           do_pa_signals=False, tol=20):
     data_full = np.empty(0)
     bvals_full = np.empty(0)
     bvecs_full = np.empty(0)
@@ -42,21 +42,22 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
             # check_b0_threshold(force_b0_threshold, bvals.min())
 
             ubvals = unique_bvals_tolerance(bvals, tol=tol)
-            for ubval in ubvals: # Loop over all unique bvals
+            for ubval in ubvals:  # Loop over all unique bvals
                 # Extracting the data for the shell ubval
                 indices, shell_data, _, output_bvecs = \
                     extract_dwi_shell(vol, bvals, bvecs, [ubval], tol=tol)
                 nb_bvecs = len(indices)
-                acq_index_full = np.concatenate((acq_index_full, [acq_index])) \
+                acq_index_full = np.concatenate([acq_index_full,
+                                                 [acq_index]]) \
                     if acq_index_full.size else np.array([acq_index])
-                ubvals_divide = np.concatenate((ubvals_divide, [ubval])) \
+                ubvals_divide = np.concatenate([ubvals_divide, [ubval]]) \
                     if ubvals_divide.size else np.array([ubval])
                 same_bvals = np.argwhere(ubvals_full == ubval)
                 # Dealing with ubvals, ub_deltas and nb_bvecs for b0 or not
-                if (same_bvals.size # Differenciate bvals over bdeltas
-                    and b_delta != ub_deltas_full[same_bvals]):
+                if (same_bvals.size  # Differenciate bvals over bdeltas
+                   and b_delta != ub_deltas_full[same_bvals]):
                     ubval += 1
-                ubvals_full = np.concatenate((ubvals_full, [ubval])) \
+                ubvals_full = np.concatenate([ubvals_full, [ubval]]) \
                     if ubvals_full.size else np.array([ubval])
                 ub_deltas_full = np.concatenate([ub_deltas_full, [b_delta]]) \
                     if ub_deltas_full.size else np.array([b_delta])
@@ -64,16 +65,17 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                     if nb_bvecs_full.size else np.array([nb_bvecs])
                 data_full = np.concatenate([data_full, shell_data], axis=-1) \
                     if data_full.size else shell_data
-                bvals_full = np.concatenate([bvals_full, np.repeat([ubval],
-                                                              nb_bvecs)]) \
+                bvals_full = np.concatenate([bvals_full,
+                                             np.repeat([ubval], nb_bvecs)]) \
                     if bvals_full.size else np.repeat([ubval], nb_bvecs)
                 bvecs_full = np.concatenate([bvecs_full, output_bvecs]) \
                     if bvecs_full.size else output_bvecs
                 b_deltas = np.concatenate([b_deltas, np.repeat([b_delta],
-                                                          nb_bvecs)]) \
+                                                               nb_bvecs)]) \
                     if b_deltas.size else np.repeat([b_delta], nb_bvecs)
-                b_shapes = np.concatenate([b_shapes, np.repeat([bshapes[b_delta]],
-                                                          nb_bvecs)]) \
+                b_shapes = np.concatenate([b_shapes,
+                                           np.repeat([bshapes[b_delta]],
+                                                     nb_bvecs)]) \
                     if b_shapes.size else np.repeat([bshapes[b_delta]],
                                                     nb_bvecs)
             acq_index += 1
