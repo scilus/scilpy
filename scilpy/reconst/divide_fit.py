@@ -38,7 +38,7 @@ def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
         Obtained as output of the function
-        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+        `reconst.b_tensor_utils.generate_btensor_input`.
     lb : list of floats
         Lower boundaries of the fitting parameters.
     ub : list of floats
@@ -81,7 +81,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
         Obtained as output of the function
-        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+        `reconst.b_tensor_utils.generate_btensor_input`.
     fit_iters : int, optional
         Number of iterations in the gamma fit. Defaults to 1.
     random_iters : int, optional
@@ -192,7 +192,7 @@ def gamma_fit2data(gtab_infos, params):
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
         Obtained as output of the function
-        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+        `reconst.b_tensor_utils.generate_btensor_input`.
     params : np.array
         Array containing the parameters of the fit.
 

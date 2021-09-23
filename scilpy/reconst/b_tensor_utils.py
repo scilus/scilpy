@@ -16,6 +16,47 @@ bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 def generate_btensor_input(input_files, bvals_files, bvecs_files,
                            b_deltas_list, force_b0_threshold,
                            do_pa_signals=False, tol=20):
+    """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
+    This generated input is mandatory for all scripts using b-tensor encoding
+    data. Also generate the powder-averaged (PA) data if set.
+
+    Parameters
+    ----------
+    input_files : list of strings (file paths)
+        Diffusion data files for each b-tensor encodings.
+    bvals_files : list of strings (file paths)
+        All of the bvals files associated.
+    bvecs_files : list of strings (file paths)
+        All of the bvecs files associated.
+    b_deltas_list : list of floats
+        All of the b_deltas (describing the type of encoding) files associated.
+    force_b0_threshold : bool, optional
+        If set, will continue even if the minimum bvalue is suspiciously high.
+    do_pa_signals : bool, optional
+        If set, will compute the powder_averaged input instead of the regular
+        one. This means that the signal is averaged over all directions for
+        each bvals.
+    tol : int
+        tolerance gap for b-values clustering. Defaults to 20
+
+    Returns
+    -------
+    gtab_full : GradientTable
+        A single gradient table containing the information of all encodings.
+    data_full : np.ndarray (4d)
+        All concatenated diffusion data from the different encodings.
+    ubvals_full : array
+        All the unique bvals from the different encodings, but with a single
+        b0. If two or more encodings have the same bvalue, then they are
+        differentiate by +1.
+    ub_deltas_full : array
+        All the b_delta values associated with `ubvals_full`.
+    pa_signals : np.ndarray (4d) (if `do_pa_signals`)
+        Powder-averaged diffusion data.
+    gtab_infos : np.ndarray (if `do_pa_signals`)
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+    """
     data_full = np.empty(0)
     bvals_full = np.empty(0)
     bvecs_full = np.empty(0)
@@ -25,13 +66,11 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     nb_bvecs_full = np.empty(0)
     acq_index_full = np.empty(0)
     ubvals_divide = np.empty(0)
-
     acq_index = 0
     for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
                                                bvecs_files, b_deltas_list):
-        if inputf:
+        if inputf: # verifies if the input file exists
             vol = nib.load(inputf)
-            # data = vol.get_fdata(dtype=np.float32)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
             if np.sum([bvals > tol]) != 0:
                 bvals = np.round(bvals)
@@ -39,19 +78,19 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                 logging.warning('Your b-vectors do not seem normalized...')
                 bvecs = normalize_bvecs(bvecs)
             # check_b0_threshold(force_b0_threshold, bvals.min())
-
             ubvals = unique_bvals_tolerance(bvals, tol=tol)
             for ubval in ubvals:  # Loop over all unique bvals
-                # Extracting the data for the shell ubval
+                # Extracting the data for the ubval shell
                 indices, shell_data, _, output_bvecs = \
                     extract_dwi_shell(vol, bvals, bvecs, [ubval], tol=tol)
                 nb_bvecs = len(indices)
+                # Adding the current data to each arrays of interest
                 acq_index_full = np.concatenate([acq_index_full,
                                                  [acq_index]]) \
                     if acq_index_full.size else np.array([acq_index])
                 ubvals_divide = np.concatenate([ubvals_divide, [ubval]]) \
                     if ubvals_divide.size else np.array([ubval])
-                while np.isin(ubval, ubvals_full):
+                while np.isin(ubval, ubvals_full): # Differentiate the bvals
                     ubval += 1
                 ubvals_full = np.concatenate([ubvals_full, [ubval]]) \
                     if ubvals_full.size else np.array([ubval])
@@ -72,7 +111,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                     if b_shapes.size else np.repeat([bshapes[b_delta]],
                                                     nb_bvecs)
             acq_index += 1
-
+    # In the case that the PA data is wanted, there is a different return
     if do_pa_signals:
         pa_signals = np.zeros(((data_full.shape[:-1])+(len(ubvals_full),)))
         for i, ubval in enumerate(ubvals_full):
@@ -86,12 +125,11 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
         if np.sum([ubvals_full < tol]) < acq_index - 1:
             gtab_infos[3] *= 0
         return(pa_signals, gtab_infos)
-
+    # Removing the duplicate b0s from ubvals_full
     duplicate_b0_ind = np.union1d(np.argwhere(ubvals_full == min(ubvals_full)),
                                   np.argwhere(ubvals_full > tol))
     ubvals_full = ubvals_full[duplicate_b0_ind]
     ub_deltas_full = ub_deltas_full[duplicate_b0_ind]
-
     # Sorting the data by bvals
     sorted_indices = np.argsort(bvals_full, axis=0)
     bvals_full = np.take_along_axis(bvals_full, sorted_indices, axis=0)
