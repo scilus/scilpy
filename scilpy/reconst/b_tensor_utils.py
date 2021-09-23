@@ -19,7 +19,6 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     data_full = np.empty(0)
     bvals_full = np.empty(0)
     bvecs_full = np.empty(0)
-    b_deltas = np.empty(0)
     b_shapes = np.empty(0)
     ubvals_full = np.empty(0)
     ub_deltas_full = np.empty(0)
@@ -52,10 +51,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                     if acq_index_full.size else np.array([acq_index])
                 ubvals_divide = np.concatenate([ubvals_divide, [ubval]]) \
                     if ubvals_divide.size else np.array([ubval])
-                same_bvals = np.argwhere(ubvals_full == ubval)
-                # Dealing with ubvals, ub_deltas and nb_bvecs for b0 or not
-                if (same_bvals.size  # Differenciate bvals over bdeltas
-                   and b_delta != ub_deltas_full[same_bvals]):
+                while np.isin(ubval, ubvals_full):
                     ubval += 1
                 ubvals_full = np.concatenate([ubvals_full, [ubval]]) \
                     if ubvals_full.size else np.array([ubval])
@@ -70,9 +66,6 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
                     if bvals_full.size else np.repeat([ubval], nb_bvecs)
                 bvecs_full = np.concatenate([bvecs_full, output_bvecs]) \
                     if bvecs_full.size else output_bvecs
-                b_deltas = np.concatenate([b_deltas, np.repeat([b_delta],
-                                                               nb_bvecs)]) \
-                    if b_deltas.size else np.repeat([b_delta], nb_bvecs)
                 b_shapes = np.concatenate([b_shapes,
                                            np.repeat([bshapes[b_delta]],
                                                      nb_bvecs)]) \
@@ -94,7 +87,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
             gtab_infos[3] *= 0
         return(pa_signals, gtab_infos)
 
-    duplicate_b0_ind = np.union1d(np.argwhere(ubvals_full == 0),
+    duplicate_b0_ind = np.union1d(np.argwhere(ubvals_full == min(ubvals_full)),
                                   np.argwhere(ubvals_full > tol))
     ubvals_full = ubvals_full[duplicate_b0_ind]
     ub_deltas_full = ub_deltas_full[duplicate_b0_ind]
@@ -102,7 +95,7 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     # Sorting the data by bvals
     sorted_indices = np.argsort(bvals_full, axis=0)
     bvals_full = np.take_along_axis(bvals_full, sorted_indices, axis=0)
-    bvals_full[bvals_full < tol] = 0
+    bvals_full[bvals_full < tol] = min(ubvals_full)
     bvecs_full = np.take_along_axis(bvecs_full,
                                     sorted_indices.reshape(len(bvals_full), 1),
                                     axis=0)
