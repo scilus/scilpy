@@ -27,7 +27,7 @@ aligned to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function
 defined from the SF. Default parameters as in [1].
 
-e.g.    scil_compute_tracking_bitbucket.py
+e.g.    scil_compute_tracking_branching.py
         ~/Data/axtract_kissing/todi_sh_8_descoteaux.nii.gz
         ~/Data/axtract_kissing/wm.nii.gz
         ~/Data/axtract_kissing/wm.nii.gz
@@ -55,7 +55,7 @@ from nibabel.streamlines.tractogram import LazyTractogram
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              add_verbose_arg)
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
-from scilpy.tracking.local_tracking_branching import track
+from scilpy.tracking.local_tracking import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField

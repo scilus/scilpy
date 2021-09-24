@@ -313,25 +313,6 @@ class abstractTracker(object):
             v_out.append(d)
         return v_out
 
-    line_map = []
-    tree_map = []
-    _tree = -1
-
-    def add_line_in_map(self, line, tree):
-        """
-        Add a streamline to the list of streamlines which the tree
-        its associated to. This is used for the save_type : density
-        """
-        self.line_map.append(line)
-        self.tree_map.append(tree)
-
-    def get_last_tree(self):
-        """
-        Return the last tree added to the list and
-        increment to the next. This is used for the save_type : density
-        """
-        self._tree += 1
-        return self._tree
 
 class probabilisticTracker(abstractTracker):
     """
