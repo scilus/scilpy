@@ -28,7 +28,6 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -108,7 +107,6 @@ def cube_correlation(density_list, binary_list, size=3):
     return corr_map
 
 
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -171,7 +169,6 @@ def main():
         min_streamlines_count = min(len(sft), min_streamlines_count)
 
     structure_cross = ndi.generate_binary_structure(3, 1)
-    structure_ball = ndi.generate_binary_structure(3, 3)
     if np.count_nonzero(binary_bundle) > args.min_voxel_count \
             and min_streamlines_count > args.min_streamline_count:
         binary_bundle = ndi.binary_dilation(binary_bundle,
@@ -267,12 +264,12 @@ def main():
     dist_array = ArraySequence(final_dist)
     kd_tree = cKDTree(final_streamlines._data)
     img_labels = np.zeros(binary_bundle.shape, dtype=np.int16)
-    img_distances = np.zeros(binary_bundle.shape, dtype=np.float32)
+    img_distances = np.zeros(binary_bundle.shape, dtype=float)
     indices = np.nonzero(binary_bundle)
 
     for i in range(len(indices[0])):
         ind = np.array([indices[0][i], indices[1][i], indices[2][i]],
-                       dtype=np.int32)
+                       dtype=int)
         neighbor_ids = kd_tree.query_ball_point(ind, 2.0)
         if not neighbor_ids:
             continue

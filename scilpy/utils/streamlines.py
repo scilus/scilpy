@@ -158,7 +158,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                     sft.streamlines[i] = sft.streamlines[i][::-1]
                     for key in sft.data_per_point[i]:
                         sft.data_per_point[key][i] = \
-                                sft.data_per_point[key][i][::-1]
+                            sft.data_per_point[key][i][::-1]
             else:
                 # Bitwise XOR
                 if bool(labels[tuple(sft.streamlines[i][0].astype(int))] >

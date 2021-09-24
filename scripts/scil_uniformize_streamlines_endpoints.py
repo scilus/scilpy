@@ -16,8 +16,6 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
-from dipy.tracking.streamlinespeed import length
-import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -73,7 +71,7 @@ def main():
         args.axis = None
     if args.centroid:
         centroid_sft = load_tractogram_with_reference(parser, args,
-                                                  args.centroid)
+                                                      args.centroid)
     else:
         centroid_sft = None
     uniformize_bundle_sft(sft, args.axis, ref_bundle=centroid_sft,
