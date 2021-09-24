@@ -36,6 +36,7 @@ from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scipy.ndimage import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
+from scilpy.utils.streamlines import uniformize_bundle_sft
 
 
 def _build_arg_parser():
@@ -82,7 +83,7 @@ def _build_arg_parser():
     return p
 
 
-def cube_correlation(density_list, binary_list, size=5):
+def cube_correlation(density_list, binary_list, size=3):
     elem = np.arange(-(size//2), size//2 + 1).tolist()
     cube_ind = np.array(list(itertools.product(elem, elem, elem)))
 
@@ -118,6 +119,9 @@ def main():
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
+    sft_centroid.to_vox()
+    sft_centroid.to_corner()
+
     if len(sft_centroid.streamlines) < 1 \
             or len(sft_centroid.streamlines) > 1:
         logging.error('Centroid file {} should contain one streamline. '
@@ -173,12 +177,13 @@ def main():
         binary_bundle = ndi.binary_dilation(binary_bundle,
                                             structure=structure_cross)
         binary_bundle = ndi.binary_erosion(binary_bundle,
-                                           structure=structure_ball)
+                                           structure=structure_cross,
+                                           iterations=2)
 
-        bundle_disjoint, _ = ndi.label(binary_bundle)
-        unique, count = np.unique(bundle_disjoint, return_counts=True)
-        val = unique[np.argmax(count[1:])+1]
-        binary_bundle[bundle_disjoint != val] = 0
+    bundle_disjoint, _ = ndi.label(binary_bundle)
+    unique, count = np.unique(bundle_disjoint, return_counts=True)
+    val = unique[np.argmax(count[1:])+1]
+    binary_bundle[bundle_disjoint != val] = 0
 
     corr_map = corr_map*binary_bundle
     nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
@@ -197,14 +202,16 @@ def main():
     else:
         args.nb_pts = len(sft_centroid.streamlines[0])
 
-    clusters_map = qbx_and_merge(concat_sft.streamlines, [30, 20, 10, 5],
+    clusters_map = qbx_and_merge(concat_sft.streamlines, [24, 18, 12, 6],
                                  nb_pts=args.nb_pts, verbose=False,
-                                 rng=np.random.RandomState(0))
+                                 rng=np.random.RandomState(1))
     final_streamlines = []
     final_label = []
     final_dist = []
     for c, cluster in enumerate(clusters_map):
-        cluster_centroid = cluster.centroid
+        tmp_sft = StatefulTractogram.from_sft([cluster.centroid], concat_sft)
+        uniformize_bundle_sft(tmp_sft, ref_bundle=sft_centroid)
+        cluster_centroid = tmp_sft.streamlines[0]
         cluster_streamlines = ArraySequence(cluster[:])
         # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
         min_dist_label, min_dist = min_dist_to_centroid(cluster_streamlines._data,

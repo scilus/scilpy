@@ -71,7 +71,13 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     if args.auto:
         args.axis = None
-    uniformize_bundle_sft(sft, args.axis, swap=args.swap)
+    if args.centroid:
+        centroid_sft = load_tractogram_with_reference(parser, args,
+                                                  args.centroid)
+    else:
+        centroid_sft = None
+    uniformize_bundle_sft(sft, args.axis, ref_bundle=centroid_sft,
+                          swap=args.swap)
     save_tractogram(sft, args.out_bundle)
 
 

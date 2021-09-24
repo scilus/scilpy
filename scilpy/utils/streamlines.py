@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from sklearn.cluster import KMeans
 import copy
 import itertools
 from functools import reduce
@@ -7,7 +8,7 @@ import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
-from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
@@ -83,7 +84,7 @@ def union(left, right):
     return result
 
 
-def uniformize_bundle_sft(sft, axis=None, swap=False):
+def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     """Uniformize the streamlines in the given tractogram.
 
     Parameters
@@ -92,30 +93,82 @@ def uniformize_bundle_sft(sft, axis=None, swap=False):
          The tractogram that contains the list of streamlines to be uniformized
     axis: int, optional
         Orient endpoints in the given axis
+    ref_bundle: streamlines
+        Orient endpoints the same way as this bundle (or centroid)
     swap: boolean, optional
         Swap the orientation of streamlines
-
     """
+    from scilpy.tractanalysis.reproducibility_measures \
+        import get_endpoints_density_map
+    old_space = sft.space
+    old_origin = sft.origin
+    sft.to_vox()
+    sft.to_corner()
+    density = get_endpoints_density_map(sft.streamlines, sft.dimensions,
+                                        point_to_select=3)
+    indices = np.argwhere(density > 0)
+    kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
+                    precompute_distances=True, n_init=20,
+                    n_jobs=1).fit(indices)
+
+    labels = np.zeros(density.shape)
+    for i in range(len(kmeans.labels_)):
+        labels[tuple(indices[i])] = kmeans.labels_[i]+1
+
+    k_means_centers = kmeans.cluster_centers_
+    main_dir_barycenter = np.argmax(
+        np.abs(k_means_centers[0] - k_means_centers[-1]))
+
     if len(sft.streamlines) > 0:
         axis_name = ['x', 'y', 'z']
-        if axis is None:
-            centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
+        if axis is None or ref_bundle is not None:
+            if ref_bundle is not None:
+                ref_bundle.to_vox()
+                ref_bundle.to_corner()
+                centroid = get_streamlines_centroid(ref_bundle.streamlines,
+                                                    20)[0]
+            else:
+                centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
             main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
             main_dir_displacement = np.argmax(
                 np.abs(np.sum(np.gradient(centroid, axis=0), axis=0)))
-            if main_dir_displacement != main_dir_ends:
+
+            if main_dir_displacement != main_dir_ends \
+                    or main_dir_displacement != main_dir_barycenter:
                 logging.info('Ambiguity in orientation, you should use --axis')
             axis = axis_name[main_dir_displacement]
         logging.info('Orienting endpoints in the {} axis'.format(axis))
         axis_pos = axis_name.index(axis)
+
+        if bool(k_means_centers[0][axis_pos] >
+                k_means_centers[1][axis_pos]) ^ bool(swap):
+            labels[labels == 1] = 3
+            labels[labels == 2] = 1
+            labels[labels == 3] = 2
+
         for i in range(len(sft.streamlines)):
-            # Bitwise XOR
-            if bool(sft.streamlines[i][0][axis_pos] >
-                    sft.streamlines[i][-1][axis_pos]) ^ bool(swap):
-                sft.streamlines[i] = sft.streamlines[i][::-1]
-                for key in sft.data_per_point[i]:
-                    sft.data_per_point[key][i] = \
-                        sft.data_per_point[key][i][::-1]
+            if ref_bundle:
+                res_centroid = set_number_of_points(centroid, 20)
+                res_streamlines = set_number_of_points(sft.streamlines[i], 20)
+                norm_direct = np.sum(np.linalg.norm(res_centroid - res_streamlines,
+                                                    axis=0))
+                norm_flip = np.sum(np.linalg.norm(res_centroid - res_streamlines[::-1],
+                                                  axis=0))
+                if bool(norm_direct > norm_flip) ^ bool(swap):
+                    sft.streamlines[i] = sft.streamlines[i][::-1]
+                    for key in sft.data_per_point[i]:
+                        sft.data_per_point[key][i] = \
+                                sft.data_per_point[key][i][::-1]
+            else:
+                # Bitwise XOR
+                if bool(labels[tuple(sft.streamlines[i][0].astype(int))] >
+                        labels[tuple(sft.streamlines[i][-1].astype(int))]) ^ bool(swap):
+                    sft.streamlines[i] = sft.streamlines[i][::-1]
+                    for key in sft.data_per_point[i]:
+                        sft.data_per_point[key][i] = \
+                            sft.data_per_point[key][i][::-1]
+    sft.to_space(old_space)
+    sft.to_origin(old_origin)
 
 
 def perform_streamlines_operation(operation, streamlines, precision=None):
