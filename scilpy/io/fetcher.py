@@ -53,7 +53,7 @@ def get_testing_files_dict():
              '981dccd8b23aad43aa014f4fdd907e70'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
-             '57aee810f2f5c687df48de65935bb527'],
+             '59bdffb801c507bb8eff623201231770'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '946beb4271b905a2bd69ad2d80136ca9'],
@@ -62,7 +62,10 @@ def get_testing_files_dict():
              'f0492dd995f6bcb14b525a55edab9807'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
-             '3e27625a1e7f2484b7fa5028c95324cc']}
+             '3e27625a1e7f2484b7fa5028c95324cc'],
+            'anatomical_filtering.zip':
+            ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
+             '6f0eff5154ff0973a3dc26db00e383ea']}
 
 
 def _get_file_md5(filename):

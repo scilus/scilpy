@@ -125,12 +125,12 @@ def main():
             cluster_map = pickle.load(infile)
         reco_obj = RecoBundles(wb_streamlines,
                                cluster_map=cluster_map,
-                               rng=rng,
+                               rng=rng, less_than=1,
                                verbose=args.verbose)
     else:
         reco_obj = RecoBundles(wb_streamlines,
                                clust_thr=args.tractogram_clustering_thr,
-                               rng=rng,
+                               rng=rng, greater_than=1,
                                verbose=args.verbose)
 
     if args.out_pickle:

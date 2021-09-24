@@ -72,7 +72,7 @@ def main():
     seed_density = np.zeros(shape, dtype=np.int32)
     for seed in seeds:
         # Set value at mask, either binary or increment
-        seed_voxel = np.round(seed).astype(np.int)
+        seed_voxel = np.round(seed).astype(int)
         if args.binary is not None:
             seed_density[tuple(seed_voxel)] = args.binary
         else:

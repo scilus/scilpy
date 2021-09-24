@@ -4,21 +4,12 @@ pipeline {
     stages {
         stage('Build') {
             stages {
-                stage('Python3.6') {
-                    steps {
-                        withPythonEnv('CPython-3.6') {
-                            sh '''
-                                pip3 install numpy==1.18.* wheel
-                                pip3 install -e .
-                            '''
-                        }
-                    }
-                }
                 stage('Python3.7') {
                     steps {
                         withPythonEnv('CPython-3.7') {
                             sh '''
-                                pip3 install numpy==1.18.* wheel
+                                pip3 install numpy==1.20.* wheel
+                                pip3 install Cython==0.29.*
                                 pip3 install -e .
                             '''
                         }
@@ -31,7 +22,7 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.7') {
                     sh '''
-                        pip3 install numpy==1.18.* wheel
+                        pip3 install numpy==1.20.* wheel
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
@@ -53,6 +44,32 @@ pipeline {
     post {
         always {
             cleanWs()
+            script {
+                if (env.CHANGE_ID) {
+                    if (pullRequest.createdBy != "arnaudbore"){
+                        pullRequest.createReviewRequests(['arnaudbore'])
+                    }
+                    else{
+                        pullRequest.createReviewRequests(['GuillaumeTh'])
+                    }
+                }
+            }
+        }
+        failure {
+            script {
+                // CHANGE_ID is set only for pull requests, so it is safe to access the pullRequest global variable
+                if (env.CHANGE_ID) {
+                    pullRequest.comment('Build Failed :boom: \n' + env.BUILD_URL)
+                }
+            }
+        }
+        success {
+            script {
+                // CHANGE_ID is set only for pull requests, so it is safe to access the pullRequest global variable
+                if (env.CHANGE_ID) {
+                    pullRequest.comment('Build passed ! Good Job :beers: !')
+                }
+            }
         }
     }
 }

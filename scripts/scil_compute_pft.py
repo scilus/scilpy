@@ -75,7 +75,7 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
                          help='Algorithm to use (must be "det" or "prob"). '
                               '[%(default)s]')
-    track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
+    track_g.add_argument('--step', dest='step_size', type=float, default=0.2,
                          help='Step size in mm. [%(default)s]')
     track_g.add_argument('--min_length', type=float, default=10.,
                          help='Minimum length of a streamline in mm. '
@@ -245,7 +245,7 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
-        get_data_as_mask(seed_img, dtype=np.bool),
+        get_data_as_mask(seed_img, dtype=bool),
         np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,

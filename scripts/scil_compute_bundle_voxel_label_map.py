@@ -107,6 +107,7 @@ def cube_correlation(density_list, binary_list, size=5):
     return corr_map
 
 
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -174,10 +175,10 @@ def main():
         binary_bundle = ndi.binary_erosion(binary_bundle,
                                            structure=structure_ball)
 
-    bundle_disjoint, _ = ndi.label(binary_bundle)
-    unique, count = np.unique(bundle_disjoint, return_counts=True)
-    val = unique[np.argmax(count[1:])+1]
-    binary_bundle[bundle_disjoint != val] = 0
+        bundle_disjoint, _ = ndi.label(binary_bundle)
+        unique, count = np.unique(bundle_disjoint, return_counts=True)
+        val = unique[np.argmax(count[1:])+1]
+        binary_bundle[bundle_disjoint != val] = 0
 
     corr_map = corr_map*binary_bundle
     nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
