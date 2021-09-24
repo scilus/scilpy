@@ -15,6 +15,8 @@ import numpy as np
 import os
 import glob
 import argparse
+import time
+from itertools import compress
 from multiprocessing import Pool
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -25,9 +27,9 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import hack_invalid_streamlines
 
 from dipy.io.streamline import load_tractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 # from dipy.tracking import utils
 # from dipy.tracking.streamlinespeed import length
-# from dipy.io.stateful_tractogram import StatefulTractogram
 # from dipy.tracking.streamline import Streamlines
 # from multiprocessing import shared_memory  # Require python 3.8+
 
@@ -57,41 +59,94 @@ def _build_arg_parser():
     return p
 
 
-def visitation_mapping(area_mask, sft, out_Ftmp, affine):
-    area_strm, _ = filter_grid_roi(sft, area_mask, 'any', False)
-
-    # voxel = np.array(vox)
-    # strm2 = [np.all(np.abs(strm-voxel)<0.5, 1).any() for strm in sft.streamlines]
-
-    vol_strm = np.where(compute_tract_counts_map(area_strm.streamlines, area_mask.shape), 1, 0)
-    # vox_strm = Streamlines(utils.target(trk_sft.streamlines, np.eye(4), vox_mask))
-    # vol_strm = np.zeros(templ_i.shape)
-    # for strm in vox_strm:
-    #     arg_vox = tuple(np.round(strm).astype(int).T)
-    #     vol_strm[arg_vox] = 1
-    if os.path.isfile(out_Ftmp):
-        tmp_i = nib.load(out_Ftmp)
+def save_tmp_map(vol, file, affine, emptyVol=False):
+    if os.path.isfile(file) and not emptyVol:
+        vol = vol.astype('float32')
+        tmp_i = nib.load(file)
         tmp_vol = tmp_i.get_fdata()
-        vol_strm += tmp_vol
-
-    vol_str_i = nib.Nifti1Image(vol_strm.astype('float32'), affine)
-    nib.save(vol_str_i, out_Ftmp)
-    return
+        vol += tmp_vol
+    vol_str_i = nib.Nifti1Image(vol.astype('float32'), affine)
+    nib.save(vol_str_i, file)
 
 
-def vox_multi(vox_batch, trk_sft, base_im, outdir):
+def voxelize_tractogram(sft):
+    '''
+    Rounds all the points of the streamlines to the voxel they belong to and
+    removes duplicate points
+    '''
+    sft.to_vox()
+    sft.to_corner()
+    voxed_strms = []
+    for strm in sft.streamlines:
+        strm_r = np.rint(strm).astype(np.int32)
+        _, ind = np.unique(strm_r, return_index=True, axis=0)
+        voxed_strms.append(strm_r[np.sort(ind)])
+    return StatefulTractogram.from_sft(voxed_strms, sft)
+
+
+def tupled_streamlines(sft):
+    '''
+    sft must be a voxelised sft (cf. voxelize_tractogram)
+    Returns a list of streamlines with each point given as a tuple
+    '''
+    return [list(zip(st.T[0], st.T[1], st.T[2])) for st in sft.streamlines]
+
+
+def voxeled_visiation_mapping(area_mask, streamlines, out_Ftmp, affine, tupled):
+    ''' sft must be a voxelised sft (cf. voxelize_tractogram)'''
+    # 1
+    ind_vox = np.argwhere(area_mask)
+    if tupled:
+        ind_vox = [tuple(ind) for ind in ind_vox]
+        indstrm = [any(ind in strm for ind in ind_vox) for strm in streamlines]
+        area_strm = list(compress(streamlines, indstrm))
+        # 2
+        vol_strm = np.zeros(area_mask.shape, dtype=np.float32)
+        for strm in area_strm:
+            for v in strm:
+                vol_strm[v] = 1
+    else:
+        indstrm = [any(any(np.equal(vox, strm).all(1)) for vox in ind_vox) for strm in streamlines]
+        area_strm = streamlines[indstrm]
+        # 2
+        vol_strm = np.zeros(area_mask.shape, dtype=np.float32)
+        for strm in area_strm:
+            vol_strm[tuple(strm.T)] = 1
+    # 3
+    save_tmp_map(vol_strm, out_Ftmp, affine)
+
+
+def visitation_mapping(area_mask, sft, out_Ftmp, affine):
+    # 1
+    area_strm, _ = filter_grid_roi(sft, area_mask, 'any', False)
+    # 2
+    vol_strm = np.where(compute_tract_counts_map(area_strm.streamlines, area_mask.shape), 1, 0)
+    # 3
+    save_tmp_map(vol_strm, out_Ftmp, affine)
+
+
+def vox_multi(vox_batch, sft, base_im, outdir, voxeled=True, tupled=True):
     """
     Iterates over the voxels, creating the appropriate mask and file-name, and
     runs visitation_mapping()
 
     """
+    if tupled and not voxeled:
+        raise ValueError('The tractogram is not voxeled, but shoud be for tupling')
     base_mask = np.zeros(base_im.shape, dtype=bool)
+    if tupled:
+        streamlines = tupled_streamlines(sft)
+    else:
+        streamlines = sft.streamlines
     for vox in vox_batch:
         vox_mask = base_mask.copy()
         vox_mask[tuple(vox)] = True
         out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
         out_Ftmp = os.path.join(outdir, out_name)
-        visitation_mapping(vox_mask, trk_sft, out_Ftmp, base_im.affine)
+        if voxeled:
+            voxeled_visiation_mapping(vox_mask, streamlines, out_Ftmp, base_im.affine, tupled)
+        else:
+            visitation_mapping(vox_mask, sft, out_Ftmp, base_im.affine)
 
 
 def tmp2final(tmp_list, nb_trk, outdir, affine):
@@ -153,7 +208,8 @@ def Parcelate_tractogram(sft, templ_v, nb_parcel=16):
                 split1[..., :baryc[2]] = parcelOri[..., :baryc[2]]
                 split2[..., baryc[2]:] = parcelOri[..., baryc[2]:]
             list_parcels.extend([split1, split2])  # ... and divide it in 2
-            if (cutCount & (cutCount+1) == 0):  # If power of 2 (bit manipulation)
+            if (cutCount & (cutCount+1) == 0):
+                # If power of 2 (bit manipulation), change the dierction of the cut
                 swapCount = (swapCount+1) % len(dirList)  # Circular indexing
 
         list_subTract = []
@@ -163,6 +219,8 @@ def Parcelate_tractogram(sft, templ_v, nb_parcel=16):
 
 
 def main():
+    t0 = time.time()
+    t = t0
     parser = _build_arg_parser()
     args = parser.parse_args()
 
@@ -190,11 +248,20 @@ def main():
     trk_list = glob.glob(os.path.join(args.in_dir_tractogram, '*.trk'))
     for n, trk_F in enumerate(trk_list):
         print(os.path.basename(trk_F) + f' ({n+1}/{len(trk_list)})')
-        print('Loading and filtering the tractogram...')
+        print('Loading the tractogram...')
         trk_sft = load_tractogram(trk_F, templ_i, bbox_valid_check=False)
+        print('Filtering')
         trk_sft = filter_streamlines_by_length(trk_sft, 25, 250)
         trk_sft = hack_invalid_streamlines(trk_sft)
         trk_sft.to_vox()
+        voxeled = True
+        tupled = True
+        if voxeled:
+            trk_sft = voxelize_tractogram(trk_sft)
+        tractomask = np.where(compute_tract_counts_map(trk_sft.streamlines, templ_i.shape),
+                              True, False)
+        empty_vol = templ_v > tractomask  # Voxels in templ but not in the tractogram
+        templ_v = templ_v*tractomask  # Removing voxels with no streamlines
         if args.in_reg_dir is None:
             print('Preparing sub-tractograms to speed-up voxel-wise process...')
             nsub = 16
@@ -205,21 +272,27 @@ def main():
                 vox_list = np.argwhere(parcel)
                 if nb_proc == 1:
                     print('Starting')
-                    vox_multi(vox_list, sub_trk_sft, templ_i, args.out_dir)
-                    # for vox in vox_list:
-                    #     vox_mask = base_mask.copy()
-                    #     vox_mask[tuple(vox)] = True
-                    #     out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
-                    #     out_Ftmp = os.path.join(args.out_dir, out_name)
-                    #     visitation_mapping(vox_mask, trk_sft, out_Ftmp, templ_i.affine)
+                    vox_multi(vox_list, sub_trk_sft, templ_i, args.out_dir, voxeled, tupled)
                 else:  # Parallelize
                     vox_batchs = np.array_split(vox_list, nb_proc)
                     print('Starting parallel process')
                     with Pool(processes=nb_proc) as pool:
-                        pool.starmap(vox_multi, zip(vox_batchs,
-                                                    [sub_trk_sft]*nb_proc,
-                                                    [templ_i]*nb_proc,
-                                                    [args.out_dir]*nb_proc))
+                        poolCheck = pool.starmap_async(vox_multi, zip(vox_batchs,
+                                                                      [sub_trk_sft]*nb_proc,
+                                                                      [templ_i]*nb_proc,
+                                                                      [args.out_dir]*nb_proc,
+                                                                      [voxeled]*nb_proc,
+                                                                      [tupled]*nb_proc))
+                        while not poolCheck.ready():
+                            time.sleep(1)
+            print('"Saving" maps of voxels with no tract')
+            vox_list = np.argwhere(empty_vol)
+            vox_vol = np.zeros(templ_i.shape, dtype=bool)
+            for vox in vox_list:
+                out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+                out_Ftmp = os.path.join(args.out_dir, out_name)
+                save_tmp_map(vox_vol, out_Ftmp, templ_i.affine, True)
+
         else:  # Regionwise priors
             for reg_F in list_reg_files:
                 reg_i = nib.load(reg_F)
@@ -229,7 +302,8 @@ def main():
                 out_name = f'probaMap_{reg_name}_tmp.nii.gz'
                 out_Ftmp = os.path.join(args.out_dir, out_name)
                 visitation_mapping(reg_mask, trk_sft, out_Ftmp, templ_i.affine)
-
+        print(f'Elapsed time for current subject: {time.time()-t} sec')
+        t = time.time()
     print('Last step: normalizing maps...')
     tmp_list = glob.glob(os.path.join(args.out_dir, '*tmp.nii.gz'))
     if (args.in_reg_dir is not None) or nb_proc == 1:
@@ -242,6 +316,7 @@ def main():
                                         [args.out_dir]*nb_proc,
                                         [templ_i.affine]*nb_proc,))
     print('Done. Process over.')
+    print(f'Total elapsed time: {time.time()-t0} sec')
 
 
 if __name__ == "__main__":
