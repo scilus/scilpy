@@ -8,11 +8,33 @@ aperture cone defined by the previous tracking direction and the
 angular constraint. The relation between theta and the curvature
 is theta=2*arcsin(step_size/(2*R)).
 
+This algorithm allows branching during tractography, so that if a
+streamline is faced with multiple possible directions, it's going
+to start a streamline in all of these directions, instead of picking
+one
+
+save_branching_trk_type 'links' : a single streamline goes back and
+forth through every possible path, allowing visualization of the links
+but meaning the streamline length is inaccurate
+
+save_branching_trk_type 'density' : at every branching point, a new
+streamline is started for every direction, meaning the length of every
+branch is accurate but the links between them won't show in visualization
+
 Algo 'det': the maxima of the spherical function (SF) the most closely
 aligned to the previous direction.
 
 Algo 'prob': a direction drawn from the empirical distribution function
 defined from the SF. Default parameters as in [1].
+
+e.g.    scil_compute_tracking_bitbucket.py
+        ~/Data/axtract_kissing/todi_sh_8_descoteaux.nii.gz
+        ~/Data/axtract_kissing/wm.nii.gz
+        ~/Data/axtract_kissing/wm.nii.gz
+        ~/Data/brainlocaltracking.trk
+        --mask_branch /Data/axtract_kissing/bundle_3.nii.nii.gz
+        --save_branching_trk_type density
+
 
 References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
@@ -135,12 +157,12 @@ def buildArgsParser():
                         ' \nthe \'data_per_streamline\' attribute')
     p.add_argument('--mask_branch', dest='mask_branch',
                    default=[],
-                   help="Mask branching:\n Zone where branching is allowed")
-    p.add_argument('--save_type', dest='save_type',
+                   help='Region where branching is allowed')
+    p.add_argument('--save_branching_trk_type', dest='save_branching_trk_type',
                    default='links', choices=['links', 'density'],
-                   help="Save type:\n How you want your streamlines to be \
-                        saved links to keep the links, density \
-                        to keep the density")
+                   help='How you want your streamlines to be \n' +
+                        'saved, links to keep the links, density \n' +
+                        'to keep the density')
     add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
@@ -224,7 +246,7 @@ def main():
     param.max_no_dir = int(math.ceil(args.maxL_no_dir / param.step_size))
     param.is_all = False
     param.is_keep_single_pts = False
-    param.save_type = args.save_type
+    param.save_branching_trk_type = args.save_branching_trk_type
     param.branching = True
     # r+ is necessary for interpolation function in cython who
     # need read/write right

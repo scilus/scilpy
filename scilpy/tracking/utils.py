@@ -41,7 +41,7 @@ class TrackingParams(object):
         self.is_keep_single_pts = None
         self.mmap_mode = None
         self.branching_mask = None
-        self.save_type = None
+        self.save_branching_trk_type = None
 
         self.branching = None
 

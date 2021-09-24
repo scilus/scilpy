@@ -253,19 +253,19 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
             tree = get_tree_from_seed(tracker, mask, seed, pft_tracker, param)
 
             if tree is not None:
-                if param.save_type == 'density' and len(tree) == 2 \
+                if param.save_branching_trk_type == 'density' and len(tree) == 2 \
                         and np.size(tree[0]) + np.size(
                         tree[1]) <= param.min_nbr_pts:
                     """
                     The streamline isnt long enough, therefore it isnt saved
                     """
-                elif param.save_type == 'links' \
+                elif param.save_branching_trk_type  == 'links' \
                         and len(tree) / 2 <= param.min_nbr_pts:
                     """
                     The streamline isnt long enough, therefore it isnt saved
                     """
                 else:
-                    if param.save_type == 'links':
+                    if param.save_branching_trk_type  == 'links':
                         if compress:
                             streamlines.append(
                                 compress_streamlines(np.array(tree,
@@ -277,7 +277,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, pft_tracker, param,
 
                         if save_seeds:
                             seeds.append(np.asarray(seed, dtype='float32'))
-                    if param.save_type == 'density':
+                    if param.save_branching_trk_type == 'density':
                         for line in tree:
                             if line is not None:
                                 num = tracker.get_last_tree()
@@ -465,7 +465,7 @@ def _get_tree(tracker, position, mask, param, direction):
     streamline: list of 3D positions
     """
     tree = _get_tree_binary(tracker, position, mask, param, direction)
-    if param .save_type == 'density' and tree is not None:
+    if param .save_branching_trk_type  == 'density' and tree is not None:
         for x in range(0, len(tree)):
             while (tree[x] is not None and len(tree[x]) > 0 and
                    not tracker.isPositionInBound(tree[x][-1])):
@@ -494,19 +494,19 @@ def _get_tree_binary(tracker, position, mask, param, direction):
     tree = []
     line, is_branch, new_pos, dirs = get_line_in_tree(tracker, position,
                                                       mask, param, direction)
-    if param.save_type == 'links':
+    if param.save_branching_trk_type == 'links':
         tree.extend(line)
-    if param.save_type == 'density':
+    if param.save_branching_trk_type == 'density':
         tree.append(line)
     if is_branch:
         for d in dirs:
             new_tree = _get_tree_binary(tracker, new_pos, mask, param, d)
-            if param.save_type == 'links':
+            if param.save_branching_trk_type == 'links':
                 tree.extend(new_tree)
-            if param.save_type == 'density':
+            if param.save_branching_trk_type == 'density':
                 for line in new_tree:
                     tree.append(line)
-    if param.save_type == 'links':
+    if param.save_branching_trk_type == 'links':
         line.reverse()
         tree.extend(line)
     return tree
