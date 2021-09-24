@@ -53,8 +53,8 @@ class SphericalHarmonicField(object):
         sh_order, full_basis =\
             get_sh_order_and_fullness(self.dataset.data.shape[-1])
         self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
-                                 full_basis=full_basis,
-                                 smooth=0.006, return_inv=False)
+                                 full_basis=full_basis, smooth=0.006,
+                                 return_inv=False)
         self.full_basis = full_basis
 
     def get_direction_neighbours(self, maxAngle):
