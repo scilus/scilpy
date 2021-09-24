@@ -9,7 +9,10 @@ The number of labels will be the same as the centroid's number of points.
 """
 
 import argparse
+import itertools
 import logging
+import os
+
 from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level
 from dipy.io.utils import is_header_compatible
@@ -20,7 +23,6 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial.ckdtree import cKDTree
-import itertools
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -45,12 +47,8 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
-    p.add_argument('out_labels_map',
-                   help='Nifti image with corresponding labels.')
-    p.add_argument('out_correlation_map',
-                   help='Nifti image with corresponding labels.')
     p.add_argument('out_dir',
-                   help='Nifti image with corresponding labels.')
+                   help='Directory to save all mapping and coloring file.')
 
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
@@ -61,19 +59,19 @@ def _build_arg_parser():
     p.add_argument('--min_voxel_count', type=int, default=1000,
                    help='Minimum number of voxels for filtering/cutting'
                         'operation [%(default)s].')
-    p.add_argument('--out_labels_npz_suff', metavar='FILE',
-                   help='File mapping of points to labels.')
-    p.add_argument('--out_correlation_npz_suff', metavar='FILE',
-                   help='File mapping of points to distances.')
-    p.add_argument('--out_distances_npz_suff', metavar='FILE',
-                   help='File mapping of points to distances.')
+    # p.add_argument('--out_labels_npz_suff', metavar='FILE',
+    #                help='File mapping of points to labels.')
+    # p.add_argument('--out_correlation_npz_suff', metavar='FILE',
+    #                help='File mapping of points to distances.')
+    # p.add_argument('--out_distances_npz_suff', metavar='FILE',
+    #                help='File mapping of points to distances.')
 
-    p.add_argument('--labels_color_dpp_suff', metavar='FILE',
-                   help='Save bundle with labels coloring (.trk).')
-    p.add_argument('--correlation_color_dpp_suff', metavar='FILE',
-                   help='Save bundle with labels coloring (.trk).')
-    p.add_argument('--distances_color_dpp_suff', metavar='FILE',
-                   help='Save bundle with distances coloring (.trk).')
+    # p.add_argument('--labels_color_dpp_suff', metavar='FILE',
+    #                help='Save bundle with labels coloring (.trk).')
+    # p.add_argument('--correlation_color_dpp_suff', metavar='FILE',
+    #                help='Save bundle with labels coloring (.trk).')
+    # p.add_argument('--distances_color_dpp_suff', metavar='FILE',
+    #                help='Save bundle with distances coloring (.trk).')
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
                         '[%(default)s].')
@@ -84,24 +82,27 @@ def _build_arg_parser():
     return p
 
 
-def cube_correlation(density_list, binary_list, size=3):
+def cube_correlation(density_list, binary_list, size=5):
     elem = np.arange(-(size//2), size//2 + 1).tolist()
     cube_ind = np.array(list(itertools.product(elem, elem, elem)))
 
     union = np.sum(binary_list, axis=0)
     corr_map = np.zeros(density_list[0].shape)
     indices = np.array(np.where(union)).T
-    for i, ind in enumerate(indices):
-        ind = tuple(ind)
+    if len(density_list) > 1:
+        for i, ind in enumerate(indices):
+            ind = tuple(ind)
 
-        cube_list = []
-        for density in density_list:
-            cube = map_coordinates(density, (cube_ind+ind).T, order=0)
+            cube_list = []
+            for density in density_list:
+                cube = map_coordinates(density, (cube_ind+ind).T, order=0)
 
-            if np.count_nonzero(cube) > 1:
-                cube_list.append(cube.ravel())
-        cov_matrix = np.triu(np.corrcoef(cube_list, cube_list), k=1)
-        corr_map[ind] = np.average(cov_matrix[cov_matrix > 0])
+                if np.count_nonzero(cube) > 1:
+                    cube_list.append(cube.ravel())
+            cov_matrix = np.triu(np.corrcoef(cube_list, cube_list), k=1)
+            corr_map[ind] = np.average(cov_matrix[cov_matrix > 0])
+    else:
+        corr_map = binary_list[0]
 
     return corr_map
 
@@ -112,8 +113,6 @@ def main():
     set_sft_logger_level('ERROR')
     assert_inputs_exist(parser, args.in_bundles + [args.in_centroid],
                         optional=args.reference)
-    assert_outputs_exist(parser, args, [args.out_labels_map,
-                         args.out_correlation_map])
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
     sft_centroid = load_tractogram_with_reference(parser, args,
@@ -157,20 +156,6 @@ def main():
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_centroid, args.in_bundle))
 
-    density_list = []
-    binary_list = []
-    for sft in sft_list:
-        density = compute_tract_counts_map(sft.streamlines,
-                                           sft.dimensions).astype(float)
-        binary = np.zeros(sft.dimensions)
-        binary[density > 0] = 1
-        binary_list.append(binary)
-
-        density = gaussian_filter(density, 1) * binary
-        density[binary < 1] += np.random.normal(0.0, 1.0,
-                                                binary[binary < 1].shape)
-        density_list.append(density)
-
     corr_map = cube_correlation(density_list, binary_list)
     # Slightly cut the bundle at the edgge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
@@ -196,7 +181,7 @@ def main():
 
     corr_map = corr_map*binary_bundle
     nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
-             args.out_correlation_map)
+             os.path.join(args.out_dir, 'corr_map.nii.gz'))
 
     # Chop off some streamlines
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
@@ -212,7 +197,8 @@ def main():
         args.nb_pts = len(sft_centroid.streamlines[0])
 
     clusters_map = qbx_and_merge(concat_sft.streamlines, [30, 20, 10, 5],
-                                 nb_pts=args.nb_pts, verbose=False)
+                                 nb_pts=args.nb_pts, verbose=False,
+                                 rng=np.random.RandomState(0))
     final_streamlines = []
     final_label = []
     final_dist = []
@@ -295,42 +281,55 @@ def main():
             img_labels[tuple(ind)] = np.round(
                 np.average(labels_val, weights=dist_vox))
             img_distances[tuple(ind)] = np.average(dist_vox)
-    final_labels = ndi.map_coordinates(img_labels,
-                                       final_streamlines._data.T-0.5,
+
+    for i, sft in enumerate(sft_list):
+        sub_out_dir = os.path.join(args.out_dir, '_{}'.format(i))
+        os.mkdir(sub_out_dir)
+        tmp_labels = ndi.map_coordinates(img_labels,
+                                         sft.streamlines._data.T-0.5,
+                                         order=0)
+        tmp_dists = ndi.map_coordinates(img_distances,
+                                        sft.streamlines._data.T-0.5,
+                                        order=0)
+        tmp_corr = ndi.map_coordinates(corr_map,
+                                       sft.streamlines._data.T-0.5,
                                        order=0)
-    final_dists = ndi.map_coordinates(img_distances,
-                                      final_streamlines._data.T-0.5,
-                                      order=0)
 
-    # Re-arrange the new cut streamlines and their metadata
-    # Compute the voxels equivalent of the labels maps
-    new_sft = StatefulTractogram.from_sft(final_streamlines, sft_list[0])
+        # Re-arrange the new cut streamlines and their metadata
+        # Compute the voxels equivalent of the labels maps
+        new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
+        nib.save(nib.Nifti1Image(img_labels, sft_list[0].affine),
+                 os.path.join(args.out_dir, 'labels_map.nii.gz'))
+        nib.save(nib.Nifti1Image(img_distances, sft_list[0].affine),
+                 os.path.join(args.out_dir, 'distances_map.nii.gz'))
 
-    nib.save(nib.Nifti1Image(img_labels, sft_list[0].affine),
-             args.out_labels_map)
-
-    if args.labels_color_dpp or args.distances_color_dpp \
-            or args.out_labels_npz or args.out_distances_npz:
         # WARNING: WILL NOT WORK WITH THE INPUT TRK !
         # These will fit only with the TRK saved below.
-        if args.out_labels_npz:
-            np.savez_compressed(args.out_labels_npz, final_labels)
-        if args.out_distances_npz:
-            np.savez_compressed(args.out_distances_npz, final_dists)
+        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_labels.npz'),
+                            tmp_labels)
+        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_dists.npz'),
+                            tmp_dists)
+        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_corr.npz'),
+                            tmp_corr)
 
         cmap = plt.get_cmap(args.colormap)
         new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
 
         # Nicer visualisation for MI-Brain
-        if args.labels_color_dpp:
-            new_sft.data_per_point['color']._data = cmap(
-                final_labels / np.max(final_labels))[:, 0:3] * 255
-            save_tractogram(new_sft, args.labels_color_dpp)
+        new_sft.data_per_point['color']._data = cmap(
+            tmp_labels / np.max(tmp_labels))[:, 0:3] * 255
+        save_tractogram(new_sft,
+                        os.path.join(sub_out_dir, 'labels.trk'))
 
-        if args.distances_color_dpp:
-            new_sft.data_per_point['color']._data = cmap(
-                final_dists / np.max(final_dists))[:, 0:3] * 255
-            save_tractogram(new_sft, args.distances_color_dpp)
+        new_sft.data_per_point['color']._data = cmap(
+            tmp_dists / np.max(tmp_dists))[:, 0:3] * 255
+        save_tractogram(new_sft,
+                        os.path.join(sub_out_dir, 'dists.trk'))
+
+        new_sft.data_per_point['color']._data = cmap(
+            tmp_corr / np.max(tmp_corr))[:, 0:3] * 255
+        save_tractogram(new_sft,
+                        os.path.join(sub_out_dir, 'corr.trk'))
 
 
 if __name__ == '__main__':
