@@ -20,16 +20,20 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial.ckdtree import cKDTree
+import itertools
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             assert_output_dirs_exist_and_empty)
 from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
+from scipy.ndimage import map_coordinates
+from scipy.ndimage.filters import gaussian_filter
 
 
 def _build_arg_parser():
@@ -37,25 +41,38 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p.add_argument('in_bundle',
+    p.add_argument('in_bundles', nargs='+',
                    help='Fiber bundle file.')
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
     p.add_argument('out_labels_map',
                    help='Nifti image with corresponding labels.')
+    p.add_argument('out_correlation_map',
+                   help='Nifti image with corresponding labels.')
+    p.add_argument('out_dir',
+                   help='Nifti image with corresponding labels.')
 
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
                         'Default is the number of points of the centroid.')
-
-    p.add_argument('--out_labels_npz', metavar='FILE',
+    p.add_argument('--min_streamline_count', type=int, default=100,
+                   help='Minimum number of streamlines for filtering/cutting'
+                        'operation [%(default)s].')
+    p.add_argument('--min_voxel_count', type=int, default=1000,
+                   help='Minimum number of voxels for filtering/cutting'
+                        'operation [%(default)s].')
+    p.add_argument('--out_labels_npz_suff', metavar='FILE',
                    help='File mapping of points to labels.')
-    p.add_argument('--out_distances_npz', metavar='FILE',
+    p.add_argument('--out_correlation_npz_suff', metavar='FILE',
+                   help='File mapping of points to distances.')
+    p.add_argument('--out_distances_npz_suff', metavar='FILE',
                    help='File mapping of points to distances.')
 
-    p.add_argument('--labels_color_dpp', metavar='FILE',
+    p.add_argument('--labels_color_dpp_suff', metavar='FILE',
                    help='Save bundle with labels coloring (.trk).')
-    p.add_argument('--distances_color_dpp', metavar='FILE',
+    p.add_argument('--correlation_color_dpp_suff', metavar='FILE',
+                   help='Save bundle with labels coloring (.trk).')
+    p.add_argument('--distances_color_dpp_suff', metavar='FILE',
                    help='Save bundle with distances coloring (.trk).')
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
@@ -67,65 +84,126 @@ def _build_arg_parser():
     return p
 
 
+def cube_correlation(density_list, binary_list, size=3):
+    elem = np.arange(-(size//2), size//2 + 1).tolist()
+    cube_ind = np.array(list(itertools.product(elem, elem, elem)))
+
+    union = np.sum(binary_list, axis=0)
+    corr_map = np.zeros(density_list[0].shape)
+    indices = np.array(np.where(union)).T
+    for i, ind in enumerate(indices):
+        ind = tuple(ind)
+
+        cube_list = []
+        for density in density_list:
+            cube = map_coordinates(density, (cube_ind+ind).T, order=0)
+
+            if np.count_nonzero(cube) > 1:
+                cube_list.append(cube.ravel())
+        cov_matrix = np.triu(np.corrcoef(cube_list, cube_list), k=1)
+        corr_map[ind] = np.average(cov_matrix[cov_matrix > 0])
+
+    return corr_map
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     set_sft_logger_level('ERROR')
-    assert_inputs_exist(parser,
-                        [args.in_bundle, args.in_centroid],
+    assert_inputs_exist(parser, args.in_bundles + [args.in_centroid],
                         optional=args.reference)
-    assert_outputs_exist(parser, args, args.out_labels_map,
-                         optional=[args.out_labels_npz,
-                                   args.out_distances_npz,
-                                   args.labels_color_dpp,
-                                   args.distances_color_dpp])
+    assert_outputs_exist(parser, args, [args.out_labels_map,
+                         args.out_correlation_map])
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
-    sft_bundle = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
-
-    if not len(sft_bundle.streamlines):
-        logging.error('Empty bundle file {}. '
-                      'Skipping'.format(args.in_bundle))
-        raise ValueError
-
     if len(sft_centroid.streamlines) < 1 \
             or len(sft_centroid.streamlines) > 1:
         logging.error('Centroid file {} should contain one streamline. '
                       'Skipping'.format(args.in_centroid))
         raise ValueError
 
-    if not is_header_compatible(sft_centroid, sft_bundle):
+    sft_list = []
+    for filename in args.in_bundles:
+        sft = load_tractogram_with_reference(parser, args, filename)
+        if not len(sft.streamlines):
+            logging.error('Empty bundle file {}. '
+                          'Skipping'.format(args.in_bundle))
+            raise ValueError
+        sft.to_vox()
+        sft.to_corner()
+        sft_list.append(sft)
+
+        if len(sft_list):
+            if not is_header_compatible(sft_list[0], sft_list[-1]):
+                parser.error('ERROR HEADER')
+
+    density_list = []
+    binary_list = []
+    for sft in sft_list:
+        density = compute_tract_counts_map(sft.streamlines,
+                                           sft.dimensions).astype(float)
+        binary = np.zeros(sft.dimensions)
+        binary[density > 0] = 1
+        binary_list.append(binary)
+
+        density = gaussian_filter(density, 1) * binary
+        density[binary < 1] += np.random.normal(0.0, 1.0,
+                                                binary[binary < 1].shape)
+        density_list.append(density)
+
+    if not is_header_compatible(sft_centroid, sft_list[0]):
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_centroid, args.in_bundle))
 
-    sft_bundle.to_vox()
-    sft_bundle.to_corner()
+    density_list = []
+    binary_list = []
+    for sft in sft_list:
+        density = compute_tract_counts_map(sft.streamlines,
+                                           sft.dimensions).astype(float)
+        binary = np.zeros(sft.dimensions)
+        binary[density > 0] = 1
+        binary_list.append(binary)
 
+        density = gaussian_filter(density, 1) * binary
+        density[binary < 1] += np.random.normal(0.0, 1.0,
+                                                binary[binary < 1].shape)
+        density_list.append(density)
+
+    corr_map = cube_correlation(density_list, binary_list)
     # Slightly cut the bundle at the edgge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
-    binary_bundle = compute_tract_counts_map(sft_bundle.streamlines,
-                                             sft_bundle.dimensions).astype(
-                                                 np.bool)
+    binary_bundle = np.zeros(corr_map.shape, dtype=bool)
+    binary_bundle[corr_map > 0.5] = 1
+    min_streamlines_count = 0
+    for sft in sft_list:
+        min_streamlines_count = min(len(sft), min_streamlines_count)
 
-    structure = ndi.generate_binary_structure(3, 1)
-    if len(sft_bundle) > 1000:
-        if np.count_nonzero(binary_bundle) > 10000:
-            binary_bundle = ndi.binary_dilation(binary_bundle,
-                                                structure=np.ones((3, 3, 3)))
-            binary_bundle = ndi.binary_erosion(binary_bundle,
-                                               structure=structure,
-                                               iterations=2)
+    structure_cross = ndi.generate_binary_structure(3, 1)
+    structure_ball = ndi.generate_binary_structure(3, 3)
+    if np.count_nonzero(binary_bundle) > args.min_voxel_count \
+            and min_streamlines_count > args.min_streamline_count:
+        binary_bundle = ndi.binary_dilation(binary_bundle,
+                                            structure=structure_cross)
+        binary_bundle = ndi.binary_erosion(binary_bundle,
+                                           structure=structure_ball)
 
-        bundle_disjoint, _ = ndi.label(binary_bundle)
-        unique, count = np.unique(bundle_disjoint, return_counts=True)
-        val = unique[np.argmax(count[1:])+1]
-        binary_bundle[bundle_disjoint != val] = 0
+    bundle_disjoint, _ = ndi.label(binary_bundle)
+    unique, count = np.unique(bundle_disjoint, return_counts=True)
+    val = unique[np.argmax(count[1:])+1]
+    binary_bundle[bundle_disjoint != val] = 0
 
-        # Chop off some streamlines
-        cut_sft = cut_outside_of_mask_streamlines(sft_bundle, binary_bundle)
-    else:
-        cut_sft = sft_bundle
+    corr_map = corr_map*binary_bundle
+    nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
+             args.out_correlation_map)
+
+    # Chop off some streamlines
+    concat_sft = StatefulTractogram.from_sft([], sft_list[0])
+    for i in range(len(sft_list)):
+        sft_list[i] = cut_outside_of_mask_streamlines(sft_list[i],
+                                                      binary_bundle)
+        concat_sft += sft_list[i]
 
     if args.nb_pts is not None:
         sft_centroid = resample_streamlines_num_points(sft_centroid,
@@ -133,7 +211,7 @@ def main():
     else:
         args.nb_pts = len(sft_centroid.streamlines[0])
 
-    clusters_map = qbx_and_merge(cut_sft.streamlines, [30, 20, 10, 5],
+    clusters_map = qbx_and_merge(concat_sft.streamlines, [30, 20, 10, 5],
                                  nb_pts=args.nb_pts, verbose=False)
     final_streamlines = []
     final_label = []
@@ -226,9 +304,9 @@ def main():
 
     # Re-arrange the new cut streamlines and their metadata
     # Compute the voxels equivalent of the labels maps
-    new_sft = StatefulTractogram.from_sft(final_streamlines, sft_bundle)
+    new_sft = StatefulTractogram.from_sft(final_streamlines, sft_list[0])
 
-    nib.save(nib.Nifti1Image(img_labels, sft_bundle.affine),
+    nib.save(nib.Nifti1Image(img_labels, sft_list[0].affine),
              args.out_labels_map)
 
     if args.labels_color_dpp or args.distances_color_dpp \
