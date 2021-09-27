@@ -20,8 +20,10 @@ import glob
 import argparse
 import time
 from shutil import copyfile
+from pathlib import Path
 # from itertools import compress
-from multiprocessing import Pool
+from multiprocessing import (Pool,
+                             current_process)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -144,15 +146,48 @@ def loop_on_strm(streamlines, voxel_list, nstart=0):
     return vox_dict
 
 
-def strm_multi(vdict, stream_tupled, out_dir, templ_i):
-    for vox in vdict:
-        out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
-        out_Ftmp = os.path.join(out_dir, out_name)
-        vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
-        for strmInd in vdict[vox]:
-            for v in stream_tupled[strmInd]:
-                vox_vol[v] = 1
-        save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
+def strm_multi(vdict, stream_tupled=None, out_dir=None, templ_i=None, logs=False):
+    if 'dict_var' in globals():  # When in a worker of a pool
+        stream_tupled = dict_var['stream_tupled']
+        out_dir = dict_var['out_dir']
+        templ_i = dict_var['templ_i']
+    if logs:
+        current = current_process()
+        logDir = str(Path(out_dir).parent.absolute())
+        if current.name == 'MainProcess':
+            logFile = os.path.join(logDir, 'log.txt')
+        else:
+            logFile = os.path.join(logDir, f'log_{current._identity[0]}.txt')
+        for vox in vdict:
+            out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+            logtxt = f'Processing and saving {out_name}\n'
+            with open(logFile, "a") as log:
+                log.write(logtxt)
+            out_Ftmp = os.path.join(out_dir, out_name)
+            vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
+            for strmInd in vdict[vox]:
+                for v in stream_tupled[strmInd]:
+                    vox_vol[v] = 1
+            save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
+        logtxt = 'Processing over for this worker\n'
+        with open(logFile, "a") as log:
+            log.write(logtxt)
+    else:
+        for vox in vdict:
+            out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+            out_Ftmp = os.path.join(out_dir, out_name)
+            vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
+            for strmInd in vdict[vox]:
+                for v in stream_tupled[strmInd]:
+                    vox_vol[v] = 1
+            save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
+
+
+def init_worker(stream_tupled, out_dir, templ_i):
+    global dict_var
+    dict_var = {'stream_tupled': stream_tupled,
+                'out_dir': out_dir,
+                'templ_i': templ_i}
 
 # %%
 
@@ -211,11 +246,13 @@ def main():
                 vox_batchs = np.array_split(list(vox_dict), nb_proc)
                 vox_dict_batchs = [{tuple(v): vox_dict[tuple(v)] for v in vb} for vb in vox_batchs]
                 print('Starting parallel process')
-                with Pool(processes=nb_proc) as pool:
-                    poolCheck = pool.starmap_async(strm_multi, zip(vox_dict_batchs,
-                                                                   [stream_tupled]*nb_proc,
-                                                                   [args.out_dir]*nb_proc,
-                                                                   [templ_i]*nb_proc))
+                with Pool(processes=nb_proc,
+                          initializer=init_worker,
+                          initargs=(stream_tupled,
+                                    args.out_dir,
+                                    templ_i)
+                          ) as pool:
+                    poolCheck = pool.map_async(strm_multi, vox_dict_batchs)
                     while not poolCheck.ready():
                         time.sleep(1)
 
