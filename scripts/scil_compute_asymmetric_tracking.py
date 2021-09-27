@@ -264,12 +264,10 @@ def main():
         streamlines, seeds = track(tracker, mask, seed, param, compress=True,
                                    compression_error_threshold=args.compress,
                                    nbr_processes=args.nbr_processes,
-                                   pft_tracker=None,
                                    save_seeds=args.save_seeds)
     else:
         streamlines, seeds = track(tracker, mask, seed, param,
                                    nbr_processes=args.nbr_processes,
-                                   pft_tracker=None,
                                    save_seeds=args.save_seeds)
 
     if args.compress:

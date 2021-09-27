@@ -49,13 +49,13 @@ class SphericalHarmonicField(object):
             raise ValueError('Sphere must be symmetric. Call to '
                              'get_opposite_direction will fail.')
 
-        sphere = dipy.data.get_sphere(dipy_sphere)
-        sh_order, full_basis =\
+        self.sphere = dipy.data.get_sphere(dipy_sphere)
+        self.sh_order, self.full_basis =\
             get_sh_order_and_fullness(self.dataset.data.shape[-1])
-        self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
-                                 full_basis=full_basis, smooth=0.006,
+        self.B = sh_to_sf_matrix(self.sphere, self.sh_order, self.basis,
+                                 full_basis=self.full_basis, smooth=0.006,
                                  return_inv=False)
-        self.full_basis = full_basis
+        self.output_sf_image_suffix = 0
 
     def get_direction_neighbours(self, maxAngle):
         """

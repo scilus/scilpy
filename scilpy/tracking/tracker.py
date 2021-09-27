@@ -370,18 +370,19 @@ class deterministicMaximaTracker(abstractTracker):
         ----------
         pos: ndarray (3,)
             Current tracking position.
-        v_in: ndarray (3,)
+        v_in: TrackingDirection
             Previous tracking direction.
 
         Return
         ------
         direction: ndarray (3,)
-            The maxima closest to v_in. None if the no
+            The maxima closest to v_in. None if no
             valid maxima are available.
         """
         maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
         cosinus = 0
         v_out = None
+        # find the maxima closely aligned to previous sphere direction
         for d in maxima_direction:
             new_cosinus = np.dot(v_in, d)
             if new_cosinus > cosinus:
