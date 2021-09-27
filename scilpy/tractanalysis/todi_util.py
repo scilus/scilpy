@@ -2,9 +2,23 @@
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.ckdtree import cKDTree
+from scipy.sparse import bsr_matrix
 
 
-def streamlines_to_segments(streamlines):
+def _subdivide_streamline(streamline, n_steps):
+    if n_steps < 2:
+        return streamline
+
+    dirs = streamline[1:] - streamline[:-1]
+    subdivided = np.zeros((n_steps * (len(streamline) - 1) + 1, 3))
+    subdivided[::n_steps] = streamline
+    for s in range(1, n_steps):
+        subdivided[s::n_steps] = streamline[:-1] + s / n_steps * dirs
+
+    return subdivided
+
+
+def streamlines_to_segments(streamlines, n_steps=1):
     """Split streamlines into its segments.
 
     Parameters
@@ -20,6 +34,7 @@ def streamlines_to_segments(streamlines):
     vts_0_list = []
     vts_1_list = []
     for streamline in streamlines:
+        streamline = _subdivide_streamline(streamline, n_steps)
         vts_0_list.append(streamline[:-1])
         vts_1_list.append(streamline[1:])
 
@@ -48,7 +63,7 @@ def streamlines_to_endpoints(streamlines):
     return endpoints
 
 
-def streamlines_to_pts_dir_norm(streamlines):
+def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False):
     """Evaluate each segment: mid position, direction, length.
 
     Parameters
@@ -65,9 +80,11 @@ def streamlines_to_pts_dir_norm(streamlines):
     seg_norm : numpy.ndarray (2D)
         Length of all streamlines' segments.
     """
-    segments = streamlines_to_segments(streamlines)
+    segments = streamlines_to_segments(streamlines, n_steps)
     seg_mid = get_segments_mid_pts_positions(segments)
-    seg_dir, seg_norm = get_segments_dir_and_norm(segments)
+    seg_dir, seg_norm = get_segments_dir_and_norm(segments,
+                                                  seg_mid,
+                                                  asymmetric)
     return seg_mid, seg_dir, seg_norm
 
 
@@ -79,7 +96,10 @@ def get_segments_vectors(segments):
     return segments[1] - segments[0]
 
 
-def get_segments_dir_and_norm(segments):
+def get_segments_dir_and_norm(segments, seg_mid=None, asymmetric=False):
+    if asymmetric:
+        seg_vecs = get_segments_vectors(segments)
+        return get_vectors_dir_and_norm_rel_to_center(seg_vecs, seg_mid)
     return get_vectors_dir_and_norm(get_segments_vectors(segments))
 
 
@@ -87,6 +107,34 @@ def get_vectors_dir_and_norm(vectors):
     vectors_norm = compute_vectors_norm(vectors)
     vectors_dir = vectors / vectors_norm.reshape((-1, 1))
     return vectors_dir, vectors_norm
+
+
+def get_vectors_dir_and_norm_rel_to_center(vectors, seg_mid_pts):
+    """ Evaluates vectors direction and norm by taking into account the
+        orientation and position of segments in relation to the center
+        of voxel
+    """
+    vectors_norm = compute_vectors_norm(vectors)
+    vectors_dir = vectors / vectors_norm.reshape((-1, 1))
+
+    # we create an array of voxel centers for each of our points
+    vox_centers = seg_mid_pts.astype(int) + 0.5
+
+    # directions to center of voxel for each segment
+    dir_to_center = (vox_centers - seg_mid_pts).flatten()
+    r, c = (vectors_dir.shape[0], 3 * vectors_dir.shape[0])
+    rows = np.arange(r).repeat(3)
+    cols = np.arange(c)
+    dir_to_center_mat = bsr_matrix((dir_to_center, (rows, cols)), shape=(r, c))
+
+    # compute dot product between direction of vectors and direction to center
+    dots = dir_to_center_mat.dot(vectors_dir.flatten()).reshape((-1, 1))
+
+    # when dot is greater that 0, the vector goes toward the center
+    # of the voxel we flip the direction of such vectors
+    vectors_dir_rel = np.where(dots > 0, -vectors_dir, vectors_dir)
+
+    return vectors_dir_rel, vectors_norm
 
 
 def psf_from_sphere(sphere_vertices):
