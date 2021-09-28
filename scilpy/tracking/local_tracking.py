@@ -77,7 +77,6 @@ def track(tracker, mask, seed, param, compress=False,
                                             initargs=(data_file_name,
                                                       param.mmap_mode))
 
-                max_tries = 100  # default value for max_tries
                 lines_per_process, seeds_per_process = zip(*pool.map(
                     _get_streamlines_sub, zip(itertools.repeat(tracker),
                                               itertools.repeat(mask),
@@ -86,7 +85,6 @@ def track(tracker, mask, seed, param, compress=False,
                                               itertools.repeat(param),
                                               itertools.repeat(compress),
                                               itertools.repeat(compression_th),
-                                              itertools.repeat(max_tries),
                                               itertools.repeat(save_seeds))))
                 pool.close()
                 # Make sure all worker processes have exited before leaving

@@ -41,6 +41,10 @@ from scilpy.tracking.tracking_field import SphericalHarmonicField
 from scilpy.tracking.utils import TrackingParams
 
 
+DEFAULT_THETA_DET = 60
+DEFAULT_THETA_PROB = 20
+
+
 def buildArgsParser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
@@ -89,7 +93,8 @@ def buildArgsParser():
                         'double the computation time in the worst case.')
     p.add_argument('--theta', metavar='ANGLE', type=float,
                    help='Maximum angle (in degrees) between 2 steps. \n' +
-                        '[\'det\'=45, \'prob\'=20]')
+                        '[\'det\'={0}, \'prob\'={1}]'
+                        .format(DEFAULT_THETA_DET, DEFAULT_THETA_PROB))
     p.add_argument('--maxL_no_dir', metavar='MAX', type=float, default=1,
                    help='Maximum length without valid direction, in mm. ' +
                         '[%(default)s]')
@@ -181,9 +186,9 @@ def main():
     if args.theta is not None:
         theta = gm.math.radians(args.theta)
     elif args.algo == 'prob':
-        theta = gm.math.radians(20)
+        theta = gm.math.radians(DEFAULT_THETA_PROB)
     else:
-        theta = gm.math.radians(45)
+        theta = gm.math.radians(DEFAULT_THETA_DET)
 
     if args.mask_interp == 'nn':
         mask_interpolation = 'nearest'
