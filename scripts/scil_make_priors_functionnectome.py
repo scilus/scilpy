@@ -57,9 +57,10 @@ def _build_arg_parser():
     p.add_argument('--parallel_proc',
                    help='Number of parallel processes to launch '
                    '\n(Voxelwise priors only).')
-    # p.add_argument('--from_endpoints', action='store_true',  # TODO
-    #                help='Only streamlines with endpoints in the mask of the'
-    #                     ' voxel/region are taken into account')
+    p.add_argument('--from_endpoints',
+                   action='store_true',  # TODO
+                   help='Only streamlines with endpoints in the mask of the'
+                        ' voxel/region are taken into account')
     add_overwrite_arg(p)
 
     return p
@@ -69,7 +70,7 @@ def save_tmp_map(vol, file, affine):
     if os.path.isfile(file):
         vol = vol.astype('float32')
         tmp_i = nib.load(file)
-        tmp_vol = tmp_i.get_fdata()
+        tmp_vol = tmp_i.get_fdata(dtype=np.float32)
         vol += tmp_vol
     vol_str_i = nib.Nifti1Image(vol.astype('float32'), affine)
     nib.save(vol_str_i, file)
@@ -101,13 +102,16 @@ def tupled_streamlines(sft):
     return [list(zip(st.T[0], st.T[1], st.T[2])) for st in sft.streamlines]
 
 
-def visitation_mapping(area_mask, sft, out_Ftmp, affine):
+def visitation_mapping(area_mask, sft, out_Ftmp, affine, endpoints):
     '''
     Creates a binary volume of all streamlines passing trhough the ROI/mask
     and save it
     '''
     # 1
-    area_strm, _ = filter_grid_roi(sft, area_mask, 'any', False)
+    if endpoints:
+        area_strm, _ = filter_grid_roi(sft, area_mask, 'either_end', False)
+    else:
+        area_strm, _ = filter_grid_roi(sft, area_mask, 'any', False)
     # 2
     vol_strm = np.where(compute_tract_counts_map(area_strm.streamlines, area_mask.shape), 1, 0)
     # 3
@@ -116,8 +120,8 @@ def visitation_mapping(area_mask, sft, out_Ftmp, affine):
 
 def tmp2final(tmp_list, nb_trk, outdir, affine):
     for tmp_F in tmp_list:
-        tmp_i = nib.load(tmp_F, dtype=np.float32)
-        tmp_vol = tmp_i.get_fdata()
+        tmp_i = nib.load(tmp_F)
+        tmp_vol = tmp_i.get_fdata(dtype=np.float32)
         out_vol = tmp_vol/nb_trk
         out_name = os.path.basename(tmp_F).replace('_tmp', '')
         outF = os.path.join(outdir, out_name)
@@ -205,18 +209,17 @@ def main():
         parser.error(f'{args.in_dir_tractogram} is empty.')
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
-    templ_i = nib.load(args.in_template_file)
+    if args.parallel_proc is not None:
+        nb_proc = int(args.parallel_proc)
+    else:
+        nb_proc = 1
 
+    templ_i = nib.load(args.in_template_file)
     if args.in_reg_dir is None:
         templ_v = templ_i.get_fdata().astype(bool)
         max_file_nb = templ_v.sum()
     else:
         list_reg_files = glob.glob(os.path.join(args.in_reg_dir, '*.nii*'))
-
-    if args.parallel_proc is not None:
-        nb_proc = int(args.parallel_proc)
-    else:
-        nb_proc = 1
 
     trk_list = glob.glob(os.path.join(args.in_dir_tractogram, '*.trk'))
     for n, trk_F in enumerate(trk_list):
@@ -238,6 +241,8 @@ def main():
             voxel_list = np.argwhere(templ_v)
             voxel_list = [tuple(ind) for ind in voxel_list]
             stream_tupled = tupled_streamlines(trk_sft)
+            if args.from_endpoints:
+                stream_tupled = [[strm[0], strm[-1]] for strm in stream_tupled]
             vox_dict = loop_on_strm(stream_tupled, voxel_list)
             if nb_proc == 1:
                 print('Starting process')
@@ -285,7 +290,11 @@ def main():
                 reg_name = reg_fname[:reg_fname.find('.nii')]
                 out_name = f'probaMap_{reg_name}_tmp.nii.gz'
                 out_Ftmp = os.path.join(args.out_dir, out_name)
-                visitation_mapping(reg_mask, trk_sft, out_Ftmp, templ_i.affine)
+                visitation_mapping(reg_mask,
+                                   trk_sft,
+                                   out_Ftmp,
+                                   templ_i.affine,
+                                   args.from_endpoints)
         print(f'Elapsed time for current subject: {time.time()-t} sec')
         t = time.time()
     print('Last step: normalizing maps...')
@@ -294,11 +303,14 @@ def main():
         tmp2final(tmp_list, len(trk_list), args.out_dir, templ_i.affine)
     else:  # Parallel proc
         tmpF_batch = np.array_split(tmp_list, nb_proc)
+        print('Starting parallel process')
         with Pool(processes=nb_proc) as pool:
-            pool.starmap_async(tmp2final, zip(tmpF_batch,
-                                              [len(trk_list)]*nb_proc,
-                                              [args.out_dir]*nb_proc,
-                                              [templ_i.affine]*nb_proc,))
+            poolCheck = pool.starmap_async(tmp2final, zip(tmpF_batch,
+                                                          [len(trk_list)]*nb_proc,
+                                                          [args.out_dir]*nb_proc,
+                                                          [templ_i.affine]*nb_proc,))
+            while not poolCheck.ready():
+                time.sleep(1)
     print('Done. Process over.')
     print(f'Total elapsed time: {time.time()-t0} sec')
 
