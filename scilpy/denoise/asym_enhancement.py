@@ -76,6 +76,10 @@ def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
                                full_basis=out_full_basis)
 
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
+    out_norm_L1 = np.sum(np.abs(out_sh), axis=-1)
+    in_norm_L1 = np.sum(np.abs(in_sh), axis=-1)
+    out_sh[out_norm_L1 > 0.] /= out_norm_L1[out_norm_L1 > 0.][..., None]
+    out_sh *= in_norm_L1[..., None]
     return out_sh
 
 
