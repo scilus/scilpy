@@ -15,9 +15,9 @@ In the gm (or csf), we compute the response function in each voxels where
 the FA is below at threshold_fa_gm (or threshold_fa_csf) and where
 the MD is below threshold_md_gm (or threshold_md_csf).
 
-Based on B. Jeurissen et al., Multi-tissue constrained spherical
-deconvolution for improved analysis of multi-shell diffusion
-MRI data. Neuroimage (2014)
+Based on P. Karan et al., Enabling constrained spherical deconvolution and
+diffusional variance decomposition with tensor-valued diffusion MRI.
+BioRxiv (2020) https://www.biorxiv.org/content/10.1101/2021.04.07.438845v1
 """
 # Add Karan et al., 2021 when published.
 
