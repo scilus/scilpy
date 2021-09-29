@@ -78,7 +78,7 @@ def save_tmp_map(vol, file, affine):
 
 def voxelize_tractogram(sft):
     '''
-    Rounds all the points of the streamlines to the voxel they belong to and
+    Floor the points of the streamlines to the voxel they belong to and
     removes duplicate points.
 
     To avoid missing voxels, the tractogram step-size should be smaller than
@@ -88,7 +88,8 @@ def voxelize_tractogram(sft):
     sft.to_corner()
     voxed_strms = []
     for strm in sft.streamlines:
-        strm_r = np.rint(strm).astype(np.int32)
+        # strm_r = np.rint(strm).astype(np.int32)  # rounds, which is not correct here
+        strm_r = strm.astype(np.int32)  # Floors, which should be correct
         _, ind = np.unique(strm_r, return_index=True, axis=0)
         voxed_strms.append(strm_r[np.sort(ind)])
     return StatefulTractogram.from_sft(voxed_strms, sft)
