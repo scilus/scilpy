@@ -2,21 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Visualize bundles.
+Script to estimate the diameter of bundle(s) along their length.
+The script expects:
+- bundles with coherent endpoints from scil_uniformize_streamlines_endpoints.py
+- labels maps with around 5-50 points scil_compute_bundle_voxel_label_map.py
+    <5 is not enough, high risk of bad fit
+    >50 is too much, high risk of bad fit
+- bundles that are close to a tube
+    without major fanning in a single axis
+    fanning is in 2 directions (uniform dispersion) good approximation
 
-Example usages:
+The scripts print a JSON file with mean/std to be compatible with tractometry.
+WARNING: STD is in fact an ERROR measure from the fit and NOT an STD.
 
-# Visualize streamlines as tubes, each bundle with a different color
-$ scil_visualize_bundles.py path_to_bundles/ --shape tube \
-    --random_coloring 1337
-
-# Visualize a tractogram with each streamlines drawn as lines, colored with
-# their local orientation, but only load 1 in 10 streamlines
-$ scil_visualize_bundles.py tractogram.trk --shape line --subsample 10
-
-# Visualize CSTs as large tubes and color them from a list of colors in a file
-$ scil_visualize_bundles.py path_to_bundles/CST_* --width 0.5 \
-    --color_dict colors.json
+Since the estimation and fit quality is not always intuitive for some bundles
+and the tube with varying diameter is not easy to color/visualize,
+the script comes with its own VTK rendering to allow exploration of the data.
+(optional).
 """
 
 import argparse
@@ -47,13 +49,13 @@ def _build_arg_parser():
     p.add_argument('in_bundles', nargs='+',
                    help='List of tractography files supported by nibabel.')
     p.add_argument('in_labels', nargs='+',
-                   help='List of tractography files supported by nibabel.')
+                   help='List of labels maps that matches the bundles.')
 
     p2 = p.add_argument_group(title='Visualization options')
     p2.add_argument('--show_rendering', action='store_true',
                     help='Display VTK window.')
     p2.add_argument('--wireframe', action='store_true',
-                    help='Use wireframe for the tube.')
+                    help='Use wireframe for the tube rendering.')
     p2.add_argument('--error_coloring', action='store_true',
                     help='Use the fitting error to color the tube.')
     p2.add_argument('--width', type=float, default=0.2,
@@ -135,8 +137,6 @@ def fit_circle_2d(x, y):
     # Fit a circle in 2D using least-squares
     A = np.array([x, y, np.ones(len(x))]).T
     b = x**2 + y**2
-
-    # Solve by method of least squares
     params = np.linalg.lstsq(A, b, rcond=None)[0]
 
     # Get circle parameters from solution
@@ -255,10 +255,13 @@ def main():
             stats[bundle_name] = {'diameter': tmp_dict}
             continue
 
-        pts_labels = map_coordinates(data_labels, sft.streamlines._data.T-0.5,
-                                     order=0)
         counter = 0
         labels_dict = {label: ([], []) for label in unique_labels}
+        pts_labels = map_coordinates(data_labels,
+                                     sft.streamlines._data.T-0.5,
+                                     order=0)
+        # For each label, all positions and directions are needed to get
+        # a tube estimation per label.
         for streamline in sft.streamlines:
             direction = np.gradient(streamline, axis=0).tolist()
             curr_labels = pts_labels[counter:counter+len(streamline)].tolist()
@@ -271,30 +274,30 @@ def main():
             counter += len(streamline)
 
         centroid = np.zeros((len(unique_labels), 3))
-        diameter = np.zeros((len(unique_labels), 1))
+        radius = np.zeros((len(unique_labels), 1))
         error = np.zeros((len(unique_labels), 1))
         for key in unique_labels:
             key = int(key)
             c, d, e = fit_circle_in_space(labels_dict[key][0],
                                           labels_dict[key][1])
-            centroid[key-1], diameter[key-1], error[key-1] = c, d, e
+            centroid[key-1], radius[key-1], error[key-1] = c, d, e
 
         # Spatial smoothing to avoid degenerate estimation
         centroid_smooth = gaussian_filter(centroid, sigma=[1, 0],
                                           mode='nearest')
         centroid_smooth[::len(centroid)-1] = centroid[::len(centroid)-1]
-        diameter = gaussian_filter(diameter, sigma=1, mode='nearest')
+        radius = gaussian_filter(radius, sigma=1, mode='nearest')
         error = gaussian_filter(error, sigma=1, mode='nearest')
 
         tmp_dict = {}
         for label in unique_labels:
             tmp_dict['{}'.format(label).zfill(num_digits_labels)] \
-                = {'mean': float(diameter[label-1]),
+                = {'mean': float(radius[label-1])*2,
                    'std': float(error[label-1])}
         stats[bundle_name] = {'diameter': tmp_dict}
 
         if args.show_rendering:
-            tube_actor = create_tube(centroid_smooth, diameter, error,
+            tube_actor = create_tube(centroid_smooth, radius, error,
                                      wireframe=args.wireframe,
                                      error_coloring=args.error_coloring)
             scene.add(tube_actor)
