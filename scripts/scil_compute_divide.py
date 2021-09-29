@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute microstructure metrics using the DIVIDE method.
+Script to compute microstructure metrics using the DIVIDE method. In order to
+operate, the script needs at leats two different types of b-tensor encodings.
+Not that custom encodings are not yet supported, except for the cigar shape
+(b_delta = 0.5).
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the

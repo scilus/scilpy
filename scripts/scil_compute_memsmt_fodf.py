@@ -3,7 +3,15 @@
 
 """
 Script to compute multi-encoding multi-shell multi-tissue (memsmt)
-Constrained Spherical Deconvolution ODFs.
+Constrained Spherical Deconvolution ODFs. In order to operate,
+the script only needs the data from one type of b-tensor encoding. However,
+giving only a spherical one will not produce good fODFs, as it only probes
+spherical shapes. As for planar encoding, it should technically
+work alone, but seems to be very sensitive to noise and is yet to be properly
+documented. We thus suggest to always use at least the linear encoding, which
+will be equivalent to standard multi-shell multi-tissue if used alone, in
+combinaison with other encodings. Not that custom encodings are not yet
+supported, except for the cigar shape (b_delta = 0.5).
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the
