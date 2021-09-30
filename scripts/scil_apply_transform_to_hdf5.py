@@ -94,7 +94,7 @@ def main():
             deformation_data = None
             if args.in_deformation is not None:
                 deformation_data = np.squeeze(nib.load(
-                    args.in_deformation).get_fdata(dtype=np.float32))
+                    args.in_deformation).get_fdata(dtype=float))
             target_img = nib.load(args.in_target_file)
 
             for key in in_hdf5_file.keys():
@@ -135,7 +135,7 @@ def main():
 
                 group = out_hdf5_file[key]
                 group.create_dataset('data',
-                                     data=new_sft.streamlines._data.astype(np.float32))
+                                     data=new_sft.streamlines._data.astype(float))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
                 group.create_dataset('lengths',
