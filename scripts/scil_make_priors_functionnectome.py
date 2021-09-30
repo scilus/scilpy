@@ -58,9 +58,13 @@ def _build_arg_parser():
                    help='Number of parallel processes to launch '
                    '\n(Voxelwise priors only).')
     p.add_argument('--from_endpoints',
-                   action='store_true',  # TODO
+                   action='store_true',
                    help='Only streamlines with endpoints in the mask of the'
                         ' voxel/region are taken into account')
+    p.add_argument('--extremity_length',
+                   default=1,
+                   help='Number of away from an endpoint to consider as streamline'
+                        ' extremity. Only works with "--from_endpoints"')
     add_overwrite_arg(p)
 
     return p
@@ -214,6 +218,7 @@ def main():
         nb_proc = int(args.parallel_proc)
     else:
         nb_proc = 1
+    vox2end = int(args.extremity_length)
 
     templ_i = nib.load(args.in_template_file)
     if args.in_reg_dir is None:
@@ -243,8 +248,10 @@ def main():
             voxel_list = [tuple(ind) for ind in voxel_list]
             stream_tupled = tupled_streamlines(trk_sft)
             if args.from_endpoints:
-                stream_tupled = [[strm[0], strm[-1]] for strm in stream_tupled]
-            vox_dict = loop_on_strm(stream_tupled, voxel_list)
+                stream_tupled_endp = [strm[:vox2end] + strm[-vox2end:] for strm in stream_tupled]
+                vox_dict = loop_on_strm(stream_tupled_endp, voxel_list)
+            else:
+                vox_dict = loop_on_strm(stream_tupled, voxel_list)
             if nb_proc == 1:
                 print('Starting process')
                 strm_multi(vox_dict, stream_tupled, args.out_dir, templ_i)
