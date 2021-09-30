@@ -16,6 +16,21 @@ the bounding box), three strategies are available:
 3) --remove_invalid, automatically remove invalid streamlines before saving.
     Should not remove more than a few streamlines.
 4) --cut_invalid, automatically cut invalid streamlines before saving.
+
+Example:
+To apply transform from ANTS to tractogram. If the ANTS commands was
+MOVING->REFERENCE, this will bring a tractogram from MOVING->REFERENCE
+scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+                                        0GenericAffine.mat ${OUTPUT_NAME}
+                                        --inverse
+                                        --in_deformation 1InverseWarp.nii.gz
+
+If the ANTS commands was MOVING->REFERENCE, this will bring a tractogram
+from REFERENCE->MOVING
+scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+                                        0GenericAffine.mat ${OUTPUT_NAME}
+                                        --in_deformation 1Warp.nii.gz
+                                        --reverse_operation
 """
 
 import argparse
@@ -31,7 +46,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import transform_warp_streamlines
+from scilpy.utils.streamlines import transform_warp_sft
 
 
 def _build_arg_parser():
@@ -52,7 +67,9 @@ def _build_arg_parser():
                    help='Apply the inverse linear transformation.')
     p.add_argument('--in_deformation',
                    help='Path to the file containing a deformation field.')
-
+    p.add_argument('--reverse_operation', action='store_true',
+                   help='Apply the transformation in reverse (see doc),'
+                        'warp first, then linear.')
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--cut_invalid', action='store_true',
                          help='Cut invalid streamlines rather than removing '
@@ -89,12 +106,13 @@ def main():
         deformation_data = np.squeeze(nib.load(
             args.in_deformation).get_fdata(dtype=np.float32))
 
-    new_sft = transform_warp_streamlines(moving_sft, transfo,
-                                         args.in_target_file,
-                                         inverse=args.inverse,
-                                         deformation_data=deformation_data,
-                                         remove_invalid=args.remove_invalid,
-                                         cut_invalid=args.cut_invalid)
+    new_sft = transform_warp_sft(moving_sft, transfo,
+                                 args.in_target_file,
+                                 inverse=args.inverse,
+                                 reverse_op=args.reverse_operation,
+                                 deformation_data=deformation_data,
+                                 remove_invalid=args.remove_invalid,
+                                 cut_invalid=args.cut_invalid)
 
     if args.keep_invalid:
         if not new_sft.is_bbox_in_vox_valid():

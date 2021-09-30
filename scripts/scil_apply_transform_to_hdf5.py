@@ -8,14 +8,20 @@ nonlinear deformation (optional).
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Applying transformation to tractogram can lead to invalid streamlines (out of
-the bounding box), three strategies are available:
-1) default, crash at saving if invalid streamlines are present
-2) --keep_invalid, save invalid streamlines. Leave it to the user to run
-    scil_remove_invalid_streamlines.py if needed.
-3) --remove_invalid, automatically remove invalid streamlines before saving.
-    Should not remove more than a few streamlines.
-4) --cut_invalid, automatically cut invalid streamlines before saving.
+Example:
+To apply transform from ANTS to tractogram. If the ANTS commands was
+MOVING->REFERENCE, this will bring a tractogram from MOVING->REFERENCE
+scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+                                        0GenericAffine.mat ${OUTPUT_NAME}
+                                        --inverse
+                                        --in_deformation 1InverseWarp.nii.gz
+
+If the ANTS commands was MOVING->REFERENCE, this will bring a tractogram
+from REFERENCE->MOVING
+scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+                                        0GenericAffine.mat ${OUTPUT_NAME}
+                                        --in_deformation 1Warp.nii.gz
+                                        --reverse_operation
 """
 
 import argparse
@@ -33,7 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import transform_warp_streamlines
+from scilpy.utils.streamlines import transform_warp_sft
 
 
 def _build_arg_parser():
@@ -54,12 +60,14 @@ def _build_arg_parser():
                    help='Apply the inverse linear transformation.')
     p.add_argument('--in_deformation',
                    help='Path to the file containing a deformation field.')
+    p.add_argument('--reverse_operation', action='store_true',
+                   help='Apply the transformation in reverse (see doc),'
+                        'warp first, then linear.')
 
-    invalid = p.add_mutually_exclusive_group()
-    invalid.add_argument('--cut_invalid', action='store_true',
-                         help='Cut invalid streamlines rather than removing '
-                              'them.\nKeep the longest segment only.\n'
-                              'By default, invalid streamline are removed.')
+    p.add_argument('--cut_invalid', action='store_true',
+                   help='Cut invalid streamlines rather than removing them.\n'
+                        'Keep the longest segment only.\n'
+                        'By default, invalid streamline are removed.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -104,18 +112,17 @@ def main():
                                                 origin=Origin.TRACKVIS)
                 for dps_key in in_hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        print(type(in_hdf5_file[key][dps_key].value))
                         if in_hdf5_file[key][dps_key].value.shape \
                                 == in_hdf5_file[key]['offsets']:
                             moving_sft.data_per_streamline[dps_key] \
                                 = in_hdf5_file[key][dps_key]
 
-                new_sft = transform_warp_streamlines(
-                    moving_sft, transfo, target_img,
-                    inverse=args.inverse,
-                    deformation_data=deformation_data,
-                    remove_invalid=not args.cut_invalid,
-                    cut_invalid=args.cut_invalid)
+                new_sft = transform_warp_sft(moving_sft, transfo, target_img,
+                                             inverse=args.inverse,
+                                             deformation_data=deformation_data,
+                                             reverse_op=args.reverse_operation,
+                                             remove_invalid=not args.cut_invalid,
+                                             cut_invalid=args.cut_invalid)
                 new_sft.to_vox()
                 new_sft.to_corner()
 

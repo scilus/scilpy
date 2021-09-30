@@ -410,10 +410,9 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
     return fused_sft
 
 
-def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
-                               deformation_data=None,
-                               remove_invalid=True, cut_invalid=False):
-    # TODO rename transform_warp_sft
+def transform_warp_sft(sft, linear_transfo, target, inverse=False,
+                       reverse_op=False, deformation_data=None,
+                       remove_invalid=True, cut_invalid=False):
     """ Transform tractogram using a affine Subsequently apply a warp from
     antsRegistration (optional).
     Remove/Cut invalid streamlines to preserve sft validity.
@@ -428,6 +427,8 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
         Final reference for the tractogram after registration.
     inverse: boolean
         Apply the inverse linear transformation.
+    reverse_op: boolean
+        Apply both transformation in the reverse order
     deformation_data: np.ndarray
         4D array containing a 3D displacement vector in each voxel.
 
@@ -447,11 +448,17 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
     if inverse:
         linear_transfo = np.linalg.inv(linear_transfo)
 
-    streamlines = transform_streamlines(sft.streamlines,
-                                        linear_transfo)
+    if not reverse_op:
+        streamlines = transform_streamlines(sft.streamlines,
+                                            linear_transfo)
+    else:
+        streamlines = sft.streamlines
 
     if deformation_data is not None:
-        affine, _, _, _ = get_reference_info(target)
+        if not reverse_op:
+            affine, _, _, _ = get_reference_info(target)
+        else:
+            affine = sft.affine
 
         # Because of duplication, an iteration over chunks of points is
         # necessary for a big dataset (especially if not compressed)
@@ -485,6 +492,10 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
             streamlines._data[cur_position:max_position] = final_points.T
             cur_position = max_position
             nb_iteration -= 1
+
+    if reverse_op:
+        streamlines = transform_streamlines(streamlines,
+                                            linear_transfo)
 
     new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
                                  data_per_point=sft.data_per_point,
