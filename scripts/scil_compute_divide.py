@@ -171,6 +171,7 @@ def main():
                    args.in_bvec_spherical, args.in_bvec_custom]
     b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
 
+    nb_encodings = 0
     for i in range(4):
         enc = ["linear", "planar", "spherical", "custom"]
         if (input_files[i] is None and bvals_files[i] is None
@@ -181,6 +182,7 @@ def main():
         elif (input_files[i] is not None and bvals_files[i] is not None
               and bvecs_files[i] is not None):
             inclusive = 1
+            nb_encodings += 1
             if i == 3 and args.in_bdelta_custom is None:
                 inclusive = 0
         else:
@@ -189,6 +191,10 @@ def main():
             msg = """All of in_dwi, bval and bvec files are mutually needed
                   for {} encoding."""
             raise ValueError(msg.format(enc[i]))
+    if nb_encodings < 2:
+        msg = """At least two different b-tensor shapes are needed for the
+              script to work properly."""
+        raise ValueError(msg)
 
     tol = args.tolerance
     force_b0_thr = args.force_b0_threshold
