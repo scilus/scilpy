@@ -61,7 +61,7 @@ def _build_arg_parser():
     p2.add_argument('--width', type=float, default=0.2,
                     help='Width of tubes or lines representing streamlines'
                     '\n[Default: %(default)s]')
-    p2.add_argument('--opacity', type=int, default=0.1,
+    p2.add_argument('--opacity', type=float, default=0.1,
                     help='Opacity for the streamlines rendered with the tube.'
                     '\n[Default: %(default)s]')
     p2.add_argument('--background', metavar=('R', 'G', 'B'), nargs=3,
