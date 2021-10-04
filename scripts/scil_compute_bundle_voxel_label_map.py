@@ -71,10 +71,9 @@ def _build_arg_parser():
     return p
 
 
-def cube_correlation(density_list, binary_list, size=3):
+def cube_correlation(density_list, binary_list, size=5):
     elem = np.arange(-(size//2), size//2 + 1).tolist()
     cube_ind = np.array(list(itertools.product(elem, elem, elem)))
-
     union = np.sum(binary_list, axis=0)
     corr_map = np.zeros(density_list[0].shape)
     indices = np.array(np.where(union)).T
@@ -88,7 +87,9 @@ def cube_correlation(density_list, binary_list, size=3):
 
                 if np.count_nonzero(cube) > 1:
                     cube_list.append(cube.ravel())
-            cov_matrix = np.triu(np.corrcoef(cube_list, cube_list), k=1)
+
+            cube_list = np.array(cube_list).T
+            cov_matrix = np.triu(np.corrcoef(cube_list), k=1)
             corr_map[ind] = np.average(cov_matrix[cov_matrix > 0])
     else:
         corr_map = binary_list[0]
