@@ -65,7 +65,10 @@ def get_testing_files_dict():
              '3e27625a1e7f2484b7fa5028c95324cc'],
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
-             '6f0eff5154ff0973a3dc26db00e383ea']}
+             '6f0eff5154ff0973a3dc26db00e383ea'],
+            'btensor_testdata.zip':
+            ['1AMsKlbOZyPnT9TAbxcFzHS1b29aJWKDg',
+             '7c68524fca01268203dc8bfee340f037']}
 
 
 def _get_file_md5(filename):
