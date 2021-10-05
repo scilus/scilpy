@@ -3,11 +3,10 @@
 
 import os
 import tempfile
-import numpy as np
 
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
-fetch_data(get_testing_files_dict(), keys=['commit_amico.zip'])
+fetch_data(get_testing_files_dict(), keys=['btensor_testdata.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
@@ -16,58 +15,87 @@ def test_help_option(script_runner):
     assert ret.success
 
 
+def test_inputs_check(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi_lin = os.path.join(get_home(), 'btensor',
+                              'dwi_linear.nii.gz')
+    in_bval_lin = os.path.join(get_home(), 'btensor',
+                               'linear.bvals')
+    in_bvec_lin = os.path.join(get_home(), 'btensor',
+                               'linear.bvecs')
+    in_dwi_plan = os.path.join(get_home(), 'btensor',
+                               'dwi_planar.nii.gz')
+    in_bval_plan = os.path.join(get_home(), 'btensor',
+                                'planar.bvals')
+    in_bvec_plan = os.path.join(get_home(), 'btensor',
+                                'planar.bvecs')
+    in_wm_frf = os.path.join(get_home(), 'btensor',
+                             'wm_frf.txt')
+    in_gm_frf = os.path.join(get_home(), 'btensor',
+                             'gm_frf.txt')
+    in_csf_frf = os.path.join(get_home(), 'btensor',
+                              'csf_frf.txt')
+
+    ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
+                            in_gm_frf, in_csf_frf, '--in_dwis',
+                            in_dwi_lin, in_dwi_plan, '--in_bvals',
+                            in_bval_lin, '--in_bvecs', in_bvec_lin,
+                            '--in_bdeltas', '1',
+                            '--wm_out_fODF', 'wm_fodf.nii.gz',
+                            '--gm_out_fODF', 'gm_fodf.nii.gz',
+                            '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
+                            'vf.nii.gz', '--sh_order', '4', '--sh_basis',
+                            'tournier07', '--processes', '1', '-f')
+    assert (not ret.success)
+
+    ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
+                            in_gm_frf, in_csf_frf, '--in_dwis',
+                            in_dwi_lin, in_dwi_plan, '--in_bvals',
+                            in_bval_lin, in_bval_plan, '--in_bvecs',
+                            in_bvec_lin, in_bvec_plan, '--in_bdeltas',
+                            '1', '-0.5', '0',
+                            '--wm_out_fODF', 'wm_fodf.nii.gz',
+                            '--gm_out_fODF', 'gm_fodf.nii.gz',
+                            '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
+                            'vf.nii.gz', '--sh_order', '4', '--sh_basis',
+                            'tournier07', '--processes', '1', '-f')
+    assert (not ret.success)
+
+
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'commit_amico',
-                          'dwi.nii.gz')
-    in_bval = os.path.join(get_home(), 'commit_amico',
-                           'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'commit_amico',
-                           'dwi.bvec')
-    in_wm_frf = os.path.join(get_home(), 'commit_amico',
+    in_dwi_lin = os.path.join(get_home(), 'btensor',
+                              'dwi_linear.nii.gz')
+    in_bval_lin = os.path.join(get_home(), 'btensor',
+                               'linear.bvals')
+    in_bvec_lin = os.path.join(get_home(), 'btensor',
+                               'linear.bvecs')
+    in_dwi_plan = os.path.join(get_home(), 'btensor',
+                               'dwi_planar.nii.gz')
+    in_bval_plan = os.path.join(get_home(), 'btensor',
+                                'planar.bvals')
+    in_bvec_plan = os.path.join(get_home(), 'btensor',
+                                'planar.bvecs')
+    in_dwi_sph = os.path.join(get_home(), 'btensor',
+                              'dwi_spherical.nii.gz')
+    in_bval_sph = os.path.join(get_home(), 'btensor',
+                               'spherical.bvals')
+    in_bvec_sph = os.path.join(get_home(), 'btensor',
+                               'spherical.bvecs')
+    in_wm_frf = os.path.join(get_home(), 'btensor',
                              'wm_frf.txt')
-    in_gm_frf = os.path.join(get_home(), 'commit_amico',
+    in_gm_frf = os.path.join(get_home(), 'btensor',
                              'gm_frf.txt')
-    in_csf_frf = os.path.join(get_home(), 'commit_amico',
+    in_csf_frf = os.path.join(get_home(), 'btensor',
                               'csf_frf.txt')
-    out_wm_frf = os.path.join(get_home(), 'commit_amico',
-                              'wm_frf_btens.txt')
-    out_gm_frf = os.path.join(get_home(), 'commit_amico',
-                              'gm_frf_btens.txt')
-    out_csf_frf = os.path.join(get_home(), 'commit_amico',
-                               'csf_frf_btens.txt')
-    mask = os.path.join(get_home(), 'commit_amico',
-                        'mask.nii.gz')
-    wm_frf = np.loadtxt(in_wm_frf)
-    wm_frf_btensor = np.zeros((wm_frf.shape[0] * 3, wm_frf.shape[1]))
-    wm_frf_btensor[0:3] = wm_frf
-    wm_frf_btensor[3:6] = wm_frf
-    wm_frf_btensor[6:9] = wm_frf
-    np.savetxt(out_wm_frf, wm_frf_btensor)
 
-    gm_frf = np.loadtxt(in_gm_frf)
-    gm_frf_btensor = np.zeros((gm_frf.shape[0] * 3, gm_frf.shape[1]))
-    gm_frf_btensor[0:3] = gm_frf
-    gm_frf_btensor[3:6] = gm_frf
-    gm_frf_btensor[6:9] = gm_frf
-    np.savetxt(out_gm_frf, gm_frf_btensor)
-
-    csf_frf = np.loadtxt(in_csf_frf)
-    csf_frf_btensor = np.zeros((csf_frf.shape[0] * 3, csf_frf.shape[1]))
-    csf_frf_btensor[0:3] = csf_frf
-    csf_frf_btensor[3:6] = csf_frf
-    csf_frf_btensor[6:9] = csf_frf
-    np.savetxt(out_csf_frf, csf_frf_btensor)
-
-    ret = script_runner.run('scil_compute_memsmt_fodf.py', out_wm_frf,
-                            out_gm_frf, out_csf_frf, '--in_dwi_linear',
-                            in_dwi, '--in_bval_linear', in_bval,
-                            '--in_bvec_linear', in_bvec, '--in_dwi_planar',
-                            in_dwi, '--in_bval_planar', in_bval,
-                            '--in_bvec_planar', in_bvec, '--in_dwi_spherical',
-                            in_dwi, '--in_bval_spherical', in_bval,
-                            '--in_bvec_spherical', in_bvec,
-                            '--mask', mask, '--wm_out_fODF', 'wm_fodf.nii.gz',
+    ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
+                            in_gm_frf, in_csf_frf, '--in_dwis',
+                            in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
+                            in_bval_lin, in_bval_plan, in_bval_sph,
+                            '--in_bvecs', in_bvec_lin, in_bvec_plan,
+                            in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
+                            '--wm_out_fODF', 'wm_fodf.nii.gz',
                             '--gm_out_fODF', 'gm_fodf.nii.gz',
                             '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
                             'vf.nii.gz', '--sh_order', '4', '--sh_basis',

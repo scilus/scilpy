@@ -14,7 +14,7 @@ combinaison with other encodings. Note that custom encodings are not yet
 supported, except for the cigar shape (b_delta = 0.5). Moreover, all of
 `--in_dwis`, `--in_bvals`, `--in_bvecs` and `--in_bdeltas` must have the same
 number of arguments. Be sure to keep the same order of encodings throughout all
-these inputs and to set `--in_bdeltas` accordingly.
+these inputs and to set `--in_bdeltas` accordingly (IMPORTANT).
 
 The script computes a response function for white-matter (wm),
 gray-matter (gm), csf and the mean b=0.

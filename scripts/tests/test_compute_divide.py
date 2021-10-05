@@ -18,17 +18,17 @@ def test_help_option(script_runner):
 def test_nb_btensors_check(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(get_home(), 'btensor',
-                          'dwi_linear.nii.gz')
+                              'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvals')
+                               'linear.bvals')
     in_bvec_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvecs')
+                               'linear.bvecs')
     in_dwi_plan = os.path.join(get_home(), 'btensor',
-                          'dwi_planar.nii.gz')
+                               'dwi_planar.nii.gz')
     in_bval_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvals')
+                                'planar.bvals')
     in_bvec_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvecs')
+                                'planar.bvecs')
     fa = os.path.join(get_home(), 'btensor',
                       'fa.nii.gz')
 
@@ -41,9 +41,9 @@ def test_nb_btensors_check(script_runner):
     assert (not ret.success)
 
     ret = script_runner.run('scil_compute_divide.py', '--in_dwis',
-                            in_dwi_lin, in_dwi_lin, '--in_bvals', in_bval_lin,
-                            in_bval_lin, '--in_bvecs', in_bvec_lin,
-                            in_bvec_lin, '--in_bdeltas', '1', '1',
+                            in_dwi_lin, in_dwi_plan, '--in_bvals', in_bval_lin,
+                            in_bval_plan, '--in_bvecs', in_bvec_lin,
+                            in_bvec_plan, '--in_bdeltas', '1', '1',
                             '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
                             '--redo_weight_bvals', '--processes', '1', '-f')
@@ -53,17 +53,17 @@ def test_nb_btensors_check(script_runner):
 def test_inputs_check(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(get_home(), 'btensor',
-                          'dwi_linear.nii.gz')
+                              'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvals')
+                               'linear.bvals')
     in_bvec_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvecs')
+                               'linear.bvecs')
     in_dwi_plan = os.path.join(get_home(), 'btensor',
-                          'dwi_planar.nii.gz')
+                               'dwi_planar.nii.gz')
     in_bval_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvals')
+                                'planar.bvals')
     in_bvec_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvecs')
+                                'planar.bvecs')
     fa = os.path.join(get_home(), 'btensor',
                       'fa.nii.gz')
 
@@ -88,23 +88,23 @@ def test_inputs_check(script_runner):
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi_lin = os.path.join(get_home(), 'btensor',
-                          'dwi_linear.nii.gz')
+                              'dwi_linear.nii.gz')
     in_bval_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvals')
+                               'linear.bvals')
     in_bvec_lin = os.path.join(get_home(), 'btensor',
-                           'linear.bvecs')
+                               'linear.bvecs')
     in_dwi_plan = os.path.join(get_home(), 'btensor',
-                          'dwi_planar.nii.gz')
+                               'dwi_planar.nii.gz')
     in_bval_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvals')
+                                'planar.bvals')
     in_bvec_plan = os.path.join(get_home(), 'btensor',
-                           'planar.bvecs')
+                                'planar.bvecs')
     in_dwi_sph = os.path.join(get_home(), 'btensor',
-                          'dwi_spherical.nii.gz')
+                              'dwi_spherical.nii.gz')
     in_bval_sph = os.path.join(get_home(), 'btensor',
-                           'spherical.bvals')
+                               'spherical.bvals')
     in_bvec_sph = os.path.join(get_home(), 'btensor',
-                           'spherical.bvecs')
+                               'spherical.bvecs')
     fa = os.path.join(get_home(), 'btensor',
                       'fa.nii.gz')
 
