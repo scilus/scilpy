@@ -30,19 +30,16 @@ import numpy as np
 from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.io.utils import get_reference_info, create_tractogram_header
 from nibabel.streamlines.tractogram import LazyTractogram
-from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_processes_arg, add_sh_basis_args,
+                             add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.trackable_dataset import Dataset, Seed, BinaryMask
 from scilpy.tracking.local_tracking import track
 from scilpy.tracking.tracker import (probabilisticTracker,
                                      deterministicMaximaTracker)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
 from scilpy.tracking.utils import TrackingParams
-
-
-DEFAULT_THETA_DET = 60
-DEFAULT_THETA_PROB = 20
+from scilpy.tracking.tools import get_theta
 
 
 def buildArgsParser():
@@ -93,8 +90,7 @@ def buildArgsParser():
                         'double the computation time in the worst case.')
     p.add_argument('--theta', metavar='ANGLE', type=float,
                    help='Maximum angle (in degrees) between 2 steps. \n' +
-                        '[\'det\'={0}, \'prob\'={1}]'
-                        .format(DEFAULT_THETA_DET, DEFAULT_THETA_PROB))
+                        '["det"=45, "prob"=20]')
     p.add_argument('--maxL_no_dir', metavar='MAX', type=float, default=1,
                    help='Maximum length without valid direction, in mm. ' +
                         '[%(default)s]')
@@ -125,8 +121,6 @@ def buildArgsParser():
                    help="If set, tracks in one direction only (forward or \n" +
                         "backward) given the initial seed. The direction is" +
                         "\nrandomly drawn from the ODF.")
-    p.add_argument('--processes', dest='nbr_processes', type=int, default=0,
-                   help='Number of sub processes to start. [cpu count]')
     p.add_argument('--load_data', action='store_true', dest='isLoadData',
                    help='If set, loads data in memory for all processes. \n' +
                         'Increases the speed, and the memory requirements.')
@@ -141,6 +135,7 @@ def buildArgsParser():
                         ' \nthe \'data_per_streamline\' attribute')
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_processes_arg(p)
     return p
 
 
@@ -183,12 +178,7 @@ def main():
         parser.error('maxL must be > than minL, (minL={0}mm, maxL={1}mm).'
                      .format(args.min_length, args.max_length))
 
-    if args.theta is not None:
-        theta = gm.math.radians(args.theta)
-    elif args.algo == 'prob':
-        theta = gm.math.radians(DEFAULT_THETA_PROB)
-    else:
-        theta = gm.math.radians(DEFAULT_THETA_DET)
+    theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     if args.mask_interp == 'nn':
         mask_interpolation = 'nearest'
