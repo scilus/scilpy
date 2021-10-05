@@ -10,8 +10,11 @@ spherical shapes. As for planar encoding, it should technically
 work alone, but seems to be very sensitive to noise and is yet to be properly
 documented. We thus suggest to always use at least the linear encoding, which
 will be equivalent to standard multi-shell multi-tissue if used alone, in
-combinaison with other encodings. Not that custom encodings are not yet
-supported, except for the cigar shape (b_delta = 0.5).
+combinaison with other encodings. Note that custom encodings are not yet
+supported, except for the cigar shape (b_delta = 0.5). Moreover, all of
+`--in_dwis`, `--in_bvals`, `--in_bvecs` and `--in_bdeltas` must have the same
+number of arguments. Be sure to keep the same order of encodings throughout all
+these inputs and to set `--in_bdeltas` accordingly.
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the
@@ -55,32 +58,19 @@ def _build_arg_parser():
     p.add_argument('in_csf_frf',
                    help='Text file of CSF response function.')
 
-    p.add_argument('--in_dwi_linear', metavar='file', default=None,
-                   help='Path of the linear input diffusion volume.')
-    p.add_argument('--in_bval_linear', metavar='file', default=None,
-                   help='Path of the linear bvals file, in FSL format.')
-    p.add_argument('--in_bvec_linear', metavar='file', default=None,
-                   help='Path of the linear bvecs file, in FSL format.')
-    p.add_argument('--in_dwi_planar', metavar='file', default=None,
-                   help='Path of the planar input diffusion volume.')
-    p.add_argument('--in_bval_planar', metavar='file', default=None,
-                   help='Path of the planar bvals file, in FSL format.')
-    p.add_argument('--in_bvec_planar', metavar='file', default=None,
-                   help='Path of the planar bvecs file, in FSL format.')
-    p.add_argument('--in_dwi_spherical', metavar='file', default=None,
-                   help='Path of the spherical input diffusion volume.')
-    p.add_argument('--in_bval_spherical', metavar='file', default=None,
-                   help='Path of the spherical bvals file, in FSL format.')
-    p.add_argument('--in_bvec_spherical', metavar='file', default=None,
-                   help='Path of the spherical bvecs file, in FSL format.')
-    p.add_argument('--in_dwi_custom', metavar='file', default=None,
-                   help='Path of the custom input diffusion volume.')
-    p.add_argument('--in_bval_custom', metavar='file', default=None,
-                   help='Path of the custom bvals file, in FSL format.')
-    p.add_argument('--in_bvec_custom', metavar='file', default=None,
-                   help='Path of the custom bvecs file, in FSL format.')
-    p.add_argument('--in_bdelta_custom', type=float, choices=[0, 1, -0.5, 0.5],
-                   help='Value of the b_delta for the custom encoding.')
+    p.add_argument('--in_dwis', nargs='+', required=True,
+                   help='Path to the input diffusion volume for each '
+                        'b-tensor encoding type.')
+    p.add_argument('--in_bvals', nargs='+', required=True,
+                   help='Path to the bval file, in FSL format, for each '
+                        'b-tensor encoding type.')
+    p.add_argument('--in_bvecs', nargs='+', required=True,
+                   help='Path to the bvec file, in FSL format, for each '
+                        'b-tensor encoding type.')
+    p.add_argument('--in_bdeltas', nargs='+', type=float,
+                   choices=[0, 1, -0.5, 0.5], required=True,
+                   help='Value of b_delta for each b-tensor encoding type, '
+                        'in the same order as dwi, bval and bvec inputs.')
 
     p.add_argument(
         '--sh_order', metavar='int', default=8, type=int,
@@ -230,41 +220,18 @@ def main():
                      'one file to output.')
 
     assert_inputs_exist(parser, [],
-                        optional=[args.in_dwi_linear, args.in_bval_linear,
-                                  args.in_bvec_linear,
-                                  args.in_dwi_planar, args.in_bval_planar,
-                                  args.in_bvec_planar,
-                                  args.in_dwi_spherical,
-                                  args.in_bval_spherical,
-                                  args.in_bvec_spherical])
+                        optional=list(np.concatenate((args.in_dwis,
+                                                      args.in_bvals,
+                                                      args.in_bvecs))))
     assert_outputs_exist(parser, args, arglist)
 
-    input_files = [args.in_dwi_linear, args.in_dwi_planar,
-                   args.in_dwi_spherical, args.in_dwi_custom]
-    bvals_files = [args.in_bval_linear, args.in_bval_planar,
-                   args.in_bval_spherical, args.in_bval_custom]
-    bvecs_files = [args.in_bvec_linear, args.in_bvec_planar,
-                   args.in_bvec_spherical, args.in_bvec_custom]
-    b_deltas_list = [1.0, -0.5, 0, args.in_bdelta_custom]
+    if not (len(args.in_dwis) == len(args.in_bvals)
+            == len(args.in_bvecs) == len(args.in_bdeltas)):
+        msg = """The number of given dwis, bvals, bvecs and bdeltas must be the
+              same. Please verify that all inputs were correctly inserted."""
+        raise ValueError(msg)
 
-    for i in range(4):
-        enc = ["linear", "planar", "spherical", "custom"]
-        if (input_files[i] is None and bvals_files[i] is None
-           and bvecs_files[i] is None):
-            inclusive = 1
-            if i == 3 and args.in_bdelta_custom is not None:
-                inclusive = 0
-        elif (input_files[i] is not None and bvals_files[i] is not None
-              and bvecs_files[i] is not None):
-            inclusive = 1
-            if i == 3 and args.in_bdelta_custom is None:
-                inclusive = 0
-        else:
-            inclusive = 0
-        if inclusive == 0:
-            msg = """All of in_dwi, bval and bvec files are mutually needed
-                  for {} encoding."""
-            raise ValueError(msg.format(enc[i]))
+    affine = extract_affine(args.in_dwis)
 
     tol = args.tolerance
     force_b0_thr = args.force_b0_threshold
@@ -272,14 +239,13 @@ def main():
     wm_frf = np.loadtxt(args.in_wm_frf)
     gm_frf = np.loadtxt(args.in_gm_frf)
     csf_frf = np.loadtxt(args.in_csf_frf)
-    gtab, data, ubvals, ubdeltas = generate_btensor_input(input_files,
-                                                          bvals_files,
-                                                          bvecs_files,
-                                                          b_deltas_list,
+
+    gtab, data, ubvals, ubdeltas = generate_btensor_input(args.in_dwis,
+                                                          args.in_bvals,
+                                                          args.in_bvecs,
+                                                          args.in_bdeltas,
                                                           force_b0_thr,
                                                           tol=tol)
-
-    affine = extract_affine(input_files)
 
     # Checking mask
     if args.mask is None:
