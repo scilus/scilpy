@@ -26,12 +26,12 @@ The output from COMMIT is:
 - compartment_IC.nii.gz (est. Intra-Cellular signal fraction)
 - compartment_ISO.nii.gz (est. isotropic signal fraction (freewater comportment))
     Each of COMMIT compartments
-- commit_weights.txt
+- streamline_weights.txt
     Text file containing the commit weights for each streamline of the
     input tractogram.
 - streamlines_length.txt
     Text file containing the length (mm) of each streamline
-- tot_commit_weights
+- tot_streamline_weights
     Text file containing the total commit weights of each streamline.
     Equal to commit_weights * streamlines_length (W_i * L_i)
 - essential.trk / non_essential.trk
@@ -199,19 +199,16 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     # Simplifying output for streamlines and cleaning output directory
     commit_results_dir = os.path.join(tmp_dir.name,
                                       'Results_StickZeppelinBall')
-    pk_file = open(os.path.join(commit_results_dir, 'results.pickle'), 'rb')
-    commit_output_dict = pickle.load(pk_file)
-    nbr_streamlines = lazy_streamlines_count(args.in_tractogram)
-    commit_weights = np.asarray(commit_output_dict[2][:nbr_streamlines])
-    np.savetxt(os.path.join(commit_results_dir, 'commit_weights.txt'),
-               commit_weights)
+    streamline_weights = np.loadtxt(os.path.join(commit_results_dir,
+                                                 'streamline_weights.txt'))
 
     sft = load_tractogram(args.in_tractogram, 'same')
     length_list = length(sft.streamlines)
     np.savetxt(os.path.join(commit_results_dir, 'streamlines_length.txt'),
                length_list)
-    np.savetxt(os.path.join(commit_results_dir, 'tot_commit_weights.txt'),
-               commit_weights*length_list)
+    np.savetxt(os.path.join(commit_results_dir,
+                            'streamline_weights_by_length.txt'),
+               streamline_weights*length_list)
 
     if ext == '.h5':
         new_filename = os.path.join(commit_results_dir,
@@ -227,12 +224,11 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
             for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
                 old_group = hdf5_file[key]
-                tmp_commit_weights = \
-                    commit_weights[offsets_list[i]:offsets_list[i+1]]
+                tmp_streamline_weights = \
+                    streamline_weights[offsets_list[i]:offsets_list[i+1]]
 
-                essential_ind = np.where(
-                    tmp_commit_weights > 0)[0]
-                tmp_commit_weights = tmp_commit_weights[essential_ind]
+                essential_ind = np.where(tmp_streamline_weights > 0)[0]
+                tmp_streamline_weights = tmp_streamline_weights[essential_ind]
 
                 tmp_streamlines = reconstruct_streamlines(old_group['data'],
                                                           old_group['offsets'],
@@ -261,9 +257,9 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                 dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
                     'tot_commit1_weights'
                 new_group.create_dataset(dps_key,
-                                         data=tmp_commit_weights)
+                                         data=tmp_streamline_weights)
                 new_group.create_dataset(dps_key_tot,
-                                         data=tmp_commit_weights*tmp_length_list)
+                                         data=tmp_streamline_weights*tmp_length_list)
 
     files = os.listdir(commit_results_dir)
     for f in files:
@@ -274,13 +270,11 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
     dps_key_tot = 'tot_commit2_weights' if is_commit_2 else \
         'tot_commit1_weights'
     # Reload is needed because of COMMIT handling its file by itself
-    sft.data_per_streamline[dps_key] = commit_weights
-    sft.data_per_streamline[dps_key_tot] = commit_weights*length_list
+    sft.data_per_streamline[dps_key] = streamline_weights
+    sft.data_per_streamline[dps_key_tot] = streamline_weights*length_list
 
-    essential_ind = np.where(
-        commit_weights > 0)[0]
-    nonessential_ind = np.where(
-        commit_weights <= 0)[0]
+    essential_ind = np.where(streamline_weights > 0)[0]
+    nonessential_ind = np.where(streamline_weights <= 0)[0]
     logging.debug('{} essential streamlines were kept at'.format(
         len(essential_ind)))
     logging.debug('{} nonessential streamlines were kept'.format(
