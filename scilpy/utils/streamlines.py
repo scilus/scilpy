@@ -610,7 +610,8 @@ def cut_invalid_streamlines(sft):
     cutting_counter : int
         Number of streamlines that were cut.
     """
-
+    if not len(sft):
+        return sft, 0
     sft.to_vox()
     sft.to_corner()
 
