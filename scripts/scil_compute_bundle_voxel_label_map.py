@@ -174,7 +174,7 @@ def main():
 
     corr_map = corr_map*binary_bundle
     nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
-             os.path.join(args.out_dir, 'corr_map.nii.gz'))
+             os.path.join(args.out_dir, 'correlation_map.nii.gz'))
 
     # Chop off some streamlines
     concat_sft = StatefulTractogram.from_sft([], sft_list[0])
@@ -255,8 +255,8 @@ def main():
     labels_array = ArraySequence(final_label)
     dist_array = ArraySequence(final_dist)
     kd_tree = cKDTree(final_streamlines._data)
-    img_labels = np.zeros(binary_bundle.shape, dtype=np.int16)
-    img_distances = np.zeros(binary_bundle.shape, dtype=float)
+    labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
+    distance_map = np.zeros(binary_bundle.shape, dtype=float)
     indices = np.nonzero(binary_bundle)
 
     for i in range(len(indices[0])):
@@ -271,56 +271,53 @@ def main():
                                   axis=1)
 
         if np.sum(dist_centro) > 0:
-            img_labels[tuple(ind)] = np.round(
+            labels_map[tuple(ind)] = np.round(
                 np.average(labels_val, weights=dist_centro*dist_vox))
-            img_distances[tuple(ind)] = np.average(dist_centro*dist_vox)
+            distance_map[tuple(ind)] = np.average(dist_centro*dist_vox)
         else:
-            img_labels[tuple(ind)] = np.round(
+            labels_map[tuple(ind)] = np.round(
                 np.average(labels_val, weights=dist_vox))
-            img_distances[tuple(ind)] = np.average(dist_vox)
+            distance_map[tuple(ind)] = np.average(dist_vox)
+
+    nib.save(nib.Nifti1Image(curr_labels, sft_list[0].affine),
+             os.path.join(args.out_dir, 'labels_map.nii.gz'))
+    nib.save(nib.Nifti1Image(distance_map, sft_list[0].affine),
+             os.path.join(args.out_dir, 'distance_map.nii.gz'))
 
     for i, sft in enumerate(sft_list):
-        sub_out_dir = os.path.join(args.out_dir, 'session_{}'.format(i+1))
+        if len(sft_list) > 1:
+            sub_out_dir = os.path.join(args.out_dir, 'session_{}'.format(i+1))
+            new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
+        else:
+            sub_out_dir = args.out_dir
         os.mkdir(sub_out_dir)
+
+        # Save each session map if multiple inputs
+        nib.save(nib.Nifti1Image(binary_list[i]*labels_map,
+                                 sft_list[0].affine),
+                 os.path.join(sub_out_dir, 'labels_map.nii.gz'))
+        nib.save(nib.Nifti1Image(binary_list[i]*distance_map,
+                                 sft_list[0].affine),
+                 os.path.join(sub_out_dir, 'distance_map.nii.gz'))
+        nib.save(nib.Nifti1Image(binary_list[i]*corr_map,
+                                 sft_list[0].affine),
+                 os.path.join(sub_out_dir, 'correlation_map.nii.gz'))
+
         if len(sft):
-            tmp_labels = ndi.map_coordinates(img_labels,
+            tmp_labels = ndi.map_coordinates(labels_map,
                                              sft.streamlines._data.T-0.5,
                                              order=0)
-            tmp_dists = ndi.map_coordinates(img_distances,
+            tmp_dists = ndi.map_coordinates(distance_map,
                                             sft.streamlines._data.T-0.5,
                                             order=0)
             tmp_corr = ndi.map_coordinates(corr_map,
                                            sft.streamlines._data.T-0.5,
                                            order=0)
-        else:
-            tmp_labels = []
-            tmp_dists = []
-            tmp_corr = []
-
-        # Re-arrange the new cut streamlines and their metadata
-        # Compute the voxels equivalent of the labels maps
-        new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
-        nib.save(nib.Nifti1Image(img_labels, sft_list[0].affine),
-                 os.path.join(args.out_dir, 'labels_map.nii.gz'))
-        nib.save(nib.Nifti1Image(img_distances, sft_list[0].affine),
-                 os.path.join(args.out_dir, 'distances_map.nii.gz'))
-
-        # WARNING: WILL NOT WORK WITH THE INPUT TRK !
-        # These will fit only with the TRK saved below.
-        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_labels.npz'),
-                            tmp_labels)
-        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_dists.npz'),
-                            tmp_dists)
-        np.savez_compressed(os.path.join(sub_out_dir, 'mapping_corr.npz'),
-                            tmp_corr)
-
-        if len(sft):
             cmap = plt.get_cmap(args.colormap)
             new_sft.data_per_point['color'] = ArraySequence(
                 new_sft.streamlines)
 
-        # Nicer visualisation for MI-Brain
-        if len(sft):
+            # Nicer visualisation for MI-Brain
             new_sft.data_per_point['color']._data = cmap(
                 tmp_labels / np.max(tmp_labels))[:, 0:3] * 255
         save_tractogram(new_sft,
@@ -330,13 +327,13 @@ def main():
             new_sft.data_per_point['color']._data = cmap(
                 tmp_dists / np.max(tmp_dists))[:, 0:3] * 255
         save_tractogram(new_sft,
-                        os.path.join(sub_out_dir, 'dists.trk'))
+                        os.path.join(sub_out_dir, 'distance.trk'))
 
         if len(sft):
             new_sft.data_per_point['color']._data = cmap(tmp_corr)[
                 :, 0:3] * 255
         save_tractogram(new_sft,
-                        os.path.join(sub_out_dir, 'corr.trk'))
+                        os.path.join(sub_out_dir, 'correlation.trk'))
 
 
 if __name__ == '__main__':

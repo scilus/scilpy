@@ -29,8 +29,8 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
-    p.add_argument('in_label_npz',
-                   help='Label map (.npz) of the corresponding fiber bundle.')
+    p.add_argument('in_labels',
+                   help='Label map (.nii.gz) of the corresponding fiber bundle.')
     p.add_argument('in_metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
@@ -38,10 +38,10 @@ def _build_arg_parser():
     p.add_argument('--density_weighting', action='store_true',
                    help='If set, weight statistics by the number of '
                         'streamlines passing through each voxel.')
-    p.add_argument('--distance_weighting', metavar='DISTANCE_NPZ',
+    p.add_argument('--distance_weighting', metavar='DISTANCE_NII',
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
-    p.add_argument('--correlation_weighting', metavar='CORRELATION_NPZ',
+    p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
                    help='')
     p.add_argument('--out_json',
                    help='Path of the output json file. If not given, json '
@@ -58,7 +58,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_bundle,
-                                 args.in_label_npz] + args.in_metrics,
+                                 args.in_labels] + args.in_metrics,
                         [args.distance_weighting, args.correlation_weighting])
     assert_outputs_exist(parser, args, '', args.out_json)
 
@@ -76,35 +76,26 @@ def main():
     assert_same_resolution(args.in_metrics)
     metrics = [nib.load(metric) for metric in args.in_metrics]
 
-    label_file = np.load(args.in_label_npz)
-    labels = label_file['arr_0']
+    labels_img = nib.load(args.in_labels)
+    labels = labels_img.get_fdata().astype(np.uint8)
 
     if args.distance_weighting:
-        distance_file = np.load(args.distance_weighting)
-        distances_values = distance_file['arr_0']
+        distance_file = nib.load(args.distance_weighting)
+        distances_values = distance_file.get_fdata()
     else:
         distances_values = None
 
     if args.correlation_weighting:
-        correlation_file = np.load(args.correlation_weighting)
-        correlation_values = correlation_file['arr_0']
+        correlation_file = nib.load(args.correlation_weighting)
+        correlation_values = correlation_file.get_fdata()
     else:
         correlation_values = None
-    # print()
-    if (isinstance(distances_values, np.ndarray)
-        and len(labels) != len(distances_values)) \
-            or (isinstance(correlation_values, np.ndarray)
-                and len(labels) != len(correlation_values)):
-        raise Exception(
-            "Label map doesn't contain the same number of entries as the "
-            "distance map. {} != {}".format(len(labels),
-                                            len(distances_values)))
 
     # Compute stats
     stats = get_bundle_metrics_mean_std_per_point(sft.streamlines, bundle_name,
+                                                  metrics, labels,
                                                   distances_values,
                                                   correlation_values,
-                                                  metrics, labels,
                                                   args.density_weighting)
 
     if args.out_json:
