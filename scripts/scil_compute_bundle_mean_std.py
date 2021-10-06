@@ -36,10 +36,14 @@ def _build_arg_parser():
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
 
-    p.add_argument('--density_weighting',
-                   action='store_true',
+    p.add_argument('--density_weighting', action='store_true',
                    help='If set, weight statistics by the number of '
                         'fibers passing through each voxel.')
+    p.add_argument('--distance_weighting', metavar='DISTANCE_NII',
+                   help='If set, weight statistics by the inverse of the '
+                        'distance between a streamline and the centroid.')
+    p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
+                   help='')
     p.add_argument('--include_dps', action='store_true',
                    help='Save values from data_per_streamline.')
     add_reference_arg(p)
@@ -61,9 +65,23 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
+    
+    if args.distance_weighting:
+        img = nib.load(args.distance_weighting)
+        distances_map = img.get_fdata()
+    else:
+        distances_map = None
+
+    if args.correlation_weighting:
+        img = nib.load(args.correlation_weighting)
+        correlation_map = img.get_fdata()
+    else:
+        correlation_map = None
 
     bundle_stats = get_bundle_metrics_mean_std(sft.streamlines,
                                                metrics,
+                                               distances_map,
+                                               correlation_map,
                                                args.density_weighting)
 
     bundle_name, _ = os.path.splitext(os.path.basename(args.in_bundle))

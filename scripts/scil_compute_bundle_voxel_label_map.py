@@ -203,7 +203,6 @@ def main():
         cluster_centroid = tmp_sft.streamlines[0] if args.new_labeling \
             else sft_centroid.streamlines[0]
         cluster_streamlines = ArraySequence(cluster[:])
-        # TODO N^2 growth in RAM, should split it if we want to do nb_pts = 100
         min_dist_label, min_dist = min_dist_to_centroid(cluster_streamlines._data,
                                                         cluster_centroid)
         min_dist_label += 1  # 0 means no labels
@@ -281,7 +280,7 @@ def main():
             img_distances[tuple(ind)] = np.average(dist_vox)
 
     for i, sft in enumerate(sft_list):
-        sub_out_dir = os.path.join(args.out_dir, '_{}'.format(i))
+        sub_out_dir = os.path.join(args.out_dir, 'session_{}'.format(i+1))
         os.mkdir(sub_out_dir)
         if len(sft):
             tmp_labels = ndi.map_coordinates(img_labels,

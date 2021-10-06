@@ -70,7 +70,8 @@ def compute_lesion_stats(map_data, lesion_atlas, single_label=True,
         if lesion_vols:
             section_dict['lesion_total_volume'][zlabel] = round(
                 np.sum(lesion_vols), 3)
-            section_dict['lesion_volume'][zlabel] = np.round(lesion_vols, 3).tolist()
+            section_dict['lesion_volume'][zlabel] = np.round(
+                lesion_vols, 3).tolist()
             section_dict['lesion_count'][zlabel] = float(len(lesion_vols))
         else:
             section_dict['lesion_total_volume'][zlabel] = 0.0
@@ -163,6 +164,7 @@ def weighted_mean_std(weights, data):
 
 
 def get_bundle_metrics_mean_std(streamlines, metrics_files,
+                                distance_values, correlation_values,
                                 density_weighting=True):
     """
     Returns the mean value of each metric for the whole bundle, only
@@ -193,6 +195,12 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
     if not density_weighting:
         weights = weights > 0
+    
+    if distance_values is not None:
+        weights *= distance_values
+        
+    if correlation_values is not None:
+        weights *= correlation_values
 
     return map(lambda metric_file:
                weighted_mean_std(weights,
@@ -201,10 +209,10 @@ def get_bundle_metrics_mean_std(streamlines, metrics_files,
 
 
 def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
-                                          distances_to_centroid_streamline,
+                                          distance_values,
+                                          correlation_values,
                                           metrics, labels,
-                                          density_weighting=False,
-                                          distance_weighting=False):
+                                          density_weighting=False):
     """
     Compute the mean and std PER POiNT of the bundle for every given metric.
 
@@ -214,8 +222,10 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
         Input streamlines under which to compute stats.
     bundle_name: str
         Name of the bundle. Will be used as a key in the dictionary.
-    distances_to_centroid_streamline: np.ndarray
-        List of distances obtained with scil_label_and_distance_maps.py
+    distance_values: np.ndarray
+        List of distances obtained with scil_compute_bundle_voxel_label_map.py
+    correlation_values: np.ndarray
+        List of correlation obtained with scil_compute_bundle_voxel_label_map.py
     metrics: sequence
         list of nibabel objects representing the metrics files
     labels: np.ndarray
@@ -242,7 +252,12 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     streamlines_count = streamlines_count.astype(np.float64)
 
     # Bigger weight near the centroid streamline
-    distances_to_centroid_streamline = 1.0 / distances_to_centroid_streamline
+    if isinstance(distance_values, np.ndarray):
+        dist_to_centroid = 1.0 / distance_values
+        dist_to_centroid[np.isinf(dist_to_centroid)] = -1
+        dist_to_centroid[dist_to_centroid < 0] = np.max(dist_to_centroid)
+    else:
+        dist_to_centroid = 1
 
     # Keep data as int to get the underlying voxel
     bundle_data_int = streamlines.get_data().astype(np.int16)
@@ -268,13 +283,14 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                              label_indices[:, 1],
                                              label_indices[:, 2]]
             label_weight = track_weight
-            if distance_weighting:
-                label_weight *= distances_to_centroid_streamline[labels == i]
+            if isinstance(distance_values, np.ndarray):
+                label_weight *= dist_to_centroid[labels == i]
+            if isinstance(correlation_values, np.ndarray):
+                label_weight *= correlation_values[labels == i]
             if np.sum(label_weight) == 0:
                 logging.warning('Weights sum to zero, can\'t be normalized. '
                                 'Disabling weighting')
                 label_weight = None
-
             label_mean = np.average(label_metric,
                                     weights=label_weight)
             label_std = np.sqrt(np.average(
