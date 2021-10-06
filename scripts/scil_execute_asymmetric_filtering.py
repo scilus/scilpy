@@ -38,7 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist)
 
-from scilpy.denoise.asym_enhancement import local_asym_filtering
+from scilpy.denoise.asym_enhancement import multivariate_bilateral_filtering
 
 
 def _build_arg_parser():
@@ -53,20 +53,28 @@ def _build_arg_parser():
 
     add_sh_basis_args(p)
 
+    p.add_argument('--out_sym', action='store_true',
+                   help='If set, saves output in symmetric SH basis.')
+
     p.add_argument('--sphere', default='repulsion724',
                    choices=sorted(SPHERE_FILES.keys()),
                    help='Sphere used for the SH to SF projection. '
                         '[%(default)s]')
 
-    p.add_argument('--sharpness', default=1.0, type=float,
-                   help='Specify sharpness factor to use for weighted average.'
+    p.add_argument('--sigma_angular', default=1.0, type=float,
+                   help='Standard deviation for angular distance.'
                         ' [%(default)s]')
 
-    p.add_argument('--sigma', default=1.0, type=float,
-                   help='Sigma of the gaussian to use. [%(default)s]')
+    p.add_argument('--sigma_spatial', default=1.0, type=float,
+                   help='Standard deviation for spatial distance.'
+                        ' [%(default)s]')
 
-    p.add_argument('--out_sym', action='store_true',
-                   help='If set, saves output in symmetric SH basis.')
+    p.add_argument('--sigma_range', default=1.0, type=float,
+                   help='Standard deviation for intensity range.'
+                        ' [%(default)s]')
+
+    p.add_argument('--covariance', default=0.0, type=float,
+                   help='Covariance of angular and spatial value.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -90,15 +98,18 @@ def main():
 
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
-    logging.info('Executing local asymmetric filtering.')
-    filtered_sh = local_asym_filtering(
+    var_cov = np.array([[args.sigma_spatial**2, args.covariance],
+                        [args.covariance, args.sigma_angular**2]])
+
+    logging.info('Executing asymmetric filtering.')
+    filtered_sh = multivariate_bilateral_filtering(
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,
         in_full_basis=full_basis,
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
-        dot_sharpness=args.sharpness,
-        sigma=args.sigma)
+        var_cov=var_cov,
+        sigma_range=args.sigma_range)
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
