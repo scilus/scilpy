@@ -139,18 +139,19 @@ def buildArgsParser():
     return p
 
 
-def get_voxmm_to_rasmm(ref_img):
+def unscale_streamlines(ref_img, streamlines):
     """
-    Create the affine to go from voxmm (expected space) to ras+ mm.
+    Remove voxel scaling from streamlines to express
+    streamlines in voxel space.
     """
-    # Use this to remove the scaling component from the reference affine.
-    # (voxel size is included in streamlines)
-    unscaling_matrix = np.eye(4)
+    unscaling_matrix = np.eye(3)
     unscaling_matrix[range(3), range(3)] = 1. / np.array(
         ref_img.header.get_zooms())
-    voxmm_to_rasmm = np.dot(ref_img.affine, unscaling_matrix)
+    vox_streamlines = []
+    for s in streamlines:
+        vox_streamlines.append(s.dot(unscaling_matrix))
 
-    return voxmm_to_rasmm
+    return vox_streamlines
 
 
 def main():
@@ -272,17 +273,14 @@ def main():
     # save seeds if args.save_seeds is given
     data_per_streamlines = {'seed': lambda: seeds} if args.save_seeds else {}
 
-    # get affine transform for tractogram
-    voxmm_to_rasmm = get_voxmm_to_rasmm(seed_img)
-
+    streamlines = unscale_streamlines(seed_img, streamlines)
     tractogram = LazyTractogram(lambda: streamlines,
                                 data_per_streamlines,
-                                affine_to_rasmm=voxmm_to_rasmm)
+                                affine_to_rasmm=seed_img.affine)
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)
-    _, dims, vox_size, vox_order = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, voxmm_to_rasmm, dims,
-                                      vox_size, vox_order)
+    reference = get_reference_info(seed_img)
+    header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)

@@ -21,6 +21,7 @@ def track(tracker, mask, seed, param, compress=False,
           save_seeds=False):
     """
     Generate a set of streamline from seed, mask and odf files.
+    The output tractogram is in voxmm space!
 
     Parameters
     ----------
