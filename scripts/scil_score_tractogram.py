@@ -268,8 +268,9 @@ def main():
 
     final_results = {}
     no_conn_sft = StatefulTractogram.from_sft(nc_streamlines, sft)
-    save_tractogram(no_conn_sft, os.path.join(
-        args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
+    if len(no_conn_sft) > 0:
+        save_tractogram(no_conn_sft, os.path.join(
+            args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
 
     # Total number of streamlines for each category
     # and statistic that are not "bundle-wise"
