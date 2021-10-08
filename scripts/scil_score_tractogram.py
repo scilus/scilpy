@@ -103,6 +103,8 @@ def _build_arg_parser():
                         *_wpc.[tck|trk].")
     p.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
+    p.add_argument("--no_empty", action='store_true',
+                   help='Do not write file if there is no streamline.')
 
     add_json_args(p)
     add_overwrite_arg(p)
@@ -208,17 +210,18 @@ def main():
             extract_prefix(args.gt_bundles[i]), gt_bundle_inv_masks[i],
             args.dilate_endpoints, args.wrong_path_as_separate)
         nc_streamlines.extend(nc)
-        if len(tc_sft) > 0:
+        if len(tc_sft) > 0 or not args.no_empty:
             save_tractogram(tc_sft, os.path.join(
                 args.out_dir, "{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
 
-        if len(wpc_sft) > 0:
+        if ((len(wpc_sft) > 0 or not args.no_empty)
+           and args.wrong_path_as_separate):
             save_tractogram(
                 wpc_sft, os.path.join(args.out_dir, "{}_{}_wpc{}".format(
                     prefix_1, prefix_2, ext)), bbox_valid_check=False)
 
-        if len(fc_sft) > 0:
+        if len(fc_sft) > 0 or not args.no_empty:
             save_tractogram(fc_sft, os.path.join(
                 args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
@@ -254,7 +257,7 @@ def main():
         fc_sft, sft = extract_false_connections(
             sft, mask_1_filename, mask_2_filename, args.dilate_endpoints)
 
-        if len(fc_sft) > 0:
+        if len(fc_sft) > 0 or not args.no_empty:
             save_tractogram(fc_sft, os.path.join(
                 args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
                 bbox_valid_check=False)
@@ -268,7 +271,7 @@ def main():
 
     final_results = {}
     no_conn_sft = StatefulTractogram.from_sft(nc_streamlines, sft)
-    if len(no_conn_sft) > 0:
+    if len(no_conn_sft) > 0 or not args.no_empty:
         save_tractogram(no_conn_sft, os.path.join(
             args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
 
