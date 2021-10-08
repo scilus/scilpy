@@ -2,7 +2,18 @@
 import numpy as np
 
 from scilpy.tracking.tools import sample_distribution
+from scilpy.tracking.tracking_field import AbstractTrackingField
 from scilpy.tracking.utils import TrackingDirection
+
+"""
+The propagator and tracker are inter-linked.
+
+Tracker: uses the .propagate function from it propagator (either rk1, rk2, rk4)
+Propagator: uses the .get_direction function from its tracker (either deter or 
+    proba)
+
+Then, the Tracker may be used in scil.local_tracking.track.
+"""
 
 
 class AbstractPropagator(object):
@@ -11,8 +22,8 @@ class AbstractPropagator(object):
 
     Parameters
     ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
+    tracker: scilpy tracker object (AbstractTracker, see below)
+        The tracker to use for the propagator.
     step_size: float
         The step size used for tracking.
     """
@@ -213,7 +224,8 @@ class AbstractTracker(object):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field, step_size, rk_order):
+    def __init__(self, tracking_field: AbstractTrackingField, step_size,
+                 rk_order):
         self.tracking_field = tracking_field
         self.step_size = step_size
         if rk_order == 1:
@@ -320,7 +332,8 @@ class ProbabilisticTracker(AbstractTracker):
     Parameters
     ----------
     tracking_field: scilpy tracking field object
-        The TrackingField object on which the tracking is done.
+        The TrackingField object on which the tracking is done. (Contains the
+        data and functions to access it at the current position).
     step_size: float
         The step size for tracking.
     rk_order: int
@@ -348,7 +361,8 @@ class ProbabilisticTracker(AbstractTracker):
         direction: ndarray (3,)
             A valid tracking direction. None if no valid direction is found.
         """
-        sf, directions = self.tracking_field.get_tracking_sf(pos, v_in)
+        sf, directions = self.tracking_field.get_next_direction(
+            pos, v_in, 'from_SF')
         if np.sum(sf) > 0:
             return directions[sample_distribution(sf)]
         return None
@@ -361,7 +375,8 @@ class DeterministicMaximaTracker(AbstractTracker):
     Parameters
     ----------
     tracking_field: scilpy tracking field object
-        The TrackingField object on which the tracking is done.
+        The TrackingField object on which the tracking is done. (Contains the
+        data and functions to access it at the current position).
     step_size: float
         The step size for tracking.
     rk_order: int
@@ -389,7 +404,8 @@ class DeterministicMaximaTracker(AbstractTracker):
             The maxima closest to v_in. None if the no
             valid maxima are available.
         """
-        maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
+        maxima_direction = self.tracking_field.get_next_direction(
+            pos, v_in, 'from_maxima')
         cosinus = 0
         v_out = None
         for d in maxima_direction:

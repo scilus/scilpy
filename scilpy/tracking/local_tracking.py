@@ -12,17 +12,21 @@ import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
 
+from scilpy.tracking.tracker import AbstractTracker
+
 data_file_info = None
 
 
-def track(tracker, mask, seed, param, compression_th=0.1, nbr_processes=1,
-          max_tries=None, save_seeds=False):
+def track(tracker: AbstractTracker, mask, seed, param, compression_th=0.1,
+          nbr_processes=1, max_tries=None, save_seeds=False):
     """
     Generate a set of streamline from seed, mask and odf files.
 
     Parameters
     ----------
     tracker : Tracker, tracking object.
+        See scilpy.tracking.tracker.abstractTracker. It contains a
+        tracking_field (input data) and a propagator.
     mask : Mask, tracking volume(s).
     seed : Seed, seeding volume.
     param: TrackingParams,

@@ -30,23 +30,19 @@ from dipy.data import SPHERE_FILES, get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
-from dipy.tracking.streamlinespeed import length, compress_streamlines
-from dipy.tracking import utils as track_utils
 import nibabel as nib
-from nibabel.streamlines.tractogram import LazyTractogram
 import numpy as np
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             add_verbose_arg)
 from scilpy.tracking.tools import get_theta
+from scilpy.tracking.utils import (load_mask_and_verify_anisotropy,
+                                   prepare_seeds, verify_tracking_args,
+                                   save_results)
 
 
 def _build_arg_parser():
@@ -200,67 +196,14 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    assert_inputs_exist(parser, [args.in_sh, args.in_seed, args.in_mask])
-    assert_outputs_exist(parser, args, args.out_tractogram)
-
-    if not nib.streamlines.is_supported(args.out_tractogram):
-        parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.out_tractogram))
-
-    if not args.min_length > 0:
-        parser.error('minL must be > 0, {}mm was provided.'
-                     .format(args.min_length))
-    if args.max_length < args.min_length:
-        parser.error('maxL must be > than minL, (minL={}mm, maxL={}mm).'
-                     .format(args.min_length, args.max_length))
-
-    if args.compress:
-        if args.compress < 0.001 or args.compress > 1:
-            logging.warning(
-                'You are using an error rate of {}.\nWe recommend setting it '
-                'between 0.001 and 1.\n0.001 will do almost nothing to the '
-                'tracts while 1 will higly compress/linearize the tracts'
-                .format(args.compress))
-
-    if args.npv and args.npv <= 0:
-        parser.error('Number of seeds per voxel must be > 0.')
-
-    if args.nt and args.nt <= 0:
-        parser.error('Total number of seeds must be > 0.')
-
-    mask_img = nib.load(args.in_mask)
-    mask_data = get_data_as_mask(mask_img, dtype=bool)
-
-    # Make sure the mask is isotropic. Else, the strategy used
-    # when providing information to dipy (i.e. working as if in voxel space)
-    # will not yield correct results.
-    fodf_sh_img = nib.load(args.in_sh)
-    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
-        parser.error(
-            'SH file is not isotropic. Tracking cannot be ran robustly.')
-
-    if args.npv:
-        nb_seeds = args.npv
-        seed_per_vox = True
-    elif args.nt:
-        nb_seeds = args.nt
-        seed_per_vox = False
-    else:
-        nb_seeds = 1
-        seed_per_vox = True
-
-    voxel_size = fodf_sh_img.header.get_zooms()[0]
-    vox_step_size = args.step_size / voxel_size
-    seed_img = nib.load(args.in_seed)
-    seeds = track_utils.random_seeds_from_mask(
-        seed_img.get_fdata(dtype=np.float32),
-        np.eye(4),
-        seeds_count=nb_seeds,
-        seed_count_per_voxel=seed_per_vox,
-        random_seed=args.seed)
+    verify_tracking_args(parser, args)
+    mask_data, voxel_size = load_mask_and_verify_anisotropy(args.in_mask,
+                                                            args.in_sh)
+    seed_img, seeds = prepare_seeds(args.in_seed, args.random_seed,
+                                    npv=args.npv, nt=args.nt)
 
     # Tracking is performed in voxel space
+    vox_step_size = args.step_size / voxel_size
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines = LocalTracking(
         _get_direction_getter(args),
@@ -272,35 +215,10 @@ def main():
         random_seed=args.seed,
         save_seeds=args.save_seeds)
 
-    scaled_min_length = args.min_length / voxel_size
-    scaled_max_length = args.max_length / voxel_size
-
-    if args.save_seeds:
-        filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines
-                  if scaled_min_length <= length(s) <= scaled_max_length))
-        data_per_streamlines = {'seeds': lambda: seeds}
-    else:
-        filtered_streamlines = \
-            (s for s in streamlines
-             if scaled_min_length <= length(s) <= scaled_max_length)
-        data_per_streamlines = {}
-
-    if args.compress:
-        filtered_streamlines = (
-            compress_streamlines(s, args.compress)
-            for s in filtered_streamlines)
-
-    tractogram = LazyTractogram(lambda: filtered_streamlines,
-                                data_per_streamlines,
-                                affine_to_rasmm=seed_img.affine)
-
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, *reference)
-
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+    # Using seed_img as ref to save results
+    save_results(streamlines, voxel_size, seed_img,
+                 args.min_length, args.max_length, args.save_seeds,
+                 args.compress, args.out_tractogram)
 
 
 if __name__ == '__main__':
