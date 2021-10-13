@@ -310,7 +310,7 @@ class BinaryMask(object):
             True if the position is inside the mask.
         """
         return (self.m.getPositionValue(*pos) > 0
-                and self.m.isPositionInBound(*pos))
+                and self.m.is_position_in_bound(*pos))
 
     def isStreamlineIncluded(self, pos):
         """

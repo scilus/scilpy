@@ -5,7 +5,7 @@ from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
 
-class abstractPropagator(object):
+class AbstractPropagator(object):
     """
     Base class for propagator objects.
 
@@ -34,7 +34,7 @@ class abstractPropagator(object):
         """
         pass
 
-    def getValidDirection(self, pos, v_in):
+    def get_valid_direction(self, pos, v_in):
         """
         Get the next valid direction given the position pos and
         input direction v_in.
@@ -63,7 +63,7 @@ class abstractPropagator(object):
         return is_valid_direction, v_out
 
 
-class rk1Propagator(abstractPropagator):
+class RK1Propagator(AbstractPropagator):
     """
     Implementation of the order 1 Runge Kutta integration, equivalent to
     the Euler integration method.
@@ -76,7 +76,7 @@ class rk1Propagator(abstractPropagator):
         The step size used for tracking.
     """
     def __init__(self, tracker, step_size):
-        super(rk1Propagator, self).__init__(tracker, step_size)
+        super(RK1Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         """
@@ -99,12 +99,12 @@ class rk1Propagator(abstractPropagator):
         is_valid_direction: bool
             True if new_dir is valid.
         """
-        is_valid_direction, new_dir = self.getValidDirection(pos, v_in)
+        is_valid_direction, new_dir = self.get_valid_direction(pos, v_in)
         new_pos = pos + self.step_size * np.array(new_dir)
         return new_pos, new_dir, is_valid_direction
 
 
-class rk2Propagator(abstractPropagator):
+class RK2Propagator(AbstractPropagator):
     """
     Implementation of the Runge Kutta integration method of order 2.
 
@@ -116,7 +116,7 @@ class rk2Propagator(abstractPropagator):
         The step size used for tracking.
     """
     def __init__(self, tracker, step_size):
-        super(rk2Propagator, self).__init__(tracker, step_size)
+        super(RK2Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         """
@@ -139,14 +139,14 @@ class rk2Propagator(abstractPropagator):
         is_valid_direction: bool
             True if new_dir is valid.
         """
-        is_valid_direction, dir1 = self.getValidDirection(pos, v_in)
-        newDir = self.getValidDirection(
+        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
+        new_dir = self.get_valid_direction(
             pos + 0.5 * self.step_size * np.array(dir1), dir1)[1]
-        newPos = pos + self.step_size * np.array(newDir)
-        return newPos, newDir, is_valid_direction
+        new_pos = pos + self.step_size * np.array(new_dir)
+        return new_pos, new_dir, is_valid_direction
 
 
-class rk4Propagator(abstractPropagator):
+class RK4Propagator(AbstractPropagator):
     """
     Implementation of the Runge Kutta integration method of order 4.
 
@@ -158,7 +158,7 @@ class rk4Propagator(abstractPropagator):
         The step size used for tracking.
     """
     def __init__(self, tracker, step_size):
-        super(rk4Propagator, self).__init__(tracker, step_size)
+        super(RK4Propagator, self).__init__(tracker, step_size)
 
     def propagate(self, pos, v_in):
         """
@@ -181,23 +181,26 @@ class rk4Propagator(abstractPropagator):
         is_valid_direction: bool
             True if new_dir is valid.
         """
-        is_valid_direction, dir1 = self.getValidDirection(pos, v_in)
+        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
         v1 = np.array(dir1)
-        dir2 = self.getValidDirection(pos + 0.5 * self.step_size * v1, dir1)[1]
+        dir2 = self.get_valid_direction(
+            pos + 0.5 * self.step_size * v1, dir1)[1]
         v2 = np.array(dir2)
-        dir3 = self.getValidDirection(pos + 0.5 * self.step_size * v2, dir2)[1]
+        dir3 = self.get_valid_direction(
+            pos + 0.5 * self.step_size * v2, dir2)[1]
         v3 = np.array(dir3)
-        dir4 = self.getValidDirection(pos + self.step_size * v3, dir3)[1]
+        dir4 = self.get_valid_direction(
+            pos + self.step_size * v3, dir3)[1]
         v4 = np.array(dir4)
 
-        newV = (v1 + 2 * v2 + 2 * v3 + v4) / 6
-        newDir = TrackingDirection(newV, dir1.index)
-        newPos = pos + self.step_size * newV
+        new_v = (v1 + 2 * v2 + 2 * v3 + v4) / 6
+        new_dir = TrackingDirection(new_v, dir1.index)
+        new_pos = pos + self.step_size * new_v
 
-        return newPos, newDir, is_valid_direction
+        return new_pos, new_dir, is_valid_direction
 
 
-class abstractTracker(object):
+class AbstractTracker(object):
     """
     Abstract class for tracker object.
 
@@ -214,14 +217,21 @@ class abstractTracker(object):
         self.tracking_field = tracking_field
         self.step_size = step_size
         if rk_order == 1:
-            self.propagator = rk1Propagator(self, step_size)
+            self.propagator = RK1Propagator(self, step_size)
         elif rk_order == 2:
-            self.propagator = rk2Propagator(self, step_size)
+            self.propagator = RK2Propagator(self, step_size)
         elif rk_order == 4:
-            self.propagator = rk4Propagator(self, step_size)
+            self.propagator = RK4Propagator(self, step_size)
         else:
             raise ValueError("Invalid runge-kutta order. Is " +
                              str(rk_order) + ". Choices : 1, 2, 4")
+
+        # Following values will be initialized when calling self.initialize
+        self.init_pos = None
+        self.forward_pos = None
+        self.backward_pos = None
+        self.forward_dir = None
+        self.backward_dir = None
 
     def initialize(self, pos):
         """
@@ -270,7 +280,7 @@ class abstractTracker(object):
         """
         return self.propagator.propagate(pos, v_in)
 
-    def isPositionInBound(self, pos):
+    def is_position_in_bound(self, pos):
         """
         Test if the streamline point is inside the boundary of the image.
 
@@ -284,7 +294,7 @@ class abstractTracker(object):
         value: bool
             True if the streamline point is inside the boundary of the image.
         """
-        return self.tracking_field.dataset.isPositionInBound(*pos)
+        return self.tracking_field.dataset.is_position_in_bound(*pos)
 
     def get_direction(self, pos, v_in):
         """
@@ -303,7 +313,7 @@ class abstractTracker(object):
         pass
 
 
-class probabilisticTracker(abstractTracker):
+class ProbabilisticTracker(AbstractTracker):
     """
     Probabilistic direction tracker.
 
@@ -317,7 +327,7 @@ class probabilisticTracker(abstractTracker):
         Order for the Runge Kutta integration.
     """
     def __init__(self, tracking_field, step_size, rk_order):
-        super(probabilisticTracker, self).__init__(
+        super(ProbabilisticTracker, self).__init__(
             tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):
@@ -338,13 +348,13 @@ class probabilisticTracker(abstractTracker):
         direction: ndarray (3,)
             A valid tracking direction. None if no valid direction is found.
         """
-        sf, directions = self.tracking_field.get_tracking_SF(pos, v_in)
+        sf, directions = self.tracking_field.get_tracking_sf(pos, v_in)
         if np.sum(sf) > 0:
             return directions[sample_distribution(sf)]
         return None
 
 
-class deterministicMaximaTracker(abstractTracker):
+class DeterministicMaximaTracker(AbstractTracker):
     """
     Deterministic direction tracker.
 
@@ -358,7 +368,7 @@ class deterministicMaximaTracker(abstractTracker):
         Order for the Runge Kutta integration.
     """
     def __init__(self, tracking_field, step_size, rk_order):
-        super(deterministicMaximaTracker, self).__init__(
+        super(DeterministicMaximaTracker, self).__init__(
             tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):
