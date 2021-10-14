@@ -94,7 +94,7 @@ class SphericalHarmonicField(object):
             Spherical function evaluated at pos, normalized by
             its maximum amplitude.
         """
-        sh = self.dataset.getPositionValue(*pos)
+        sh = self.dataset.get_position_value(*pos)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
         sf_max = np.max(sf)
@@ -120,10 +120,10 @@ class SphericalHarmonicField(object):
             The neighbours SF evaluated at pos in given direction and
             corresponding tracking directions.
         """
-        SF = self.get_sf(pos)
-        SF[SF < self.sf_threshold] = 0
+        sf = self.get_sf(pos)
+        sf[sf < self.sf_threshold] = 0
         inds = np.nonzero(self.tracking_neighbours[direction.index])[0]
-        return SF[inds], self.dirs[inds]
+        return sf[inds], self.dirs[inds]
 
     def get_tracking_maxima(self, pos, direction):
         """
@@ -142,11 +142,11 @@ class SphericalHarmonicField(object):
         maxima: list
             List of directions of maxima around the input direction at pos.
         """
-        SF = self.get_sf(pos)
-        SF[SF < self.sf_threshold] = 0
+        sf = self.get_sf(pos)
+        sf[sf < self.sf_threshold] = 0
         maxima = []
         for i in np.nonzero(self.tracking_neighbours[direction.index])[0]:
-            if 0 < SF[i] == np.max(SF[self.maxima_neighbours[i]]):
+            if 0 < sf[i] == np.max(sf[self.maxima_neighbours[i]]):
                 maxima.append(self.dirs[i])
         return maxima
 
@@ -165,11 +165,11 @@ class SphericalHarmonicField(object):
         value: tuple
             Initial direction to follow from pos and its opposite direction.
         """
-        SF = self.get_sf(pos)
-        SF[SF < self.sf_threshold_init] = 0
+        sf = self.get_sf(pos)
+        sf[sf < self.sf_threshold_init] = 0
 
-        if np.sum(SF) > 0:
-            ind = sample_distribution(SF)
+        if np.sum(sf) > 0:
+            ind = sample_distribution(sf)
             ind_opposite = self.get_opposite_direction(ind)
             return self.dirs[ind], self.dirs[ind_opposite]
         return None, None

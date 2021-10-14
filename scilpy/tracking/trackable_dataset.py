@@ -1,17 +1,32 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from dipy.core.interpolation import trilinear_interpolate4d, \
-                                    nearestneighbor_interpolate
+    nearestneighbor_interpolate
 
 
 class Dataset(object):
-
     """
     Class to access/interpolate data from nibabel object
     """
 
-    def __init__(self, img, interpolation='trilinear'):
+    def __init__(self, img, interpolation=None):
+        """
+        Parameters
+        ----------
+        img: nibabel image
+            The nibabel image from which to get the data
+        interpolation: str or None
+            The interpolation choice amongst "trilinear" or "nearest". If
+            None, functions getting a coordinate in mm instead of voxel
+            coordinates are not available.
+        """
         self.interpolation = interpolation
+        if self.interpolation:
+            if not (self.interpolation == 'trilinear' or
+                    self.interpolation == 'nearest'):
+                raise Exception("Interpolation must be 'trilinear' or "
+                                "'nearest'")
+
         self.pixdim = img.header.get_zooms()[:3]
         self.data = img.get_fdata(caching='unchanged', dtype=np.float64)
 
@@ -22,7 +37,7 @@ class Dataset(object):
         self.dim = self.data.shape[0:4]
         self.nbr_voxel = self.data.size
 
-    def getVoxelValue(self, x, y, z):
+    def get_voxel_value(self, i, j, k):
         """
         Get the voxel value at x, y, z in the dataset
         if the coordinates are out of bound, the nearest voxel
@@ -30,58 +45,47 @@ class Dataset(object):
 
         Parameters
         ----------
-        x: int
-            Voxel indice along first axis.
-        y: int
-            Voxel indice along second axis.
-        z: int
-            Voxel indice along third axis.
+        i, j, k: ints
+            Voxel indice along each axis.
 
         Return
         ------
         value: ndarray (self.dim[-1],)
             The value evaluated at voxel x, y, z.
         """
-        if not self.isVoxelInBound(x, y, z):
-            x = max(0, min(self.dim[0] - 1, x))
-            y = max(0, min(self.dim[1] - 1, y))
-            z = max(0, min(self.dim[2] - 1, z))
+        if not self.is_voxel_in_bound(i, j, k):
+            i = max(0, min(self.dim[0] - 1, i))
+            j = max(0, min(self.dim[1] - 1, j))
+            k = max(0, min(self.dim[2] - 1, k))
 
-        return self.data[x][y][z]
+        return self.data[i][j][k]
 
-    def isVoxelInBound(self, x, y, z):
+    def is_voxel_in_bound(self, i, j, k):
         """
         Test if voxel is in dataset range.
 
         Parameters
         ----------
-        x: int
-            Voxel indice along first axis.
-        y: int
-            Voxel indice along second axis.
-        z: int
-            Voxel indice along third axis.
+        i, j, k: ints
+            Voxel indice along each axis.
 
         Return
         ------
         out: bool
             True if voxel is in dataset range, False otherwise.
         """
-        return (x < self.dim[0] and y < self.dim[1] and z < self.dim[2] and
-                x >= 0 and y >= 0 and z >= 0)
+        return (0 <= i < self.dim[0] and 0 <= j < self.dim[1] and
+                0 <= k < self.dim[2])
 
-    def getVoxelAtPosition(self, x, y, z):
+    def get_voxel_at_position(self, x, y, z):
         """
-        Get the 3D indice of the voxel at position x, y, z expressed in mm.
+        Get the 3D indice of the closest voxel at position x, y, z expressed
+        in mm.
 
         Parameters
         ----------
-        x: float
-            Position coordinate (mm) along x axis.
-        y: float
-            Position coordinate (mm) along y axis.
-        z: float
-            Position coordinate (mm) along z axis.
+        x, y, z: floats
+            Position coordinate (mm) along x, y, z axis.
 
         Return
         ------
@@ -92,18 +96,14 @@ class Dataset(object):
                 (y + self.pixdim[1] / 2) // self.pixdim[1],
                 (z + self.pixdim[2] / 2) // self.pixdim[2]]
 
-    def getVoxelCoordinate(self, x, y, z):
+    def get_voxel_coordinate(self, x, y, z):
         """
         Get voxel space coordinates at position x, y, z (mm).
 
         Parameters
         ----------
-        x: float
-            Position coordinate (mm) along x axis.
-        y: float
-            Position coordinate (mm) along y axis.
-        z: float
-            Position coordinate (mm) along z axis.
+        x, y, z: floats
+            Position coordinate (mm) along x, y, z axis.
 
         Return
         ------
@@ -112,28 +112,24 @@ class Dataset(object):
         """
         return [x / self.pixdim[0], y / self.pixdim[1], z / self.pixdim[2]]
 
-    def getVoxelValueAtPosition(self, x, y, z):
+    def get_voxel_value_at_position(self, x, y, z):
         """
-        Get the voxel value at position x, y, z (mm) in the dataset.
+        Get value of the voxel closest to position x, y, z (mm) in the dataset.
         No interpolation is done.
 
         Parameters
         ----------
-        x: float
-            Position coordinate (mm) along x axis.
-        y: float
-            Position coordinate (mm) along y axis.
-        z: float
-            Position coordinate (mm) along z axis.
+        x, y, z: floats
+            Position coordinate (mm) along x, y, z axis.
 
         Return
         ------
         value: ndarray (self.dim[-1],)
             The value evaluated at position x, y, z.
         """
-        return self.getVoxelValue(*self.getVoxelAtPosition(x, y, z))
+        return self.get_voxel_value(*self.get_voxel_at_position(x, y, z))
 
-    def getPositionValue(self, x, y, z):
+    def get_position_value(self, x, y, z):
         """
         Get the voxel value at voxel position x, y, z (mm) in the dataset.
         If the coordinates are out of bound, the nearest voxel value is taken.
@@ -141,12 +137,8 @@ class Dataset(object):
 
         Parameters
         ----------
-        x: float
-            Position coordinate (mm) along x axis.
-        y: float
-            Position coordinate (mm) along y axis.
-        z: float
-            Position coordinate (mm) along z axis.
+        x, y, z: floats
+            Position coordinate (mm) along x, y, z axis.
 
         Return
         ------
@@ -154,55 +146,56 @@ class Dataset(object):
             Interpolated value at position x, y, z (mm). If the last dimension
             is of length 1, return a scalar value.
         """
-        if not self.isPositionInBound(x, y, z):
-            eps = float(1e-8)  # Epsilon to exclude upper borders
-            x = max(-self.pixdim[0] / 2,
-                    min(self.pixdim[0] * (self.dim[0] - 0.5 - eps), x))
-            y = max(-self.pixdim[1] / 2,
-                    min(self.pixdim[1] * (self.dim[1] - 0.5 - eps), y))
-            z = max(-self.pixdim[2] / 2,
-                    min(self.pixdim[2] * (self.dim[2] - 0.5 - eps), z))
-        coord = np.array(self.getVoxelCoordinate(x, y, z), dtype=np.float64)
+        if self.interpolation is not None:
+            if not self.is_position_in_bound(x, y, z):
+                eps = float(1e-8)  # Epsilon to exclude upper borders
+                x = max(-self.pixdim[0] / 2,
+                        min(self.pixdim[0] * (self.dim[0] - 0.5 - eps), x))
+                y = max(-self.pixdim[1] / 2,
+                        min(self.pixdim[1] * (self.dim[1] - 0.5 - eps), y))
+                z = max(-self.pixdim[2] / 2,
+                        min(self.pixdim[2] * (self.dim[2] - 0.5 - eps), z))
+            coord = np.array(self.get_voxel_coordinate(x, y, z),
+                             dtype=np.float64)
 
-        if self.interpolation == 'nearest':
-            result = nearestneighbor_interpolate(self.data, coord)
-        elif self.interpolation == 'trilinear':
-            result = trilinear_interpolate4d(self.data, coord)
+            if self.interpolation == 'nearest':
+                result = nearestneighbor_interpolate(self.data, coord)
+            else:
+                # Trilinear
+                result = trilinear_interpolate4d(self.data, coord)
+
+            # Squeezing returns only value instead of array of length 1 if 3D
+            # data
+            return np.squeeze(result)
+
         else:
-            raise Exception("Invalid interpolation method.")
+            raise Exception("No interpolation method was given, cannot run "
+                            "this method..")
 
-        # Squeezing returns only value instead of array of length 1 if 3D data
-        return np.squeeze(result)
-
-    def isPositionInBound(self, x, y, z):
+    def is_position_in_bound(self, x, y, z):
         """
         Test if the position x, y, z mm is in the dataset range.
 
         Parameters
         ----------
-        x: float
-            Position coordinate (mm) along x axis.
-        y: float
-            Position coordinate (mm) along y axis.
-        z: float
-            Position coordinate (mm) along z axis.
+        x, y, z: floats
+            Position coordinate (mm) along x, y, z axis.
 
         Return
         ------
         value: bool
             True if position is in dataset range and false otherwise.
         """
-        return self.isVoxelInBound(*self.getVoxelAtPosition(x, y, z))
+        return self.is_voxel_in_bound(*self.get_voxel_at_position(x, y, z))
 
 
-class Seed(Dataset):
-
+class SeedGenerator(Dataset):
     """
     Class to get seeding positions
     """
 
     def __init__(self, img):
-        super(Seed, self).__init__(img, False)
+        super(SeedGenerator, self).__init__(img, None)
         self.seeds = np.array(np.where(np.squeeze(self.data) > 0)).transpose()
 
     def get_next_pos(self, random_generator, indices, which_seed):
@@ -272,7 +265,7 @@ class Seed(Dataset):
         # Skip to the first seed of the current process' chunk,
         # multiply by 3 for x,y,z
         # Divide the generation to prevent RAM overuse
-        seed_to_go = np.asscalar(first_seed_of_chunk)*3
+        seed_to_go = np.asscalar(first_seed_of_chunk) * 3
         while seed_to_go > 100000:
             random_generator.rand(100000)
             seed_to_go -= 100000
@@ -282,7 +275,6 @@ class Seed(Dataset):
 
 
 class BinaryMask(object):
-
     """
     Mask class for binary mask.
     """
@@ -309,7 +301,7 @@ class BinaryMask(object):
         value: bool
             True if the position is inside the mask.
         """
-        return (self.m.getPositionValue(*pos) > 0
+        return (self.m.get_position_value(*pos) > 0
                 and self.m.is_position_in_bound(*pos))
 
     def isStreamlineIncluded(self, pos):
