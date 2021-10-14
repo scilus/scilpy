@@ -16,7 +16,7 @@ data_file_info = None
 
 
 def track(tracker, mask, seed, param, compression_th=0.1, nbr_processes=1,
-          save_seeds=False):
+          max_tries=None, save_seeds=False):
     """
     Generate a set of streamline from seed, mask and odf files.
 
@@ -31,6 +31,10 @@ def track(tracker, mask, seed, param, compression_th=0.1, nbr_processes=1,
         Maximal distance threshold for compression. If None or 0, no
         compression is applied.
     nbr_processes: int, number of sub processes to use.
+    max_tries: int
+        Maximum number of tries in the case where the chosen arg is ns (track
+        a total number of streamlines. If None, the default will be
+        10 * param.nbr_streamlines.
     save_seeds: bool, whether to save the seeds associated to their
         respective streamlines
     Return
@@ -101,7 +105,8 @@ def track(tracker, mask, seed, param, compression_th=0.1, nbr_processes=1,
             warnings.warn("No multiprocessing implemented while computing " +
                           "a fixed number of streamlines.")
         lines, seeds = get_n_streamlines(tracker, mask, seed, param,
-                                         compression_th, save_seeds=save_seeds)
+                                         compression_th, max_tries=max_tries,
+                                         save_seeds=save_seeds)
 
     return lines, seeds
 
@@ -141,7 +146,7 @@ def _get_streamlines_at_seeds_sub(args):
 
 def get_n_streamlines(tracker, mask, seeding_mask, param,
                       compression_error_threshold=0.1,
-                      max_tries=100, save_seeds=True):
+                      max_tries=None, save_seeds=True):
     """
     Generate N valid streamlines, where N is param.nbr_streamlines
 
@@ -149,36 +154,40 @@ def get_n_streamlines(tracker, mask, seeding_mask, param,
     ----------
     tracker : Tracker, tracking object.
     mask : Mask, tracking volume(s).
-    seeding_mask : Seed, seeding volume.
+    seeding_mask : scilpy.tracking.Trackable_dataset
+        Seeding volume.
     param: TrackingParams, tracking parameters.
     compression_error_threshold : float,
         Maximal distance threshold for compression. If None or 0, no
         compression is applied.
     max_tries: int
+        Maximum number of tries in the case where the chosen arg is ns (track
+        a total number of streamlines. If None, the default will be
+        10 * param.nbr_streamlines.
     save_seeds: bool, whether to save seeds.
 
     Returns
     -------
     lines: list, list of list of 3D positions (streamlines)
     """
+    if max_tries is None:
+        max_tries = 10 * param.nbr_streamlines
 
-    i = 0
+    total_tries = 0
     streamlines = []
     seeds = []
-    skip = 0
     # Initialize the random number generator, skip,
     # which voxel to seed and the subvoxel random position
-    first_seed_of_chunk = np.int32(param.skip)
-    random_generator, indices = \
-        seeding_mask.init_pos(param.random, first_seed_of_chunk)
+    first_seed = np.int32(param.skip)
+    random_generator, indices = seeding_mask.init_pos(param.random, first_seed)
     while (len(streamlines) < param.nbr_streamlines and
-           skip < param.nbr_streamlines * max_tries):
-        if i % 1000 == 0:
+           total_tries < max_tries):
+        if total_tries % 1000 == 0:
             logging.info(str(os.getpid()) + " : " +
                          str(len(streamlines)) + " / " +
                          str(param.nbr_streamlines))
         seed = seeding_mask.get_next_pos(random_generator, indices,
-                                         first_seed_of_chunk + i)
+                                         first_seed + total_tries)
         line = get_line_from_seed(tracker, mask, seed, param)
         if line is not None:
             if compression_error_threshold and compression_error_threshold > 0:
@@ -190,7 +199,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, param,
             if save_seeds:
                 seeds.append(np.asarray(seed, dtype='float32'))
 
-        i += 1
+        total_tries += 1
     return streamlines, seeds
 
 
@@ -205,7 +214,8 @@ def get_streamlines_at_seeds(tracker, mask, seeding_mask, chunk_id, param,
     ----------
     tracker : Tracker, tracking object.
     mask : Mask, tracking volume(s).
-    seeding_mask : Seed, seeding volume.
+    seeding_mask : scilpy.tracking.Trackable_dataset
+        Seeding volume.
     chunk_id: int, chunk id.
     param: TrackingParams, tracking parameters.
     compression_error_threshold : float,
