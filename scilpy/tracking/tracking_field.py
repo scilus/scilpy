@@ -120,27 +120,6 @@ class SphericalHarmonicField(object):
         inds = np.nonzero(self.tracking_neighbours[direction.index])[0]
         return SF[inds], self.dirs[inds]
 
-    def get_maxima(self, pos):
-        """
-        Get the set of maxima at position pos from the thresholded SF.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Position in trackable dataset, expressed in mm.
-
-        Return
-        ------
-        maxima: list
-            Set of maxima directions at position pos.
-        """
-        SF = self.get_sf(pos)
-        maxima = []
-        for i in range(len(SF)):
-            if np.max(SF[self.maxima_neighbours[i]]) == SF[i]:
-                maxima.append(self.dirs[i])
-        return maxima
-
     def get_tracking_maxima(self, pos, direction):
         """
         Get the set of maxima directions from the thresholded
