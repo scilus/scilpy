@@ -25,10 +25,14 @@ class SphericalHarmonicField(object):
         Maximum angle (radians) between two steps.
     dipy_sphere: string
         Name of the DIPY sphere object to use for evaluating SH.
+    angle_maxima_detection: float
+        Angle used for peak extraction to check if a direction is maximal in
+        its neighbourhood.
     """
 
     def __init__(self, odf_dataset, basis, sf_threshold, sf_threshold_init,
-                 theta, dipy_sphere='symmetric724'):
+                 theta, dipy_sphere='symmetric724',
+                 angle_maxima_detection=np.pi / 16.):
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
         self.theta = theta
@@ -37,7 +41,8 @@ class SphericalHarmonicField(object):
         self.dirs = np.zeros(len(self.vertices), dtype=np.ndarray)
         for i in range(len(self.vertices)):
             self.dirs[i] = TrackingDirection(self.vertices[i], i)
-        self.maxima_neighbours = self.get_direction_neighbours(np.pi / 16.)
+        self.maxima_neighbours = self.get_direction_neighbours(
+            angle_maxima_detection)
         self.tracking_neighbours = self.get_direction_neighbours(self.theta)
         self.dataset = odf_dataset
         self.basis = basis
