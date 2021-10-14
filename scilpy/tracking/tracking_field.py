@@ -3,6 +3,7 @@ import dipy.data
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
+from scilpy.image.datasets import AccessibleVolume
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
@@ -13,7 +14,7 @@ class SphericalHarmonicField(object):
 
     Parameters
     ----------
-    odf_dataset: scilpy Dataset
+    odf_dataset: AccessibleVolume
         Trackable Dataset object.
     basis: string
         SH basis name. One of 'tournier07' or 'descoteaux07'
@@ -41,9 +42,9 @@ class SphericalHarmonicField(object):
         self.dirs = np.zeros(len(self.vertices), dtype=np.ndarray)
         for i in range(len(self.vertices)):
             self.dirs[i] = TrackingDirection(self.vertices[i], i)
-        self.maxima_neighbours = self.get_direction_neighbours(
+        self.maxima_neighbours = self._get_direction_neighbours(
             angle_maxima_detection)
-        self.tracking_neighbours = self.get_direction_neighbours(self.theta)
+        self.tracking_neighbours = self._get_direction_neighbours(self.theta)
         self.dataset = odf_dataset
         self.basis = basis
 
@@ -56,7 +57,7 @@ class SphericalHarmonicField(object):
         self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
                                  smooth=0.006, return_inv=False)
 
-    def get_direction_neighbours(self, max_angle):
+    def _get_direction_neighbours(self, max_angle):
         """
         Get a matrix of neighbours for each direction on the sphere, within
         the maxAngle parameter.
@@ -79,7 +80,7 @@ class SphericalHarmonicField(object):
         neighbours = scalar_prods >= np.cos(max_angle)
         return neighbours
 
-    def get_sf(self, pos):
+    def _get_sf(self, pos):
         """
         Get the spherical function at position pos.
 
@@ -120,7 +121,7 @@ class SphericalHarmonicField(object):
             The neighbours SF evaluated at pos in given direction and
             corresponding tracking directions.
         """
-        sf = self.get_sf(pos)
+        sf = self._get_sf(pos)
         sf[sf < self.sf_threshold] = 0
         inds = np.nonzero(self.tracking_neighbours[direction.index])[0]
         return sf[inds], self.dirs[inds]
@@ -142,7 +143,7 @@ class SphericalHarmonicField(object):
         maxima: list
             List of directions of maxima around the input direction at pos.
         """
-        sf = self.get_sf(pos)
+        sf = self._get_sf(pos)
         sf[sf < self.sf_threshold] = 0
         maxima = []
         for i in np.nonzero(self.tracking_neighbours[direction.index])[0]:
@@ -165,7 +166,7 @@ class SphericalHarmonicField(object):
         value: tuple
             Initial direction to follow from pos and its opposite direction.
         """
-        sf = self.get_sf(pos)
+        sf = self._get_sf(pos)
         sf[sf < self.sf_threshold_init] = 0
 
         if np.sum(sf) > 0:

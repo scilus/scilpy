@@ -12,14 +12,15 @@ import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
 
+from scilpy.image.datasets import AccessibleVolume
 from scilpy.tracking.tracker import AbstractTracker
-from scilpy.tracking.trackable_dataset import SeedGenerator, BinaryMask
+from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.utils import TrackingParams
 
 data_file_info = None
 
 
-def track(tracker: AbstractTracker, mask: BinaryMask,
+def track(tracker: AbstractTracker, mask: AccessibleVolume,
           seed_generator: SeedGenerator, params: TrackingParams,
           compression_th=0.1, nbr_processes=1, save_seeds=False):
     """
@@ -29,7 +30,7 @@ def track(tracker: AbstractTracker, mask: BinaryMask,
     ----------
     tracker : AbstractTracker
         Tracking object.
-    mask : BinaryMask
+    mask : AccessibleVolume
         Tracking volume(s).
     seed_generator : SeedGenerator
         Seeding volume.
@@ -48,7 +49,6 @@ def track(tracker: AbstractTracker, mask: BinaryMask,
     streamlines: list of numpy.array
     seeds: list of numpy.array
     """
-
     # Verifying the number of processes
     if nbr_processes <= 0:
         try:
@@ -209,7 +209,8 @@ def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
     return streamlines, seeds
 
 
-def get_line_from_seed(tracker: AbstractTracker, mask: BinaryMask, pos, param):
+def get_line_from_seed(tracker: AbstractTracker, mask: AccessibleVolume, pos,
+                       params):
     """
     Generate a streamline from an initial position following the tracking
     parameters.
@@ -222,22 +223,22 @@ def get_line_from_seed(tracker: AbstractTracker, mask: BinaryMask, pos, param):
         Tracking volume(s).
     pos : tuple
         3D position, the seed position.
-    param: TrackingParams
+    params: TrackingParams
         Tracking parameters.
 
     Returns
     -------
     line: list of 3D positions
     """
-    np.random.seed(np.uint32(hash((pos, param.random))))
+    np.random.seed(np.uint32(hash((pos, params.random))))
     line = []
     if tracker.initialize(pos):
-        forward = _get_line(tracker, mask, param, True)
+        forward = _get_line(tracker, mask, params, True)
         if forward is not None and len(forward) > 0:
             line.extend(forward)
 
-        if not param.is_single_direction and forward is not None:
-            backward = _get_line(tracker, mask, param, False)
+        if not params.is_single_direction and forward is not None:
+            backward = _get_line(tracker, mask, params, False)
             if backward is not None and len(backward) > 0:
                 line.reverse()
                 line.pop()
@@ -248,19 +249,19 @@ def get_line_from_seed(tracker: AbstractTracker, mask: BinaryMask, pos, param):
         if ((len(line) > 1 and
              forward is not None and
              backward is not None and
-             param.min_nbr_pts <= len(line) <= param.max_nbr_pts)):
+             params.min_nbr_pts <= len(line) <= params.max_nbr_pts)):
             return line
-        elif param.is_keep_single_pts and param.min_nbr_pts == 1:
+        elif params.is_keep_single_pts and params.min_nbr_pts == 1:
             return [pos]
         return None
-    if ((param.is_keep_single_pts and
-         param.min_nbr_pts == 1)):
+    if ((params.is_keep_single_pts and
+         params.min_nbr_pts == 1)):
         return [pos]
     return None
 
 
-def _get_line(tracker, mask, param, is_forward):
-    line = _get_line_binary(tracker, mask, param, is_forward)
+def _get_line(tracker, mask, params, is_forward):
+    line = _get_line_binary(tracker, mask, params, is_forward)
 
     while (line is not None and len(line) > 0 and
            not tracker.is_position_in_bound(line[-1])):
@@ -269,7 +270,7 @@ def _get_line(tracker, mask, param, is_forward):
     return line
 
 
-def _get_line_binary(tracker, mask, param, is_forward):
+def _get_line_binary(tracker, mask, params, is_forward):
     """
     This function is use for binary mask.
     Generate a streamline in forward or backward direction from an initial
@@ -279,7 +280,7 @@ def _get_line_binary(tracker, mask, param, is_forward):
     ----------
     tracker : Tracker, tracking object.
     mask : Mask, tracking volume(s).
-    param: TrackingParams, tracking parameters.
+    params: TrackingParams, tracking parameters.
     is_forward: bool, track in forward direction if True,
                       track in backward direction if False.
 
@@ -292,8 +293,8 @@ def _get_line_binary(tracker, mask, param, is_forward):
 
     no_valid_direction_count = 0
 
-    while (len(line) < param.max_nbr_pts and
-           mask.isPropagationContinues(line[-1])):
+    propagation_can_continue = True
+    while len(line) < params.max_nbr_pts and propagation_can_continue:
         new_pos, new_dir, is_valid_direction = tracker.propagate(
             line[-1], line_dirs[-1])
         line.append(new_pos)
@@ -304,8 +305,11 @@ def _get_line_binary(tracker, mask, param, is_forward):
         else:
             no_valid_direction_count += 1
 
-        if no_valid_direction_count > param.max_no_dir:
+        if no_valid_direction_count > params.max_no_dir:
             return line
+
+        propagation_can_continue = (mask.get_position_value(*line[-1]) > 0 and
+                                    mask.is_position_in_bound(*line[-1]))
 
     # make a last step in the last direction
     line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))

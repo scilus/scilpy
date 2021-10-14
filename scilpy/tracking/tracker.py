@@ -3,6 +3,7 @@ import numpy as np
 
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
+from scilpy.tracking.tracking_field import SphericalHarmonicField
 
 
 class AbstractPropagator(object):
@@ -213,7 +214,8 @@ class AbstractTracker(object):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field, step_size, rk_order):
+    def __init__(self, tracking_field: SphericalHarmonicField,
+                 step_size, rk_order):
         self.tracking_field = tracking_field
         self.step_size = step_size
         if rk_order == 1:
@@ -326,7 +328,8 @@ class ProbabilisticTracker(AbstractTracker):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field, step_size, rk_order):
+    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
+                 rk_order):
         super(ProbabilisticTracker, self).__init__(
             tracking_field, step_size, rk_order)
 
@@ -367,7 +370,8 @@ class DeterministicMaximaTracker(AbstractTracker):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field, step_size, rk_order):
+    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
+                 rk_order):
         super(DeterministicMaximaTracker, self).__init__(
             tracking_field, step_size, rk_order)
 
