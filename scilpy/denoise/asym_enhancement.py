@@ -4,10 +4,7 @@ import numpy as np
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
 from dipy.core.sphere import Sphere
-from scipy.ndimage import correlate
 from scipy.stats import multivariate_normal
-
-from numba import jit
 
 
 def multivariate_bilateral_filtering(in_sh, sh_order=8,
@@ -89,7 +86,6 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
     return out_sh
 
 
-@jit(nopython=True)
 def evaluate_gaussian_dist(x, sigma):
     assert sigma > 0.0, "Sigma must be greater than 0."
     cnorm = 1.0 / sigma / np.sqrt(2.0*np.pi)
@@ -157,7 +153,6 @@ def _get_weights_multivariate(sphere, cov):
     return weights
 
 
-@jit(nopython=True)
 def correlate_spatial(image_u, image_neg_u, h_filter, sigma_range):
     """
     Implementation of correlate function.
