@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import multiprocessing
+import itertools
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
 from dipy.core.sphere import Sphere
@@ -13,7 +15,8 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
                                      out_full_basis=True,
                                      sphere_str='repulsion724',
                                      var_cov=np.eye(2),
-                                     sigma_range=0.5):
+                                     sigma_range=0.5,
+                                     nbr_processes=1):
     """Average the SH projected on a sphere using a first-neighbor gaussian
     blur and a dot product weight between sphere directions and the direction
     to neighborhood voxels, forcing to 0 negative values and thus performing
@@ -52,7 +55,6 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
     weights = _get_weights_multivariate(sphere, var_cov)
 
     nb_sf = len(sphere.vertices)
-    mean_sf = np.zeros(np.append(in_sh.shape[:-1], nb_sf))
     B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
                         return_inv=False, full_basis=in_full_basis)
 
@@ -62,18 +64,33 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
                             basis_type=sh_basis, return_inv=False,
                             full_basis=in_full_basis)
 
-    # Apply filter to each sphere vertice
-    for sf_i in range(nb_sf):
-        w_filter = weights[..., sf_i]
+    if nbr_processes > 1:
+        # Apply filter to each sphere vertice in parallel
+        pool = multiprocessing.Pool(nbr_processes)
 
-        # Generate 1-channel images for directions u and -u
-        current_sf = np.dot(in_sh, B[:, sf_i])
-        opposite_sf = np.dot(in_sh, neg_B[:, sf_i])
+        # divide the sphere directions among the processes
+        base_chunk_size = int(nb_sf / nbr_processes + 0.5)
+        first_ids = np.arange(0, nb_sf, base_chunk_size)
+        residuals = nb_sf - first_ids
+        chunk_sizes = np.where(residuals < base_chunk_size,
+                               residuals, base_chunk_size)
+        res = pool.map(_process_subset_directions,
+                       zip(itertools.repeat(weights),
+                           itertools.repeat(in_sh),
+                           first_ids,
+                           chunk_sizes,
+                           itertools.repeat(B),
+                           itertools.repeat(neg_B),
+                           itertools.repeat(sigma_range)))
+        pool.close()
+        pool.join()
 
-        mean_sf[..., sf_i] = correlate_spatial(current_sf,
-                                               opposite_sf,
-                                               w_filter,
-                                               sigma_range)
+        # Patch chunks together.
+        mean_sf = np.concatenate(res, axis=-1)
+    else:
+        args = [weights, in_sh, 0, nb_sf,
+                B, neg_B, sigma_range]
+        mean_sf = _process_subset_directions(args)
 
     # Convert back to SH coefficients
     _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
@@ -147,6 +164,58 @@ def _get_weights_multivariate(sphere, cov):
     weights /= weights.reshape((-1, weights.shape[-1])).sum(axis=0)
 
     return weights
+
+
+def _process_subset_directions(args):
+    """
+    Filter a subset of all sphere directions.
+
+    Parameters
+    ----------
+    args: List
+        args[0]: weights, ndarray
+            Filter weights per direction.
+        args[1]: in_sh, ndarray
+            Input SH coefficients array.
+        args[2]: first_dir_id, int
+            ID of first sphere direction.
+        args[3]: chunk_size, int
+            Number of sphere directions in chunk.
+        args[4]: B, ndarray
+            SH to SF matrix for current sphere directions.
+        args[5]: neg_B, ndarray
+            SH to SF matrix for opposite sphere directions.
+        args[6]: sigma_range, int
+            Sigma of the Gaussian use for range filtering.
+
+    Returns
+    -------
+    out_sf: ndarray
+        SF array for subset directions.
+    """
+    weights = args[0]
+    in_sh = args[1]
+    first_dir_id = args[2]
+    chunk_size = args[3]
+    B = args[4]
+    neg_B = args[5]
+    sigma_range = args[6]
+
+    out_sf = np.zeros(in_sh.shape[:-1] + (chunk_size,))
+    # Apply filter to each sphere vertice
+    for offset_i in range(chunk_size):
+        sph_id = first_dir_id + offset_i
+        w_filter = weights[..., sph_id]
+
+        # Generate 1-channel images for directions u and -u
+        current_sf = np.dot(in_sh, B[:, sph_id])
+        opposite_sf = np.dot(in_sh, neg_B[:, sph_id])
+
+        out_sf[..., offset_i] = correlate_spatial(current_sf,
+                                                  opposite_sf,
+                                                  w_filter,
+                                                  sigma_range)
+    return out_sf
 
 
 def correlate_spatial(image_u, image_neg_u, h_filter, sigma_range):

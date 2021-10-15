@@ -33,6 +33,7 @@ import numpy as np
 from dipy.data import SPHERE_FILES
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              add_sh_basis_args,
@@ -78,6 +79,7 @@ def _build_arg_parser():
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_processes_arg(p)
 
     return p
 
@@ -109,7 +111,8 @@ def main():
         out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         var_cov=var_cov,
-        sigma_range=args.sigma_range)
+        sigma_range=args.sigma_range,
+        nbr_processes=args.nbr_processes)
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
