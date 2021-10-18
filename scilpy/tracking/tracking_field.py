@@ -24,16 +24,18 @@ class SphericalHarmonicField(object):
         Threshold on spherical function when initializing a new streamline.
     theta: float
         Maximum angle (radians) between two steps.
-    dipy_sphere: string
+    dipy_sphere: string, optional
         Name of the DIPY sphere object to use for evaluating SH.
-    angle_maxima_detection: float
-        Angle used for peak extraction to check if a direction is maximal in
-        its neighbourhood.
+    min_separation_angle: float, optional
+        Minimum separation angle (in radians) for peaks extraction. Used for
+        deterministic tracking. A candidate direction is a maximum if its SF
+        value is greater than all other SF values in its neighbourhood, where
+        the neighbourhood includes all the sphere directions located at most
+        `min_separation_angle` from the candidate direction.
     """
-
     def __init__(self, odf_dataset, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
-                 angle_maxima_detection=np.pi / 16.):
+                 min_separation_angle=np.pi / 16.):
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
         self.theta = theta
@@ -43,7 +45,7 @@ class SphericalHarmonicField(object):
         for i in range(len(self.vertices)):
             self.dirs[i] = TrackingDirection(self.vertices[i], i)
         self.maxima_neighbours = self._get_direction_neighbours(
-            angle_maxima_detection)
+            min_separation_angle)
         self.tracking_neighbours = self._get_direction_neighbours(self.theta)
         self.dataset = odf_dataset
         self.basis = basis
@@ -57,16 +59,10 @@ class SphericalHarmonicField(object):
         self.B = sh_to_sf_matrix(sphere, sh_order, self.basis,
                                  smooth=0.006, return_inv=False)
 
-    def _get_direction_neighbours(self, max_angle):
+    def _get_direction_neighbours(self, min_separation_angle):
         """
         Get a matrix of neighbours for each direction on the sphere, within
-        the maxAngle parameter.
-
-        Parameters
-        ----------
-        max_angle: float
-            Maximum angle in radians defining the neighbourhood
-            of each direction.
+        the min_separation_angle.
 
         Return
         ------
@@ -77,7 +73,7 @@ class SphericalHarmonicField(object):
         ys = self.vertices[:, 1]
         zs = self.vertices[:, 2]
         scalar_prods = np.outer(xs, xs) + np.outer(ys, ys) + np.outer(zs, zs)
-        neighbours = scalar_prods >= np.cos(max_angle)
+        neighbours = scalar_prods >= np.cos(min_separation_angle)
         return neighbours
 
     def _get_sf(self, pos):
