@@ -9,201 +9,6 @@ from scilpy.tracking.tracking_field import AbstractTrackingField, \
 
 class AbstractPropagator(object):
     """
-    Base class for propagator objects.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        self.step_size = step_size
-        self.tracker = tracker
-
-    def propagate(self, pos, v_in):
-        """
-        Abstract propagation method. Given the current position and
-        direction, computes the next position and direction.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-        """
-        pass
-
-    def get_valid_direction(self, pos, v_in):
-        """
-        Get the next valid direction given the position pos and
-        input direction v_in.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        is_valid_direction: bool
-            True if the new direction is valid.
-        v_out: ndarray(3,)
-            A valid direction. v_out equals v_in if no valid
-            direction is found.
-        """
-        is_valid_direction = True
-        v_out = self.tracker.get_direction(pos, v_in)
-        if v_out is None:
-            is_valid_direction = False
-            v_out = v_in
-
-        return is_valid_direction, v_out
-
-
-class RK1Propagator(AbstractPropagator):
-    """
-    Implementation of the order 1 Runge Kutta integration, equivalent to
-    the Euler integration method.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK1Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK1 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, new_dir = self.get_valid_direction(pos, v_in)
-        new_pos = pos + self.step_size * np.array(new_dir)
-        return new_pos, new_dir, is_valid_direction
-
-
-class RK2Propagator(AbstractPropagator):
-    """
-    Implementation of the Runge Kutta integration method of order 2.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK2Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK2 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Pervious tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
-        new_dir = self.get_valid_direction(
-            pos + 0.5 * self.step_size * np.array(dir1), dir1)[1]
-        new_pos = pos + self.step_size * np.array(new_dir)
-        return new_pos, new_dir, is_valid_direction
-
-
-class RK4Propagator(AbstractPropagator):
-    """
-    Implementation of the Runge Kutta integration method of order 4.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK4Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK4 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
-        v1 = np.array(dir1)
-        dir2 = self.get_valid_direction(
-            pos + 0.5 * self.step_size * v1, dir1)[1]
-        v2 = np.array(dir2)
-        dir3 = self.get_valid_direction(
-            pos + 0.5 * self.step_size * v2, dir2)[1]
-        v3 = np.array(dir3)
-        dir4 = self.get_valid_direction(
-            pos + self.step_size * v3, dir3)[1]
-        v4 = np.array(dir4)
-
-        new_v = (v1 + 2 * v2 + 2 * v3 + v4) / 6
-        new_dir = TrackingDirection(new_v, dir1.index)
-        new_pos = pos + self.step_size * new_v
-
-        return new_pos, new_dir, is_valid_direction
-
-
-class AbstractTracker(object):
-    """
     Abstract class for tracker object.
 
     Parameters
@@ -219,15 +24,10 @@ class AbstractTracker(object):
                  step_size, rk_order):
         self.tracking_field = tracking_field
         self.step_size = step_size
-        if rk_order == 1:
-            self.propagator = RK1Propagator(self, step_size)
-        elif rk_order == 2:
-            self.propagator = RK2Propagator(self, step_size)
-        elif rk_order == 4:
-            self.propagator = RK4Propagator(self, step_size)
-        else:
+        if not (rk_order == 1 or rk_order == 2 or rk_order == 4):
             raise ValueError("Invalid runge-kutta order. Is " +
                              str(rk_order) + ". Choices : 1, 2, 4")
+        self.rk_order = rk_order
 
         # Following values will be initialized when calling self.initialize
         self.init_pos = None
@@ -259,11 +59,41 @@ class AbstractTracker(object):
             self.tracking_field.get_init_direction(pos)
         return self.forward_dir is not None and self.backward_dir is not None
 
+    def get_next_valid_direction(self, pos, v_in):
+        """
+        Get the next direction given the position pos, input direction
+        v_in, and tracking method (ex, probabilistic or deterministic), and
+        verify if it is valid. If it is not valid, return v_in as next
+        direction.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Current 3D position.
+        v_in: ndarray (3,)
+            Previous tracking direction.
+
+        Return
+        ------
+        is_direction_valid: bool
+            True if the new direction is valid.
+        v_out: ndarray(3,)
+            A valid direction. v_out equals v_in if no valid direction is
+            found.
+        """
+        is_direction_valid = True
+        v_out = self.get_direction(pos, v_in)
+        if v_out is None:
+            is_direction_valid = False
+            v_out = v_in
+
+        return is_direction_valid, v_out
+
     def propagate(self, pos, v_in):
         """
-        Propagate a streamline. The new tracking direction and the
-        updated position. If no valid tracking direction are available,
-        v_in is choosen.
+        Given the current position and direction, computes the next position
+        and direction using Runge-Kutta integration method. If no valid
+        tracking direction is available, v_in is chosen.
 
         Parameters
         ----------
@@ -278,10 +108,40 @@ class AbstractTracker(object):
             The new segment position.
         new_dir: ndarray (3,)
             The new segment direction.
-        is_valid_direction: bool
+        is_direction_valid: bool
             True if new_dir is valid.
         """
-        return self.propagator.propagate(pos, v_in)
+        if self.rk_order == 1:
+            is_direction_valid, new_dir = self.get_next_valid_direction(
+                pos, v_in)
+
+        elif self.rk_order == 2:
+            is_direction_valid, dir1 = self.get_next_valid_direction(
+                pos, v_in)
+            _, new_dir = self.get_next_valid_direction(
+                pos + 0.5 * self.step_size * np.array(dir1), dir1)
+
+        else:
+            # case self.rk_order == 4
+            is_direction_valid, dir1 = self.get_next_valid_direction(
+                pos, v_in)
+            v1 = np.array(dir1)
+            _, dir2 = self.get_next_valid_direction(
+                pos + 0.5 * self.step_size * v1, dir1)
+            v2 = np.array(dir2)
+            _, dir3 = self.get_next_valid_direction(
+                pos + 0.5 * self.step_size * v2, dir2)
+            v3 = np.array(dir3)
+            _, dir4 = self.get_next_valid_direction(
+                pos + self.step_size * v3, dir3)
+            v4 = np.array(dir4)
+
+            new_v = (v1 + 2 * v2 + 2 * v3 + v4) / 6
+            new_dir = TrackingDirection(new_v, dir1.index)
+
+        new_pos = pos + self.step_size * np.array(new_dir)
+
+        return new_pos, new_dir, is_direction_valid
 
     def is_position_in_bound(self, pos):
         """
@@ -316,7 +176,7 @@ class AbstractTracker(object):
         pass
 
 
-class ProbabilisticTracker(AbstractTracker):
+class ProbabilisticSHPropagator(AbstractPropagator):
     """
     Probabilistic direction tracker.
 
@@ -331,7 +191,7 @@ class ProbabilisticTracker(AbstractTracker):
     """
     def __init__(self, tracking_field: SphericalHarmonicField, step_size,
                  rk_order):
-        super(ProbabilisticTracker, self).__init__(
+        super(ProbabilisticSHPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):
@@ -359,7 +219,7 @@ class ProbabilisticTracker(AbstractTracker):
         return None
 
 
-class DeterministicMaximaTracker(AbstractTracker):
+class DeterministicMaximaSHPropagator(AbstractPropagator):
     """
     Deterministic direction tracker.
 
@@ -374,7 +234,7 @@ class DeterministicMaximaTracker(AbstractTracker):
     """
     def __init__(self, tracking_field: SphericalHarmonicField, step_size,
                  rk_order):
-        super(DeterministicMaximaTracker, self).__init__(
+        super(DeterministicMaximaSHPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
     def get_direction(self, pos, v_in):

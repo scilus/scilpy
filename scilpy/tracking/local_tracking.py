@@ -13,14 +13,14 @@ import numpy as np
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.datasets import DataVolume
-from scilpy.tracking.tracker import AbstractTracker
+from scilpy.tracking.tracker import AbstractPropagator
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.utils import TrackingParams
 
 data_file_info = None
 
 
-def track(tracker: AbstractTracker, mask: DataVolume,
+def track(tracker: AbstractPropagator, mask: DataVolume,
           seed_generator: SeedGenerator, params: TrackingParams,
           compression_th=0.1, nbr_processes=1, save_seeds=False):
     """
@@ -28,7 +28,7 @@ def track(tracker: AbstractTracker, mask: DataVolume,
 
     Parameters
     ----------
-    tracker : AbstractTracker
+    tracker : AbstractPropagator
         Tracking object.
     mask : DataVolume
         Tracking volume(s).
@@ -49,20 +49,8 @@ def track(tracker: AbstractTracker, mask: DataVolume,
     streamlines: list of numpy.array
     seeds: list of numpy.array
     """
-    # Verifying the number of processes
-    if nbr_processes <= 0:
-        try:
-            nbr_processes = multiprocessing.cpu_count()
-        except NotImplementedError:
-            warnings.warn("Cannot determine number of cpus. \
-                returns nbr_processes set to 1.")
-            nbr_processes = 1
+    nbr_processes = set_nbr_processes(nbr_processes, params)
 
-    if nbr_processes > params.nbr_seeds:
-        nbr_processes = params.nbr_seeds
-        logging.debug('Setting number of processes to ' +
-                      str(nbr_processes) +
-                      ' since there were less seeds than processes.')
     if nbr_processes < 2:
         chunk_id = 1
         lines, seeds = get_streamlines(
@@ -102,6 +90,24 @@ def track(tracker: AbstractTracker, mask: DataVolume,
             seeds = [seed for seed in itertools.chain(*seeds_per_process)]
 
     return lines, seeds
+
+
+def set_nbr_processes(nbr_processes, params):
+    # Verifying the number of processes
+    if nbr_processes <= 0:
+        try:
+            nbr_processes = multiprocessing.cpu_count()
+        except NotImplementedError:
+            warnings.warn("Cannot determine number of cpus. \
+                    returns nbr_processes set to 1.")
+            nbr_processes = 1
+
+    if nbr_processes > params.nbr_seeds:
+        nbr_processes = params.nbr_seeds
+        logging.debug('Setting number of processes to ' +
+                      str(nbr_processes) +
+                      ' since there were less seeds than processes.')
+    return nbr_processes
 
 
 def _init_sub_process(date_file_name, mmap_mod):
@@ -146,7 +152,7 @@ def get_streamlines(tracker, mask, seed_generator, chunk_id, params,
 
     Parameters
     ----------
-    tracker : AbstractTracker
+    tracker : AbstractPropagator
         Tracking object.
     mask : BinaryMask
         Tracking volume(s).
@@ -205,7 +211,7 @@ def get_streamlines(tracker, mask, seed_generator, chunk_id, params,
     return streamlines, seeds
 
 
-def get_line_both_directions(tracker: AbstractTracker, mask: DataVolume,
+def get_line_both_directions(tracker: AbstractPropagator, mask: DataVolume,
                              pos, params):
     """
     Generate a streamline from an initial position following the tracking
@@ -213,7 +219,7 @@ def get_line_both_directions(tracker: AbstractTracker, mask: DataVolume,
 
     Parameters
     ----------
-    tracker : AbstractTracker
+    tracker : AbstractPropagator
         Tracking object.
     mask : BinaryMask
         Tracking volume(s).
@@ -256,7 +262,7 @@ def get_line_both_directions(tracker: AbstractTracker, mask: DataVolume,
     return None
 
 
-def _propagate_line(tracker: AbstractTracker, mask: DataVolume, params,
+def _propagate_line(tracker: AbstractPropagator, mask: DataVolume, params,
                     is_forward):
     """
     Generate a streamline in forward or backward direction from an initial
@@ -264,7 +270,7 @@ def _propagate_line(tracker: AbstractTracker, mask: DataVolume, params,
 
     Parameters
     ----------
-    tracker : AbstractTracker
+    tracker : AbstractPropagator
         Tracking object.
     mask : DataVolume
         Propagation will stop if the current position is out of bounds (mask's
