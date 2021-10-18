@@ -96,13 +96,10 @@ def track(tracker: AbstractTracker, mask: AccessibleVolume,
                     itertools.repeat(save_seeds))))
             pool.close()
             # Make sure all worker processes have exited before leaving
-            # context manager in order to prevent temporary file deletion
-            # errors in Windows
+            # context manager.
             pool.join()
-            lines = np.array([line for line in
-                              itertools.chain(*lines_per_process)])
-            seeds = np.array([seed for seed in
-                              itertools.chain(*seeds_per_process)])
+            lines = [line for line in itertools.chain(*lines_per_process)]
+            seeds = [seed for seed in itertools.chain(*seeds_per_process)]
 
     return lines, seeds
 
