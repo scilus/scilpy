@@ -65,7 +65,7 @@ def track(tracker: AbstractTracker, mask: AccessibleVolume,
                       ' since there were less seeds than processes.')
     if nbr_processes < 2:
         chunk_id = 1
-        lines, seeds = get_streamlines_at_seeds(
+        lines, seeds = get_streamlines(
             tracker, mask, seed_generator, chunk_id, params, compression_th,
             nbr_processes=1, save_seeds=save_seeds)
     else:
@@ -85,7 +85,7 @@ def track(tracker: AbstractTracker, mask: AccessibleVolume,
                                                   params.mmap_mode))
 
             lines_per_process, seeds_per_process = zip(*pool.map(
-                _get_streamlines_at_seeds_sub,
+                _get_streamlines_sub,
                 zip(itertools.repeat(tracker),
                     itertools.repeat(mask),
                     itertools.repeat(seed_generator),
@@ -113,7 +113,7 @@ def _init_sub_process(date_file_name, mmap_mod):
     return
 
 
-def _get_streamlines_at_seeds_sub(args):
+def _get_streamlines_sub(args):
     """
     multiprocessing.pool.map input function.
 
@@ -132,7 +132,7 @@ def _get_streamlines_at_seeds_sub(args):
                                                   mmap_mode=data_file_info[1])
 
     try:
-        streamlines, seeds = get_streamlines_at_seeds(*args)
+        streamlines, seeds = get_streamlines(*args)
         return streamlines, seeds
     except Exception as e:
         logging.error("Operation _get_streamlines_sub() failed.")
@@ -140,9 +140,9 @@ def _get_streamlines_at_seeds_sub(args):
         raise e
 
 
-def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
-                             compression_th=0.1, nbr_processes=1,
-                             save_seeds=True):
+def get_streamlines(tracker, mask, seed_generator, chunk_id, params,
+                    compression_th=0.1, nbr_processes=1,
+                    save_seeds=True):
     """
     Generate streamlines from all initial positions following the tracking
     parameters.
@@ -156,7 +156,7 @@ def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
     seed_generator : SeedGenerator
         Seeding volume.
     chunk_id: int
-        This chunk id.
+        This chunk of seeds id. Chunks sizes depend on the number of processes.
     params: TrackingParams
         Tracking parameters, see scilpy.tracking.utils.py.
     compression_th : float,
@@ -166,7 +166,6 @@ def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
         Number of sub processes to use.
     save_seeds: bool
         Whether to save the seeds associated to their respective streamlines.
-
 
     Returns
     -------
@@ -194,7 +193,7 @@ def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
         seed = \
             seed_generator.get_next_pos(random_generator, indices,
                                         first_seed_of_chunk + s)
-        line = get_line_from_seed(tracker, mask, seed, params)
+        line = get_line_both_directions(tracker, mask, seed, params)
         if line is not None:
             if compression_th and compression_th > 0:
                 streamlines.append(
@@ -209,8 +208,8 @@ def get_streamlines_at_seeds(tracker, mask, seed_generator, chunk_id, params,
     return streamlines, seeds
 
 
-def get_line_from_seed(tracker: AbstractTracker, mask: AccessibleVolume, pos,
-                       params):
+def get_line_both_directions(tracker: AbstractTracker, mask: AccessibleVolume,
+                             pos, params):
     """
     Generate a streamline from an initial position following the tracking
     parameters.
@@ -233,12 +232,12 @@ def get_line_from_seed(tracker: AbstractTracker, mask: AccessibleVolume, pos,
     np.random.seed(np.uint32(hash((pos, params.random))))
     line = []
     if tracker.initialize(pos):
-        forward = _get_line(tracker, mask, params, True)
+        forward = _propagate_line(tracker, mask, params, True)
         if forward is not None and len(forward) > 0:
             line.extend(forward)
 
         if not params.is_single_direction and forward is not None:
-            backward = _get_line(tracker, mask, params, False)
+            backward = _propagate_line(tracker, mask, params, False)
             if backward is not None and len(backward) > 0:
                 line.reverse()
                 line.pop()
@@ -260,26 +259,21 @@ def get_line_from_seed(tracker: AbstractTracker, mask: AccessibleVolume, pos,
     return None
 
 
-def _get_line(tracker, mask, params, is_forward):
-    line = _get_line_binary(tracker, mask, params, is_forward)
-
-    while (line is not None and len(line) > 0 and
-           not tracker.is_position_in_bound(line[-1])):
-        line.pop()
-
-    return line
-
-
-def _get_line_binary(tracker, mask, params, is_forward):
+def _propagate_line(tracker: AbstractTracker, mask: AccessibleVolume, params,
+                    is_forward):
     """
-    This function is use for binary mask.
     Generate a streamline in forward or backward direction from an initial
     position following the tracking parameters.
 
     Parameters
     ----------
-    tracker : Tracker, tracking object.
-    mask : Mask, tracking volume(s).
+    tracker : AbstractTracker
+        Tracking object.
+    mask : AccessibleVolume
+        Propagation will stop if the current position is out of bounds (mask's
+        bounds and data's bounds should be the same) or if mask's value at
+        current position is 0 (usual use is with a binary mask but this is not
+        mandatory).
     params: TrackingParams, tracking parameters.
     is_forward: bool, track in forward direction if True,
                       track in backward direction if False.
@@ -311,6 +305,12 @@ def _get_line_binary(tracker, mask, params, is_forward):
         propagation_can_continue = (mask.get_position_value(*line[-1]) > 0 and
                                     mask.is_position_in_bound(*line[-1]))
 
-    # make a last step in the last direction
+    # Make a last step in the last direction
     line.append(line[-1] + tracker.step_size * np.array(line_dirs[-1]))
+
+    # Last cleaning of the streamline
+    while (line is not None and len(line) > 0 and
+           not tracker.is_position_in_bound(line[-1])):
+        line.pop()
+
     return line
