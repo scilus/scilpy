@@ -40,7 +40,7 @@ class SeedGenerator(object):
 
         # Voxel selection from the seeding mask
         ind = which_seed % len_seeds
-        x, y, z = self.seeds[indices[np.asscalar(ind)]]
+        x, y, z = self.seeds[indices[ind]]
 
         # Subvoxel initial positioning
         r_x = random_generator.uniform(-half_voxel_range[0],
@@ -73,16 +73,23 @@ class SeedGenerator(object):
             Indices of current seeding map.
         """
         random_generator = np.random.RandomState(random_initial_value)
+
+        # 1. Initializing seeding maps indices (shuffling in-place)
         indices = np.arange(len(self.seeds))
         random_generator.shuffle(indices)
 
-        # Skip to the first seed of the current process' chunk,
-        # multiply by 3 for x,y,z
-        # Divide the generation to prevent RAM overuse
-        seed_to_go = np.asscalar(first_seed_of_chunk) * 3
-        while seed_to_go > 100000:
-            random_generator.rand(100000)
-            seed_to_go -= 100000
-        random_generator.rand(seed_to_go)
+        # 2. Initializing the random generator
+        # For reproducibility through multi-processing, skipping random numbers
+        # (by producing rand numbers without using them) until reaching this
+        # process (i.e this chunk)'s set of random numbers. Producing only
+        # 100000 at the time to prevent RAM overuse.
+        # (Multiplying by 3 for x,y,z)
+        random_numbers_to_skip = first_seed_of_chunk * 3
+        # toDo: see if 100000 is ok, and if we can create something not
+        #  hard-coded
+        while random_numbers_to_skip > 100000:
+            random_generator.random_sample(100000)
+            random_numbers_to_skip -= 100000
+        random_generator.random_sample(random_numbers_to_skip)
 
         return random_generator, indices
