@@ -11,31 +11,63 @@ non-zero bvalue.
 specify --bvalue to output an image for a single bvalue
 """
 
+from os.path import splitext
+import re
+
 import argparse
 import logging
 
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-
-from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs
 
 # Aliased to avoid clashes with images called mode.
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold)
+                             assert_outputs_exist)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
+from nibabel.tmpdirs import InTemporaryDirectory
+
 
 logger = logging.getLogger("Compute_Powder_Average")
 logger.setLevel(logging.INFO)
 
 
-def _get_min_nonzero_signal(data):
-    return np.min(data[data > 0])
+# function to read bvalues from file, avoiding using dipy io which requires 
+# bvec file name supplied (this is a modified version of that dipy function)
+def read_bvals(fbval):
+    vals = []
+    if fbval is None or not fbval:
+        vals.append(None)
 
+    if not isinstance(fbval, str):
+        raise ValueError('String with full path to file is required')
+
+    base, ext = splitext(fbval)
+    if ext in ['.bvals', '.bval', '.txt', '']:
+        with open(fbval, 'r') as f:
+            content = f.read()
+            
+        # We replace coma and tab delimiter by space
+        with InTemporaryDirectory():
+            tmp_fname = "tmp_bvals_bvecs.txt"
+            with open(tmp_fname, 'w') as f:
+                f.write(re.sub(r'(\t|,)', ' ', content))
+            vals.append(np.squeeze(np.loadtxt(tmp_fname)))
+    elif ext == '.npy':
+        vals.append(np.squeeze(np.load(fbval)))
+    else:
+        e_s = "File type %s is not recognized" % ext
+        raise ValueError(e_s)
+        
+    bvals = vals[0]
+
+    if bvals is None:
+        return bvals
+
+    if len(bvals.shape) > 1:
+        raise IOError('bval file should have one row')
+        
+    return bvals
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -49,12 +81,16 @@ def _build_arg_parser():
                    help='Path of the output file')
     
     add_overwrite_arg(p)
-    p.add_argument(
-        '--mask',
+    p.add_argument('--mask',dest='mask', metavar='file',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
              'for powder avg. (Default: %(default)s)')
-
-    p.add_argument()
+    p.add_argument('--shell',dest='shell', metavar='int', default='',
+        help='bvalue (shell) to include in powder average.\nIf not specified'
+             'will include all volumes with a non-zero bvalue')
+    
+    p.add_argument('--shell_thr',dest='shell_thr', metavar='int', default='50',
+        help='Include volumes with bvalue +- the specified threshold.\n'
+             'default: 50')
 
     return p
 
@@ -63,33 +99,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if not args.not_all:
-        args.fa = args.fa or 'fa.nii.gz'
-        args.ga = args.ga or 'ga.nii.gz'
-        args.rgb = args.rgb or 'rgb.nii.gz'
-        args.md = args.md or 'md.nii.gz'
-        args.ad = args.ad or 'ad.nii.gz'
-        args.rd = args.rd or 'rd.nii.gz'
-        args.mode = args.mode or 'mode.nii.gz'
-        args.norm = args.norm or 'tensor_norm.nii.gz'
-        args.tensor = args.tensor or 'tensor.nii.gz'
-        args.evecs = args.evecs or 'tensor_evecs.nii.gz'
-        args.evals = args.evals or 'tensor_evals.nii.gz'
-        args.residual = args.residual or 'dti_residual.nii.gz'
-        args.p_i_signal =\
-            args.p_i_signal or 'physically_implausible_signals_mask.nii.gz'
-        args.pulsation = args.pulsation or 'pulsation_and_misalignment.nii.gz'
-
-    outputs = [args.fa, args.ga, args.rgb, args.md, args.ad, args.rd,
-               args.mode, args.norm, args.tensor, args.evecs, args.evals,
-               args.residual, args.p_i_signal, args.pulsation]
-    if args.not_all and not any(outputs):
-        parser.error('When using --not_all, you need to specify at least ' +
-                     'one metric to output.')
-
-    assert_inputs_exist(
-        parser, [args.in_dwi, args.in_bval, args.in_bvec], args.mask)
-    assert_outputs_exist(parser, args, outputs)
+    assert_inputs_exist(parser, [args.in_dwi, args.in_bval])
+    
+    assert_outputs_exist(parser, args, args.out_avg)
 
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
@@ -100,52 +112,24 @@ def main():
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
     # Validate bvals and bvecs
-    logging.info('Tensor estimation with the {} method...'.format(args.method))
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    logging.info('Performing powder average')
+    bvals = read_bvals(args.in_bval)
 
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
-
-    b0_thr = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
-
-    # Get tensors
-    if args.method == 'restore':
-        sigma = ne.estimate_sigma(data)
-        tenmodel = TensorModel(gtab, fit_method=args.method, sigma=sigma,
-                               min_signal=_get_min_nonzero_signal(data))
+    # Select volumes to average
+    if not(args.shell):
+        bval_idx = bvals > 0
     else:
-        tenmodel = TensorModel(gtab, fit_method=args.method,
-                               min_signal=_get_min_nonzero_signal(data))
+        min_bval = args.shell - args.shell_idx
+        max_bval = args.shell + args.shell_idx
+        bval_idx = np.logical_and(bvals > min_bval, bvals < max_bval)
 
-    tenfit = tenmodel.fit(data, mask)
+    powder_avg = np.squeeze(np.mean(data[:,:,:,bval_idx],axis=3))
+    print(powder_avg.shape)
+    
+    powder_avg_img = nib.Nifti1Image(powder_avg.astype(np.float32), affine)
+    nib.save(powder_avg_img, args.out_avg)
 
-    FA = fractional_anisotropy(tenfit.evals)
-    FA[np.isnan(FA)] = 0
-    FA = np.clip(FA, 0, 1)
-
-    if args.tensor:
-        # Get the Tensor values and format them for visualisation
-        # in the Fibernavigator.
-        tensor_vals = lower_triangular(tenfit.quadratic_form)
-        correct_order = [0, 1, 3, 2, 4, 5]
-        tensor_vals_reordered = tensor_vals[..., correct_order]
-        fiber_tensors = nib.Nifti1Image(
-            tensor_vals_reordered.astype(np.float32), affine)
-        nib.save(fiber_tensors, args.tensor)
-
-        del tensor_vals, fiber_tensors, tensor_vals_reordered
-
-    if args.fa:
-        fa_img = nib.Nifti1Image(FA.astype(np.float32), affine)
-        nib.save(fa_img, args.fa)
-
-        del fa_img
-
-
-
+    del powder_avg_img
 
 if __name__ == "__main__":
     main()
