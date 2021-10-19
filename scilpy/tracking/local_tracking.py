@@ -21,8 +21,8 @@ data_file_info = None
 
 class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
-                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_points,
-                 max_nbr_points, max_invalid_dirs, compression_th=0.1,
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
+                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False, mmap_mode=None,
                  rng_seed=1234, track_forward_only=False, skip=0):
         """
@@ -36,8 +36,8 @@ class Tracker(object):
             Seeding volume.
         nbr_seeds: int
             Number of seeds to create via the seed generator.
-        min_nbr_points: int
-        max_nbr_points: int
+        min_nbr_pts: int
+        max_nbr_pts: int
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
@@ -65,8 +65,8 @@ class Tracker(object):
         self.mask = mask
         self.seed_generator = seed_generator
         self.nbr_seeds = nbr_seeds
-        self.min_nbr_pts = min_nbr_points
-        self.max_nbr_pts = max_nbr_points
+        self.min_nbr_pts = min_nbr_pts
+        self.max_nbr_pts = max_nbr_pts
         self.max_invalid_dirs = max_invalid_dirs
         self.compression_th = compression_th
         self.save_seeds = save_seeds

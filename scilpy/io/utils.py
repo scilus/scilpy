@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 import os
 import multiprocessing
 import re
@@ -8,6 +9,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from dipy.data import SPHERE_FILES
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
@@ -159,6 +161,19 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
+def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
+    spheres = sorted(SPHERE_FILES.keys())
+    if symmetric_only:
+        spheres = [s for s in spheres if 'symmetric' in s]
+        if 'symmetric' not in default:
+            raise ValueError("Default cannot be {} if you only accept "
+                             "symmetric spheres.".format(default))
+
+    parser.add_argument('--sphere', choices=spheres,
+                        default=default,
+                        help='Dipy sphere; set of possible directions.')
+
+
 def add_overwrite_arg(parser):
     parser.add_argument(
         '-f', dest='overwrite', action='store_true',
@@ -255,6 +270,16 @@ def validate_sh_basis_choice(sh_basis):
     if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
         raise ValueError("sh_basis should be either 'descoteaux07' or"
                          "'tournier07'.")
+
+
+def verify_compression_th(compress_th):
+    if compress_th:
+        if compress_th < 0.001 or compress_th > 1:
+            logging.warning(
+                'You are using an error rate of {}.\nWe recommend setting it '
+                'between 0.001 and 1.\n0.001 will do almost nothing to the '
+                'tracts while 1 will higly compress/linearize the tracts'
+                .format(compress_th))
 
 
 def assert_inputs_exist(parser, required, optional=None):

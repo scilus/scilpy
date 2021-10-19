@@ -1,0 +1,227 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Local streamline HARDI tractography using only scilpy methods -- no dipy (i.e
+no cython). The goal of this is to have a python-only version that can be
+modified more easily by our team when testing new algorithms and parameters,
+and that can be used as parent classes in sub-projects of our lab such as in
+dwi_ml.
+
+As in scil_compute_local_tracking:
+
+    The tracking direction is chosen in the aperture cone defined by the
+    previous tracking direction and the angular constraint.
+    - Algo 'det': the maxima of the spherical function (SF) the most closely
+    aligned to the previous direction.
+    - Algo 'prob': a direction drawn from the empirical distribution function
+    defined from the SF.
+    - Algo 'eudx' is not yet available!
+
+Contrary to scil_compute_local_tracking:
+    - Input nifti files do not necessarily need to be in isotropic resolution.
+
+References: [1] Girard, G., Whittingstall K., Deriche, R., and
+            Descoteaux, M. (2014). Towards quantitative connectivity analysis:
+            reducing tractography biases. Neuroimage, 98, 266-278.
+"""
+import argparse
+import logging
+import math
+import time
+
+import dipy.core.geometry as gm
+import nibabel as nib
+
+from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
+    set_sft_logger_level
+from dipy.io.streamline import save_tractogram
+
+from scilpy.io.utils import (add_processes_arg, add_overwrite_arg,
+                             add_sphere_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             verify_compression_th)
+from scilpy.image.datasets import DataVolume
+from scilpy.tracking.seed import SeedGenerator
+
+from scilpy.tracking.local_tracking import Tracker
+from scilpy.tracking.propagator import (ProbabilisticSHPropagator,
+                                        DeterministicMaximaSHPropagator)
+from scilpy.tracking.tracking_field import SphericalHarmonicField
+from scilpy.tracking.tools import get_theta
+from scilpy.tracking.utils import (add_mandatory_options_tracking,
+                                   add_seeding_options, add_tracking_options,
+                                   verify_streamline_length_options,
+                                   verify_seed_options)
+
+
+def build_argparser():
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=__doc__)
+
+    add_mandatory_options_tracking(p)
+
+    track_g = add_tracking_options(p)
+    track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
+                         default=0.5, dest='sf_threshold_init',
+                         help="Spherical function relative threshold value "
+                              "for the \ninitial direction. [%(default)s]")
+    track_g.add_argument('--rk_order', metavar="K", type=int, default=2,
+                         choices=[1, 2, 4],
+                         help="The order of the Runge-Kutta integration used "
+                              "for the \nstep function [%(default)s]. As a "
+                              "rule of thumb, doubling the rk_order \nwill "
+                              "double the computation time in the worst case.")
+    track_g.add_argument('--max_invalid_length', metavar='MAX', type=float,
+                         default=1,
+                         help="Maximum length without valid direction, in mm. "
+                              "[%(default)s]")
+    track_g.add_argument('--forward_only', action='store_true',
+                         help="If set, tracks in one direction only (forward) "
+                              "given the \ninitial seed. The direction is "
+                              "randomly drawn from the ODF.")
+    add_sphere_arg(track_g, symmetric_only=False)
+    track_g.add_argument('--sh_interp', default='trilinear',
+                         choices=['nearest', 'trilinear'],
+                         help="Spherical harmonic interpolation: "
+                              "nearest-neighbor \nor trilinear. [%(default)s]")
+    track_g.add_argument('--mask_interp', default='trilinear',
+                         choices=['nearest', 'trilinear'],
+                         help="Mask interpolation: nearest-neighbor or "
+                              "trilinear. [%(default)s]")
+
+    add_seeding_options(p)
+
+    r_g = p.add_argument_group('  Random seeding options')
+    r_g.add_argument('--rng_seed', type=int,
+                     help='Initial value for the random number generator. '
+                          '[%(default)s]')
+    r_g.add_argument('--skip', type=int,
+                     help="Skip the first N random number. \n"
+                          "Useful if you want to create new streamlines to "
+                          "add to \na previously created tractogram with a "
+                          "fixed --rng_seed.\nEx: If tractogram_1 was created "
+                          "with -nt 1,000,000, \nyou can create tractogram_2 "
+                          "with \n--skip 1,000,000.")
+
+    m_g = p.add_argument_group('  Memory options')
+    add_processes_arg(m_g)
+    m_g.add_argument('--set_mmap_to_none', action='store_true',
+                     help="If true, use mmap_mode=None. Else mmap_mode='r+'. "
+                          "\nUsed in np.load(data_file_info). TO BE CLEANED")
+
+    out_g = p.add_argument_group('  Output options')
+    out_g.add_argument('--compress_th', type=float, default=0,
+                       metavar='c_th',
+                       help='If set, will compress streamlines. The parameter '
+                            'value is the \ndistance threshold. A rule of '
+                            'thumb is to set it to 0.1mm for \ndeterministic '
+                            'streamlines and 0.2mm for probabilitic '
+                            'streamlines.')
+    add_overwrite_arg(out_g)
+    out_g.add_argument('--save_seeds', action='store_true',
+                       help='If set, save the seeds used for tracking '
+                            'in the data_per_streamline \nproperty.')
+
+    add_verbose_arg(p)
+
+    return p
+
+
+def main():
+    parser = build_argparser()
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
+    if not nib.streamlines.is_supported(args.out_tractogram):
+        parser.error('Invalid output streamline file format (must be trk or ' +
+                     'tck): {0}'.format(args.out_tractogram))
+
+    inputs = [args.in_sh, args.in_seed, args.in_mask]
+    assert_inputs_exist(parser, inputs)
+    assert_outputs_exist(parser, args, args.out_tractogram)
+
+    verify_streamline_length_options(parser, args)
+    verify_compression_th(args.compress_th)
+    verify_seed_options(parser, args)
+
+    if args.algo == 'eudx':
+        raise NotImplementedError("Eudx algo is not ready yet for this "
+                                  "script. It is on our todo list.")
+
+    theta = gm.math.radians(get_theta(args.theta, args.algo))
+
+    max_nbr_pts = int(args.max_length / args.step_size)
+    min_nbr_pts = int(args.min_length / args.step_size) + 1
+    max_invalid_dirs = int(math.ceil(args.max_invalid_length / args.step_size))
+
+    # r+ is necessary for interpolation function in cython who need read/write
+    # rights
+    mmap_mode = None if args.set_mmap_to_none else 'r+'
+
+    logging.debug("Loading tracking mask.")
+    mask_img = nib.load(args.in_mask)
+    mask = DataVolume(mask_img, args.mask_interp)
+
+    logging.debug("Loading seeding mask.")
+    seed_img = nib.load(args.in_seed)
+    seed_generator = SeedGenerator(seed_img)
+    if args.npv:
+        nbr_seeds = len(seed_generator.seeds) * args.npv
+    elif args.nt:
+        nbr_seeds = args.nt
+    else:
+        # Setting npv = 1.
+        nbr_seeds = len(seed_generator.seeds)
+    if len(seed_generator.seeds) == 0:
+        parser.error('Seed mask "{}" does not have any voxel with value > 0.'
+                     .format(args.in_seed))
+
+    logging.debug("Loading SH data.")
+    fodf_sh_img = nib.load(args.in_sh)
+    dataset = DataVolume(fodf_sh_img, args.sh_interp)
+    sh_field = SphericalHarmonicField(dataset, args.sh_basis,
+                                      args.sf_threshold,
+                                      args.sf_threshold_init, theta)
+
+    logging.debug("Instantiating tracker.")
+    if args.algo == 'det':
+        propagator = DeterministicMaximaSHPropagator(sh_field, args.step_size,
+                                                     args.rk_order)
+    else:
+        propagator = ProbabilisticSHPropagator(sh_field, args.step_size,
+                                               args.rk_order)
+
+    tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
+                      max_nbr_pts, max_invalid_dirs, args.compress_th,
+                      args.nbr_processes, args.save_seeds, mmap_mode,
+                      args.rng_seed, args.forward_only, args.skip)
+
+    start = time.time()
+    logging.debug("Tracking...")
+    streamlines, seeds = tracker.track()
+
+    str_time = "%.2f" % (time.time() - start)
+    logging.debug("Tracked {} streamlines (out of {} seeds), in {} seconds.\n"
+                  "Now saving..."
+                  .format(len(streamlines), nbr_seeds, str_time))
+
+    # save seeds if args.save_seeds is given
+    data_per_streamline = {'seed': lambda: seeds} if args.save_seeds else {}
+
+    # Silencing SFT's logger if our logging is in DEBUG mode, because it
+    # typically produces a lot of outputs!
+    set_sft_logger_level('WARNING')
+
+    # Compared with scil_compute_local_tracking, using sft rather than
+    # LazyTractogram to deal with space. Space is voxmm
+    sft = StatefulTractogram(streamlines, mask_img, Space.VOXMM,
+                             data_per_streamline=data_per_streamline)
+    save_tractogram(sft, args.out_tractogram)
+
+
+if __name__ == "__main__":
+    main()
