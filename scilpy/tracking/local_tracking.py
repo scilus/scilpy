@@ -5,7 +5,6 @@ import multiprocessing
 import os
 import sys
 import traceback
-import warnings
 
 import nibabel as nib
 import numpy as np
@@ -15,7 +14,6 @@ from dipy.tracking.streamlinespeed import compress_streamlines
 from scilpy.image.datasets import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator
 from scilpy.tracking.seed import SeedGenerator
-from scilpy.tracking.utils import TrackingParams
 
 # For the multi-processing:
 data_file_info = None
@@ -23,8 +21,10 @@ data_file_info = None
 
 class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
-                 seed_generator: SeedGenerator, params: TrackingParams,
-                 compression_th=0.1, nbr_processes=1, save_seeds=False):
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_points,
+                 max_nbr_points, max_invalid_dirs, compression_th=0.1,
+                 nbr_processes=1, save_seeds=False, mmap_mode=None,
+                 rng_seed=1234, track_forward_only=False, skip=0):
         """
         Parameters
         ----------
@@ -34,8 +34,12 @@ class Tracker(object):
             Tracking volume(s).
         seed_generator : SeedGenerator
             Seeding volume.
-        params: TrackingParams
-            Tracking parameters, see scilpy.tracking.utils.py.
+        nbr_seeds: int
+            Number of seeds to create via the seed generator.
+        min_nbr_points: int
+        max_nbr_points: int
+        max_invalid_dirs: int
+            Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
             Maximal distance threshold for compression. If None or 0, no
             compression is applied.
@@ -44,13 +48,37 @@ class Tracker(object):
         save_seeds: bool
             Whether to save the seeds associated to their respective
             streamlines.
+        mmap_mode: str
+            Memory-mapping mode. One of {None, ‘r+’, ‘r’, ‘w+’, ‘c’}
+        rng_seed: int
+            The random "seed" for the random generator.
+        track_forward_only: bool
+            If true, only the forward direction is computed.
+        skip: int
+            Skip the first N seeds created (and thus N rng numbers). Useful if
+            you want to create new streamlines to add to a previously created
+            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
+            with nbr_seeds=1,000,000, you can create tractogram_2 with
+            skip 1,000,000.
         """
         self.propagator = propagator
         self.mask = mask
         self.seed_generator = seed_generator
-        self.params = params
+        self.nbr_seeds = nbr_seeds
+        self.min_nbr_pts = min_nbr_points
+        self.max_nbr_pts = max_nbr_points
+        self.max_invalid_dirs = max_invalid_dirs
         self.compression_th = compression_th
         self.save_seeds = save_seeds
+        self.mmap_mode = mmap_mode
+        self.rng_seed = rng_seed
+        self.track_forward_only = track_forward_only
+        self.skip = skip
+
+        if self.min_nbr_pts <= 0:
+            logging.warning("Minimum number of points cannot be 0. Changed to "
+                            "1.")
+            self.min_nbr_pts = 1
 
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 
@@ -86,7 +114,7 @@ class Tracker(object):
                 pool = multiprocessing.Pool(self.nbr_processes,
                                             initializer=self._init_sub_process,
                                             initargs=(data_file_name,
-                                                      self.params.mmap_mode))
+                                                      self.mmap_mode))
 
                 lines_per_process, seeds_per_process = zip(*pool.map(
                     self._get_streamlines_sub, chunk_ids))
@@ -105,15 +133,14 @@ class Tracker(object):
             try:
                 nbr_processes = multiprocessing.cpu_count()
             except NotImplementedError:
-                warnings.warn("Cannot determine number of cpus. \
-                        returns nbr_processes set to 1.")
+                logging.warning("Cannot determine number of cpus: "
+                                "nbr_processes set to 1.")
                 nbr_processes = 1
 
-        if nbr_processes > self.params.nbr_seeds:
-            nbr_processes = self.params.nbr_seeds
-            logging.debug('Setting number of processes to ' +
-                          str(nbr_processes) +
-                          ' since there were less seeds than processes.')
+        if nbr_processes > self.nbr_seeds:
+            nbr_processes = self.nbr_seeds
+            logging.debug("Setting number of processes to {} since there were "
+                          "less seeds than processes.".format(nbr_processes))
         return nbr_processes
 
     @staticmethod
@@ -154,12 +181,12 @@ class Tracker(object):
 
         # Initialize the random number generator to cover multiprocessing,
         # skip, which voxel to seed and the subvoxel random position
-        chunk_size = int(self.params.nbr_seeds / self.nbr_processes)
-        first_seed_of_chunk = chunk_id * chunk_size + self.params.skip
+        chunk_size = int(self.nbr_seeds / self.nbr_processes)
+        first_seed_of_chunk = chunk_id * chunk_size + self.skip
         random_generator, indices = self.seed_generator.init_pos(
-            self.params.random, first_seed_of_chunk)
+            self.rng_seed, first_seed_of_chunk)
         if chunk_id == self.nbr_processes - 1:
-            chunk_size += self.params.nbr_seeds % self.nbr_processes
+            chunk_size += self.nbr_seeds % self.nbr_processes
 
         # Getting streamlines
         for s in range(chunk_size):
@@ -197,16 +224,18 @@ class Tracker(object):
         -------
         line: list of 3D positions
         """
-        np.random.seed(np.uint32(hash((pos, self.params.random))))
+        np.random.seed(np.uint32(hash((pos, self.rng_seed))))
         line = []
-        if self.propagator.initialize(pos):
+
+        # Initialize returns true if initial directions at pos are valid.
+        if self.propagator.initialize(pos, self.track_forward_only):
             # Forward
             forward = self._propagate_line(True)
             if len(forward) > 0:
                 line.extend(forward)
 
             # Backward
-            if not self.params.is_single_direction and forward is not None:
+            if not self.track_forward_only:
                 backward = self._propagate_line(False)
                 if len(backward) > 0:
                     line.reverse()
@@ -214,16 +243,10 @@ class Tracker(object):
                     line.extend(backward)
 
             # Clean streamline
-            if ((len(line) > 1 and
-                 self.params.min_nbr_pts <= len(line) <=
-                 self.params.max_nbr_pts)):
+            if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
                 return line
-            elif (self.params.is_keep_single_pts and
-                  self.params.min_nbr_pts == 1):
-                return [pos]
             return None
-        elif ((self.params.is_keep_single_pts and
-               self.params.min_nbr_pts == 1)):
+        elif self.min_nbr_pts == 1:
             return [pos]
         return None
 
@@ -248,7 +271,7 @@ class Tracker(object):
         invalid_direction_count = 0
 
         propagation_can_continue = True
-        while len(line) < self.params.max_nbr_pts and propagation_can_continue:
+        while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_dir, is_valid_direction = self.propagator.propagate(
                 line[-1], line_dirs[-1])
             line.append(new_pos)
@@ -259,7 +282,7 @@ class Tracker(object):
             else:
                 invalid_direction_count += 1
 
-            if invalid_direction_count > self.params.max_no_dir:
+            if invalid_direction_count > self.max_invalid_dirs:
                 return line
 
             propagation_can_continue = (

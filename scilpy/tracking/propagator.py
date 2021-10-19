@@ -36,7 +36,7 @@ class AbstractPropagator(object):
         self.forward_dir = None
         self.backward_dir = None
 
-    def initialize(self, pos):
+    def initialize(self, pos, track_forward_only):
         """
         Initialize the tracking at position pos. Initial tracking directions
         are picked, the propagete_foward() and propagate_backward() functions
@@ -46,6 +46,8 @@ class AbstractPropagator(object):
         ----------
         pos: ndarray (3,)
             Initial tracking position.
+        track_forward_only: bool
+            If true, verifies validity of forward direction only.
 
         Return
         ------
@@ -57,6 +59,14 @@ class AbstractPropagator(object):
         self.backward_pos = pos
         self.forward_dir, self.backward_dir =\
             self.tracking_field.get_init_direction(pos)
+
+        if track_forward_only:
+            if self.forward_dir is not None:
+                return True
+            elif self.backward_dir is not None:
+                self.forward_dir = self.backward_dir
+                return True
+            return False
         return self.forward_dir is not None and self.backward_dir is not None
 
     def _get_next_valid_direction(self, pos, v_in):
