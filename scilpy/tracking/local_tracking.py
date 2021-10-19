@@ -122,13 +122,13 @@ class Tracker(object):
         data_file_info = (date_file_name, mmap_mod)
         return
 
-    def _get_streamlines_sub(self, args):
+    def _get_streamlines_sub(self, chunk_id):
         """
         multiprocessing.pool.map input function.
 
         Parameters
         ----------
-        args : List, parameters for the get_streamlines_at_seeds function.
+        chunk_id: int, This processes's id.
 
         Return
         -------
@@ -137,11 +137,11 @@ class Tracker(object):
         global data_file_info
 
         # args[0] is the Tracker.
-        args[0].tracking_field.dataset.data = np.load(
+        self.propagator.tracking_field.dataset.data = np.load(
             data_file_info[0], mmap_mode=data_file_info[1])
 
         try:
-            streamlines, seeds = self._get_streamlines(*args)
+            streamlines, seeds = self._get_streamlines(chunk_id)
             return streamlines, seeds
         except Exception as e:
             logging.error("Operation _get_streamlines_sub() failed.")
@@ -151,17 +151,17 @@ class Tracker(object):
     def _get_streamlines(self, chunk_id):
         streamlines = []
         seeds = []
+
         # Initialize the random number generator to cover multiprocessing,
         # skip, which voxel to seed and the subvoxel random position
         chunk_size = int(self.params.nbr_seeds / self.nbr_processes)
-        skip = self.params.skip
-
-        first_seed_of_chunk = chunk_id * chunk_size + skip
+        first_seed_of_chunk = chunk_id * chunk_size + self.params.skip
         random_generator, indices = self.seed_generator.init_pos(
             self.params.random, first_seed_of_chunk)
-
         if chunk_id == self.nbr_processes - 1:
             chunk_size += self.params.nbr_seeds % self.nbr_processes
+
+        # Getting streamlines
         for s in range(chunk_size):
             if s % 1000 == 0:
                 logging.info(str(os.getpid()) + " : " + str(s)
@@ -200,22 +200,21 @@ class Tracker(object):
         np.random.seed(np.uint32(hash((pos, self.params.random))))
         line = []
         if self.propagator.initialize(pos):
+            # Forward
             forward = self._propagate_line(True)
-            if forward is not None and len(forward) > 0:
+            if len(forward) > 0:
                 line.extend(forward)
 
+            # Backward
             if not self.params.is_single_direction and forward is not None:
                 backward = self._propagate_line(False)
-                if backward is not None and len(backward) > 0:
+                if len(backward) > 0:
                     line.reverse()
                     line.pop()
                     line.extend(backward)
-            else:
-                backward = []
 
+            # Clean streamline
             if ((len(line) > 1 and
-                 forward is not None and
-                 backward is not None and
                  self.params.min_nbr_pts <= len(line) <=
                  self.params.max_nbr_pts)):
                 return line
@@ -223,8 +222,8 @@ class Tracker(object):
                   self.params.min_nbr_pts == 1):
                 return [pos]
             return None
-        if ((self.params.is_keep_single_pts and
-             self.params.min_nbr_pts == 1)):
+        elif ((self.params.is_keep_single_pts and
+               self.params.min_nbr_pts == 1)):
             return [pos]
         return None
 
@@ -246,7 +245,7 @@ class Tracker(object):
         line_dirs = [self.propagator.forward_dir] if is_forward else [
             self.propagator.backward_dir]
 
-        no_valid_direction_count = 0
+        invalid_direction_count = 0
 
         propagation_can_continue = True
         while len(line) < self.params.max_nbr_pts and propagation_can_continue:
@@ -256,11 +255,11 @@ class Tracker(object):
             line_dirs.append(new_dir)
 
             if is_valid_direction:
-                no_valid_direction_count = 0
+                invalid_direction_count = 0
             else:
-                no_valid_direction_count += 1
+                invalid_direction_count += 1
 
-            if no_valid_direction_count > self.params.max_no_dir:
+            if invalid_direction_count > self.params.max_no_dir:
                 return line
 
             propagation_can_continue = (
@@ -272,7 +271,7 @@ class Tracker(object):
                     self.propagator.step_size * np.array(line_dirs[-1]))
 
         # Last cleaning of the streamline
-        while (line is not None and len(line) > 0 and
+        while (len(line) > 0 and
                not self.propagator.is_position_in_bound(line[-1])):
             line.pop()
 
