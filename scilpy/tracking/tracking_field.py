@@ -18,20 +18,26 @@ class AbstractTrackingField(object):
     theta: float
         Maximum angle (radians) between two steps.
     dipy_sphere: string, optional
-        Name of the DIPY sphere object to use for evaluating SH.
+        Name of the DIPY sphere object to use for evaluating SH. Can be set to
+        None to skip sphere initialization.
     """
-    def __init__(self, dataset, theta, dipy_sphere):
+    def __init__(self, dataset, theta, dipy_sphere=None):
         self.theta = theta
         self.dataset = dataset
 
-        if 'symmetric' not in dipy_sphere:
-            raise ValueError('Sphere must be symmetric. Call to '
-                             'get_opposite_direction will fail.')
-        self.sphere = dipy.data.get_sphere(dipy_sphere)
-        self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
-        for i in range(len(self.sphere.vertices)):
-            self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
-        self.tracking_neighbours = self._get_sphere_neighbours(self.theta)
+        if dipy_sphere:
+            if 'symmetric' not in dipy_sphere:
+                raise ValueError('Sphere must be symmetric. Call to '
+                                 'get_opposite_direction will fail.')
+            self.sphere = dipy.data.get_sphere(dipy_sphere)
+            self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
+            for i in range(len(self.sphere.vertices)):
+                self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
+            self.tracking_neighbours = self._get_sphere_neighbours(self.theta)
+        else:
+            self.sphere = None
+            self.dirs = None
+            self.tracking_neighbours = None
 
     def _get_sphere_neighbours(self, max_angle):
         """
@@ -68,7 +74,7 @@ class AbstractTrackingField(object):
         """
         raise NotImplementedError
 
-    def get_opposite_direction(self, ind):
+    def get_opposite_direction_sphere(self, ind):
         """
         Get the indice of the opposite direction on the sphere to the indice
         ind.
@@ -85,7 +91,7 @@ class AbstractTrackingField(object):
         """
         return (len(self.dirs) // 2 + ind) % len(self.dirs)
 
-    def get_next_direction(self, pos, previous_direction, args=None):
+    def get_next_direction(self, pos, previous_direction, *args):
         """
         Get next direction. Depends on the type of tracking field and probably
         on some alorithm parameter choices.
@@ -122,7 +128,8 @@ class SphericalHarmonicField(AbstractTrackingField):
     theta: float
         Maximum angle (radians) between two steps.
     dipy_sphere: string, optional
-        Name of the DIPY sphere object to use for evaluating SH.
+        Name of the DIPY sphere object to use for evaluating SH. Can't be
+        None.
     min_separation_angle: float, optional
         Minimum separation angle (in radians) for peaks extraction. Used for
         deterministic tracking. A candidate direction is a maximum if its SF
@@ -263,6 +270,6 @@ class SphericalHarmonicField(AbstractTrackingField):
 
         if np.sum(sf) > 0:
             ind = sample_distribution(sf)
-            ind_opposite = self.get_opposite_direction(ind)
+            ind_opposite = self.get_opposite_direction_sphere(ind)
             return self.dirs[ind], self.dirs[ind_opposite]
         return None, None
