@@ -59,12 +59,15 @@ class AbstractPropagator(object):
             self.tracking_field.get_init_direction(pos)
         return self.forward_dir is not None and self.backward_dir is not None
 
-    def get_next_valid_direction(self, pos, v_in):
+    def _get_next_valid_direction(self, pos, v_in):
         """
         Get the next direction given the position pos, input direction
         v_in, and tracking method (ex, probabilistic or deterministic), and
         verify if it is valid. If it is not valid, return v_in as next
         direction.
+
+        Uses self._get_next_direction, which must be implemented by each child
+        class.
 
         Parameters
         ----------
@@ -82,7 +85,7 @@ class AbstractPropagator(object):
             found.
         """
         is_direction_valid = True
-        v_out = self.get_direction(pos, v_in)
+        v_out = self._get_next_direction(pos, v_in)
         if v_out is None:
             is_direction_valid = False
             v_out = v_in
@@ -112,27 +115,27 @@ class AbstractPropagator(object):
             True if new_dir is valid.
         """
         if self.rk_order == 1:
-            is_direction_valid, new_dir = self.get_next_valid_direction(
+            is_direction_valid, new_dir = self._get_next_valid_direction(
                 pos, v_in)
 
         elif self.rk_order == 2:
-            is_direction_valid, dir1 = self.get_next_valid_direction(
+            is_direction_valid, dir1 = self._get_next_valid_direction(
                 pos, v_in)
-            _, new_dir = self.get_next_valid_direction(
+            _, new_dir = self._get_next_valid_direction(
                 pos + 0.5 * self.step_size * np.array(dir1), dir1)
 
         else:
             # case self.rk_order == 4
-            is_direction_valid, dir1 = self.get_next_valid_direction(
+            is_direction_valid, dir1 = self._get_next_valid_direction(
                 pos, v_in)
             v1 = np.array(dir1)
-            _, dir2 = self.get_next_valid_direction(
+            _, dir2 = self._get_next_valid_direction(
                 pos + 0.5 * self.step_size * v1, dir1)
             v2 = np.array(dir2)
-            _, dir3 = self.get_next_valid_direction(
+            _, dir3 = self._get_next_valid_direction(
                 pos + 0.5 * self.step_size * v2, dir2)
             v3 = np.array(dir3)
-            _, dir4 = self.get_next_valid_direction(
+            _, dir4 = self._get_next_valid_direction(
                 pos + self.step_size * v3, dir3)
             v4 = np.array(dir4)
 
@@ -159,7 +162,7 @@ class AbstractPropagator(object):
         """
         return self.tracking_field.dataset.is_position_in_bound(*pos)
 
-    def get_direction(self, pos, v_in):
+    def _get_next_direction(self, pos, v_in):
         """
         Abstract method. Return the next tracking direction, given
         the current position pos and the previous direction v_in.
@@ -194,7 +197,7 @@ class ProbabilisticSHPropagator(AbstractPropagator):
         super(ProbabilisticSHPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
-    def get_direction(self, pos, v_in):
+    def _get_next_direction(self, pos, v_in):
         """
         Return the next tracking direction, given the current position
         pos and the previous direction v_in. This direction must respect
@@ -237,7 +240,7 @@ class DeterministicMaximaSHPropagator(AbstractPropagator):
         super(DeterministicMaximaSHPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
-    def get_direction(self, pos, v_in):
+    def _get_next_direction(self, pos, v_in):
         """
         Get the next valid tracking direction or None if no valid maxima
         is available.
