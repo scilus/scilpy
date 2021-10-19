@@ -3,7 +3,8 @@ import numpy as np
 
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
-from scilpy.tracking.tracking_field import SphericalHarmonicField
+from scilpy.tracking.tracking_field import AbstractTrackingField, \
+                                           SphericalHarmonicField
 
 
 class AbstractPropagator(object):
@@ -214,7 +215,7 @@ class AbstractTracker(object):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field: SphericalHarmonicField,
+    def __init__(self, tracking_field: AbstractTrackingField,
                  step_size, rk_order):
         self.tracking_field = tracking_field
         self.step_size = step_size
@@ -351,7 +352,8 @@ class ProbabilisticTracker(AbstractTracker):
         direction: ndarray (3,)
             A valid tracking direction. None if no valid direction is found.
         """
-        sf, directions = self.tracking_field.get_tracking_sf(pos, v_in)
+        sf, directions = self.tracking_field.get_next_direction(
+            pos, v_in, 'prob')
         if np.sum(sf) > 0:
             return directions[sample_distribution(sf)]
         return None
@@ -393,10 +395,11 @@ class DeterministicMaximaTracker(AbstractTracker):
             The maxima closest to v_in. None if the no
             valid maxima are available.
         """
-        maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
+        possible_maxima = self.tracking_field.get_next_direction(
+            pos, v_in, 'det')
         cosinus = 0
         v_out = None
-        for d in maxima_direction:
+        for d in possible_maxima:
             new_cosinus = np.dot(v_in, d)
             if new_cosinus > cosinus:
                 cosinus = new_cosinus
