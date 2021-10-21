@@ -35,6 +35,7 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.streamlines import hack_invalid_streamlines
 from scilpy.tractanalysis.uncompress import uncompress
 from dipy.io.streamline import load_tractogram
+from nibabel.streamlines.array_sequence import ArraySequence as AS
 # from scilpy.tracking.tools import resample_streamlines_step_size
 # from dipy.io.stateful_tractogram import StatefulTractogram
 # from dipy.tracking import utils
@@ -55,16 +56,21 @@ def _build_arg_parser():
     p.add_argument('out_dir',
                    help='Output directory for the priors.')
 
-    p.add_argument('--in_reg_dir',
+    p.add_argument('--prep',
+                   action='store_true',
+                   help='Prepare the next tractogram while the current one is'
+                   ' being processed. Speeds up a bit but increase RAM needs.'
+                   '\n(Voxelwise priors only, requires parallel processing).')
+    p.add_argument('-rd', '--in_reg_dir',
                    help='Path to the atlas file defining the regions.')
-    p.add_argument('--parallel_proc',
+    p.add_argument('-pp', '--parallel_proc',
                    help='Number of parallel processes to launch '
                    '\n(Voxelwise priors only).')
-    p.add_argument('--from_endpoints',
+    p.add_argument('-ep', '--from_endpoints',
                    action='store_true',
                    help='Only streamlines with endpoints in the mask of the'
                         ' voxel/region are taken into account')
-    p.add_argument('--extremity_length',
+    p.add_argument('-l', '--extremity_length',
                    default=1,
                    help='Number of away from an endpoint to consider as streamline'
                         ' extremity. Only works with "--from_endpoints"')
@@ -115,12 +121,53 @@ def voxelize_tractogram(sft):
     return voxed_strms
 
 
-# def tupled_streamlines(sft):
-#     '''
-#     sft must be a voxelised sft (cf. voxelize_tractogram)
-#     Returns a list of streamlines with each point given as a tuple
-#     '''
-#     return [list(zip(st.T[0], st.T[1], st.T[2])) for st in sft.streamlines]
+def prep_streamlines(track_Files, ref=None, from_endpoints=False, distEnd=None):
+    """
+    Load and voxelise the tractogram.
+    Only for voxel-wise priors.
+
+    Parameters
+    ----------
+    trk_File : dict
+        Path to the .trk file (and the temporary .npz saving file if needed)
+    ref : nifti1.Nifti1Image
+        Nibabel image of the reference template.
+    from_endpoints : args.from_endpoints
+
+    distEnd : vox2end
+
+    Returns
+    -------
+    None.
+
+    """
+    trk_File = track_Files['trk_File']
+    tmp_File = track_Files['tmp_File']
+    print("loading next tractogram")
+    sft = load_tractogram(trk_File, ref, bbox_valid_check=False)
+    print("Filtering")
+    sft = filter_streamlines_by_length(sft, 25, 250)
+    sft = hack_invalid_streamlines(sft)
+    sft.to_vox()
+    sft.to_corner()
+    tractomask = np.where(compute_tract_counts_map(sft.streamlines, ref.shape),
+                          True, False)
+    templ_v = ref.get_fdata().astype(bool)
+    empty_vol = templ_v > tractomask  # Voxels in templ but not in the tractogram
+    templ_v = templ_v*tractomask  # Removing voxels with no streamlines
+    voxel_list = np.argwhere(templ_v)
+    voxel_list = [tuple(ind) for ind in voxel_list]
+    stream_tpled = voxelize_tractogram(sft)  # Not actually tupled anymore
+    if from_endpoints:
+        stream_tpled = nib.streamlines.array_sequence.ArraySequence(
+                            get_endpoints(stream_tpled,
+                                          distEnd))
+    if tmp_File:
+        stream_tpled.save(tmp_File)
+        print("Preparation done. Waiting for current process to end.")
+        return (empty_vol, voxel_list)
+    else:
+        return (empty_vol, voxel_list, stream_tpled)
 
 
 def visitation_mapping(area_mask, sft, out_Ftmp, affine, endpoints):
@@ -200,9 +247,9 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
         vdict = vox_dict
         out_dir = dict_var['out_dir']
         templ_i = dict_var['templ_i']
-    else:  # Must give input (vdict, stream_tupled, out_dir, templ_i)
+    else:  # Must give input (vlist, vdict, stream_tupled, out_dir, templ_i)
         pass
-    if logs:
+    if logs:  # For testing
         current = current_process()
         logDir = str(Path(out_dir).parent.absolute())
         if current.name == 'MainProcess':
@@ -218,28 +265,20 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
             out_Ftmp = os.path.join(out_dir, out_name)
             vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
             for strmInd in vdict[vox]:
-                for v in stream_tupled[strmInd]:
-                    vox_vol[tuple(v)] = 1
+                vox_vol[tuple(stream_tupled[strmInd].T)] = 1
             save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
         logtxt = 'Processing over for this worker\n'
         with open(logFile, "a") as log:
             log.write(logtxt)
-    else:
+    else:  # Normal case
         for vox in vdict:
             out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
             out_Ftmp = os.path.join(out_dir, out_name)
             vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
             for strmInd in vdict[vox]:
-                for v in stream_tupled[strmInd]:
-                    vox_vol[tuple(v)] = 1
+                vox_vol[tuple(stream_tupled[strmInd].T)] = 1
             save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
 
-
-# def init_worker(stream_tupled, out_dir, templ_i):
-#     global dict_var
-#     dict_var = {'stream_tupled': stream_tupled,
-#                 'out_dir': out_dir,
-#                 'templ_i': templ_i}
 
 def init_worker(out_dir, templ_i):
     global dict_var
@@ -287,27 +326,20 @@ def main():
     trk_list = glob.glob(os.path.join(args.in_dir_tractogram, '*.trk'))
     for n, trk_F in enumerate(trk_list):
         print(os.path.basename(trk_F) + f' ({n+1}/{len(trk_list)})')
-        print('Loading the tractogram...')
-        trk_sft = load_tractogram(trk_F, templ_i, bbox_valid_check=False)
-        print('Filtering')
-        trk_sft = filter_streamlines_by_length(trk_sft, 25, 250)
-        trk_sft = hack_invalid_streamlines(trk_sft)
-        trk_sft.to_vox()
-        trk_sft.to_corner()
         if args.in_reg_dir is None:
-            # For voxel-wise priors, "voxelizes" the tractograms
-            tractomask = np.where(compute_tract_counts_map(trk_sft.streamlines, templ_i.shape),
-                                  True, False)
-            empty_vol = templ_v > tractomask  # Voxels in templ but not in the tractogram
-            templ_v = templ_v*tractomask  # Removing voxels with no streamlines
-            voxel_list = np.argwhere(templ_v)
-            voxel_list = [tuple(ind) for ind in voxel_list]
-            stream_tpled = voxelize_tractogram(trk_sft)  # Not actually tupled anymore
-            if args.from_endpoints:
-                # stream_tupled_endp = [strm[:vox2end] + strm[-vox2end:] for strm in stream_tpled]
-                stream_tpled = nib.streamlines.array_sequence.ArraySequence(
-                                    get_endpoints(stream_tpled,
-                                                  vox2end))
+            # Declqring variables defined in later loops
+            next_empty_vol = None
+            next_voxel_list = None
+            next_tmp = None
+            if n == 0 or not args.prep:
+                trackFiles = {'trk_File': trk_F, 'tmp_File': ''}
+                (empty_vol, voxel_list, stream_tpled) = prep_streamlines(
+                    trackFiles, templ_i, args.from_endpoints, vox2end)
+            else:
+                empty_vol = next_empty_vol
+                voxel_list = next_voxel_list
+                stream_tpled = AS.load(next_tmp)
+
             if nb_proc == 1:
                 vox_dict = loop_on_strm(voxel_list, stream_tpled)
                 print('Starting process')
@@ -334,6 +366,14 @@ def main():
                                     templ_i)
                           ) as pool:
                     poolCheck = pool.map_async(strm_multi, vox_batchs)
+                    if args.prep and n > 0:
+                        os.remove(next_tmp)  # Cleaning previous subject's file
+                    if args.prep and n < len(trk_list)-1:
+                        next_file = trk_list[n+1]
+                        next_tmp = os.path.splitext(next_file)[0] + '_tmp.npz'
+                        trackFiles = {'trk_File': next_file, 'tmp_File': next_tmp}
+                        (next_empty_vol, next_voxel_list) = prep_streamlines(
+                            trackFiles, templ_i, args.from_endpoints, vox2end)
                     poolCheck.wait()
 
             print('"Saving" maps of voxels with no tract')
@@ -358,6 +398,13 @@ def main():
                         copyfile(out_Ftmp0, out_Ftmp)
 
         else:  # Regionwise priors
+            print('Loading the tractogram...')
+            trk_sft = load_tractogram(trk_F, templ_i, bbox_valid_check=False)
+            print('Filtering')
+            trk_sft = filter_streamlines_by_length(trk_sft, 25, 250)
+            trk_sft = hack_invalid_streamlines(trk_sft)
+            trk_sft.to_vox()
+            trk_sft.to_corner()
             for reg_F in list_reg_files:
                 reg_i = nib.load(reg_F)
                 reg_mask = reg_i.get_fdata().astype(bool)
@@ -393,6 +440,21 @@ if __name__ == "__main__":
     main()
 
 # %% Old functions not usefull anymore
+
+
+# def init_worker(stream_tupled, out_dir, templ_i):
+#     global dict_var
+#     dict_var = {'stream_tupled': stream_tupled,
+#                 'out_dir': out_dir,
+#                 'templ_i': templ_i}
+
+
+# def tupled_streamlines(sft):
+#     '''
+#     sft must be a voxelised sft (cf. voxelize_tractogram)
+#     Returns a list of streamlines with each point given as a tuple
+#     '''
+#     return [list(zip(st.T[0], st.T[1], st.T[2])) for st in sft.streamlines]
 
 
 # def Parcelate_tractogram(sft, templ_v, nb_parcel=16):
