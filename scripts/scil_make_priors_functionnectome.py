@@ -273,7 +273,7 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
         with open(logFile, "a") as log:
             log.write(logtxt)
     else:  # Normal case
-        for vox in vdict:
+        for vox in vlist:
             vox = tuple(vox)
             out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
             out_Ftmp = os.path.join(out_dir, out_name)
