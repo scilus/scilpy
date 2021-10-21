@@ -163,9 +163,7 @@ def prep_streamlines(track_Files, ref=None, from_endpoints=False, distEnd=None):
     print("Resampling at the voxel level")
     stream_tpled = voxelize_tractogram(sft)  # Not actually tupled anymore
     if from_endpoints:
-        stream_tpled = nib.streamlines.array_sequence.ArraySequence(
-                            get_endpoints(stream_tpled,
-                                          distEnd))
+        stream_tpled = AS(get_endpoints(stream_tpled, distEnd))
     if tmp_File:
         stream_tpled.save(tmp_File)
         print("Preparation for next subject done. Waiting for current subject process to end.")
@@ -276,6 +274,7 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
             log.write(logtxt)
     else:  # Normal case
         for vox in vdict:
+            vox = tuple(vox)
             out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
             out_Ftmp = os.path.join(out_dir, out_name)
             vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
@@ -335,13 +334,13 @@ def main():
         list_reg_files = glob.glob(os.path.join(args.in_reg_dir, '*.nii*'))
 
     trk_list = glob.glob(os.path.join(args.in_dir_tractogram, '*.trk'))
+    # Declaring variables defined in later loops
+    next_empty_vol = None
+    next_voxel_list = None
+    next_tmp = None
     for n, trk_F in enumerate(trk_list):
         print(os.path.basename(trk_F) + f' ({n+1}/{len(trk_list)})')
         if args.in_reg_dir is None:
-            # Declqring variables defined in later loops
-            next_empty_vol = None
-            next_voxel_list = None
-            next_tmp = None
             if n == 0 or not args.prep:
                 trackFiles = {'trk_File': trk_F, 'tmp_File': ''}
                 (empty_vol, voxel_list, stream_tpled) = prep_streamlines(
