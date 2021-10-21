@@ -11,7 +11,6 @@ with each file named as the region it contains (e.g. 'SupFront_Left.nii.gz')
 
 # TODO Add a 'Resume' option (with numbered tmp files)
 # TODO Improve RAM usage by sharing the tractogram between processes
-# TODO Parallelize om subjects the streamlines prep
 """
 
 import nibabel as nib
@@ -99,8 +98,10 @@ def voxelise_strm(strmls):
 
 def voxelize_tractogram(sft):
     '''
+    Resample the streamlines at the voxel level.
     Floor the points of the streamlines to the voxel they belong to and
     removes duplicate points. Output a list of streamlines with each point given as a tuple
+    Or uses uncompress
     '''
     sft.to_vox()
     sft.to_corner()
@@ -109,14 +110,13 @@ def voxelize_tractogram(sft):
         steps = [np.linalg.norm(strm[i]-strm[i+1]) for i in range(len(strm)-1)]
         if max(steps) > 1.8:  # Max distance between neighbouring voxels should be 1.73
             print('Step size bigger than a voxel (tractogram probably compressed).'
-                  'Using uncompress function.')
+                  ' Using uncompress function.')
             resamp = True
             break
 
     if resamp:
         voxed_strms = uncompress(sft.streamlines)  # Ouput fatter streamlines...
-        # voxed_strms = [list(zip(strm.T[0], strm.T[1], strm.T[2])) for strm in voxed_strms]
-    else:  # Classic (thinner) but slower
+    else:  # Classic (thinner) but slower and bad with compressed streamlines
         voxed_strms = nib.streamlines.array_sequence.ArraySequence(voxelise_strm(sft.streamlines))
     return voxed_strms
 
@@ -143,7 +143,10 @@ def prep_streamlines(track_Files, ref=None, from_endpoints=False, distEnd=None):
     """
     trk_File = track_Files['trk_File']
     tmp_File = track_Files['tmp_File']
-    print("loading next tractogram")
+    if tmp_File:
+        print("Preloading next tractogram")
+    else:
+        print("Loading tractogram")
     sft = load_tractogram(trk_File, ref, bbox_valid_check=False)
     print("Filtering")
     sft = filter_streamlines_by_length(sft, 25, 250)
@@ -157,6 +160,7 @@ def prep_streamlines(track_Files, ref=None, from_endpoints=False, distEnd=None):
     templ_v = templ_v*tractomask  # Removing voxels with no streamlines
     voxel_list = np.argwhere(templ_v)
     voxel_list = [tuple(ind) for ind in voxel_list]
+    print("Resampling at the voxel level")
     stream_tpled = voxelize_tractogram(sft)  # Not actually tupled anymore
     if from_endpoints:
         stream_tpled = nib.streamlines.array_sequence.ArraySequence(
@@ -164,7 +168,7 @@ def prep_streamlines(track_Files, ref=None, from_endpoints=False, distEnd=None):
                                           distEnd))
     if tmp_File:
         stream_tpled.save(tmp_File)
-        print("Preparation done. Waiting for current process to end.")
+        print("Preparation for next subject done. Waiting for current subject process to end.")
         return (empty_vol, voxel_list)
     else:
         return (empty_vol, voxel_list, stream_tpled)
