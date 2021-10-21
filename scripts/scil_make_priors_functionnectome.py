@@ -284,21 +284,28 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
             save_tmp_map(vox_vol, out_Ftmp, templ_i.affine)
 
 
-def init_worker(out_dir, templ_i):
+def init_worker(out_dir, templ_i, strmtpled, vdict):
     global dict_var
+    global stream_tpled
+    global vox_dict
     dict_var = {'out_dir': out_dir,
                 'templ_i': templ_i}
+    stream_tpled = strmtpled
+    vox_dict = vdict
 
 
-def init_worker0(voxL):
+def init_worker0(voxL, strmtpled):
     global voxel_list
+    global stream_tpled
     voxel_list = voxL
+    stream_tpled = strmtpled
+
 # %%
 
 
 def main():
-    global stream_tpled
-    global vox_dict
+    # global stream_tpled
+    # global vox_dict
 
     t0 = time.time()
     t = t0
@@ -353,7 +360,9 @@ def main():
                 strm_batch = np.array_split(range(len(stream_tpled)), nb_proc)
                 with Pool(processes=nb_proc,
                           initializer=init_worker0,
-                          initargs=(voxel_list,)) as pool:
+                          initargs=(voxel_list,
+                                    stream_tpled)
+                          ) as pool:
                     poolComp = pool.map_async(loop_on_strm_multi, strm_batch)
                     vox_dictL = poolComp.get()
                 vox_dict = vox_dictL.pop()
@@ -367,7 +376,9 @@ def main():
                 with Pool(processes=nb_proc,
                           initializer=init_worker,
                           initargs=(args.out_dir,
-                                    templ_i)
+                                    templ_i,
+                                    stream_tpled,
+                                    vox_dict)
                           ) as pool:
                     poolCheck = pool.map_async(strm_multi, vox_batchs)
                     if args.prep and n > 0:
