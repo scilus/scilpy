@@ -271,7 +271,7 @@ def main():
                        for s in streamlines)
 
     # save seeds if args.save_seeds is given
-    data_per_streamlines = {'seed': lambda: seeds} if args.save_seeds else {}
+    data_per_streamlines = {'seeds': lambda: seeds} if args.save_seeds else {}
 
     streamlines = unscale_streamlines(seed_img, streamlines)
     tractogram = LazyTractogram(lambda: streamlines,
