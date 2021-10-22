@@ -154,6 +154,20 @@ def unscale_streamlines(ref_img, streamlines):
     return vox_streamlines
 
 
+def unscale_seeds(ref_img, seeds):
+    """
+    Remove voxel scaling from seeds data to express them
+    in voxel space.
+    seeds N, 3
+    """
+    unscaling_matrix = np.eye(3)
+    unscaling_matrix[range(3), range(3)] = 1. / np.array(
+        ref_img.header.get_zooms())
+
+    vox_seeds = np.array(seeds).dot(unscaling_matrix)
+    return vox_seeds
+
+
 def main():
     parser = buildArgsParser()
     args = parser.parse_args()
@@ -271,6 +285,8 @@ def main():
                        for s in streamlines)
 
     # save seeds if args.save_seeds is given
+    if args.save_seeds:
+        seeds = unscale_seeds(seed_img, seeds)
     data_per_streamlines = {'seeds': lambda: seeds} if args.save_seeds else {}
 
     streamlines = unscale_streamlines(seed_img, streamlines)
