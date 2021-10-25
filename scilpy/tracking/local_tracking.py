@@ -12,7 +12,7 @@ import numpy as np
 
 from dipy.tracking.streamlinespeed import compress_streamlines
 
-from scilpy.image.datasets import AccessibleVolume
+from scilpy.image.datasets import DataVolume
 from scilpy.tracking.tracker import AbstractTracker
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.utils import TrackingParams
@@ -20,7 +20,7 @@ from scilpy.tracking.utils import TrackingParams
 data_file_info = None
 
 
-def track(tracker: AbstractTracker, mask: AccessibleVolume,
+def track(tracker: AbstractTracker, mask: DataVolume,
           seed_generator: SeedGenerator, params: TrackingParams,
           compression_th=0.1, nbr_processes=1, save_seeds=False):
     """
@@ -30,7 +30,7 @@ def track(tracker: AbstractTracker, mask: AccessibleVolume,
     ----------
     tracker : AbstractTracker
         Tracking object.
-    mask : AccessibleVolume
+    mask : DataVolume
         Tracking volume(s).
     seed_generator : SeedGenerator
         Seeding volume.
@@ -205,7 +205,7 @@ def get_streamlines(tracker, mask, seed_generator, chunk_id, params,
     return streamlines, seeds
 
 
-def get_line_both_directions(tracker: AbstractTracker, mask: AccessibleVolume,
+def get_line_both_directions(tracker: AbstractTracker, mask: DataVolume,
                              pos, params):
     """
     Generate a streamline from an initial position following the tracking
@@ -256,7 +256,7 @@ def get_line_both_directions(tracker: AbstractTracker, mask: AccessibleVolume,
     return None
 
 
-def _propagate_line(tracker: AbstractTracker, mask: AccessibleVolume, params,
+def _propagate_line(tracker: AbstractTracker, mask: DataVolume, params,
                     is_forward):
     """
     Generate a streamline in forward or backward direction from an initial
@@ -266,7 +266,7 @@ def _propagate_line(tracker: AbstractTracker, mask: AccessibleVolume, params,
     ----------
     tracker : AbstractTracker
         Tracking object.
-    mask : AccessibleVolume
+    mask : DataVolume
         Propagation will stop if the current position is out of bounds (mask's
         bounds and data's bounds should be the same) or if mask's value at
         current position is 0 (usual use is with a binary mask but this is not

@@ -5,7 +5,7 @@ from dipy.core.interpolation import trilinear_interpolate4d, \
                                     nearestneighbor_interpolate
 
 
-class AccessibleVolume(object):
+class DataVolume(object):
     """
     Class to access/interpolate data from nibabel object
     """
