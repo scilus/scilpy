@@ -71,8 +71,9 @@ def _build_arg_parser():
                         ' voxel/region are taken into account')
     p.add_argument('-l', '--extremity_length',
                    default=1,
-                   help='Number of away from an endpoint to consider as streamline'
-                        ' extremity. Only works with "--from_endpoints"')
+                   help='Number of voxels away from an endpoint to consider as streamline'
+                        ' extremity when using "--from_endpoints". Only works with voxelwise'
+                        ' priors.')
     add_overwrite_arg(p)
 
     return p
@@ -231,7 +232,7 @@ def loop_on_strm(voxel_list, streamlines=None):
 def loop_on_strm_multi(strm_list):
     streamlines = stream_tpled[strm_list]
     voxdict = {tuple(v): [] for v in voxel_list}
-    for ind, strm in enumerate(streamlines):
+    for ind, strm in zip(strm_list, streamlines):
         for vox in strm:
             try:
                 voxdict[tuple(vox)].append(ind)
