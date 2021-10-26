@@ -18,7 +18,8 @@ class TrackingParams(object):
     Container for tracking parameters.
     """
     def __init__(self):
-        self.random = None
+        self.random_seeding = None
+        self.random_sampling = None
         self.skip = None
         self.algo = None
         self.mask_interp = None

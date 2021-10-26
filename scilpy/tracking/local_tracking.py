@@ -172,7 +172,7 @@ def get_n_streamlines(tracker, mask, seeding_mask, param,
     # which voxel to seed and the subvoxel random position
     first_seed_of_chunk = np.int32(param.skip)
     random_generator, indices =\
-        seeding_mask.init_pos(param.random, first_seed_of_chunk)
+        seeding_mask.init_pos(param.random_seeding, first_seed_of_chunk)
     while (len(streamlines) < param.nbr_streamlines and
            skip < param.nbr_streamlines * max_tries):
         if i % 1000 == 0:
@@ -229,7 +229,7 @@ def get_streamlines(tracker, mask, seeding_mask, chunk_id, param,
 
     first_seed_of_chunk = chunk_id * chunk_size + skip
     random_generator, indices =\
-        seeding_mask.init_pos(param.random,
+        seeding_mask.init_pos(param.random_seeding,
                               first_seed_of_chunk)
 
     if chunk_id == param.processes - 1:
@@ -274,8 +274,12 @@ def get_line_from_seed(tracker, mask, pos, param):
     -------
     line: list of 3D positions
     """
+    # if random_sampling is negative -> set seed to None
+    if param.random_sampling < 0:
+        np.random.seed(None)
+    else:
+        np.random.seed(np.uint32(hash((pos, param.random_sampling))))
 
-    np.random.seed(np.uint32(hash((pos, param.random))))
     line = []
     if tracker.initialize(pos):
         forward = _get_line(tracker, mask, param, True)

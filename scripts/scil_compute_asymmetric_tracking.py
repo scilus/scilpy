@@ -62,6 +62,9 @@ def buildArgsParser():
     p.add_argument('--algo', default='det', choices=['det', 'prob'],
                    help='Algorithm to use (must be \'det\' or \'prob\'). '
                         '[%(default)s]')
+    p.add_argument('--n_tries', default=1, type=int,
+                   help='Number of tries for probabilistic tracking. '
+                        '[%(default)s]')
 
     seeding_group = p.add_mutually_exclusive_group()
     seeding_group.add_argument('--npv', metavar='NBR', type=int,
@@ -78,9 +81,12 @@ def buildArgsParser():
                    help='Skip the first NBR generated seeds / NBR seeds per' +
                         ' voxel\n(--nt / --npv). Not working with --ns. ' +
                         '[%(default)s]')
-    p.add_argument('--random', type=int, default=0,
-                   help='Initial value for the random number generator. ' +
-                        '[%(default)s]')
+    p.add_argument('--random_seeding', type=int, default=0,
+                   help='Initial value for the random number generator'
+                        ' responsible for seeding. [%(default)s]')
+    p.add_argument('--random_sampling', type=int, default=0,
+                   help='Initial value for the random number generator'
+                        ' responsible for sampling the SF. [%(default)s]')
     p.add_argument('--step', dest='step_size', type=float, default=0.5,
                    help='Step size in mm. [%(default)s]')
     p.add_argument('--rk_order', type=int, default=2, choices=[1, 2, 4],
@@ -210,7 +216,8 @@ def main():
         parser.error("--sh_interp has wrong value. See the help (-h).")
 
     param = TrackingParams()
-    param.random = args.random
+    param.random_seeding = args.random_seeding
+    param.random_sampling = args.random_sampling
     param.skip = args.skip
     param.algo = args.algo
     param.mask_interp = mask_interpolation
@@ -263,22 +270,27 @@ def main():
         parser.error("--algo has wrong value. See the help (-h).")
 
     start = time.time()
-    if args.compress:
-        if args.compress < 0.001 or args.compress > 1:
-            logging.warn('You are using an error rate of {}.\n'
-                         .format(args.compress) +
-                         'We recommend setting it between 0.001 and 1.\n' +
-                         '0.001 will do almost nothing to the tracts while ' +
-                         '1 will higly compress/linearize the tracts')
+    streamlines = []
+    seeds = []
+    for t in range(args.n_tries):
+        if args.compress:
+            if args.compress < 0.001 or args.compress > 1:
+                logging.warn('You are using an error rate of {}.\n'
+                             .format(args.compress) +
+                             'We recommend setting it between 0.001 and 1.\n' +
+                             '0.001 will do almost nothing to the tracts while ' +
+                             '1 will higly compress/linearize the tracts')
+            tmp_strl, tmp_seeds = track(tracker, mask, seed, param, compress=True,
+                                        compression_error_threshold=args.compress,
+                                        nbr_processes=args.nbr_processes,
+                                        save_seeds=args.save_seeds)
+        else:
+            tmp_strl, tmp_seeds = track(tracker, mask, seed, param,
+                                        nbr_processes=args.nbr_processes,
+                                        save_seeds=args.save_seeds)
 
-        streamlines, seeds = track(tracker, mask, seed, param, compress=True,
-                                   compression_error_threshold=args.compress,
-                                   nbr_processes=args.nbr_processes,
-                                   save_seeds=args.save_seeds)
-    else:
-        streamlines, seeds = track(tracker, mask, seed, param,
-                                   nbr_processes=args.nbr_processes,
-                                   save_seeds=args.save_seeds)
+        streamlines = streamlines + tmp_strl
+        seeds = seeds + tmp_seeds
 
     if args.compress:
         streamlines = (compress_streamlines(s, args.compress)
