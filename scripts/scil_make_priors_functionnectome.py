@@ -193,7 +193,7 @@ def tmp2final(tmp_list, nb_trk, outdir, affine):
         tmp_i = nib.load(tmp_F)
         tmp_vol = tmp_i.get_fdata(dtype=np.float32)
         out_vol = tmp_vol/nb_trk
-        out_name = os.path.basename(tmp_F).replace('_tmp', '')
+        out_name = os.path.basename(tmp_F).replace('_tmp', '_vox')
         outF = os.path.join(outdir, out_name)
         out_i = nib.Nifti1Image(out_vol, affine)
         nib.save(out_i, outF)
@@ -260,7 +260,7 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
             logFile = os.path.join(logDir, f'log_{current._identity[0]}.txt')
         for vox in vlist:
             vox = tuple(vox)
-            out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+            out_name = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox)
             logtxt = f'Processing and saving {out_name}\n'
             with open(logFile, "a") as log:
                 log.write(logtxt)
@@ -275,7 +275,7 @@ def strm_multi(vlist, vdict=None, stream_tupled=None, out_dir=None, templ_i=None
     else:  # Normal case
         for vox in vlist:
             vox = tuple(vox)
-            out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+            out_name = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox)
             out_Ftmp = os.path.join(out_dir, out_name)
             vox_vol = np.zeros(templ_i.shape, dtype=np.float32)
             for strmInd in vdict[vox]:
@@ -397,16 +397,16 @@ def main():
                 vox_vol0 = np.zeros(templ_i.shape, dtype=bool)
                 n0 = 0
                 vox0 = vox_list0[n0]
-                out_name0 = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox0)
+                out_name0 = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox0)
                 out_Ftmp0 = os.path.join(args.out_dir, out_name0)
                 while os.path.isfile(out_Ftmp0) and n0 < len(vox_list0):
                     n0 += 1
                     vox0 = vox_list0[n0]
-                    out_name0 = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox0)
+                    out_name0 = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox0)
                     out_Ftmp0 = os.path.join(args.out_dir, out_name0)
                 save_tmp_map(vox_vol0, out_Ftmp0, templ_i.affine)
                 for vox in vox_list0[n0:]:
-                    out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+                    out_name = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox)
                     out_Ftmp = os.path.join(args.out_dir, out_name)
                     if not os.path.isfile(out_Ftmp):
                         copyfile(out_Ftmp0, out_Ftmp)
@@ -424,7 +424,7 @@ def main():
                 reg_mask = reg_i.get_fdata().astype(bool)
                 reg_fname = os.path.basename(reg_F)
                 reg_name = reg_fname[:reg_fname.find('.nii')]
-                out_name = f'probaMap_{reg_name}_tmp.nii.gz'
+                out_name = f'probaMaps_{reg_name}_tmp.nii.gz'
                 out_Ftmp = os.path.join(args.out_dir, out_name)
                 visitation_mapping(reg_mask,
                                    trk_sft,
@@ -568,7 +568,7 @@ if __name__ == "__main__":
 #     for vox in vox_batch:
 #         vox_mask = base_mask.copy()
 #         vox_mask[tuple(vox)] = True
-#         out_name = 'probaMap_{:02d}_{:02d}_{:02d}_tmp.nii.gz'.format(*vox)
+#         out_name = 'probaMaps_{}_{}_{}_tmp.nii.gz'.format(*vox)
 #         out_Ftmp = os.path.join(outdir, out_name)
 #         if voxeled:
 #             voxeled_visitation_mapping(vox_mask, streamlines, out_Ftmp, base_im.affine, tupled)
