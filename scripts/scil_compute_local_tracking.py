@@ -13,9 +13,6 @@ to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
-For streamline compression, a rule of thumb is to set it to 0.1mm for the
-deterministic algorithm and 0.2mm for probabilitic algorithm.
-
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
@@ -43,12 +40,13 @@ import numpy as np
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, add_sphere_arg,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist, verify_compression_th)
+from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             verify_compression_th)
 from scilpy.tracking.tools import get_theta
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
-                                   add_seeding_options, add_tracking_options,
+                                   add_out_options, add_seeding_options,
+                                   add_tracking_options,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 
@@ -64,18 +62,10 @@ def _build_arg_parser():
     add_sphere_arg(track_g, symmetric_only=True)
 
     add_seeding_options(p)
+    out_g = add_out_options(p)
 
-    out_g = p.add_argument_group('  Output options')
-    out_g.add_argument('--compress', type=float,
-                       help='If set, will compress streamlines.\n'
-                            'The parameter value is the distance threshold.')
     out_g.add_argument('--seed', type=int,
                        help='Random number generator seed.')
-    add_overwrite_arg(out_g)
-
-    out_g.add_argument('--save_seeds', action='store_true',
-                       help='If set, save the seeds used for the tracking \n '
-                            'in the data_per_streamline property.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)

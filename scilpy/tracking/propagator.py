@@ -74,7 +74,8 @@ class AbstractPropagator(object):
         Get the next direction given the position pos, input direction
         v_in, and tracking method (ex, probabilistic or deterministic), and
         verify if it is valid. If it is not valid, return v_in as next
-        direction.
+        direction. "Valid" means that the output of _get_next_direction is not
+        None.
 
         Uses self._get_next_direction, which must be implemented by each child
         class.
@@ -178,10 +179,10 @@ class AbstractPropagator(object):
 
     def _get_next_direction(self, pos, v_in):
         """
-        Abstract method. Return the next tracking direction, given
-        the current position pos and the previous direction v_in.
-        This direction must respect tracking constraint defined in
-        the tracking_field.
+        Return the next tracking direction, given the current position
+        pos and the previous direction v_in.
+
+        Should use self.tracking_field.get_next_direction.
 
         Parameters
         ----------

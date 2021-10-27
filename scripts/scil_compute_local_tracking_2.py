@@ -38,20 +38,21 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 
-from scilpy.io.utils import (add_processes_arg, add_overwrite_arg,
-                             add_sphere_arg, add_verbose_arg,
+from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
 from scilpy.image.datasets import DataVolume
 from scilpy.tracking.seed import SeedGenerator
 
-from scilpy.tracking.local_tracking import Tracker
+from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.propagator import (ProbabilisticSHPropagator,
                                         DeterministicMaximaSHPropagator)
 from scilpy.tracking.tracking_field import SphericalHarmonicField
 from scilpy.tracking.tools import get_theta
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
-                                   add_seeding_options, add_tracking_options,
+                                   add_out_options, add_seeding_options,
+                                   add_tracking_options,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 
@@ -64,6 +65,7 @@ def build_argparser():
     add_mandatory_options_tracking(p)
 
     track_g = add_tracking_options(p)
+    add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
                          help="Spherical function relative threshold value "
@@ -82,7 +84,6 @@ def build_argparser():
                          help="If set, tracks in one direction only (forward) "
                               "given the \ninitial seed. The direction is "
                               "randomly drawn from the ODF.")
-    add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sh_interp', default='trilinear',
                          choices=['nearest', 'trilinear'],
                          help="Spherical harmonic interpolation: "
@@ -93,7 +94,14 @@ def build_argparser():
                               "trilinear. [%(default)s]")
 
     add_seeding_options(p)
+    add_general_options(p)
+    add_out_options(p)
+    add_verbose_arg(p)
 
+    return p
+
+
+def add_general_options(p):
     r_g = p.add_argument_group('  Random seeding options')
     r_g.add_argument('--rng_seed', type=int,
                      help='Initial value for the random number generator. '
@@ -112,25 +120,6 @@ def build_argparser():
                      help="If true, use mmap_mode=None. Else mmap_mode='r+'. "
                           "\nUsed in np.load(data_file_info). TO BE CLEANED")
 
-    out_g = p.add_argument_group('  Output options')
-    out_g.add_argument('--compress_th', type=float, default=0,
-                       metavar='c_th',
-                       help='If set, will compress streamlines. The parameter '
-                            'value is the \ndistance threshold. A rule of '
-                            'thumb is to set it to 0.1mm for \ndeterministic '
-                            'streamlines and 0.2mm for probabilitic '
-                            'streamlines.')
-    add_overwrite_arg(out_g)
-    out_g.add_argument('--save_seeds', action='store_true',
-                       help='If set, save the seeds used for tracking '
-                            'in the data_per_streamline \nproperty.\n'
-                            'Hint: you can then use '
-                            'scilpy_compute_seed_density_map.')
-
-    add_verbose_arg(p)
-
-    return p
-
 
 def main():
     parser = build_argparser()
@@ -148,7 +137,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     verify_streamline_length_options(parser, args)
-    verify_compression_th(args.compress_th)
+    verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
     if args.algo == 'eudx':
@@ -188,7 +177,8 @@ def main():
     dataset = DataVolume(fodf_sh_img, args.sh_interp)
     sh_field = SphericalHarmonicField(dataset, args.sh_basis,
                                       args.sf_threshold,
-                                      args.sf_threshold_init, theta)
+                                      args.sf_threshold_init, theta,
+                                      dipy_sphere=args.sphere)
 
     logging.debug("Instantiating tracker.")
     if args.algo == 'det':
@@ -199,7 +189,7 @@ def main():
                                                args.rk_order)
 
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, max_invalid_dirs, args.compress_th,
+                      max_nbr_pts, max_invalid_dirs, args.compress,
                       args.nbr_processes, args.save_seeds, mmap_mode,
                       args.rng_seed, args.forward_only, args.skip)
 

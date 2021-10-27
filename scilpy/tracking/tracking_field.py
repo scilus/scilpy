@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import dipy.data
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
@@ -18,9 +20,10 @@ class AbstractTrackingField(object):
     theta: float
         Maximum angle (radians) between two steps.
     dipy_sphere: string, optional
-        Name of the DIPY sphere object to use for evaluating SH. Can be set to
-        None to skip sphere initialization.
+        If necessary, name of the DIPY sphere object to use to evaluate
+        directions.
     """
+
     def __init__(self, dataset, theta, dipy_sphere=None):
         self.theta = theta
         self.dataset = dataset
@@ -36,7 +39,7 @@ class AbstractTrackingField(object):
             self.tracking_neighbours = self._get_sphere_neighbours(self.theta)
         else:
             self.sphere = None
-            self.dirs = None
+            self.dirs = []
             self.tracking_neighbours = None
 
     def _get_sphere_neighbours(self, max_angle):
@@ -53,12 +56,17 @@ class AbstractTrackingField(object):
         neighbours: ndarray
             Neighbour directions for each direction on the sphere.
         """
-        xs = self.sphere.vertices[:, 0]
-        ys = self.sphere.vertices[:, 1]
-        zs = self.sphere.vertices[:, 2]
-        scalar_prods = np.outer(xs, xs) + np.outer(ys, ys) + np.outer(zs, zs)
-        neighbours = scalar_prods >= np.cos(max_angle)
-        return neighbours
+        if self.sphere is not None:
+            xs = self.sphere.vertices[:, 0]
+            ys = self.sphere.vertices[:, 1]
+            zs = self.sphere.vertices[:, 2]
+            scalar_prods = (np.outer(xs, xs) + np.outer(ys, ys) +
+                            np.outer(zs, zs))
+            neighbours = scalar_prods >= np.cos(max_angle)
+            return neighbours
+        else:
+            logging.warning("Sphere is not set. Can't get sphere neighbors.")
+            return None
 
     def get_init_direction(self, pos):
         """
@@ -71,6 +79,25 @@ class AbstractTrackingField(object):
         ----------
         pos: Any
             Current position in the dataset.
+        """
+        raise NotImplementedError
+
+    def get_next_direction(self, pos, previous_direction, *args):
+        """
+        Get next direction. Depends on the type of tracking field and probably
+        on some algorithm parameter choices.
+
+        Must be instantiated by each child class.
+
+        Parameters
+        ----------
+        pos: ndarray (3,)
+            Position in trackable dataset, expressed in mm.
+        previous_direction: TrackingDirection
+            Incoming direction. Outcoming direction won't be further than an
+            angle theta.
+        args: Any
+            Tracking options, influencing the way to choose the next direction.
         """
         raise NotImplementedError
 
@@ -90,25 +117,6 @@ class AbstractTrackingField(object):
             Indice of opposite sphere direction.
         """
         return (len(self.dirs) // 2 + ind) % len(self.dirs)
-
-    def get_next_direction(self, pos, previous_direction, *args):
-        """
-        Get next direction. Depends on the type of tracking field and probably
-        on some alorithm parameter choices.
-
-        Must be instantiated by each child class.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Position in trackable dataset, expressed in mm.
-        previous_direction: TrackingDirection
-            Incoming direction. Outcoming direction won't be further than an
-            angle theta.
-        args: Any
-            Tracking options, influencing the way to choose the next direction.
-        """
-        raise NotImplementedError
 
 
 class SphericalHarmonicField(AbstractTrackingField):
@@ -137,6 +145,7 @@ class SphericalHarmonicField(AbstractTrackingField):
         the neighbourhood includes all the sphere directions located at most
         `min_separation_angle` from the candidate direction.
     """
+
     def __init__(self, odf_dataset, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
                  min_separation_angle=np.pi / 16.):

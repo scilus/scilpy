@@ -198,7 +198,6 @@ class Tracker(object):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
             line = self._get_line_both_directions(seed)
-            #print("line {}: {}".format(s, line))
 
             if line is not None:
                 if self.compression_th and self.compression_th > 0:
@@ -227,6 +226,11 @@ class Tracker(object):
         -------
         line: list of 3D positions
         """
+
+        # toDo See numpy's doc: np.random.seed:
+        #  This is a convenience, legacy function.
+        #  The best practice is to not reseed a BitGenerator, rather to
+        #  recreate a new one. This method is here for legacy reasons.
         np.random.seed(np.uint32(hash((pos, self.rng_seed))))
         line = [pos]
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from scilpy.io.utils import add_sh_basis_args
+from scilpy.io.utils import add_sh_basis_args, add_overwrite_arg
 
 
 class TrackingDirection(list):
@@ -15,7 +15,7 @@ class TrackingDirection(list):
 
 def add_mandatory_options_tracking(p):
     p.add_argument('in_sh',
-                   help='Spherical harmonic file (.nii.gz).')
+                   help='Spherical harmonic file (.nii.gz). Ex: ODF or fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
@@ -61,6 +61,23 @@ def add_seeding_options(p):
                                     help='Number of seeds per voxel.')
     seed_sub_exclusive.add_argument('--nt', type=int,
                                     help='Total number of seeds to use.')
+
+
+def add_out_options(p):
+    out_g = p.add_argument_group('  Output options')
+    out_g.add_argument('--compress', type=float, metavar='thresh',
+                       help='If set, will compress streamlines. The parameter '
+                            'value is the \ndistance threshold. A rule of '
+                            'thumb is to set it to 0.1mm for \ndeterministic '
+                            'streamlines and 0.2mm for probabilitic '
+                            'streamlines.')
+    add_overwrite_arg(out_g)
+    out_g.add_argument('--save_seeds', action='store_true',
+                       help='If set, save the seeds used for the tracking \n '
+                            'in the data_per_streamline property.\n'
+                            'Hint: you can then use '
+                            'scilpy_compute_seed_density_map.')
+    return out_g
 
 
 def verify_streamline_length_options(parser, args):
