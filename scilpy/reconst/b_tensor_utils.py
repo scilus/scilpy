@@ -13,8 +13,8 @@ from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 
 
-def generate_btensor_input(input_files, bvals_files, bvecs_files,
-                           b_deltas_list, force_b0_threshold,
+def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
+                           in_bdeltas, force_b0_threshold,
                            do_pa_signals=False, tol=20):
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
@@ -22,13 +22,13 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
 
     Parameters
     ----------
-    input_files : list of strings (file paths)
+    in_dwis : list of strings (file paths)
         Diffusion data files for each b-tensor encodings.
-    bvals_files : list of strings (file paths)
+    in_bvals : list of strings (file paths)
         All of the bvals files associated.
-    bvecs_files : list of strings (file paths)
+    in_bvecs : list of strings (file paths)
         All of the bvecs files associated.
-    b_deltas_list : list of floats
+    in_bdeltas : list of floats
         All of the b_deltas (describing the type of encoding) files associated.
     force_b0_threshold : bool, optional
         If set, will continue even if the minimum bvalue is suspiciously high.
@@ -67,8 +67,8 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
     acq_index_full = np.empty(0)
     ubvals_divide = np.empty(0)
     acq_index = 0
-    for inputf, bvalsf, bvecsf, b_delta in zip(input_files, bvals_files,
-                                               bvecs_files, b_deltas_list):
+    for inputf, bvalsf, bvecsf, b_delta in zip(in_dwis, in_bvals,
+                                               in_bvecs, in_bdeltas):
         if inputf: # verifies if the input file exists
             vol = nib.load(inputf)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
@@ -77,7 +77,6 @@ def generate_btensor_input(input_files, bvals_files, bvecs_files,
             if not is_normalized_bvecs(bvecs):
                 logging.warning('Your b-vectors do not seem normalized...')
                 bvecs = normalize_bvecs(bvecs)
-            # check_b0_threshold(force_b0_threshold, bvals.min())
             ubvals = unique_bvals_tolerance(bvals, tol=tol)
             for ubval in ubvals:  # Loop over all unique bvals
                 # Extracting the data for the ubval shell

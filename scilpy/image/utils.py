@@ -77,7 +77,7 @@ def volume_iterator(img, blocksize=1, start=0, end=0):
 
 
 def extract_affine(input_files):
-    """Extract the affine from a list of diffusion data files.
+    """Extract the affine from a list of nifti files.
 
     Parameters
     ----------
