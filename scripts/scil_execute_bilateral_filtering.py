@@ -40,7 +40,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              validate_nbr_processes)
 
-from scilpy.denoise.asym_enhancement import multivariate_bilateral_filtering
+from scilpy.denoise.bilateral_filtering import multivariate_bilateral_filtering
 
 
 def _build_arg_parser():

@@ -38,7 +38,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist)
 
-from scilpy.denoise.asym_enhancement import local_asym_filtering
+from scilpy.denoise.asym_averaging import local_asym_filtering
 
 
 def _build_arg_parser():
