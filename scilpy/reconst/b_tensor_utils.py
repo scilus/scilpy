@@ -69,7 +69,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
     acq_index = 0
     for inputf, bvalsf, bvecsf, b_delta in zip(in_dwis, in_bvals,
                                                in_bvecs, in_bdeltas):
-        if inputf: # verifies if the input file exists
+        if inputf:  # verifies if the input file exists
             vol = nib.load(inputf)
             bvals, bvecs = read_bvals_bvecs(bvalsf, bvecsf)
             if np.sum([bvals > tol]) != 0:
@@ -89,7 +89,7 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
                     if acq_index_full.size else np.array([acq_index])
                 ubvals_divide = np.concatenate([ubvals_divide, [ubval]]) \
                     if ubvals_divide.size else np.array([ubval])
-                while np.isin(ubval, ubvals_full): # Differentiate the bvals
+                while np.isin(ubval, ubvals_full):  # Differentiate the bvals
                     ubval += 1
                 ubvals_full = np.concatenate([ubvals_full, [ubval]]) \
                     if ubvals_full.size else np.array([ubval])
