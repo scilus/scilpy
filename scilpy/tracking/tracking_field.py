@@ -168,7 +168,7 @@ class SphericalHarmonicField(AbstractTrackingField):
             Spherical function evaluated at pos, normalized by
             its maximum amplitude.
         """
-        sh = self.dataset.get_position_value(*pos)
+        sh = self.dataset.voxmm_to_value(*pos)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
         sf_max = np.max(sf)

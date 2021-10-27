@@ -84,7 +84,8 @@ class Tracker(object):
 
     def track(self):
         """
-        Generate a set of streamline from seed, mask and odf files.
+        Generate a set of streamline from seed, mask and odf files. Results
+        are in voxmm space (i.e. in mm coordinates, starting at 0,0,0).
 
         Return
         ------
@@ -183,7 +184,7 @@ class Tracker(object):
         # skip, which voxel to seed and the subvoxel random position
         chunk_size = int(self.nbr_seeds / self.nbr_processes)
         first_seed_of_chunk = chunk_id * chunk_size + self.skip
-        random_generator, indices = self.seed_generator.init_pos(
+        random_generator, indices = self.seed_generator.init_generator(
             self.rng_seed, first_seed_of_chunk)
         if chunk_id == self.nbr_processes - 1:
             chunk_size += self.nbr_seeds % self.nbr_processes
@@ -197,6 +198,8 @@ class Tracker(object):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
             line = self._get_line_both_directions(seed)
+            #print("line {}: {}".format(s, line))
+
             if line is not None:
                 if self.compression_th and self.compression_th > 0:
                     streamlines.append(
@@ -225,13 +228,14 @@ class Tracker(object):
         line: list of 3D positions
         """
         np.random.seed(np.uint32(hash((pos, self.rng_seed))))
-        line = []
+        line = [pos]
 
         # Initialize returns true if initial directions at pos are valid.
         if self.propagator.initialize(pos, self.track_forward_only):
             # Forward
             forward = self._propagate_line(True)
             if len(forward) > 0:
+                forward.pop(0)
                 line.extend(forward)
 
             # Backward
@@ -283,19 +287,26 @@ class Tracker(object):
                 invalid_direction_count += 1
 
             if invalid_direction_count > self.max_invalid_dirs:
-                return line
+                propagation_can_continue = False
+                break
 
+            # Bound can be checked with mask or tracking field
+            # (through self.propagator.is_voxmm_in_bound)
             propagation_can_continue = (
-                    self.mask.get_position_value(*line[-1]) > 0 and
-                    self.mask.is_position_in_bound(*line[-1]))
+                    self.mask.voxmm_to_value(*line[-1]) > 0 and
+                    self.mask.is_voxmm_in_bound(*line[-1], origin='corner'))
 
-        # Make a last step in the last direction
-        line.append(line[-1] +
-                    self.propagator.step_size * np.array(line_dirs[-1]))
+        if propagation_can_continue:
+            # Make a last step in the last direction
+            # Ex: if mask is WM, reaching GM a little more.
+            line.append(line[-1] +
+                        self.propagator.step_size * np.array(line_dirs[-1]))
 
         # Last cleaning of the streamline
-        while (len(line) > 0 and
-               not self.propagator.is_position_in_bound(line[-1])):
+        # First position is the seed: necessarily in bound.
+        while (len(line) > 1 and
+               not self.propagator.is_voxmm_in_bound(line[-1], 'corner')):
+            # print("popping {}".format(line[-1]))
             line.pop()
 
         return line

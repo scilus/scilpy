@@ -34,7 +34,8 @@ import dipy.core.geometry as gm
 import nibabel as nib
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
-    set_sft_logger_level
+                                        set_sft_logger_level
+from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.utils import (add_processes_arg, add_overwrite_arg,
@@ -97,7 +98,7 @@ def build_argparser():
     r_g.add_argument('--rng_seed', type=int,
                      help='Initial value for the random number generator. '
                           '[%(default)s]')
-    r_g.add_argument('--skip', type=int,
+    r_g.add_argument('--skip', type=int, default=0,
                      help="Skip the first N random number. \n"
                           "Useful if you want to create new streamlines to "
                           "add to \na previously created tractogram with a "
@@ -122,7 +123,9 @@ def build_argparser():
     add_overwrite_arg(out_g)
     out_g.add_argument('--save_seeds', action='store_true',
                        help='If set, save the seeds used for tracking '
-                            'in the data_per_streamline \nproperty.')
+                            'in the data_per_streamline \nproperty.\n'
+                            'Hint: you can then use '
+                            'scilpy_compute_seed_density_map.')
 
     add_verbose_arg(p)
 
@@ -210,15 +213,20 @@ def main():
                   .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    data_per_streamline = {'seed': lambda: seeds} if args.save_seeds else {}
+    data_per_streamline = {'seeds': seeds} if args.save_seeds else {}
 
     # Silencing SFT's logger if our logging is in DEBUG mode, because it
     # typically produces a lot of outputs!
     set_sft_logger_level('WARNING')
 
     # Compared with scil_compute_local_tracking, using sft rather than
-    # LazyTractogram to deal with space. Space is voxmm
+    # LazyTractogram to deal with space.
+    # Contrary to scilpy or dipy, where space after tracking is vox, here
+    # space after tracking is voxmm.
+    # Smallest possible streamline coordinate is (0,0,0), equivalent of
+    # corner origin (TrackVis)
     sft = StatefulTractogram(streamlines, mask_img, Space.VOXMM,
+                             Origin.TRACKVIS,
                              data_per_streamline=data_per_streamline)
     save_tractogram(sft, args.out_tractogram)
 

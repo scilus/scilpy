@@ -156,7 +156,7 @@ class AbstractPropagator(object):
 
         return new_pos, new_dir, is_direction_valid
 
-    def is_position_in_bound(self, pos):
+    def is_voxmm_in_bound(self, pos, origin='center'):
         """
         Test if the streamline point is inside the boundary of the image.
 
@@ -164,13 +164,17 @@ class AbstractPropagator(object):
         ----------
         pos : tuple
             3D positions.
+        origin: str
+            'Center': Voxel 0,0,0 goes from [-resx/2, -resy/2, -resz/2] to
+                [resx/2, resy/2, resz/2].
+            'Corner': Voxel 0,0,0 goes from [0,0,0] to [resx, resy, resz].
 
         Return
         ------
         value: bool
             True if the streamline point is inside the boundary of the image.
         """
-        return self.tracking_field.dataset.is_position_in_bound(*pos)
+        return self.tracking_field.dataset.is_voxmm_in_bound(*pos, origin)
 
     def _get_next_direction(self, pos, v_in):
         """
