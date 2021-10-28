@@ -69,7 +69,7 @@ def _build_arg_parser():
                    help='Input tsv participants file.'
                         'See doc in https://scilpy.readthedocs.io/en/latest/documentation/construct_participants_tsv_file.html.')
 
-    p.add_argument('group_by', metavar='GROUP',
+    p.add_argument('group_by', metavar='GROUP_BY',
                    help='Variable that will be used to compare group '
                         'together.')
 
@@ -122,6 +122,9 @@ def main():
     required_args = [args.in_json, args.in_participants]
     assert_inputs_exist(parser, required_args)
 
+    req_folder = os.path.join(args.out_dir, 'Graph')
+    assert_output_dirs_exist_and_empty(parser, args, req_folder)
+
     # We generated the stats object
     my_data = data_for_stat(args.in_json,
                             args.in_participants)
@@ -136,9 +139,6 @@ def main():
         metrics = my_data.get_metrics_list()
     if args.values == 'all':
         values = my_data.get_values_list()
-
-    req_folder = os.path.join(args.out_dir, 'Graph')
-    assert_output_dirs_exist_and_empty(parser, args, req_folder)
 
     alpha_error = float(args.alpha_error)
 
@@ -192,7 +192,6 @@ def main():
                                 '{}'.format(args.group_by))
 
         # Check homoscedasticity
-
         variance_equality = verify_homoscedasticity(
                                             groups_array,
                                             normality=overall_normality,

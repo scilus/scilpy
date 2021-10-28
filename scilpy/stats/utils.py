@@ -447,11 +447,10 @@ def visualise_distribution(data_by_group, participants_id, bundle, metric,
     nb_group = len(data_by_group)
     outliers = []
     fig, ax = plt.subplots()
-    ls = data_by_group
+    ls = np.asarray(data_by_group, dtype=object)
     ax.boxplot(ls)
     boxdict = ax.boxplot(ls)
     fliers = boxdict['fliers']
-
     # loop over boxes in x direction
     for j in range(len(fliers)):
         # the y and x positions of the fliers
