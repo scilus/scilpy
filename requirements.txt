@@ -34,3 +34,4 @@ statsmodels==0.11.*
 dmri-commit==1.4.*
 openpyxl==2.6.*
 cvxpy==1.1.*
+dmri-amico==1.2.*
