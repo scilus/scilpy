@@ -51,8 +51,8 @@ vol. 49, pp. 145–158, Jun. 2018, doi: 10.1016/j.mri.2018.03.006.
 
 [2] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
 Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
-[Abstract], In: 2021 ISMRM & SMRT Annual Meeting & Exhibition, 2021 May 15-20,
-Vancouver, BC, 2021, Abstract number 222.
+[Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
+Vancouver, BC, Abstract number 0865.
 """
 
 
