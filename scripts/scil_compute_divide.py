@@ -212,8 +212,7 @@ def main():
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)
     if args.op:
         if args.fa is not None:
-            OP = 0 if FA == 0 else np.sqrt((3 * (microFA ** (-2)) - 2) / 
-                                            (3 * (FA ** (-2)) - 2))
+            OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
             OP[microFA < FA] = 0
             nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
         else:
