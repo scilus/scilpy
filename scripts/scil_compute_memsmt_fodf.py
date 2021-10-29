@@ -42,7 +42,8 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg)
+                             add_sh_basis_args, add_processes_arg,
+                             add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
 from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
@@ -88,6 +89,7 @@ def _build_arg_parser():
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -204,7 +206,11 @@ def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'

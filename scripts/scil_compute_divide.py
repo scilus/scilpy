@@ -34,7 +34,7 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_processes_arg)
+                             add_processes_arg, add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_gamma
 from scilpy.reconst.divide_fit import gamma_fit2metrics
 from scilpy.reconst.b_tensor_utils import generate_btensor_input
@@ -95,6 +95,7 @@ def _build_arg_parser():
     add_force_b0_arg(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -128,7 +129,11 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
         args.md = args.md or 'md.nii.gz'
@@ -207,7 +212,8 @@ def main():
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)
     if args.op:
         if args.fa is not None:
-            OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
+            OP = 0 if FA == 0 else np.sqrt((3 * (microFA ** (-2)) - 2) / 
+                                            (3 * (FA ** (-2)) - 2))
             OP[microFA < FA] = 0
             nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
         else:

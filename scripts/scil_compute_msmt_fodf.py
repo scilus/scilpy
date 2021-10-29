@@ -30,7 +30,8 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg)
+                             add_sh_basis_args, add_processes_arg,
+                             add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
 from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
                                           is_normalized_bvecs)
@@ -66,6 +67,7 @@ def _build_arg_parser():
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -96,7 +98,11 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'

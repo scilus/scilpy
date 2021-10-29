@@ -252,10 +252,11 @@ def gamma_fit2metrics(params):
     V_T = V_I + V_A
     V_L = 5 / 2. * V_A
 
-    MK_I = 3 * V_I / (MD ** 2)
-    MK_A = 3 * V_A / (MD ** 2)
-    MK_T = 3 * V_T / (MD ** 2)
-    microFA2 = (3/2.) * (V_L / (V_I + V_L + (MD ** 2)))
+    MK_I = 0 if MD == 0 else 3 * V_I / (MD ** 2)
+    MK_A = 0 if MD == 0 else 3 * V_A / (MD ** 2)
+    MK_T = 0 if MD == 0 else 3 * V_T / (MD ** 2)
+    microFA2 = 0 if (V_I + V_L + (MD ** 2)) == 0 \
+        else (3/2.) * (V_L / (V_I + V_L + (MD ** 2)))
     microFA = np.sqrt(microFA2)
 
     return microFA, MK_I, MK_A, MK_T
