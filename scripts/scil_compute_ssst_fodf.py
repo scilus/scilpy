@@ -18,7 +18,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, add_force_b0_arg,
                              add_sh_basis_args, add_processes_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
@@ -53,6 +54,7 @@ def _build_arg_parser():
     add_sh_basis_args(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -60,7 +62,11 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec,
                                  args.frf_file])
