@@ -46,9 +46,9 @@ from scilpy.image.datasets import DataVolume
 from scilpy.tracking.seed import SeedGenerator
 
 from scilpy.tracking.tracker import Tracker
-from scilpy.tracking.propagator import (ProbabilisticSHPropagator,
-                                        DeterministicMaximaSHPropagator)
-from scilpy.tracking.tracking_field import SphericalHarmonicField
+from scilpy.tracking.propagator import (ProbabilisticODFPropagator,
+                                        DeterministicODFPropagator)
+from scilpy.tracking.tracking_field import ODFField
 from scilpy.tracking.tools import get_theta
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
@@ -175,18 +175,18 @@ def main():
     logging.debug("Loading SH data.")
     fodf_sh_img = nib.load(args.in_sh)
     dataset = DataVolume(fodf_sh_img, args.sh_interp)
-    sh_field = SphericalHarmonicField(dataset, args.sh_basis,
-                                      args.sf_threshold,
-                                      args.sf_threshold_init, theta,
-                                      dipy_sphere=args.sphere)
+    sh_field = ODFField(dataset, args.sh_basis,
+                        args.sf_threshold,
+                        args.sf_threshold_init, theta,
+                        dipy_sphere=args.sphere)
 
     logging.debug("Instantiating tracker.")
     if args.algo == 'det':
-        propagator = DeterministicMaximaSHPropagator(sh_field, args.step_size,
-                                                     args.rk_order)
+        propagator = DeterministicODFPropagator(sh_field, args.step_size,
+                                                args.rk_order)
     else:
-        propagator = ProbabilisticSHPropagator(sh_field, args.step_size,
-                                               args.rk_order)
+        propagator = ProbabilisticODFPropagator(sh_field, args.step_size,
+                                                args.rk_order)
 
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, max_invalid_dirs, args.compress,

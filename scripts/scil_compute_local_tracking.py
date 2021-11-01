@@ -74,12 +74,12 @@ def _build_arg_parser():
 
 
 def _get_direction_getter(args):
-    sh_data = nib.load(args.in_sh).get_fdata(dtype=np.float32)
+    odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
     sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
     theta = get_theta(args.theta, args.algo)
 
-    non_zeros_count = np.count_nonzero(np.sum(sh_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(sh_data, axis=-1))
+    non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
+    non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
 
     if args.algo in ['det', 'prob']:
         if non_first_val_count / non_zeros_count > 0.5:
@@ -90,13 +90,13 @@ def _get_direction_getter(args):
         else:
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
-            shcoeff=sh_data, max_angle=theta, sphere=sphere,
+            shcoeff=odf_data, max_angle=theta, sphere=sphere,
             basis_type=args.sh_basis,
             relative_peak_threshold=args.sf_threshold)
     elif args.algo == 'eudx':
         # Code for type EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
-        sh_shape_3d = sh_data.shape[:-1]
+        odf_shape_3d = odf_data.shape[:-1]
         dg = PeaksAndMetrics()
         dg.sphere = sphere
         dg.ang_thr = theta
@@ -106,32 +106,32 @@ def _get_direction_getter(args):
         # fodf are always around 0.15 and peaks around 0.75
         if non_first_val_count / non_zeros_count > 0.5:
             logging.info('Input detected as peaks.')
-            nb_peaks = sh_data.shape[-1] // 3
+            nb_peaks = odf_data.shape[-1] // 3
             slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(sh_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(sh_shape_3d+(nb_peaks,))
+            peak_values = np.zeros(odf_shape_3d+(nb_peaks,))
+            peak_indices = np.zeros(odf_shape_3d+(nb_peaks,))
 
-            for idx in np.argwhere(np.sum(sh_data, axis=-1)):
+            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
                 idx = tuple(idx)
                 for i in range(nb_peaks):
                     peak_values[idx][i] = np.linalg.norm(
-                        sh_data[idx][slices[i]:slices[i+1]], axis=-1)
+                        odf_data[idx][slices[i]:slices[i+1]], axis=-1)
                     peak_indices[idx][i] = sphere.find_closest(
-                        sh_data[idx][slices[i]:slices[i+1]])
+                        odf_data[idx][slices[i]:slices[i+1]])
 
-            dg.peak_dirs = sh_data
+            dg.peak_dirs = odf_data
         else:
             logging.info('Input detected as fodf.')
             npeaks = 5
-            peak_dirs = np.zeros((sh_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((sh_shape_3d + (npeaks, )))
-            peak_indices = np.full((sh_shape_3d + (npeaks, )), -1, dtype='int')
+            peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
+            peak_values = np.zeros((odf_shape_3d + (npeaks, )))
+            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1, dtype='int')
             b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(sh_data), sphere, args.sh_basis)
+                find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
 
-            for idx in np.argwhere(np.sum(sh_data, axis=-1)):
+            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
                 idx = tuple(idx)
-                directions, values, indices = get_maximas(sh_data[idx],
+                directions, values, indices = get_maximas(odf_data[idx],
                                                           sphere, b_matrix,
                                                           args.sf_threshold, 0)
                 if values.shape[0] != 0:
@@ -155,7 +155,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    assert_inputs_exist(parser, [args.in_sh, args.in_seed, args.in_mask])
+    assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     if not nib.streamlines.is_supported(args.out_tractogram):
@@ -172,11 +172,11 @@ def main():
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results.
-    fodf_sh_img = nib.load(args.in_sh)
-    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
+    odf_sh_img = nib.load(args.in_odf)
+    if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
+                       odf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
-            'SH file is not isotropic. Tracking cannot be ran robustly.')
+            'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
 
     if args.npv:
         nb_seeds = args.npv
@@ -188,7 +188,7 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    voxel_size = fodf_sh_img.header.get_zooms()[0]
+    voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(

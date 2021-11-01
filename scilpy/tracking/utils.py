@@ -14,8 +14,10 @@ class TrackingDirection(list):
 
 
 def add_mandatory_options_tracking(p):
-    p.add_argument('in_sh',
-                   help='Spherical harmonic file (.nii.gz). Ex: ODF or fODF.')
+    p.add_argument('in_odf',
+                   help='File containing the orientation diffusion function \n'
+                        'as spherical harmonics file (.nii.gz). Ex: ODF or '
+                        'fODF.')
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',

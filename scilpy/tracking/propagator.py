@@ -4,7 +4,7 @@ import numpy as np
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 from scilpy.tracking.tracking_field import AbstractTrackingField, \
-                                           SphericalHarmonicField
+                                           ODFField
 
 
 class AbstractPropagator(object):
@@ -194,7 +194,7 @@ class AbstractPropagator(object):
         pass
 
 
-class ProbabilisticSHPropagator(AbstractPropagator):
+class ProbabilisticODFPropagator(AbstractPropagator):
     """
     Probabilistic direction tracker.
 
@@ -207,9 +207,9 @@ class ProbabilisticSHPropagator(AbstractPropagator):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
+    def __init__(self, tracking_field: ODFField, step_size,
                  rk_order):
-        super(ProbabilisticSHPropagator, self).__init__(
+        super(ProbabilisticODFPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
     def _get_next_direction(self, pos, v_in):
@@ -237,9 +237,10 @@ class ProbabilisticSHPropagator(AbstractPropagator):
         return None
 
 
-class DeterministicMaximaSHPropagator(AbstractPropagator):
+class DeterministicODFPropagator(AbstractPropagator):
     """
-    Deterministic direction tracker.
+    Deterministic direction tracker on the ODF. Direction is the maximum
+    direction on the sphere.
 
     Parameters
     ----------
@@ -250,9 +251,9 @@ class DeterministicMaximaSHPropagator(AbstractPropagator):
     rk_order: int
         Order for the Runge Kutta integration.
     """
-    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
+    def __init__(self, tracking_field: ODFField, step_size,
                  rk_order):
-        super(DeterministicMaximaSHPropagator, self).__init__(
+        super(DeterministicODFPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
     def _get_next_direction(self, pos, v_in):

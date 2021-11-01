@@ -119,9 +119,9 @@ class AbstractTrackingField(object):
         return (len(self.dirs) // 2 + ind) % len(self.dirs)
 
 
-class SphericalHarmonicField(AbstractTrackingField):
+class ODFField(AbstractTrackingField):
     """
-    Spherical harmonics tracking field.
+    ODF (Spherical harmonics) tracking field.
 
     Parameters
     ----------
