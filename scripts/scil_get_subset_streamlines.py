@@ -6,6 +6,7 @@ Script to get a subset of n streamlines from a tractogram.
 """
 
 import argparse
+import logging
 
 from dipy.io.streamline import save_tractogram
 
@@ -43,6 +44,10 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram)
+
+    logging.warning('This script has been deprecated and will be ' +
+                    'removed in a future release. Please use ' +
+                    '"scil_resample_tractogram.py" instead.')
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 

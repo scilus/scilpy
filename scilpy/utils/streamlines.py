@@ -667,17 +667,9 @@ def cut_invalid_streamlines(sft):
     return new_sft, cutting_counter
 
 
-def downsample_tractogram(sft, nb):
-    """ Downsample a tractogram to a specified number of streamlines.
-    """
-    new_indices = np.random.choice(
-        range(len(sft.streamlines)), nb, replace=False)
-    return sft[new_indices]
-
-
 def upsample_tractogram(
     sft, nb, point_wise_std=None,
-    streamline_wise_std=None, gaussian=None, spline=None
+    streamline_wise_std=None, gaussian=None, spline=None, seed=None
 ):
     """ Generate new streamlines to add to a tractogram samping a gaussian
     centered around multiple streamlines existing points.
@@ -685,15 +677,19 @@ def upsample_tractogram(
     assert bool(point_wise_std) ^ bool(streamline_wise_std), \
         'Can only add either point-wise or streamline-wise noise' + \
         ', not both nor none.'
+
+    rng = np.random.RandomState(seed)
+
     nb_new = nb - len(sft.streamlines)
-    indices = np.random.choice(
+    indices = rng.choice(
         len(sft.streamlines), nb_new)
     new_streamlines = sft.streamlines.copy()
+
     for s in sft.streamlines[indices]:
         if point_wise_std:
-            noise = np.random.normal(scale=point_wise_std, size=s.shape)
+            noise = rng.normal(scale=point_wise_std, size=s.shape)
         elif streamline_wise_std:
-            noise = np.random.normal(
+            noise = rng.normal(
                 scale=streamline_wise_std, size=s.shape[-1])
         new_s = s + noise
         if gaussian:

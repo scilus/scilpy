@@ -30,8 +30,9 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (downsample_tractogram,
-                                      upsample_tractogram)
+
+from scilpy.tracking.tools import get_subset_streamlines
+from scilpy.utils.streamlines import upsample_tractogram
 
 
 def _build_arg_parser():
@@ -44,7 +45,7 @@ def _build_arg_parser():
                    help='Number of streamlines to resample the tractogram to.')
     p.add_argument('out_tractogram',
                    help='Output tractography file.')
-    std_group = p.add_mutually_exclusive_group(required=True)
+    std_group = p.add_mutually_exclusive_group()
     std_group.add_argument('--point_wise_std', type=float,
                            help='Noise to add to existing streamlines\'' +
                                 'points to generate new ones.')
@@ -70,6 +71,8 @@ def _build_arg_parser():
     p.add_argument('--keep_invalid_streamlines', action='store_true',
                    help='Keep invalid newly generated streamlines that may ' +
                         'go out of the bounding box.')
+    p.add_argument('--seed', default=None, type=int,
+                   help='Use a specific random seed for the resampling.')
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -98,12 +101,16 @@ def main():
     original_number = len(sft.streamlines)
 
     if args.nb_streamlines > original_number:
+        # Check is done here because it is not required if downsampling
+        if not args.point_wise_std and not args.streamline_wise_std:
+            parser.error("one of the arguments --point_wise_std " +
+                         "--streamline_wise_std is required")
         sft = upsample_tractogram(
             sft, args.nb_streamlines,
             args.point_wise_std, args.streamline_wise_std,
-            args.gaussian, args.spline)
+            args.gaussian, args.spline, args.seed)
     elif args.nb_streamlines < original_number:
-        sft = downsample_tractogram(sft, args.nb_streamlines)
+        sft = get_subset_streamlines(sft, args.nb_streamlines, args.seed)
     streamlines = compress_streamlines(
         sft.streamlines, args.error_rate)
 
