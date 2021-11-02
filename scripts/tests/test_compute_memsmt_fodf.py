@@ -91,13 +91,9 @@ def test_execution_processing(script_runner):
 
     ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
                             in_gm_frf, in_csf_frf, '--in_dwis',
-                            in_dwi_lin, in_dwi_plan, in_dwi_sph, '--in_bvals',
-                            in_bval_lin, in_bval_plan, in_bval_sph,
-                            '--in_bvecs', in_bvec_lin, in_bvec_plan,
-                            in_bvec_sph, '--in_bdeltas', '1', '-0.5', '0',
-                            '--wm_out_fODF', 'wm_fodf.nii.gz',
-                            '--gm_out_fODF', 'gm_fodf.nii.gz',
-                            '--csf_out_fODF', 'csf_fodf.nii.gz', '--vf',
-                            'vf.nii.gz', '--sh_order', '4', '--sh_basis',
-                            'tournier07', '--processes', '1', '-f')
+                            in_dwi_lin, in_dwi_sph, '--in_bvals',
+                            in_bval_lin, in_bval_sph,
+                            '--in_bvecs', in_bvec_lin,
+                            in_bvec_sph, '--in_bdeltas', '1', '0',
+                            '--sh_order', '4', '--processes', '1', '-f')
     assert ret.success
