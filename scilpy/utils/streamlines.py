@@ -3,7 +3,6 @@ import copy
 import itertools
 from functools import reduce
 import logging
-import numpy as np
 
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
@@ -11,6 +10,7 @@ from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
+import numpy as np
 from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
