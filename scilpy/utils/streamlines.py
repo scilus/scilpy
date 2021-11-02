@@ -671,8 +671,9 @@ def upsample_tractogram(
     sft, nb, point_wise_std=None,
     streamline_wise_std=None, gaussian=None, spline=None, seed=None
 ):
-    """ Generate new streamlines to add to a tractogram samping a gaussian
-    centered around multiple streamlines existing points.
+    """ Generate new streamlines by either adding gaussian noise around
+    streamlines' points, or by translating copies of existing streamlines
+    by a random amount.
     """
     assert bool(point_wise_std) ^ bool(streamline_wise_std), \
         'Can only add either point-wise or streamline-wise noise' + \

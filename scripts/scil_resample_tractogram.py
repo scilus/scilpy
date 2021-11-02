@@ -21,9 +21,7 @@ $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
 import argparse
 import logging
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
-from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
@@ -65,9 +63,6 @@ def _build_arg_parser():
                             'spline.\nA good sigma choice would be around 5 '
                             'and control point around 10.')
 
-    p.add_argument('-e', dest='error_rate', type=float, default=0.1,
-                   help='Maximum compression distance in mm after smoothing. '
-                        '[%(default)s]')
     p.add_argument('--keep_invalid_streamlines', action='store_true',
                    help='Keep invalid newly generated streamlines that may ' +
                         'go out of the bounding box.')
@@ -111,13 +106,10 @@ def main():
             args.gaussian, args.spline, args.seed)
     elif args.nb_streamlines < original_number:
         sft = get_subset_streamlines(sft, args.nb_streamlines, args.seed)
-    streamlines = compress_streamlines(
-        sft.streamlines, args.error_rate)
 
-    smoothed_sft = StatefulTractogram.from_sft(streamlines, sft)
     if not args.keep_invalid_streamlines:
-        smoothed_sft.remove_invalid_streamlines()
-    save_tractogram(smoothed_sft, args.out_tractogram,
+        sft.remove_invalid_streamlines()
+    save_tractogram(sft, args.out_tractogram,
                     bbox_valid_check=not args.keep_invalid_streamlines)
 
 
