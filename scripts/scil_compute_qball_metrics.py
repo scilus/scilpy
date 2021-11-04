@@ -133,6 +133,10 @@ def main():
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask))
 
+        # Sanity check on shape of mask
+        if mask.shape != data.shape[:-1]:
+            raise ValueError('Mask shape does not match data shape.')
+
     if args.use_qball:
         model = QballModel(gtab, sh_order=args.sh_order,
                            smooth=DEFAULT_SMOOTH)
