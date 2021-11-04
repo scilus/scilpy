@@ -116,7 +116,7 @@ def main():
 
     # Load data
     img = nib.load(args.in_dwi)
-    data = img.get_fdata()
+    data = img.get_fdata(dtype=np.float32)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
