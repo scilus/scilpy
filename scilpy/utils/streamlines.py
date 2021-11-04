@@ -332,7 +332,8 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 
             for dps_key in sft_list[0].data_per_streamline.keys():
                 if dps_key not in sft.data_per_streamline:
-                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
+                    arr_shape =\
+                        list(sft_list[0].data_per_streamline[dps_key].shape)
                     arr_shape[0] = len(sft)
                     sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
             for dpp_key in sft_list[0].data_per_point.keys():
