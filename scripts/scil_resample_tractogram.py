@@ -46,7 +46,7 @@ def _build_arg_parser():
     std_group = p.add_mutually_exclusive_group()
     std_group.add_argument('--point_wise_std', type=float,
                            help='Noise to add to existing streamlines\'' +
-                                'points to generate new ones.')
+                                ' points to generate new ones.')
     std_group.add_argument('--streamline_wise_std', type=float,
                            help='Noise to add to existing whole' +
                                 ' streamlines to generate new ones.')
