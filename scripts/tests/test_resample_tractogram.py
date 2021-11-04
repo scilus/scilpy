@@ -16,11 +16,20 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tracking(script_runner):
+def test_execution_downsample(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(get_home(), 'tracking',
                              'union_shuffle_sub.trk')
     ret = script_runner.run('scil_resample_tractogram.py', in_tracto,
-                            '1000', 'union_shuffle_sub_resampled.trk',
+                            '500', 'union_shuffle_sub_downsampled.trk')
+    assert ret.success
+
+
+def test_execution_upsample(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_tracto = os.path.join(get_home(), 'tracking',
+                             'union_shuffle_sub.trk')
+    ret = script_runner.run('scil_resample_tractogram.py', in_tracto,
+                            '2000', 'union_shuffle_sub_upsampled.trk',
                             '--point_wise_std', '0.5')
     assert ret.success

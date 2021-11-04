@@ -671,9 +671,35 @@ def upsample_tractogram(
     sft, nb, point_wise_std=None,
     streamline_wise_std=None, gaussian=None, spline=None, seed=None
 ):
-    """ Generate new streamlines by either adding gaussian noise around
+    """
+    Generate new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
     by a random amount.
+
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        The tractogram to upsample
+    nb : int
+        The target number of streamlines in the tractogram.
+    point_wise_std : float
+        The standard deviation of the gaussian to use to generate point-wise
+        noise on the streamlines.
+    streamline_wise_std : float
+        The standard deviation of the gaussian to use to generate
+        streamline-wise noise on the streamlines.
+    gaussian: float
+        The sigma used for smoothing streamlines.
+    spline: (float, int)
+        Pair of sigma and number of control points used to model each
+        streamline as a spline and smooth it.
+    seed: int
+        Seed for RNG.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        The upsampled tractogram.
     """
     assert bool(point_wise_std) ^ bool(streamline_wise_std), \
         'Can only add either point-wise or streamline-wise noise' + \
@@ -681,11 +707,15 @@ def upsample_tractogram(
 
     rng = np.random.RandomState(seed)
 
+    # Get the number of streamlines to add
     nb_new = nb - len(sft.streamlines)
+
+    # Get the streamlines that will serve as a base for new ones
     indices = rng.choice(
         len(sft.streamlines), nb_new)
     new_streamlines = sft.streamlines.copy()
 
+    # For all selected streamlines, add noise and smooth
     for s in sft.streamlines[indices]:
         if point_wise_std:
             noise = rng.normal(scale=point_wise_std, size=s.shape)
