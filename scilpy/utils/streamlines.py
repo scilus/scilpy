@@ -11,6 +11,7 @@ from dipy.tracking.streamline import transform_streamlines
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
@@ -677,3 +678,71 @@ def cut_invalid_streamlines(sft):
                                           data_per_point=new_data_per_point)
 
     return new_sft, cutting_counter
+
+
+def upsample_tractogram(
+    sft, nb, point_wise_std=None,
+    streamline_wise_std=None, gaussian=None, spline=None, seed=None
+):
+    """
+    Generate new streamlines by either adding gaussian noise around
+    streamlines' points, or by translating copies of existing streamlines
+    by a random amount.
+
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        The tractogram to upsample
+    nb : int
+        The target number of streamlines in the tractogram.
+    point_wise_std : float
+        The standard deviation of the gaussian to use to generate point-wise
+        noise on the streamlines.
+    streamline_wise_std : float
+        The standard deviation of the gaussian to use to generate
+        streamline-wise noise on the streamlines.
+    gaussian: float
+        The sigma used for smoothing streamlines.
+    spline: (float, int)
+        Pair of sigma and number of control points used to model each
+        streamline as a spline and smooth it.
+    seed: int
+        Seed for RNG.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        The upsampled tractogram.
+    """
+    assert bool(point_wise_std) ^ bool(streamline_wise_std), \
+        'Can only add either point-wise or streamline-wise noise' + \
+        ', not both nor none.'
+
+    rng = np.random.RandomState(seed)
+
+    # Get the number of streamlines to add
+    nb_new = nb - len(sft.streamlines)
+
+    # Get the streamlines that will serve as a base for new ones
+    indices = rng.choice(
+        len(sft.streamlines), nb_new)
+    new_streamlines = sft.streamlines.copy()
+
+    # For all selected streamlines, add noise and smooth
+    for s in sft.streamlines[indices]:
+        if point_wise_std:
+            noise = rng.normal(scale=point_wise_std, size=s.shape)
+        elif streamline_wise_std:
+            noise = rng.normal(
+                scale=streamline_wise_std, size=s.shape[-1])
+        new_s = s + noise
+        if gaussian:
+            new_s = smooth_line_gaussian(new_s, gaussian)
+        elif spline:
+            new_s = smooth_line_spline(new_s, spline[0],
+                                       spline[1])
+
+        new_streamlines.append(new_s)
+
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    return new_sft
