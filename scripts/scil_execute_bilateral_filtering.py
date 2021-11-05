@@ -31,6 +31,7 @@ import nibabel as nib
 import numpy as np
 
 from dipy.data import SPHERE_FILES
+from dipy.reconst.shm import sph_harm_ind_list
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
@@ -111,11 +112,10 @@ def main():
                         [args.covariance, args.sigma_angular**2]])
 
     logging.info('Executing asymmetric filtering.')
-    asym_sh, sym_sh = multivariate_bilateral_filtering(
+    asym_sh = multivariate_bilateral_filtering(
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,
         in_full_basis=full_basis,
-        return_sym=args.out_sym is not None,
         sphere_str=args.sphere,
         var_cov=var_cov,
         sigma_range=args.sigma_range,
@@ -125,8 +125,10 @@ def main():
     nib.save(nib.Nifti1Image(asym_sh, sh_img.affine), args.out_sh)
 
     if args.out_sym:
+        _, orders = sph_harm_ind_list(sh_order, full_basis=True)
         logging.info('Saving symmetric SH to file {0}.'.format(args.out_sym))
-        nib.save(nib.Nifti1Image(sym_sh, sh_img.affine), args.out_sym)
+        nib.save(nib.Nifti1Image(asym_sh[..., orders % 2 == 0], sh_img.affine),
+                 args.out_sym)
 
 
 if __name__ == "__main__":

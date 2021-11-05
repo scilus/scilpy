@@ -12,15 +12,12 @@ from scipy.stats import multivariate_normal
 def multivariate_bilateral_filtering(in_sh, sh_order=8,
                                      sh_basis='descoteaux07',
                                      in_full_basis=False,
-                                     return_sym=False,
                                      sphere_str='repulsion724',
                                      var_cov=np.eye(2),
                                      sigma_range=0.5,
                                      nbr_processes=1):
-    """Average the SH projected on a sphere using a first-neighbor gaussian
-    blur and a dot product weight between sphere directions and the direction
-    to neighborhood voxels, forcing to 0 negative values and thus performing
-    asymmetric hemisphere-aware filtering.
+    """
+    Multivariate bilateral filtering.
 
     Parameters
     ----------
@@ -32,16 +29,14 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
         SH basis of the input signal.
     in_full_basis: bool, optional
         True if the input is in full SH basis.
-    out_full_basis: bool, optional
-        If True, save output SH using full SH basis.
-    dot_sharpness: float, optional
-        Exponent of the dot product. When set to 0.0, directions
-        are not weighted by the dot product.
     sphere_str: str, optional
         Name of the sphere used to project SH coefficients to SF.
-    sigma_spatial: float, optional
-        Sigma for the Gaussian.
+    var_cov: ndarray (2, 2), optional
+        Variance-covariance matrix for spatio-augular distribution.
     sigma_range: float, optional
+        Variance of the gaussian used for weighting intensities.
+    nbr_processes: int, optional
+        Number of processes to use.
 
     Returns
     -------
@@ -96,16 +91,8 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
     _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
                                full_basis=True)
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
-    if return_sym:
-        _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
-                                   basis_type=sh_basis,
-                                   full_basis=False)
-        out_sh_sym = np.array([np.dot(i, B_inv) for i in mean_sf],
-                              dtype=in_sh.dtype)
-        return out_sh, out_sh_sym
-
     # By default, return only asymmetric SH
-    return out_sh, None
+    return out_sh
 
 
 def evaluate_gaussian_dist(x, sigma):
