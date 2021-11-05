@@ -625,6 +625,11 @@ def cut_invalid_streamlines(sft):
     """
     if not len(sft):
         return sft, 0
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+
     sft.to_vox()
     sft.to_corner()
 
@@ -676,6 +681,13 @@ def cut_invalid_streamlines(sft):
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft,
                                           data_per_streamline=new_data_per_streamline,
                                           data_per_point=new_data_per_point)
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
 
     return new_sft, cutting_counter
 
