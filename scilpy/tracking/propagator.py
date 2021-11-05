@@ -69,34 +69,13 @@ class AbstractPropagator(object):
             return False
         return self.forward_dir is not None and self.backward_dir is not None
 
-    def _get_next_valid_direction(self, pos, v_in):
+    def _sample_next_direction_or_go_straight(self, pos, v_in):
         """
-        Get the next direction given the position pos, input direction
-        v_in, and tracking method (ex, probabilistic or deterministic), and
-        verify if it is valid. If it is not valid, return v_in as next
-        direction. "Valid" means that the output of _get_next_direction is not
-        None.
-
-        Uses self._get_next_direction, which must be implemented by each child
-        class.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        is_direction_valid: bool
-            True if the new direction is valid.
-        v_out: ndarray(3,)
-            A valid direction. v_out equals v_in if no valid direction is
-            found.
+        Same as _sample_next_direction but if no valid direction has been
+        found, return v_in as v_out.
         """
         is_direction_valid = True
-        v_out = self._get_next_direction(pos, v_in)
+        v_out = self._sample_next_direction(pos, v_in)
         if v_out is None:
             is_direction_valid = False
             v_out = v_in
@@ -126,27 +105,27 @@ class AbstractPropagator(object):
             True if new_dir is valid.
         """
         if self.rk_order == 1:
-            is_direction_valid, new_dir = self._get_next_valid_direction(
-                pos, v_in)
+            is_direction_valid, new_dir = \
+                self._sample_next_direction_or_go_straight(pos, v_in)
 
         elif self.rk_order == 2:
-            is_direction_valid, dir1 = self._get_next_valid_direction(
-                pos, v_in)
-            _, new_dir = self._get_next_valid_direction(
+            is_direction_valid, dir1 = \
+                self._sample_next_direction_or_go_straight(pos, v_in)
+            _, new_dir = self._sample_next_direction_or_go_straight(
                 pos + 0.5 * self.step_size * np.array(dir1), dir1)
 
         else:
             # case self.rk_order == 4
-            is_direction_valid, dir1 = self._get_next_valid_direction(
-                pos, v_in)
+            is_direction_valid, dir1 = \
+                self._sample_next_direction_or_go_straight(pos, v_in)
             v1 = np.array(dir1)
-            _, dir2 = self._get_next_valid_direction(
+            _, dir2 = self._sample_next_direction_or_go_straight(
                 pos + 0.5 * self.step_size * v1, dir1)
             v2 = np.array(dir2)
-            _, dir3 = self._get_next_valid_direction(
+            _, dir3 = self._sample_next_direction_or_go_straight(
                 pos + 0.5 * self.step_size * v2, dir2)
             v3 = np.array(dir3)
-            _, dir4 = self._get_next_valid_direction(
+            _, dir4 = self._sample_next_direction_or_go_straight(
                 pos + self.step_size * v3, dir3)
             v4 = np.array(dir4)
 
@@ -177,12 +156,11 @@ class AbstractPropagator(object):
         """
         return self.tracking_field.dataset.is_voxmm_in_bound(*pos, origin)
 
-    def _get_next_direction(self, pos, v_in):
+    def _sample_next_direction(self, pos, v_in):
         """
-        Return the next tracking direction, given the current position
-        pos and the previous direction v_in.
-
-        Should use self.tracking_field.get_next_direction.
+        Chooses a next tracking direction from all possible directions offered
+        by the tracking field.
+        Should use self.tracking_field.get_possible_next_directions.
 
         Parameters
         ----------
@@ -212,11 +190,11 @@ class ProbabilisticODFPropagator(AbstractPropagator):
         super(ProbabilisticODFPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
-    def _get_next_direction(self, pos, v_in):
+    def _sample_next_direction(self, pos, v_in):
         """
-        Return the next tracking direction, given the current position
-        pos and the previous direction v_in. This direction must respect
-        tracking constraint defined in the tracking_field.
+        Chooses a next tracking direction from all possible directions offered
+        by the tracking field.
+        Should use self.tracking_field.get_next_direction.
 
         Parameters
         ----------
@@ -230,7 +208,7 @@ class ProbabilisticODFPropagator(AbstractPropagator):
         direction: ndarray (3,)
             A valid tracking direction. None if no valid direction is found.
         """
-        sf, directions = self.tracking_field.get_next_direction(
+        sf, directions = self.tracking_field.get_possible_next_directions(
             pos, v_in, 'prob')
         if np.sum(sf) > 0:
             return directions[sample_distribution(sf)]
@@ -256,10 +234,12 @@ class DeterministicODFPropagator(AbstractPropagator):
         super(DeterministicODFPropagator, self).__init__(
             tracking_field, step_size, rk_order)
 
-    def _get_next_direction(self, pos, v_in):
+    def _sample_next_direction(self, pos, v_in):
         """
-        Get the next valid tracking direction or None if no valid maxima
-        is available.
+        Chooses a next tracking direction from all possible directions offered
+        by the tracking field.
+        Should use self.tracking_field.get_next_direction.
+        Returns None if no valid maxima is available.
 
         Parameters
         ----------
@@ -274,7 +254,7 @@ class DeterministicODFPropagator(AbstractPropagator):
             The maxima closest to v_in. None if the no
             valid maxima are available.
         """
-        possible_maxima = self.tracking_field.get_next_direction(
+        possible_maxima = self.tracking_field.get_possible_next_directions(
             pos, v_in, 'det')
         cosinus = 0
         v_out = None

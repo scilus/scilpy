@@ -132,7 +132,7 @@ def main():
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
 
-    inputs = [args.in_sh, args.in_seed, args.in_mask]
+    inputs = [args.in_odf, args.in_seed, args.in_mask]
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
@@ -172,20 +172,19 @@ def main():
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
-    logging.debug("Loading SH data.")
-    fodf_sh_img = nib.load(args.in_sh)
-    dataset = DataVolume(fodf_sh_img, args.sh_interp)
-    sh_field = ODFField(dataset, args.sh_basis,
-                        args.sf_threshold,
-                        args.sf_threshold_init, theta,
-                        dipy_sphere=args.sphere)
+    logging.debug("Loading ODF SH data.")
+    odf_sh_img = nib.load(args.in_odf)
+    dataset = DataVolume(odf_sh_img, args.sh_interp)
+    odf_field = ODFField(dataset, args.sh_basis, args.sf_threshold,
+                         args.sf_threshold_init, theta,
+                         dipy_sphere=args.sphere)
 
     logging.debug("Instantiating tracker.")
     if args.algo == 'det':
-        propagator = DeterministicODFPropagator(sh_field, args.step_size,
+        propagator = DeterministicODFPropagator(odf_field, args.step_size,
                                                 args.rk_order)
     else:
-        propagator = ProbabilisticODFPropagator(sh_field, args.step_size,
+        propagator = ProbabilisticODFPropagator(odf_field, args.step_size,
                                                 args.rk_order)
 
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,

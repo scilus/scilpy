@@ -82,10 +82,14 @@ class AbstractTrackingField(object):
         """
         raise NotImplementedError
 
-    def get_next_direction(self, pos, previous_direction, *args):
+    def get_possible_next_directions(self, pos, previous_direction, *args):
         """
-        Get next direction. Depends on the type of tracking field and probably
-        on some algorithm parameter choices.
+        Get the set of next possible directions.
+        Depends on the type of tracking field and probably on some algorithm
+        parameter choices.
+
+        The way to sample from these possible directions is the propagator's
+        job.
 
         Must be instantiated by each child class.
 
@@ -185,10 +189,19 @@ class ODFField(AbstractTrackingField):
             sf = sf / sf_max
         return sf
 
-    def get_next_direction(self, pos, previous_direction,
-                           tracking_choice='prob'):
+    def get_possible_next_directions(self, pos, previous_direction,
+                                     tracking_choice='prob'):
         """
-        Get the set of next possible directions, for a direction.
+        Get the set of next possible directions. If tracking_choice is 'prob',
+        the next possible directions are all directions inside the cone of
+        angle theta ahead (associated sf values are also returned to allow
+        sampling). If tracking_choice is 'det', the set of possible directions
+        are all maxima inside the cone theta. A point is considered a maxima if
+        it has the greatest value in a neigbhorhood of angle
+        min_separation_angle.
+
+        The way to sample from these possible directions is the propagator's
+        job.
 
         Parameters
         ----------
@@ -202,12 +215,14 @@ class ODFField(AbstractTrackingField):
         """
         if tracking_choice == 'prob':
             # Getting direction from the SF
-            return self._get_next_dir_prob(pos, previous_direction)
-        if tracking_choice == 'det':
+            return self._get_possible_next_dirs_prob(pos, previous_direction)
+        elif tracking_choice == 'det':
             # Getting direction from the maxima
-            return self._get_next_dir_det(pos, previous_direction)
+            return self._get_possible_next_dirs_det(pos, previous_direction)
+        else:
+            raise ValueError("Tracking choice must be one of 'det' or 'prob'.")
 
-    def _get_next_dir_prob(self, pos, previous_direction):
+    def _get_possible_next_dirs_prob(self, pos, previous_direction):
         """
         Get the spherical functions thresholded at position pos, for a given
         direction.
@@ -232,7 +247,7 @@ class ODFField(AbstractTrackingField):
             self.tracking_neighbours[previous_direction.index])[0]
         return sf[inds], self.dirs[inds]
 
-    def _get_next_dir_det(self, pos, previous_direction):
+    def _get_possible_next_dirs_det(self, pos, previous_direction):
         """
         Get the set of maxima directions from the thresholded
         SF at position pos, for a direction.
