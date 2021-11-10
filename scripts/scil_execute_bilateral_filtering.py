@@ -2,25 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute per-vertices hemisphere-aware (asymmetric)
-filtering of spherical functions (SF) given an array of spherical harmonics
-(SH) coefficients. SF are filtered using a first-neighbor Gaussian filter.
-Sphere directions are also weighted by their dot product with the direction
-to the center of each neighbor, clipping to 0 negative values.
-
-The argument `sigma` controls the standard deviation of the Gaussian. The
-argument `sharpness` controls the exponent of the cosine weights. The higher it
-is, the faster the weights of misaligned sphere directions decrease. A
-sharpness of 0 gives the same weight to all sphere directions in an hemisphere.
-Both `sharpness` and `sigma` must be positive.
-
-The resulting SF can be expressed using a full SH basis or a symmetric SH basis
-(where the effect of the filtering is a simple denoising).
-
-Using default parameters, the script completes in about 15-20 minutes for a
-HCP subject fiber ODF processed with tractoflow. Also note the bigger the
-sphere used for SH to SF projection, the higher the RAM consumption and
-compute time.
+Script to compute angle-aware bilateral filtering.
 """
 
 import argparse

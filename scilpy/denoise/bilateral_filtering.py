@@ -7,6 +7,115 @@ from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
 from dipy.core.sphere import Sphere
 from scipy.stats import multivariate_normal
+from scilpy.denoise.opencl_utils import CLManager
+
+
+def angle_aware_bilateral_filtering(in_sh, sh_order=8,
+                                    sh_basis='descoteaux07',
+                                    in_full_basis=False,
+                                    sphere_str='repulsion724',
+                                    sigma_spatial=1.0,
+                                    sigma_angular=1.0,
+                                    sigma_range=0.5):
+    """
+    Angle-aware bilateral filtering.
+    """
+    h_weights = _get_spatial_weights(sigma_spatial)
+    h_weights = h_weights.astype(np.float32)
+    h_half_width = len(h_weights) // 2
+
+    sphere = get_sphere(sphere_str)
+    a_weights = _get_angular_weights(h_weights.shape, sphere, sigma_angular)
+
+    # range filtering needs to be done directly on the GPU
+    # because it depends on the window.
+
+    clmanager = CLManager()
+    clmanager.add_program(
+        """
+        __constant int IM_X_DIM = {0};
+        __constant int IM_Y_DIM = {1};
+        __constant int IM_Z_DIM = {2};
+        __constant int N_COEFFS = {3};
+
+        __constant int H_X_DIM = {4};
+        __constant int H_Y_DIM = {5};
+        __constant int H_Z_DIM = {6};
+
+        __constant int PAD_WIDTH = {7};
+
+        int get_flat_index_image(const int x, const int y,
+                                 const int z, const int w,
+                                 const int padding)
+        {{
+            return x +
+                   y * (IM_X_DIM + 2 * padding) +
+                   z * (IM_X_DIM + 2 * padding)
+                     * (IM_Y_DIM + 2 * padding) +
+                   w * (IM_X_DIM + 2 * padding)
+                     * (IM_Y_DIM + 2 * padding)
+                     * (IM_Z_DIM + 2 * padding);
+        }}
+
+        int get_flat_index_weights(const int hx,
+                                   const int hy,
+                                   const int hz)
+        {{
+            return hx + hy * H_X_DIM + hz * H_X_DIM * H_Y_DIM;
+        }}
+
+        __kernel void correlate(
+            __global const float *sh_buffer,
+            __global const float *h_weights,
+            __global float *out_sh_buffer)
+        {{
+            const int idx = get_global_id(0);
+            const int idy = get_global_id(1);
+            const int idz = get_global_id(2);
+
+            // Example declaration for float array
+            float sf_coefficients[724];
+            float pix_val = 0.0f;
+            for(int i = 0; i < N_COEFFS; ++i)
+            {{
+                for(int hi = 0; hi < H_X_DIM; ++hi)
+                {{
+                    for(int hj = 0; hj < H_Y_DIM; ++hj)
+                    {{
+                        for(int hk = 0; hk < H_Z_DIM; ++hk)
+                        {{
+                            const int h_index = get_flat_index_weights(hi,
+                                                                       hj,
+                                                                       hk);
+                            const int im_index = get_flat_index_image(idx + hi,
+                                                                      idy + hj,
+                                                                      idz + hk,
+                                                                      i,
+                                                                      PAD_WIDTH);
+                            pix_val += h_weights[h_index] * sh_buffer[im_index];
+                        }}
+                    }}
+                }}
+            }}
+            pix_val /= (float)N_COEFFS;
+            const int out_index = get_flat_index_image(idx, idy, idz, 0, 0);
+            out_sh_buffer[out_index] = pix_val;
+        }}
+        """.format(*in_sh.shape, *h_weights.shape, h_half_width),
+        'correlate')
+
+    v_shape = in_sh.shape
+    in_sh = np.pad(in_sh, ((h_half_width, h_half_width),
+                           (h_half_width, h_half_width),
+                           (h_half_width, h_half_width),
+                           (0, 0)))
+
+    clmanager.add_input_buffer(in_sh)
+    clmanager.add_input_buffer(h_weights)
+    clmanager.add_output_buffer(v_shape[:3], np.float32)
+
+    outputs = clmanager.run(v_shape[:3])
+    return outputs[0]
 
 
 def multivariate_bilateral_filtering(in_sh, sh_order=8,
@@ -109,6 +218,45 @@ def evaluate_multivariate_gaussian(x, cov):
     fx = flat_out.reshape(x_shape[:-1])
 
     return fx
+
+
+def _get_window_directions(shape):
+    grid = np.indices(shape)
+    grid = np.moveaxis(grid, 0, -1)
+    grid = grid - np.asarray(shape) // 2
+    return grid
+
+
+def _get_spatial_weights(sigma_spatial):
+    shape = int(6 * sigma_spatial)
+    if shape % 2 == 0:
+        shape += 1
+    shape = (shape, shape, shape)
+
+    grid = _get_window_directions(shape)
+
+    distances = np.linalg.norm(grid, axis=-1)
+    spatial_weights = evaluate_gaussian_dist(distances, sigma_spatial)
+
+    # normalize filter
+    spatial_weights /= np.sum(spatial_weights)
+    return spatial_weights
+
+
+def _get_angular_weights(shape, sphere, sigma_angular):
+    grid_dirs = _get_window_directions(shape).astype(np.float32)
+    dir_norms = np.linalg.norm(grid_dirs, axis=-1)
+
+    # normalized grid directions
+    grid_dirs[dir_norms > 0] /= dir_norms[dir_norms > 0][:, None]
+    angles = np.arccos(np.dot(grid_dirs, sphere.vertices.T))
+    angles[np.logical_not(dir_norms > 0), :] = 0.0
+
+    angular_weights = evaluate_gaussian_dist(angles, sigma_angular)
+
+    # normalize filter per direction
+    angular_weights /= np.sum(angular_weights, axis=(0, 1, 2))
+    return angular_weights
 
 
 def _get_weights_multivariate(sphere, cov):
