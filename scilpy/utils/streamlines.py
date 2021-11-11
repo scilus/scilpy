@@ -447,6 +447,11 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     """
     sft.to_rasmm()
     sft.to_center()
+
+    if len(sft.streamlines) == 0:
+        return StatefulTractogram(sft.streamlines, target,
+                                  Space.RASMM)
+
     if inverse:
         linear_transfo = np.linalg.inv(linear_transfo)
 
