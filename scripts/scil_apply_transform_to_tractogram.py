@@ -127,7 +127,6 @@ def main():
         if args.no_empty:
             logging.debug("The file {} won't be written "
                           "(0 streamline).".format(args.out_tractogram))
-
             return
 
     if args.keep_invalid:
