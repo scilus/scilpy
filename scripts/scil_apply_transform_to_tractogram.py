@@ -84,7 +84,8 @@ def _build_arg_parser():
 
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.\n'
-                        'You may save an empty file if you use remove_invalid.')
+                        'You may save an empty file if you use '
+                        'remove_invalid.')
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
