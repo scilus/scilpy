@@ -81,6 +81,9 @@ def _build_arg_parser():
                          help='Keep the streamlines landing out of the '
                               'bounding box.')
 
+    p.add_argument('--no_empty', action='store_true',
+                   help='Do not write file if there is no streamline.\n'
+                        'You may save an empty file if you use remove_invalid.')
     add_reference_arg(p)
     add_overwrite_arg(p)
 
@@ -113,6 +116,13 @@ def main():
                                  deformation_data=deformation_data,
                                  remove_invalid=args.remove_invalid,
                                  cut_invalid=args.cut_invalid)
+
+    if len(new_sft.streamlines) == 0:
+        if args.no_empty:
+            logging.debug("The file {} won't be written "
+                          "(0 streamline).".format(args.out_tractogram))
+
+        return
 
     if args.keep_invalid:
         if not new_sft.is_bbox_in_vox_valid():
