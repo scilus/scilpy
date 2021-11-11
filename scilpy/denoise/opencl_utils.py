@@ -4,6 +4,24 @@ import pyopencl as cl
 from pyopencl import mem_flags as mf
 
 
+FLAT_INDEX_CL_CODE = """
+int get_flat_index(const int x, const int y,
+                   const int z, const int w,
+                   const int xLen,
+                   const int yLen,
+                   const int zLen)
+{{
+    return x +
+           y * xLen +
+           z * (xLen)
+             * (yLen) +
+           w * (yLen)
+             * (yLen)
+             * (zLen);
+}}
+"""
+
+
 class CLManager(object):
     class OutBuffer(object):
         def __init__(self, buf, shape, dtype):
@@ -47,6 +65,46 @@ class CLManager(object):
                             wait_for=[wait_event])
             outputs.append(out_arr)
         return outputs
+
+
+class CLKernel(object):
+    class KernelConstVar(object):
+        def __init__(self, ctype, value):
+            self.ctype = ctype
+            self.value = value
+
+    def __init__(self):
+        self.code = ""
+        self.entrypoint = ""
+        self.constants = {}
+
+    def add_constant(self, var_name, ctype, value):
+        var_name = var_name.capitalize()
+        if var_name in self.constants:
+            raise ValueError('Constant {0} already defined in kernel.'
+                             .format(var_name))
+        self.constants[var_name] = self.KernelConstVar(ctype, value)
+
+    def set_kernel_code(self, code_str, entrypoint):
+        self.code = code_str
+        self.entrypoint = entrypoint
+
+    def __str__(self):
+        code_str = ""
+
+        # write constant values
+        for cname in self.constants:
+            const_var = self.constants[cname]
+            code_str += "__constant {0} {1} = {2};\n".format(const_var.ctype,
+                                                             cname,
+                                                             const_var.value)
+
+        # add helper functions
+        code_str += FLAT_INDEX_CL_CODE + "\n"
+
+        # write actual kernel code
+        code_str += self.code
+        return code_str
 
 
 def angle_aware_bilateral_filtering_cl():
