@@ -1,25 +1,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pyopencl as cl
-from pyopencl import mem_flags as mf
+import inspect
+import os
+import scilpy
 
-
-FLAT_INDEX_CL_CODE = """
-int get_flat_index(const int x, const int y,
-                   const int z, const int w,
-                   const int xLen,
-                   const int yLen,
-                   const int zLen)
-{{
-    return x +
-           y * xLen +
-           z * (xLen)
-             * (yLen) +
-           w * (yLen)
-             * (yLen)
-             * (zLen);
-}}
-"""
+from dipy.utils.optpkg import optional_package
+cl, have_opencl, _ = optional_package('pyopencl')
 
 
 class CLManager(object):
@@ -29,28 +15,27 @@ class CLManager(object):
             self.shape = shape
             self.dtype = dtype
 
-    def __init__(self):
-        self.context = cl.create_some_context(interactive=False)
-        self.queue = cl.CommandQueue(self.context)
+    def __init__(self, cl_kernel):
         self.input_buffers = []
         self.output_buffers = []
+
+        self.context = cl.create_some_context(interactive=False)
+        self.queue = cl.CommandQueue(self.context)
+        program = cl.Program(self.context, cl_kernel.code_string).build()
+        self.kernel = cl.Kernel(program, cl_kernel.entry_point)
 
     def add_input_buffer(self, arr, dtype=np.float32):
         # convert to fortran ordered, float32 array
         arr = np.asfortranarray(arr, dtype=dtype)
         buf = cl.Buffer(self.context,
-                        mf.READ_ONLY | mf.COPY_HOST_PTR,
+                        cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
                         hostbuf=arr)
         self.input_buffers.append(buf)
 
     def add_output_buffer(self, shape, dtype):
-        buf = cl.Buffer(self.context, mf.WRITE_ONLY,
+        buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY,
                         np.prod(shape) * np.dtype(dtype).itemsize)
         self.output_buffers.append(self.OutBuffer(buf, shape, dtype))
-
-    def add_program(self, code_str, kernel_name):
-        program = cl.Program(self.context, code_str).build()
-        self.kernel = cl.Kernel(program, kernel_name)
 
     def run(self, global_size, local_size=None):
         wait_event = self.kernel(self.queue,
@@ -73,52 +58,43 @@ class CLKernel(object):
             self.ctype = ctype
             self.value = value
 
-    def __init__(self):
-        self.code = ""
-        self.entrypoint = ""
-        self.constants = {}
-
-    def add_constant(self, var_name, ctype, value):
-        var_name = var_name.capitalize()
-        if var_name in self.constants:
-            raise ValueError('Constant {0} already defined in kernel.'
-                             .format(var_name))
-        self.constants[var_name] = self.KernelConstVar(ctype, value)
-
-    def set_kernel_code(self, code_str, entrypoint):
-        self.code = code_str
+    def __init__(self, entrypoint, path_to_kernel):
+        f = open(path_to_kernel, 'r')
+        self.code = f.readlines()
         self.entrypoint = entrypoint
 
-    def __str__(self):
-        code_str = ""
+    def set_define(self, def_name, value):
+        # warning! #define are not typed and therefore prone to compilation
+        # error. They are however faster than accessing a const variable on
+        # the GPU.
+        def_name = def_name.upper()
+        to_find = '#define {}'.format(def_name)
+        def_line = -1
+        for i, line in enumerate(self.code):
+            if line.find(to_find) != -1:
+                if def_line != -1:
+                    raise ValueError('Multiple definitions for {0}'
+                                     .format(def_name))
+                def_line = i
+                break
+        if def_line == -1:
+            raise ValueError('Definition {0} not found in kernel code'
+                             .format(def_name))
 
-        # write constant values
-        for cname in self.constants:
-            const_var = self.constants[cname]
-            code_str += "__constant {0} {1} = {2};\n".format(const_var.ctype,
-                                                             cname,
-                                                             const_var.value)
+        self.code[def_line] = '#define {0} {1}\n'.format(def_name, value)
 
-        # add helper functions
-        code_str += FLAT_INDEX_CL_CODE + "\n"
+    @property
+    def entry_point(self):
+        return self.entrypoint
 
-        # write actual kernel code
-        code_str += self.code
+    @property
+    def code_string(self):
+        code_str = ''.join(self.code)
         return code_str
 
 
-def angle_aware_bilateral_filtering_cl():
-    """
-    1.  convert arrays to float32
-    2.  convert arrays to fortran ordering
-    3.  generate buffers
-    4.  kernel code
-    4.1 kernel code includes range filtering
-    4.2 kernel code processes all sphere directions for a voxel
-    4.3 conversion to full basis is done on the GPU
-    5.  return output in full SH basis
-
-    OPTIM: Do not pad, return 0 when outside
-           image dimensions directly in kernel.
-    """
-    pass
+def get_kernel_path(module, kernel_name):
+    module_path = inspect.getfile(scilpy)
+    kernel_path = os.path.join(os.path.dirname(module_path),
+                               module, kernel_name)
+    return kernel_path

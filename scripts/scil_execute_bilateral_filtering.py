@@ -7,6 +7,7 @@ Script to compute angle-aware bilateral filtering.
 
 import argparse
 import logging
+import time
 from scilpy.reconst.utils import get_sh_order_and_fullness
 
 import nibabel as nib
@@ -23,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              validate_nbr_processes)
 
-from scilpy.denoise.bilateral_filtering import multivariate_bilateral_filtering
+from scilpy.denoise.bilateral_filtering import angle_aware_bilateral_filtering
 
 
 def _build_arg_parser():
@@ -59,8 +60,8 @@ def _build_arg_parser():
                    help='Standard deviation for intensity range.'
                         ' [%(default)s]')
 
-    p.add_argument('--covariance', default=0.0, type=float,
-                   help='Covariance of angular and spatial value.')
+    p.add_argument('--use_gpu', action='store_true',
+                   help='Use GPU for computation.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -82,7 +83,7 @@ def main():
     assert_outputs_exist(parser, args, outputs)
     assert_inputs_exist(parser, args.in_sh)
 
-    validate_nbr_processes(parser, args)
+    nbr_processes = validate_nbr_processes(parser, args)
 
     # Prepare data
     sh_img = nib.load(args.in_sh)
@@ -90,18 +91,20 @@ def main():
 
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
-    var_cov = np.array([[args.sigma_spatial**2, args.covariance],
-                        [args.covariance, args.sigma_angular**2]])
-
+    t0 = time.perf_counter()
     logging.info('Executing asymmetric filtering.')
-    asym_sh = multivariate_bilateral_filtering(
+    asym_sh = angle_aware_bilateral_filtering(
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,
         in_full_basis=full_basis,
         sphere_str=args.sphere,
-        var_cov=var_cov,
+        sigma_spatial=args.sigma_spatial,
+        sigma_angular=args.sigma_angular,
         sigma_range=args.sigma_range,
-        nbr_processes=args.nbr_processes)
+        use_gpu=args.use_gpu,
+        nbr_processes=nbr_processes)
+    t1 = time.perf_counter()
+    logging.info('Elapsed time (s): {0}'.format(t1 - t0))
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(asym_sh, sh_img.affine), args.out_sh)

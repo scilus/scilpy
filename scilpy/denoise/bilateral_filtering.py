@@ -6,8 +6,8 @@ import itertools
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
 from dipy.core.sphere import Sphere
-from scipy.stats import multivariate_normal
-from scilpy.denoise.opencl_utils import CLManager
+from scilpy.denoise.opencl_utils import (have_opencl, CLKernel, CLManager,
+                                         get_kernel_path)
 
 
 def angle_aware_bilateral_filtering(in_sh, sh_order=8,
@@ -16,147 +16,192 @@ def angle_aware_bilateral_filtering(in_sh, sh_order=8,
                                     sphere_str='repulsion724',
                                     sigma_spatial=1.0,
                                     sigma_angular=1.0,
-                                    sigma_range=0.5):
+                                    sigma_range=0.5,
+                                    use_gpu=True,
+                                    nbr_processes=1):
     """
     Angle-aware bilateral filtering.
-    """
-    h_weights = _get_spatial_weights(sigma_spatial)
-    h_weights = h_weights.astype(np.float32)
-    h_half_width = len(h_weights) // 2
-
-    sphere = get_sphere(sphere_str)
-    a_weights = _get_angular_weights(h_weights.shape, sphere, sigma_angular)
-
-    # range filtering needs to be done directly on the GPU
-    # because it depends on the window.
-
-    clmanager = CLManager()
-    clmanager.add_program(
-        """
-        __constant int IM_X_DIM = {0};
-        __constant int IM_Y_DIM = {1};
-        __constant int IM_Z_DIM = {2};
-        __constant int N_COEFFS = {3};
-
-        __constant int H_X_DIM = {4};
-        __constant int H_Y_DIM = {5};
-        __constant int H_Z_DIM = {6};
-
-        __constant int PAD_WIDTH = {7};
-
-        int get_flat_index_image(const int x, const int y,
-                                 const int z, const int w,
-                                 const int padding)
-        {{
-            return x +
-                   y * (IM_X_DIM + 2 * padding) +
-                   z * (IM_X_DIM + 2 * padding)
-                     * (IM_Y_DIM + 2 * padding) +
-                   w * (IM_X_DIM + 2 * padding)
-                     * (IM_Y_DIM + 2 * padding)
-                     * (IM_Z_DIM + 2 * padding);
-        }}
-
-        int get_flat_index_weights(const int hx,
-                                   const int hy,
-                                   const int hz)
-        {{
-            return hx + hy * H_X_DIM + hz * H_X_DIM * H_Y_DIM;
-        }}
-
-        __kernel void correlate(
-            __global const float *sh_buffer,
-            __global const float *h_weights,
-            __global float *out_sh_buffer)
-        {{
-            const int idx = get_global_id(0);
-            const int idy = get_global_id(1);
-            const int idz = get_global_id(2);
-
-            // Example declaration for float array
-            float sf_coefficients[724];
-            float pix_val = 0.0f;
-            for(int i = 0; i < N_COEFFS; ++i)
-            {{
-                for(int hi = 0; hi < H_X_DIM; ++hi)
-                {{
-                    for(int hj = 0; hj < H_Y_DIM; ++hj)
-                    {{
-                        for(int hk = 0; hk < H_Z_DIM; ++hk)
-                        {{
-                            const int h_index = get_flat_index_weights(hi,
-                                                                       hj,
-                                                                       hk);
-                            const int im_index = get_flat_index_image(idx + hi,
-                                                                      idy + hj,
-                                                                      idz + hk,
-                                                                      i,
-                                                                      PAD_WIDTH);
-                            pix_val += h_weights[h_index] * sh_buffer[im_index];
-                        }}
-                    }}
-                }}
-            }}
-            pix_val /= (float)N_COEFFS;
-            const int out_index = get_flat_index_image(idx, idy, idz, 0, 0);
-            out_sh_buffer[out_index] = pix_val;
-        }}
-        """.format(*in_sh.shape, *h_weights.shape, h_half_width),
-        'correlate')
-
-    v_shape = in_sh.shape
-    in_sh = np.pad(in_sh, ((h_half_width, h_half_width),
-                           (h_half_width, h_half_width),
-                           (h_half_width, h_half_width),
-                           (0, 0)))
-
-    clmanager.add_input_buffer(in_sh)
-    clmanager.add_input_buffer(h_weights)
-    clmanager.add_output_buffer(v_shape[:3], np.float32)
-
-    outputs = clmanager.run(v_shape[:3])
-    return outputs[0]
-
-
-def multivariate_bilateral_filtering(in_sh, sh_order=8,
-                                     sh_basis='descoteaux07',
-                                     in_full_basis=False,
-                                     sphere_str='repulsion724',
-                                     var_cov=np.eye(2),
-                                     sigma_range=0.5,
-                                     nbr_processes=1):
-    """
-    Multivariate bilateral filtering.
 
     Parameters
     ----------
-    in_sh: ndarray (x, y, z, n_coeffs)
-        Input SH coefficients array
+    in_sh: ndarray (x, y, z, ncoeffs)
+        Input SH volume.
     sh_order: int, optional
-        Maximum order of the SH series.
-    sh_basis: {'descoteaux07', 'tournier07'}, optional
-        SH basis of the input signal.
+        Maximum SH order of input volume.
+    sh_basis: str, optional
+        Name of SH basis used.
     in_full_basis: bool, optional
-        True if the input is in full SH basis.
+        True if input is expressed in full SH basis.
     sphere_str: str, optional
-        Name of the sphere used to project SH coefficients to SF.
-    var_cov: ndarray (2, 2), optional
-        Variance-covariance matrix for spatio-augular distribution.
+        Name of the DIPY sphere to use for sh to sf projection.
+    sigma_spatial: float, optional
+        Standard deviation for spatial filter.
+    sigma_angular: float, optional
+        Standard deviation for angular filter.
     sigma_range: float, optional
-        Variance of the gaussian used for weighting intensities.
+        Standard deviation for range filter.
+    use_gpu: bool, optional
+        True if GPU should be used.
     nbr_processes: int, optional
         Number of processes to use.
 
     Returns
     -------
-    out_sh: ndarray (x, y, z, n_coeffs)
-        Filtered signal as SH coefficients.
+    out_sh: ndarray (x, y, z, ncoeffs)
+        Output SH coefficient array in full SH basis.
+    """
+    if use_gpu and have_opencl:
+        return angle_aware_bilateral_filtering_gpu(in_sh, sh_order,
+                                                   sh_basis, in_full_basis,
+                                                   sphere_str, sigma_spatial,
+                                                   sigma_angular, sigma_range)
+    elif use_gpu and not have_opencl:
+        raise RuntimeError("OpenCL not available.")
+    else:
+        return angle_aware_bilateral_filtering_cpu(in_sh, sh_order,
+                                                   sh_basis, in_full_basis,
+                                                   sphere_str, sigma_spatial,
+                                                   sigma_angular, sigma_range,
+                                                   nbr_processes)
+
+
+def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
+                                        sh_basis='descoteaux07',
+                                        in_full_basis=False,
+                                        sphere_str='repulsion724',
+                                        sigma_spatial=1.0,
+                                        sigma_angular=1.0,
+                                        sigma_range=0.5):
+    """
+    Angle-aware bilateral filtering using OpenCL for GPU computing.
+
+    Parameters
+    ----------
+    in_sh: ndarray (x, y, z, ncoeffs)
+        Input SH volume.
+    sh_order: int, optional
+        Maximum SH order of input volume.
+    sh_basis: str, optional
+        Name of SH basis used.
+    in_full_basis: bool, optional
+        True if input is expressed in full SH basis.
+    sphere_str: str, optional
+        Name of the DIPY sphere to use for sh to sf projection.
+    sigma_spatial: float, optional
+        Standard deviation for spatial filter.
+    sigma_angular: float, optional
+        Standard deviation for angular filter.
+    sigma_range: float, optional
+        Standard deviation for range filter.
+
+    Returns
+    -------
+    out_sh: ndarray (x, y, z, ncoeffs)
+        Output SH coefficient array in full SH basis.
+    """
+    s_weights = _get_spatial_weights(sigma_spatial)
+    h_half_width = len(s_weights) // 2
+
+    sphere = get_sphere(sphere_str)
+    a_weights = _get_angular_weights(s_weights.shape, sphere, sigma_angular)
+
+    h_weights = s_weights[..., None] * a_weights
+    h_weights /= np.sum(h_weights, axis=(0, 1, 2))
+
+    sh_to_sf_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+                                   basis_type=sh_basis,
+                                   full_basis=in_full_basis,
+                                   return_inv=False)
+
+    _, sf_to_sh_mat = sh_to_sf_matrix(sphere, sh_order=sh_order,
+                                      basis_type=sh_basis,
+                                      full_basis=True,
+                                      return_inv=True)
+
+    out_n_coeffs = sf_to_sh_mat.shape[1]
+    n_dirs = len(sphere.vertices)
+    volume_shape = in_sh.shape
+    in_sh = np.pad(in_sh, ((h_half_width, h_half_width),
+                           (h_half_width, h_half_width),
+                           (h_half_width, h_half_width),
+                           (0, 0)))
+
+    kernel_path = get_kernel_path('denoise', 'angle_aware_bilateral.cl')
+    cl_kernel = CLKernel('correlate', kernel_path)
+    cl_kernel.set_define('IM_X_DIM', volume_shape[0])
+    cl_kernel.set_define('IM_Y_DIM', volume_shape[1])
+    cl_kernel.set_define('IM_Z_DIM', volume_shape[2])
+
+    cl_kernel.set_define('H_X_DIM', h_weights.shape[0])
+    cl_kernel.set_define('H_Y_DIM', h_weights.shape[1])
+    cl_kernel.set_define('H_Z_DIM', h_weights.shape[2])
+
+    cl_kernel.set_define('SIGMA_RANGE', float(sigma_range))
+
+    cl_kernel.set_define('IN_N_COEFFS', volume_shape[-1])
+    cl_kernel.set_define('OUT_N_COEFFS', out_n_coeffs)
+    cl_kernel.set_define('N_DIRS', n_dirs)
+
+    cl_manager = CLManager(cl_kernel)
+    cl_manager.add_input_buffer(in_sh)
+    cl_manager.add_input_buffer(h_weights)
+    cl_manager.add_input_buffer(sh_to_sf_mat)
+    cl_manager.add_input_buffer(sf_to_sh_mat)
+
+    cl_manager.add_output_buffer(volume_shape[:3] + (out_n_coeffs,),
+                                 np.float32)
+
+    outputs = cl_manager.run(volume_shape[:3])
+    return outputs[0]
+
+
+def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
+                                        sh_basis='descoteaux07',
+                                        in_full_basis=False,
+                                        sphere_str='repulsion724',
+                                        sigma_spatial=1.0,
+                                        sigma_angular=1.0,
+                                        sigma_range=0.5,
+                                        nbr_processes=1):
+    """
+    Angle-aware bilateral filtering on the CPU
+    (optionally using multiple threads).
+
+    Parameters
+    ----------
+    in_sh: ndarray (x, y, z, ncoeffs)
+        Input SH volume.
+    sh_order: int, optional
+        Maximum SH order of input volume.
+    sh_basis: str, optional
+        Name of SH basis used.
+    in_full_basis: bool, optional
+        True if input is expressed in full SH basis.
+    sphere_str: str, optional
+        Name of the DIPY sphere to use for sh to sf projection.
+    sigma_spatial: float, optional
+        Standard deviation for spatial filter.
+    sigma_angular: float, optional
+        Standard deviation for angular filter.
+    sigma_range: float, optional
+        Standard deviation for range filter.
+    nbr_processes: int, optional
+        Number of processes to use.
+
+    Returns
+    -------
+    out_sh: ndarray (x, y, z, ncoeffs)
+        Output SH coefficient array in full SH basis.
     """
     # Load the sphere used for projection of SH
     sphere = get_sphere(sphere_str)
 
     # Normalized filter for each sf direction
-    weights = _get_weights_multivariate(sphere, var_cov)
+    s_weights = _get_spatial_weights(sigma_spatial)
+    a_weights = _get_angular_weights(s_weights.shape, sphere, sigma_angular)
+
+    weights = s_weights[..., None] * a_weights
+    weights /= np.sum(weights, axis=(0, 1, 2))
 
     nb_sf = len(sphere.vertices)
     B = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
@@ -204,20 +249,10 @@ def multivariate_bilateral_filtering(in_sh, sh_order=8,
     return out_sh
 
 
-def evaluate_gaussian_dist(x, sigma):
+def evaluate_gaussian_distribution(x, sigma):
     assert sigma > 0.0, "Sigma must be greater than 0."
     cnorm = 1.0 / sigma / np.sqrt(2.0*np.pi)
     return cnorm * np.exp(-x**2/2/sigma**2)
-
-
-def evaluate_multivariate_gaussian(x, cov):
-    x_shape = x.shape
-    x = x.reshape((-1, 2))
-    flat_out = multivariate_normal.pdf(x, mean=[0, 0], cov=cov)
-
-    fx = flat_out.reshape(x_shape[:-1])
-
-    return fx
 
 
 def _get_window_directions(shape):
@@ -236,7 +271,7 @@ def _get_spatial_weights(sigma_spatial):
     grid = _get_window_directions(shape)
 
     distances = np.linalg.norm(grid, axis=-1)
-    spatial_weights = evaluate_gaussian_dist(distances, sigma_spatial)
+    spatial_weights = evaluate_gaussian_distribution(distances, sigma_spatial)
 
     # normalize filter
     spatial_weights /= np.sum(spatial_weights)
@@ -252,62 +287,11 @@ def _get_angular_weights(shape, sphere, sigma_angular):
     angles = np.arccos(np.dot(grid_dirs, sphere.vertices.T))
     angles[np.logical_not(dir_norms > 0), :] = 0.0
 
-    angular_weights = evaluate_gaussian_dist(angles, sigma_angular)
+    angular_weights = evaluate_gaussian_distribution(angles, sigma_angular)
 
     # normalize filter per direction
     angular_weights /= np.sum(angular_weights, axis=(0, 1, 2))
     return angular_weights
-
-
-def _get_weights_multivariate(sphere, cov):
-    """
-    Get neighbors weight in respect to the direction to a voxel.
-
-    Parameters
-    ----------
-    sphere: Sphere
-        Sphere used for SF reconstruction.
-    dot_sharpness: float
-        Dot product exponent.
-    sigma: float
-        Variance of the gaussian used for weighting neighbors.
-
-    Returns
-    -------
-    weights: ndarray
-        Vertices weights with respect to voxel directions.
-    """
-    win_size = np.ceil(6.0 * cov[0, 0] + 1.0).astype(int)
-    if win_size % 2 == 0:
-        win_size += 1
-    half_size = win_size // 2
-    directions = np.zeros((win_size, win_size, win_size, 3))
-    for x in range(win_size):
-        for y in range(win_size):
-            for z in range(win_size):
-                directions[x, y, z, 0] = x - half_size
-                directions[x, y, z, 1] = y - half_size
-                directions[x, y, z, 2] = z - half_size
-
-    non_zero_dir = np.ones(directions.shape[:-1], dtype=bool)
-    non_zero_dir[half_size, half_size, half_size] = False
-
-    # normalize dir
-    dir_norm = np.linalg.norm(directions, axis=-1, keepdims=True)
-    directions[non_zero_dir] /= dir_norm[non_zero_dir]
-
-    # angle in the range [0, pi]
-    angle = np.arccos(np.dot(directions, sphere.vertices.T))
-    angle[half_size, half_size, half_size, :] = 0.0
-
-    dir_norm = np.broadcast_to(dir_norm, angle.shape)
-    norm_angles = np.stack([dir_norm, angle], axis=-1)
-
-    weights = evaluate_multivariate_gaussian(norm_angles, cov)
-
-    weights /= weights.reshape((-1, weights.shape[-1])).sum(axis=0)
-
-    return weights
 
 
 def _process_subset_directions(args):
@@ -379,7 +363,7 @@ def correlate_spatial(image_u, image_neg_u, h_filter, sigma_range):
             for kk in range(image_u.shape[2]):
                 x = pad_img[ii:ii+h_w, jj:jj+h_h, kk:kk+h_d]\
                     - image_u[ii, jj, kk]
-                range_filter = evaluate_gaussian_dist(x, sigma_range)
+                range_filter = evaluate_gaussian_distribution(x, sigma_range)
 
                 res_filter = range_filter * h_filter
                 # Divide the filter into two filters;
