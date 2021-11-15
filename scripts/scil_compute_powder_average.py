@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute powder average (mean diffusion weighted image) from a 
+Script to compute powder average (mean diffusion weighted image) from set of
 diffusion images.
 
 By default will output an average image calculated from all images with
@@ -111,12 +111,13 @@ def main():
     else:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    # Validate bvals and bvecs
+    # Read bvals
     logging.info('Performing powder average')
     bvals = read_bvals(args.in_bval)
 
-    # Select volumes to average
+    # Select diffusion volumes to average
     if not(args.shell):
+        # If no shell given, average all diffusion weigthed images
         bval_idx = bvals > 0
     else:
         min_bval = args.shell - args.shell_idx
@@ -124,7 +125,6 @@ def main():
         bval_idx = np.logical_and(bvals > min_bval, bvals < max_bval)
 
     powder_avg = np.squeeze(np.mean(data[:,:,:,bval_idx],axis=3))
-    print(powder_avg.shape)
     
     powder_avg_img = nib.Nifti1Image(powder_avg.astype(np.float32), affine)
     nib.save(powder_avg_img, args.out_avg)
