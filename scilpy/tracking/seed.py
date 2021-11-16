@@ -7,6 +7,13 @@ class SeedGenerator(object):
     Class to get seeding positions
     """
     def __init__(self, img):
+        """
+        Parameters
+        ----------
+        img: nibabel image
+            The seeding mask. Seeds will be randomly placed in voxels with
+            value >0.
+        """
         self.pixdim = img.header.get_zooms()[:3]
 
         data = img.get_fdata(caching='unchanged', dtype=np.float64)

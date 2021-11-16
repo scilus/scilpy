@@ -64,6 +64,12 @@ class SphericalHarmonicField(object):
         Get a matrix of neighbours for each direction on the sphere, within
         the min_separation_angle.
 
+        Parameters
+        ----------
+        min_separation_angle: float
+            Maximum angle in radians defining the neighbourhood
+            of each direction.
+
         Return
         ------
         neighbours: ndarray
