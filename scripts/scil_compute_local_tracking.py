@@ -118,7 +118,7 @@ def _build_arg_parser():
     return p
 
 
-def _get_direction_getter(args, mask_data):
+def _get_direction_getter(args):
     sh_data = nib.load(args.in_sh).get_fdata(dtype=np.float32)
     sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
     theta = get_theta(args.theta, args.algo)
@@ -263,7 +263,7 @@ def main():
     # Tracking is performed in voxel space
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines = LocalTracking(
-        _get_direction_getter(args, mask_data),
+        _get_direction_getter(args),
         BinaryStoppingCriterion(mask_data),
         seeds, np.eye(4),
         step_size=vox_step_size, max_cross=1,
