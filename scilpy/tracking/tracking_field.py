@@ -3,7 +3,6 @@ import dipy.data
 from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
 import numpy as np
 
-from scilpy.image.datasets import DataVolume
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
@@ -14,7 +13,7 @@ class SphericalHarmonicField(object):
 
     Parameters
     ----------
-    odf_dataset: DataVolume
+    odf_dataset: scilpy.image.datasets.DataVolume
         Trackable Dataset object.
     basis: string
         SH basis name. One of 'tournier07' or 'descoteaux07'
