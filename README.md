@@ -18,6 +18,10 @@ On Linux, most likely you will have to install libraries for COMMIT/AMICO
 ```
 sudo apt install libblas-dev liblapack-dev
 ```
+On Ubuntu-20.04, you will have to install libraries for matplotlib
+```
+sudo apt install libfreetype6-dev
+```
 While on MacOS you will have to use (most likely)
 ```
 brew install openblas lapack
