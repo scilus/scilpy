@@ -273,17 +273,16 @@ class Tracker(object):
         line: list of 3D positions
         """
         line = [self.propagator.init_pos]
-        line_dirs = [self.propagator.forward_dir] if is_forward else [
-            self.propagator.backward_dir]
+        last_dir = self.propagator.forward_dir if is_forward else \
+            self.propagator.backward_dir
 
         invalid_direction_count = 0
 
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_dir, is_valid_direction = self.propagator.propagate(
-                line[-1], line_dirs[-1])
+                line[-1], last_dir)
             line.append(new_pos)
-            line_dirs.append(new_dir)
 
             if is_valid_direction:
                 invalid_direction_count = 0
@@ -299,12 +298,13 @@ class Tracker(object):
             propagation_can_continue = (
                     self.mask.voxmm_to_value(*line[-1]) > 0 and
                     self.mask.is_voxmm_in_bound(*line[-1], origin='corner'))
+            last_dir = new_dir
 
         if propagation_can_continue:
             # Make a last step in the last direction
             # Ex: if mask is WM, reaching GM a little more.
             line.append(line[-1] +
-                        self.propagator.step_size * np.array(line_dirs[-1]))
+                        self.propagator.step_size * np.array(last_dir))
 
         # Last cleaning of the streamline
         # First position is the seed: necessarily in bound.
