@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Local streamline HARDI tractography using only scilpy methods -- no dipy (i.e
+Local streamline HARDI tractography using scilpy-only methods -- no dipy (i.e
 no cython). The goal of this is to have a python-only version that can be
 modified more easily by our team when testing new algorithms and parameters,
 and that can be used as parent classes in sub-projects of our lab such as in
@@ -43,13 +43,12 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
 from scilpy.image.datasets import DataVolume
-from scilpy.tracking.seed import SeedGenerator
-
-from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.propagator import (ProbabilisticODFPropagator,
                                         DeterministicODFPropagator)
-from scilpy.tracking.tracking_field import ODFField
+from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.tools import get_theta
+from scilpy.tracking.tracker import Tracker
+from scilpy.tracking.tracking_field import ODFField
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -57,7 +56,7 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_seed_options)
 
 
-def build_argparser():
+def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
@@ -65,6 +64,9 @@ def build_argparser():
     add_mandatory_options_tracking(p)
 
     track_g = add_tracking_options(p)
+    track_g.add_argument('--algo', default='prob',
+                         choices=['det', 'prob'],
+                         help='Algorithm to use [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
@@ -94,15 +96,8 @@ def build_argparser():
                               "trilinear. [%(default)s]")
 
     add_seeding_options(p)
-    add_general_options(p)
-    add_out_options(p)
-    add_verbose_arg(p)
 
-    return p
-
-
-def add_general_options(p):
-    r_g = p.add_argument_group('  Random seeding options')
+    r_g = p.add_argument_group('Random seeding options')
     r_g.add_argument('--rng_seed', type=int,
                      help='Initial value for the random number generator. '
                           '[%(default)s]')
@@ -114,15 +109,20 @@ def add_general_options(p):
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
 
-    m_g = p.add_argument_group('  Memory options')
+    m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
     m_g.add_argument('--set_mmap_to_none', action='store_true',
                      help="If true, use mmap_mode=None. Else mmap_mode='r+'. "
                           "\nUsed in np.load(data_file_info). TO BE CLEANED")
 
+    add_out_options(p)
+    add_verbose_arg(p)
+
+    return p
+
 
 def main():
-    parser = build_argparser()
+    parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
@@ -140,10 +140,6 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
-    if args.algo == 'eudx':
-        raise NotImplementedError("Eudx algo is not ready yet for this "
-                                  "script. It is on our todo list.")
-
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     max_nbr_pts = int(args.max_length / args.step_size)
@@ -153,12 +149,6 @@ def main():
     # r+ is necessary for interpolation function in cython who need read/write
     # rights
     mmap_mode = None if args.set_mmap_to_none else 'r+'
-
-    logging.debug("Loading tracking mask.")
-    mask_img = nib.load(args.in_mask)
-    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
-    mask_res = mask_img.header.get_zooms()[:3]
-    mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     logging.debug("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
@@ -176,9 +166,17 @@ def main():
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
+    logging.debug("Loading tracking mask.")
+    mask_img = nib.load(args.in_mask)
+    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
+    mask_res = mask_img.header.get_zooms()[:3]
+    mask = DataVolume(mask_data, mask_res, args.mask_interp)
+
     logging.debug("Loading ODF SH data.")
     odf_sh_img = nib.load(args.in_odf)
-    dataset = DataVolume(odf_sh_img, args.sh_interp)
+    odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
+    odf_sh_res = odf_sh_img.header.get_zooms()[:3]
+    dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
     odf_field = ODFField(dataset, args.sh_basis, args.sf_threshold,
                          args.sf_threshold_init, theta,
                          dipy_sphere=args.sphere)

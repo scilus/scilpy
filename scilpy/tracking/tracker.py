@@ -177,6 +177,25 @@ class Tracker(object):
             raise e
 
     def _get_streamlines(self, chunk_id):
+        """
+        Tracks the n streamlines associates with current process (identified by
+        chunk_id). The number n is the total number of seeds / the number of
+        processes. If asked by user, may compress the streamlines and save the
+        seeds.
+
+        Parameters
+        ----------
+        chunk_id: int
+            This process ID.
+
+        Returns
+        -------
+        streamlines: list
+            The successful streamlines.
+        seeds: list
+            The list of seeds for each streamline, if self.save_seeds. Else, an
+            empty list.
+        """
         streamlines = []
         seeds = []
 
@@ -310,7 +329,6 @@ class Tracker(object):
         # First position is the seed: necessarily in bound.
         while (len(line) > 1 and
                not self.propagator.is_voxmm_in_bound(line[-1], 'corner')):
-            # print("popping {}".format(line[-1]))
             line.pop()
 
         return line

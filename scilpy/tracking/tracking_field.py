@@ -11,7 +11,9 @@ from scilpy.tracking.utils import TrackingDirection
 
 class AbstractTrackingField(object):
     """
-    Spherical harmonics tracking field.
+    Abstract tracking field. The class is used to get directions from the
+    dataset (ex, peaks, ODF, fODF, machine learning models), and returns only
+    the subset of possible directions that are inside a cone of angle theta.
 
     Parameters
     ----------
@@ -113,7 +115,7 @@ class AbstractTrackingField(object):
         Parameters
         ----------
         ind: int
-            Indice of sphere direction
+            Indice of sphere direction.
 
         Return
         ------

@@ -169,7 +169,7 @@ class AbstractPropagator(object):
         v_in: ndarray (3,)
             Previous tracking direction.
         """
-        pass
+        raise NotImplementedError
 
 
 class ProbabilisticODFPropagator(AbstractPropagator):

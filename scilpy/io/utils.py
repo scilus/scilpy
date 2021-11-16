@@ -273,12 +273,20 @@ def validate_sh_basis_choice(sh_basis):
 
 
 def verify_compression_th(compress_th):
+    """
+    Verify that the compression threshold is between 0.001 and 1. Else,
+    produce a warning.
+
+    Parameters
+    -----------
+    compress_th: float, the compression threshold.
+    """
     if compress_th:
         if compress_th < 0.001 or compress_th > 1:
             logging.warning(
                 'You are using an error rate of {}.\nWe recommend setting it '
                 'between 0.001 and 1.\n0.001 will do almost nothing to the '
-                'tracts while 1 will higly compress/linearize the tracts'
+                'tracts while 1 will higly compress/linearize the tracts.'
                 .format(compress_th))
 
 

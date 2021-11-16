@@ -28,10 +28,7 @@ def add_mandatory_options_tracking(p):
 
 
 def add_tracking_options(p):
-    track_g = p.add_argument_group('  Tracking options')
-    track_g.add_argument('--algo', default='prob',
-                         choices=['det', 'prob', 'eudx'],
-                         help='Algorithm to use [%(default)s]')
+    track_g = p.add_argument_group('Tracking options')
     track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
                          help='Step size in mm. [%(default)s]')
     track_g.add_argument('--min_length', type=float, default=10.,
@@ -56,8 +53,7 @@ def add_tracking_options(p):
 
 def add_seeding_options(p):
     seed_group = p.add_argument_group(
-        '  Seeding options',
-        'When no option is provided, uses --npv 1.')
+        'Seeding options', 'When no option is provided, uses --npv 1.')
     seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
     seed_sub_exclusive.add_argument('--npv', type=int,
                                     help='Number of seeds per voxel.')
@@ -66,7 +62,7 @@ def add_seeding_options(p):
 
 
 def add_out_options(p):
-    out_g = p.add_argument_group('  Output options')
+    out_g = p.add_argument_group('Output options')
     out_g.add_argument('--compress', type=float, metavar='thresh',
                        help='If set, will compress streamlines. The parameter '
                             'value is the \ndistance threshold. A rule of '
