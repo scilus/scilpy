@@ -10,12 +10,14 @@ class DataVolume(object):
     Class to access/interpolate data from nibabel object
     """
 
-    def __init__(self, img, interpolation=None, must_be_3d=False):
+    def __init__(self, data, voxres, interpolation=None, must_be_3d=False):
         """
         Parameters
         ----------
-        img: nibabel image
-            The nibabel image from which to get the data
+        data: np.array
+            The data, ex, loaded from nibabel img.get_fdata().
+        voxres: np.array(3,)
+            The pixel resolution, ex, using img.header.get_zooms()[:3].
         interpolation: str or None
             The interpolation choice amongst "trilinear" or "nearest". If
             None, functions getting a coordinate in mm instead of voxel
@@ -30,8 +32,8 @@ class DataVolume(object):
                 raise Exception("Interpolation must be 'trilinear' or "
                                 "'nearest'")
 
-        self.pixdim = img.header.get_zooms()[:3]
-        self.data = img.get_fdata(caching='unchanged', dtype=np.float64)
+        self.data = data
+        self.voxres = voxres
 
         if must_be_3d and self.data.ndim != 3:
             raise Exception("Data should have been 3D but data dimension is:"
@@ -103,14 +105,14 @@ class DataVolume(object):
             3D indice of voxel at position x, y, z.
         """
         if origin == 'center':
-            return np.asarray([(x + self.pixdim[0] / 2) // self.pixdim[0],
-                               (y + self.pixdim[1] / 2) // self.pixdim[1],
-                               (z + self.pixdim[2] / 2) // self.pixdim[2]],
+            return np.asarray([(x + self.voxres[0] / 2) // self.voxres[0],
+                               (y + self.voxres[1] / 2) // self.voxres[1],
+                               (z + self.voxres[2] / 2) // self.voxres[2]],
                               dtype=int)
         elif origin == 'corner':
-            return np.asarray([x // self.pixdim[0],
-                               y // self.pixdim[1],
-                               z // self.pixdim[2]], dtype=int)
+            return np.asarray([x // self.voxres[0],
+                               y // self.voxres[1],
+                               z // self.voxres[2]], dtype=int)
         else:
             raise ValueError("Origin must be one of 'center' or 'corner'.")
 
@@ -128,7 +130,7 @@ class DataVolume(object):
         out: list
             Voxel space coordinates for position x, y, z.
         """
-        return [x / self.pixdim[0], y / self.pixdim[1], z / self.pixdim[2]]
+        return [x / self.voxres[0], y / self.voxres[1], z / self.voxres[2]]
 
     def voxmm_to_value(self, x, y, z):
         """
@@ -150,12 +152,12 @@ class DataVolume(object):
         if self.interpolation is not None:
             if not self.is_voxmm_in_bound(x, y, z):
                 eps = float(1e-8)  # Epsilon to exclude upper borders
-                x = max(-self.pixdim[0] / 2,
-                        min(self.pixdim[0] * (self.dim[0] - 0.5 - eps), x))
-                y = max(-self.pixdim[1] / 2,
-                        min(self.pixdim[1] * (self.dim[1] - 0.5 - eps), y))
-                z = max(-self.pixdim[2] / 2,
-                        min(self.pixdim[2] * (self.dim[2] - 0.5 - eps), z))
+                x = max(-self.voxres[0] / 2,
+                        min(self.voxres[0] * (self.dim[0] - 0.5 - eps), x))
+                y = max(-self.voxres[1] / 2,
+                        min(self.voxres[1] * (self.dim[1] - 0.5 - eps), y))
+                z = max(-self.voxres[2] / 2,
+                        min(self.voxres[2] * (self.dim[2] - 0.5 - eps), z))
             coord = np.array(self.voxmm_to_vox(x, y, z), dtype=np.float64)
 
             if self.interpolation == 'nearest':

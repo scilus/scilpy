@@ -156,11 +156,15 @@ def main():
 
     logging.debug("Loading tracking mask.")
     mask_img = nib.load(args.in_mask)
-    mask = DataVolume(mask_img, args.mask_interp)
+    mask_data = mask_img.get_fdata(caching='unchanged', dtype=float)
+    mask_res = mask_img.header.get_zooms()[:3]
+    mask = DataVolume(mask_data, mask_res, args.mask_interp)
 
     logging.debug("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
-    seed_generator = SeedGenerator(seed_img)
+    seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
+    seed_res = seed_img.header.get_zooms()[:3]
+    seed_generator = SeedGenerator(seed_data, seed_res)
     if args.npv:
         nbr_seeds = len(seed_generator.seeds) * args.npv
     elif args.nt:
