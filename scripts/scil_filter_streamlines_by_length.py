@@ -62,7 +62,14 @@ def main():
         logging.debug("You have not specified minL nor maxL. Output will "
                       "simply be a copy of your input!")
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    try:
+        sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    except ValueError:
+        print('Bounding box is not valid in voxel space, cannot load a valid file'
+              'if some coordinates are invalid.\n'
+              'Reloading and filtering-out bad streamlines')
+        sft = load_tractogram_with_reference(parser, args, args.in_tractogram, False)
+        _ = sft.remove_invalid_streamlines()
 
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
 
