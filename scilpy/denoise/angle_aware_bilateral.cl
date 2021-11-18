@@ -1,16 +1,18 @@
 /*
 OpenCL kernel code for computing angle-aware bilateral filtering.
 */
-#define IN_N_COEFFS 0  // PLACEHOLDER VALUE
-#define OUT_N_COEFFS 0  // PLACEHOLDER VALUE
-#define N_DIRS 0  // PLACEHOLDER VALUE
-#define SIGMA_RANGE 0  // PLACEHOLDER VALUE
-#define IM_X_DIM 0  // PLACEHOLDER VALUE
-#define IM_Y_DIM 0  // PLACEHOLDER VALUE
-#define IM_Z_DIM 0  // PLACEHOLDER VALUE
-#define H_X_DIM 0  // PLACEHOLDER VALUE
-#define H_Y_DIM 0  // PLACEHOLDER VALUE
-#define H_Z_DIM 0  // PLACEHOLDER VALUE
+
+// Compiler definitions with placeholder values
+#define IN_N_COEFFS 0
+#define OUT_N_COEFFS 0
+#define N_DIRS 0
+#define SIGMA_RANGE 0
+#define IM_X_DIM 0
+#define IM_Y_DIM 0
+#define IM_Z_DIM 0
+#define H_X_DIM 0
+#define H_Y_DIM 0
+#define H_Z_DIM 0
 
 int get_flat_index(const int x, const int y,
                    const int z, const int w,

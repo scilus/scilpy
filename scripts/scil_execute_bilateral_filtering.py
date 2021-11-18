@@ -3,19 +3,32 @@
 
 """
 Script to compute angle-aware bilateral filtering.
+
+Angle-aware bilateral filtering is an extension of bilateral filtering
+considering the angular distance between sphere directions for filtering
+5-dimensional spatio-angular images.
+
+The filtering can be performed on the GPU using pyopencl by specifying
+--use_gpu. Make sure you have pyopencl installed to use this option.
+Otherwise, the filtering also runs entirely on the CPU, optionally using
+multiple processes.
+
+Using default parameters, fODF filtering for a HCP subject processed with
+Tractoflow takes about 12 minutes on the GPU versus 90 minutes using 16 CPU
+threads. The time required scales with the sigma_spatial parameter. For
+example, sigma_spatial=3.0 takes about 4.15 hours on the GPU versus 7.67 hours
+on the CPU using 16 threads.
 """
 
 import argparse
 import logging
 import time
-from scilpy.reconst.utils import get_sh_order_and_fullness
-
 import nibabel as nib
 import numpy as np
 
 from dipy.data import SPHERE_FILES
 from dipy.reconst.shm import sph_harm_ind_list
-
+from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
@@ -23,7 +36,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_sh_basis_args,
                              assert_outputs_exist,
                              validate_nbr_processes)
-
 from scilpy.denoise.bilateral_filtering import angle_aware_bilateral_filtering
 
 
@@ -40,8 +52,7 @@ def _build_arg_parser():
     add_sh_basis_args(p)
 
     p.add_argument('--out_sym', default=None,
-                   help='If set, saves additional output '
-                        'in symmetric SH basis.')
+                   help='Name of optional symmetric output. [%(default)s]')
 
     p.add_argument('--sphere', default='repulsion724',
                    choices=sorted(SPHERE_FILES.keys()),
@@ -57,7 +68,7 @@ def _build_arg_parser():
                         ' [%(default)s]')
 
     p.add_argument('--sigma_range', default=1.0, type=float,
-                   help='Standard deviation for intensity range.'
+                   help='Standard deviation for range filter.'
                         ' [%(default)s]')
 
     p.add_argument('--use_gpu', action='store_true',
@@ -92,7 +103,7 @@ def main():
     sh_order, full_basis = get_sh_order_and_fullness(data.shape[-1])
 
     t0 = time.perf_counter()
-    logging.info('Executing asymmetric filtering.')
+    logging.info('Executing angle-aware bilateral filtering.')
     asym_sh = angle_aware_bilateral_filtering(
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,

@@ -207,7 +207,9 @@ def add_sh_basis_args(parser, mandatory=False):
 
 
 def validate_nbr_processes(parser, args, default_nbr_cpu=None):
-    """ Check if the passed number of processes arg is valid.
+    """ Check if the passed number of processes arg is valid. If the number
+    of processes is 0, use the number of cpu.
+
     If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
 
     Parameters
