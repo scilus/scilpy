@@ -34,8 +34,8 @@ def test_sym_basis_output(script_runner):
 
     # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out_1.nii.gz', '--out_sym', '--sphere',
-                            'repulsion100')
+                            'out_1.nii.gz', '--out_sym', 'out_sym.nii.gz',
+                            '--sphere', 'repulsion100')
     assert ret.success
 
 
