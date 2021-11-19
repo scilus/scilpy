@@ -55,7 +55,8 @@ def _build_arg_parser():
 
     p.add_argument('--shell', dest='shell', type=int, default=None,
                    help='bvalue (shell) to include in powder average.\nIf '
-                   'not specified will include all volumes with a non-zero bvalue')
+                   'not specified will include all volumes with a non-zero '
+                   'bvalue')
 
     p.add_argument('--shell_thr', dest='shell_thresh', type=int, default='50',
                    help='Include volumes with bvalue +- the specified '
