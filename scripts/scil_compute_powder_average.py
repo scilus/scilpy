@@ -49,17 +49,17 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
 
-    p.add_argument('--mask',dest='mask', metavar='file',
-        help='Path to a binary mask.\nOnly data inside the mask will be used '
-             'for powder avg. (Default: %(default)s)')
+    p.add_argument('--mask', dest='mask', metavar='file',
+                   help='Path to a binary mask.\nOnly data inside the mask will be used '
+                   'for powder avg. (Default: %(default)s)')
 
-    p.add_argument('--shell',dest='shell', type=int, default=None,
-        help='bvalue (shell) to include in powder average.\nIf not specified'
-             'will include all volumes with a non-zero bvalue')
+    p.add_argument('--shell', dest='shell', type=int, default=None,
+                   help='bvalue (shell) to include in powder average.\nIf not specified'
+                   'will include all volumes with a non-zero bvalue')
 
-    p.add_argument('--shell_thr',dest='shell_thresh', type=int, default='50',
-        help='Include volumes with bvalue +- the specified threshold.\n'
-             'default: 50')
+    p.add_argument('--shell_thr', dest='shell_thresh', type=int, default='50',
+                   help='Include volumes with bvalue +- the specified threshold.\n'
+                   'default: 50')
 
     return p
 
@@ -96,7 +96,7 @@ def main():
         max_bval = args.shell + args.shell_thresh
         bval_idx = np.logical_and(bvals > min_bval, bvals < max_bval)
 
-    powder_avg = np.squeeze(np.mean(data[:,:,:,bval_idx],axis=3))
+    powder_avg = np.squeeze(np.mean(data[:, :, :, bval_idx], axis=3))
 
     if args.mask:
         powder_avg = powder_avg * mask
@@ -105,6 +105,7 @@ def main():
     nib.save(powder_avg_img, args.out_avg)
 
     del powder_avg_img
+
 
 if __name__ == "__main__":
     main()
