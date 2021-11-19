@@ -23,6 +23,8 @@ import logging
 import nibabel as nib
 import numpy as np
 
+from dipy.io.gradients import read_bvals_bvecs
+
 # Aliased to avoid clashes with images called mode.
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -30,47 +32,9 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 from nibabel.tmpdirs import InTemporaryDirectory
 
-
 logger = logging.getLogger("Compute_Powder_Average")
 logger.setLevel(logging.INFO)
 
-
-# function to read bvalues from file, avoiding using dipy io which requires
-# bvec file name supplied (this is a modified version of that dipy function)
-def read_bvals(fbval):
-    vals = []
-    if fbval is None or not fbval:
-        vals.append(None)
-
-    if not isinstance(fbval, str):
-        raise ValueError('String with full path to file is required')
-
-    base, ext = splitext(fbval)
-    if ext in ['.bvals', '.bval', '.txt', '']:
-        with open(fbval, 'r') as f:
-            content = f.read()
-
-        # We replace coma and tab delimiter by space
-        with InTemporaryDirectory():
-            tmp_fname = "tmp_bvals_bvecs.txt"
-            with open(tmp_fname, 'w') as f:
-                f.write(re.sub(r'(\t|,)', ' ', content))
-            vals.append(np.squeeze(np.loadtxt(tmp_fname)))
-    elif ext == '.npy':
-        vals.append(np.squeeze(np.load(fbval)))
-    else:
-        e_s = "File type %s is not recognized" % ext
-        raise ValueError(e_s)
-
-    bvals = vals[0]
-
-    if bvals is None:
-        return bvals
-
-    if len(bvals.shape) > 1:
-        raise IOError('bval file should have one row')
-
-    return bvals
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -119,9 +83,9 @@ def main():
     else:
         mask = get_data_as_mask(nib.load(args.mask), dtype='uint8')
 
-    # Read bvals
+    # Read bvals (bvecs not needed at this point)
     logging.info('Performing powder average')
-    bvals = read_bvals(args.in_bval)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, None)
 
     # Select diffusion volumes to average
     if not(args.shell):
