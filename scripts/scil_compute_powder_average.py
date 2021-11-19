@@ -35,7 +35,7 @@ logger = logging.getLogger("Compute_Powder_Average")
 logger.setLevel(logging.INFO)
 
 
-# function to read bvalues from file, avoiding using dipy io which requires 
+# function to read bvalues from file, avoiding using dipy io which requires
 # bvec file name supplied (this is a modified version of that dipy function)
 def read_bvals(fbval):
     vals = []
@@ -49,7 +49,7 @@ def read_bvals(fbval):
     if ext in ['.bvals', '.bval', '.txt', '']:
         with open(fbval, 'r') as f:
             content = f.read()
-            
+
         # We replace coma and tab delimiter by space
         with InTemporaryDirectory():
             tmp_fname = "tmp_bvals_bvecs.txt"
@@ -61,7 +61,7 @@ def read_bvals(fbval):
     else:
         e_s = "File type %s is not recognized" % ext
         raise ValueError(e_s)
-        
+
     bvals = vals[0]
 
     if bvals is None:
@@ -69,7 +69,7 @@ def read_bvals(fbval):
 
     if len(bvals.shape) > 1:
         raise IOError('bval file should have one row')
-        
+
     return bvals
 
 def _build_arg_parser():
@@ -82,17 +82,17 @@ def _build_arg_parser():
                    help='Path of the bvals file, in FSL format.')
     p.add_argument('out_avg',
                    help='Path of the output file')
-    
+
     add_overwrite_arg(p)
-    
+
     p.add_argument('--mask',dest='mask', metavar='file',
         help='Path to a binary mask.\nOnly data inside the mask will be used '
              'for powder avg. (Default: %(default)s)')
-    
+
     p.add_argument('--shell',dest='shell', type=int, default=None,
         help='bvalue (shell) to include in powder average.\nIf not specified'
              'will include all volumes with a non-zero bvalue')
-    
+
     p.add_argument('--shell_thr',dest='shell_thresh', type=int, default='50',
         help='Include volumes with bvalue +- the specified threshold.\n'
              'default: 50')
@@ -108,7 +108,7 @@ def main():
         inputs.append(args.mask)
 
     assert_inputs_exist(parser, inputs)
-    
+
     assert_outputs_exist(parser, args, args.out_avg)
 
     img = nib.load(args.in_dwi)
@@ -136,7 +136,7 @@ def main():
 
     if args.mask:
         powder_avg = powder_avg * mask
- 
+
     powder_avg_img = nib.Nifti1Image(powder_avg.astype(np.float32), affine)
     nib.save(powder_avg_img, args.out_avg)
 
