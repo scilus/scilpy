@@ -48,18 +48,22 @@ def _build_arg_parser():
                    help='Path of the output file')
 
     add_overwrite_arg(p)
-    
+
     p.add_argument('--mask', dest='mask', metavar='file',
                    help='Path to a binary mask.\nOnly data inside the mask '
                    'will be used for powder avg. (Default: %(default)s)')
 
+    p.add_argument('--mask', dest='mask', metavar='file',
+                   help='Path to a binary mask.\nOnly data inside the mask will be used '
+                   'for powder avg. (Default: %(default)s)')
+
     p.add_argument('--shell', dest='shell', type=int, default=None,
-                   help='bvalue (shell) to include in powder average.\nIf ' 
-                   'not specified will include all volumes with a non-zero bvalue')
+                   help='bvalue (shell) to include in powder average.\nIf not specified'
+                   'will include all volumes with a non-zero bvalue')
 
     p.add_argument('--shell_thr', dest='shell_thresh', type=int, default='50',
-                   help='Include volumes with bvalue +- the specified '
-                   'threshold.\n default: 50')
+                   help='Include volumes with bvalue +- the specified threshold.\n'
+                   'default: 50')
 
     return p
 
