@@ -26,6 +26,6 @@ def test_execution_processing(script_runner):
     out_pwd_avg = os.path.join(get_home(), 'processing',
                            'out_pwd_avg.nii.gz')
 
-    ret = script_runner.run('scil_compute_dti_metrics.py', in_dwi,
+    ret = script_runner.run('scil_compute_powder_average.py', in_dwi,
                             in_bval, out_pwd_avg, '--shell', '1000')
     assert ret.success
