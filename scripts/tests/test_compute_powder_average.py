@@ -23,9 +23,7 @@ def test_execution_processing(script_runner):
                           'dwi_crop_1000.nii.gz')
     in_bval = os.path.join(get_home(), 'processing',
                            '1000.bval')
-    out_pwd_avg = os.path.join(get_home(), 'processing',
-                               'out_pwd_avg.nii.gz')
 
     ret = script_runner.run('scil_compute_powder_average.py', in_dwi,
-                            in_bval, out_pwd_avg, '--shell', '1000')
+                            in_bval, 'out_pwd_avg.nii.gz', '--shell', '1000')
     assert ret.success
