@@ -5,8 +5,7 @@ import multiprocessing
 import itertools
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
-from scilpy.denoise.opencl_utils import (have_opencl, CLKernel, CLManager,
-                                         get_kernel_path)
+from scilpy.denoise.opencl_utils import (have_opencl, CLKernel, CLManager)
 
 
 def angle_aware_bilateral_filtering(in_sh, sh_order=8,
@@ -126,8 +125,7 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
                            (h_half_width, h_half_width),
                            (0, 0)))
 
-    kernel_path = get_kernel_path('denoise', 'angle_aware_bilateral.cl')
-    cl_kernel = CLKernel('correlate', kernel_path)
+    cl_kernel = CLKernel('correlate', 'denoise', 'angle_aware_bilateral.cl')
     cl_kernel.set_define('IM_X_DIM', volume_shape[0])
     cl_kernel.set_define('IM_Y_DIM', volume_shape[1])
     cl_kernel.set_define('IM_Z_DIM', volume_shape[2])

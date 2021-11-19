@@ -27,8 +27,8 @@ int get_flat_index(const int x, const int y,
 }
 
 float sf_for_direction(const int idx, const int idy, const int idz,
-                       const int dir_id, const float* sh_buffer,
-                       const float* sh_to_sf_mat)
+                       const int dir_id, global const float* sh_buffer,
+                       global const float* sh_to_sf_mat)
 {
     float sf_coeff = 0.0f;
     for(int i = 0; i < IN_N_COEFFS; ++i)
@@ -45,7 +45,7 @@ float sf_for_direction(const int idx, const int idy, const int idz,
     return sf_coeff;
 }
 
-void sf_to_sh(const float* sf_coeffs, const float* sf_to_sh_mat,
+void sf_to_sh(const float* sf_coeffs, global const float* sf_to_sh_mat,
               float* sh_coeffs)
 {
     // although vector operations are supported
