@@ -57,8 +57,7 @@ class AbstractPropagator(object):
         self.init_pos = pos
         self.forward_pos = pos
         self.backward_pos = pos
-        self.forward_dir, self.backward_dir =\
-            self.tracking_field.get_init_direction(pos)
+        self.forward_dir, self.backward_dir = self._sample_init_direction(pos)
 
         if track_forward_only:
             if self.forward_dir is not None:
@@ -68,6 +67,9 @@ class AbstractPropagator(object):
                 return True
             return False
         return self.forward_dir is not None and self.backward_dir is not None
+
+    def _sample_init_direction(self, pos):
+        return self.tracking_field.get_init_direction(pos)
 
     def _sample_next_direction_or_go_straight(self, pos, v_in):
         """
