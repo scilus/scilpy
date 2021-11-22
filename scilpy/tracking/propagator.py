@@ -9,7 +9,9 @@ from scilpy.tracking.tracking_field import AbstractTrackingField, \
 
 class AbstractPropagator(object):
     """
-    Abstract class for tracker object.
+    Abstract class for propagator object. Responsible for sampling the final
+    direction out of the possible directions offered by the tracking field, and
+    for the propagation through Runge-Kutta integration.
 
     Parameters
     ----------
@@ -138,7 +140,7 @@ class AbstractPropagator(object):
 
         return new_pos, new_dir, is_direction_valid
 
-    def is_voxmm_in_bound(self, pos, origin='center'):
+    def is_voxmm_in_bound(self, pos, origin):
         """
         Test if the streamline point is inside the boundary of the image.
 

@@ -28,6 +28,10 @@ class SeedGenerator(object):
         self.data = data
         self.voxres = voxres
 
+        # Everything scilpy.tracking is in 'corner', 'voxmm'
+        self.origin = 'corner'
+        self.space = 'voxmm'
+
         # self.seed are all the voxels where a seed could be placed
         # (voxel space, int numbers).
         self.seeds = np.array(np.where(np.squeeze(data) > 0),

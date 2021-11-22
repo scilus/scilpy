@@ -156,6 +156,8 @@ def main():
     seed_res = seed_img.header.get_zooms()[:3]
     seed_generator = SeedGenerator(seed_data, seed_res)
     if args.npv:
+        # toDo. This will not really produce n seeds per voxel, only true
+        #  in average.
         nbr_seeds = len(seed_generator.seeds) * args.npv
     elif args.nt:
         nbr_seeds = args.nt

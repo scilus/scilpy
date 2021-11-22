@@ -30,6 +30,10 @@ class AbstractTrackingField(object):
         self.theta = theta
         self.dataset = dataset
 
+        # Everything scilpy.tracking is in 'corner', 'voxmm'
+        self.origin = 'corner'
+        self.space = 'voxmm'
+
         if dipy_sphere:
             if 'symmetric' not in dipy_sphere:
                 raise ValueError('Sphere must be symmetric. Call to '
@@ -175,7 +179,7 @@ class ODFField(AbstractTrackingField):
         Parameters
         ----------
         pos: ndarray (3,)
-            Position in mm in the trackable dataset.
+            Position in voxmm in the trackable dataset.
 
         Return
         ------
@@ -183,7 +187,7 @@ class ODFField(AbstractTrackingField):
             Spherical function evaluated at pos, normalized by
             its maximum amplitude.
         """
-        sh = self.dataset.voxmm_to_value(*pos)
+        sh = self.dataset.voxmm_to_value(*pos, self.origin)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
         sf_max = np.max(sf)

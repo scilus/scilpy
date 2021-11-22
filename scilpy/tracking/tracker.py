@@ -75,6 +75,10 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.skip = skip
 
+        # Everything scilpy.tracking is in 'corner', 'voxmm'
+        self.origin = 'corner'
+        self.space = 'voxmm'
+
         if self.min_nbr_pts <= 0:
             logging.warning("Minimum number of points cannot be 0. Changed to "
                             "1.")
@@ -164,7 +168,6 @@ class Tracker(object):
         """
         global data_file_info
 
-        # args[0] is the Tracker.
         self.propagator.tracking_field.dataset.data = np.load(
             data_file_info[0], mmap_mode=data_file_info[1])
 
@@ -315,8 +318,10 @@ class Tracker(object):
             # Bound can be checked with mask or tracking field
             # (through self.propagator.is_voxmm_in_bound)
             propagation_can_continue = (
-                    self.mask.voxmm_to_value(*line[-1]) > 0 and
-                    self.mask.is_voxmm_in_bound(*line[-1], origin='corner'))
+                    self.mask.voxmm_to_value(*line[-1],
+                                             origin=self.origin) > 0 and
+                    self.mask.is_voxmm_in_bound(*line[-1],
+                                                origin=self.origin))
             last_dir = new_dir
 
         if propagation_can_continue:
@@ -328,7 +333,8 @@ class Tracker(object):
         # Last cleaning of the streamline
         # First position is the seed: necessarily in bound.
         while (len(line) > 1 and
-               not self.propagator.is_voxmm_in_bound(line[-1], 'corner')):
+               not self.propagator.is_voxmm_in_bound(line[-1],
+                                                     origin=self.origin)):
             line.pop()
 
         return line
