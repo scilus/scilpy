@@ -39,11 +39,11 @@ def _build_arg_parser():
 
     p.add_argument('-l', '--length',
                    default=3,
-                   help='Length to add to the streamlines ends (in mm).')
+                   help='Length to add to the streamlines ends, in mm (Default=3mm).')
     p.add_argument('-s', '--step',
                    default=0.5,
                    help='Step size for the added bit (in mm). Should be a multiple'
-                        '\nof the length to add.')
+                        '\nof the length to add (Default=0.5mm).')
     add_overwrite_arg(p)
 
     return p
@@ -146,7 +146,7 @@ assert_inputs_exist(parser, [args.in_tractogram, args.in_grey_matter])
 gm_F = args.in_grey_matter
 trk_F = args.in_tractogram
 added_len = float(args.length)
-step_size = int(args.step)
+step_size = args.step
 
 if step_size > added_len:
     raise ValueError('Step size bigger that the max length to add.')
