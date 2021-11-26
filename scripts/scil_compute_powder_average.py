@@ -86,7 +86,7 @@ def main():
 
     # Read bvals (bvecs not needed at this point)
     logging.info('Performing powder average')
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, None)
+    bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
     # Select diffusion volumes to average
     if not(args.shell):
