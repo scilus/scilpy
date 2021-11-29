@@ -12,7 +12,7 @@ def lobe_specific_metric_map_along_streamlines(sft: StatefulTractogram,
                                                max_theta: float,
                                                length_weighting: bool):
     """
-    Compute fiber density map along streamlines.
+    Compute mean map for a given lobe-specific metric along streamlines.
 
     Parameters
     ----------
