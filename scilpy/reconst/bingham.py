@@ -87,7 +87,6 @@ def bingham_to_sf(bingham_volume, vertices):
     mu2s = bingham_volume[..., 4:7]  # (X, Y, Z, 5, 3)
     k1s = np.linalg.norm(mu1s, axis=-1)  # (X, Y, Z, 5)
     k2s = np.linalg.norm(mu2s, axis=-1)  # (X, Y, Z, 5)
-
     # normalize mu1 and mu2
     mu1s[k1s != 0] /= k1s[k1s != 0][..., None]
     mu2s[k2s != 0] /= k2s[k2s != 0][..., None]

@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script to compute fODF metrics derived for fitting a Bingham distribution
-to each fODF lobe, as described in [1]. Resulting metrics are fiber density
-(FD), fiber spread (FS) and fiber fraction (FF) [2].
+Script for fitting a Bingham distribution to each fODF lobe, as described
+in [1].
 
-A lobe's FD is the integral of the Bingham function on the sphere. It
-represents the density of fibers going through a given voxel for a given
-fODF lobe (fixel). A lobe's FS is the ratio of its FD on its maximum AFD. It
-is at its minimum for a sharp lobe and at its maximum for a wide lobe. A lobe's
-FF is the ratio of its FD on the total FD in the voxel.
+The Bingham fit is saved, with each Bingham distribution described by 7 coefficients
+(for example, for a maximum number of lobes of 5, the number of coefficients is
+7 x 5 = 35 -- less than the number of coefficients for SH of max order 8).
 
-The Bingham fit is also saved, where each Bingham distribution is described
-by 9 coefficients (for example, for a maximum number of lobes of 5, the number
-of coefficients is 9 x 5 = 45).
-
-Using 12 threads, the execution takes approximately 30 minutes for Bingham
-fitting, then 10 minutes for FD estimation for a brain with 1mm isotropic
-resolution. Other metrics take less than a second.
+Using 12 threads, the execution takes approximately 30 minutes for a brain with
+1mm isotropic resolution.
 """
 
 import nibabel as nib

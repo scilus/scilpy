@@ -2,15 +2,15 @@
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 import numpy as np
-from scilpy.reconst.bingham import NB_PARAMS, bingham_to_peak_direction
+from scilpy.reconst.bingham import bingham_to_peak_direction
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
-def fiber_density_map_along_streamlines(sft: StatefulTractogram,
-                                        bingham_coeffs: np.ndarray,
-                                        fiber_density: np.ndarray,
-                                        max_theta: float,
-                                        length_weighting: bool):
+def lobe_specific_metric_map_along_streamlines(sft: StatefulTractogram,
+                                               bingham_coeffs: np.ndarray,
+                                               metric: np.ndarray,
+                                               max_theta: float,
+                                               length_weighting: bool):
     """
     Compute fiber density map along streamlines.
 
@@ -21,14 +21,20 @@ def fiber_density_map_along_streamlines(sft: StatefulTractogram,
     bingham_coeffs : ndarray
         Array of shape (X, Y, Z, N_LOBES, NB_PARAMS) containing
         the Bingham distributions parameters.
-    fiber_density : ndarray
-        Array of shape (X, Y, Z) containing the fiber density.
+    metric : ndarray
+        Array of shape (X, Y, Z) containing the lobe-specific
+        metric of interest.
+    max_theta : float
+        Maximum angle in degrees between the fiber direction and the
+        Bingham peak direction.
+    length_weighting : bool
+        If True, will weigh the metric values according to segment lengths.
     """
 
     fd_sum, weights = \
-        fd_sum_along_streamlines(sft, bingham_coeffs,
-                                 fiber_density, max_theta,
-                                 length_weighting)
+        lobe_metric_sum_along_streamlines(sft, bingham_coeffs,
+                                          metric, max_theta,
+                                          length_weighting)
 
     non_zeros = np.nonzero(fd_sum)
     weights_nz = weights[non_zeros]
@@ -37,10 +43,10 @@ def fiber_density_map_along_streamlines(sft: StatefulTractogram,
     return fd_sum
 
 
-def fd_sum_along_streamlines(sft, bingham_coeffs, fd,
-                             max_theta, length_weighting):
+def lobe_metric_sum_along_streamlines(sft, bingham_coeffs, metric,
+                                      max_theta, length_weighting):
     """
-    Compute the mean Fiber Density (FD) maps along a bundle.
+    Compute a sum map along a bundle for a given lobe-specific metric.
 
     Parameters
     ----------
@@ -48,15 +54,18 @@ def fd_sum_along_streamlines(sft, bingham_coeffs, fd,
         StatefulTractogram containing the streamlines needed.
     bingham_coeffs : ndarray (X, Y, Z, N_LOBES, NB_PARAMS)
         Bingham distributions parameters volume.
-    fd : ndarray (X, Y, Z)
-        N-dimensional fiber density volume.
+    metric : ndarray (X, Y, Z)
+        The lobe-specific metric of interest.
+    max_theta : float
+        Maximum angle in degrees between the fiber direction and the
+        Bingham peak direction.
     length_weighting : bool
-        If True, will weigh the FD values according to segment lengths.
+        If True, will weight the metric values according to segment lengths.
 
     Returns
     -------
-    fd_sum_map : np.array
-        Fiber density sum map.
+    metric_sum_map : np.array
+        Lobe-specific metric sum map.
     weight_map : np.array
         Segment lengths.
     """
@@ -64,8 +73,8 @@ def fd_sum_along_streamlines(sft, bingham_coeffs, fd,
     sft.to_vox()
     sft.to_corner()
 
-    fd_sum_map = np.zeros(fd.shape[:-1])
-    weight_map = np.zeros(fd.shape[:-1])
+    metric_sum_map = np.zeros(metric.shape[:-1])
+    weight_map = np.zeros(metric.shape[:-1])
     min_cos_theta = np.cos(np.radians(max_theta))
 
     all_crossed_indices = grid_intersections(sft.streamlines)
@@ -99,12 +108,12 @@ def fd_sum_along_streamlines(sft, bingham_coeffs, fd,
             cos_theta = np.abs(np.dot(seg_dir.reshape((-1, 3)),
                                       bingham_peak_dir.T))
 
-            fd_val = 0.0
+            metric_val = 0.0
             if (cos_theta > min_cos_theta).any():
                 lobe_idx = np.argmax(np.squeeze(cos_theta), axis=0)  # (n_segs)
-                fd_val = fd[vox_idx][lobe_idx]
+                metric_val = metric[vox_idx][lobe_idx]
 
-            fd_sum_map[vox_idx] += fd_val * norm_weight
+            metric_sum_map[vox_idx] += metric_val * norm_weight
             weight_map[vox_idx] += norm_weight
 
-    return fd_sum_map, weight_map
+    return metric_sum_map, weight_map
