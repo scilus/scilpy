@@ -29,7 +29,7 @@ from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 from scilpy.utils.bvec_bval_tools import get_shell_indices
 
@@ -42,26 +42,34 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_dwi',
-                   help='Path of the input diffusion volume.')
+                    help='Path of the input diffusion volume.')
     p.add_argument('in_bval',
-                   help='Path of the bvals file, in FSL format.')
+                    help='Path of the bvals file, in FSL format.')
     p.add_argument('out_avg',
                    help='Path of the output file.')
 
     add_overwrite_arg(p)
 
     p.add_argument('--mask', metavar='file',
-                   help='Path to a binary mask.\nOnly data inside the '
-                   'mask will be used for powder avg. (Default: %(default)s)')
+                    help='Path to a binary mask.\nOnly data inside the'
+                    ' mask will be used for powder avg. '
+                    '(Default: %(default)s)')
 
-    p.add_argument('--shell', type=int, default=None,
-                   help='bvalue (shell) to include in powder average.\nIf '
-                   'not specified will include all volumes with a non-zero '
-                   'bvalue.')
+    p.add_argument('--b0_thr', type=int, default='50',
+                    help='Exclude b0 volumes from powder average with'
+                    ' bvalue less than threshold.\n'
+                    '(Default: [%(default)s]')
+
+    p.add_argument('--shells', type=int, default=None,
+                    help='bvalue (shells) to include in powder average.'
+                    '\n If not specified will include all volumes with'
+                    ' a non-zero bvalue.')
 
     p.add_argument('--shell_thr', type=int, default='50',
-                   help='Include volumes with bvalue +- the specified '
-                   'threshold.\ndefault: [%(default)s]')
+                    help='Include volumes with bvalue +- the specified'
+                    ' threshold.\n(Default: [%(default)s]')
+
+    add_verbose_arg(p)
 
     return p
 
@@ -91,13 +99,33 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, None)
 
     # Select diffusion volumes to average
-    if not(args.shell):
-        # If no shell given, average all diffusion weigthed images
-        bval_idx = bvals > 0 + args.shell_thr
+    if not(args.shells):
+        # If no shell given, average all diffusion weighted images
+        pwd_avg_idx = np.where(bvals > 0 + args.b0_thr)
+        logging.debug('Calculating powder average from all diffusion'
+                    '-weighted volumes, {} volumes '
+                    'included.'.format(len(pwd_avg_idx)))
     else:
-        bval_idx = get_shell_indices(bvals, args.shell, tol=args.shell_thr)
+        pwd_avg_idx = np.empty()
+        logging.debug('Calculating powder average from {} shells'.format(len(args.shells)))
+        for shell in args.shells:
+            pwd_avg_idx = np.concatenate((pwd_avg_idx, get_shell_indices(bvals, shell, tol=args.shell_thr)))
+            logging.debug('{} b{} volumes included'.format(len(pwd_avg_idx),shell))
 
-    powder_avg = np.squeeze(np.mean(data[:, :, :, bval_idx], axis=3))
+        # remove b0 indices
+        b0_idx = get_shell_indices(bvals, 0, args.b0_thr)
+        for val in b0_idx:
+            pwd_avg_idx = pwd_avg_idx[pwd_avg_idx != val]
+        print(b0_idx.size)
+
+    print(len(pwd_avg_idx))
+
+    if len(pwd_avg_idx) == 0:
+        raise ValueError('No shells selected for powder average, ensure '
+                    'shell, shell_thr and b0_thr are set '
+                    'appropriately')
+    
+    powder_avg = np.squeeze(np.mean(data[:, :, :, pwd_avg_idx], axis=3))
 
     if args.mask:
         powder_avg = powder_avg * mask
