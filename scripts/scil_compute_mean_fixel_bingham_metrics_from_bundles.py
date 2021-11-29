@@ -17,7 +17,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
+from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.bingham_metrics_along_streamlines \
@@ -49,6 +49,10 @@ def _build_arg_parser():
                    help='If set, will weigh the FD values according to '
                         'segment lengths. [%(default)s]')
 
+    p.add_argument('--max_theta', default=60, type=float,
+                   help='Maximum angle (in degrees) condition on lobe '
+                        'alignment. [%(default)s]')
+
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p
@@ -65,13 +69,15 @@ def main():
     bingham_img = nib.load(args.in_bingham)
     fd_img = nib.load(args.in_fd)
 
-    if bingham_img.shape[-1] % fd_img.shape[-1] != 0:
+    if bingham_img.shape[-2] != fd_img.shape[-1]:
         parser.error('Dimension mismatch between Bingham coefficients '
                      'and fiber density image.')
 
     fd_mean_map = fiber_density_map_along_streamlines(sft,
                                                       bingham_img.get_fdata(),
-                                                      fd_img.get_fdata())
+                                                      fd_img.get_fdata(),
+                                                      args.max_theta,
+                                                      args.length_weighting)
 
     nib.Nifti1Image(fd_mean_map.astype(np.float32),
                     bingham_img.affine).to_filename(args.fd_mean_map)
