@@ -4,9 +4,10 @@
 Script for fitting a Bingham distribution to each fODF lobe, as described
 in [1].
 
-The Bingham fit is saved, with each Bingham distribution described by 7 coefficients
-(for example, for a maximum number of lobes of 5, the number of coefficients is
-7 x 5 = 35 -- less than the number of coefficients for SH of max order 8).
+The Bingham fit is saved, with each Bingham distribution described by 7
+coefficients (for example, for a maximum number of lobes of 5, the number
+of coefficients is 7 x 5 = 35 -- less than the number of coefficients for
+SH of maximum order 8).
 
 Using 12 threads, the execution takes approximately 30 minutes for a brain with
 1mm isotropic resolution.
