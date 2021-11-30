@@ -25,5 +25,5 @@ def test_execution_processing(script_runner):
                            '1000.bval')
 
     ret = script_runner.run('scil_compute_powder_average.py', in_dwi,
-                            in_bval, 'out_pwd_avg.nii.gz', '--shell', '1000')
+                            in_bval, 'out_pwd_avg.nii.gz', '--shells', '1000')
     assert ret.success

@@ -57,12 +57,13 @@ def _build_arg_parser():
 
     p.add_argument('--b0_thr', type=int, default='50',
                     help='Exclude b0 volumes from powder average with'
-                    ' bvalue less than threshold.\n'
-                    '(Default: [%(default)s]')
+                    ' bvalue less than specified threshold.\n'
+                    '(Default: remove volumes with bvalue < %(default)s')
 
-    p.add_argument('--shells', type=int, default=None,
-                    help='bvalue (shells) to include in powder average.'
-                    '\n If not specified will include all volumes with'
+    p.add_argument('--shells', nargs='+', type=int, default=None,
+                    help='bvalue (shells) to include in powder average'
+                    ' passed as a list \n(e.g. --shells 1000 2000). '
+                    'If not specified will include all volumes with'
                     ' a non-zero bvalue.')
 
     p.add_argument('--shell_thr', type=int, default='50',
@@ -84,6 +85,9 @@ def main():
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_avg)
 
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
     affine = img.affine
@@ -96,29 +100,30 @@ def main():
 
     # Read bvals (bvecs not needed at this point)
     logging.info('Performing powder average')
-    bvals, bvecs = read_bvals_bvecs(args.in_bval, None)
+    bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
     # Select diffusion volumes to average
     if not(args.shells):
         # If no shell given, average all diffusion weighted images
-        pwd_avg_idx = np.where(bvals > 0 + args.b0_thr)
+        pwd_avg_idx = np.squeeze(np.where(bvals > 0 + args.b0_thr))
         logging.debug('Calculating powder average from all diffusion'
                     '-weighted volumes, {} volumes '
                     'included.'.format(len(pwd_avg_idx)))
     else:
-        pwd_avg_idx = np.empty()
-        logging.debug('Calculating powder average from {} shells'.format(len(args.shells)))
+        pwd_avg_idx = []
+        logging.debug('Calculating powder average from {} '
+                      'shells {}'.format(len(args.shells), args.shells))
         for shell in args.shells:
-            pwd_avg_idx = np.concatenate((pwd_avg_idx, get_shell_indices(bvals, shell, tol=args.shell_thr)))
-            logging.debug('{} b{} volumes included'.format(len(pwd_avg_idx),shell))
-
+            pwd_avg_idx = np.int64(np.concatenate((pwd_avg_idx, get_shell_indices(bvals, shell, 
+                                        tol=args.shell_thr))))
+            logging.debug('{} b{} volumes detected and included'.format(len(pwd_avg_idx),shell))
+        
         # remove b0 indices
         b0_idx = get_shell_indices(bvals, 0, args.b0_thr)
+        logging.debug('{} b0 volumes detected and not included'.format(
+            len(b0_idx)))
         for val in b0_idx:
             pwd_avg_idx = pwd_avg_idx[pwd_avg_idx != val]
-        print(b0_idx.size)
-
-    print(len(pwd_avg_idx))
 
     if len(pwd_avg_idx) == 0:
         raise ValueError('No shells selected for powder average, ensure '
