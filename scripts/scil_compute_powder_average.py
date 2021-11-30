@@ -113,9 +113,13 @@ def main():
         pwd_avg_idx = []
         logging.debug('Calculating powder average from {} '
                       'shells {}'.format(len(args.shells), args.shells))
+
         for shell in args.shells:
-            pwd_avg_idx = np.int64(np.concatenate((pwd_avg_idx, get_shell_indices(bvals, shell,
-                                                                                  tol=args.shell_thr))))
+            pwd_avg_idx = np.int64(
+                np.concatenate((pwd_avg_idx,
+                                get_shell_indices(bvals,
+                                                  shell,
+                                                  tol=args.shell_thr))))
             logging.debug('{} b{} volumes detected and included'.format(
                 len(pwd_avg_idx), shell))
 
