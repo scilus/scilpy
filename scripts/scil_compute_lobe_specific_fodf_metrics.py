@@ -27,8 +27,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist, validate_nbr_processes)
-from scilpy.reconst.bingham import (bingham_fit_sh,
-                                    compute_fiber_density,
+from scilpy.reconst.bingham import (compute_fiber_density,
                                     compute_fiber_spread,
                                     compute_fiber_fraction)
 
