@@ -37,3 +37,12 @@ def test_execution_processing(script_runner):
                             '--processes', '1')
 
     assert ret.success
+
+
+def test_execution_processing_not_all(script_runner):
+    ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
+                            'bingham.nii.gz', '--nbr_integration_steps', '10',
+                            '--processes', '1', '--not_all', '--out_fs',
+                            'fs.nii.gz', '-f')
+
+    assert ret.success

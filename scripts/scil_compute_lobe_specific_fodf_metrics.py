@@ -94,13 +94,13 @@ def main():
 
     nbr_processes = validate_nbr_processes(parser, args)
 
+    t0 = time.perf_counter()
+    logging.info('Computing fiber density.')
+    fd = compute_fiber_density(bingham, m=args.nbr_integration_steps,
+                               nbr_processes=nbr_processes)
+    t1 = time.perf_counter()
+    logging.info('FD computed in (s): {0}'.format(t1 - t0))
     if args.out_fd:
-        t0 = time.perf_counter()
-        logging.info('Computing fiber density.')
-        fd = compute_fiber_density(bingham, m=args.nbr_integration_steps,
-                                   nbr_processes=nbr_processes)
-        t1 = time.perf_counter()
-        logging.info('FD computed in (s): {0}'.format(t1 - t0))
         nib.save(nib.Nifti1Image(fd, bingham_im.affine), args.out_fd)
 
     if args.out_fs:
