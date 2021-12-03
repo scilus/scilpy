@@ -59,7 +59,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              validate_nbr_processes)
-from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
+from scilpy.tractanalysis.reproducibility_measures import compute_correlation
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.metrics_tools import compute_lesion_stats
 
@@ -138,7 +138,7 @@ def _processing_wrapper(args):
         if density_sim is None:
             ba_vox = 0
         else:
-            ba_vox = compute_bundle_adjacency_voxel(density, density_sim)
+            ba_vox = compute_correlation(density, density_sim)
 
         measures_to_return['similarity'] = ba_vox
         measures_to_compute.remove('similarity')
