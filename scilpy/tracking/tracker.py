@@ -266,6 +266,10 @@ class Tracker(object):
 
             # Backward
             if not self.track_forward_only:
+                # Depending on the propagator, adding possibility to reset some
+                # parameters at this point.
+                self.propagator.start_backward()
+
                 backward = self._propagate_line(False)
                 if len(backward) > 0:
                     line.reverse()

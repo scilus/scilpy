@@ -70,6 +70,11 @@ class AbstractPropagator(object):
             return False
         return self.forward_dir is not None and self.backward_dir is not None
 
+    def start_backward(self):
+        """Called at the beginning of backward tracking, in case we need to
+        reset some parameters"""
+        pass
+
     def _sample_init_direction(self, pos):
         return self.tracking_field.get_init_direction(pos)
 
