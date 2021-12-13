@@ -51,6 +51,10 @@ def _build_arg_parser():
     p.add_argument('in_labels', nargs='+',
                    help='List of labels maps that matches the bundles.')
 
+    p.add_argument('--fitting_func', choices=['lin_up', 'lin_down', 'exp',
+                                              'inv', 'log'],
+                   help='Function to weigh points using their distance.')
+
     p2 = p.add_argument_group(title='Visualization options')
     p2.add_argument('--show_rendering', action='store_true',
                     help='Display VTK window.')
@@ -133,9 +137,13 @@ def create_tube(positions, radii, error, error_coloring=False,
     return actor
 
 
-def fit_circle_2d(x, y):
+def fit_circle_2d(x, y, dist_w):
+
+    if dist_w is None:
+        dist_w = np.ones(len(x))
+
     # Fit a circle in 2D using least-squares
-    A = np.array([x, y, np.ones(len(x))]).T
+    A = np.array([x, y, dist_w]).T
     b = x**2 + y**2
     params = np.linalg.lstsq(A, b, rcond=None)[0]
 
@@ -175,7 +183,7 @@ def rodrigues_rot(P, n0, n1):
     return P_rot
 
 
-def fit_circle_planar(pts):
+def fit_circle_planar(pts, dist_w):
     # Fitting plane by SVD for the mean-centered data
     pts_mean = pts.mean(axis=0)
     pts_centered = pts - pts_mean
@@ -187,7 +195,25 @@ def fit_circle_planar(pts):
     pts_xy = rodrigues_rot(pts_centered, normal, [0, 0, 1])
 
     # Fit circle in new 2D coords
-    x_c, y_c, radius = fit_circle_2d(pts_xy[:, 0], pts_xy[:, 1])
+    dist = np.linalg.norm(pts_centered, axis=1)
+    if dist_w == 'lin_up':
+        dist /= np.max(dist)
+    elif dist_w == 'lin_down':
+        dist /= np.max(dist)
+        dist = 1 - dist
+    elif dist_w == 'exp':
+        dist /= np.max(dist)
+        dist = np.exp(dist)
+    elif dist_w == 'inv':
+        dist /= np.max(dist)
+        dist = 1 / dist
+    elif dist_w == 'log':
+        dist /= np.max(dist)
+        dist = np.log(dist+1)
+    else:
+        dist = None
+
+    x_c, y_c, radius = fit_circle_2d(pts_xy[:, 0], pts_xy[:, 1], dist)
 
     # Transform circle center back to 3D coords
     pts_recentered = rodrigues_rot(np.array([x_c, y_c, 0]),
@@ -196,7 +222,7 @@ def fit_circle_planar(pts):
     return pts_recentered, radius
 
 
-def fit_circle_in_space(positions, directions):
+def fit_circle_in_space(positions, directions, dist_w=None):
     # Project all points to a plane perpendicular to the centroid
     u_directions = np.average(directions, axis=0)
     u_directions /= np.linalg.norm(u_directions)
@@ -210,7 +236,7 @@ def fit_circle_in_space(positions, directions):
         proj_positions[i] = positions[i] - dist[i]*u_directions
 
     # With all points on a fixed plane, estimate a circle
-    center, radius = fit_circle_planar(proj_positions)
+    center, radius = fit_circle_planar(proj_positions, dist_w)
     dist = np.linalg.norm(proj_positions - center, axis=1)
     error = np.average(np.sqrt((dist - radius)**2))
 
@@ -279,7 +305,8 @@ def main():
         for key in unique_labels:
             key = int(key)
             c, d, e = fit_circle_in_space(labels_dict[key][0],
-                                          labels_dict[key][1])
+                                          labels_dict[key][1],
+                                          args.fitting_func)
             centroid[key-1], radius[key-1], error[key-1] = c, d, e
 
         # Spatial smoothing to avoid degenerate estimation
