@@ -63,6 +63,9 @@ def get_testing_files_dict():
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc'],
+            'stats.zip':
+            ['1vsM7xuU0jF5fL5PIgN6stAH7oO683tw0',
+             'bcc21835cf0bf7210bdc99ba5d8df44b'],
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
              '6f0eff5154ff0973a3dc26db00e383ea']}
