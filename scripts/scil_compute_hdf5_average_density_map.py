@@ -101,7 +101,7 @@ def main():
             keys.extend(curr_file.keys())
 
     keys = set(keys)
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    nbr_cpu = validate_nbr_processes(parser, args)
     if nbr_cpu == 1:
         for key in keys:
             _average_wrapper([args.in_hdf5, key, args.binary, args.out_dir])
