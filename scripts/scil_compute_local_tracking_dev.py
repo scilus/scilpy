@@ -43,12 +43,10 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
 from scilpy.image.datasets import DataVolume
-from scilpy.tracking.propagator import (ProbabilisticODFPropagator,
-                                        DeterministicODFPropagator)
+from scilpy.tracking.propagator import (ODFPropagator)
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.tools import get_theta
 from scilpy.tracking.tracker import Tracker
-from scilpy.tracking.tracking_field import ODFField
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
@@ -179,18 +177,13 @@ def main():
     odf_sh_data = odf_sh_img.get_fdata(caching='unchanged', dtype=float)
     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
-    odf_field = ODFField(dataset, args.sh_basis, args.sf_threshold,
-                         args.sf_threshold_init, theta,
-                         dipy_sphere=args.sphere)
+
+    logging.debug("Instantiating propagator.")
+    propagator = ODFPropagator(
+        dataset, args.step_size, args.rk_order, args.algo, args.sh_basis,
+        args.sf_threshold, args.sf_threshold_init, theta, args.sphere)
 
     logging.debug("Instantiating tracker.")
-    if args.algo == 'det':
-        propagator = DeterministicODFPropagator(odf_field, args.step_size,
-                                                args.rk_order)
-    else:
-        propagator = ProbabilisticODFPropagator(odf_field, args.step_size,
-                                                args.rk_order)
-
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, max_invalid_dirs, args.compress,
                       args.nbr_processes, args.save_seeds, mmap_mode,
