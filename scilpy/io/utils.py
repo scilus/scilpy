@@ -206,9 +206,12 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
-def validate_nbr_processes(parser, args, default_nbr_cpu=None):
+def validate_nbr_processes(parser, args):
     """ Check if the passed number of processes arg is valid.
-    If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
+    Valid values are considered to be in the [0, CPU count] range:
+        - Raises a parser.error if an invalid value is provided.
+        - Returns the maximum number of cores retrieved if no value (or a value
+        of 0) is provided.
 
     Parameters
     ----------
@@ -216,12 +219,10 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
         Parser as created by argparse.
     args: argparse namespace
         Args as created by argparse.
-    default_nbr_cpu: int (or None)
-        Number of cpu to use, default is cpu_count (all).
 
-    Results
-    ------
-    nbr_cpu
+    Returns
+    -------
+    nbr_cpu: int
         The number of CPU to be used.
     """
 
@@ -230,7 +231,7 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
     else:
         nbr_cpu = multiprocessing.cpu_count()
 
-    if nbr_cpu <= 0:
+    if nbr_cpu < 0:
         parser.error('Number of processes must be > 0.')
     elif nbr_cpu > multiprocessing.cpu_count():
         parser.error('Max number of processes is {}. Got {}.'.format(
