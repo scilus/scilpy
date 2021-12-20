@@ -445,6 +445,11 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     new_sft : StatefulTractogram
 
     """
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+
     sft.to_rasmm()
     sft.to_center()
 
@@ -511,6 +516,13 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
         new_sft, _ = cut_invalid_streamlines(new_sft)
     elif remove_invalid:
         new_sft.remove_invalid_streamlines()
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
 
     return new_sft
 
