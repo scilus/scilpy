@@ -98,7 +98,7 @@ def _build_arg_parser():
     add_seeding_options(p)
 
     r_g = p.add_argument_group('Random seeding options')
-    r_g.add_argument('--rng_seed', type=int,
+    r_g.add_argument('--rng_seed', type=int, default=0,
                      help='Initial value for the random number generator. '
                           '[%(default)s]')
     r_g.add_argument('--skip', type=int, default=0,
