@@ -3,10 +3,22 @@
 
 """
 Given a bundle and Bingham coefficients, compute the average lobe-specific
-metric at each voxel intersected by the bundle.
+metric at each voxel intersected by the bundle. Intersected voxels are
+found by computing the intersection between the voxel grid and each streamline
+in the input tractogram.
+
+This script behaves like scil_compute_mean_fixel_afd_from_bundles.py for fODFs,
+but here for Bingham distributions. These latest distributions add the unique
+possibility to capture fixel-based fiber spread (FS) and fiber fraction (FF).
+FD from the bingham should be "equivalent" to the AFD_fixel we are used to.
 
 Bingham coefficients volume must come from scil_fit_bingham_to_fodf.py and
 lobe-specific metrics comes from scil_compute_lobe_specific_fodf_metrics.py.
+
+Lobe-specific metrics are metrics extracted from Bingham distributions fitted
+to fODF. Their are as many values per voxel as there are lobes extracted. The
+values chosen for a given voxelis the one belonging to the lobe better aligned
+with the current streamline segment.
 
 Please use a bundle file rather than a whole tractogram.
 """
