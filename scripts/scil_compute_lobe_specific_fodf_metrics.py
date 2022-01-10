@@ -27,8 +27,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist, validate_nbr_processes)
-from scilpy.reconst.bingham import (bingham_fit_sh,
-                                    compute_fiber_density,
+from scilpy.reconst.bingham import (compute_fiber_density,
                                     compute_fiber_spread,
                                     compute_fiber_fraction)
 
@@ -95,13 +94,13 @@ def main():
 
     nbr_processes = validate_nbr_processes(parser, args)
 
+    t0 = time.perf_counter()
+    logging.info('Computing fiber density.')
+    fd = compute_fiber_density(bingham, m=args.nbr_integration_steps,
+                               nbr_processes=nbr_processes)
+    t1 = time.perf_counter()
+    logging.info('FD computed in (s): {0}'.format(t1 - t0))
     if args.out_fd:
-        t0 = time.perf_counter()
-        logging.info('Computing fiber density.')
-        fd = compute_fiber_density(bingham, m=args.nbr_integration_steps,
-                                   nbr_processes=nbr_processes)
-        t1 = time.perf_counter()
-        logging.info('FD computed in (s): {0}'.format(t1 - t0))
         nib.save(nib.Nifti1Image(fd, bingham_im.affine), args.out_fd)
 
     if args.out_fs:
