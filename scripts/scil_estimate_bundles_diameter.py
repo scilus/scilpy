@@ -33,7 +33,6 @@ import numpy as np
 from scipy.linalg import svd
 from scipy.ndimage import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
-import vtk
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -43,6 +42,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty,
                              parser_color_type,
                              snapshot)
+from scilpy.viz.scene_utils import create_tube_with_radii
 
 
 def _build_arg_parser():
@@ -86,65 +86,11 @@ def _build_arg_parser():
     return p
 
 
-def create_tube(positions, radii, error, error_coloring=False,
-                wireframe=False):
-    # Generate the polydata from the centroids
-    joint_count = len(positions)
-    pts = vtk.vtkPoints()
-    lines = vtk.vtkCellArray()
-    lines.InsertNextCell(joint_count)
-    for j in range(joint_count):
-        pts.InsertPoint(j, positions[j])
-        lines.InsertCellPoint(j)
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(pts)
-    polydata.SetLines(lines)
-
-    # Generate the coloring from either the labels or the fitting error
-    colors_arr = vtk.vtkFloatArray()
-    for i in range(joint_count):
-        if error_coloring:
-            colors_arr.InsertNextValue(error[i])
-        else:
-            colors_arr.InsertNextValue(len(error) - 1 - i)
-    colors_arr.SetName("colors")
-    polydata.GetPointData().AddArray(colors_arr)
-
-    # Generate the radii array for VTK
-    radii_arr = vtk.vtkFloatArray()
-    for i in range(joint_count):
-        radii_arr.InsertNextValue(radii[i])
-    radii_arr.SetName("radii")
-    polydata.GetPointData().SetScalars(radii_arr)
-
-    # Tube filter for the rendering with varying radii
-    tubeFilter = vtk.vtkTubeFilter()
-    tubeFilter.SetInputData(polydata)
-    tubeFilter.SetVaryRadiusToVaryRadiusByAbsoluteScalar()
-    tubeFilter.SetNumberOfSides(25)
-    tubeFilter.CappingOn()
-
-    # Map the coloring to the tube filter
-    tubeFilter.Update()
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(tubeFilter.GetOutputPort())
-    mapper.SetScalarModeToUsePointFieldData()
-    mapper.SelectColorArray("colors")
-    if error_coloring:
-        mapper.SetScalarRange(0, max(error))
-    else:
-        mapper.SetScalarRange(0, len(error))
-
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    if wireframe:
-        actor.GetProperty().SetRepresentationToWireframe()
-
-    return actor
-
-
 def fit_circle_2d(x, y, dist_w):
-
+    """
+    Least square for circle fitting in 2D
+    dist_w allows for re-weighting of points
+    """
     if dist_w is None:
         dist_w = np.ones(len(x))
 
@@ -163,10 +109,11 @@ def fit_circle_2d(x, y, dist_w):
 
 def rodrigues_rot(P, n0, n1):
     """
-    Rodrigues rotation (not mine)
+    Rodrigues rotation (not mine, see URL)
     - Rotate given points based on a starting and ending vector
     - Axis k and angle of rotation theta given by vectors n0,n1
     P_rot = P*cos(theta) + (k x P)*sin(theta) + k*<k,P>*(1-cos(theta))
+    https://meshlogic.github.io/posts/jupyter/curve-fitting/fitting-a-circle-to-cluster-of-3d-points/
     """
 
     # If P is only 1d array (coords of single point), fix it to be matrix
@@ -332,9 +279,9 @@ def main():
         stats[bundle_name] = {'diameter': tmp_dict}
 
         if args.show_rendering or args.save_rendering:
-            tube_actor = create_tube(centroid_smooth, radius, error,
-                                     wireframe=args.wireframe,
-                                     error_coloring=args.error_coloring)
+            tube_actor = create_tube_with_radii(centroid_smooth, radius, error,
+                                                wireframe=args.wireframe,
+                                                error_coloring=args.error_coloring)
             scene.add(tube_actor)
             cmap = plt.get_cmap('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
