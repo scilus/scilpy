@@ -12,7 +12,7 @@ The script expects:
     without major fanning in a single axis
     fanning is in 2 directions (uniform dispersion) good approximation
 
-The scripts print a JSON file with mean/std to be compatible with tractometry.
+The scripts prints a JSON file with mean/std to be compatible with tractometry.
 WARNING: STD is in fact an ERROR measure from the fit and NOT an STD.
 
 Since the estimation and fit quality is not always intuitive for some bundles
@@ -40,7 +40,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_json_args,
                              assert_inputs_exist,
-                             parser_color_type)
+                             assert_output_dirs_exist_and_empty,
+                             parser_color_type,
+                             snapshot)
 
 
 def _build_arg_parser():
@@ -52,12 +54,16 @@ def _build_arg_parser():
                    help='List of labels maps that matches the bundles.')
 
     p.add_argument('--fitting_func', choices=['lin_up', 'lin_down', 'exp',
-                                              'inv', 'log'],
-                   help='Function to weigh points using their distance.')
+                                              'inv', 'log'], default=None,
+                   help='Function to weigh points using their distance.'
+                   '\n[Default: %(default)s]')
 
     p2 = p.add_argument_group(title='Visualization options')
-    p2.add_argument('--show_rendering', action='store_true',
-                    help='Display VTK window.')
+    p3 = p2.add_mutually_exclusive_group()
+    p3.add_argument('--show_rendering', action='store_true',
+                    help='Display VTK window (optional).')
+    p3.add_argument('--save_rendering', metavar='OUT_FOLDER',
+                    help='Save VTK render in the specified folder (optional)')
     p2.add_argument('--wireframe', action='store_true',
                     help='Use wireframe for the tube rendering.')
     p2.add_argument('--error_coloring', action='store_true',
@@ -65,11 +71,11 @@ def _build_arg_parser():
     p2.add_argument('--width', type=float, default=0.2,
                     help='Width of tubes or lines representing streamlines'
                     '\n[Default: %(default)s]')
-    p2.add_argument('--opacity', type=float, default=0.1,
+    p2.add_argument('--opacity', type=float, default=0.2,
                     help='Opacity for the streamlines rendered with the tube.'
                     '\n[Default: %(default)s]')
     p2.add_argument('--background', metavar=('R', 'G', 'B'), nargs=3,
-                    default=[0, 0, 0], type=parser_color_type,
+                    default=[1, 1, 1], type=parser_color_type,
                     help='RBG values [0, 255] of the color of the background.'
                     '\n[Default: %(default)s]')
 
@@ -252,6 +258,8 @@ def main():
     args.in_labels = args.in_bundles[(len(tmp) // 2):] + args.in_labels
     args.in_bundles = args.in_bundles[0:len(tmp) // 2]
     assert_inputs_exist(parser, args.in_bundles+args.in_labels)
+    assert_output_dirs_exist_and_empty(parser, args, [],
+                                       optional=args.save_rendering)
 
     stats = {}
     num_digits_labels = 3
@@ -323,7 +331,7 @@ def main():
                    'std': float(error[label-1])}
         stats[bundle_name] = {'diameter': tmp_dict}
 
-        if args.show_rendering:
+        if args.show_rendering or args.save_rendering:
             tube_actor = create_tube(centroid_smooth, radius, error,
                                      wireframe=args.wireframe,
                                      error_coloring=args.error_coloring)
@@ -336,11 +344,46 @@ def main():
                                                  colors=coloring)
             scene.add(streamlines_actor)
 
+            slice_actor = actor.slicer(data_labels, np.eye(4))
+            slice_actor.opacity(0.0)
+            scene.add(slice_actor)
+
     # If there's actually streamlines to display
     if args.show_rendering:
         showm = window.ShowManager(scene, reset_camera=True)
         showm.initialize()
         showm.start()
+    elif args.save_rendering:
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'superior.png'),
+                 size=(1920, 1080), offscreen=True)
+
+        scene.pitch(180)
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'inferior.png'),
+                 size=(1920, 1080), offscreen=True)
+
+        scene.pitch(90)
+        scene.set_camera(view_up=(0, 0, 1))
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'posterior.png'),
+                 size=(1920, 1080), offscreen=True)
+
+        scene.pitch(180)
+        scene.set_camera(view_up=(0, 0, 1))
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'anterior.png'),
+                 size=(1920, 1080), offscreen=True)
+
+        scene.yaw(90)
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'right.png'),
+                 size=(1920, 1080), offscreen=True)
+
+        scene.yaw(180)
+        scene.reset_camera()
+        snapshot(scene, os.path.join(args.save_rendering, 'left.png'),
+                 size=(1920, 1080), offscreen=True)
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
 
