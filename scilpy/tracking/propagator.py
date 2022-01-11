@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from enum import Enum
+
 import dipy
 import numpy as np
 from dipy.reconst.shm import order_from_ncoef, sh_to_sf_matrix
@@ -8,10 +10,20 @@ from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
 
+class PropagationStatus(Enum):
+    ERROR = 1
+
+
 class AbstractPropagator(object):
     """
-    Abstract class for propagator object. Responsible for sampling the final
-    direction through Runge-Kutta integration.
+    Abstract class for propagator object. "Propagation" means continuing the
+    streamline a step further. The propagator is thus responsible for sampling
+    the final direction at current step through Runge-Kutta integration
+    (whereas the tracker using this propagator will be responsible for the
+    processing parameters, number of streamlines, stopping criteria, etc.).
+
+    Propagation depends on the type of data (ex, DTI, fODF) and the way to get
+    a direction from it (ex, det, prob).
     """
     def __init__(self, dataset, step_size, rk_order):
         """
@@ -56,8 +68,8 @@ class AbstractPropagator(object):
         -------
         tracking_info: Any
             Any tracking information necessary for the propagation.
-            Return the str 'err' if no good tracking direction can be set at
-            current seeding position.
+            Return PropagationStatus.ERROR if no good tracking direction can be
+            set at current seeding position.
         """
         raise NotImplementedError
 
@@ -272,11 +284,14 @@ class PropagatorOnSphere(AbstractPropagator):
         if len(line) > 1:
             last_dir = line[-1] - line[-2]
             ind = self.sphere.find_closest(last_dir)
-            return TrackingDirection(last_dir, ind)
         else:
             backward_dir = -np.asarray(forward_dir)
             ind = self.sphere.find_closest(backward_dir)
-            return TrackingDirection(backward_dir, ind)
+
+        # toDo. Is using a TrackingDirection necessary compared to a direction
+        #  x,y, z or rho, phi? self.sphere.vertices[ind] might not be
+        #  exactly equal to last_dir or to backward_dir.
+        return TrackingDirection(self.sphere.vertices[ind], ind)
 
     def _sample_next_direction(self, pos, v_in):
         """
@@ -405,8 +420,8 @@ class ODFPropagator(PropagatorOnSphere):
         v_in: TrackingDirection
             The "fake" previous direction at first step. Could be None if your
             propagator can propagate without knowledge of previous direction.
-            Return the str 'err' if no good tracking direction can be set at
-            current seeding position.
+            Return PropagationStatus.Error if no good tracking direction can be
+            set at current seeding position.
         """
         # Sampling on the SF values (no matter if general algo is det or prob)
         # with a different threshold than usual (sf_threshold_init).
@@ -421,7 +436,7 @@ class ODFPropagator(PropagatorOnSphere):
 
         # Else: sf at current position is smaller than acceptable threshold in
         # all directions.
-        return 'err'
+        return PropagationStatus.ERROR
 
     def _sample_next_direction(self, pos, v_in):
         """
@@ -463,7 +478,8 @@ class ODFPropagator(PropagatorOnSphere):
         else:
             raise ValueError("Tracking choice must be one of 'det' or 'prob'.")
 
-        # Normalizing result? Coming from dipy's sphere so supposing that ok.
+        # Not normalizing: direction comes from dipy's (unit) sphere so
+        # supposing that it's ok.
         return v_out  # / np.linalg.norm(v_out)
 
     def _get_possible_next_dirs_prob(self, pos, v_in):

@@ -86,23 +86,3 @@ def get_sphere_neighbours(sphere, max_angle):
                     np.outer(zs, zs))
     neighbours = scalar_prods >= np.cos(max_angle)
     return neighbours
-
-
-def get_opposite_direction_sphere(dirs, ind):
-    """
-    Get the indice of the opposite direction on the sphere to the indice
-    ind.
-
-    Parameters
-    ----------
-    dirs: List
-        List of sphere directions.
-    ind: int
-        Indice of sphere direction to inverse.
-
-    Return
-    ------
-    value: int
-        Indice of opposite sphere direction.
-    """
-    return (len(dirs) // 2 + ind) % len(dirs)

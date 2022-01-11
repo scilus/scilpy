@@ -12,7 +12,7 @@ import numpy as np
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.datasets import DataVolume
-from scilpy.tracking.propagator import AbstractPropagator
+from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.tracking.seed import SeedGenerator
 
 # For the multi-processing:
@@ -258,7 +258,7 @@ class Tracker(object):
         # Forward
         line = [seeding_pos]
         tracking_info = self.propagator.prepare_forward(seeding_pos)
-        if tracking_info == 'err':
+        if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
             return None
         line = self._propagate_line(line, tracking_info)
