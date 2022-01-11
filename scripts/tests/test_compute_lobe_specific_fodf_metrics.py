@@ -19,29 +19,23 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07.nii.gz')
-
-    # generate bingham volume
-    script_runner.run('scil_fit_bingham_to_fodf.py',
-                      in_fodf, 'bingham.nii.gz',
-                      '--max_lobes', '2',
-                      '--at', '0.0',
-                      '--rt', '0.1',
-                      '--min_sep_angle', '25.',
-                      '--max_fit_angle', '15.',
-                      '--processes', '1')
+    in_bingham = os.path.join(get_home(), 'processing',
+                              'fodf_bingham.nii.gz')
 
     ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
-                            'bingham.nii.gz', '--nbr_integration_steps', '10',
+                            in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1')
 
     assert ret.success
 
 
 def test_execution_processing_not_all(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_bingham = os.path.join(get_home(), 'processing',
+                              'fodf_bingham.nii.gz')
+
     ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
-                            'bingham.nii.gz', '--nbr_integration_steps', '10',
+                            in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1', '--not_all', '--out_fs',
                             'fs.nii.gz', '-f')
 
