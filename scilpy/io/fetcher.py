@@ -53,7 +53,7 @@ def get_testing_files_dict():
              '981dccd8b23aad43aa014f4fdd907e70'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
-             '59bdffb801c507bb8eff623201231770'],
+             'b8590ee6fa6b5f1e7a19d5238d4522b7'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '946beb4271b905a2bd69ad2d80136ca9'],
