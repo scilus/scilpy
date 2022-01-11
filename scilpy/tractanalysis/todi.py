@@ -52,7 +52,8 @@ class TrackOrientationDensityImaging(object):
         self.mask = mask
         self.todi = todi
 
-    def compute_todi(self, streamlines, length_weights=True):
+    def compute_todi(self, streamlines, length_weights=True,
+                     n_steps=1, asymmetric=False):
         """Compute the TODI map.
 
         At each voxel an histogram distribution of
@@ -67,14 +68,17 @@ class TrackOrientationDensityImaging(object):
         """
         # Streamlines vertices in "VOXEL_SPACE" within "img_shape" range
         pts_pos, pts_dir, pts_norm = \
-            todi_u.streamlines_to_pts_dir_norm(streamlines)
+            todi_u.streamlines_to_pts_dir_norm(streamlines,
+                                               n_steps=n_steps,
+                                               asymmetric=asymmetric)
 
         if not length_weights:
             pts_norm = None
 
         sph_ids = todi_u.get_dir_to_sphere_id(pts_dir, self.sphere.vertices)
 
-        # Get voxel indices for each point
+        # Get voxel indices for each point (works because voxels
+        # are of unit size and streamlines are scaled accordingly)
         pts_unmasked_vox = todi_u.get_indices_1d(self.img_shape, pts_pos)
 
         # Generate mask from streamlines vertices
@@ -89,6 +93,7 @@ class TrackOrientationDensityImaging(object):
         todi_bin_shape = (nb_voxel_with_pts, self.nb_sphere_vts)
         todi_bin_len = np.prod(todi_bin_shape)
 
+        # Count number of direction for each voxel containing streamlines
         todi_bin_1d = np.bincount(
             np.ravel_multi_index(np.stack((pts_vox, sph_ids)), todi_bin_shape),
             weights=pts_norm, minlength=todi_bin_len)
@@ -225,7 +230,7 @@ class TrackOrientationDensityImaging(object):
         self.todi = todi_u.p_normalize_vectors(self.todi, p_norm)
         return self.todi
 
-    def get_sh(self, sh_basis, sh_order, smooth=0.006):
+    def get_sh(self, sh_basis, sh_order, smooth=0.006, full_basis=False):
         """Spherical Harmonics (SH) coefficients of the TODI map
 
         Compute the SH representation of the TODI map,
@@ -261,7 +266,8 @@ class TrackOrientationDensityImaging(object):
                spherical deconvolution. NeuroImage. 2007;35(4):1459-1472.
         """
         return sf_to_sh(self.todi, self.sphere, sh_order=sh_order,
-                        basis_type=sh_basis, smooth=smooth)
+                        basis_type=sh_basis, full_basis=full_basis,
+                        smooth=smooth)
 
     def reshape_to_3d(self, img_voxelly_masked):
         """Reshape a complex ravelled image to 3D.

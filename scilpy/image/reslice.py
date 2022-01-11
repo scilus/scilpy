@@ -16,7 +16,7 @@ def _affine_transform(kwargs):
 
 
 def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
-            offset=-0.5, num_processes=1):
+            num_processes=1):
     """Reslice data with new voxel resolution defined by ``new_zooms``
 
     Parameters
@@ -39,8 +39,6 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
     cval : float
         Value used for points outside the boundaries of the input if
         mode='constant'.
-    offset: float
-        Offset for voxels in the volume
     num_processes : int
         Split the calculation to a pool of children processes. This only
         applies to 4D `data` arrays. If a positive integer then it defines
@@ -82,10 +80,31 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
         new_zooms = np.array(new_zooms, dtype='f8')
         zooms = np.array(zooms, dtype='f8')
         R = new_zooms / zooms
+
+        original_extent = []
+        offset = []
+        axes = []
+        Rx = np.eye(4)
+        Rx[:3, :3] = np.diag(1/zooms)
+        affine = np.dot(affine, Rx)
+        for j in range(3):
+            original_extent.append(data.shape[j] * zooms[j])
+            axes.append(
+                np.round(data.shape[j] * zooms[j] / new_zooms[j] - 0.0001))
+            offset.append(0.5 * ((new_zooms[j] - zooms[j]) + (
+                                original_extent[j] - (axes[j] * new_zooms[j]))) / zooms[j])
+            for i in range(3):
+                affine[i, 3] += 0.5 * ((new_zooms[j] - zooms[j]) + (
+                            original_extent[j] - (axes[j] * new_zooms[j]))) * \
+                                 affine[i, j]
+        Rx = np.eye(4)
+        Rx[:3, :3] = np.diag(new_zooms)
+        affine2 = np.dot(affine, Rx)
+
         new_shape = zooms / new_zooms * np.array(data.shape[:3])
         new_shape = tuple(np.round(new_shape).astype('i8'))
         kwargs = {'matrix': R, 'output_shape': new_shape, 'order': order,
-                  'mode': mode, 'cval': cval, 'offset': offset * R}
+                  'mode': mode, 'cval': cval, 'offset': offset}
         if data.ndim == 3:
             data2 = affine_transform(input=data, **kwargs)
         if data.ndim == 4:
@@ -107,7 +126,4 @@ def reslice(data, affine, zooms, new_zooms, order=1, mode='constant', cval=0,
                     data2[..., i] = res
                 pool.close()
 
-        Rx = np.eye(4)
-        Rx[:3, :3] = np.diag(R)
-        affine2 = np.dot(affine, Rx)
     return data2, affine2

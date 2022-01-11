@@ -112,7 +112,7 @@ def main():
     if not len(sft_bundle.streamlines):
         logging.error('Empty bundle file {}. '
                       'Skipping'.format(args.in_bundle))
-        raise ValueError
+        return
 
     if len(sft_centroid.streamlines) < 1 \
             or len(sft_centroid.streamlines) > 1:

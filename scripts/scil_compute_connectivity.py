@@ -369,7 +369,7 @@ def main():
     if not args.no_self_connection:
         comb_list.extend(zip(labels_list, labels_list))
 
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    nbr_cpu = validate_nbr_processes(parser, args)
     measures_dict_list = []
     if nbr_cpu == 1:
         for comb in comb_list:

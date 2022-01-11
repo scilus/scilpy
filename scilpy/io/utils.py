@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 import os
 import multiprocessing
 import re
@@ -8,6 +9,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from dipy.data import SPHERE_FILES
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
@@ -159,6 +161,19 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
+def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
+    spheres = sorted(SPHERE_FILES.keys())
+    if symmetric_only:
+        spheres = [s for s in spheres if 'symmetric' in s]
+        if 'symmetric' not in default:
+            raise ValueError("Default cannot be {} if you only accept "
+                             "symmetric spheres.".format(default))
+
+    parser.add_argument('--sphere', choices=spheres,
+                        default=default,
+                        help='Dipy sphere; set of possible directions.')
+
+
 def add_overwrite_arg(parser):
     parser.add_argument(
         '-f', dest='overwrite', action='store_true',
@@ -206,9 +221,12 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
-def validate_nbr_processes(parser, args, default_nbr_cpu=None):
+def validate_nbr_processes(parser, args):
     """ Check if the passed number of processes arg is valid.
-    If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
+    Valid values are considered to be in the [0, CPU count] range:
+        - Raises a parser.error if an invalid value is provided.
+        - Returns the maximum number of cores retrieved if no value (or a value
+        of 0) is provided.
 
     Parameters
     ----------
@@ -216,12 +234,10 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
         Parser as created by argparse.
     args: argparse namespace
         Args as created by argparse.
-    default_nbr_cpu: int (or None)
-        Number of cpu to use, default is cpu_count (all).
 
-    Results
-    ------
-    nbr_cpu
+    Returns
+    -------
+    nbr_cpu: int
         The number of CPU to be used.
     """
 
@@ -230,7 +246,7 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
     else:
         nbr_cpu = multiprocessing.cpu_count()
 
-    if nbr_cpu <= 0:
+    if nbr_cpu < 0:
         parser.error('Number of processes must be > 0.')
     elif nbr_cpu > multiprocessing.cpu_count():
         parser.error('Max number of processes is {}. Got {}.'.format(
@@ -255,6 +271,24 @@ def validate_sh_basis_choice(sh_basis):
     if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
         raise ValueError("sh_basis should be either 'descoteaux07' or"
                          "'tournier07'.")
+
+
+def verify_compression_th(compress_th):
+    """
+    Verify that the compression threshold is between 0.001 and 1. Else,
+    produce a warning.
+
+    Parameters
+    -----------
+    compress_th: float, the compression threshold.
+    """
+    if compress_th:
+        if compress_th < 0.001 or compress_th > 1:
+            logging.warning(
+                'You are using an error rate of {}.\nWe recommend setting it '
+                'between 0.001 and 1.\n0.001 will do almost nothing to the '
+                'tracts while 1 will higly compress/linearize the tracts.'
+                .format(compress_th))
 
 
 def assert_inputs_exist(parser, required, optional=None):

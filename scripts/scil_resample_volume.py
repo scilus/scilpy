@@ -49,8 +49,6 @@ def _build_arg_parser():
              "quad: quadratic\ncubic: cubic\nDefaults to linear")
     p.add_argument('--enforce_dimensions', action='store_true',
                    help='Enforce the reference volume dimension.')
-    p.add_argument('--offset', default=-0.5, type=float,
-                   help='Add offset to voxels in the volume [%(default)s].')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -79,10 +77,6 @@ def main():
                             not len(args.voxel_size) == 3):
         parser.error('Invalid dimensions for --voxel_size.')
 
-    if args.offset != parser.get_default('offset'):
-        logging.warning('--offset is a dangerous parameter to modify. Make '
-                        'sure you know what you are doing.')
-
     logging.debug('Loading raw data from %s', args.in_image)
 
     img = nib.load(args.in_image)
@@ -91,8 +85,7 @@ def main():
     resampled_img = resample_volume(img, ref=args.ref, res=args.volume_size,
                                     iso_min=args.iso_min, zoom=args.voxel_size,
                                     interp=args.interp,
-                                    enforce_dimensions=args.enforce_dimensions,
-                                    offset=args.offset)
+                                    enforce_dimensions=args.enforce_dimensions)
 
     # Saving results
     logging.debug('Saving resampled data to %s', args.out_image)
