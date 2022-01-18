@@ -20,6 +20,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist, \
     assert_outputs_exist
 from scilpy.reconst.sh import compute_rish
@@ -29,9 +30,12 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh',
-                   help='Path of the sh image.')
+                   help='Path of the sh image. Must be a symmetric SH file.')
     p.add_argument('out_rish',
                    help='Name of the output RISH file to save.')
+    p.add_argument('--mask',
+                   help='Path to a binary mask.\nOnly data inside the mask '
+                        'will be used for computation.')
 
     add_overwrite_arg(p)
 
@@ -42,12 +46,16 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_sh])
+    assert_inputs_exist(parser, [args.in_sh], optional=[args.mask])
     assert_outputs_exist(parser, args, args.out_rish)
 
-    sh = nib.load(args.in_sh)
-    rish = compute_rish(sh)
+    sh_img = nib.load(args.in_sh)
+    sh = sh_img.get_fdata(dtype=np.float32)
+    mask = None
+    if args.mask:
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
+    rish = compute_rish(sh, mask)
     nib.save(nib.Nifti1Image(rish.astype(np.float32), sh.affine), args.out_rish)
 
 

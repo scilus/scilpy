@@ -3,7 +3,7 @@ import numpy as np
 from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 
-def compute_rish(sh_img):
+def compute_rish(sh_img, mask=None):
     """Compute the RISH (Rotationally Invariant Spherical Harmonics) features
     of the SH signal [1]. Each RISH feature map is the total energy of its
     associated order. Mathematically, it is the sum of the squared SH
@@ -11,8 +11,10 @@ def compute_rish(sh_img):
 
     Parameters
     ----------
-    sh_img : nib.Nifti1Image object
+    sh_img : np.ndarray object
         Image of the SH coefficients
+    mask: np.ndarray object, optional
+        Binary mask. Only data inside the mask will be used for computation.
 
     Returns
     -------
@@ -34,6 +36,10 @@ def compute_rish(sh_img):
     # Load data
     sh_data = sh_img.get_fdata(dtype=np.float32)
 
+    # Apply mask to input
+    if mask:
+        sh_data *= mask[..., None]
+
     # Get number of indices per order (e.g. for order 6 : [1,5,9,13])
     n_indices_per_order = np.bincount(order_ids)[::2]
 
@@ -48,5 +54,9 @@ def compute_rish(sh_img):
     # Compute the sum of squared coefficients using numpy's `reduceat`
     squared_sh = np.square(sh_data)
     rish = np.add.reduceat(squared_sh, reduce_indices, axis=-1)[..., ::2]
+
+    # Apply mask
+    if mask:
+        rish *= mask[..., None]
 
     return rish
