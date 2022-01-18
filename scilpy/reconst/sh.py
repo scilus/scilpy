@@ -5,8 +5,9 @@ from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 def compute_rish(sh_img):
     """Compute the RISH (Rotationally Invariant Spherical Harmonics) features
-    of the SH signal. Each RISH feature map is the sum of the squared
-    coefficients of its associated SH order.
+    of the SH signal [1]. Each RISH feature map is the total energy of its
+    associated order. Mathematically, it is the sum of the squared SH
+    coefficients of the SH order.
 
     Parameters
     ----------
@@ -17,6 +18,12 @@ def compute_rish(sh_img):
     -------
     rish_image : np.ndarray with shape (x,y,z,n_orders)
         The RISH features of the input SH, with one channel per SH order.
+
+    References
+    ----------
+    [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
+    multiple sites and scanners." MICCAI 2015.
+    https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
     """
     # Guess SH order
     sh_order = order_from_ncoef(sh_img.shape[-1], full_basis=False)

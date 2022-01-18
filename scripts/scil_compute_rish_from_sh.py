@@ -2,7 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to compute the RISH features from an SH coefficients image.
+Compute the RISH (Rotationally Invariant Spherical Harmonics) features
+of an SH signal [1].
+
+Each RISH feature map is the total energy of its
+associated order. Mathematically, it is the sum of the squared SH
+coefficients of the SH order.
+
+This script supports symmetrical SH images as input, of any SH order.
+
+[1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
+multiple sites and scanners." MICCAI 2015.
+https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
 """
 import argparse
 
