@@ -262,7 +262,7 @@ def main():
                     colors = None
                 bundle_tractogram_file = nib.streamlines.load(bundle_file)
                 streamlines = bundle_tractogram_file.streamlines
-                if len(streamlines) != 0:
+                if len(streamlines):
                     bundle_actor = actor.line(streamlines, colors)
                 nbr_of_elem = len(streamlines)
             # Select the volume to plot
@@ -287,7 +287,7 @@ def main():
             ren.add(slice_actor)
 
             # Streamlines
-            if len(streamlines) != 0:
+            if len(streamlines):
                 ren.add(bundle_actor)
             ren.reset_camera()
             ren.zoom(zoom)
