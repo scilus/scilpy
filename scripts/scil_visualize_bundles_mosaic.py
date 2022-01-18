@@ -70,6 +70,12 @@ def _build_arg_parser():
     p.add_argument('--no_information', action='store_true',
                    help='Don\'t display axis and bundle information '
                         '[%(default)s].')
+    p.add_argument('--no_bundle_name', action='store_true',
+                   help='Don\'t display bundle name '
+                        '[%(default)s].')
+    p.add_argument('--no_streamline_number', action='store_true',
+                   help='Don\'t display bundle streamlines number '
+                        '[%(default)s].')
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p
@@ -132,10 +138,12 @@ def draw_column_with_names(draw, output_names, text_pos_x,
 def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
                             pos_x, pos_y, font):
     """ Draw text with bundle information. """
-    draw.text((pos_x, pos_y),
-              (bundle_file_name), font=font)
-    draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
-              ('{}'.format(nbr_of_elem)), font=font)
+    if bundle_file_name is not None:
+        draw.text((pos_x, pos_y),
+                  (bundle_file_name), font=font)
+    if nbr_of_elem is not None:
+        draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
+                  ('{}'.format(nbr_of_elem)), font=font)
 
 
 def set_img_in_cell(mosaic, ren, view_number, width, height, i):
@@ -344,8 +352,14 @@ def main():
             if not args.no_information:
                 view_number = rows
                 j = height * view_number
-                draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
-                                        i + text_pos_x, j + text_pos_y, font)
+                if args.no_bundle_name:
+                    bundle_file_name = None
+                if args.no_streamline_number:
+                    nbr_of_elem = None
+
+                draw_bundle_information(draw, bundle_file_name,
+                                        nbr_of_elem, i + text_pos_x,
+                                        j + text_pos_y, font)
 
     # Save image to file
     mosaic.save(args.out_image)
