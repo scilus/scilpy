@@ -37,8 +37,8 @@ def compute_rish(sh_img, mask=None):
     sh_data = sh_img.get_fdata(dtype=np.float32)
 
     # Apply mask to input
-    if mask:
-        sh_data *= mask[..., None]
+    if mask is not None:
+        sh = sh * mask[..., None]
 
     # Get number of indices per order (e.g. for order 6 : [1,5,9,13])
     n_indices_per_order = np.bincount(order_ids)[::2]
@@ -56,7 +56,7 @@ def compute_rish(sh_img, mask=None):
     rish = np.add.reduceat(squared_sh, reduce_indices, axis=-1)[..., ::2]
 
     # Apply mask
-    if mask:
+    if mask is not None:
         rish *= mask[..., None]
 
     return rish
