@@ -13,72 +13,123 @@ from scilpy.reconst.utils import get_sh_order_and_fullness
 
 
 # Constants
-NB_PARAMS = 9
+NB_PARAMS = 7
 
 
 class BinghamDistribution(object):
     """
-    Scaled Bingham distribution.
-        B(u) = f0 * exp(-k1 * (mu1 * u)**2 - k2 * (mu2 * u)**2)
+    Scaled Bingham distribution, given by:
+        B(u) = f0 * e^(- k1 * (mu1 * u)**2 - k2 * (mu2 * u)**2),
+    mu1 and mu2 are unit vectors.
 
     Params
     ------
     f0: float
-        Scaling parameter.
-    mu1, mu2: ndarray (3,)
-        Axes.
-    k1, k2: float
-        Concentration parameters.
+        Scaling parameter of the distribution.
+    mu_prime1: ndarray (3,)
+        Axis with highest concentration scaled by the
+        concentration parameter k1.
+    mu_prime2: ndarray (3,)
+        Axis with lowest concentration scaled by the
+        concentration parameter k2.
     """
-    def __init__(self, f0, mu1, mu2, k1, k2):
+    def __init__(self, f0, mu_prime1, mu_prime2):
         self.f0 = f0  # scaling factor
-        self.mu1 = mu1.reshape((1, 3))  # vec3
-        self.mu2 = mu2.reshape((1, 3))  # vec3
-        self.k1 = k1  # scalar
-        self.k2 = k2  # scalar
+        self.k1 = np.linalg.norm(mu_prime1)
+        self.k2 = np.linalg.norm(mu_prime2)
+        if self.k1 != 0:
+            self.mu1 = mu_prime1 / self.k1
+        else:
+            self.mu1 = mu_prime1
+
+        if self.k2 != 0:
+            self.mu2 = mu_prime2 / self.k2
+        else:
+            self.mu2 = mu_prime2
 
     def evaluate(self, vertices):
-        bu = np.exp(- self.k1 * self.mu1.dot(vertices.T)**2.
-                    - self.k2 * self.mu2.dot(vertices.T)**2.)
-        bu *= self.f0
+        bu = self.f0 * np.exp(- self.k1 * self.mu1.dot(vertices.T)**2.
+                              - self.k2 * self.mu2.dot(vertices.T)**2.)
 
         return bu.reshape((-1))  # (1, N)
 
     def peak_direction(self):
-        return np.cross(self.mu1, self.mu2)
+        v = np.cross(self.mu1, self.mu2)
+        return v
 
     def get_flatten(self):
-        ret = np.zeros((9))
-        ret[0] = self.f0
-        ret[1:4] = self.mu1.reshape((-1))
-        ret[4:7] = self.mu2.reshape((-1))
-        ret[7] = self.k1
-        ret[8] = self.k2
+        mu_prime1 = self.mu1 * self.k1
+        mu_prime2 = self.mu2 * self.k2
+        ret = np.array([self.f0,
+                        *mu_prime1.reshape((-1)),
+                        *mu_prime2.reshape((-1))])
         return ret
 
 
-def bingham_from_array(arr):
+def bingham_to_sf(bingham_volume, vertices):
     """
-    Instantiate and return a Bingham distribution
-    with parameters contained in ``arr``.
+    Convert a Bingham distributions volume to a spherical function.
 
     Parameters
     ----------
-    arr: ndarray (9,)
-        Parameters for the Bingham distribution, with:
-        arr[0]   => f0
-        arr[1:4] => mu1
-        arr[4:7] => mu2
-        arr[7]   => k1
-        arr[8]   => k2
+    bingham_volume: Bingham parameters volume.
+        A Bingham distributions volume.
+    vertices: ndarray (n_vertices, 3)
+        Sampling directions.
 
     Returns
     -------
-    out: BinghamDistribution
-        Bingham distribution initialized with the parameters
-        from `arr`.
+    sf: ndarray (..., n_lobes, N_PARAMS)
+        Bingham distribution evaluated at vertices.
     """
-    return BinghamDistribution(arr[0], arr[1:4], arr[4:7], arr[7], arr[8])
+    f0s = bingham_volume[..., 0]  # (X, Y, Z, 5)
+    mu1s = bingham_volume[..., 1:4]  # (X, Y, Z, 5, 3)
+    mu2s = bingham_volume[..., 4:7]  # (X, Y, Z, 5, 3)
+    k1s = np.linalg.norm(mu1s, axis=-1)  # (X, Y, Z, 5)
+    k2s = np.linalg.norm(mu2s, axis=-1)  # (X, Y, Z, 5)
+    # normalize mu1 and mu2
+    mu1s[k1s != 0] /= k1s[k1s != 0][..., None]
+    mu2s[k2s != 0] /= k2s[k2s != 0][..., None]
+
+    # transpose vertices to (3, N)
+    if len(vertices.shape) == 1:
+        vertices = vertices.reshape((3, 1))
+    elif vertices.shape[-1] == 3:
+        vertices = vertices.T
+
+    # compute the SF
+    sf = k1s[..., None] * mu1s.dot(vertices)**2 +\
+        k2s[..., None] * mu2s.dot(vertices)**2
+    sf = f0s[..., None] * np.exp(-sf)
+    return sf
+
+
+def bingham_to_peak_direction(bingham_volume):
+    """
+    Compute peak direction for each lobe for a given Bingham volume.
+
+    Parameters
+    ----------
+    binghams: ndarray (..., max_lobes, 9)
+        Bingham volume.
+
+    Returns
+    -------
+    peak_dir: ndarray (..., max_lobes, 3)
+        Peak direction image.
+    """
+    mu1s = bingham_volume[..., 1:4]  # (X, Y, Z, 5, 3)
+    mu2s = bingham_volume[..., 4:7]  # (X, Y, Z, 5, 3)
+    k1s = np.linalg.norm(mu1s, axis=-1)  # (X, Y, Z, 5)
+    k2s = np.linalg.norm(mu2s, axis=-1)  # (X, Y, Z, 5)
+
+    # normalize mu1 and mu2
+    mu1s[k1s != 0] /= k1s[k1s != 0][..., None]
+    mu2s[k2s != 0] /= k2s[k2s != 0][..., None]
+
+    # compute peak direction
+    peak_dir = np.cross(mu1s, mu2s)
+    return peak_dir
 
 
 def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
@@ -142,7 +193,7 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
     pool.join()
 
     out = np.concatenate(out, axis=0)
-    out = out.reshape(np.append(shape[:3], max_lobes*NB_PARAMS))
+    out = out.reshape(shape[:3] + (max_lobes, NB_PARAMS))
     return out
 
 
@@ -159,7 +210,7 @@ def _bingham_fit_sh_chunk(args):
     max_lobes = args[6]
     max_angle = args[7]
 
-    out = np.zeros((len(sh_chunk), max_lobes*NB_PARAMS))
+    out = np.zeros((len(sh_chunk), max_lobes, NB_PARAMS))
     for i, sh in enumerate(sh_chunk):
         odf = sh.dot(B_mat)
         odf[odf < abs_th] = 0.
@@ -169,7 +220,7 @@ def _bingham_fit_sh_chunk(args):
                                          min_sep_angle, rel_th)
             for ll in range(min(len(lobes), max_lobes)):
                 lobe = lobes[ll]
-                out[i, ll*NB_PARAMS:(ll+1)*NB_PARAMS] = lobe.get_flatten()
+                out[i, ll, :] = lobe.get_flatten()
     return out
 
 
@@ -235,7 +286,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
 
     # test that the peak contains at least 3 non-zero directions
     if np.count_nonzero(v) < 3:
-        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3))
 
     x, y, z = (p[:, 0:1], p[:, 1:2], p[:, 2:])
 
@@ -260,7 +311,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     f0 = v.max()
 
     if np.iscomplex(mu1).any() or np.iscomplex(mu2).any():
-        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3))
 
     A = np.zeros((len(v), 2), dtype=float)  # (N, 2)
     A[:, 0:1] = p.dot(mu1)**2
@@ -269,7 +320,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     # Test that AT.A is invertible for pseudo-inverse
     ATA = A.T.dot(A)
     if np.linalg.matrix_rank(ATA) != ATA.shape[0]:
-        return BinghamDistribution(0, np.zeros(3), np.zeros(3), 0, 0)
+        return BinghamDistribution(0, np.zeros(3), np.zeros(3))
 
     B = np.zeros_like(v)
     B[v > 0] = np.log(v[v > 0] / f0)  # (N, 1)
@@ -282,7 +333,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
         mu2 = evec[:, ordered[1]].reshape((3, 1))
         mu1 = evec[:, ordered[0]].reshape((3, 1))
 
-    return BinghamDistribution(f0, mu1, mu2, k1, k2)
+    return BinghamDistribution(f0, k1 * mu1, k2 * mu2)
 
 
 def compute_fiber_density(bingham, m=50, nbr_processes=None):
@@ -323,7 +374,7 @@ def compute_fiber_density(bingham, m=50, nbr_processes=None):
         or nbr_processes > multiprocessing.cpu_count() \
         else nbr_processes
 
-    bingham = bingham.reshape((-1, shape[-1]))
+    bingham = bingham.reshape((-1, np.prod(shape[-2:])))
     bingham = np.array_split(bingham, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
     res = pool.map(_compute_fiber_density_chunk,
@@ -334,9 +385,9 @@ def compute_fiber_density(bingham, m=50, nbr_processes=None):
     pool.close()
     pool.join()
 
-    nbr_lobes = shape[-1] // NB_PARAMS
+    nbr_lobes = shape[-2]
     res = np.concatenate(res, axis=0)
-    res = np.reshape(np.array(res), np.append(shape[:3], nbr_lobes))
+    res = np.reshape(np.array(res), shape[:3] + (nbr_lobes,))
     return res
 
 
@@ -357,8 +408,8 @@ def _compute_fiber_density_chunk(args):
     out = np.zeros((len(binghams_chunk), nbr_lobes))
     for i, binghams in enumerate(binghams_chunk):
         for lobe_i in range(nbr_lobes):
-            lobe = bingham_from_array(binghams[lobe_i*NB_PARAMS:
-                                               (lobe_i+1)*NB_PARAMS])
+            params = binghams[lobe_i * NB_PARAMS:(lobe_i + 1) * NB_PARAMS]
+            lobe = BinghamDistribution(params[0], params[1:4], params[4:7])
             if lobe.f0 > 0:
                 fd = np.sum(lobe.evaluate(u) * np.sin(theta) * dtheta * dphi)
                 out[i, lobe_i] = fd
@@ -385,7 +436,7 @@ def compute_fiber_spread(binghams, fd):
     fs: ndarray (X, Y, Z, max_lobes)
         Fiber spread image.
     """
-    f0 = binghams[..., ::NB_PARAMS]
+    f0 = binghams[..., :, 0]
     fs = np.zeros_like(fd)
     fs[f0 > 0] = fd[f0 > 0] / f0[f0 > 0]
 
