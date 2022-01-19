@@ -20,14 +20,16 @@ def compute_rish(sh, mask=None, full_basis=False):
 
     Returns
     -------
-    rish_image : np.ndarray with shape (x,y,z,n_orders)
+    rish : np.ndarray with shape (x,y,z,n_orders)
         The RISH features of the input SH, with one channel per SH order.
+    orders : list(int)
+        The SH order of each RISH feature in the last channel of `rish`.
 
     References
     ----------
     [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
-    multiple sites and scanners." MICCAI 2015.
-    https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
+        multiple sites and scanners." MICCAI 2015.
+        https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
     """
     # Guess SH order
     sh_order = order_from_ncoef(sh.shape[-1], full_basis=full_basis)
@@ -59,4 +61,6 @@ def compute_rish(sh, mask=None, full_basis=False):
     if mask is not None:
         rish *= mask[..., None]
 
-    return rish
+    orders = sorted(np.unique(order_ids))
+
+    return rish, orders

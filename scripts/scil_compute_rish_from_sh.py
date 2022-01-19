@@ -12,6 +12,8 @@ coefficients of the SH order.
 This script supports both symmetrical and asymmetrical SH images as input, of
 any SH order.
 
+Each RISH feature will be saved as a separate file.
+
 [1] Mirzaalian, Hengameh, et al. "Harmonizing diffusion MRI data across
 multiple sites and scanners." MICCAI 2015.
 https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
@@ -32,8 +34,8 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_sh',
                    help='Path of the sh image. Must be a symmetric SH file.')
-    p.add_argument('out_rish',
-                   help='Name of the output RISH file to save.')
+    p.add_argument('out_prefix',
+                   help='Prefix of the output RISH files to save.')
     p.add_argument('--full_basis', action="store_true",
                    help="Input SH image uses a full SH basis (asymmetrical)")
     p.add_argument('--mask',
@@ -50,7 +52,6 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, [args.in_sh], optional=[args.mask])
-    assert_outputs_exist(parser, args, args.out_rish)
 
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata(dtype=np.float32)
@@ -58,8 +59,17 @@ def main():
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
-    rish = compute_rish(sh, mask, full_basis=args.full_basis)
-    nib.save(nib.Nifti1Image(rish.astype(np.float32), sh.affine), args.out_rish)
+    rish, orders = compute_rish(sh, mask, full_basis=args.full_basis)
+
+    # Save each RISH feature as a separate file
+    for i, order_id in enumerate(orders):
+        fname = "{}{}.nii.gz".format(args.out_prefix, order_id)
+
+        # Check if file exists
+        assert_outputs_exist(parser, args, fname)
+
+        # Save RISH image
+        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine), fname)
 
 
 if __name__ == '__main__':
