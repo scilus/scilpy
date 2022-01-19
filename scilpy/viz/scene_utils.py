@@ -8,7 +8,7 @@ from fury import window, actor
 from fury.colormap import distinguishable_colormap
 
 from scilpy.io.utils import snapshot
-from scilpy.reconst.bingham import BinghamDistribution, NB_PARAMS
+from scilpy.reconst.bingham import bingham_to_sf
 
 
 class CamParams(Enum):
@@ -206,27 +206,17 @@ def create_bingham_slicer(data, orientation, slice_index,
         ODF slicer actors representing the Bingham distributions.
     """
     shape = data.shape
-    nb_lobes = shape[-1] // NB_PARAMS
-    nb_vertices = len(sphere.vertices)
+    nb_lobes = shape[-2]
     colors = [c * 255 for i, c in zip(range(nb_lobes),
                                       distinguishable_colormap())]
 
     # lmax norm for normalization
-    lmaxnorm = np.max(np.abs(data[..., ::NB_PARAMS]), axis=-1)
+    lmaxnorm = np.max(np.abs(data[..., 0]), axis=-1)
+    bingham_sf = bingham_to_sf(data, sphere.vertices)
 
-    sf = np.zeros((shape[0], shape[1], shape[2], nb_vertices))
     actors = []
     for nn in range(nb_lobes):
-        nn_dat = data[..., nn*NB_PARAMS:(nn+1)*NB_PARAMS]
-        for ii in range(shape[0]):
-            for jj in range(shape[1]):
-                for kk in range(shape[2]):
-                    params = nn_dat[ii, jj, kk]
-                    fit = BinghamDistribution(params[0], params[1:4],
-                                              params[4:7], params[7],
-                                              params[8])
-                    sf[ii, jj, kk, :] = fit.evaluate(sphere.vertices)  # (1, N)
-
+        sf = bingham_sf[..., nn, :]
         sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
         color = colors[nn] if color_per_lobe else None
         odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False,
