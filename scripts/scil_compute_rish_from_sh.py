@@ -22,6 +22,7 @@ import argparse
 
 import nibabel as nib
 import numpy as np
+from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist, \
@@ -37,7 +38,7 @@ def _build_arg_parser():
     p.add_argument('out_prefix',
                    help='Prefix of the output RISH files to save.')
     p.add_argument('--full_basis', action="store_true",
-                   help="Input SH image uses a full SH basis (asymmetrical)")
+                   help="Input SH image uses a full SH basis (asymmetrical).")
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computation.')
@@ -51,25 +52,30 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_sh], optional=[args.mask])
+    assert_inputs_exist(parser, args.in_sh, optional=args.mask)
 
+    # Load data
     sh_img = nib.load(args.in_sh)
     sh = sh_img.get_fdata(dtype=np.float32)
     mask = None
     if args.mask:
         mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
 
+    # Precompute output filenames to check if they exist
+    sh_order = order_from_ncoef(sh.shape[-1], full_basis=args.full_basis)
+    _, order_ids = sph_harm_ind_list(sh_order, full_basis=args.full_basis)
+    orders = sorted(np.unique(order_ids))
+    output_fnames = {i: "{}{}.nii.gz".format(args.out_prefix, i) for i in
+                     orders}
+    assert_outputs_exist(parser, args, output_fnames.values())
+
+    # Compute RISH features
     rish, orders = compute_rish(sh, mask, full_basis=args.full_basis)
 
     # Save each RISH feature as a separate file
-    for i, order_id in enumerate(orders):
-        fname = "{}{}.nii.gz".format(args.out_prefix, order_id)
-
-        # Check if file exists
-        assert_outputs_exist(parser, args, fname)
-
-        # Save RISH image
-        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine), fname)
+    for i, order in enumerate(orders):
+        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine),
+                 output_fnames[order])
 
 
 if __name__ == '__main__':
