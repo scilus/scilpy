@@ -1,404 +1,344 @@
 # -*- coding: utf-8 -*-
+import itertools
+import logging
+import multiprocessing
+import os
+import sys
+import traceback
+
+import nibabel as nib
 import numpy as np
 
-from scilpy.tracking.tools import sample_distribution
-from scilpy.tracking.utils import TrackingDirection
-from scilpy.tracking.tracking_field import SphericalHarmonicField
+from dipy.tracking.streamlinespeed import compress_streamlines
+
+from scilpy.image.datasets import DataVolume
+from scilpy.tracking.propagator import AbstractPropagator
+from scilpy.tracking.seed import SeedGenerator
+
+# For the multi-processing:
+data_file_info = None
 
 
-class AbstractPropagator(object):
-    """
-    Base class for propagator objects.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        self.step_size = step_size
-        self.tracker = tracker
-
-    def propagate(self, pos, v_in):
+class Tracker(object):
+    def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
+                 seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
+                 max_nbr_pts, max_invalid_dirs, compression_th=0.1,
+                 nbr_processes=1, save_seeds=False, mmap_mode=None,
+                 rng_seed=1234, track_forward_only=False, skip=0):
         """
-        Abstract propagation method. Given the current position and
-        direction, computes the next position and direction.
-
         Parameters
         ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
+        propagator : AbstractPropagator
+            Tracking object.
+        mask : DataVolume
+            Tracking volume(s).
+        seed_generator : SeedGenerator
+            Seeding volume.
+        nbr_seeds: int
+            Number of seeds to create via the seed generator.
+        min_nbr_pts: int
+        max_nbr_pts: int
+        max_invalid_dirs: int
+            Number of consecutives invalid directions allowed during tracking.
+        compression_th : float,
+            Maximal distance threshold for compression. If None or 0, no
+            compression is applied.
+        nbr_processes: int
+            Number of sub processes to use.
+        save_seeds: bool
+            Whether to save the seeds associated to their respective
+            streamlines.
+        mmap_mode: str
+            Memory-mapping mode. One of {None, ‘r+’, ‘r’, ‘w+’, ‘c’}
+        rng_seed: int
+            The random "seed" for the random generator.
+        track_forward_only: bool
+            If true, only the forward direction is computed.
+        skip: int
+            Skip the first N seeds created (and thus N rng numbers). Useful if
+            you want to create new streamlines to add to a previously created
+            tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
+            with nbr_seeds=1,000,000, you can create tractogram_2 with
+            skip 1,000,000.
         """
-        pass
+        self.propagator = propagator
+        self.mask = mask
+        self.seed_generator = seed_generator
+        self.nbr_seeds = nbr_seeds
+        self.min_nbr_pts = min_nbr_pts
+        self.max_nbr_pts = max_nbr_pts
+        self.max_invalid_dirs = max_invalid_dirs
+        self.compression_th = compression_th
+        self.save_seeds = save_seeds
+        self.mmap_mode = mmap_mode
+        self.rng_seed = rng_seed
+        self.track_forward_only = track_forward_only
+        self.skip = skip
 
-    def get_valid_direction(self, pos, v_in):
+        # Everything scilpy.tracking is in 'corner', 'voxmm'
+        self.origin = 'corner'
+        self.space = 'voxmm'
+
+        if self.min_nbr_pts <= 0:
+            logging.warning("Minimum number of points cannot be 0. Changed to "
+                            "1.")
+            self.min_nbr_pts = 1
+
+        self.nbr_processes = self._set_nbr_processes(nbr_processes)
+
+    def track(self):
         """
-        Get the next valid direction given the position pos and
-        input direction v_in.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
+        Generate a set of streamline from seed, mask and odf files. Results
+        are in voxmm space (i.e. in mm coordinates, starting at 0,0,0).
 
         Return
         ------
-        is_valid_direction: bool
-            True if the new direction is valid.
-        v_out: ndarray(3,)
-            A valid direction. v_out equals v_in if no valid
-            direction is found.
+        streamlines: list of numpy.array
+        seeds: list of numpy.array
         """
-        is_valid_direction = True
-        v_out = self.tracker.get_direction(pos, v_in)
-        if v_out is None:
-            is_valid_direction = False
-            v_out = v_in
-
-        return is_valid_direction, v_out
-
-
-class RK1Propagator(AbstractPropagator):
-    """
-    Implementation of the order 1 Runge Kutta integration, equivalent to
-    the Euler integration method.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK1Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK1 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, new_dir = self.get_valid_direction(pos, v_in)
-        new_pos = pos + self.step_size * np.array(new_dir)
-        return new_pos, new_dir, is_valid_direction
-
-
-class RK2Propagator(AbstractPropagator):
-    """
-    Implementation of the Runge Kutta integration method of order 2.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK2Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK2 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Pervious tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
-        new_dir = self.get_valid_direction(
-            pos + 0.5 * self.step_size * np.array(dir1), dir1)[1]
-        new_pos = pos + self.step_size * np.array(new_dir)
-        return new_pos, new_dir, is_valid_direction
-
-
-class RK4Propagator(AbstractPropagator):
-    """
-    Implementation of the Runge Kutta integration method of order 4.
-
-    Parameters
-    ----------
-    tracker: scilpy tracker object
-        The tracker the use for the propagator.
-    step_size: float
-        The step size used for tracking.
-    """
-    def __init__(self, tracker, step_size):
-        super(RK4Propagator, self).__init__(tracker, step_size)
-
-    def propagate(self, pos, v_in):
-        """
-        Given the current position and direction, computes the next position
-        and direction using the RK4 integration method.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current 3D position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
-        """
-        is_valid_direction, dir1 = self.get_valid_direction(pos, v_in)
-        v1 = np.array(dir1)
-        dir2 = self.get_valid_direction(
-            pos + 0.5 * self.step_size * v1, dir1)[1]
-        v2 = np.array(dir2)
-        dir3 = self.get_valid_direction(
-            pos + 0.5 * self.step_size * v2, dir2)[1]
-        v3 = np.array(dir3)
-        dir4 = self.get_valid_direction(
-            pos + self.step_size * v3, dir3)[1]
-        v4 = np.array(dir4)
-
-        new_v = (v1 + 2 * v2 + 2 * v3 + v4) / 6
-        new_dir = TrackingDirection(new_v, dir1.index)
-        new_pos = pos + self.step_size * new_v
-
-        return new_pos, new_dir, is_valid_direction
-
-
-class AbstractTracker(object):
-    """
-    Abstract class for tracker object.
-
-    Parameters
-    ----------
-    tracking_field: scilpy tracking field object
-        The TrackingField object on which the tracking is done.
-    step_size: float
-        The step size for tracking.
-    rk_order: int
-        Order for the Runge Kutta integration.
-    """
-    def __init__(self, tracking_field: SphericalHarmonicField,
-                 step_size, rk_order):
-        self.tracking_field = tracking_field
-        self.step_size = step_size
-        if rk_order == 1:
-            self.propagator = RK1Propagator(self, step_size)
-        elif rk_order == 2:
-            self.propagator = RK2Propagator(self, step_size)
-        elif rk_order == 4:
-            self.propagator = RK4Propagator(self, step_size)
+        if self.nbr_processes < 2:
+            chunk_id = 1
+            lines, seeds = self._get_streamlines(chunk_id)
         else:
-            raise ValueError("Invalid runge-kutta order. Is " +
-                             str(rk_order) + ". Choices : 1, 2, 4")
+            # Each process will use get_streamlines_at_seeds
+            chunk_ids = np.arange(self.nbr_processes)
+            with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
+                # toDo
+                # must be better designed for dipy
+                # the tracking should not know which data to deal with
+                data_file_name = os.path.join(tmpdir, 'data.npy')
+                np.save(data_file_name,
+                        self.propagator.tracking_field.dataset.data)
+                self.propagator.tracking_field.dataset.data = None
 
-        # Following values will be initialized when calling self.initialize
-        self.init_pos = None
-        self.forward_pos = None
-        self.backward_pos = None
-        self.forward_dir = None
-        self.backward_dir = None
+                # Using pool with a class method will serialize all parameters
+                # in the class, which can be heavy, but it is what we would be
+                # doing manually with a static class.
+                # Be careful however, parameter changes inside the method will
+                # not be kept.
+                pool = multiprocessing.Pool(self.nbr_processes,
+                                            initializer=self._init_sub_process,
+                                            initargs=(data_file_name,
+                                                      self.mmap_mode))
 
-    def initialize(self, pos):
+                lines_per_process, seeds_per_process = zip(*pool.map(
+                    self._get_streamlines_sub, chunk_ids))
+                pool.close()
+                # Make sure all worker processes have exited before leaving
+                # context manager.
+                pool.join()
+                lines = [line for line in itertools.chain(*lines_per_process)]
+                seeds = [seed for seed in itertools.chain(*seeds_per_process)]
+
+        return lines, seeds
+
+    def _set_nbr_processes(self, nbr_processes):
+        # Verifying the number of processes
+        if nbr_processes <= 0:
+            try:
+                nbr_processes = multiprocessing.cpu_count()
+            except NotImplementedError:
+                logging.warning("Cannot determine number of cpus: "
+                                "nbr_processes set to 1.")
+                nbr_processes = 1
+
+        if nbr_processes > self.nbr_seeds:
+            nbr_processes = self.nbr_seeds
+            logging.debug("Setting number of processes to {} since there were "
+                          "less seeds than processes.".format(nbr_processes))
+        return nbr_processes
+
+    @staticmethod
+    def _init_sub_process(date_file_name, mmap_mod):
+        global data_file_info
+        data_file_info = (date_file_name, mmap_mod)
+        return
+
+    def _get_streamlines_sub(self, chunk_id):
         """
-        Initialize the tracking at position pos. Initial tracking directions
-        are picked, the propagete_foward() and propagate_backward() functions
-        can then be call.
+        multiprocessing.pool.map input function.
 
         Parameters
         ----------
-        pos: ndarray (3,)
-            Initial tracking position.
+        chunk_id: int, This processes's id.
 
         Return
-        ------
-        value: bool
-            True if initial tracking directions are found.
+        -------
+        lines: list, list of list of 3D positions (streamlines).
         """
-        self.init_pos = pos
-        self.forward_pos = pos
-        self.backward_pos = pos
-        self.forward_dir, self.backward_dir =\
-            self.tracking_field.get_init_direction(pos)
-        return self.forward_dir is not None and self.backward_dir is not None
+        global data_file_info
 
-    def propagate(self, pos, v_in):
+        self.propagator.tracking_field.dataset.data = np.load(
+            data_file_info[0], mmap_mode=data_file_info[1])
+
+        try:
+            streamlines, seeds = self._get_streamlines(chunk_id)
+            return streamlines, seeds
+        except Exception as e:
+            logging.error("Operation _get_streamlines_sub() failed.")
+            traceback.print_exception(*sys.exc_info(), file=sys.stderr)
+            raise e
+
+    def _get_streamlines(self, chunk_id):
         """
-        Propagate a streamline. The new tracking direction and the
-        updated position. If no valid tracking direction are available,
-        v_in is choosen.
+        Tracks the n streamlines associates with current process (identified by
+        chunk_id). The number n is the total number of seeds / the number of
+        processes. If asked by user, may compress the streamlines and save the
+        seeds.
 
         Parameters
         ----------
-        pos: ndarrray (3,)
-            Current position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
+        chunk_id: int
+            This process ID.
 
-        Return
-        ------
-        new_pos: ndarray (3,)
-            The new segment position.
-        new_dir: ndarray (3,)
-            The new segment direction.
-        is_valid_direction: bool
-            True if new_dir is valid.
+        Returns
+        -------
+        streamlines: list
+            The successful streamlines.
+        seeds: list
+            The list of seeds for each streamline, if self.save_seeds. Else, an
+            empty list.
         """
-        return self.propagator.propagate(pos, v_in)
+        streamlines = []
+        seeds = []
 
-    def is_position_in_bound(self, pos):
+        # Initialize the random number generator to cover multiprocessing,
+        # skip, which voxel to seed and the subvoxel random position
+        chunk_size = int(self.nbr_seeds / self.nbr_processes)
+        first_seed_of_chunk = chunk_id * chunk_size + self.skip
+        random_generator, indices = self.seed_generator.init_generator(
+            self.rng_seed, first_seed_of_chunk)
+        if chunk_id == self.nbr_processes - 1:
+            chunk_size += self.nbr_seeds % self.nbr_processes
+
+        # Getting streamlines
+        for s in range(chunk_size):
+            if s % 1000 == 0:
+                logging.info(str(os.getpid()) + " : " + str(s)
+                             + " / " + str(chunk_size))
+
+            seed = self.seed_generator.get_next_pos(
+                random_generator, indices, first_seed_of_chunk + s)
+            line = self._get_line_both_directions(seed)
+
+            if line is not None:
+                if self.compression_th and self.compression_th > 0:
+                    streamlines.append(
+                        compress_streamlines(np.array(line, dtype='float32'),
+                                             self.compression_th))
+                else:
+                    streamlines.append((np.array(line, dtype='float32')))
+
+                if self.save_seeds:
+                    seeds.append(np.asarray(seed, dtype='float32'))
+
+        return streamlines, seeds
+
+    def _get_line_both_directions(self, pos):
         """
-        Test if the streamline point is inside the boundary of the image.
+        Generate a streamline from an initial position following the tracking
+        parameters.
 
         Parameters
         ----------
         pos : tuple
-            3D positions.
+            3D position, the seed position.
 
-        Return
-        ------
-        value: bool
-            True if the streamline point is inside the boundary of the image.
+        Returns
+        -------
+        line: list of 3D positions
         """
-        return self.tracking_field.dataset.is_position_in_bound(*pos)
 
-    def get_direction(self, pos, v_in):
-        """
-        Abstract method. Return the next tracking direction, given
-        the current position pos and the previous direction v_in.
-        This direction must respect tracking constraint defined in
-        the tracking_field.
+        # toDo See numpy's doc: np.random.seed:
+        #  This is a convenience, legacy function.
+        #  The best practice is to not reseed a BitGenerator, rather to
+        #  recreate a new one. This method is here for legacy reasons.
+        np.random.seed(np.uint32(hash((pos, self.rng_seed))))
+        line = [pos]
 
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current tracking position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-        """
-        pass
+        # Initialize returns true if initial directions at pos are valid.
+        if self.propagator.initialize(pos, self.track_forward_only):
+            # Forward
+            forward = self._propagate_line(True)
+            if len(forward) > 0:
+                forward.pop(0)
+                line.extend(forward)
 
+            # Backward
+            if not self.track_forward_only:
+                # Depending on the propagator, adding possibility to reset some
+                # parameters at this point.
+                self.propagator.start_backward()
 
-class ProbabilisticTracker(AbstractTracker):
-    """
-    Probabilistic direction tracker.
+                backward = self._propagate_line(False)
+                if len(backward) > 0:
+                    line.reverse()
+                    line.pop()
+                    line.extend(backward)
 
-    Parameters
-    ----------
-    tracking_field: scilpy tracking field object
-        The TrackingField object on which the tracking is done.
-    step_size: float
-        The step size for tracking.
-    rk_order: int
-        Order for the Runge Kutta integration.
-    """
-    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
-                 rk_order):
-        super(ProbabilisticTracker, self).__init__(
-            tracking_field, step_size, rk_order)
-
-    def get_direction(self, pos, v_in):
-        """
-        Return the next tracking direction, given the current position
-        pos and the previous direction v_in. This direction must respect
-        tracking constraint defined in the tracking_field.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current tracking position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        ------
-        direction: ndarray (3,)
-            A valid tracking direction. None if no valid direction is found.
-        """
-        sf, directions = self.tracking_field.get_tracking_sf(pos, v_in)
-        if np.sum(sf) > 0:
-            return directions[sample_distribution(sf)]
+            # Clean streamline
+            if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
+                return line
+            return None
+        elif self.min_nbr_pts == 1:
+            return [pos]
         return None
 
-
-class DeterministicMaximaTracker(AbstractTracker):
-    """
-    Deterministic direction tracker.
-
-    Parameters
-    ----------
-    tracking_field: scilpy tracking field object
-        The TrackingField object on which the tracking is done.
-    step_size: float
-        The step size for tracking.
-    rk_order: int
-        Order for the Runge Kutta integration.
-    """
-    def __init__(self, tracking_field: SphericalHarmonicField, step_size,
-                 rk_order):
-        super(DeterministicMaximaTracker, self).__init__(
-            tracking_field, step_size, rk_order)
-
-    def get_direction(self, pos, v_in):
+    def _propagate_line(self, is_forward):
         """
-        Get the next valid tracking direction or None if no valid maxima
-        is available.
+        Generate a streamline in forward or backward direction from an initial
+        position following the tracking parameters.
 
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current tracking position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
+        Propagation will stop if the current position is out of bounds (mask's
+        bounds and data's bounds should be the same) or if mask's value at
+        current position is 0 (usual use is with a binary mask but this is not
+        mandatory).
 
-        Return
-        ------
-        direction: ndarray (3,)
-            The maxima closest to v_in. None if the no
-            valid maxima are available.
+        Returns
+        -------
+        line: list of 3D positions
         """
-        maxima_direction = self.tracking_field.get_tracking_maxima(pos, v_in)
-        cosinus = 0
-        v_out = None
-        for d in maxima_direction:
-            new_cosinus = np.dot(v_in, d)
-            if new_cosinus > cosinus:
-                cosinus = new_cosinus
-                v_out = d
-        return v_out
+        line = [self.propagator.init_pos]
+        last_dir = self.propagator.forward_dir if is_forward else \
+            self.propagator.backward_dir
+
+        invalid_direction_count = 0
+
+        propagation_can_continue = True
+        while len(line) < self.max_nbr_pts and propagation_can_continue:
+            new_pos, new_dir, is_valid_direction = self.propagator.propagate(
+                line[-1], last_dir)
+            line.append(new_pos)
+
+            if is_valid_direction:
+                invalid_direction_count = 0
+            else:
+                invalid_direction_count += 1
+
+            if invalid_direction_count > self.max_invalid_dirs:
+                propagation_can_continue = False
+                break
+
+            # Bound can be checked with mask or tracking field
+            # (through self.propagator.is_voxmm_in_bound)
+            propagation_can_continue = (
+                    self.mask.voxmm_to_value(*line[-1],
+                                             origin=self.origin) > 0 and
+                    self.mask.is_voxmm_in_bound(*line[-1],
+                                                origin=self.origin))
+            last_dir = new_dir
+
+        if propagation_can_continue:
+            # Make a last step in the last direction
+            # Ex: if mask is WM, reaching GM a little more.
+            line.append(line[-1] +
+                        self.propagator.step_size * np.array(last_dir))
+
+        # Last cleaning of the streamline
+        # First position is the seed: necessarily in bound.
+        while (len(line) > 1 and
+               not self.propagator.is_voxmm_in_bound(line[-1],
+                                                     origin=self.origin)):
+            line.pop()
+
+        return line

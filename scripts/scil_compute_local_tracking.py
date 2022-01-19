@@ -13,9 +13,6 @@ to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
-For streamline compression, a rule of thumb is to set it to 0.1mm for the
-deterministic algorithm and 0.2mm for probabilitic algorithm.
-
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
@@ -26,7 +23,7 @@ import argparse
 import logging
 
 from dipy.core.sphere import HemiSphere
-from dipy.data import SPHERE_FILES, get_sphere
+from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
@@ -43,10 +40,15 @@ import numpy as np
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+                             verify_compression_th)
 from scilpy.tracking.tools import get_theta
+from scilpy.tracking.utils import (add_mandatory_options_tracking,
+                                   add_out_options, add_seeding_options,
+                                   add_tracking_options,
+                                   verify_streamline_length_options,
+                                   verify_seed_options)
 
 
 def _build_arg_parser():
@@ -54,63 +56,19 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    p._optionals.title = 'Generic options'
-    p.add_argument('in_sh',
-                   help='Spherical harmonic file (.nii.gz) OR \n'
-                        'peaks/evecs (.nii.gz) for EUDX tracking.')
-    p.add_argument('in_seed',
-                   help='Seeding mask  (.nii.gz).')
-    p.add_argument('in_mask',
-                   help='Seeding mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask.')
-    p.add_argument('out_tractogram',
-                   help='Tractogram output file (must be .trk or .tck).')
+    add_mandatory_options_tracking(p)
 
-    track_g = p.add_argument_group('Tracking options')
+    track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use [%(default)s]')
-    track_g.add_argument('--step', dest='step_size', type=float, default=0.5,
-                         help='Step size in mm. [%(default)s]')
-    track_g.add_argument('--min_length', type=float, default=10.,
-                         help='Minimum length of a streamline in mm. '
-                              '[%(default)s]')
-    track_g.add_argument('--max_length', type=float, default=300.,
-                         help='Maximum length of a streamline in mm. '
-                              '[%(default)s]')
-    track_g.add_argument('--theta', type=float,
-                         help='Maximum angle between 2 steps.\n'
-                              '["eudx"=60, "det"=45, "prob"=20]')
-    track_g.add_argument('--sfthres', dest='sf_threshold',
-                         type=float, default=0.1,
-                         help='Spherical function relative threshold. '
-                              '[%(default)s]')
-    add_sh_basis_args(track_g)
+    add_sphere_arg(track_g, symmetric_only=True)
 
-    seed_group = p.add_argument_group(
-        'Seeding options',
-        'When no option is provided, uses --npv 1.')
-    seed_sub_exclusive = seed_group.add_mutually_exclusive_group()
-    seed_sub_exclusive.add_argument('--npv', type=int,
-                                    help='Number of seeds per voxel.')
-    seed_sub_exclusive.add_argument('--nt', type=int,
-                                    help='Total number of seeds to use.')
+    add_seeding_options(p)
+    out_g = add_out_options(p)
 
-    p.add_argument('--sphere', choices=sorted(SPHERE_FILES.keys()),
-                   default='symmetric724',
-                   help='Set of directions to be used for tracking.')
-
-    out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--compress', type=float,
-                       help='If set, will compress streamlines.\n'
-                            'The parameter value is the distance threshold.')
     out_g.add_argument('--seed', type=int,
                        help='Random number generator seed.')
-    add_overwrite_arg(out_g)
-
-    out_g.add_argument('--save_seeds', action='store_true',
-                       help='If set, save the seeds used for the tracking \n '
-                            'in the data_per_streamline property.')
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
@@ -119,12 +77,12 @@ def _build_arg_parser():
 
 
 def _get_direction_getter(args):
-    sh_data = nib.load(args.in_sh).get_fdata(dtype=np.float32)
+    odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
     sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
     theta = get_theta(args.theta, args.algo)
 
-    non_zeros_count = np.count_nonzero(np.sum(sh_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(sh_data, axis=-1))
+    non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
+    non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
 
     if args.algo in ['det', 'prob']:
         if non_first_val_count / non_zeros_count > 0.5:
@@ -135,13 +93,13 @@ def _get_direction_getter(args):
         else:
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
-            shcoeff=sh_data, max_angle=theta, sphere=sphere,
+            shcoeff=odf_data, max_angle=theta, sphere=sphere,
             basis_type=args.sh_basis,
             relative_peak_threshold=args.sf_threshold)
     elif args.algo == 'eudx':
         # Code for type EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
-        sh_shape_3d = sh_data.shape[:-1]
+        odf_shape_3d = odf_data.shape[:-1]
         dg = PeaksAndMetrics()
         dg.sphere = sphere
         dg.ang_thr = theta
@@ -151,32 +109,32 @@ def _get_direction_getter(args):
         # fodf are always around 0.15 and peaks around 0.75
         if non_first_val_count / non_zeros_count > 0.5:
             logging.info('Input detected as peaks.')
-            nb_peaks = sh_data.shape[-1] // 3
+            nb_peaks = odf_data.shape[-1] // 3
             slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(sh_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(sh_shape_3d+(nb_peaks,))
+            peak_values = np.zeros(odf_shape_3d+(nb_peaks,))
+            peak_indices = np.zeros(odf_shape_3d+(nb_peaks,))
 
-            for idx in np.argwhere(np.sum(sh_data, axis=-1)):
+            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
                 idx = tuple(idx)
                 for i in range(nb_peaks):
                     peak_values[idx][i] = np.linalg.norm(
-                        sh_data[idx][slices[i]:slices[i+1]], axis=-1)
+                        odf_data[idx][slices[i]:slices[i+1]], axis=-1)
                     peak_indices[idx][i] = sphere.find_closest(
-                        sh_data[idx][slices[i]:slices[i+1]])
+                        odf_data[idx][slices[i]:slices[i+1]])
 
-            dg.peak_dirs = sh_data
+            dg.peak_dirs = odf_data
         else:
             logging.info('Input detected as fodf.')
             npeaks = 5
-            peak_dirs = np.zeros((sh_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((sh_shape_3d + (npeaks, )))
-            peak_indices = np.full((sh_shape_3d + (npeaks, )), -1, dtype='int')
+            peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
+            peak_values = np.zeros((odf_shape_3d + (npeaks, )))
+            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1, dtype='int')
             b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(sh_data), sphere, args.sh_basis)
+                find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
 
-            for idx in np.argwhere(np.sum(sh_data, axis=-1)):
+            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
                 idx = tuple(idx)
-                directions, values, indices = get_maximas(sh_data[idx],
+                directions, values, indices = get_maximas(odf_data[idx],
                                                           sphere, b_matrix,
                                                           args.sf_threshold, 0)
                 if values.shape[0] != 0:
@@ -200,45 +158,28 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    assert_inputs_exist(parser, [args.in_sh, args.in_seed, args.in_mask])
+    assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
                      'tck): {0}'.format(args.out_tractogram))
 
-    if not args.min_length > 0:
-        parser.error('minL must be > 0, {}mm was provided.'
-                     .format(args.min_length))
-    if args.max_length < args.min_length:
-        parser.error('maxL must be > than minL, (minL={}mm, maxL={}mm).'
-                     .format(args.min_length, args.max_length))
-
-    if args.compress:
-        if args.compress < 0.001 or args.compress > 1:
-            logging.warning(
-                'You are using an error rate of {}.\nWe recommend setting it '
-                'between 0.001 and 1.\n0.001 will do almost nothing to the '
-                'tracts while 1 will higly compress/linearize the tracts'
-                .format(args.compress))
-
-    if args.npv and args.npv <= 0:
-        parser.error('Number of seeds per voxel must be > 0.')
-
-    if args.nt and args.nt <= 0:
-        parser.error('Total number of seeds must be > 0.')
+    verify_streamline_length_options(parser, args)
+    verify_compression_th(args.compress)
+    verify_seed_options(parser, args)
 
     mask_img = nib.load(args.in_mask)
     mask_data = get_data_as_mask(mask_img, dtype=bool)
 
-    # Make sure the mask is isotropic. Else, the strategy used
+    # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results.
-    fodf_sh_img = nib.load(args.in_sh)
-    if not np.allclose(np.mean(fodf_sh_img.header.get_zooms()[:3]),
-                       fodf_sh_img.header.get_zooms()[0], atol=1e-03):
+    odf_sh_img = nib.load(args.in_odf)
+    if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
+                       odf_sh_img.header.get_zooms()[0], atol=1e-03):
         parser.error(
-            'SH file is not isotropic. Tracking cannot be ran robustly.')
+            'ODF SH file is not isotropic. Tracking cannot be ran robustly.')
 
     if args.npv:
         nb_seeds = args.npv
@@ -250,7 +191,7 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    voxel_size = fodf_sh_img.header.get_zooms()[0]
+    voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
@@ -262,7 +203,7 @@ def main():
 
     # Tracking is performed in voxel space
     max_steps = int(args.max_length / args.step_size) + 1
-    streamlines = LocalTracking(
+    streamlines_generator = LocalTracking(
         _get_direction_getter(args),
         BinaryStoppingCriterion(mask_data),
         seeds, np.eye(4),
@@ -277,12 +218,12 @@ def main():
 
     if args.save_seeds:
         filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines
+            zip(*((s, p) for s, p in streamlines_generator
                   if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
         filtered_streamlines = \
-            (s for s in streamlines
+            (s for s in streamlines_generator
              if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
