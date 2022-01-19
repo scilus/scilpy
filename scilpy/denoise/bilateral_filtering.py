@@ -402,7 +402,22 @@ def _process_subset_directions(args):
 
 def _correlate_spatial(image_u, h_filter, sigma_range):
     """
-    Implementation of correlate function.
+    Implementation of the correlation operation for anisotropic filtering.
+
+    Parameters
+    ----------
+    image_u: ndarray (X, Y, Z)
+        SF image for some sphere direction u.
+    h_filter: ndarray (W, H, D)
+        3-dimensional filter to apply.
+    sigma_range: float
+        Standard deviation of the Gaussian distribution defining the
+        range kernel.
+
+    Returns
+    -------
+    out_im: ndarray (X, Y, Z)
+        Filtered SF image.
     """
     h_w, h_h, h_d = h_filter.shape[:3]
     half_w, half_h, half_d = h_w // 2, h_h // 2, h_d // 2
