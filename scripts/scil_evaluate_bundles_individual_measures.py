@@ -70,7 +70,7 @@ def _build_arg_parser():
                    help='Show average measures \n'
                         '[%(default)s].')
 
-    p.add_argument('--no_uniformize', action='store_false',
+    p.add_argument('--no_uniformize', action='store_true',
                    help='Do NOT automatically uniformize endpoints for the'
                         'endpoints related metrics.')
     add_reference_arg(p)
@@ -85,7 +85,7 @@ def compute_measures(args):
     filename_tuple, no_uniformize = args
     sft = load_tractogram(filename_tuple[0], filename_tuple[1])
     _, dimensions, voxel_size, _ = sft.space_attributes
-    if no_uniformize:
+    if not no_uniformize:
         uniformize_bundle_sft(sft)
     nbr_streamlines = len(sft)
     if not nbr_streamlines:
