@@ -6,11 +6,9 @@ from scilpy.reconst.bingham import bingham_to_peak_direction
 from scilpy.tractanalysis.grid_intersections import grid_intersections
 
 
-def lobe_specific_metric_map_along_streamlines(sft: StatefulTractogram,
-                                               bingham_coeffs: np.ndarray,
-                                               metric: np.ndarray,
-                                               max_theta: float,
-                                               length_weighting: bool):
+def lobe_specific_metric_map_along_streamlines(sft, bingham_coeffs,
+                                               metric, max_theta,
+                                               length_weighting):
     """
     Compute mean map for a given lobe-specific metric along streamlines.
 
