@@ -240,13 +240,44 @@ def angle_aware_bilateral_filtering_cpu(in_sh, sh_order=8,
     return out_sh
 
 
-def evaluate_gaussian_distribution(x, sigma):
+def _evaluate_gaussian_distribution(x, sigma):
+    """
+    1-dimensional 0-centered Gaussian distribution
+    with standard deviation sigma.
+
+    Parameters
+    ----------
+    x: ndarray or float
+        Points where the distribution is evaluated.
+    sigma: float
+        Standard deviation.
+
+    Returns
+    -------
+    out: ndarray or float
+        Values at x.
+    """
     assert sigma > 0.0, "Sigma must be greater than 0."
     cnorm = 1.0 / sigma / np.sqrt(2.0*np.pi)
     return cnorm * np.exp(-x**2/2/sigma**2)
 
 
 def _get_window_directions(shape):
+    """
+    Get directions from center voxel to all neighbours
+    for a window of given shape.
+
+    Parameters
+    ----------
+    shape: tuple
+        Dimensions of the window.
+
+    Returns
+    -------
+    grid: ndarray
+        Grid containing the direction from the center voxel to
+        the current position for all positions inside the window.
+    """
     grid = np.indices(shape)
     grid = np.moveaxis(grid, 0, -1)
     grid = grid - np.asarray(shape) // 2
@@ -254,6 +285,23 @@ def _get_window_directions(shape):
 
 
 def _get_spatial_weights(sigma_spatial):
+    """
+    Compute the spatial filter, which is an isotropic Gaussian filter
+    of standard deviation sigma_spatial forweighting by the distance
+    between voxel positions. The size of the filter is given by
+    6 * sigma_spatial, in order to cover the range
+    [-3*sigma_spatial, 3*sigma_spatial].
+
+    Parameters
+    ----------
+    sigma_spatial: float
+        Standard deviation of spatial filter.
+
+    Returns
+    -------
+    spatial_weights: ndarray
+        Spatial filter.
+    """
     shape = int(6 * sigma_spatial)
     if shape % 2 == 0:
         shape += 1
@@ -262,7 +310,7 @@ def _get_spatial_weights(sigma_spatial):
     grid = _get_window_directions(shape)
 
     distances = np.linalg.norm(grid, axis=-1)
-    spatial_weights = evaluate_gaussian_distribution(distances, sigma_spatial)
+    spatial_weights = _evaluate_gaussian_distribution(distances, sigma_spatial)
 
     # normalize filter
     spatial_weights /= np.sum(spatial_weights)
@@ -270,6 +318,25 @@ def _get_spatial_weights(sigma_spatial):
 
 
 def _get_angular_weights(shape, sphere, sigma_angular):
+    """
+    Compute the angular filter, weighted by the alignment between a
+    sphere direction and the direction to a neighbour. The parameter
+    sigma_angular controls the sharpness of the kernel.
+
+    Parameters
+    ----------
+    shape: tuple
+        Shape of the angular filter.
+    sphere: dipy Sphere
+        Sphere on which the SH coefficeints are projected.
+    sigma_angular: float
+        Standard deviation of Gaussian distribution.
+
+    Returns
+    -------
+    angular_weights: ndarray
+        Angular filter for each position and for each sphere direction.
+    """
     grid_dirs = _get_window_directions(shape).astype(np.float32)
     dir_norms = np.linalg.norm(grid_dirs, axis=-1)
 
@@ -278,7 +345,7 @@ def _get_angular_weights(shape, sphere, sigma_angular):
     angles = np.arccos(np.dot(grid_dirs, sphere.vertices.T))
     angles[np.logical_not(dir_norms > 0), :] = 0.0
 
-    angular_weights = evaluate_gaussian_distribution(angles, sigma_angular)
+    angular_weights = _evaluate_gaussian_distribution(angles, sigma_angular)
 
     # normalize filter per direction
     angular_weights /= np.sum(angular_weights, axis=(0, 1, 2))
@@ -327,13 +394,13 @@ def _process_subset_directions(args):
 
         # Generate 1-channel images for directions u and -u
         current_sf = np.dot(in_sh, B[:, sph_id])
-        out_sf[..., offset_i] = correlate_spatial(current_sf,
-                                                  w_filter,
-                                                  sigma_range)
+        out_sf[..., offset_i] = _correlate_spatial(current_sf,
+                                                   w_filter,
+                                                   sigma_range)
     return out_sf
 
 
-def correlate_spatial(image_u, h_filter, sigma_range):
+def _correlate_spatial(image_u, h_filter, sigma_range):
     """
     Implementation of correlate function.
     """
@@ -349,7 +416,7 @@ def correlate_spatial(image_u, h_filter, sigma_range):
             for kk in range(out_im.shape[2]):
                 x = image_u[ii:ii+h_w, jj:jj+h_h, kk:kk+h_d]\
                     - image_u[ii, jj, kk]
-                range_filter = evaluate_gaussian_distribution(x, sigma_range)
+                range_filter = _evaluate_gaussian_distribution(x, sigma_range)
                 res_filter = range_filter * h_filter
 
                 out_im[ii, jj, kk] += np.sum(image_u[ii:ii+h_w,
