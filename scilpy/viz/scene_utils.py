@@ -6,6 +6,7 @@ import numpy as np
 from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
+import vtk
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import bingham_to_sf
@@ -225,6 +226,63 @@ def create_bingham_slicer(data, orientation, slice_index,
         actors.append(odf_actor)
 
     return actors
+
+
+def create_tube_with_radii(positions, radii, error, error_coloring=False,
+                           wireframe=False):
+    # Generate the polydata from the centroids
+    joint_count = len(positions)
+    pts = vtk.vtkPoints()
+    lines = vtk.vtkCellArray()
+    lines.InsertNextCell(joint_count)
+    for j in range(joint_count):
+        pts.InsertPoint(j, positions[j])
+        lines.InsertCellPoint(j)
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(pts)
+    polydata.SetLines(lines)
+
+    # Generate the coloring from either the labels or the fitting error
+    colors_arr = vtk.vtkFloatArray()
+    for i in range(joint_count):
+        if error_coloring:
+            colors_arr.InsertNextValue(error[i])
+        else:
+            colors_arr.InsertNextValue(len(error) - 1 - i)
+    colors_arr.SetName("colors")
+    polydata.GetPointData().AddArray(colors_arr)
+
+    # Generate the radii array for VTK
+    radii_arr = vtk.vtkFloatArray()
+    for i in range(joint_count):
+        radii_arr.InsertNextValue(radii[i])
+    radii_arr.SetName("radii")
+    polydata.GetPointData().SetScalars(radii_arr)
+
+    # Tube filter for the rendering with varying radii
+    tubeFilter = vtk.vtkTubeFilter()
+    tubeFilter.SetInputData(polydata)
+    tubeFilter.SetVaryRadiusToVaryRadiusByAbsoluteScalar()
+    tubeFilter.SetNumberOfSides(25)
+    tubeFilter.CappingOn()
+
+    # Map the coloring to the tube filter
+    tubeFilter.Update()
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(tubeFilter.GetOutputPort())
+    mapper.SetScalarModeToUsePointFieldData()
+    mapper.SelectColorArray("colors")
+    if error_coloring:
+        mapper.SetScalarRange(0, max(error))
+    else:
+        mapper.SetScalarRange(0, len(error))
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    if wireframe:
+        actor.GetProperty().SetRepresentationToWireframe()
+
+    return actor
 
 
 def create_scene(actors, orientation, slice_index, volume_shape):
