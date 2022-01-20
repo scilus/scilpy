@@ -20,13 +20,13 @@ https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
 """
 import argparse
 
+from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 import nibabel as nib
 import numpy as np
-from dipy.reconst.shm import order_from_ncoef, sph_harm_ind_list
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist, \
-    assert_outputs_exist
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.reconst.sh import compute_rish
 
 
@@ -65,17 +65,18 @@ def main():
     sh_order = order_from_ncoef(sh.shape[-1], full_basis=args.full_basis)
     _, order_ids = sph_harm_ind_list(sh_order, full_basis=args.full_basis)
     orders = sorted(np.unique(order_ids))
-    output_fnames = {i: "{}{}.nii.gz".format(args.out_prefix, i) for i in
-                     orders}
-    assert_outputs_exist(parser, args, output_fnames.values())
+    output_fnames = ["{}{}.nii.gz".format(args.out_prefix, i) for i in orders]
+    assert_outputs_exist(parser, args, output_fnames)
 
     # Compute RISH features
-    rish, orders = compute_rish(sh, mask, full_basis=args.full_basis)
+    rish, final_orders = compute_rish(sh, mask, full_basis=args.full_basis)
+
+    # Make sure the precomputed orders match the orders returned
+    assert np.all(orders == np.array(final_orders))
 
     # Save each RISH feature as a separate file
-    for i, order in enumerate(orders):
-        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine),
-                 output_fnames[order])
+    for i, fname in enumerate(output_fnames):
+        nib.save(nib.Nifti1Image(rish[..., i], sh_img.affine), fname)
 
 
 if __name__ == '__main__':
