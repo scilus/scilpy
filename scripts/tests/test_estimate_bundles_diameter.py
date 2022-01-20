@@ -24,6 +24,6 @@ def test_execution_tractometry(script_runner):
     in_labels = os.path.join(get_home(), 'tractometry',
                              'IFGWM_labels_map.nii.gz')
     ret = script_runner.run('scil_estimate_bundles_diameter.py',
-                            in_bundle, in_labels,'--save_rendering', 'out/',
+                            in_bundle, in_labels,
                             '--wireframe', '--fitting_func', 'lin_up')
     assert ret.success
