@@ -111,7 +111,7 @@ def _build_arg_parser():
     add_processes_arg(m_g)
     m_g.add_argument('--set_mmap_to_none', action='store_true',
                      help="If true, use mmap_mode=None. Else mmap_mode='r+'. "
-                          "\nUsed in np.load(data_file_info). TO BE CLEANED")
+                          "\nUsed in np.load(data_file_info).")
 
     add_out_options(p)
     add_verbose_arg(p)

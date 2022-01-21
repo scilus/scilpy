@@ -18,7 +18,7 @@ class AbstractPropagator(object):
     """
     Abstract class for propagator object. "Propagation" means continuing the
     streamline a step further. The propagator is thus responsible for sampling
-    the final direction at current step through Runge-Kutta integration
+    the next direction at current step through Runge-Kutta integration
     (whereas the tracker using this propagator will be responsible for the
     processing parameters, number of streamlines, stopping criteria, etc.).
 
@@ -480,7 +480,7 @@ class ODFPropagator(PropagatorOnSphere):
 
         # Not normalizing: direction comes from dipy's (unit) sphere so
         # supposing that it's ok.
-        return v_out  # / np.linalg.norm(v_out)
+        return v_out
 
     def _get_possible_next_dirs_prob(self, pos, v_in):
         """
