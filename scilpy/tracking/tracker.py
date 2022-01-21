@@ -12,7 +12,7 @@ import numpy as np
 from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.datasets import DataVolume
-from scilpy.tracking.propagator import AbstractPropagator
+from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.tracking.seed import SeedGenerator
 
 # For the multi-processing:
@@ -107,9 +107,8 @@ class Tracker(object):
                 # must be better designed for dipy
                 # the tracking should not know which data to deal with
                 data_file_name = os.path.join(tmpdir, 'data.npy')
-                np.save(data_file_name,
-                        self.propagator.tracking_field.dataset.data)
-                self.propagator.tracking_field.dataset.data = None
+                np.save(data_file_name, self.propagator.dataset.data)
+                self.propagator.reset_data()
 
                 # Using pool with a class method will serialize all parameters
                 # in the class, which can be heavy, but it is what we would be
@@ -168,8 +167,8 @@ class Tracker(object):
         """
         global data_file_info
 
-        self.propagator.tracking_field.dataset.data = np.load(
-            data_file_info[0], mmap_mode=data_file_info[1])
+        self.propagator.reset_data(np.load(
+            data_file_info[0], mmap_mode=data_file_info[1]))
 
         try:
             streamlines, seeds = self._get_streamlines(chunk_id)
@@ -219,6 +218,8 @@ class Tracker(object):
 
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
+
+            # Forward and backward tracking
             line = self._get_line_both_directions(seed)
 
             if line is not None:
@@ -231,17 +232,16 @@ class Tracker(object):
 
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
-
         return streamlines, seeds
 
-    def _get_line_both_directions(self, pos):
+    def _get_line_both_directions(self, seeding_pos):
         """
         Generate a streamline from an initial position following the tracking
         parameters.
 
         Parameters
         ----------
-        pos : tuple
+        seeding_pos : tuple
             3D position, the seed position.
 
         Returns
@@ -253,38 +253,31 @@ class Tracker(object):
         #  This is a convenience, legacy function.
         #  The best practice is to not reseed a BitGenerator, rather to
         #  recreate a new one. This method is here for legacy reasons.
-        np.random.seed(np.uint32(hash((pos, self.rng_seed))))
-        line = [pos]
+        np.random.seed(np.uint32(hash((seeding_pos, self.rng_seed))))
 
-        # Initialize returns true if initial directions at pos are valid.
-        if self.propagator.initialize(pos, self.track_forward_only):
-            # Forward
-            forward = self._propagate_line(True)
-            if len(forward) > 0:
-                forward.pop(0)
-                line.extend(forward)
-
-            # Backward
-            if not self.track_forward_only:
-                # Depending on the propagator, adding possibility to reset some
-                # parameters at this point.
-                self.propagator.start_backward()
-
-                backward = self._propagate_line(False)
-                if len(backward) > 0:
-                    line.reverse()
-                    line.pop()
-                    line.extend(backward)
-
-            # Clean streamline
-            if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
-                return line
+        # Forward
+        line = [seeding_pos]
+        tracking_info = self.propagator.prepare_forward(seeding_pos)
+        if tracking_info == PropagationStatus.ERROR:
+            # No good tracking direction can be found at seeding position.
             return None
-        elif self.min_nbr_pts == 1:
-            return [pos]
+        line = self._propagate_line(line, tracking_info)
+
+        # Backward
+        if not self.track_forward_only:
+            if len(line) > 1:
+                line.reverse()
+
+            tracking_info = self.propagator.prepare_backward(line,
+                                                             tracking_info)
+            line = self._propagate_line(line, tracking_info)
+
+        # Clean streamline
+        if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
+            return line
         return None
 
-    def _propagate_line(self, is_forward):
+    def _propagate_line(self, line, tracking_info):
         """
         Generate a streamline in forward or backward direction from an initial
         position following the tracking parameters.
@@ -294,51 +287,60 @@ class Tracker(object):
         current position is 0 (usual use is with a binary mask but this is not
         mandatory).
 
+        Parameters
+        ----------
+        line: List
+            Beginning of the line to propagate.
+        tracking_info: Any
+            Information necessary to know how to propagate. Type: as understood
+            by the propagator. Example, with the typical fODF propagator: the
+            previous direction of the streamline, v_in, used to define a cone
+            theta, of type TrackingDirection.
+
         Returns
         -------
         line: list of 3D positions
+            At minimum, stays as initial line. Or extended with new tracked
+            points.
         """
-        line = [self.propagator.init_pos]
-        last_dir = self.propagator.forward_dir if is_forward else \
-            self.propagator.backward_dir
-
         invalid_direction_count = 0
-
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
-            new_pos, new_dir, is_valid_direction = self.propagator.propagate(
-                line[-1], last_dir)
-            line.append(new_pos)
+            new_pos, new_tracking_info, is_direction_valid = \
+                self.propagator.propagate(line[-1], tracking_info)
 
-            if is_valid_direction:
+            # Verifying and appending
+            if is_direction_valid:
                 invalid_direction_count = 0
             else:
                 invalid_direction_count += 1
+            propagation_can_continue = self._verify_stopping_criteria(
+                invalid_direction_count, new_pos)
+            if propagation_can_continue:
+                line.append(new_pos)
 
-            if invalid_direction_count > self.max_invalid_dirs:
-                propagation_can_continue = False
-                break
+            tracking_info = new_tracking_info
 
-            # Bound can be checked with mask or tracking field
-            # (through self.propagator.is_voxmm_in_bound)
-            propagation_can_continue = (
-                    self.mask.voxmm_to_value(*line[-1],
-                                             origin=self.origin) > 0 and
-                    self.mask.is_voxmm_in_bound(*line[-1],
-                                                origin=self.origin))
-            last_dir = new_dir
-
-        if propagation_can_continue:
-            # Make a last step in the last direction
-            # Ex: if mask is WM, reaching GM a little more.
-            line.append(line[-1] +
-                        self.propagator.step_size * np.array(last_dir))
-
-        # Last cleaning of the streamline
-        # First position is the seed: necessarily in bound.
-        while (len(line) > 1 and
-               not self.propagator.is_voxmm_in_bound(line[-1],
-                                                     origin=self.origin)):
-            line.pop()
-
+        # Possible last step.
+        final_pos = self.propagator.finalize_streamline(line[-1],
+                                                        tracking_info)
+        if (final_pos is not None and
+                not np.array_equal(final_pos, line[-1]) and
+                self.mask.is_voxmm_in_bound(*final_pos, origin=self.origin)):
+            line.append(final_pos)
         return line
+
+    def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
+        # Checking number of consecutive invalid directions
+        if invalid_direction_count > self.max_invalid_dirs:
+            return False
+
+        # Checking if out of bound
+        if not self.mask.is_voxmm_in_bound(*last_pos, origin=self.origin):
+            return False
+
+        # Checking if out of mask
+        if self.mask.voxmm_to_value(*last_pos, origin=self.origin) <= 0:
+            return False
+
+        return True
