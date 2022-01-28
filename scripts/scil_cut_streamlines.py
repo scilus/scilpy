@@ -3,10 +3,10 @@
 
 """
 Filters streamlines and only keeps the parts of streamlines within or
-between the ROIs. The script accept a single input mask, the mask has either
+between the ROIs. The script accepts a single input mask, the mask has either
 1 entity/blob or 2 entities/blobs.
 
-The 1 entity scenario will 'trim' the streamlines so their longest segment are
+The 1 entity scenario will 'trim' the streamlines so their longest segment is
 within the bounding box or a binary mask.
 
 The 2 entities scenario will cut streamlines so their segment are within the
@@ -103,7 +103,7 @@ def main():
                         'Saving empty tractogram.')
     elif args.error_rate is not None:
         compressed_strs = [compress_streamlines(
-            s, args.error_rate) for s in sft.streamlines]
+            s, args.error_rate) for s in new_sft.streamlines]
         new_sft = StatefulTractogram.from_sft(compressed_strs, sft)
 
     save_tractogram(new_sft, args.out_tractogram)
