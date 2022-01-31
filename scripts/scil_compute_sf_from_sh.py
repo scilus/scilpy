@@ -61,6 +61,9 @@ def _build_arg_parser():
     p.add_argument('--out_bvec',
                    help="Optional output bvec file.")
 
+    p.add_argument('--b0_scaling', action="store_true",
+                   help="Scale resulting SF by the b0 image.")
+
     add_sh_basis_args(p)
     p.add_argument('--full_basis', action="store_true",
                    help="If true, use a full basis for the input SH "
@@ -87,6 +90,9 @@ def main():
             args.out_bval and not args.in_bval):
         parser.error("--out_bval is required if --in_bval is provided, "
                      "and vice-versa.")
+
+    if args.b0_scaling and not args.in_b0:
+            parser.error("--in_b0 is required when using --b0_scaling.")
 
     nbr_processes = validate_nbr_processes(parser, args)
 
@@ -135,6 +141,10 @@ def main():
         # Append zeros to bvecs
         new_bvecs = np.concatenate(
             (np.zeros((data_b0.shape[-1], 3)), new_bvecs), axis=0)
+
+        # Scale SF by b0
+        if args.b0_scaling:
+            sf = sf * data_b0
 
         # Append b0 images to SF
         sf = np.concatenate((data_b0, sf), axis=-1)
