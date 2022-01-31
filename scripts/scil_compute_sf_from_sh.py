@@ -144,7 +144,8 @@ def main():
 
         # Scale SF by b0
         if args.b0_scaling:
-            sf = sf * data_b0
+            scale_b0 = np.mean(data_b0, axis=-1, keepdims=True)
+            sf = sf * scale_b0
 
         # Append b0 images to SF
         sf = np.concatenate((data_b0, sf), axis=-1)
