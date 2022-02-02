@@ -3,9 +3,10 @@ from enum import Enum
 
 import dipy
 import numpy as np
-from dipy.reconst.shm import order_from_ncoef, sh_to_sf_matrix
+from dipy.reconst.shm import sh_to_sf_matrix
 
-from scilpy.reconst.utils import get_sphere_neighbours
+from scilpy.reconst.utils import (get_sphere_neighbours,
+                                  get_sh_order_and_fullness)
 from scilpy.tracking.tools import sample_distribution
 from scilpy.tracking.utils import TrackingDirection
 
@@ -372,10 +373,12 @@ class ODFPropagator(PropagatorOnSphere):
         # ODF params
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
-        sh_order = order_from_ncoef(self.dataset.data.shape[-1])
+        sh_order, full_basis =\
+            get_sh_order_and_fullness(self.dataset.data.shape[-1])
         self.basis = basis
         self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
-                                 smooth=0.006, return_inv=False)
+                                 smooth=0.006, return_inv=False,
+                                 full_basis=full_basis)
 
     def _get_sf(self, pos):
         """
