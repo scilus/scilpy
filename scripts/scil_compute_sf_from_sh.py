@@ -19,6 +19,7 @@ from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 
+from scilpy.image.operations import lower_clip, upper_clip
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              assert_inputs_exist,
@@ -153,6 +154,8 @@ def main():
 
         # Scale SF by b0
         if args.b0_scaling:
+            # Clip SF signal between 0. and 1., then scale using mean b0
+            sf = np.clip(sf, 0., 1.)
             scale_b0 = np.mean(data_b0, axis=-1, keepdims=True)
             sf = sf * scale_b0
 
