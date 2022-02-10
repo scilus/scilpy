@@ -28,7 +28,19 @@ class CLManager(object):
         self.input_buffers = []
         self.output_buffers = []
 
-        self.context = cl.create_some_context(interactive=False)
+        # Find the best device for running GPU tasks
+        platforms = cl.get_platforms()
+        best_device = None
+        for p in platforms:
+            devices = p.get_devices()
+            for d in devices:
+                if best_device is None:
+                    best_device = d
+                elif (d.info.IMAGE_MAX_BUFFER_SIZE >
+                      best_device.info.IMAGE_MAX_BUFFER_SIZE):
+                    best_device = d
+
+        self.context = cl.Context(devices=[best_device])
         self.queue = cl.CommandQueue(self.context)
         program = cl.Program(self.context, cl_kernel.code_string).build()
         self.kernel = cl.Kernel(program, cl_kernel.entry_point)
