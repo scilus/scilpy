@@ -36,6 +36,6 @@ def test_execution_processing(script_runner):
                             '--mask', mask, '--wm_out_fODF', 'wm_fodf.nii.gz',
                             '--gm_out_fODF', 'gm_fodf.nii.gz', '--csf_out_fODF',
                             'csf_fodf.nii.gz', '--vf', 'vf.nii.gz',
-                            '--sh_order', '4', '--sh_basis', 'tournier07',
-                            '--processes', '1', '-f')
+                            '--sh_order', '8', '--sh_basis', 'tournier07',
+                            '--processes', '8', '-f')
     assert ret.success

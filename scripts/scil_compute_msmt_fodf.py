@@ -143,6 +143,7 @@ def main():
     # Checking data and sh_order
     b0_thr = check_b0_threshold(
         args.force_b0_threshold, bvals.min(), bvals.min())
+
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWIs volumes, but you '
@@ -179,8 +180,10 @@ def main():
                                        sh_order=sh_order)
 
     # Computing msmt-CSD fit
-    msmt_fit = fit_from_model(msmt_model, data,
-                              mask=mask, nbr_processes=args.nbr_processes)
+    # msmt_fit = fit_from_model(msmt_model, data,
+    #                           mask=mask, nbr_processes=args.nbr_processes)
+
+    msmt_fit = msmt_model.fit(data)
 
     shm_coeff = msmt_fit.all_shm_coeff
 

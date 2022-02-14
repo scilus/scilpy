@@ -95,5 +95,5 @@ def test_execution_processing(script_runner):
                             in_bval_lin, in_bval_sph,
                             '--in_bvecs', in_bvec_lin,
                             in_bvec_sph, '--in_bdeltas', '1', '0',
-                            '--sh_order', '4', '--processes', '1', '-f')
+                            '--sh_order', '8', '--processes', '8', '-f')
     assert ret.success
