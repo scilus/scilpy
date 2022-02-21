@@ -4,7 +4,8 @@
 """
 Filters streamlines and only keeps the parts of streamlines within or
 between the ROIs. The script accepts a single input mask, the mask has either
-1 entity/blob or 2 entities/blobs.
+1 entity/blob or 2 entities/blobs (does not support disconnected voxels).
+The option --biggest_blob can help if you have such a scenario.
 
 The 1 entity scenario will 'trim' the streamlines so their longest segment is
 within the bounding box or a binary mask.
@@ -47,7 +48,7 @@ def _build_arg_parser():
                    help='Output tractogram file.')
 
     p.add_argument('--resample', dest='step_size', type=float, default=None,
-                   help='Resample streamlines to a specific step-size in mm'
+                   help='Resample streamlines to a specific step-size in mm '
                         '[%(default)s].')
     p.add_argument('--compress', dest='error_rate', type=float, default=None,
                    help='Maximum compression distance in mm [%(default)s].')
