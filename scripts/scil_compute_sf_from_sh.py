@@ -19,7 +19,6 @@ from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
 
-from scilpy.image.operations import lower_clip, upper_clip
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
                              assert_inputs_exist,
