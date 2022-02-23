@@ -6,9 +6,10 @@ import numpy as np
 from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
+import vtk
 
 from scilpy.io.utils import snapshot
-from scilpy.reconst.bingham import BinghamDistribution, NB_PARAMS
+from scilpy.reconst.bingham import bingham_to_sf
 
 
 class CamParams(Enum):
@@ -206,27 +207,17 @@ def create_bingham_slicer(data, orientation, slice_index,
         ODF slicer actors representing the Bingham distributions.
     """
     shape = data.shape
-    nb_lobes = shape[-1] // NB_PARAMS
-    nb_vertices = len(sphere.vertices)
+    nb_lobes = shape[-2]
     colors = [c * 255 for i, c in zip(range(nb_lobes),
                                       distinguishable_colormap())]
 
     # lmax norm for normalization
-    lmaxnorm = np.max(np.abs(data[..., ::NB_PARAMS]), axis=-1)
+    lmaxnorm = np.max(np.abs(data[..., 0]), axis=-1)
+    bingham_sf = bingham_to_sf(data, sphere.vertices)
 
-    sf = np.zeros((shape[0], shape[1], shape[2], nb_vertices))
     actors = []
     for nn in range(nb_lobes):
-        nn_dat = data[..., nn*NB_PARAMS:(nn+1)*NB_PARAMS]
-        for ii in range(shape[0]):
-            for jj in range(shape[1]):
-                for kk in range(shape[2]):
-                    params = nn_dat[ii, jj, kk]
-                    fit = BinghamDistribution(params[0], params[1:4],
-                                              params[4:7], params[7],
-                                              params[8])
-                    sf[ii, jj, kk, :] = fit.evaluate(sphere.vertices)  # (1, N)
-
+        sf = bingham_sf[..., nn, :]
         sf[lmaxnorm > 0] /= lmaxnorm[lmaxnorm > 0][:, None]
         color = colors[nn] if color_per_lobe else None
         odf_actor = actor.odf_slicer(sf, sphere=sphere, norm=False,
@@ -235,6 +226,63 @@ def create_bingham_slicer(data, orientation, slice_index,
         actors.append(odf_actor)
 
     return actors
+
+
+def create_tube_with_radii(positions, radii, error, error_coloring=False,
+                           wireframe=False):
+    # Generate the polydata from the centroids
+    joint_count = len(positions)
+    pts = vtk.vtkPoints()
+    lines = vtk.vtkCellArray()
+    lines.InsertNextCell(joint_count)
+    for j in range(joint_count):
+        pts.InsertPoint(j, positions[j])
+        lines.InsertCellPoint(j)
+    polydata = vtk.vtkPolyData()
+    polydata.SetPoints(pts)
+    polydata.SetLines(lines)
+
+    # Generate the coloring from either the labels or the fitting error
+    colors_arr = vtk.vtkFloatArray()
+    for i in range(joint_count):
+        if error_coloring:
+            colors_arr.InsertNextValue(error[i])
+        else:
+            colors_arr.InsertNextValue(len(error) - 1 - i)
+    colors_arr.SetName("colors")
+    polydata.GetPointData().AddArray(colors_arr)
+
+    # Generate the radii array for VTK
+    radii_arr = vtk.vtkFloatArray()
+    for i in range(joint_count):
+        radii_arr.InsertNextValue(radii[i])
+    radii_arr.SetName("radii")
+    polydata.GetPointData().SetScalars(radii_arr)
+
+    # Tube filter for the rendering with varying radii
+    tubeFilter = vtk.vtkTubeFilter()
+    tubeFilter.SetInputData(polydata)
+    tubeFilter.SetVaryRadiusToVaryRadiusByAbsoluteScalar()
+    tubeFilter.SetNumberOfSides(25)
+    tubeFilter.CappingOn()
+
+    # Map the coloring to the tube filter
+    tubeFilter.Update()
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(tubeFilter.GetOutputPort())
+    mapper.SetScalarModeToUsePointFieldData()
+    mapper.SelectColorArray("colors")
+    if error_coloring:
+        mapper.SetScalarRange(0, max(error))
+    else:
+        mapper.SetScalarRange(0, len(error))
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    if wireframe:
+        actor.GetProperty().SetRepresentationToWireframe()
+
+    return actor
 
 
 def create_scene(actors, orientation, slice_index, volume_shape):

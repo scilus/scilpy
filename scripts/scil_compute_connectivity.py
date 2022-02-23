@@ -164,13 +164,10 @@ def _processing_wrapper(args):
 
                 metric_data = metric_img.get_fdata(dtype=np.float64)
                 if weighted:
-                    density = density / np.max(density)
-                    voxels_value = metric_data * density
-                    voxels_value = voxels_value[voxels_value > 0]
+                    avg_value = np.average(metric_data, weights=density)
                 else:
-                    voxels_value = metric_data[density > 0]
-
-                measures_to_return[metric_filename] = np.average(voxels_value)
+                    avg_value = np.average(metric_data[density > 0])
+                measures_to_return[metric_filename] = avg_value
             # lesion
             else:
                 lesion_filename = measure[0][0]

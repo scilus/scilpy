@@ -53,13 +53,13 @@ def get_testing_files_dict():
              '981dccd8b23aad43aa014f4fdd907e70'],
             'processing.zip':
             ['1caaKoAChyPs5c4WemQWUsR-efD_q2z_b',
-             'b8590ee6fa6b5f1e7a19d5238d4522b7'],
+             'a2f982b8d84833f5ccfe709b725307d2'],
             'surface_vtk_fib.zip':
             ['1c9KMNFeSkyYDgu3SH_aMf0kduIlpt7cN',
              '946beb4271b905a2bd69ad2d80136ca9'],
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
-             'f0492dd995f6bcb14b525a55edab9807'],
+             '6d88910403fb4d9b79604f11100d8915'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc'],

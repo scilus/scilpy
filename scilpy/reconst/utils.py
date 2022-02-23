@@ -63,3 +63,26 @@ def get_maximas(data, sphere, b_matrix, threshold, absolute_threshold,
     spherical_func[np.nonzero(spherical_func < absolute_threshold)] = 0.
     return peak_directions(
         spherical_func, sphere, threshold, min_separation_angle)
+
+
+def get_sphere_neighbours(sphere, max_angle):
+    """
+    Get a matrix of neighbours for each direction on the sphere, within
+    the min_separation_angle.
+
+    min_separation_angle: float
+        Maximum angle in radians defining the neighbourhood
+        of each direction.
+
+    Return
+    ------
+    neighbours: ndarray
+        Neighbour directions for each direction on the sphere.
+    """
+    xs = sphere.vertices[:, 0]
+    ys = sphere.vertices[:, 1]
+    zs = sphere.vertices[:, 2]
+    scalar_prods = (np.outer(xs, xs) + np.outer(ys, ys) +
+                    np.outer(zs, zs))
+    neighbours = scalar_prods >= np.cos(max_angle)
+    return neighbours
