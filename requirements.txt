@@ -15,6 +15,7 @@ Pillow==9.0.0
 bids-validator==1.6.0
 pybids==0.10.*
 pyparsing==2.2.*
+PySocks==1.7.*
 python-dateutil==2.7.*
 pytz==2018.4.*
 scikit-learn==0.22.*
@@ -27,7 +28,7 @@ coloredlogs==10.0.*
 nilearn==0.6.*
 pytest==5.3.*
 pytest_console_scripts==0.2.*
-googledrivedownloader==0.*
+gdown==4.3.*
 requests==2.23.*
 bctpy==0.5.*
 statsmodels==0.11.*
