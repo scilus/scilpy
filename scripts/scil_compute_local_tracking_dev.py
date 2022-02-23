@@ -178,9 +178,13 @@ def main():
 
     logging.debug("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, max_invalid_dirs, args.compress,
-                      args.nbr_processes, args.save_seeds, mmap_mode='r+',
-                      args.rng_seed, args.forward_only, args.skip)
+                      max_nbr_pts, max_invalid_dirs,
+                      compression_th=args.compress,
+                      nbr_processes=args.nbr_processes,
+                      save_seeds=args.save_seeds,
+                      mmap_mode='r+', rng_seed=args.rng_seed,
+                      track_forward_only=args.forward_only,
+                      skip=args.skip)
 
     start = time.time()
     logging.debug("Tracking...")
