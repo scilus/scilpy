@@ -332,9 +332,9 @@ def assert_outputs_exist(parser, args, required, optional=None,
         Parser.
     args: list
         Argument list.
-    required: string or list of paths
+    required: string or list of paths to files
         Required paths to be checked.
-    optional: string or list of paths
+    optional: string or list of paths to files
         Optional paths to be checked.
     check_dir_exists: bool
         Test if output directory exists.
