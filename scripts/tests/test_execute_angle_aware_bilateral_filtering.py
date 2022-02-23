@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_execute_asymmetric_filtering.py',
+    ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             '--help')
     assert ret.success
 
@@ -24,8 +24,9 @@ def test_asym_basis_output(script_runner):
                            'fodf_descoteaux07_sub.nii.gz')
 
     # We use a low resolution sphere to reduce execution time
-    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out_0.nii.gz', '--sphere', 'repulsion100')
+    ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
+                            in_fodf, 'out_0.nii.gz',
+                            '--sphere', 'repulsion100')
     assert ret.success
 
 
@@ -35,9 +36,9 @@ def test_sym_basis_output(script_runner):
                            'fodf_descoteaux07_sub.nii.gz')
 
     # We use a low resolution sphere to reduce execution time
-    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out_1.nii.gz', '--out_sym', 'out_sym.nii.gz',
-                            '--sphere', 'repulsion100')
+    ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
+                            in_fodf, 'out_1.nii.gz', '--out_sym',
+                            'out_sym.nii.gz', '--sphere', 'repulsion100')
     assert ret.success
 
 
@@ -47,6 +48,7 @@ def test_asym_input(script_runner):
                            'fodf_descoteaux07_sub_full.nii.gz')
 
     # We use a low resolution sphere to reduce execution time
-    ret = script_runner.run('scil_execute_asymmetric_filtering.py', in_fodf,
-                            'out_2.nii.gz', '--sphere', 'repulsion100', '-f')
+    ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
+                            in_fodf, 'out_2.nii.gz',
+                            '--sphere', 'repulsion100', '-f')
     assert ret.success
