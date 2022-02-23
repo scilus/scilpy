@@ -8,9 +8,8 @@ from scipy.ndimage import correlate
 
 
 def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
-                         in_full_basis=False, out_full_basis=True,
-                         dot_sharpness=1.0, sphere_str='repulsion724',
-                         sigma=1.0):
+                         in_full_basis=False, dot_sharpness=1.0,
+                         sphere_str='repulsion724', sigma=1.0):
     """Average the SH projected on a sphere using a first-neighbor gaussian
     blur and a dot product weight between sphere directions and the direction
     to neighborhood voxels, forcing to 0 negative values and thus performing
@@ -39,7 +38,7 @@ def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
     Returns
     -------
     out_sh: ndarray (x, y, z, n_coeffs)
-        Filtered signal as SH coefficients.
+        Filtered signal as SH coefficients in full SH basis.
     """
     # Load the sphere used for projection of SH
     sphere = get_sphere(sphere_str)
@@ -72,8 +71,9 @@ def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         mean_sf[..., sf_i] += correlate(current_sf, w_filter, mode="constant")
 
     # Convert back to SH coefficients
-    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order, basis_type=sh_basis,
-                               full_basis=out_full_basis)
+    _, B_inv = sh_to_sf_matrix(sphere, sh_order=sh_order,
+                               basis_type=sh_basis,
+                               full_basis=True)
 
     out_sh = np.array([np.dot(i, B_inv) for i in mean_sf], dtype=in_sh.dtype)
     return out_sh
