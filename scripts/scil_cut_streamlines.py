@@ -43,7 +43,7 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Input tractogram file.')
     p.add_argument('in_mask',
-                   help='Binary mask.')
+                   help='Binary mask containing either 1 or 2 blobs.')
     p.add_argument('out_tractogram',
                    help='Output tractogram file.')
 
