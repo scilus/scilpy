@@ -107,6 +107,9 @@ def _build_arg_parser():
                           "with -nt 1,000,000, \nyou can create tractogram_2 "
                           "with \n--skip 1,000,000.")
 
+    m_g = p.add_argument_group('Memory options')
+    add_processes_arg(m_g)
+
     add_out_options(p)
     add_verbose_arg(p)
 
