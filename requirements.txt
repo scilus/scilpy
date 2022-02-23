@@ -15,6 +15,7 @@ Pillow==8.3.2
 bids-validator==1.6.0
 pybids==0.10.*
 pyparsing==2.2.*
+PySocks==1.7.*
 python-dateutil==2.7.*
 pytz==2018.4.*
 scikit-learn==0.22.*
