@@ -49,7 +49,8 @@ class Tracker(object):
             Whether to save the seeds associated to their respective
             streamlines.
         mmap_mode: str
-            Memory-mapping mode to access the tracker. One of {None, ‘r+’, ‘c’}
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed to
+            np.load() when loading the raw tracking data from a subprocess.
         rng_seed: int
             The random "seed" for the random generator.
         track_forward_only: bool
