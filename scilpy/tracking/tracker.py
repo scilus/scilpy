@@ -49,7 +49,8 @@ class Tracker(object):
             Whether to save the seeds associated to their respective
             streamlines.
         mmap_mode: str
-            Memory-mapping mode. One of {None, ‘r+’, ‘r’, ‘w+’, ‘c’}
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed to
+            np.load() when loading the raw tracking data from a subprocess.
         rng_seed: int
             The random "seed" for the random generator.
         track_forward_only: bool
@@ -83,6 +84,11 @@ class Tracker(object):
             logging.warning("Minimum number of points cannot be 0. Changed to "
                             "1.")
             self.min_nbr_pts = 1
+
+        if self.mmap_mode not in [None, 'r+', 'c']:
+            logging.warning("Memory-mapping mode cannot be {}. Changed to "
+                            "None.".format(self.mmap_mode))
+            self.mmap_mode = None
 
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 

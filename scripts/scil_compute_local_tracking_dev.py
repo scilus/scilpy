@@ -109,9 +109,6 @@ def _build_arg_parser():
 
     m_g = p.add_argument_group('Memory options')
     add_processes_arg(m_g)
-    m_g.add_argument('--set_mmap_to_none', action='store_true',
-                     help="If true, use mmap_mode=None. Else mmap_mode='r+'. "
-                          "\nUsed in np.load(data_file_info).")
 
     add_out_options(p)
     add_verbose_arg(p)
@@ -143,10 +140,6 @@ def main():
     max_nbr_pts = int(args.max_length / args.step_size)
     min_nbr_pts = int(args.min_length / args.step_size) + 1
     max_invalid_dirs = int(math.ceil(args.max_invalid_length / args.step_size))
-
-    # r+ is necessary for interpolation function in cython who need read/write
-    # rights
-    mmap_mode = None if args.set_mmap_to_none else 'r+'
 
     logging.debug("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
@@ -185,9 +178,13 @@ def main():
 
     logging.debug("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, max_invalid_dirs, args.compress,
-                      args.nbr_processes, args.save_seeds, mmap_mode,
-                      args.rng_seed, args.forward_only, args.skip)
+                      max_nbr_pts, max_invalid_dirs,
+                      compression_th=args.compress,
+                      nbr_processes=args.nbr_processes,
+                      save_seeds=args.save_seeds,
+                      mmap_mode='r+', rng_seed=args.rng_seed,
+                      track_forward_only=args.forward_only,
+                      skip=args.skip)
 
     start = time.time()
     logging.debug("Tracking...")
