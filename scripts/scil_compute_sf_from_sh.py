@@ -12,11 +12,12 @@ bvals file. Otherwise, no .bval file will be created.
 
 import argparse
 
+import nibabel as nib
+import numpy as np
+from dipy.core.gradients import gradient_table
 from dipy.core.sphere import Sphere
 from dipy.data import SPHERE_FILES, get_sphere
 from dipy.io import read_bvals_bvecs
-import nibabel as nib
-import numpy as np
 
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
@@ -61,6 +62,9 @@ def _build_arg_parser():
     p.add_argument('--out_bvec',
                    help="Optional output bvec file.")
 
+    p.add_argument('--b0_scaling', action="store_true",
+                   help="Scale resulting SF by the b0 image.")
+
     add_sh_basis_args(p)
     p.add_argument('--full_basis', action="store_true",
                    help="If true, use a full basis for the input SH "
@@ -88,6 +92,14 @@ def main():
         parser.error("--out_bval is required if --in_bval is provided, "
                      "and vice-versa.")
 
+    if args.in_bvec and not args.in_bval:
+        parser.error(
+            "--in_bval is required when using --in_bvec, in order to remove "
+            "bvecs corresponding to b0 images.")
+
+    if args.b0_scaling and not args.in_b0:
+        parser.error("--in_b0 is required when using --b0_scaling.")
+
     nbr_processes = validate_nbr_processes(parser, args)
 
     # Load SH
@@ -98,7 +110,10 @@ def main():
     if args.sphere:
         sphere = get_sphere(args.sphere)
     elif args.in_bvec:
-        _, bvecs = read_bvals_bvecs(None, args.in_bvec)
+        bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+        gtab = gradient_table(bvals, bvecs, b0_threshold=bvals.min())
+        # Remove bvecs corresponding to b0 images
+        bvecs = bvecs[np.logical_not(gtab.b0s_mask)]
         sphere = Sphere(xyz=bvecs)
 
     sf = convert_sh_to_sf(data_sh, sphere,
@@ -135,6 +150,13 @@ def main():
         # Append zeros to bvecs
         new_bvecs = np.concatenate(
             (np.zeros((data_b0.shape[-1], 3)), new_bvecs), axis=0)
+
+        # Scale SF by b0
+        if args.b0_scaling:
+            # Clip SF signal between 0. and 1., then scale using mean b0
+            sf = np.clip(sf, 0., 1.)
+            scale_b0 = np.mean(data_b0, axis=-1, keepdims=True)
+            sf = sf * scale_b0
 
         # Append b0 images to SF
         sf = np.concatenate((data_b0, sf), axis=-1)

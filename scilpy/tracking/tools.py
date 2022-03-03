@@ -35,6 +35,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     if sft.streamlines:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
+
         # Filter lengths
         filter_stream = np.logical_and(lengths >= min_length,
                                        lengths <= max_length)

@@ -39,7 +39,7 @@ from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
 def _build_arg_parser():
 
     p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+                                formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path of the input diffusion volume.')
@@ -188,7 +188,7 @@ def main():
         to it. Proceeding to fill the problematic voxels by 0.
         """
         logging.warning(msg.format(nan_count, voxel_count))
-    elif nan_count  > 0:
+    elif nan_count > 0:
         msg = """There are {} voxels out of {} that could not be solved by
         the solver. Make sure to tune the response functions properly, as the
         solving process is very sensitive to it. Proceeding to fill the
@@ -203,7 +203,7 @@ def main():
         wm_coeff = shm_coeff[..., 2:]
         if args.sh_basis == 'tournier07':
             wm_coeff = convert_sh_basis(wm_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+                                        nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(wm_coeff.astype(np.float32),
                                  vol.affine), args.wm_out_fODF)
 
@@ -212,7 +212,7 @@ def main():
         if args.sh_basis == 'tournier07':
             gm_coeff = gm_coeff.reshape(gm_coeff.shape + (1,))
             gm_coeff = convert_sh_basis(gm_coeff, reg_sphere, mask=mask,
-                                         nbr_processes=args.nbr_processes)
+                                        nbr_processes=args.nbr_processes)
         nib.save(nib.Nifti1Image(gm_coeff.astype(np.float32),
                                  vol.affine), args.gm_out_fODF)
 

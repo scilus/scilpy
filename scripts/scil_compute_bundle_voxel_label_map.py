@@ -107,14 +107,14 @@ def main():
 
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
-    sft_centroid.to_vox()
-    sft_centroid.to_corner()
 
     if len(sft_centroid.streamlines) < 1 \
             or len(sft_centroid.streamlines) > 1:
         logging.error('Centroid file {} should contain one streamline. '
                       'Skipping'.format(args.in_centroid))
         raise ValueError
+    sft_centroid.to_vox()
+    sft_centroid.to_corner()
 
     sft_list = []
     for filename in args.in_bundles:

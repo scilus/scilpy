@@ -25,20 +25,18 @@ compute time.
 
 import argparse
 import logging
-from scilpy.reconst.utils import get_sh_order_and_fullness
-
 import nibabel as nib
 import numpy as np
 
+from dipy.reconst.shm import sph_harm_ind_list
 from dipy.data import SPHERE_FILES
-
+from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              add_sh_basis_args,
                              assert_outputs_exist)
-
-from scilpy.denoise.asym_enhancement import local_asym_filtering
+from scilpy.denoise.asym_averaging import local_asym_filtering
 
 
 def _build_arg_parser():
@@ -50,6 +48,9 @@ def _build_arg_parser():
 
     p.add_argument('out_sh',
                    help='File name for averaged signal.')
+
+    p.add_argument('--out_sym', default=None,
+                   help='Name of optional symmetric output. [%(default)s]')
 
     add_sh_basis_args(p)
 
@@ -64,9 +65,6 @@ def _build_arg_parser():
 
     p.add_argument('--sigma', default=1.0, type=float,
                    help='Sigma of the gaussian to use. [%(default)s]')
-
-    p.add_argument('--out_sym', action='store_true',
-                   help='If set, saves output in symmetric SH basis.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -95,13 +93,18 @@ def main():
         data, sh_order=sh_order,
         sh_basis=args.sh_basis,
         in_full_basis=full_basis,
-        out_full_basis=not(args.out_sym),
         sphere_str=args.sphere,
         dot_sharpness=args.sharpness,
         sigma=args.sigma)
 
     logging.info('Saving filtered SH to file {0}.'.format(args.out_sh))
     nib.save(nib.Nifti1Image(filtered_sh, sh_img.affine), args.out_sh)
+
+    if args.out_sym:
+        _, orders = sph_harm_ind_list(sh_order, full_basis=True)
+        logging.info('Saving symmetric SH to file {0}.'.format(args.out_sym))
+        nib.save(nib.Nifti1Image(filtered_sh[..., orders % 2 == 0],
+                                 sh_img.affine), args.out_sym)
 
 
 if __name__ == "__main__":

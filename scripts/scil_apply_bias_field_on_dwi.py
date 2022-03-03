@@ -49,7 +49,7 @@ def _rescale_dwi(in_data, bc_data):
     slope = (in_max - in_min) / (bc_max - bc_min)
 
     chunk = np.arange(0, len(in_data), 100000)
-    chunk = np.append(chunk, len(in_data)-1)
+    chunk = np.append(chunk, len(in_data))
     for i in range(len(chunk)-1):
         nz_bc_data = bc_data[chunk[i]:chunk[i+1]]
         rescale_func = np.vectorize(_rescale_intensity, otypes=[np.float32])

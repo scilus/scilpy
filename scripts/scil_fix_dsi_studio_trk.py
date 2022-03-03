@@ -44,7 +44,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (transform_warp_streamlines,
+from scilpy.utils.streamlines import (transform_warp_sft,
                                       cut_invalid_streamlines)
 from scilpy.utils.transformation import flip_sft
 
@@ -191,10 +191,10 @@ def main():
             if args.save_transfo:
                 np.savetxt(args.save_transfo, transfo)
 
-        new_sft = transform_warp_streamlines(sft_flip_back, transfo,
-                                             static_img, inverse=True,
-                                             remove_invalid=args.remove_invalid,
-                                             cut_invalid=args.cut_invalid)
+        new_sft = transform_warp_sft(sft_flip_back, transfo,
+                                     static_img, inverse=True,
+                                     remove_invalid=args.remove_invalid,
+                                     cut_invalid=args.cut_invalid)
 
         if args.cut_invalid:
             new_sft, _ = cut_invalid_streamlines(new_sft)

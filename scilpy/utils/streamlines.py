@@ -12,6 +12,7 @@ from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
@@ -385,7 +386,8 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 
             for dps_key in sft_list[0].data_per_streamline.keys():
                 if dps_key not in sft.data_per_streamline:
-                    arr_shape = sft_list[0].data_per_streamline[dps_key].shape
+                    arr_shape =\
+                        list(sft_list[0].data_per_streamline[dps_key].shape)
                     arr_shape[0] = len(sft)
                     sft.data_per_streamline[dps_key] = np.zeros(arr_shape)
             for dpp_key in sft_list[0].data_per_point.keys():
@@ -463,10 +465,9 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
     return fused_sft
 
 
-def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
-                               deformation_data=None,
-                               remove_invalid=True, cut_invalid=False):
-    # TODO rename transform_warp_sft
+def transform_warp_sft(sft, linear_transfo, target, inverse=False,
+                       reverse_op=False, deformation_data=None,
+                       remove_invalid=True, cut_invalid=False):
     """ Transform tractogram using a affine Subsequently apply a warp from
     antsRegistration (optional).
     Remove/Cut invalid streamlines to preserve sft validity.
@@ -481,6 +482,8 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
         Final reference for the tractogram after registration.
     inverse: boolean
         Apply the inverse linear transformation.
+    reverse_op: boolean
+        Apply both transformation in the reverse order
     deformation_data: np.ndarray
         4D array containing a 3D displacement vector in each voxel.
 
@@ -495,16 +498,33 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
     new_sft : StatefulTractogram
 
     """
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
+    dtype = sft.streamlines._data.dtype
+
     sft.to_rasmm()
     sft.to_center()
+
+    if len(sft.streamlines) == 0:
+        return StatefulTractogram(sft.streamlines, target,
+                                  Space.RASMM)
+
     if inverse:
         linear_transfo = np.linalg.inv(linear_transfo)
 
-    streamlines = transform_streamlines(sft.streamlines,
-                                        linear_transfo)
+    if not reverse_op:
+        streamlines = transform_streamlines(sft.streamlines,
+                                            linear_transfo)
+    else:
+        streamlines = sft.streamlines
 
     if deformation_data is not None:
-        affine, _, _, _ = get_reference_info(target)
+        if not reverse_op:
+            affine, _, _, _ = get_reference_info(target)
+        else:
+            affine = sft.affine
 
         # Because of duplication, an iteration over chunks of points is
         # necessary for a big dataset (especially if not compressed)
@@ -539,6 +559,11 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
             cur_position = max_position
             nb_iteration -= 1
 
+    if reverse_op:
+        streamlines = transform_streamlines(streamlines,
+                                            linear_transfo)
+
+    streamlines._data = streamlines._data.astype(dtype)
     new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
                                  data_per_point=sft.data_per_point,
                                  data_per_streamline=sft.data_per_streamline)
@@ -546,6 +571,13 @@ def transform_warp_streamlines(sft, linear_transfo, target, inverse=False,
         new_sft, _ = cut_invalid_streamlines(new_sft)
     elif remove_invalid:
         new_sft.remove_invalid_streamlines()
+
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
 
     return new_sft
 
@@ -663,6 +695,12 @@ def cut_invalid_streamlines(sft):
     cutting_counter : int
         Number of streamlines that were cut.
     """
+    if not len(sft):
+        return sft, 0
+
+    # Keep track of the streamlines' original space/origin
+    space = sft.space
+    origin = sft.origin
 
     sft.to_vox()
     sft.to_corner()
@@ -716,4 +754,79 @@ def cut_invalid_streamlines(sft):
                                           data_per_streamline=new_data_per_streamline,
                                           data_per_point=new_data_per_point)
 
+    # Move the streamlines back to the original space/origin
+    sft.to_space(space)
+    sft.to_origin(origin)
+
+    new_sft.to_space(space)
+    new_sft.to_origin(origin)
+
     return new_sft, cutting_counter
+
+
+def upsample_tractogram(
+    sft, nb, point_wise_std=None,
+    streamline_wise_std=None, gaussian=None, spline=None, seed=None
+):
+    """
+    Generate new streamlines by either adding gaussian noise around
+    streamlines' points, or by translating copies of existing streamlines
+    by a random amount.
+
+    Parameters
+    ----------
+    sft : StatefulTractogram
+        The tractogram to upsample
+    nb : int
+        The target number of streamlines in the tractogram.
+    point_wise_std : float
+        The standard deviation of the gaussian to use to generate point-wise
+        noise on the streamlines.
+    streamline_wise_std : float
+        The standard deviation of the gaussian to use to generate
+        streamline-wise noise on the streamlines.
+    gaussian: float
+        The sigma used for smoothing streamlines.
+    spline: (float, int)
+        Pair of sigma and number of control points used to model each
+        streamline as a spline and smooth it.
+    seed: int
+        Seed for RNG.
+
+    Returns
+    -------
+    new_sft : StatefulTractogram
+        The upsampled tractogram.
+    """
+    assert bool(point_wise_std) ^ bool(streamline_wise_std), \
+        'Can only add either point-wise or streamline-wise noise' + \
+        ', not both nor none.'
+
+    rng = np.random.RandomState(seed)
+
+    # Get the number of streamlines to add
+    nb_new = nb - len(sft.streamlines)
+
+    # Get the streamlines that will serve as a base for new ones
+    indices = rng.choice(
+        len(sft.streamlines), nb_new)
+    new_streamlines = sft.streamlines.copy()
+
+    # For all selected streamlines, add noise and smooth
+    for s in sft.streamlines[indices]:
+        if point_wise_std:
+            noise = rng.normal(scale=point_wise_std, size=s.shape)
+        elif streamline_wise_std:
+            noise = rng.normal(
+                scale=streamline_wise_std, size=s.shape[-1])
+        new_s = s + noise
+        if gaussian:
+            new_s = smooth_line_gaussian(new_s, gaussian)
+        elif spline:
+            new_s = smooth_line_spline(new_s, spline[0],
+                                       spline[1])
+
+        new_streamlines.append(new_s)
+
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    return new_sft
