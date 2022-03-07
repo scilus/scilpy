@@ -37,7 +37,9 @@ class Tracker(object):
         nbr_seeds: int
             Number of seeds to create via the seed generator.
         min_nbr_pts: int
+            Minimum number of points for streamlines.
         max_nbr_pts: int
+            Maximum number of points for streamlines.
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
@@ -49,8 +51,8 @@ class Tracker(object):
             Whether to save the seeds associated to their respective
             streamlines.
         mmap_mode: str
-            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed to
-            np.load() when loading the raw tracking data from a subprocess.
+            Memory-mapping mode. One of {None, 'r+', 'c'}. This value is passed
+            to np.load() when loading the raw tracking data from a subprocess.
         rng_seed: int
             The random "seed" for the random generator.
         track_forward_only: bool
@@ -100,7 +102,10 @@ class Tracker(object):
         Return
         ------
         streamlines: list of numpy.array
+            List of streamlines, represented as an array of positions.
         seeds: list of numpy.array
+            List of seeding positions, one 3-dimensional position per
+            streamline.
         """
         if self.nbr_processes < 2:
             chunk_id = 1
@@ -165,11 +170,13 @@ class Tracker(object):
 
         Parameters
         ----------
-        chunk_id: int, This processes's id.
+        chunk_id: int
+            This processes's id.
 
         Return
         -------
-        lines: list, list of list of 3D positions (streamlines).
+        lines: list
+            List of list of 3D positions (streamlines).
         """
         global data_file_info
 
@@ -253,6 +260,7 @@ class Tracker(object):
         Returns
         -------
         line: list of 3D positions
+            The generated streamline for seeding_pos.
         """
 
         # toDo See numpy's doc: np.random.seed:
