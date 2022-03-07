@@ -121,9 +121,6 @@ class AbstractPropagator(object):
         # Make a last step straight in the last direction (no sampling or
         # interpolation of a new direction). Ex of use: if stopped because it
         # exited the (WM) tracking mask, reaching GM a little more.
-
-        # In this abstract class, tracking information only consists of the
-        # last tracking direction.
         final_pos = last_pos + self.step_size * np.array(v_in)
         return final_pos
 
