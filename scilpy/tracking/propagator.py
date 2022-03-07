@@ -89,9 +89,9 @@ class AbstractPropagator(object):
         Returns
         -------
         v_in: ndarray (3,)
-            Last direction of the streamline, of if it contains only the
-            seeding point (forward tracking failed), simply inverse the
-            forward direction.
+            Last direction of the streamline. If the streamline contains
+            only the seeding point (forward tracking failed), simply inverse
+            the forward direction.
         """
         if len(line) > 1:
             v = line[-1] - line[-2]
@@ -122,8 +122,8 @@ class AbstractPropagator(object):
         # interpolation of a new direction). Ex of use: if stopped because it
         # exited the (WM) tracking mask, reaching GM a little more.
 
-        # In this abstract class, tracking_information only contains the last
-        # tracking direction.
+        # In this abstract class, tracking information only consists of the
+        # last tracking direction.
         final_pos = last_pos + self.step_size * np.array(v_in)
         return final_pos
 
@@ -252,9 +252,6 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         super().__init__(dataset, step_size, rk_order)
 
-        if 'symmetric' not in dipy_sphere:
-            raise ValueError('Sphere must be symmetric. Call to '
-                             'get_opposite_direction will fail.')
         self.sphere = dipy.data.get_sphere(dipy_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
         for i in range(len(self.sphere.vertices)):
