@@ -154,6 +154,11 @@ def create_texture_slicer(texture, mask, slice_index, value_range=None,
     else:
         masked_texture = texture
 
+    if value_range:
+        masked_texture = (masked_texture - value_range[0])
+                         / value_range[1] * 255
+        masked_texture = np.clip(masked_texture, 0 , 255)
+
     slicer_actor = actor.slicer(masked_texture, affine=affine,
                                 value_range=value_range,
                                 opacity=opacity,
