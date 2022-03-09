@@ -28,8 +28,6 @@ def initialize_camera(orientation, slice_index, volume_shape):
 
     Parameters
     ----------
-    slicer_actor : actor
-        Slicer actor from Fury
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
     slice_index : int
@@ -131,9 +129,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
 
     Parameters
     ----------
-    texture : np.ndarray (3d or 4d)
-        Texture image. Can be 3d for scalar data of 4d for RGB data, in which
-        case the values must be between 0 and 255.
+    sh_fodf : np.ndarray
+        Spherical harmonics of fODF data.
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
     slice_index : int
