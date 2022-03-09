@@ -229,7 +229,7 @@ def main():
         mask = None
 
     # Instantiate the ODF slicer actor
-    odf_actor = create_odf_slicer(data['fodf'], args.axis_name, 
+    odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                   args.slice_index, mask, sph,
                                   args.sph_subdivide, sh_order,
                                   args.sh_basis, full_basis,
