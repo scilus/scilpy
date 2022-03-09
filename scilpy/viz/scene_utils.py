@@ -252,7 +252,7 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
     affine = _get_affine_for_texture(orientation, offset)
 
     if mask is not None:
-        texture *= mask
+        texture[np.where(mask == 0)] = 0
 
     if value_range:
         texture = np.clip((texture - value_range[0]) / value_range[1] * 255,
