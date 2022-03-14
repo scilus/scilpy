@@ -577,7 +577,7 @@ def dilation(input_list, ref_img):
     """
     dilation: IMG, VALUE
         Binary morphological operation to spatially extend the values of an
-        image to their neighbors.
+        image to their neighbors. VALUE is in voxels.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
@@ -591,7 +591,7 @@ def erosion(input_list, ref_img):
     """
     erosion: IMG, VALUE
         Binary morphological operation to spatially shrink the volume contained
-        in a binary image.
+        in a binary image. VALUE is in voxels.
     """
     _validate_length(input_list, 2)
     _validate_type(input_list[0], nib.Nifti1Image)
