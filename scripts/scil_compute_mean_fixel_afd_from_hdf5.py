@@ -96,7 +96,7 @@ def main():
     assert_inputs_exist(parser, [args.in_hdf5, args.in_fodf])
     assert_outputs_exist(parser, args, [args.out_hdf5])
 
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):

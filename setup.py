@@ -71,7 +71,8 @@ opts = dict(name=NAME,
             scripts=SCRIPTS,
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",
-                          "data/LUT/freesurfer_subcortical.json"])],
+                          "data/LUT/freesurfer_subcortical.json",
+                          "data/LUT/dk_aggregate_structures.json"])],
             include_package_data=True)
 
 setup(**opts)

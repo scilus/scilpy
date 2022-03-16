@@ -25,6 +25,7 @@ If data comparison is performed, the bundles MUST be in same resolution.
 """
 
 import argparse
+import itertools
 import json
 import logging
 import multiprocessing
@@ -68,6 +69,10 @@ def _build_arg_parser():
     p.add_argument('--group_statistics', action='store_true',
                    help='Show average measures \n'
                         '[%(default)s].')
+
+    p.add_argument('--no_uniformize', action='store_true',
+                   help='Do NOT automatically uniformize endpoints for the'
+                        'endpoints related metrics.')
     add_reference_arg(p)
     add_processes_arg(p)
     add_json_args(p)
@@ -76,10 +81,12 @@ def _build_arg_parser():
     return p
 
 
-def compute_measures(filename_tuple):
+def compute_measures(args):
+    filename_tuple, no_uniformize = args
     sft = load_tractogram(filename_tuple[0], filename_tuple[1])
     _, dimensions, voxel_size, _ = sft.space_attributes
-    uniformize_bundle_sft(sft)
+    if not no_uniformize:
+        uniformize_bundle_sft(sft)
     nbr_streamlines = len(sft)
     if not nbr_streamlines:
         logging.warning('{} is empty'.format(filename_tuple[0]))
@@ -134,11 +141,11 @@ def compute_measures(filename_tuple):
     radius_head = 1.5 * np.average(
         np.sqrt(((endpoints_coords_head - np.average(
             endpoints_coords_head, axis=0))
-                 ** 2).sum(axis=1)))
+            ** 2).sum(axis=1)))
     radius_tail = 1.5 * np.average(
         np.sqrt(((endpoints_coords_tail - np.average(
             endpoints_coords_tail, axis=0))
-                 ** 2).sum(axis=1)))
+            ** 2).sum(axis=1)))
     end_irreg_head = (np.pi * radius_head ** 2) / end_sur_area_head
     end_irreg_tail = (np.pi * radius_tail ** 2) / end_sur_area_tail
 
@@ -186,11 +193,12 @@ def main():
     if nbr_cpu == 1:
         all_measures_dict = []
         for i in bundles_references_tuple_extended:
-            all_measures_dict.append(compute_measures(i))
+            all_measures_dict.append(compute_measures((i, args.no_uniformize)))
     else:
         pool = multiprocessing.Pool(nbr_cpu)
         all_measures_dict = pool.map(compute_measures,
-                                     bundles_references_tuple_extended)
+                                     zip(bundles_references_tuple_extended,
+                                         itertools.repeat(args.no_uniformize)))
         pool.close()
         pool.join()
 

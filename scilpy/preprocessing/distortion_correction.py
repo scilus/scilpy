@@ -50,7 +50,7 @@ def create_index(bvals, n_rev=0):
     index: np.array
     """
     index = np.ones(len(bvals), dtype=int)
-    index[n_rev:] += 1
+    index[len(index)-n_rev:] += 1
 
     return index.tolist()
 

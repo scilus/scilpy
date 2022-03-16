@@ -31,3 +31,14 @@ def test_execution_bst(script_runner):
                             '--normalize_per_voxel', '--smooth_todi',
                             '--sh_basis', 'descoteaux07')
     assert ret.success
+
+
+def test_execution_asym(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_bundle = os.path.join(get_home(), 'bst',
+                             'rpt_m_warp.trk')
+    ret = script_runner.run('scil_compute_todi.py', in_bundle,
+                            '--out_todi_sh', 'atodi_sh_8.nii.gz',
+                            '--asymmetric', '--n_steps', '2')
+
+    assert ret.success
