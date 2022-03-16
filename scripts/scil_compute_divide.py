@@ -85,10 +85,6 @@ def _build_arg_parser():
         help='If set, does not do a powder averaging weighting in the gamma '
              'fit.')
     p.add_argument(
-        '--redo_weight_bvals', action='store_false',
-        help='If set, does not do a second gamma fit with a weighting on the '
-             'bvalues using the newly found MD.')
-    p.add_argument(
         '--do_multiple_s0', action='store_false',
         help='If set, does not take into account multiple baseline signals.')
 
@@ -196,7 +192,6 @@ def main():
                            random_iters=args.random_iters,
                            do_weight_bvals=args.do_weight_bvals,
                            do_weight_pa=args.do_weight_pa,
-                           redo_weight_bvals=args.redo_weight_bvals,
                            do_multiple_s0=args.do_multiple_s0,
                            nbr_processes=args.nbr_processes)
 

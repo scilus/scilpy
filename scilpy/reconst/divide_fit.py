@@ -70,7 +70,7 @@ def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
 
 def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
                    do_weight_bvals=False, do_weight_pa=False,
-                   redo_weight_bvals=False, do_multiple_s0=False):
+                   do_multiple_s0=False):
     """Fit the gamma model to data
 
     Parameters
@@ -91,9 +91,6 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         If set, does a weighting on the bvalues in the gamma fit.
     do_weight_pa : bool, optional
         If set, does a powder averaging weighting in the gamma fit.
-    redo_weight_bvals : bool, optional
-        If set, does a second gamma fit with a weighting on the bvalues using
-        the newly found MD.
     do_multiple_s0 : bool, optional
         If set, takes into account multiple baseline signals.
 
@@ -161,7 +158,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
                                             bounds=bounds_unit, method="trf",
                                             ftol=1e-8, xtol=1e-8, gtol=1e-8)
 
-        if redo_weight_bvals:
+        if do_weight_bvals:
             weight = weight_bvals(0.07, params_unit[1] * unit_to_SI[1], 2)
             if do_weight_pa:
                 weight *= weight_pa()
@@ -222,7 +219,7 @@ def gamma_fit2data(gtab_infos, params):
     V_D = V_I + V_A * (gtab_infos[1] ** 2)
     signal = SW * ((1 + gtab_infos[0] * V_D / MD) ** (-(MD ** 2) / V_D))
 
-    return signal
+    return np.real(signal)
 
 
 def gamma_fit2metrics(params):
@@ -256,6 +253,7 @@ def gamma_fit2metrics(params):
     MK_A = 3 * V_A / (MD ** 2)
     MK_T = 3 * V_T / (MD ** 2)
     microFA2 = (3/2.) * (V_L / (V_I + V_L + (MD ** 2)))
-    microFA = np.sqrt(microFA2)
+    microFA = np.real(np.sqrt(microFA2))
+    microFA[np.isnan(microFA)] = 0
 
     return microFA, MK_I, MK_A, MK_T
