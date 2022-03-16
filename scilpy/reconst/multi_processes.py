@@ -594,24 +594,21 @@ def fit_gamma_parallel(args):
     random_iters = args[3]
     do_weight_bvals = args[4]
     do_weight_pa = args[5]
-    redo_weight_bvals = args[6]
-    do_multiple_s0 = args[7]
-    chunk_id = args[8]
+    do_multiple_s0 = args[6]
+    chunk_id = args[7]
 
     sub_fit_array = np.zeros((data.shape[0], 4))
     for i in range(data.shape[0]):
         if data[i].any():
             sub_fit_array[i] = gamma_data2fit(data[i], gtab_infos, fit_iters,
                                               random_iters, do_weight_bvals,
-                                              do_weight_pa, redo_weight_bvals,
-                                              do_multiple_s0)
+                                              do_weight_pa, do_multiple_s0)
 
     return chunk_id, sub_fit_array
 
 
 def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
-              do_weight_bvals=False, do_weight_pa=False,
-              redo_weight_bvals=False, do_multiple_s0=False,
+              do_weight_bvals=False, do_weight_pa=False, do_multiple_s0=False,
               nbr_processes=None):
     """Fit the gamma model to data
 
@@ -637,9 +634,6 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
         If set, does a weighting on the bvalues in the gamma fit.
     do_weight_pa : bool, optional
         If set, does a powder averaging weighting in the gamma fit.
-    redo_weight_bvals : bool, optional
-        If set, does a second gamma fit with a weighting on the bvalues using
-        the newly found MD.
     do_multiple_s0 : bool, optional
         If set, takes into account multiple baseline signals.
     nbr_processes : int, optional
@@ -672,7 +666,6 @@ def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
                            itertools.repeat(random_iters),
                            itertools.repeat(do_weight_bvals),
                            itertools.repeat(do_weight_pa),
-                           itertools.repeat(redo_weight_bvals),
                            itertools.repeat(do_multiple_s0),
                            np.arange(len(chunks))))
     pool.close()

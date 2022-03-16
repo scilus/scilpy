@@ -37,7 +37,7 @@ def test_nb_btensors_check(script_runner):
                             '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
                             '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
-                            '--redo_weight_bvals', '--processes', '1', '-f')
+                            '--processes', '1', '-f')
     assert (not ret.success)
 
     ret = script_runner.run('scil_compute_divide.py', '--in_dwis',
@@ -46,7 +46,7 @@ def test_nb_btensors_check(script_runner):
                             in_bvec_plan, '--in_bdeltas', '1', '1',
                             '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
-                            '--redo_weight_bvals', '--processes', '1', '-f')
+                            '--processes', '1', '-f')
     assert (not ret.success)
 
 
@@ -72,7 +72,7 @@ def test_inputs_check(script_runner):
                             '--in_bvecs', in_bvec_lin, '--in_bdeltas', '1',
                             '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
-                            '--redo_weight_bvals', '--processes', '1', '-f')
+                            '--processes', '1', '-f')
     assert (not ret.success)
 
     ret = script_runner.run('scil_compute_divide.py', '--in_dwis',
@@ -81,7 +81,7 @@ def test_inputs_check(script_runner):
                             in_bvec_lin, in_bvec_plan, '--in_bdeltas', '1',
                             '-0.5', '0', '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
-                            '--redo_weight_bvals', '--processes', '1', '-f')
+                            '--processes', '1', '-f')
     assert (not ret.success)
 
 
@@ -115,5 +115,5 @@ def test_execution_processing(script_runner):
                             in_bvec_plan, in_bvec_sph, '--in_bdeltas',
                             '1', '-0.5', '0', '--fa', fa, '--do_weight_bvals',
                             '--do_weight_pa', '--do_multiple_s0',
-                            '--redo_weight_bvals', '--processes', '1', '-f')
+                            '--processes', '1', '-f')
     assert (ret.success)
