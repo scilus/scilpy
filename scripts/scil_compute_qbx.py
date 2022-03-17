@@ -19,7 +19,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -44,6 +45,7 @@ def _build_arg_parser():
 
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -63,6 +65,10 @@ def main():
     thresholds = [40, 30, 20, args.dist_thresh]
     clusters = qbx_and_merge(streamlines, thresholds,
                              nb_pts=args.nb_points, verbose=False)
+
+    if args.verbose:
+        print("Tractogram was separated into {} clusters. Saving..."
+              .format(len(clusters)))
 
     for i, cluster in enumerate(clusters):
         if len(cluster.indices) > 1:
