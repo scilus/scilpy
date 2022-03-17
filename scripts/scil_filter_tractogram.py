@@ -33,7 +33,9 @@ import argparse
 import json
 import logging
 import os
+from copy import deepcopy
 
+from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
@@ -94,6 +96,8 @@ def _build_arg_parser():
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
+    p.add_argument('--save_rejected', metavar='FILENAME',
+                   help='Save rejected streamlines to output tractogram.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -167,20 +171,26 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_tractogram)
-    assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
+        set_sft_logger_level('WARNING')
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
 
+    logging.debug("Loading the tractogram...")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    if args.save_rejected:
+        initial_sft = deepcopy(sft)
     bin_struct = ndimage.generate_binary_structure(3, 2)
 
     # Streamline count before filtering
     o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
 
+    total_kept_ids = np.arange(len(sft.streamlines))
     for i, roi_opt in enumerate(roi_opt_list):
+        logging.debug("Preparing filtering from option: {}".format(roi_opt))
         curr_dict = {}
         # Atlas needs an extra argument (value in the LUT)
         if roi_opt[0] == 'atlas_roi':
@@ -211,8 +221,8 @@ def main():
             if args.soft_distance is not None:
                 mask = ndimage.binary_dilation(mask, bin_struct,
                                                iterations=args.soft_distance)
-            filtered_sft, _ = filter_grid_roi(sft, mask,
-                                              filter_mode, is_exclude)
+            filtered_sft, kept_ids = filter_grid_roi(sft, mask,
+                                                     filter_mode, is_exclude)
 
         # For every case, the input number must be greater or equal to 0 and
         # below the dimension, since this is a voxel space operation
@@ -246,21 +256,21 @@ def main():
             if args.soft_distance is not None:
                 mask = ndimage.binary_dilation(mask, bin_struct,
                                                iterations=args.soft_distance)
-            filtered_sft, _ = filter_grid_roi(sft, mask,
-                                              filter_mode, is_exclude)
+            filtered_sft, kept_ids = filter_grid_roi(sft, mask,
+                                                     filter_mode, is_exclude)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
             if args.soft_distance is not None:
                 radius += args.soft_distance * sft.space_attributes[2]
             if geometry == 'Ellipsoid':
-                filtered_sft, _ = filter_ellipsoid(sft,
-                                                   radius, center,
-                                                   filter_mode, is_exclude)
+                filtered_sft, kept_ids = filter_ellipsoid(
+                    sft, radius, center, filter_mode, is_exclude)
             elif geometry == 'Cuboid':
-                filtered_sft, _ = filter_cuboid(sft,
-                                                radius, center,
-                                                filter_mode, is_exclude)
+                filtered_sft, kept_ids = filter_cuboid(
+                    sft, radius, center, filter_mode, is_exclude)
+        else:
+            raise ValueError("Unexpected filter type.")
 
         logging.debug('The filtering options {0} resulted in '
                       '{1} streamlines'.format(roi_opt, len(filtered_sft)))
@@ -272,6 +282,8 @@ def main():
             curr_dict['streamline_count_after_filtering'] = len(
                 sft.streamlines)
             o_dict[filtering_Name] = curr_dict
+
+        total_kept_ids = total_kept_ids[kept_ids]
 
     # Streamline count after filtering
     o_dict['streamline_count_final_filtering'] = len(sft.streamlines)
@@ -289,6 +301,18 @@ def main():
             args.out_tractogram))
 
     save_tractogram(sft, args.out_tractogram)
+
+    if args.save_rejected:
+        rejected_ids = np.setdiff1d(np.arange(len(initial_sft.streamlines)),
+                                    total_kept_ids)
+
+        if len(rejected_ids) == 0 and args.no_empty:
+            logging.debug("Rejected streamlines file won't be written (0 "
+                          "streamline).")
+            return
+
+        sft = initial_sft[rejected_ids]
+        save_tractogram(sft, args.save_rejected)
 
 
 if __name__ == "__main__":
