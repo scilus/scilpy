@@ -316,12 +316,12 @@ def compute_bundle_adjacency_voxel(binary_1, binary_2, non_overlap=False):
     Distance between matched paired is averaged for the final results.
     Parameters
     ----------
-    bundle_1: list of ndarray
-        First set of streamlines.
-    bundle_2: list of ndarray
-        Second set of streamlines.
+    binary_1: ndarray
+        Binary mask computed from the first bundle
+    binary_2: ndarray
+        Binary mask computed from the second bundle
     non_overlap: bool
-        Exclude overlapping streamlines from the computation.
+        Exclude overlapping voxels from the computation.
     Returns
     -------
     float: Distance in millimeters between both bundles.

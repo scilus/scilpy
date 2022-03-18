@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 
 from scilpy.direction.peaks import peak_directions_asym
+from scipy.sparse.linalg.eigen.arpack import ArpackNoConvergence
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
@@ -25,8 +26,10 @@ def fit_from_model_parallel(args):
             try:
                 sub_fit_array[i] = model.fit(data[i])
             except cvx.error.SolverError:
-                coeff = np.empty((len(model.n)))
-                coeff[:] = np.NaN
+                coeff = np.full((len(model.n)), np.NaN)
+                sub_fit_array[i] = MSDeconvFit(model, coeff, None)
+            except ArpackNoConvergence:
+                coeff = np.full((len(model.n)), np.NaN)
                 sub_fit_array[i] = MSDeconvFit(model, coeff, None)
 
     return chunk_id, sub_fit_array
@@ -60,8 +63,9 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
         mask_any = np.sum(data, axis=3).astype(bool)
         mask *= mask_any
 
-    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-                                                   or nbr_processes <= 0 else nbr_processes
+    nbr_processes = multiprocessing.cpu_count() \
+        if nbr_processes is None or nbr_processes <= 0 \
+        else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
@@ -279,8 +283,8 @@ def maps_from_sh_parallel(args):
                 qa_map = peak_values[idx] - odf.min()
                 global_max = max(global_max, peak_values[idx][0])
 
-    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, \
-           max_odf, global_max
+    return chunk_id, nufo_map, afd_max, afd_sum, rgb_map, \
+        gfa_map, qa_map, max_odf, global_max
 
 
 def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
@@ -327,8 +331,9 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
-    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-                                                   or nbr_processes < 0 else nbr_processes
+    nbr_processes = multiprocessing.cpu_count() \
+        if nbr_processes is None or nbr_processes < 0 \
+        else nbr_processes
 
     npeaks = peak_values.shape[3]
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
@@ -376,8 +381,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
 
     all_time_max_odf = -np.inf
     all_time_global_max = -np.inf
-    for i, nufo_map, afd_max, afd_sum, rgb_map, gfa_map, qa_map, \
-        max_odf, global_max in results:
+    for (i, nufo_map, afd_max, afd_sum, rgb_map,
+         gfa_map, qa_map, max_odf, global_max) in results:
         all_time_max_odf = max(all_time_global_max, max_odf)
         all_time_global_max = max(all_time_global_max, global_max)
 
@@ -448,7 +453,9 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     shm_coeff_array : np.ndarray
         Spherical harmonic coefficients in the desired basis.
     """
-    output_basis = 'descoteaux07' if input_basis == 'tournier07' else 'tournier07'
+    output_basis = 'descoteaux07' \
+        if input_basis == 'tournier07' \
+        else 'tournier07'
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
     B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis)
@@ -458,8 +465,9 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     if mask is None:
         mask = np.sum(shm_coeff, axis=3).astype(bool)
 
-    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
-                                                   or nbr_processes < 0 else nbr_processes
+    nbr_processes = multiprocessing.cpu_count() \
+        if nbr_processes is None or nbr_processes < 0 \
+        else nbr_processes
 
     # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
     # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
