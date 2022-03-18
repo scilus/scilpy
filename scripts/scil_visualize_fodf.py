@@ -118,7 +118,7 @@ def _build_arg_parser():
                    help='Peaks image file.')
 
     p.add_argument('--peaks_color', nargs=3, type=float,
-                   help='Color used for peaks. if None, '
+                   help='Color used for peaks. If None, '
                         'then a RGB colormap is used. [%(default)s]')
 
     p.add_argument('--peaks_width', default=1.0, type=float,
@@ -229,21 +229,22 @@ def main():
         mask = None
 
     # Instantiate the ODF slicer actor
-    odf_actor = create_odf_slicer(data['fodf'], mask, sph,
+    odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
+                                  args.slice_index, mask, sph,
                                   args.sph_subdivide, sh_order,
                                   args.sh_basis, full_basis,
-                                  args.axis_name, args.scale,
+                                  args.scale,
                                   not args.radial_scale_off,
-                                  not args.norm_off, args.colormap,
-                                  args.slice_index)
+                                  not args.norm_off, args.colormap)
     actors.append(odf_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:
-        bg_actor = create_texture_slicer(data['bg'], mask,
-                                         args.slice_index,
-                                         args.bg_range,
+        bg_actor = create_texture_slicer(data['bg'],
                                          args.axis_name,
+                                         args.slice_index,
+                                         mask,
+                                         args.bg_range,
                                          args.bg_opacity,
                                          args.bg_offset,
                                          args.bg_interpolation)
