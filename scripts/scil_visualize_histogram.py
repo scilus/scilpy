@@ -68,8 +68,8 @@ def main():
     mask_img = nib.load(args.in_mask)
     mask_img_data = get_data_as_mask(mask_img)
 
-    assert_same_resolution(metric_img, mask_img)
-    
+    assert_same_resolution((metric_img, mask_img))
+
     # Select value from mask
     curr_data = metric_img_data[np.where(mask_img_data > 0)]
 
