@@ -9,39 +9,53 @@ tractogram : *_tc.tck, *_fc.tck, nc.tck and *_wpc.tck,
 where * is the current bundle.
 
 Definitions:
-    tc: true connections, streamlines joining a correct combination
+    - tc: true connections, streamlines joining a correct combination
         of ROIs.
-    fc: false connections, streamlines joining an incorrect combination of
+    - fc: false connections, streamlines joining an incorrect combination of
         ROIs.
-    nc: no connections, streamlines not joining two ROIs.
-    wpc: wrong path connections, streamlines that go outside of the ground
+    - nc: no connections, streamlines not joining two ROIs.
+    - wpc: wrong path connections, streamlines that go outside of the ground
         truth mask, joining a correct combination of ROIs.
-    Bundle overlap : ground truth voxels containing tc streamline(s).
-
-Either input gt_endpoints or gt_heads and gt_tails. Ground truth and ROIs
-must be in the same order i.e. groundTruth1.nii.gz .... groundTruthN.nii.gz \
-    --gt_tails tail1.nii.gz ... tailN.nii.gz \
-    --gt_heads head1.nii.gz ... headN.nii.gz
+    - Bundle overlap : ground truth voxels containing tc streamline(s).
 
 Masks can be dilated with --dilate_endpoints for bundle recognition.
 
 Config dictionnary needs to be a json containing a dict of the ground-truth
-bundles as keys and the value being a dictionnary with the relevant info.
+bundles as keys and the value being a dictionnary with
+    - endpoints OR head/tail: filename for the endpoints ROI.
+        If 'enpoints' is used, we will automatically separate the mask into
+        two ROIs, acting as head and tail. QC is strongly recommended.
+    - bundle_mask (optional): if set, streamlines outside this ground truth
+        path will be defined as wpc. Files must be .tck, .trk, .nii or .nii.gz
+        filenames. If it is is a tractogram, a mask will be created. If it is a
+        nifti file, it will be considered as a mask.
+    - angle (optional): if set, we will remove loops and sharp turns (up to
+        given angle) for the bundle.**
+    - length (optional): maximum and minimum lengths per bundle. Streamlines
+        outside this range will be classified as false connections even if they
+        do connect the right ROIs.**
 
-Example usage:
-    ```
-    $ scil_score_tractogram.py tracking.tck \
-            scoring_data/ground_truth_bundles/*.tck \
-            --gt_heads scoring_data/ground_truth_masks/heads/*.nii.gz \
-            --gt_tails scoring_data/ground_truth_masks/tails/*.nii.gz \
-            --gt_config scoring_data/config.json \
-            --reference scoring_data/dwi.nii.gz \
-            --dilate_endpoints 1 \
-            --wrong_path_as_separate \
-            --out_dir scoring \
-            -f \
-            -v
-    ```
+**Rejected streamlines will be classified as wrong path connections.
+
+Ex 1:
+{
+  "Ground_truth_bundle_0": {
+    "angle": 300,
+    "length": [140, 150],
+    "endpoints": PATH/'file1'
+  }
+}
+
+Ex 2:
+{
+  "Ground_truth_bundle_1": {
+    "head": 'file2',
+    "tail": 'file3',
+    "bundle_mask": ground_truth_bundle_1.nii.gz
+  }
+}
+(used with options --bundle_masks_dir PATH1 --rois_dir PATH2)
+
 """
 
 import argparse
@@ -52,7 +66,8 @@ import numpy as np
 import os
 
 from dipy.io.utils import is_header_compatible
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram, \
+    set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -65,42 +80,37 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.tractanalysis.reproducibility_measures \
     import (compute_dice_voxel)
 from scilpy.tractanalysis.scoring import (compute_gt_masks,
-                                          extract_tails_heads_from_endpoints,
                                           extract_false_connections,
                                           extract_true_connections,
-                                          get_binary_maps)
+                                          get_binary_maps,
+                                          compute_endpoint_masks)
 from scilpy.utils.filenames import split_name_with_nii
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument("in_tractogram",
                    help="Input tractogram to score")
-    p.add_argument("gt_bundles", nargs="+",
-                   help="Bundles ground truth (.[trk|.tck|.nii|.nii.gz]).")
-    g = p.add_argument_group("ROIs")
-    g.add_argument("--gt_endpoints", nargs="+",
-                   help="Bundles endpoints, both bundle's ROIs\
-                       (.nii or .nii.gz).")
-    g.add_argument("--gt_tails", nargs="+",
-                   help="Bundles tails, bundle's first ROI(.nii or .nii.gz).")
-    g.add_argument("--gt_heads", nargs="+",
-                   help="Bundles heads, bundle's second ROI(.nii or .nii.gz).")
+    p.add_argument("gt_config",
+                   help=".json dict to specify bundles streamlines min, \n"
+                        "max length and max angles.")
+    p.add_argument("out_dir",
+                   help="Output directory")
+
+    p.add_argument("--bundle_masks_dir",
+                   help="Path of the bundle paths listed in the gt_config.\n "
+                        "If not set, filenames in the config file are "
+                        "considered as complete paths.")
+    p.add_argument("--rois_dir",
+                   help="Path of the ROI files listed in the gt_config.\n If "
+                        "not set, filenames in the config file are considered "
+                        "as complete paths.")
     p.add_argument("--dilate_endpoints",
                    metavar="NB_PASS", default=1, type=int,
                    help="Dilate masks n-times.")
-    p.add_argument("--gt_config", metavar="FILE",
-                   help=".json dict to specify bundles streamlines min, \
-                    max length and max angles.")
-    p.add_argument("--out_dir", default="gt_out/",
-                   help="Output directory")
-    p.add_argument("--wrong_path_as_separate", action="store_true",
-                   help="Separates streamlines that go outside of the ground \
-                        truth mask from true connections, outputs as \
-                        *_wpc.[tck|trk].")
     p.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
     p.add_argument("--no_empty", action='store_true',
@@ -121,26 +131,94 @@ def extract_prefix(filename):
     return prefix
 
 
+def read_config_file(gt_config, bundle_masks_dir, rois_dir):
+    # Create
+    # roi_options = {
+    #      'bundle1': {
+    #              'gt_endpoints': path + file,  # OR
+    #              'gt_head': path + file
+    #              'gt_tail': path + file}}
+    angles = []
+    lengths = []
+    masks = []
+    roi_options = {}
+    roi_files = []
+
+    with open(gt_config, "r") as json_file:
+        config = json.load(json_file)
+
+        bundles = list(config.keys())
+        for bundle in bundles:
+            bundle_config = config[bundle]
+            if 'angle' in bundle_config:
+                angles.append(bundle_config['angle'])
+            else:
+                angles.append(None)
+
+            if 'length' in bundle_config:
+                lengths.append(bundle_config['length'])
+            else:
+                lengths.append(None)
+
+            if 'bundle_mask' in bundle_config:
+                masks.append(os.path.join(bundle_masks_dir,
+                                          bundle_config['bundle_mask']))
+            else:
+                masks.append(None)
+
+            if 'endpoints' in bundle_config:
+                if 'head' in bundle_config or 'tail' in bundle_config:
+                    raise ValueError("Bundle {} has confusion keywords in the "
+                                     "config file. Please choose either "
+                                     "endpoints OR head/tail.".format(bundle))
+                endpoints = os.path.join(rois_dir, bundle_config['endpoints'])
+                roi_options.update({
+                    bundle: {'endpoints': endpoints}})
+                roi_files.append(endpoints)
+            elif 'head' in bundle_config:
+                if 'tail' not in bundle_config:
+                    raise ValueError("You have provided the head for bundle "
+                                     "{}, but not the tail".format(bundle))
+                head = os.path.join(rois_dir, bundle_config['head'])
+                tail = os.path.join(rois_dir, bundle_config['tail'])
+                roi_options.update({
+                    bundle: {
+                        'gt_head': head,
+                        'gt_tail': tail
+                    }})
+                roi_files.append(head)
+                roi_files.append(tail)
+            else:
+                raise ValueError("Bundle configuration for bundle {} misses "
+                                 "'endpoints' or 'head'/'tail'".format(bundle))
+
+    return bundles, masks, roi_options, roi_files, lengths, angles
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram] + args.gt_bundles)
+    assert_inputs_exist(parser, args.gt_config)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
-    if (args.gt_tails and not args.gt_heads) \
-            or (args.gt_heads and not args.gt_tails):
-        parser.error("Both --gt_heads and --gt_tails are needed.")
-    if args.gt_endpoints and (args.gt_tails or args.gt_heads):
-        parser.error("Can only provide --gt_endpoints or --gt_tails/gt_heads")
-    if not args.gt_endpoints and (not args.gt_tails and not args.gt_heads):
-        parser.error(
-            "Either input --gt_endpoints or --gt_heads and --gt_tails.")
+    # Read the config file
+    bundles_names, masks, roi_options, all_rois, lengths, angles = \
+        read_config_file(args.gt_config, args.bundle_masks_dir, args.rois_dir)
 
+    # Remove duplicates
+    # (in case a same roi file is used for more than one bundle)
+    all_rois = list(dict.fromkeys(all_rois))
+
+    # Verify options
+    assert_inputs_exist(parser, masks + all_rois)
+    
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
+        set_sft_logger_level('WARNING')
 
+    logging.info("Loading tractogram.")
     _, ext = os.path.splitext(args.in_tractogram)
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
@@ -150,8 +228,8 @@ def main():
 
     initial_count = len(sft)
 
-    logging.info("Verifying compatibility with ground-truth")
-    for gt in args.gt_bundles:
+    logging.info("Verifying compatibility of tractogram with bundle masks.")
+    for gt in masks:
         _, gt_ext = os.path.splitext(gt)
         if gt_ext in ['.trk', '.tck']:
             gt_bundle = load_tractogram_with_reference(
@@ -163,52 +241,42 @@ def main():
             parser.error("Input tractogram incompatible with"
                          " {}".format(gt))
 
-    logging.info("Computing ground-truth masks")
+    logging.info("Loading and/or computing ground-truth masks.")
     gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions,  = \
-        compute_gt_masks(args.gt_bundles, parser, args)
+        compute_gt_masks(masks, parser, args)
 
-    # If endpoints without heads/tails are loaded, split them and continue
-    # normally after. Q/C of the output is important
-    if args.gt_endpoints:
-        logging.info("Extracting ground-truth end and tail masks")
-        gt_tails, gt_heads, affine, dimensions = \
-            extract_tails_heads_from_endpoints(
-                args.gt_endpoints, args.out_dir)
-    else:
-        gt_tails, gt_heads = args.gt_tails, args.gt_heads
+    logging.info("Extracting ground-truth head and tail masks.")
+    gt_tails, gt_heads = compute_endpoint_masks(
+        roi_options, affine, dimensions, args.out_dir)
 
-    logging.info("Verifying compatibility with endpoints")
+    logging.info("Verifying tractogram compatibility with endpoint ROIs.")
     for gt in gt_tails + gt_heads:
         compatible = is_header_compatible(sft, gt)
         if not compatible:
-            parser.error("Input tractogram incompatible with"
-                         " {}".format(gt))
+            parser.error("Input tractogram incompatible with {}".format(gt))
 
-    # Load the endpoints heads/tails, keep the correct combinations
-    # separately from all the possible combinations
+    logging.info("Scoring true connections")
+
+    # List the heads/tails combinations
     tc_filenames = list(zip(gt_tails, gt_heads))
-
-    length_dict = {}
-    if args.gt_config:
-        with open(args.gt_config, "r") as json_file:
-            length_dict = json.load(json_file)
 
     tc_streamlines_list = []
     wpc_streamlines_list = []
     fc_streamlines_list = []
     nc_streamlines = []
-
-    logging.info("Scoring true connections")
     for i, (mask_1_filename, mask_2_filename) in enumerate(tc_filenames):
 
         # Automatically generate filename for Q/C
         prefix_1 = extract_prefix(mask_1_filename)
         prefix_2 = extract_prefix(mask_2_filename)
 
+        # Extract true connection
         tc_sft, wpc_sft, fc_sft, nc, sft = extract_true_connections(
-            sft, mask_1_filename, mask_2_filename, args.gt_config, length_dict,
-            extract_prefix(args.gt_bundles[i]), gt_bundle_inv_masks[i],
-            args.dilate_endpoints, args.wrong_path_as_separate)
+            sft, mask_1_filename, mask_2_filename, lengths[i], angles[i],
+            bundles_names[i], gt_bundle_inv_masks[i],
+            args.dilate_endpoints)
+
+        # Save results
         nc_streamlines.extend(nc)
         if len(tc_sft) > 0 or not args.no_empty:
             save_tractogram(tc_sft, os.path.join(
@@ -234,21 +302,21 @@ def main():
             len(tc_sft.streamlines) + len(wpc_sft.streamlines) +
             len(fc_sft.streamlines) + len(nc), prefix_1, prefix_2))
 
-    # Again keep the keep the correct combinations
-    comb_filename = list(itertools.combinations(
-        itertools.chain(*zip(gt_tails, gt_heads)), r=2))
+    logging.info("Scoring false connections")
+
+    # Keep all possible combinations
+    comb_filename = list(itertools.combinations(all_rois, r=2))
 
     # Remove the true connections from all combinations, leaving only
     # false connections
     for tc_f in tc_filenames:
+        tc_f = tuple(sorted(tc_f))
         comb_filename.remove(tc_f)
 
-    logging.info("Scoring false connections")
     # Go through all the possible combinations of endpoints masks
     for i, roi in enumerate(comb_filename):
         mask_1_filename, mask_2_filename = roi
 
-        # That would be done here.
         # Automatically generate filename for Q/C
         prefix_1 = extract_prefix(mask_1_filename)
         prefix_2 = extract_prefix(mask_2_filename)

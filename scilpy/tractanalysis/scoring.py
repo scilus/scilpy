@@ -119,13 +119,20 @@ def compute_gt_masks(gt_bundles, parser, args):
     gt_bundle_masks = []
     gt_bundle_inv_masks = []
 
-    for gt_bundle in args.gt_bundles:
+    affine = None
+    dimensions = None
+    for gt_bundle in gt_bundles:
         # Support ground truth as streamlines or masks
         # Will be converted to binary masks immediately
         _, ext = split_name_with_nii(gt_bundle)
         if ext in ['.gz', '.nii.gz']:
             gt_img = nib.load(gt_bundle)
             gt_mask = get_data_as_mask(gt_img)
+
+            if affine is not None:
+                # compare affines.
+                #todO
+                raise NotImplementedError('todO')
             affine = gt_img.affine
             dimensions = gt_mask.shape
         else:
@@ -133,7 +140,13 @@ def compute_gt_masks(gt_bundles, parser, args):
                 parser, args, gt_bundle, bbox_check=False)
             gt_sft.to_vox()
             gt_sft.to_corner()
-            affine, dimensions, _, _ = gt_sft.space_attributes
+            _affine, _dimensions, _, _ = gt_sft.space_attributes
+            if affine is not None:
+                # compare affines.
+                #todO
+                raise NotImplementedError('todO')
+            affine = _affine
+            dimensions = _dimensions
             gt_mask = compute_tract_counts_map(gt_sft.streamlines,
                                                dimensions).astype(np.int16)
         gt_inv_mask = np.zeros(dimensions, dtype=np.int16)
@@ -179,8 +192,8 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
 
     Parameters
     ----------
-    gt_endpoints: list of str
-        List of ground-truth mask filenames.
+    gt_endpoints: str
+        Ground-truth mask filename.
 
     Returns
     -------
@@ -193,38 +206,59 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
     dimensions: tuple of int
         Dimensions of the mask image.
     """
+    mask_img = nib.load(gt_endpoints)
+    mask = get_data_as_mask(mask_img)
+    affine = mask_img.affine
+    dimensions = mask.shape
 
+    head, tail = split_heads_tails_kmeans(mask)
+
+    basename = os.path.basename(
+        split_name_with_nii(gt_endpoints)[0])
+    tail_filename = os.path.join(
+        out_dir, '{}_tail.nii.gz'.format(basename))
+    head_filename = os.path.join(
+        out_dir, '{}_head.nii.gz'.format(basename))
+    nib.save(nib.Nifti1Image(head.astype(
+        mask.dtype), affine), head_filename)
+    nib.save(nib.Nifti1Image(tail.astype(
+        mask.dtype), affine), tail_filename)
+
+    return tail_filename, head_filename, affine, dimensions
+
+
+def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
+    """
+    If endpoints without heads/tails are loaded, split them and continue
+    normally after. Q/C of the output is important
+
+    Returns:
+        tails, heads: lists of filenames with length the number of bundles.
+    """
     tails = []
     heads = []
-    for mask_filename in gt_endpoints:
-        mask_img = nib.load(mask_filename)
-        mask = get_data_as_mask(mask_img)
-        affine = mask_img.affine
-        dimensions = mask.shape
+    for bundle_options in roi_options.values():
+        if 'gt_endpoints' in bundle_options:
+            tail, head, _affine, _dimensions = \
+                extract_tails_heads_from_endpoints(
+                    bundle_options.gt_endpoints, out_dir)
+            if affine is not None:
+                # Compare affine
+                # todo
+                raise NotImplementedError
+        else:
+            tail = bundle_options.gt_tail
+            head = bundle_options.gt_head
 
-        head, tail = split_heads_tails_kmeans(mask)
+        tails.append(tail)
+        heads.append(head)
 
-        basename = os.path.basename(
-            split_name_with_nii(mask_filename)[0])
-        tail_filename = os.path.join(
-            out_dir, '{}_tail.nii.gz'.format(basename))
-        head_filename = os.path.join(
-            out_dir, '{}_head.nii.gz'.format(basename))
-        nib.save(nib.Nifti1Image(head.astype(
-            mask.dtype), affine), head_filename)
-        nib.save(nib.Nifti1Image(tail.astype(
-            mask.dtype), affine), tail_filename)
-
-        tails.append(tail_filename)
-        heads.append(head_filename)
-
-    return tails, heads, affine, dimensions
+    return tails, heads
 
 
 def extract_true_connections(
     sft, mask_1_filename, mask_2_filename, gt_config, length_dict,
-    gt_bundle, gt_bundle_inv_mask, dilate_endpoints, wrong_path_as_separate
-):
+    gt_bundle, gt_bundle_inv_mask, dilate_endpoints, wrong_path_as_separate):
     """
     Extract true connections based on two regions from a tractogram.
     May extract false and no connections if the config is passed.
