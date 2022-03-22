@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -67,6 +67,8 @@ def main():
     # Load mask image
     mask_img = nib.load(args.in_mask)
     mask_img_data = get_data_as_mask(mask_img)
+
+    assert_same_resolution((metric_img, mask_img))
 
     # Select value from mask
     curr_data = metric_img_data[np.where(mask_img_data > 0)]

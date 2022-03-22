@@ -23,5 +23,7 @@ def test_execution_filtering(script_runner):
                              'bundle_all_1mm.trk')
     ret = script_runner.run('scil_outlier_rejection.py', in_bundle,
                             'inliers.trk', '--alpha', '0.6',
-                            '--remaining_bundle', 'outliers.trk')
+                            '--remaining_bundle', 'outliers.trk',
+                            '--display_counts', '--indent', '4',
+                            '--sort_keys')
     assert ret.success

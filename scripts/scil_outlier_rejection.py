@@ -9,12 +9,14 @@ as outliers. Manual cleaning may be required to overcome this limitation.
 """
 
 import argparse
+import json
 import logging
 
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_json_args,
+                             add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -33,9 +35,13 @@ def _build_arg_parser():
                    help='Removed outliers.')
     p.add_argument('--alpha', type=float, default=0.6,
                    help='Percent of the length of the tree that clusters '
-                   'of individual streamlines will be pruned.')
+                   'of individual streamlines will be pruned. [%(default)s]')
+    p.add_argument('--display_counts', action='store_true',
+                   help='Print streamline count before and after filtering')
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_json_args(p)
+
     return p
 
 
@@ -65,6 +71,13 @@ def main():
                         "Please lower the --alpha parameter")
     else:
         save_tractogram(inliers_sft, args.out_bundle)
+
+    if args.display_counts:
+        sc_bf = len(sft.streamlines)
+        sc_af = len(inliers_sft.streamlines)
+        print(json.dumps({'streamline_count_before_filtering': int(sc_bf),
+                         'streamline_count_after_filtering': int(sc_af)},
+                         indent=args.indent))
 
     if len(outliers) == 0:
         logging.warning("No outlier found. Please raise the --alpha parameter")
