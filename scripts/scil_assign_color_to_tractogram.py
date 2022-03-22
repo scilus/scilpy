@@ -12,22 +12,35 @@ Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 
 If called with .tck, the output will always be .trk, because data_per_point has
 no equivalent in tck file.
+
+The usage of --use_dps, --use_dpp and --from_anatomy is more complex. It maps
+the raw values from these sources to RGB using a colormap. A minimum and
+a maximum range can be provided to clip values.
+
+If the range of values is too large for intuitive visualization, a log transform
+can be applied. Finally, if the data provided from --use_dps, --use_dpp and
+--from_anatomy are integer labels, they can be mapped using a LookUp Table
+(--LUT). The file provided as a LUT should be either .txt or .npy and if the
+size is N=20, then the data provided should be between 1-20.
 """
 
 import argparse
+import json
 import logging
 import os
 
 from dipy.io.streamline import save_tractogram
-import json
+import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
-                             add_reference_arg)
+                             add_reference_arg,
+                             load_matrix_in_any_format)
 
 
 def _build_arg_parser():
@@ -38,7 +51,7 @@ def _build_arg_parser():
     p.add_argument('in_tractograms', nargs='+',
                    help='Input tractograms (.trk or .tck).')
 
-    g1 = p.add_argument_group(title='Coloring options')
+    g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group()
     p1.add_argument('--fill_color',
                     help='Can be either hexadecimal (ie. "#RRGGBB" '
@@ -52,11 +65,24 @@ def _build_arg_parser():
     p1.add_argument('--use_dpp', metavar='DPP_KEY',
                     help='Use the data_per_point (scalar) for coloring, '
                          'linear from min to max.')
-    p.add_argument('--colormap', default='jet',
-                   help='Select the colormap for colored trk (dps/dpp) '
-                        '[%(default)s].')
-    p.add_argument('--log', action='store_true',
-                   help='Apply a base 10 logarithm for colored trk (dps/dpp).')
+    p1.add_argument('--from_anatomy', metavar='FILE',
+                    help='Use the voxel data for coloring, '
+                         'linear from min to max.')
+    g2 = p.add_argument_group(title='Coloring Options')
+    g2.add_argument('--colormap', default='jet',
+                    help='Select the colormap for colored trk (dps/dpp) '
+                    '[%(default)s].')
+    g2.add_argument('--min_range', type=float,
+                    help='Set the minimum value when using dps/dpp/anatomy.')
+    g2.add_argument('--max_range', type=float,
+                    help='Set the maximum value when using dps/dpp/anatomy.')
+    g2.add_argument('--log', action='store_true',
+                    help='Apply a base 10 logarithm for colored trk (dps/dpp).')
+    g2.add_argument('--LUT', metavar='FILE',
+                    help='If the dps/dpp or anatomy contain integer labels, '
+                    'the value will be substituted.\nIf the LUT has 20 '
+                    'elements, integers from 1-20 in the data will be\n'
+                    'replaced by the value in the file (.npy or .txt)')
 
     g2 = p.add_argument_group(title='Output options')
     p2 = g2.add_mutually_exclusive_group()
@@ -70,6 +96,23 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
+
+
+def transform_data(args, data):
+    if args.LUT:
+        data = np.round(data)
+        LUT = load_matrix_in_any_format(args.LUT)
+        for i, val in enumerate(LUT):
+            data[data == i+1] = LUT[i]
+
+    if args.min_range is not None or args.max_range:
+        data = np.clip(data, args.min_range, args.max_range)
+    if args.log:
+        data[data > 0] = np.log10(data[data > 0])
+    data -= np.min(data)
+    data = data / np.max(data) if np.max(data) > 0 else data
+
+    return data
 
 
 def main():
@@ -112,25 +155,29 @@ def main():
                     color = dict_colors[key]
         elif args.fill_color is not None:
             color = args.fill_color
-        elif args.use_dps:
-            data = np.squeeze(sft.data_per_streamline[args.use_dps])
-            # I believe it works well for gaussian distribution, but
-            # COMMIT has very weird outliers values
-            if args.use_dps == 'commit_weights':
-                data = np.clip(data, np.quantile(data, 0.05),
-                               np.quantile(data, 0.95))
-            if args.log:
-                data[data > 0] = np.log10(data[data > 0])
-            data -= np.min(data)
-            data = data / np.max(data) if np.max(data) > 0 else data
+        elif args.use_dps or args.use_dpp:
+            if args.use_dps:
+                data = np.squeeze(sft.data_per_streamline[args.use_dps])
+                # I believe it works well for gaussian distribution, but
+                # COMMIT has very weird outliers values
+                if args.use_dps == 'commit_weights' \
+                        or args.use_dps == 'commit2_weights':
+                    data = np.clip(data, np.quantile(data, 0.05),
+                                   np.quantile(data, 0.95))
+            elif args.use_dpp:
+                data = np.squeeze(sft.data_per_point[args.use_dpp]._data)
+
+            data = transform_data(args, data)
             color = cmap(data)[:, 0:3] * 255
-        elif args.use_dpp:
-            data = np.squeeze(sft.data_per_point[args.use_dpp]._data)
-            if args.log:
-                data[data > 0] = np.log10(data[data > 0])
-            data += np.min(data)
-            data = data / np.max(data) if np.max(data) > 0 else data
-            color = cmap(data)[:, 0:3] * 255
+        elif args.from_anatomy:
+            data = nib.load(args.from_anatomy).get_fdata()
+            data = transform_data(args, data)
+
+            sft.to_vox()
+            values = map_coordinates(data, sft.streamlines._data.T,
+                                     order=0, mode='nearest')
+            color = cmap(values)[:, 0:3] * 255
+            sft.to_rasmm()
 
         if color is None:
             color = '0x000000'
