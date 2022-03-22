@@ -1,3 +1,5 @@
+import logging
+
 import nibabel as nib
 import numpy as np
 import os
@@ -18,35 +20,6 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
-def extract_streamlines(mask_1, mask_2, sft):
-    """
-    Recognize streamlines between two masks
-
-    Parameters
-    ----------
-    mask_1 : numpy.ndarray
-        Mask containing one end of the bundle to be recognized.
-    mask_2 : numpy.ndarray
-        Mask containing the other end of the bundle to be recognized.
-    sft : StatefulTractogram
-        StatefulTractogram containing the streamlines to segment.
-
-    Returns
-    -------
-    extracted_sft: StatefulTractogram
-        Tractogram containing the streamlines recognized.
-    remaining_sft : StatefulTractogram
-        Tractogram containing the streamlines not recognized.
-    """
-
-    extracted_sft, ids = filter_grid_roi_both(
-        sft, mask_1, mask_2)
-    remaining_ids = np.setdiff1d(range(len(sft.streamlines)), ids)
-    remaining_sft = sft[list(remaining_ids)]
-
-    return extracted_sft, remaining_sft
-
-
 def get_binary_maps(streamlines, sft):
     """
     Extract a mask from a bundle
@@ -55,12 +28,8 @@ def get_binary_maps(streamlines, sft):
     ----------
     streamlines: list
         List of streamlines.
-    dimensions: tuple of ints
-        Dimensions of the mask.
     sft : StatefulTractogram
         Reference tractogram.
-    invalid: bool
-        If true, remove invalid streamlines from tractogram.
 
     Returns
     -------
@@ -95,9 +64,8 @@ def get_binary_maps(streamlines, sft):
 
 def compute_gt_masks(gt_bundles, parser, args):
     """
-    Compute ground-truth masks. If the ground-truth is
-    already a mask, load it. If the ground-truth is a
-    bundle, compute the mask.
+    Compute ground-truth masks. If the ground-truth is already a mask, load it.
+    If the ground-truth is a bundle, compute the mask.
 
     Parameters
     ----------
@@ -122,36 +90,41 @@ def compute_gt_masks(gt_bundles, parser, args):
     affine = None
     dimensions = None
     for gt_bundle in gt_bundles:
-        # Support ground truth as streamlines or masks
-        # Will be converted to binary masks immediately
-        _, ext = split_name_with_nii(gt_bundle)
-        if ext in ['.gz', '.nii.gz']:
-            gt_img = nib.load(gt_bundle)
-            gt_mask = get_data_as_mask(gt_img)
+        if gt_bundle is not None:
+            # Support ground truth as streamlines or masks
+            # Will be converted to binary masks immediately
+            _, ext = split_name_with_nii(gt_bundle)
+            if ext in ['.gz', '.nii.gz']:
+                gt_img = nib.load(gt_bundle)
+                gt_mask = get_data_as_mask(gt_img)
 
-            if affine is not None:
-                # compare affines.
-                #todO
-                raise NotImplementedError('todO')
-            affine = gt_img.affine
-            dimensions = gt_mask.shape
+                if affine is not None:
+                    # compare affines.
+                    #todO
+                    logging.debug('Previous affine discarded. (todo)')
+                affine = gt_img.affine
+                dimensions = gt_mask.shape
+            else:
+                gt_sft = load_tractogram_with_reference(
+                    parser, args, gt_bundle, bbox_check=False)
+                gt_sft.to_vox()
+                gt_sft.to_corner()
+                _affine, _dimensions, _, _ = gt_sft.space_attributes
+                if affine is not None:
+                    # compare affines.
+                    #todO
+                    logging.debug('Previous affine discarded. (todo)')
+                affine = _affine
+                dimensions = _dimensions
+                gt_mask = compute_tract_counts_map(gt_sft.streamlines,
+                                                   dimensions).astype(np.int16)
+            gt_inv_mask = np.zeros(dimensions, dtype=np.int16)
+            gt_inv_mask[gt_mask == 0] = 1
+            gt_mask[gt_mask > 0] = 1
         else:
-            gt_sft = load_tractogram_with_reference(
-                parser, args, gt_bundle, bbox_check=False)
-            gt_sft.to_vox()
-            gt_sft.to_corner()
-            _affine, _dimensions, _, _ = gt_sft.space_attributes
-            if affine is not None:
-                # compare affines.
-                #todO
-                raise NotImplementedError('todO')
-            affine = _affine
-            dimensions = _dimensions
-            gt_mask = compute_tract_counts_map(gt_sft.streamlines,
-                                               dimensions).astype(np.int16)
-        gt_inv_mask = np.zeros(dimensions, dtype=np.int16)
-        gt_inv_mask[gt_mask == 0] = 1
-        gt_mask[gt_mask > 0] = 1
+            gt_mask = None
+            gt_inv_mask = None
+
         gt_bundle_masks.append(gt_mask)
         gt_bundle_inv_masks.append(gt_inv_mask)
 
@@ -241,14 +214,14 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
         if 'gt_endpoints' in bundle_options:
             tail, head, _affine, _dimensions = \
                 extract_tails_heads_from_endpoints(
-                    bundle_options.gt_endpoints, out_dir)
+                    bundle_options['endpoints'], out_dir)
             if affine is not None:
                 # Compare affine
                 # todo
-                raise NotImplementedError
+                logging.debug('Affine discarded. (todo)')
         else:
-            tail = bundle_options.gt_tail
-            head = bundle_options.gt_head
+            tail = bundle_options['gt_tail']
+            head = bundle_options['gt_head']
 
         tails.append(tail)
         heads.append(head)
@@ -256,9 +229,22 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     return tails, heads
 
 
+def make_sft_from_ids(ids, sft):
+    streamlines = sft.streamlines[ids]
+    data_per_streamline = sft.data_per_streamline[ids]
+    data_per_point = sft.data_per_point[ids]
+
+    new_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
+
+    return new_sft
+
+
 def extract_true_connections(
-    sft, mask_1_filename, mask_2_filename, gt_config, length_dict,
-    gt_bundle, gt_bundle_inv_mask, dilate_endpoints, wrong_path_as_separate):
+        sft, mask_1_filename, mask_2_filename, limits_length, angle,
+        bundle_prefix, gt_bundle_inv_mask, dilate_endpoints):
     """
     Extract true connections based on two regions from a tractogram.
     May extract false and no connections if the config is passed.
@@ -271,18 +257,16 @@ def extract_true_connections(
         Filename of the "head" of the bundle.
     mask_2_filename: str
         Filename of the "tail" of the bundle.
-    gt_config: dict or None
-        Dictionary containing the bundle's parameters.
-    length_dict: dict or None
-        Dictionary containing the bundle's length parameters.
-    gt_bundle: str
+    limits_length: list
+        Bundle's length parameters: [min max]
+    angle: int
+        Bundle's max angle.
+    bundle_prefix: str
         Bundle's name.
     gt_bundle_inv_mask: np.ndarray
         Inverse mask of the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
-    wrong_path_as_separate: bool
-        If true, save the WPCs as separate from TCs.
 
     Returns
     -------
@@ -307,70 +291,78 @@ def extract_true_connections(
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    # TODO: Handle streamline IDs instead of streamlines
-    tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
+    nb_streamlines = len(sft)
 
-    streamlines = tmp_sft.streamlines
-    tc_streamlines = streamlines
-    wpc_streamlines = []
-    fc_streamlines = []
-    nc_streamlines = []
+    _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    logging.debug("Bundle {}: Found {}/{} streamlines with correct endpoints."
+                  .format(bundle_prefix, len(tc_ids), nb_streamlines))
 
-    # Config file for each 'bundle'
-    # Loops => no connection (nc) # TODO Is this legit ?
-    # Length => false connection (fc) # TODO Is this legit ?
-    if gt_config:
-        min_len, max_len = \
-            length_dict[gt_bundle]['length']
+    wpc_ids = []
+
+    # Remove invalid lengths from tc
+    if limits_length is not None:
+        min_len, max_len = limits_length
 
         # Bring streamlines to world coordinates so proper length
         # is calculated
-        tmp_sft.to_rasmm()
-        streamlines = tmp_sft.streamlines
-        lengths = np.array(list(length(streamlines)))
-        tmp_sft.to_vox()
-        streamlines = tmp_sft.streamlines
+        sft.to_rasmm()
+        lengths = np.array(list(length(sft.streamlines[tc_ids])))
+        sft.to_vox()
 
-        valid_min_length_mask = lengths > min_len
-        valid_max_length_mask = lengths < max_len
-        valid_length_mask = np.logical_and(valid_min_length_mask,
-                                           valid_max_length_mask)
-        streamlines = ArraySequence(streamlines)
+        # Compute valid lengths
+        valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
+                                                       lengths < max_len)
 
-        val_len_streamlines = streamlines[valid_length_mask]
-        fc_streamlines = streamlines[~valid_length_mask]
+        logging.debug("Bundle {}: Classifying {}/{} invalid length "
+                      "streamlines as wpc."
+                      .format(bundle_prefix,
+                              sum(~valid_length_ids_mask_from_tc),
+                              len(tc_ids)))
 
-        angle = length_dict[gt_bundle]['angle']
-        tc_streamlines_ids = remove_loops_and_sharp_turns(
-            val_len_streamlines, angle)
+        # Update ids
+        wpc_ids.extend(tc_ids[~valid_length_ids_mask_from_tc])
+        tc_ids = tc_ids[valid_length_ids_mask_from_tc]
 
-        loop_ids = np.setdiff1d(
-            range(len(val_len_streamlines)), tc_streamlines_ids)
+    # Remove loops from tc
+    if angle is not None:
+        # Compute valid angles
+        valid_angle_ids_from_tc = remove_loops_and_sharp_turns(
+            sft.streamlines[tc_ids], angle)
 
-        loops = val_len_streamlines[list(loop_ids)]
-        tc_streamlines = val_len_streamlines[list(tc_streamlines_ids)]
+        # Update ids
+        valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
+        invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
 
-        if loops:
-            nc_streamlines = loops
+        logging.debug("Bundle {}: Classifying {}/{} invalid angle streamlines "
+                      "as wpc."
+                      .format(bundle_prefix, len(invalid_angle_ids),
+                              len(tc_ids)))
+
+        wpc_ids.extend(invalid_angle_ids)
+        tc_ids = valid_angle_ids
 
     # Streamlines getting out of the bundle mask can be considered
     # separately as wrong path connection (wpc)
-    # TODO: Maybe only consider if they cross another GT bundle ?
-    if wrong_path_as_separate:
-        tmp_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
-        _, wp_ids = filter_grid_roi(
+    if gt_bundle_inv_mask is not None:
+
+        tmp_sft = StatefulTractogram.from_sft(sft.streamlines[tc_ids], sft)
+        _, out_of_mask_ids_from_tc = filter_grid_roi(
             tmp_sft, gt_bundle_inv_mask, 'any', False)
-        wpc_streamlines = tmp_sft.streamlines[list(wp_ids)]
-        tc_ids = np.setdiff1d(range(len(tmp_sft)), wp_ids)
-        tc_streamlines = tmp_sft.streamlines[list(tc_ids)]
+        out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
 
-    tc_sft = StatefulTractogram.from_sft(tc_streamlines, sft)
-    wpc_sft = StatefulTractogram.from_sft([], sft)
-    fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
-    if wrong_path_as_separate and len(wpc_streamlines):
-        wpc_sft = StatefulTractogram.from_sft(wpc_streamlines, sft)
+        logging.debug("Bundle {}: Classifying {}/{} streamlines out of ground "
+                      "truth mask as wpc."
+                      .format(bundle_prefix, len(out_of_mask_ids),
+                              len(tc_ids)))
 
-    return tc_sft, wpc_sft, fc_sft, nc_streamlines, sft
+        # Update ids
+        wpc_ids.extend(out_of_mask_ids)
+        tc_ids = np.setdiff1d(tc_ids, wpc_ids)
+
+    tc_sft = make_sft_from_ids(tc_ids, sft)
+    wpc_sft = make_sft_from_ids(wpc_ids, sft)
+
+    return tc_sft, wpc_sft, tc_ids, wpc_ids
 
 
 def extract_false_connections(sft, mask_1_filename, mask_2_filename,
@@ -407,7 +399,7 @@ def extract_false_connections(sft, mask_1_filename, mask_2_filename,
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
     if len(sft.streamlines) > 0:
-        tmp_sft, sft = extract_streamlines(mask_1, mask_2, sft)
+        tmp_sft, sft = extract_tc_streamlines_ids(mask_1, mask_2, sft)
 
         streamlines = tmp_sft.streamlines
         fc_streamlines = streamlines
