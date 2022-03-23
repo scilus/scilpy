@@ -83,7 +83,8 @@ from scilpy.tractanalysis.scoring import (compute_gt_masks,
                                           extract_false_connections,
                                           extract_true_connections,
                                           get_binary_maps,
-                                          compute_endpoint_masks)
+                                          compute_endpoint_masks,
+                                          make_sft_from_ids)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -216,7 +217,7 @@ def main():
 
     # Verify options
     assert_inputs_exist(parser, masks + all_rois)
-    
+
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
         set_sft_logger_level('WARNING')
@@ -245,7 +246,7 @@ def main():
                          " {}".format(gt))
 
     logging.info("Loading and/or computing ground-truth masks.")
-    gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions,  = \
+    gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions, = \
         compute_gt_masks(masks, parser, args)
 
     logging.info("Extracting ground-truth head and tail masks.")
@@ -295,18 +296,20 @@ def main():
         wpc_ids_list.append(wpc_ids)
 
     logging.info("Verifying if some streamlines belong to more than one "
-                 "ground truth bundle (that would mean you have overlapping "
-                 "ROIs!)")
+                 "ground truth bundle (i.e. tc + wpc). Tthat would mean you "
+                 "have overlapping ROIs!)")
     nb_bundles = len(tc_ids_list)
+    tc_and_wpc = [tc_ids_list[i] + wpc_ids_list[i] for i in
+                  range(len(tc_ids_list))]
     for i in range(nb_bundles):
-        for j in range(i+1, nb_bundles):
-            duplicate_ids = np.intersect1d(tc_ids_list[i], tc_ids_list[j])
+        for j in range(i + 1, nb_bundles):
+            duplicate_ids = np.intersect1d(tc_and_wpc[i], tc_and_wpc[j])
             if len(duplicate_ids) > 0:
                 logging.warning(
                     "{} streamlines belong both to bundle {} and {}. \n"
                     "Please verify your criteria!"
-                    .format(len(duplicate_ids), bundles_names[i],
-                            bundles_names[j]))
+                        .format(len(duplicate_ids), bundles_names[i],
+                                bundles_names[j]))
 
     # -----------
     # False connections
@@ -338,7 +341,7 @@ def main():
         if len(fc_sft) > 0 or not args.no_empty:
             save_tractogram(fc_sft, os.path.join(
                 args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
-                bbox_valid_check=False)
+                            bbox_valid_check=False)
 
         logging.info("Recognized {} streamlines between {} and {}".format(
             len(fc_sft.streamlines), prefix_1, prefix_2))
@@ -357,61 +360,65 @@ def main():
                     "{} streamlines are scored twice as invalid connections \n"
                     "(between pair {}\n and between pair {}).\n You probably "
                     "have overlapping ROIs!"
-                    .format(len(duplicate_ids), comb_filename[i],
-                            comb_filename[j]))
+                        .format(len(duplicate_ids), comb_filename[i],
+                                comb_filename[j]))
 
     # -----------
     # No connections
     # -----------
-    nc_streamlines.extend(sft.streamlines)
+    # No connections = ids that are not tc, not wpc and not fc.
+    all_tc_ids = np.unique(list(itertools.chain(*tc_ids_list)))
+    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
+    all_fc_ids = np.unique(list(itertools.chain(*fc_ids_list)))
+    remaining_ids = np.arange(len(sft))
+    remaining_ids = np.setdiff1d(remaining_ids, all_tc_ids)
+    remaining_ids = np.setdiff1d(remaining_ids, all_wpc_ids)
+    remaining_ids = np.setdiff1d(remaining_ids, all_fc_ids)
 
-    final_results = {}
-    no_conn_sft = StatefulTractogram.from_sft(nc_streamlines, sft)
+    logging.info("The remaining {} streamlines will be scores as nc."
+                 .format(len(remaining_ids)))
+
+    no_conn_sft = make_sft_from_ids(remaining_ids, sft)
     if len(no_conn_sft) > 0 or not args.no_empty:
         save_tractogram(no_conn_sft, os.path.join(
             args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
 
+    # -----------
+    # Tractometry stats: NC, IC, VC, WPC
+    # -----------
     # Total number of streamlines for each category
     # and statistic that are not "bundle-wise"
-    tc_streamlines_count = len(list(itertools.chain(*tc_streamlines_list)))
-    fc_streamlines_count = len(list(itertools.chain(*fc_streamlines_list)))
+    tc_streamlines_count = len(all_tc_ids)
+    wpc_streamlines_count = len(all_wpc_ids)
+    fc_streamlines_count = len(all_fc_ids)
+    nc_streamlines_count = len(remaining_ids)
 
-    if args.wrong_path_as_separate:
-        wpc_streamlines_count = len(
-            list(itertools.chain(*wpc_streamlines_list)))
-    else:
-        wpc_streamlines_count = 0
-
-    nc_streamlines_count = len(nc_streamlines)
     total_count = tc_streamlines_count + fc_streamlines_count + \
         wpc_streamlines_count + nc_streamlines_count
 
     assert total_count == initial_count
 
-    final_results["tractogram_filename"] = str(args.in_tractogram)
-    final_results["tractogram_overlap"] = 0.0
-    final_results["tc_streamlines"] = tc_streamlines_count
-    final_results["fc_streamlines"] = fc_streamlines_count
-    final_results["nc_streamlines"] = nc_streamlines_count
+    final_results = {
+        "tractogram_filename": str(args.in_tractogram),
+        "bundles": bundles_names,
+        "tractogram_overlap": 0.0,
+        "tc_streamlines": tc_streamlines_count,
+        "wpc_streamlines": wpc_streamlines_count,
+        "fc_streamlines": fc_streamlines_count,
+        "nc_streamlines": nc_streamlines_count,
+        "tc_bundle": len([x for x in tc_ids_list if len(x) > 0]),
+        "fc_bundle": len([x for x in fc_ids_list if len(x) > 0]),
+        "wpc_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
+        "tc_streamlines_ratio": tc_streamlines_count / total_count,
+        "fc_streamlines_ratio": fc_streamlines_count / total_count,
+        "nc_streamlines_ratio": nc_streamlines_count / total_count,
+        "wpc_streamlines_ratio": wpc_streamlines_count / total_count,
+        "total_streamlines": total_count,
+    }
 
-    final_results["tc_bundle"] = len([x for x in tc_streamlines_list if x])
-    final_results["fc_bundle"] = len([x for x in fc_streamlines_list if x])
-
-    final_results["tc_streamlines_ratio"] = tc_streamlines_count / total_count
-    final_results["fc_streamlines_ratio"] = fc_streamlines_count / total_count
-    final_results["nc_streamlines_ratio"] = nc_streamlines_count / total_count
-
-    if args.wrong_path_as_separate:
-        final_results["wpc_streamlines"] = wpc_streamlines_count
-        final_results["wpc_streamlines_ratio"] = \
-            wpc_streamlines_count / total_count
-        final_results["wpc_bundle"] = len(
-            [x for x in wpc_streamlines_list if x])
-
-    final_results["total_streamlines"] = total_count
-    final_results["bundle_wise"] = {}
-    final_results["bundle_wise"]["true_connections"] = {}
-    final_results["bundle_wise"]["false_connections"] = {}
+    # -----------
+    # Tractometry stats on the OL, OR, Dice score
+    # -----------
     tractogram_overlap = 0.0
 
     for i, filename in enumerate(tc_filenames):
@@ -454,7 +461,7 @@ def main():
         tmp_dict["tc_bundle_overlap_PCT"] = \
             tmp_dict["tc_bundle_overlap"] / \
             (tmp_dict["tc_bundle_overlap"] +
-                tmp_dict["tc_bundle_lacking"])
+             tmp_dict["tc_bundle_lacking"])
         tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
 
         endpoints_overlap = \
@@ -483,7 +490,7 @@ def main():
             tmp_dict["fc_streamlines"] = len(current_fc_streamlines)
             tmp_dict["fc_voxels"] = np.count_nonzero(current_fc_voxels)
 
-            final_results["bundle_wise"]["false_connections"][str(filename)] =\
+            final_results["bundle_wise"]["false_connections"][str(filename)] = \
                 tmp_dict
 
     final_results["tractogram_overlap"] = \
