@@ -203,6 +203,9 @@ def main():
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
 
+    # -----------
+    # Preparation
+    # -----------
     # Read the config file
     bundles_names, masks, roi_options, all_rois, lengths, angles = \
         read_config_file(args.gt_config, args.bundle_masks_dir, args.rois_dir)
@@ -255,6 +258,9 @@ def main():
         if not compatible:
             parser.error("Input tractogram incompatible with {}".format(gt))
 
+    # -----------
+    # True connections
+    # -----------
     logging.info("Scoring true connections (and wpc)")
 
     # List the heads/tails combinations
@@ -288,19 +294,23 @@ def main():
         tc_ids_list.append(tc_ids)
         wpc_ids_list.append(wpc_ids)
 
-    logging.info("Scoring streamlines belonging to more than one ground "
-                 "truth bundle (that would mean you have overlapping ROIs!)")
-    # Checking ids intersection
+    logging.info("Verifying if some streamlines belong to more than one "
+                 "ground truth bundle (that would mean you have overlapping "
+                 "ROIs!)")
     nb_bundles = len(tc_ids_list)
     for i in range(nb_bundles):
         for j in range(i+1, nb_bundles):
             duplicate_ids = np.intersect1d(tc_ids_list[i], tc_ids_list[j])
             if len(duplicate_ids) > 0:
-                logging.warning("{} streamlines belong both to bundle {} and "
-                                "{}. Please verify your criteria!"
-                                .format(len(duplicate_ids),
-                                        bundles_names[i], bundles_names[j]))
+                logging.warning(
+                    "{} streamlines belong both to bundle {} and {}. \n"
+                    "Please verify your criteria!"
+                    .format(len(duplicate_ids), bundles_names[i],
+                            bundles_names[j]))
 
+    # -----------
+    # False connections
+    # -----------
     logging.info("Scoring false connections")
 
     # Keep all possible combinations
@@ -313,6 +323,7 @@ def main():
         comb_filename.remove(tc_f)
 
     # Go through all the possible combinations of endpoints masks
+    fc_ids_list = []
     for i, roi in enumerate(comb_filename):
         mask_1_filename, mask_2_filename = roi
 
@@ -321,7 +332,7 @@ def main():
         prefix_2 = extract_prefix(mask_2_filename)
         _, ext = os.path.splitext(args.in_tractogram)
 
-        fc_sft, sft = extract_false_connections(
+        fc_sft, fc_ids = extract_false_connections(
             sft, mask_1_filename, mask_2_filename, args.dilate_endpoints)
 
         if len(fc_sft) > 0 or not args.no_empty:
@@ -332,8 +343,26 @@ def main():
         logging.info("Recognized {} streamlines between {} and {}".format(
             len(fc_sft.streamlines), prefix_1, prefix_2))
 
-        fc_streamlines_list.append(fc_sft.streamlines)
+        fc_ids_list.append(fc_ids)
 
+    logging.info("Verifying if some streamlines belong to more than one "
+                 "invalid connection (that would mean you have overlapping "
+                 "ROIs!)")
+    nb_pairs = len(fc_ids_list)
+    for i in range(nb_pairs):
+        for j in range(i + 1, nb_pairs):
+            duplicate_ids = np.intersect1d(fc_ids_list[i], fc_ids_list[j])
+            if len(duplicate_ids) > 0:
+                logging.warning(
+                    "{} streamlines are scored twice as invalid connections \n"
+                    "(between pair {}\n and between pair {}).\n You probably "
+                    "have overlapping ROIs!"
+                    .format(len(duplicate_ids), comb_filename[i],
+                            comb_filename[j]))
+
+    # -----------
+    # No connections
+    # -----------
     nc_streamlines.extend(sft.streamlines)
 
     final_results = {}

@@ -398,13 +398,7 @@ def extract_false_connections(sft, mask_1_filename, mask_2_filename,
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    if len(sft.streamlines) > 0:
-        tmp_sft, sft = extract_tc_streamlines_ids(mask_1, mask_2, sft)
+    _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
 
-        streamlines = tmp_sft.streamlines
-        fc_streamlines = streamlines
-
-        fc_sft = StatefulTractogram.from_sft(fc_streamlines, sft)
-        return fc_sft, sft
-    else:
-        return sft, sft
+    fc_sft = make_sft_from_ids(fc_ids, sft)
+    return fc_sft, fc_ids
