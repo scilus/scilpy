@@ -291,11 +291,9 @@ def extract_true_connections(
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    nb_streamlines = len(sft)
-
     _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
-    logging.info("Bundle {}: Found {}/{} streamlines with correct endpoints."
-                 .format(bundle_prefix, len(tc_ids), nb_streamlines))
+    logging.info("Bundle {}: Found {} streamlines with correct endpoints."
+                 .format(bundle_prefix, len(tc_ids)))
 
     wpc_ids = []
 
@@ -313,7 +311,7 @@ def extract_true_connections(
         valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
                                                        lengths < max_len)
 
-        logging.info("Bundle {}: Classifying {}/{} invalid length "
+        logging.info("Bundle {}:    Classifying {}/{} invalid length "
                      "streamlines as wpc."
                       .format(bundle_prefix,
                               sum(~valid_length_ids_mask_from_tc),
@@ -333,8 +331,8 @@ def extract_true_connections(
         valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
         invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
 
-        logging.info("Bundle {}: Classifying {}/{} invalid angle streamlines "
-                     "as wpc."
+        logging.info("Bundle {}:    Classifying {}/{} invalid angle "
+                     "streamlines as wpc."
                       .format(bundle_prefix, len(invalid_angle_ids),
                               len(tc_ids)))
 
@@ -350,8 +348,8 @@ def extract_true_connections(
             tmp_sft, gt_bundle_inv_mask, 'any', False)
         out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
 
-        logging.info("Bundle {}: Classifying {}/{} streamlines out of ground "
-                     "truth mask as wpc."
+        logging.info("Bundle {}:    Classifying {}/{} streamlines out of "
+                     "ground truth mask as wpc."
                       .format(bundle_prefix, len(out_of_mask_ids),
                               len(tc_ids)))
 
@@ -362,7 +360,7 @@ def extract_true_connections(
     tc_sft = make_sft_from_ids(tc_ids, sft)
     wpc_sft = make_sft_from_ids(wpc_ids, sft)
 
-    return tc_sft, wpc_sft, tc_ids, wpc_ids
+    return tc_sft, wpc_sft, list(tc_ids), list(wpc_ids)
 
 
 def extract_false_connections(sft, mask_1_filename, mask_2_filename,

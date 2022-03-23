@@ -210,6 +210,7 @@ def main():
     # Read the config file
     bundles_names, masks, roi_options, all_rois, lengths, angles = \
         read_config_file(args.gt_config, args.bundle_masks_dir, args.rois_dir)
+    nb_bundles = len(bundles_names)
 
     # Remove duplicates
     # (in case a same roi file is used for more than one bundle)
@@ -219,8 +220,7 @@ def main():
     assert_inputs_exist(parser, masks + all_rois)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-        set_sft_logger_level('WARNING')
+        logging.basicConfig(level=logging.INFO)
 
     logging.info("Loading tractogram.")
     _, ext = os.path.splitext(args.in_tractogram)
@@ -267,7 +267,9 @@ def main():
     # List the heads/tails combinations
     tc_filenames = list(zip(gt_tails, gt_heads))
 
+    tc_sft_list = []
     tc_ids_list = []
+    wpc_sft_list = []
     wpc_ids_list = []
     for i, (mask_1_filename, mask_2_filename) in enumerate(tc_filenames):
 
@@ -292,13 +294,12 @@ def main():
                 args.out_dir, "{}_{}_wpc{}".format(prefix_1, prefix_2, ext)),
                             bbox_valid_check=False)
 
+        tc_sft_list.append(tc_sft)
         tc_ids_list.append(tc_ids)
+        wpc_sft_list.append(wpc_sft)
         wpc_ids_list.append(wpc_ids)
 
-    logging.info("Verifying if some streamlines belong to more than one "
-                 "ground truth bundle (i.e. tc + wpc). Tthat would mean you "
-                 "have overlapping ROIs!)")
-    nb_bundles = len(tc_ids_list)
+    # Duplicates?
     tc_and_wpc = [tc_ids_list[i] + wpc_ids_list[i] for i in
                   range(len(tc_ids_list))]
     for i in range(nb_bundles):
@@ -308,8 +309,8 @@ def main():
                 logging.warning(
                     "{} streamlines belong both to bundle {} and {}. \n"
                     "Please verify your criteria!"
-                        .format(len(duplicate_ids), bundles_names[i],
-                                bundles_names[j]))
+                    .format(len(duplicate_ids), bundles_names[i],
+                            bundles_names[j]))
 
     # -----------
     # False connections
@@ -326,6 +327,7 @@ def main():
         comb_filename.remove(tc_f)
 
     # Go through all the possible combinations of endpoints masks
+    fc_sft_list = []
     fc_ids_list = []
     for i, roi in enumerate(comb_filename):
         mask_1_filename, mask_2_filename = roi
@@ -346,11 +348,10 @@ def main():
         logging.info("Recognized {} streamlines between {} and {}".format(
             len(fc_sft.streamlines), prefix_1, prefix_2))
 
+        fc_sft_list.append(fc_sft)
         fc_ids_list.append(fc_ids)
 
-    logging.info("Verifying if some streamlines belong to more than one "
-                 "invalid connection (that would mean you have overlapping "
-                 "ROIs!)")
+    # Duplicates?
     nb_pairs = len(fc_ids_list)
     for i in range(nb_pairs):
         for j in range(i + 1, nb_pairs):
@@ -360,8 +361,8 @@ def main():
                     "{} streamlines are scored twice as invalid connections \n"
                     "(between pair {}\n and between pair {}).\n You probably "
                     "have overlapping ROIs!"
-                        .format(len(duplicate_ids), comb_filename[i],
-                                comb_filename[j]))
+                    .format(len(duplicate_ids), comb_filename[i],
+                            comb_filename[j]))
 
     # -----------
     # No connections
@@ -375,8 +376,8 @@ def main():
     remaining_ids = np.setdiff1d(remaining_ids, all_wpc_ids)
     remaining_ids = np.setdiff1d(remaining_ids, all_fc_ids)
 
-    logging.info("The remaining {} streamlines will be scores as nc."
-                 .format(len(remaining_ids)))
+    logging.info("The remaining {} / {} streamlines will be scored as nc."
+                 .format(len(remaining_ids), len(sft)))
 
     no_conn_sft = make_sft_from_ids(remaining_ids, sft)
     if len(no_conn_sft) > 0 or not args.no_empty:
@@ -417,84 +418,95 @@ def main():
     }
 
     # -----------
-    # Tractometry stats on the OL, OR, Dice score
+    # Tractometry stats: OL, OR, Dice score
     # -----------
     tractogram_overlap = 0.0
 
+    tc_bundle_wise_dict = {}
     for i, filename in enumerate(tc_filenames):
-        current_tc_streamlines = tc_streamlines_list[i]
+        current_tc_streamlines = tc_sft_list[i].streamlines
+        current_wpc_streamlines = wpc_sft_list[i].streamlines
+
+        # Getting the recovered mask
         current_tc_voxels, current_tc_endpoints_voxels = get_binary_maps(
             current_tc_streamlines, sft)
+        current_wpc_voxels, _ = get_binary_maps(current_wpc_streamlines, sft)
 
-        if args.wrong_path_as_separate:
-            current_wpc_streamlines = wpc_streamlines_list[i]
-            current_wpc_voxels, _ = get_binary_maps(
-                current_wpc_streamlines, sft)
+        # Dice
+        tc_dice = compute_dice_voxel(gt_bundle_masks[i], current_tc_voxels)
+        wpc_dice = compute_dice_voxel(gt_bundle_masks[i], current_wpc_voxels)
 
-        tmp_dict = {}
-        tmp_dict["tc_streamlines"] = len(current_tc_streamlines)
-
-        tmp_dict["tc_dice"] = compute_dice_voxel(gt_bundle_masks[i],
-                                                 current_tc_voxels)[0]
-
+        # Overlap and overreach
         bundle_overlap = gt_bundle_masks[i] * current_tc_voxels
         bundle_overreach = np.zeros(dimensions)
+        # If no ground truth bundle was given (only the endpoints ROIs),
+        # overreach can be computed as usual
         bundle_overreach[np.where(
             (gt_bundle_masks[i] == 0) & (current_tc_voxels >= 1))] = 1
+        # If a ground truth bundle has been given, all streamlines contributing
+        # to the overreach are now classified as wpc.
+        bundle_overreach[np.where(
+            (gt_bundle_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
+
         bundle_lacking = np.zeros(dimensions)
         bundle_lacking[np.where(
             (gt_bundle_masks[i] == 1) & (current_tc_voxels == 0))] = 1
 
-        if args.wrong_path_as_separate:
-            tmp_dict["wpc_streamlines"] = len(current_wpc_streamlines)
-            tmp_dict["wpc_dice"] = \
-                compute_dice_voxel(gt_bundle_masks[i],
-                                   current_wpc_voxels)[0]
-            # Add wrong path to overreach
-            bundle_overreach[np.where(
-                (gt_bundle_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
+        overlap = np.count_nonzero(bundle_overlap)
+        overreach = np.count_nonzero(bundle_overreach)
+        lacking = np.count_nonzero(bundle_lacking)
 
-        tmp_dict["tc_bundle_overlap"] = np.count_nonzero(bundle_overlap)
-        tmp_dict["tc_bundle_overreach"] = \
-            np.count_nonzero(bundle_overreach)
-        tmp_dict["tc_bundle_lacking"] = np.count_nonzero(bundle_lacking)
-        tmp_dict["tc_bundle_overlap_PCT"] = \
-            tmp_dict["tc_bundle_overlap"] / \
-            (tmp_dict["tc_bundle_overlap"] +
-             tmp_dict["tc_bundle_lacking"])
-        tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
-
-        endpoints_overlap = \
-            gt_bundle_masks[i] * current_tc_endpoints_voxels
+        # Endpoints coverage
+        endpoints_overlap = gt_bundle_masks[i] * current_tc_endpoints_voxels
         endpoints_overreach = np.zeros(dimensions)
         endpoints_overreach[np.where(
             (gt_bundle_masks[i] == 0) &
             (current_tc_endpoints_voxels >= 1))] = 1
-        tmp_dict["tc_endpoints_overlap"] = np.count_nonzero(
-            endpoints_overlap)
-        tmp_dict["tc_endpoints_overreach"] = np.count_nonzero(
-            endpoints_overreach)
 
-        final_results["bundle_wise"]["true_connections"][str(filename)] = \
-            tmp_dict
+        tmp_dict = {
+            "bundle": bundles_names[i],
+            "tc_streamlines": len(current_tc_streamlines),
+            "wpc_streamlines": len(current_wpc_streamlines),
+            "tc_dice": tc_dice[0],
+            "wpc_dice": wpc_dice[0],
+            "tc_bundle_overlap": overlap,
+            "tc_bundle_overreach": overreach,
+            "tc_bundle_lacking": lacking,
+            "tc_bundle_overlap_PCT": overlap / (overlap + lacking),
+            "tc_endpoints_overlap": np.count_nonzero(
+                endpoints_overlap),
+            "tc_endpoints_overreach": np.count_nonzero(
+                endpoints_overreach)}
 
-    # Bundle-wise statistics, useful for more complex phantom
+        tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
+        tc_bundle_wise_dict.update({str(filename): tmp_dict})
+
+    # -----------
+    # False connections stats: number of voxels
+    # -----------
+    fc_bundle_wise_dict = {}
     for i, filename in enumerate(comb_filename):
-        current_fc_streamlines = fc_streamlines_list[i]
-        current_fc_voxels, _ = get_binary_maps(
-            current_fc_streamlines, sft)
-
-        tmp_dict = {}
+        current_fc_streamlines = fc_sft_list[i].streamlines
 
         if len(current_fc_streamlines):
-            tmp_dict["fc_streamlines"] = len(current_fc_streamlines)
-            tmp_dict["fc_voxels"] = np.count_nonzero(current_fc_voxels)
+            current_fc_voxels, _ = get_binary_maps(
+                current_fc_streamlines, sft)
 
-            final_results["bundle_wise"]["false_connections"][str(filename)] = \
-                tmp_dict
+            tmp_dict = {
+                "fc_streamlines": len(current_fc_streamlines),
+                "fc_voxels": np.count_nonzero(current_fc_voxels)
+            }
+            fc_bundle_wise_dict.update({str(filename): tmp_dict})
 
-    final_results["tractogram_overlap"] = \
-        tractogram_overlap / len(gt_bundle_masks)
+    bundle_wise_dict = {
+        "true_connections": tc_bundle_wise_dict,
+        "false_connections": fc_bundle_wise_dict
+    }
+
+    final_results.update({
+        "bundle_wise": bundle_wise_dict,
+        "tractogram_overlap": tractogram_overlap / len(gt_bundle_masks)
+    })
 
     with open(os.path.join(args.out_dir, "results.json"), "w") as f:
         json.dump(final_results, f,
