@@ -100,7 +100,7 @@ def compute_gt_masks(gt_bundles, parser, args):
 
                 if affine is not None:
                     # compare affines.
-                    #todO
+                    # todO
                     logging.debug('Previous affine discarded. (todo)')
                 affine = gt_img.affine
                 dimensions = gt_mask.shape
@@ -112,7 +112,7 @@ def compute_gt_masks(gt_bundles, parser, args):
                 _affine, _dimensions, _, _ = gt_sft.space_attributes
                 if affine is not None:
                     # compare affines.
-                    #todO
+                    # todO
                     logging.debug('Previous affine discarded. (todo)')
                 affine = _affine
                 dimensions = _dimensions
@@ -214,7 +214,7 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
         if 'gt_endpoints' in bundle_options:
             tail, head, _affine, _dimensions = \
                 extract_tails_heads_from_endpoints(
-                    bundle_options['endpoints'], out_dir)
+                    bundle_options['gt_endpoints'], out_dir)
             if affine is not None:
                 # Compare affine
                 # todo
@@ -311,11 +311,13 @@ def extract_true_connections(
         valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
                                                        lengths < max_len)
 
-        logging.info("Bundle {}:    Classifying {}/{} invalid length "
-                     "streamlines as wpc."
-                      .format(bundle_prefix,
-                              sum(~valid_length_ids_mask_from_tc),
-                              len(tc_ids)))
+        nb_invalid = sum(~valid_length_ids_mask_from_tc)
+        if nb_invalid > 0:
+            logging.info("Bundle {}:    Classifying {}/{} invalid length "
+                         "streamlines as wpc."
+                         .format(bundle_prefix,
+                                 sum(~valid_length_ids_mask_from_tc),
+                                 len(tc_ids)))
 
         # Update ids
         wpc_ids.extend(tc_ids[~valid_length_ids_mask_from_tc])
@@ -331,10 +333,12 @@ def extract_true_connections(
         valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
         invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
 
-        logging.info("Bundle {}:    Classifying {}/{} invalid angle "
-                     "streamlines as wpc."
-                      .format(bundle_prefix, len(invalid_angle_ids),
-                              len(tc_ids)))
+        nb_invalid = len(invalid_angle_ids)
+        if nb_invalid > 0:
+            logging.info("Bundle {}:    Classifying {}/{} invalid angle "
+                         "streamlines as wpc."
+                         .format(bundle_prefix, len(invalid_angle_ids),
+                                 len(tc_ids)))
 
         wpc_ids.extend(invalid_angle_ids)
         tc_ids = valid_angle_ids
@@ -348,10 +352,12 @@ def extract_true_connections(
             tmp_sft, gt_bundle_inv_mask, 'any', False)
         out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
 
-        logging.info("Bundle {}:    Classifying {}/{} streamlines out of "
-                     "ground truth mask as wpc."
-                      .format(bundle_prefix, len(out_of_mask_ids),
-                              len(tc_ids)))
+        nb_invalid = len(out_of_mask_ids)
+        if nb_invalid > 0:
+            logging.info("Bundle {}:    Classifying {}/{} streamlines out of "
+                         "ground truth mask as wpc."
+                         .format(bundle_prefix, len(out_of_mask_ids),
+                                 len(tc_ids)))
 
         # Update ids
         wpc_ids.extend(out_of_mask_ids)

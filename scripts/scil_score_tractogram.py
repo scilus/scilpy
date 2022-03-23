@@ -66,8 +66,6 @@ import numpy as np
 import os
 
 from dipy.io.utils import is_header_compatible
-from dipy.io.stateful_tractogram import StatefulTractogram, \
-    set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -77,8 +75,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.tractanalysis.reproducibility_measures \
-    import (compute_dice_voxel)
+from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.scoring import (compute_gt_masks,
                                           extract_false_connections,
                                           extract_true_connections,
@@ -101,11 +98,11 @@ def _build_arg_parser():
     p.add_argument("out_dir",
                    help="Output directory")
 
-    p.add_argument("--bundle_masks_dir",
+    p.add_argument("--bundle_masks_dir", default='',
                    help="Path of the bundle paths listed in the gt_config.\n "
                         "If not set, filenames in the config file are "
                         "considered as complete paths.")
-    p.add_argument("--rois_dir",
+    p.add_argument("--rois_dir", default='',
                    help="Path of the ROI files listed in the gt_config.\n If "
                         "not set, filenames in the config file are considered "
                         "as complete paths.")
@@ -174,7 +171,7 @@ def read_config_file(gt_config, bundle_masks_dir, rois_dir):
                                      "endpoints OR head/tail.".format(bundle))
                 endpoints = os.path.join(rois_dir, bundle_config['endpoints'])
                 roi_options.update({
-                    bundle: {'endpoints': endpoints}})
+                    bundle: {'gt_endpoints': endpoints}})
                 roi_files.append(endpoints)
             elif 'head' in bundle_config:
                 if 'tail' not in bundle_config:
@@ -201,8 +198,11 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.gt_config)
-    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
-                                       create_dir=True)
+    assert_output_dirs_exist_and_empty(
+        parser, args, [args.out_dir,
+                       os.path.join(args.out_dir, 'segmented_VB'),
+                       os.path.join(args.out_dir, 'segmented_IB')],
+        create_dir=True)
 
     # -----------
     # Preparation
@@ -253,6 +253,10 @@ def main():
     gt_tails, gt_heads = compute_endpoint_masks(
         roi_options, affine, dimensions, args.out_dir)
 
+    # Update all_rois, remove duplicates
+    all_rois = gt_tails + gt_heads
+    all_rois = list(dict.fromkeys(all_rois))
+
     logging.info("Verifying tractogram compatibility with endpoint ROIs.")
     for gt in gt_tails + gt_heads:
         compatible = is_header_compatible(sft, gt)
@@ -286,12 +290,14 @@ def main():
         # Save results
         if len(tc_sft) > 0 or not args.no_empty:
             save_tractogram(tc_sft, os.path.join(
-                args.out_dir, "{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
+                args.out_dir,
+                "segmented_VB/{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
                             bbox_valid_check=False)
 
         if len(wpc_sft) > 0 or not args.no_empty:
             save_tractogram(wpc_sft, os.path.join(
-                args.out_dir, "{}_{}_wpc{}".format(prefix_1, prefix_2, ext)),
+                args.out_dir,
+                "segmented_VB/{}_{}_wpc{}".format(prefix_1, prefix_2, ext)),
                             bbox_valid_check=False)
 
         tc_sft_list.append(tc_sft)
@@ -307,8 +313,8 @@ def main():
             duplicate_ids = np.intersect1d(tc_and_wpc[i], tc_and_wpc[j])
             if len(duplicate_ids) > 0:
                 logging.warning(
-                    "{} streamlines belong both to bundle {} and {}. \n"
-                    "Please verify your criteria!"
+                    "{} streamlines belong both to bundle {} and {}. Please "
+                    "verify your criteria!"
                     .format(len(duplicate_ids), bundles_names[i],
                             bundles_names[j]))
 
@@ -318,6 +324,7 @@ def main():
     logging.info("Scoring false connections")
 
     # Keep all possible combinations
+    all_rois = sorted(all_rois)
     comb_filename = list(itertools.combinations(all_rois, r=2))
 
     # Remove the true connections from all combinations, leaving only
@@ -342,11 +349,13 @@ def main():
 
         if len(fc_sft) > 0 or not args.no_empty:
             save_tractogram(fc_sft, os.path.join(
-                args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
+                args.out_dir,
+                "segmented_IB/{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
                             bbox_valid_check=False)
 
-        logging.info("Recognized {} streamlines between {} and {}".format(
-            len(fc_sft.streamlines), prefix_1, prefix_2))
+        if len(fc_sft.streamlines) > 0:
+            logging.info("Recognized {} streamlines between {} and {}"
+                         .format(len(fc_sft.streamlines), prefix_1, prefix_2))
 
         fc_sft_list.append(fc_sft)
         fc_ids_list.append(fc_ids)
@@ -397,7 +406,10 @@ def main():
     total_count = tc_streamlines_count + fc_streamlines_count + \
         wpc_streamlines_count + nc_streamlines_count
 
-    assert total_count == initial_count
+    if total_count != initial_count:
+        logging.warning("Total count tc + fc + wpc + nc is not the same as "
+                        "the number of streamlines in the input tractogram.\n"
+                        "Verify your ROIs, or this script.")
 
     final_results = {
         "tractogram_filename": str(args.in_tractogram),
@@ -508,6 +520,7 @@ def main():
         "tractogram_overlap": tractogram_overlap / len(gt_bundle_masks)
     })
 
+    logging.info("Final results saved in {}".format(args.out_dir))
     with open(os.path.join(args.out_dir, "results.json"), "w") as f:
         json.dump(final_results, f,
                   indent=args.indent,
