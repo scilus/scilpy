@@ -294,8 +294,8 @@ def extract_true_connections(
     nb_streamlines = len(sft)
 
     _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
-    logging.debug("Bundle {}: Found {}/{} streamlines with correct endpoints."
-                  .format(bundle_prefix, len(tc_ids), nb_streamlines))
+    logging.info("Bundle {}: Found {}/{} streamlines with correct endpoints."
+                 .format(bundle_prefix, len(tc_ids), nb_streamlines))
 
     wpc_ids = []
 
@@ -313,8 +313,8 @@ def extract_true_connections(
         valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
                                                        lengths < max_len)
 
-        logging.debug("Bundle {}: Classifying {}/{} invalid length "
-                      "streamlines as wpc."
+        logging.info("Bundle {}: Classifying {}/{} invalid length "
+                     "streamlines as wpc."
                       .format(bundle_prefix,
                               sum(~valid_length_ids_mask_from_tc),
                               len(tc_ids)))
@@ -333,8 +333,8 @@ def extract_true_connections(
         valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
         invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
 
-        logging.debug("Bundle {}: Classifying {}/{} invalid angle streamlines "
-                      "as wpc."
+        logging.info("Bundle {}: Classifying {}/{} invalid angle streamlines "
+                     "as wpc."
                       .format(bundle_prefix, len(invalid_angle_ids),
                               len(tc_ids)))
 
@@ -350,8 +350,8 @@ def extract_true_connections(
             tmp_sft, gt_bundle_inv_mask, 'any', False)
         out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
 
-        logging.debug("Bundle {}: Classifying {}/{} streamlines out of ground "
-                      "truth mask as wpc."
+        logging.info("Bundle {}: Classifying {}/{} streamlines out of ground "
+                     "truth mask as wpc."
                       .format(bundle_prefix, len(out_of_mask_ids),
                               len(tc_ids)))
 

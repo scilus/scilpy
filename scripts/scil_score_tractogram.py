@@ -255,15 +255,13 @@ def main():
         if not compatible:
             parser.error("Input tractogram incompatible with {}".format(gt))
 
-    logging.info("Scoring true connections")
+    logging.info("Scoring true connections (and wpc)")
 
     # List the heads/tails combinations
     tc_filenames = list(zip(gt_tails, gt_heads))
 
-    tc_streamlines_list = []
-    wpc_streamlines_list = []
-    fc_streamlines_list = []
-    nc_streamlines = []
+    tc_ids_list = []
+    wpc_ids_list = []
     for i, (mask_1_filename, mask_2_filename) in enumerate(tc_filenames):
 
         # Automatically generate filename for Q/C
@@ -271,36 +269,37 @@ def main():
         prefix_2 = extract_prefix(mask_2_filename)
 
         # Extract true connection
-        tc_sft, wpc_sft, fc_sft, nc, sft = extract_true_connections(
+        tc_sft, wpc_sft, tc_ids, wpc_ids = extract_true_connections(
             sft, mask_1_filename, mask_2_filename, lengths[i], angles[i],
             bundles_names[i], gt_bundle_inv_masks[i],
             args.dilate_endpoints)
 
         # Save results
-        nc_streamlines.extend(nc)
         if len(tc_sft) > 0 or not args.no_empty:
             save_tractogram(tc_sft, os.path.join(
                 args.out_dir, "{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
-                bbox_valid_check=False)
+                            bbox_valid_check=False)
 
-        if ((len(wpc_sft) > 0 or not args.no_empty)
-           and args.wrong_path_as_separate):
-            save_tractogram(
-                wpc_sft, os.path.join(args.out_dir, "{}_{}_wpc{}".format(
-                    prefix_1, prefix_2, ext)), bbox_valid_check=False)
+        if len(wpc_sft) > 0 or not args.no_empty:
+            save_tractogram(wpc_sft, os.path.join(
+                args.out_dir, "{}_{}_wpc{}".format(prefix_1, prefix_2, ext)),
+                            bbox_valid_check=False)
 
-        if len(fc_sft) > 0 or not args.no_empty:
-            save_tractogram(fc_sft, os.path.join(
-                args.out_dir, "{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
-                bbox_valid_check=False)
+        tc_ids_list.append(tc_ids)
+        wpc_ids_list.append(wpc_ids)
 
-        tc_streamlines_list.append(tc_sft.streamlines)
-        wpc_streamlines_list.append(wpc_sft.streamlines)
-        fc_streamlines_list.append(fc_sft.streamlines)
-
-        logging.info("Recognized {} streamlines between {} and {}".format(
-            len(tc_sft.streamlines) + len(wpc_sft.streamlines) +
-            len(fc_sft.streamlines) + len(nc), prefix_1, prefix_2))
+    logging.info("Scoring streamlines belonging to more than one ground "
+                 "truth bundle (that would mean you have overlapping ROIs!)")
+    # Checking ids intersection
+    nb_bundles = len(tc_ids_list)
+    for i in range(nb_bundles):
+        for j in range(i+1, nb_bundles):
+            duplicate_ids = np.intersect1d(tc_ids_list[i], tc_ids_list[j])
+            if len(duplicate_ids) > 0:
+                logging.warning("{} streamlines belong both to bundle {} and "
+                                "{}. Please verify your criteria!"
+                                .format(len(duplicate_ids),
+                                        bundles_names[i], bundles_names[j]))
 
     logging.info("Scoring false connections")
 
