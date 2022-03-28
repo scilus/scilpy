@@ -127,6 +127,11 @@ def _build_arg_parser():
     p.add_argument("--dilate_endpoints",
                    metavar="NB_PASS", default=1, type=int,
                    help="Dilate inclusion masks n-times.")
+    p.add_argument("--compute_fc", action='store_true',
+                   help="If set, false connections will be separated in sub-"
+                        "bundles, one for each pair of ROI not belonging to "
+                        "a true connection. Else, all streamlines not "
+                        "included as tc or wpc will be classified as nc.")
     p.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
     p.add_argument("--no_empty", action='store_true',
@@ -378,6 +383,9 @@ def main():
                     .format(len(duplicate_ids), bundles_names[i],
                             bundles_names[j]))
 
+    all_tc_ids = np.unique(list(itertools.chain(*tc_ids_list)))
+    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
+
     # -----------
     # False connections
     # -----------
@@ -444,9 +452,6 @@ def main():
     # No connections
     # -----------
     # No connections = ids that are not tc, not wpc and not fc.
-    all_tc_ids = np.unique(list(itertools.chain(*tc_ids_list)))
-    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
-    all_fc_ids = np.unique(list(itertools.chain(*fc_ids_list)))
     remaining_ids = np.arange(len(sft))
     remaining_ids = np.setdiff1d(remaining_ids, all_tc_ids)
     remaining_ids = np.setdiff1d(remaining_ids, all_wpc_ids)
@@ -571,27 +576,33 @@ def main():
         tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
         tc_bundle_wise_dict.update({str(filename): tmp_dict})
 
-    # -----------
-    # False connections stats: number of voxels
-    # -----------
-    fc_bundle_wise_dict = {}
-    for i, filename in enumerate(comb_filename):
-        current_fc_streamlines = fc_sft_list[i].streamlines
+    if args.compute_fc:
+        # -----------
+        # False connections stats: number of voxels
+        # -----------
+        fc_bundle_wise_dict = {}
+        for i, filename in enumerate(comb_filename):
+            current_fc_streamlines = fc_sft_list[i].streamlines
 
-        if len(current_fc_streamlines):
-            current_fc_voxels, _ = get_binary_maps(
-                current_fc_streamlines, sft)
+            if len(current_fc_streamlines):
+                current_fc_voxels, _ = get_binary_maps(
+                    current_fc_streamlines, sft)
 
-            tmp_dict = {
-                "fc_streamlines": len(current_fc_streamlines),
-                "fc_voxels": np.count_nonzero(current_fc_voxels)
-            }
-            fc_bundle_wise_dict.update({str(filename): tmp_dict})
+                tmp_dict = {
+                    "fc_streamlines": len(current_fc_streamlines),
+                    "fc_voxels": np.count_nonzero(current_fc_voxels)
+                }
+                fc_bundle_wise_dict.update({str(filename): tmp_dict})
 
-    bundle_wise_dict = {
-        "true_connections": tc_bundle_wise_dict,
-        "false_connections": fc_bundle_wise_dict
-    }
+        bundle_wise_dict = {
+            "true_connections": tc_bundle_wise_dict,
+            "false_connections": fc_bundle_wise_dict
+        }
+    else:
+        bundle_wise_dict = {
+            "true_connections": tc_bundle_wise_dict,
+            "false_connections": "Not computed"
+        }
 
     final_results.update({
         "bundle_wise": bundle_wise_dict,
