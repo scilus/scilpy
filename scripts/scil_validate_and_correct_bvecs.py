@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Validate and correct b-vectors using a fiber coherence index from Schilling
-et al, 2019. The script takes as input the principal direction(s) at each
-voxel, the b-vectors and the fractional anisotropy map and outputs a corrected
-b-vectors file.
+Detect sign flips and/or axes swaps in the gradients table from a fiber
+coherence index [1]. The script takes as input the principal direction(s)
+at each voxel, the b-vectors and the fractional anisotropy map and outputs
+a corrected b-vectors file.
 
 A typical pipeline could be:
 >>> scil_compute_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
@@ -31,9 +31,17 @@ from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
 from dipy.io.gradients import read_bvals_bvecs
 
 
+EPILOG = """
+[1] Schilling KG, Yeh FC, Nath V, Hansen C, Williams O, Resnick S, Anderson AW,
+Landman BA. A fiber coherence index for quality control of B-table orientation
+in diffusion MRI scans. Magn Reson Imaging. 2019 May;58:82-89.
+doi: 10.1016/j.mri.2019.01.018.
+"""
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                description=__doc__)
+                                description=__doc__, epilog=EPILOG)
 
     p.add_argument('in_bvec',
                    help='Path to bvec file.')
