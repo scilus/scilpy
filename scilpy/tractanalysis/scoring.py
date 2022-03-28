@@ -62,14 +62,14 @@ def get_binary_maps(streamlines, sft):
     return bundles_voxels, endpoints_voxels
 
 
-def compute_gt_masks(gt_bundles, parser, args):
+def compute_masks(gt_files, parser, args):
     """
-    Compute ground-truth masks. If the ground-truth is already a mask, load it.
-    If the ground-truth is a bundle, compute the mask.
+    Compute ground-truth masks. If the file is already a mask, load it.
+    If it is a bundle, compute the mask.
 
     Parameters
     ----------
-    gt_bundles: list
+    gt_files: list
         List of either StatefulTractograms or niftis.
     parser: ArgumentParser
         Argument parser which handles the script's arguments.
@@ -89,7 +89,7 @@ def compute_gt_masks(gt_bundles, parser, args):
 
     affine = None
     dimensions = None
-    for gt_bundle in gt_bundles:
+    for gt_bundle in gt_files:
         if gt_bundle is not None:
             # Support ground truth as streamlines or masks
             # Will be converted to binary masks immediately
@@ -243,8 +243,8 @@ def make_sft_from_ids(ids, sft):
 
 
 def extract_true_connections(
-        sft, mask_1_filename, mask_2_filename, limits_length, angle,
-        bundle_prefix, gt_bundle_inv_mask, dilate_endpoints):
+        sft, head_filename, tail_filename, limits_length, angle,
+        bundle_prefix, inclusion_inv_mask, dilate_endpoints):
     """
     Extract true connections based on two regions from a tractogram.
     May extract false and no connections if the config is passed.
@@ -253,9 +253,9 @@ def extract_true_connections(
     ----------
     sft: StatefulTractogram
         Tractogram containing the streamlines to be extracted.
-    mask_1_filename: str
+    head_filename: str
         Filename of the "head" of the bundle.
-    mask_2_filename: str
+    tail_filename: str
         Filename of the "tail" of the bundle.
     limits_length: list
         Bundle's length parameters: [min max]
@@ -263,7 +263,7 @@ def extract_true_connections(
         Bundle's max angle.
     bundle_prefix: str
         Bundle's name.
-    gt_bundle_inv_mask: np.ndarray
+    inclusion_inv_mask: np.ndarray
         Inverse mask of the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
@@ -282,8 +282,8 @@ def extract_true_connections(
         SFT of remaining streamlines.
     """
 
-    mask_1_img = nib.load(mask_1_filename)
-    mask_2_img = nib.load(mask_2_filename)
+    mask_1_img = nib.load(head_filename)
+    mask_2_img = nib.load(tail_filename)
     mask_1 = get_data_as_mask(mask_1_img)
     mask_2 = get_data_as_mask(mask_2_img)
 
@@ -292,10 +292,10 @@ def extract_true_connections(
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
     _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
-    logging.info("Bundle {}: Found {} streamlines with correct endpoints."
-                 .format(bundle_prefix, len(tc_ids)))
 
     wpc_ids = []
+    bundle_stats = {"Bundle": bundle_prefix,
+                    "Initial tc head to tail": len(tc_ids)}
 
     # Remove invalid lengths from tc
     if limits_length is not None:
@@ -311,13 +311,8 @@ def extract_true_connections(
         valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
                                                        lengths < max_len)
 
-        nb_invalid = sum(~valid_length_ids_mask_from_tc)
-        if nb_invalid > 0:
-            logging.info("Bundle {}:    Classifying {}/{} invalid length "
-                         "streamlines as wpc."
-                         .format(bundle_prefix,
-                                 sum(~valid_length_ids_mask_from_tc),
-                                 len(tc_ids)))
+        bundle_stats.update({
+            "WPC_invalid_length": sum(~valid_length_ids_mask_from_tc)})
 
         # Update ids
         wpc_ids.extend(tc_ids[~valid_length_ids_mask_from_tc])
@@ -333,40 +328,32 @@ def extract_true_connections(
         valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
         invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
 
-        nb_invalid = len(invalid_angle_ids)
-        if nb_invalid > 0:
-            logging.info("Bundle {}:    Classifying {}/{} invalid angle "
-                         "streamlines as wpc."
-                         .format(bundle_prefix, len(invalid_angle_ids),
-                                 len(tc_ids)))
+        bundle_stats.update({"WPC_invalid_length": len(invalid_angle_ids)})
 
         wpc_ids.extend(invalid_angle_ids)
         tc_ids = valid_angle_ids
 
     # Streamlines getting out of the bundle mask can be considered
     # separately as wrong path connection (wpc)
-    if gt_bundle_inv_mask is not None:
+    if inclusion_inv_mask is not None:
 
         tmp_sft = StatefulTractogram.from_sft(sft.streamlines[tc_ids], sft)
         _, out_of_mask_ids_from_tc = filter_grid_roi(
-            tmp_sft, gt_bundle_inv_mask, 'any', False)
+            tmp_sft, inclusion_inv_mask, 'any', False)
         out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
 
-        nb_invalid = len(out_of_mask_ids)
-        if nb_invalid > 0:
-            logging.info("Bundle {}:    Classifying {}/{} streamlines out of "
-                         "ground truth mask as wpc."
-                         .format(bundle_prefix, len(out_of_mask_ids),
-                                 len(tc_ids)))
+        bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
 
         # Update ids
         wpc_ids.extend(out_of_mask_ids)
         tc_ids = np.setdiff1d(tc_ids, wpc_ids)
 
+        bundle_stats.update({"TC": len(tc_ids)})
+
     tc_sft = make_sft_from_ids(tc_ids, sft)
     wpc_sft = make_sft_from_ids(wpc_ids, sft)
 
-    return tc_sft, wpc_sft, list(tc_ids), list(wpc_ids)
+    return tc_sft, wpc_sft, list(tc_ids), list(wpc_ids), bundle_stats
 
 
 def extract_false_connections(sft, mask_1_filename, mask_2_filename,
