@@ -6,7 +6,6 @@ import os
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.utils import length
-from nibabel.streamlines import ArraySequence
 from scipy.ndimage import binary_dilation
 from sklearn.cluster import KMeans
 
@@ -295,6 +294,8 @@ def extract_true_connections(
 
     wpc_ids = []
     bundle_stats = {"Bundle": bundle_prefix,
+                    "Head": head_filename,
+                    "Tail": tail_filename,
                     "Initial tc head to tail": len(tc_ids)}
 
     # Remove invalid lengths from tc
@@ -350,10 +351,7 @@ def extract_true_connections(
 
         bundle_stats.update({"TC": len(tc_ids)})
 
-    tc_sft = make_sft_from_ids(tc_ids, sft)
-    wpc_sft = make_sft_from_ids(wpc_ids, sft)
-
-    return tc_sft, wpc_sft, list(tc_ids), list(wpc_ids), bundle_stats
+    return list(tc_ids), list(wpc_ids), bundle_stats
 
 
 def extract_false_connections(sft, mask_1_filename, mask_2_filename,

@@ -88,10 +88,10 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
-                                          extract_true_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
-                                          make_sft_from_ids)
+                                          make_sft_from_ids,
+                                          extract_true_connections)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -150,6 +150,23 @@ def extract_prefix(filename):
     prefix, _ = split_name_with_nii(prefix)
 
     return prefix
+
+
+def _verify_compatibility_with_bundles(sft, masks_files, parser, args):
+    """
+    Verifies the compatibility of the main sft with the bundle masks, which can
+    be either tractograms or nifti files.
+    """
+    for file in masks_files:
+        _, ext = os.path.splitext(file)
+        if ext in ['.trk', '.tck']:
+            mask = load_tractogram_with_reference(parser, args, file,
+                                                  bbox_check=False)
+        else:
+            mask = file
+        compatible = is_header_compatible(sft, mask)
+        if not compatible:
+            parser.error("Input tractogram incompatible with {}".format(file))
 
 
 def read_config_file(args):
@@ -236,138 +253,47 @@ def read_config_file(args):
     return bundles, gt_masks, limits_masks, roi_options, lengths, angles
 
 
-def _verify_compatibility_with_bundles(sft, masks_files, parser, args):
+def compute_true_connections_all_bundles(
+        gt_tails, gt_heads, sft, lengths, angles, bundles_names,
+        limits_inv_masks, args, ext):
     """
-    Verifies the compatibility of the main sft with the bundle masks, which can
-    be either tractograms or nifti files.
+    Loop on all bundles and extract true connections and wpc.
+
+    True connections:
+       1) Connect the head and tail
+       2) Are completely included in the limits_mask (if any)
+       3) Have acceptable angle and length.
+     +
+    WPC connections:
+       1) connect the head and tail but criteria 2 and 3 are not respected
     """
-    for file in masks_files:
-        _, ext = os.path.splitext(file)
-        if ext in ['.trk', '.tck']:
-            mask = load_tractogram_with_reference(parser, args, file,
-                                                  bbox_check=False)
-        else:
-            mask = file
-        compatible = is_header_compatible(sft, mask)
-        if not compatible:
-            parser.error("Input tractogram incompatible with {}".format(file))
-
-
-def main():
-    parser = _build_arg_parser()
-    args = parser.parse_args()
-
-    assert_inputs_exist(parser, args.gt_config)
-    assert_output_dirs_exist_and_empty(
-        parser, args, [args.out_dir,
-                       os.path.join(args.out_dir, 'segmented_VB'),
-                       os.path.join(args.out_dir, 'segmented_IB')],
-        create_dir=True)
-
-    # -----------
-    # Preparation
-    # -----------
-    # Read the config file
-    (bundles_names, gt_masks_files, limits_masks_files, roi_options,
-     lengths, angles) = read_config_file(args)
     nb_bundles = len(bundles_names)
-
-    # Find all masks to be loaded.
-    all_rois = list(itertools.chain(
-        *[list(roi_options[b].values()) for b in roi_options]))
-    all_rois = list(dict.fromkeys(all_rois))  # Remove duplicates
-
-    # Verify options
-    assert_inputs_exist(parser, gt_masks_files + limits_masks_files +
-                        all_rois + [args.in_tractogram])
-
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-
-    logging.info("Loading tractogram.")
-    _, ext = os.path.splitext(args.in_tractogram)
-    sft = load_tractogram_with_reference(
-        parser, args, args.in_tractogram, bbox_check=False)
-
-    if args.remove_invalid:
-        sft.remove_invalid_streamlines()
-
-    initial_count = len(sft)
-
-    logging.info("Verifying compatibility of tractogram with gt_masks and "
-                 "limits_masks.")
-    all_masks = gt_masks_files + limits_masks_files
-    all_masks = list(dict.fromkeys(all_masks))  # Removes duplicates
-    _verify_compatibility_with_bundles(sft, all_masks, parser, args)
-
-    logging.info("Loading and/or computing ground-truth masks and limits "
-                 "masks.")
-    gt_masks, _, affine, dimensions, = \
-        compute_masks(gt_masks_files, parser, args)
-    limits_masks, limits_inv_masks, _, _, = \
-        compute_masks(limits_masks_files, parser, args)
-
-    logging.info("Extracting ground-truth head and tail masks.")
-    gt_tails, gt_heads = compute_endpoint_masks(
-        roi_options, affine, dimensions, args.out_dir)
-
-    # Update all_rois, remove duplicates
-    all_rois = gt_tails + gt_heads
-    all_rois = list(dict.fromkeys(all_rois))  # Removes duplicates
-
-    logging.info("Verifying tractogram compatibility with endpoint ROIs.")
-    for file in all_rois:
-        compatible = is_header_compatible(sft, file)
-        if not compatible:
-            parser.error("Input tractogram incompatible with {}".format(file))
-
-    # -----------
-    # True connections:
-    #    1) Connect the head and tail
-    #    2) Are completely included in the limits_mask (if any)
-    #    3) Have acceptable angle and length.
-    # +
-    # WPC connections (connect the head and tail but criteria 2 and 3 are
-    #   not respected)
-    # -----------
-    logging.info("Scoring true connections (and wpc)")
-
-    # List the heads/tails combinations
-    tc_filenames = list(zip(gt_tails, gt_heads))
 
     tc_sft_list = []
     tc_ids_list = []
-    wpc_sft_list = []
     wpc_ids_list = []
-    for i, (head_filename, tail_filename) in enumerate(tc_filenames):
-
-        # Automatically generate filename for Q/C
-        prefix_1 = extract_prefix(head_filename)
-        prefix_2 = extract_prefix(tail_filename)
+    for i in range(nb_bundles):
+        head_filename = gt_heads[i]
+        tail_filename = gt_tails[i]
 
         # Extract true connection
-        tc_sft, wpc_sft, tc_ids, wpc_ids, bundle_stats = \
+        tc_ids, wpc_ids, bundle_stats = \
             extract_true_connections(sft, head_filename, tail_filename,
                                      lengths[i], angles[i], bundles_names[i],
                                      limits_inv_masks[i],
                                      args.dilate_endpoints)
 
+        tc_sft = make_sft_from_ids(tc_ids, sft)
+
         # Save results
         if len(tc_sft) > 0 or not args.no_empty:
             save_tractogram(tc_sft, os.path.join(
                 args.out_dir,
-                "segmented_VB/{}_{}_tc{}".format(prefix_1, prefix_2, ext)),
-                            bbox_valid_check=False)
-
-        if len(wpc_sft) > 0 or not args.no_empty:
-            save_tractogram(wpc_sft, os.path.join(
-                args.out_dir,
-                "segmented_VB/{}_{}_wpc{}".format(prefix_1, prefix_2, ext)),
+                "segmented_VB/{}_tc{}".format(bundles_names[i], ext)),
                             bbox_valid_check=False)
 
         tc_sft_list.append(tc_sft)
         tc_ids_list.append(tc_ids)
-        wpc_sft_list.append(wpc_sft)
         wpc_ids_list.append(wpc_ids)
 
         logging.info(json.dumps(bundle_stats, indent=4))
@@ -383,107 +309,98 @@ def main():
                     .format(len(duplicate_ids), bundles_names[i],
                             bundles_names[j]))
 
-    all_tc_ids = np.unique(list(itertools.chain(*tc_ids_list)))
-    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
+    return tc_sft_list, tc_ids_list, wpc_ids_list
 
-    # -----------
-    # False connections
-    # -----------
-    if args.compute_fc:
-        logging.info("Scoring false connections")
 
-        # Keep all possible combinations
-        all_rois = sorted(all_rois)
-        comb_filename = list(itertools.combinations(all_rois, r=2))
+def clean_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, ext):
+    """
+    Clean wpc: for now, just saves the wpc per bundle.
+    """
+    wpc_sft_list = []
+    for i in range(len(wpc_ids_list)):
+        wpc_ids = wpc_ids_list[i]
+        wpc_sft = make_sft_from_ids(wpc_ids, sft)
+        wpc_sft_list.append(wpc_sft)
 
-        # Remove the true connections from all combinations, leaving only
-        # false connections
-        for tc_f in tc_filenames:
-            tc_f = tuple(sorted(tc_f))
-            comb_filename.remove(tc_f)
+        if len(wpc_sft) > 0 or not args.no_empty:
+            save_tractogram(wpc_sft, os.path.join(
+                args.out_dir,
+                "segmented_VB/{}_wpc{}".format(bundles_names[i], ext)),
+                            bbox_valid_check=False)
+    return wpc_sft_list
 
-        # Go through all the possible combinations of endpoints masks
-        fc_sft_list = []
-        fc_ids_list = []
-        for i, roi in enumerate(comb_filename):
-            head_filename, tail_filename = roi
 
-            # Automatically generate filename for Q/C
-            prefix_1 = extract_prefix(head_filename)
-            prefix_2 = extract_prefix(tail_filename)
-            _, ext = os.path.splitext(args.in_tractogram)
+def compute_false_connections_all_bundles(comb_filename, sft, args):
+    """
+    Loop on all bundles and compute false connections, defined as connections
+    between ROIs pairs that do not form gt bundles.
 
-            fc_sft, fc_ids = extract_false_connections(
-                sft, head_filename, tail_filename, args.dilate_endpoints)
+    (Goes through all the possible combinations of endpoints masks)
+    """
+    fc_sft_list = []
+    fc_ids_list = []
+    for i, roi in enumerate(comb_filename):
+        roi1_filename, roi2_filename = roi
 
-            if len(fc_sft) > 0 or not args.no_empty:
-                save_tractogram(fc_sft, os.path.join(
-                    args.out_dir,
-                    "segmented_IB/{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
-                                bbox_valid_check=False)
+        # Automatically generate filename for Q/C
+        prefix_1 = extract_prefix(roi1_filename)
+        prefix_2 = extract_prefix(roi2_filename)
+        _, ext = os.path.splitext(args.in_tractogram)
 
-            if len(fc_sft.streamlines) > 0:
-                logging.info("Recognized {} streamlines between {} and {}"
-                             .format(len(fc_sft.streamlines), prefix_1, prefix_2))
+        fc_sft, fc_ids = extract_false_connections(
+            sft, roi1_filename, roi2_filename, args.dilate_endpoints)
 
-            fc_sft_list.append(fc_sft)
-            fc_ids_list.append(fc_ids)
+        if len(fc_sft) > 0 or not args.no_empty:
+            save_tractogram(fc_sft, os.path.join(
+                args.out_dir,
+                "segmented_IB/{}_{}_fc{}".format(prefix_1, prefix_2, ext)),
+                            bbox_valid_check=False)
 
-        # Duplicates?
-        nb_pairs = len(fc_ids_list)
-        for i in range(nb_pairs):
-            for j in range(i + 1, nb_pairs):
-                duplicate_ids = np.intersect1d(fc_ids_list[i], fc_ids_list[j])
-                if len(duplicate_ids) > 0:
-                    logging.warning(
-                        "{} streamlines are scored twice as invalid "
-                        "connections \n (between pair {}\n and between pair "
-                        "{}).\n You probably have overlapping ROIs!"
-                        .format(len(duplicate_ids), comb_filename[i],
-                                comb_filename[j]))
+        if len(fc_sft.streamlines) > 0:
+            logging.info("Recognized {} streamlines between {} and {}"
+                         .format(len(fc_sft.streamlines), prefix_1, prefix_2))
 
-        all_fc_ids = np.unique(list(itertools.chain(*fc_ids_list)))
-    else:
-        fc_ids_list = []
-        fc_sft_list = []
-        all_fc_ids = []
+        fc_sft_list.append(fc_sft)
+        fc_ids_list.append(fc_ids)
 
-    # -----------
-    # No connections
-    # -----------
-    # No connections = ids that are not tc, not wpc and not fc.
-    remaining_ids = np.arange(len(sft))
-    remaining_ids = np.setdiff1d(remaining_ids, all_tc_ids)
-    remaining_ids = np.setdiff1d(remaining_ids, all_wpc_ids)
-    remaining_ids = np.setdiff1d(remaining_ids, all_fc_ids)
+    # Duplicates?
+    nb_pairs = len(fc_ids_list)
+    for i in range(nb_pairs):
+        for j in range(i + 1, nb_pairs):
+            duplicate_ids = np.intersect1d(fc_ids_list[i], fc_ids_list[j])
+            if len(duplicate_ids) > 0:
+                logging.warning(
+                    "{} streamlines are scored twice as invalid "
+                    "connections \n (between pair {}\n and between pair "
+                    "{}).\n You probably have overlapping ROIs!"
+                    .format(len(duplicate_ids), comb_filename[i],
+                            comb_filename[j]))
 
-    logging.info("The remaining {} / {} streamlines will be scored as nc."
-                 .format(len(remaining_ids), len(sft)))
+    return fc_sft_list, fc_ids_list
 
-    no_conn_sft = make_sft_from_ids(remaining_ids, sft)
-    if len(no_conn_sft) > 0 or not args.no_empty:
-        save_tractogram(no_conn_sft, os.path.join(
-            args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
 
-    # -----------
-    # Tractometry stats: NC, IC, VC, WPC
-    # -----------
+def compute_tractometry(all_tc_ids, all_wpc_ids, all_fc_ids, all_nc_ids,
+                        tc_ids_list, wpc_ids_list, fc_ids_list,
+                        tc_sft_list, wpc_sft_list, fc_sft_list, sft,
+                        args, bundles_names, gt_masks, dimensions,
+                        comb_filename):
+    """
+    Tractometry stats: First in terms of connections (NC, IC, VC, WPC), then
+    in terms of volume (OL, OR, Dice score)
+    """
+    nb_bundles = len(bundles_names)
+
     # Total number of streamlines for each category
-    # and statistic that are not "bundle-wise"
     tc_streamlines_count = len(all_tc_ids)
     wpc_streamlines_count = len(all_wpc_ids)
+    wpc_not_in_tc_count = len(np.setdiff1d(all_tc_ids, all_wpc_ids))
     fc_streamlines_count = len(all_fc_ids)
-    nc_streamlines_count = len(remaining_ids)
+    nc_streamlines_count = len(all_nc_ids)
 
     total_count = tc_streamlines_count + fc_streamlines_count + \
-        wpc_streamlines_count + nc_streamlines_count
+        wpc_not_in_tc_count + nc_streamlines_count
 
-    if total_count != initial_count:
-        logging.warning("Total count tc + fc + wpc + nc is not the same as "
-                        "the number of streamlines in the input tractogram.\n"
-                        "Verify your ROIs, or this script.\n"
-                        "Total: {}. SFT: {}"
-                        .format(total_count, initial_count))
+    assert total_count == len(sft)
 
     final_results = {
         "tractogram_filename": str(args.in_tractogram),
@@ -491,6 +408,8 @@ def main():
         "tractogram_overlap": 0.0,
         "tc_streamlines": tc_streamlines_count,
         "wpc_streamlines": wpc_streamlines_count,
+        "wpc streamlines not belonging to another tc bundle":
+            wpc_not_in_tc_count,
         "fc_streamlines": fc_streamlines_count,
         "nc_streamlines": nc_streamlines_count,
         "tc_bundle": len([x for x in tc_ids_list if len(x) > 0]),
@@ -503,13 +422,11 @@ def main():
         "total_streamlines": total_count,
     }
 
-    # -----------
-    # Tractometry stats: OL, OR, Dice score
-    # -----------
+    # Tractometry stats over volume: OL, OR, Dice score
     tractogram_overlap = 0.0
 
     tc_bundle_wise_dict = {}
-    for i, filename in enumerate(tc_filenames):
+    for i in range(nb_bundles):
         current_tc_streamlines = tc_sft_list[i].streamlines
         current_wpc_streamlines = wpc_sft_list[i].streamlines
 
@@ -574,7 +491,7 @@ def main():
                 endpoints_overreach)}
 
         tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
-        tc_bundle_wise_dict.update({str(filename): tmp_dict})
+        tc_bundle_wise_dict.update({bundles_names[i]: tmp_dict})
 
     if args.compute_fc:
         # -----------
@@ -609,6 +526,127 @@ def main():
         "tractogram_overlap": tractogram_overlap / nb_bundles
     })
 
+    return final_results
+
+
+def main():
+    parser = _build_arg_parser()
+    args = parser.parse_args()
+
+    assert_inputs_exist(parser, args.gt_config)
+    assert_output_dirs_exist_and_empty(
+        parser, args, [args.out_dir,
+                       os.path.join(args.out_dir, 'segmented_VB'),
+                       os.path.join(args.out_dir, 'segmented_IB')],
+        create_dir=True)
+
+    # -----------
+    # Preparation
+    # -----------
+    # Read the config file
+    (bundles_names, gt_masks_files, limits_masks_files, roi_options,
+     lengths, angles) = read_config_file(args)
+
+    # Find all masks to be loaded.
+    all_rois = list(itertools.chain(
+        *[list(roi_options[b].values()) for b in roi_options]))
+    all_rois = list(dict.fromkeys(all_rois))  # Remove duplicates
+
+    # Verify options
+    assert_inputs_exist(parser, gt_masks_files + limits_masks_files +
+                        all_rois + [args.in_tractogram])
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
+    logging.info("Loading tractogram.")
+    _, ext = os.path.splitext(args.in_tractogram)
+    sft = load_tractogram_with_reference(
+        parser, args, args.in_tractogram, bbox_check=False)
+
+    if args.remove_invalid:
+        sft.remove_invalid_streamlines()
+
+    logging.info("Verifying compatibility of tractogram with gt_masks and "
+                 "limits_masks.")
+    all_masks = gt_masks_files + limits_masks_files
+    all_masks = list(dict.fromkeys(all_masks))  # Removes duplicates
+    _verify_compatibility_with_bundles(sft, all_masks, parser, args)
+
+    logging.info("Loading and/or computing ground-truth masks and limits "
+                 "masks.")
+    gt_masks, _, affine, dimensions, = \
+        compute_masks(gt_masks_files, parser, args)
+    limits_masks, limits_inv_masks, _, _, = \
+        compute_masks(limits_masks_files, parser, args)
+
+    logging.info("Extracting ground-truth head and tail masks.")
+    gt_tails, gt_heads = compute_endpoint_masks(
+        roi_options, affine, dimensions, args.out_dir)
+
+    # Update all_rois, remove duplicates
+    all_rois = gt_tails + gt_heads
+    all_rois = list(dict.fromkeys(all_rois))  # Removes duplicates
+
+    logging.info("Verifying tractogram compatibility with endpoint ROIs.")
+    for file in all_rois:
+        compatible = is_header_compatible(sft, file)
+        if not compatible:
+            parser.error("Input tractogram incompatible with {}".format(file))
+
+    # True connections
+    logging.info("Scoring true connections (and wpc)")
+    tc_sft_list, tc_ids_list, wpc_ids_list = \
+        compute_true_connections_all_bundles(
+            gt_tails, gt_heads, sft, lengths, angles, bundles_names,
+            limits_inv_masks, args, ext)
+
+    # Cleaning wpc.
+    wpc_sft_list = clean_wpc_all_bundles(wpc_ids_list, sft, bundles_names,
+                                         args, ext)
+
+    # False connections
+    if args.compute_fc:
+        logging.info("Scoring false connections")
+        # Keep all possible combinations
+        all_rois = sorted(all_rois)
+        comb_filename = list(itertools.combinations(all_rois, r=2))
+
+        # Remove the true connections from all combinations, leaving only
+        # false connections
+        tc_filenames = list(zip(gt_tails, gt_heads))
+        for tc_f in tc_filenames:
+            tc_f = tuple(sorted(tc_f))
+            comb_filename.remove(tc_f)
+        fc_sft_list, fc_ids_list = compute_false_connections_all_bundles(
+            comb_filename, sft, args)
+    else:
+        fc_ids_list = []
+        fc_sft_list = []
+
+    all_tc_ids = np.unique(list(itertools.chain(*tc_ids_list)))
+    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
+    all_fc_ids = np.unique(list(itertools.chain(*fc_ids_list)))
+
+    # No connections
+    # (ids that are not tc, not wpc and not fc.)
+    all_nc_ids = np.arange(len(sft))
+    all_nc_ids = np.setdiff1d(all_nc_ids, all_tc_ids)
+    all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
+    all_nc_ids = np.setdiff1d(all_nc_ids, all_fc_ids)
+
+    logging.info("The remaining {} / {} streamlines will be scored as nc."
+                 .format(len(all_nc_ids), len(sft)))
+
+    nc_sft = make_sft_from_ids(all_nc_ids, sft)
+    if len(nc_sft) > 0 or not args.no_empty:
+        save_tractogram(nc_sft, os.path.join(
+            args.out_dir, "nc{}".format(ext)), bbox_valid_check=False)
+
+    final_results = compute_tractometry(
+        all_tc_ids, all_wpc_ids, all_fc_ids, all_nc_ids, tc_ids_list,
+        wpc_ids_list, fc_ids_list, tc_sft_list, wpc_sft_list, fc_sft_list, sft,
+        args, bundles_names, gt_masks, dimensions, comb_filename)
     logging.info("Final results saved in {}".format(args.out_dir))
     with open(os.path.join(args.out_dir, "results.json"), "w") as f:
         json.dump(final_results, f,
