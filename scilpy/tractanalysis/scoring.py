@@ -229,9 +229,14 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
 
 
 def make_sft_from_ids(ids, sft):
-    streamlines = sft.streamlines[ids]
-    data_per_streamline = sft.data_per_streamline[ids]
-    data_per_point = sft.data_per_point[ids]
+    if len(ids) > 0:
+        streamlines = sft.streamlines[ids]
+        data_per_streamline = sft.data_per_streamline[ids]
+        data_per_point = sft.data_per_point[ids]
+    else:
+        streamlines = []
+        data_per_streamline = None
+        data_per_point = None
 
     new_sft = StatefulTractogram.from_sft(
         streamlines, sft,
