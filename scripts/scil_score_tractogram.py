@@ -125,8 +125,8 @@ def _build_arg_parser():
                         "as 'limits_mask' for each bundle. Note that this "
                         "means the OR will necessarily be 0.")
     p.add_argument("--dilate_endpoints",
-                   metavar="NB_PASS", default=1, type=int,
-                   help="Dilate inclusion masks n-times.")
+                   metavar="NB_PASS", default=0, type=int,
+                   help="Dilate inclusion masks n-times. Default: 0.")
     p.add_argument("--compute_fc", action='store_true',
                    help="If set, false connections will be separated in sub-"
                         "bundles, one for each pair of ROI not belonging to "
