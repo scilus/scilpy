@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
+from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
     get_endpoints_density_map
@@ -209,7 +210,7 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     """
     tails = []
     heads = []
-    for bundle_options in roi_options.values():
+    for bundle_options in roi_options:
         if 'gt_endpoints' in bundle_options:
             tail, head, _affine, _dimensions = \
                 extract_tails_heads_from_endpoints(
@@ -217,7 +218,13 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
             if affine is not None:
                 # Compare affine
                 # todo
-                logging.debug('Affine discarded. (todo)')
+                pass
+            logging.debug('_affine discarded. (todo)')
+            if dimensions is not None:
+                # Compare dimensions
+                # todo
+                pass
+            logging.debug("_dimensions discarded (todo)")
         else:
             tail = bundle_options['gt_tail']
             head = bundle_options['gt_head']
@@ -247,8 +254,9 @@ def make_sft_from_ids(ids, sft):
 
 
 def extract_true_connections(
-        sft, head_filename, tail_filename, limits_length, angle,
-        bundle_prefix, inclusion_inv_mask, dilate_endpoints):
+        sft, head_filename, tail_filename, bundle_prefix,
+        limits_length, angle, orientation_length,
+        inclusion_inv_mask, dilate_endpoints, use_abs):
     """
     Extract true connections based on two regions from a tractogram.
     May extract false and no connections if the config is passed.
@@ -261,16 +269,21 @@ def extract_true_connections(
         Filename of the "head" of the bundle.
     tail_filename: str
         Filename of the "tail" of the bundle.
+    bundle_prefix: str
+        Bundle's name.
     limits_length: list
         Bundle's length parameters: [min max]
     angle: int
         Bundle's max angle.
-    bundle_prefix: str
-        Bundle's name.
+    orientation_length: list
+        Bundle's length parameters in each direction:
+        [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
     inclusion_inv_mask: np.ndarray
         Inverse mask of the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
+    use_abs: bool
+        If true, compute lengths per orientation using abs.
 
     Returns
     -------
@@ -298,10 +311,9 @@ def extract_true_connections(
     _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
 
     wpc_ids = []
-    bundle_stats = {"Bundle": bundle_prefix,
-                    "Head": head_filename,
+    bundle_stats = {"Head": head_filename,
                     "Tail": tail_filename,
-                    "Initial tc head to tail": len(tc_ids)}
+                    "Initial TC head to tail": len(tc_ids)}
 
     # Remove invalid lengths from tc
     if limits_length is not None:
@@ -323,6 +335,25 @@ def extract_true_connections(
         # Update ids
         wpc_ids.extend(tc_ids[~valid_length_ids_mask_from_tc])
         tc_ids = tc_ids[valid_length_ids_mask_from_tc]
+
+    # Remove invalid lengths per orientation from tc
+    if orientation_length is not None:
+        # Compute valid lengths
+        limits_x, limits_y, limits_z = orientation_length
+        _, valid_orientation_ids_from_tc, _ = \
+            filter_streamlines_by_total_length_per_dim(
+                make_sft_from_ids(tc_ids, sft), limits_x, limits_y, limits_z,
+                use_abs, save_rejected=False)
+
+        # Update ids
+        valid_orientation_ids = tc_ids[valid_orientation_ids_from_tc]
+        invalid_orientation_ids = np.setdiff1d(tc_ids, valid_orientation_ids)
+
+        bundle_stats.update({
+            "WPC_invalid_length": len(invalid_orientation_ids)})
+
+        wpc_ids.extend(invalid_orientation_ids)
+        tc_ids = valid_orientation_ids
 
     # Remove loops from tc
     if angle is not None:
