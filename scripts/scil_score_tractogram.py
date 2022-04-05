@@ -265,7 +265,7 @@ def read_config_file(args):
 
 def compute_true_connections_all_bundles(
         gt_tails, gt_heads, sft, lengths, angles, bundles_names,
-        limits_inv_masks, args, ext):
+        limits_inv_masks, args, ext, path_duplicates):
     """
     Loop on all bundles and extract true connections and wpc.
 
@@ -321,6 +321,11 @@ def compute_true_connections_all_bundles(
                     "bundles {} and {}. Please verify your criteria!"
                     .format(len(duplicate_ids), bundles_names[i],
                             bundles_names[j]))
+                if not os.path.isdir(path_duplicates):
+                    os.makedirs(path_duplicates)
+                save_tractogram(sft[duplicate_ids], os.path.join(
+                    path_duplicates, 'duplicates_' + bundles_names[i] + '_' +
+                    bundles_names[j] + '.trk'))
 
     return tc_sft_list, tc_ids_list, wpc_ids_list, bundles_stats
 
@@ -553,11 +558,12 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.gt_config)
-    assert_output_dirs_exist_and_empty(
-        parser, args, [args.out_dir,
-                       os.path.join(args.out_dir, 'segmented_VB'),
-                       os.path.join(args.out_dir, 'segmented_IB')],
-        create_dir=True)
+    assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
+                                       create_dir=True)
+    os.makedirs(os.path.join(args.out_dir, 'segmented_VB'))
+    if args.compute_fc:
+        os.makedirs(os.path.join(args.out_dir, 'segmented_IB'))
+    path_duplicates = os.path.join(args.out_dir, 'segmented_conflicts')
 
     # -----------
     # Preparation
@@ -618,7 +624,7 @@ def main():
     tc_sft_list, tc_ids_list, wpc_ids_list, bundles_stats = \
         compute_true_connections_all_bundles(
             gt_tails, gt_heads, sft, lengths, angles, bundles_names,
-            limits_inv_masks, args, ext)
+            limits_inv_masks, args, ext, path_duplicates)
 
     # Cleaning wpc.
     logging.info("Verifying wpc")
