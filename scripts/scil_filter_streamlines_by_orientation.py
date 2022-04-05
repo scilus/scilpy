@@ -13,6 +13,7 @@ import argparse
 import json
 import logging
 
+from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -82,7 +83,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
+        # Silencing SFT's logger if our logging is in DEBUG mode, because it
+        # typically produces a lot of outputs!
+        set_sft_logger_level('WARNING')
 
     if args.min_x == 0 and np.isinf(args.max_x) and \
        args.min_y == 0 and np.isinf(args.max_y) and \

@@ -117,19 +117,19 @@ def filter_streamlines_by_total_length_per_dim(
         total_per_orientation = np.abs(np.asarray(
             [np.sum(d, axis=0) for d in all_dirs]))
 
-    logging.info("Total length per orientation is:\n"
-                 "Average: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                 "Min: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                 "Max: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
-                 .format(np.mean(total_per_orientation[:, 0]),
-                         np.mean(total_per_orientation[:, 1]),
-                         np.mean(total_per_orientation[:, 2]),
-                         np.min(total_per_orientation[:, 0]),
-                         np.min(total_per_orientation[:, 1]),
-                         np.min(total_per_orientation[:, 2]),
-                         np.max(total_per_orientation[:, 0]),
-                         np.max(total_per_orientation[:, 1]),
-                         np.max(total_per_orientation[:, 2])))
+    logging.debug("Total length per orientation is:\n"
+                  "Average: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  "Min: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  "Max: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  .format(np.mean(total_per_orientation[:, 0]),
+                          np.mean(total_per_orientation[:, 1]),
+                          np.mean(total_per_orientation[:, 2]),
+                          np.min(total_per_orientation[:, 0]),
+                          np.min(total_per_orientation[:, 1]),
+                          np.min(total_per_orientation[:, 2]),
+                          np.max(total_per_orientation[:, 0]),
+                          np.max(total_per_orientation[:, 1]),
+                          np.max(total_per_orientation[:, 2])))
 
     # Find good ids
     mask_good_x = np.logical_and(limits_x[0] < total_per_orientation[:, 0],
