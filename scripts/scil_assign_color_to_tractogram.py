@@ -80,9 +80,9 @@ def _build_arg_parser():
                     help='Apply a base 10 logarithm for colored trk (dps/dpp).')
     g2.add_argument('--LUT', metavar='FILE',
                     help='If the dps/dpp or anatomy contain integer labels, '
-                    'the value will be substituted.\nIf the LUT has 20 '
-                    'elements, integers from 1-20 in the data will be\n'
-                    'replaced by the value in the file (.npy or .txt)')
+                         'the value will be substituted.\nIf the LUT has 20 '
+                         'elements, integers from 1-20 in the data will be\n'
+                         'replaced by the value in the file (.npy or .txt)')
 
     g2 = p.add_argument_group(title='Output options')
     p2 = g2.add_mutually_exclusive_group()
