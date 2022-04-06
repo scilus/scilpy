@@ -298,7 +298,6 @@ def extract_true_connections(
     sft: StatefulTractogram
         SFT of remaining streamlines.
     """
-
     mask_1_img = nib.load(head_filename)
     mask_2_img = nib.load(tail_filename)
     mask_1 = get_data_as_mask(mask_1_img)
@@ -311,9 +310,7 @@ def extract_true_connections(
     _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
 
     wpc_ids = []
-    bundle_stats = {"Head": head_filename,
-                    "Tail": tail_filename,
-                    "Initial TC head to tail": len(tc_ids)}
+    bundle_stats = {"Initial TC head to tail": len(tc_ids)}
 
     # Remove invalid lengths from tc
     if limits_length is not None:
@@ -340,6 +337,7 @@ def extract_true_connections(
     if orientation_length is not None:
         # Compute valid lengths
         limits_x, limits_y, limits_z = orientation_length
+
         _, valid_orientation_ids_from_tc, _ = \
             filter_streamlines_by_total_length_per_dim(
                 make_sft_from_ids(tc_ids, sft), limits_x, limits_y, limits_z,
@@ -350,7 +348,7 @@ def extract_true_connections(
         invalid_orientation_ids = np.setdiff1d(tc_ids, valid_orientation_ids)
 
         bundle_stats.update({
-            "WPC_invalid_length": len(invalid_orientation_ids)})
+            "WPC_invalid_orientation": len(invalid_orientation_ids)})
 
         wpc_ids.extend(invalid_orientation_ids)
         tc_ids = valid_orientation_ids
@@ -385,7 +383,7 @@ def extract_true_connections(
         wpc_ids.extend(out_of_mask_ids)
         tc_ids = np.setdiff1d(tc_ids, wpc_ids)
 
-        bundle_stats.update({"TC": len(tc_ids)})
+    bundle_stats.update({"TC": len(tc_ids)})
 
     return list(tc_ids), list(wpc_ids), bundle_stats
 

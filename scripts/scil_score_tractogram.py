@@ -182,15 +182,17 @@ def _verify_compatibility_with_bundles(sft, masks_files, parser, args):
     be either tractograms or nifti files.
     """
     for file in masks_files:
-        _, ext = os.path.splitext(file)
-        if ext in ['.trk', '.tck']:
-            mask = load_tractogram_with_reference(parser, args, file,
-                                                  bbox_check=False)
-        else:
-            mask = file
-        compatible = is_header_compatible(sft, mask)
-        if not compatible:
-            parser.error("Input tractogram incompatible with {}".format(file))
+        if file is not None:
+            _, ext = os.path.splitext(file)
+            if ext in ['.trk', '.tck']:
+                mask = load_tractogram_with_reference(parser, args, file,
+                                                      bbox_check=False)
+            else:
+                mask = file
+            compatible = is_header_compatible(sft, mask)
+            if not compatible:
+                parser.error("Input tractogram incompatible with {}"
+                             .format(file))
 
 
 def load_and_verify_everything(parser, args):
@@ -218,8 +220,8 @@ def load_and_verify_everything(parser, args):
     all_mask_files = list(dict.fromkeys(all_mask_files))  # Removes duplicates
 
     # Verify options
-    assert_inputs_exist(parser, gt_masks_files + limits_masks_files +
-                        all_mask_files + [args.in_tractogram])
+    assert_inputs_exist(parser, all_mask_files + [args.in_tractogram],
+                        gt_masks_files + limits_masks_files)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -371,7 +373,7 @@ def read_config_file(args):
                 orientation_lengths.append(
                     [length_x if length_x is not None else [0, np.inf],
                      length_y if length_y is not None else [0, np.inf],
-                     length_z if length_y is not None else [0, np.inf]])
+                     length_z if length_z is not None else [0, np.inf]])
             gt_masks.append(gt_mask)
             limits_masks.append(limit_mask)
             roi_options.append(roi_option)
@@ -577,29 +579,38 @@ def compute_tractometry(all_tc_ids, all_wpc_ids, all_fc_ids, all_nc_ids,
     tc_bundle_wise_dict = {}
     for i in range(nb_bundles):
         current_tc_streamlines = tc_sft_list[i].streamlines
-        current_wpc_streamlines = wpc_sft_list[i].streamlines
+
+        current_wpc_streamlines = []
+        tc_dice = None
+        wpc_dice = None
+        overlap = None
+        overreach = None
+        lacking = None
+        endpoints_overlap = None
+        endpoints_overreach = None
 
         # Getting the recovered mask
         current_tc_voxels, current_tc_endpoints_voxels = get_binary_maps(
             current_tc_streamlines, sft)
-        current_wpc_voxels, _ = get_binary_maps(current_wpc_streamlines, sft)
 
         if gt_masks[i] is not None:
             # Dice
             tc_dice = compute_dice_voxel(gt_masks[i], current_tc_voxels)[0]
-            wpc_dice = compute_dice_voxel(gt_masks[i], current_wpc_voxels)[0]
 
             # Overlap and overreach
             bundle_overlap = gt_masks[i] * current_tc_voxels
             bundle_overreach = np.zeros(dimensions)
-            # If no ground truth bundle was given (only the endpoints ROIs),
-            # overreach can be computed as usual
             bundle_overreach[np.where(
                 (gt_masks[i] == 0) & (current_tc_voxels >= 1))] = 1
-            # If a ground truth bundle has been given, all streamlines
-            # contributing to the overreach are now classified as wpc.
-            bundle_overreach[np.where(
-                (gt_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
+
+            if args.save_wpc_separately:
+                current_wpc_streamlines = wpc_sft_list[i].streamlines
+                current_wpc_voxels, _ = get_binary_maps(
+                    current_wpc_streamlines, sft)
+                wpc_dice = compute_dice_voxel(
+                    gt_masks[i], current_wpc_voxels)[0]
+                bundle_overreach[np.where(
+                    (gt_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
 
             bundle_lacking = np.zeros(dimensions)
             bundle_lacking[np.where(
@@ -615,14 +626,6 @@ def compute_tractometry(all_tc_ids, all_wpc_ids, all_fc_ids, all_nc_ids,
             endpoints_overreach[np.where(
                 (gt_masks[i] == 0) &
                 (current_tc_endpoints_voxels >= 1))] = 1
-        else:
-            tc_dice = None
-            wpc_dice = None
-            overlap = None
-            overreach = None
-            lacking = None
-            endpoints_overlap = None
-            endpoints_overreach = None
 
         tmp_dict = {
             "bundle": bundles_names[i],
@@ -634,10 +637,8 @@ def compute_tractometry(all_tc_ids, all_wpc_ids, all_fc_ids, all_nc_ids,
             "tc_bundle_overreach": overreach,
             "tc_bundle_lacking": lacking,
             "tc_bundle_overlap_PCT": overlap / (overlap + lacking),
-            "tc_endpoints_overlap": np.count_nonzero(
-                endpoints_overlap),
-            "tc_endpoints_overreach": np.count_nonzero(
-                endpoints_overreach)}
+            "tc_endpoints_overlap": np.count_nonzero(endpoints_overlap),
+            "tc_endpoints_overreach": np.count_nonzero(endpoints_overreach)}
 
         tractogram_overlap += tmp_dict["tc_bundle_overlap_PCT"]
         tc_bundle_wise_dict.update({bundles_names[i]: tmp_dict})
