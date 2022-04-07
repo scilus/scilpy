@@ -134,6 +134,9 @@ def main():
 
     sft_flip = flip_sft(sft_fix, flip_axis)
 
+    sft_flip.to_rasmm()
+    sft_flip.streamlines._data -= [0.5,0.5,-0.5]
+
     if not args.in_native_fa:
         if args.cut_invalid:
             sft_flip, _ = cut_invalid_streamlines(sft_flip)
