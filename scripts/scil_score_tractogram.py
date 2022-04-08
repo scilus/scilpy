@@ -47,21 +47,23 @@ Config file:
             this.*
 
         Concerning inclusion criteria (other streamlines will be WPC):
-        - limits_mask: ROI serving as "all include" criteria of the streamlines.
-            To be included in the bundle, streamlines must be entirely included
-            in this mask.*
+        - limits_mask: ROI serving as "all include" criteria of the
+            streamlines. To be included in the bundle, streamlines must be
+            entirely included in this mask.*
         - angle: angle criteria. Streamlines containing loops and sharp turns
             above given angle will be rejected from the bundle.
         - length: maximum and minimum lengths per bundle.
-        - length_x: maximum and mimimum total distance in the x direction (i.e.
-            first coordinate).
-        - length_y: maximum and mimimum total distance in the y direction (i.e.
-            second coordinate).
-        - length_z: maximum and mimimum total distance in the z direction (i.e.
-            third coordinate).
+        - length_x / length_x_abs: maximum and mimimum total distance in the x
+            direction (i.e. first coordinate).**
+        - length_y / length_y_abs: maximum and mimimum total distance in the y
+            direction (i.e. second coordinate).**
+        - length_z / length_z_abs: maximum and mimimum total distance in the z
+            direction (i.e. third coordinate).**
 
 * Files must be .tck, .trk, .nii or .nii.gz. If it is a tractogram, a mask will
 be created. If it is a nifti file, it will be considered to be a mask.
+** With absolute values: coming back on yourself will contribute to the total
+distance instead of cancelling it.
 
 Ex 1:
 {
@@ -85,7 +87,6 @@ Ex 2:
 }
 
 """
-
 import argparse
 import json
 import itertools
@@ -111,6 +112,8 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           make_sft_from_ids,
                                           extract_vb_vs)
 from scilpy.utils.filenames import split_name_with_nii
+
+def_len = [0, np.inf]
 
 
 def _build_arg_parser():
@@ -142,13 +145,6 @@ def _build_arg_parser():
                    help="If set, the gt_config's 'gt_mask' will also be used "
                         "as\n'limits_mask' for each bundle. Note that this "
                         "means the\nOR will necessarily be 0.")
-    g.add_argument("--use_abs", action='store_true',
-                   help="If set, computation of length per orientation\n"
-                        "(corresponding to length_x, length_y, length_z in "
-                        "the\nconfig file) will use the total of distances in "
-                        "absolute\nvalue (ex, coming back on yourself will "
-                        "contribute to the\ntotal distance instead of "
-                        "cancelling it).")
 
     g = p.add_argument_group("Preprocessing")
     g.add_argument("--dilate_endpoints",
@@ -227,8 +223,9 @@ def load_and_verify_everything(parser, args):
         os.makedirs(os.path.join(args.out_dir, 'segmented_WPC'))
 
     # Read the config file
-    (bundle_names, gt_masks_files, limits_masks_files, roi_options,
-     lengths, angles, orientation_lengths) = read_config_file(args)
+    (bundle_names, gt_masks_files, limits_masks_files,
+     roi_options, lengths, angles, orientation_lengths,
+     abs_orientation_lengths) = read_config_file(args)
 
     # Find all masks to be loaded.
     all_mask_files = list(itertools.chain(
@@ -278,7 +275,7 @@ def load_and_verify_everything(parser, args):
             parser.error("Input tractogram incompatible with {}".format(file))
 
     return (gt_tails, gt_heads, sft, bundle_names, all_rois,
-            lengths, angles, orientation_lengths,
+            lengths, angles, orientation_lengths, abs_orientation_lengths,
             limits_inv_masks, gt_masks, dimensions, ext)
 
 
@@ -309,6 +306,7 @@ def read_config_file(args):
     angles = []
     lengths = []
     orientation_lengths = []
+    abs_orientation_lengths = []
     gt_masks = []
     limits_masks = []
     roi_options = []
@@ -332,6 +330,7 @@ def read_config_file(args):
 
             angle = length = None
             length_x = length_y = length_z = None
+            length_x_abs = length_y_abs = length_z_abs = None
             gt_mask = limit_mask = roi_option = None
 
             for key in bundle_config.keys():
@@ -345,6 +344,12 @@ def read_config_file(args):
                     length_y = bundle_config['length_y']
                 elif key == 'length_z':
                     length_z = bundle_config['length_z']
+                elif key == 'length_x_abs':
+                    length_x_abs = bundle_config['length_x_abs']
+                elif key == 'length_y_abs':
+                    length_y_abs = bundle_config['length_y_abs']
+                elif key == 'length_z_abs':
+                    length_z_abs = bundle_config['length_z_abs']
                 elif key == 'gt_mask':
                     gt_mask = os.path.join(args.gt_masks_dir,
                                            bundle_config['gt_mask'])
@@ -387,20 +392,30 @@ def read_config_file(args):
                 orientation_lengths.append(None)
             else:
                 orientation_lengths.append(
-                    [length_x if length_x is not None else [0, np.inf],
-                     length_y if length_y is not None else [0, np.inf],
-                     length_z if length_z is not None else [0, np.inf]])
+                    [length_x if length_x is not None else def_len,
+                     length_y if length_y is not None else def_len,
+                     length_z if length_z is not None else def_len])
+
+            if length_x_abs is None and length_y_abs is None and \
+                    length_z_abs is None:
+                abs_orientation_lengths.append(None)
+            else:
+                abs_orientation_lengths.append(
+                    [length_x_abs if length_x_abs is not None else def_len,
+                     length_y_abs if length_y_abs is not None else def_len,
+                     length_z_abs if length_z_abs is not None else def_len])
             gt_masks.append(gt_mask)
             limits_masks.append(limit_mask)
             roi_options.append(roi_option)
 
     return (bundles, gt_masks, limits_masks, roi_options,
-            lengths, angles, orientation_lengths)
+            lengths, angles, orientation_lengths, abs_orientation_lengths)
 
 
-def compute_vb_vs_all_bundles(gt_tails, gt_heads, sft, bundle_names, lengths,
-                              angles, orientation_lengths, limits_inv_masks, args,
-                              ext):
+def compute_vb_vs_all_bundles(
+        gt_tails, gt_heads, sft, bundle_names, lengths, angles,
+        orientation_lengths, abs_orientation_lengths, limits_inv_masks, args,
+        ext):
     """
     Loop on all bundles and extract VS and WPC. Saves the VC but WPC will only
     be saved later if asked by user. Else, they will be included back into IS.
@@ -427,8 +442,8 @@ def compute_vb_vs_all_bundles(gt_tails, gt_heads, sft, bundle_names, lengths,
         vs_ids, wpc_ids, bundle_stats = \
             extract_vb_vs(
                 sft, head_filename, tail_filename, lengths[i], angles[i],
-                orientation_lengths[i], limits_inv_masks[i],
-                args.dilate_endpoints, args.use_abs)
+                orientation_lengths[i], abs_orientation_lengths[i],
+                limits_inv_masks[i], args.dilate_endpoints)
 
         vb_sft = make_sft_from_ids(vs_ids, sft)
 
@@ -475,7 +490,8 @@ def compute_vb_vs_all_bundles(gt_tails, gt_heads, sft, bundle_names, lengths,
 def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, ext,
                          vs_ids_list, bundles_stats):
     """
-    Cleans WPC (Possibly remove WPC belonging to another bundle) and saves them.
+    Cleans WPC (Possibly remove WPC belonging to another bundle) and saves
+    them.
     """
     nb_bundles = len(wpc_ids_list)
     wpc_sft_list = []
@@ -709,15 +725,16 @@ def main():
 
     # Load
     (gt_tails, gt_heads, sft, bundle_names, all_rois, lengths, angles,
-     orientation_lengths, limits_inv_masks, gt_masks, dimensions,
-     ext) = load_and_verify_everything(parser, args)
+     orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
+     dimensions, ext) = load_and_verify_everything(parser, args)
 
     # VS
     logging.info("Scoring valid connections")
     vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats = \
-        compute_vb_vs_all_bundles(gt_tails, gt_heads, sft, bundle_names,
-                                  lengths, angles, orientation_lengths,
-                                  limits_inv_masks, args, ext)
+        compute_vb_vs_all_bundles(
+            gt_tails, gt_heads, sft, bundle_names, lengths, angles,
+            orientation_lengths, abs_orientation_lengths, limits_inv_masks,
+            args, ext)
 
     # WPC
     if args.save_wpc_separately:
@@ -732,9 +749,7 @@ def main():
     # Save bundle stats
     bundle_stats_dict = {}
     for i in range(len(bundle_names)):
-        bundle_stats_dict.update({
-            bundle_names[i] : bundles_stats[i]
-        })
+        bundle_stats_dict.update({bundle_names[i]: bundles_stats[i]})
     with open(os.path.join(args.out_dir, "processing_stats.json"), "w") as f:
         json.dump(bundle_stats_dict, f, indent=args.indent,
                   sort_keys=args.sort_keys)

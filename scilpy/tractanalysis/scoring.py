@@ -255,7 +255,8 @@ def make_sft_from_ids(ids, sft):
 
 def extract_vb_vs(
         sft, head_filename, tail_filename, limits_length, angle,
-        orientation_length, inclusion_inv_mask, dilate_endpoints, use_abs):
+        orientation_length, abs_orientation_length, inclusion_inv_mask,
+        dilate_endpoints):
     """
     Extract valid bundle (and valid streamline ids) from a tractogram, based
     on two regions of interest for the endpoints, one region of interest for
@@ -277,12 +278,11 @@ def extract_vb_vs(
     orientation_length: list or None
         Bundle's length parameters in each direction:
         [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
+    orientation_length: idem, computed in absolute values.
     inclusion_inv_mask: np.ndarray or None
         Inverse mask of the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
-    use_abs: bool
-        If true, compute lengths per orientation using abs.
 
     Returns
     -------
@@ -311,7 +311,20 @@ def extract_vb_vs(
     wpc_ids = []
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
 
-    # Remove invalid lengths from tc
+    # Remove out of inclusion mask (limits_mask)
+    if inclusion_inv_mask is not None:
+        tmp_sft = StatefulTractogram.from_sft(sft.streamlines[vs_ids], sft)
+        _, out_of_mask_ids_from_vs = filter_grid_roi(
+            tmp_sft, inclusion_inv_mask, 'any', False)
+        out_of_mask_ids = vs_ids[out_of_mask_ids_from_vs]
+
+        bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
+
+        # Update ids
+        wpc_ids.extend(out_of_mask_ids)
+        vs_ids = np.setdiff1d(vs_ids, wpc_ids)
+
+    # Remove invalid lengths
     if limits_length is not None:
         min_len, max_len = limits_length
 
@@ -322,28 +335,28 @@ def extract_vb_vs(
         sft.to_vox()
 
         # Compute valid lengths
-        valid_length_ids_mask_from_tc = np.logical_and(lengths > min_len,
+        valid_length_ids_mask_from_vs = np.logical_and(lengths > min_len,
                                                        lengths < max_len)
 
         bundle_stats.update({
-            "WPC_invalid_length": sum(~valid_length_ids_mask_from_tc)})
+            "WPC_invalid_length": int(sum(~valid_length_ids_mask_from_vs))})
 
         # Update ids
-        wpc_ids.extend(vs_ids[~valid_length_ids_mask_from_tc])
-        vs_ids = vs_ids[valid_length_ids_mask_from_tc]
+        wpc_ids.extend(vs_ids[~valid_length_ids_mask_from_vs])
+        vs_ids = vs_ids[valid_length_ids_mask_from_vs]
 
-    # Remove invalid lengths per orientation from tc
+    # Remove invalid lengths per orientation
     if orientation_length is not None:
         # Compute valid lengths
         limits_x, limits_y, limits_z = orientation_length
 
-        _, valid_orientation_ids_from_tc, _ = \
+        _, valid_orientation_ids_from_vs, _ = \
             filter_streamlines_by_total_length_per_dim(
                 make_sft_from_ids(vs_ids, sft), limits_x, limits_y, limits_z,
-                use_abs, save_rejected=False)
+                use_abs=False, save_rejected=False)
 
         # Update ids
-        valid_orientation_ids = vs_ids[valid_orientation_ids_from_tc]
+        valid_orientation_ids = vs_ids[valid_orientation_ids_from_vs]
         invalid_orientation_ids = np.setdiff1d(vs_ids, valid_orientation_ids)
 
         bundle_stats.update({
@@ -352,35 +365,42 @@ def extract_vb_vs(
         wpc_ids.extend(invalid_orientation_ids)
         vs_ids = valid_orientation_ids
 
+    # Idem in abs
+    if abs_orientation_length is not None:
+        # Compute valid lengths
+        limits_x, limits_y, limits_z = abs_orientation_length
+
+        _, valid_orientation_ids_from_vs, _ = \
+            filter_streamlines_by_total_length_per_dim(
+                make_sft_from_ids(vs_ids, sft), limits_x, limits_y,
+                limits_z,
+                use_abs=True, save_rejected=False)
+
+        # Update ids
+        valid_orientation_ids = vs_ids[valid_orientation_ids_from_vs]
+        invalid_orientation_ids = np.setdiff1d(vs_ids,
+                                               valid_orientation_ids)
+
+        bundle_stats.update({
+            "WPC_invalid_orientation_abs": len(invalid_orientation_ids)})
+
+        wpc_ids.extend(invalid_orientation_ids)
+        vs_ids = valid_orientation_ids
+
     # Remove loops from tc
     if angle is not None:
         # Compute valid angles
-        valid_angle_ids_from_tc = remove_loops_and_sharp_turns(
+        valid_angle_ids_from_vs = remove_loops_and_sharp_turns(
             sft.streamlines[vs_ids], angle)
 
         # Update ids
-        valid_angle_ids = vs_ids[valid_angle_ids_from_tc]
+        valid_angle_ids = vs_ids[valid_angle_ids_from_vs]
         invalid_angle_ids = np.setdiff1d(vs_ids, valid_angle_ids)
 
         bundle_stats.update({"WPC_invalid_length": len(invalid_angle_ids)})
 
         wpc_ids.extend(invalid_angle_ids)
         vs_ids = valid_angle_ids
-
-    # Streamlines getting out of the bundle mask can be considered
-    # separately as wrong path connection (wpc)
-    if inclusion_inv_mask is not None:
-
-        tmp_sft = StatefulTractogram.from_sft(sft.streamlines[vs_ids], sft)
-        _, out_of_mask_ids_from_tc = filter_grid_roi(
-            tmp_sft, inclusion_inv_mask, 'any', False)
-        out_of_mask_ids = vs_ids[out_of_mask_ids_from_tc]
-
-        bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
-
-        # Update ids
-        wpc_ids.extend(out_of_mask_ids)
-        vs_ids = np.setdiff1d(vs_ids, wpc_ids)
 
     bundle_stats.update({"VS": len(vs_ids)})
 
