@@ -5,7 +5,7 @@ import multiprocessing
 import itertools
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
-from scilpy.denoise.opencl_utils import (have_opencl, CLKernel, CLManager)
+from scilpy.gpuparallel.opencl_utils import (have_opencl, CLKernel, CLManager)
 
 
 def angle_aware_bilateral_filtering(in_sh, sh_order=8,

@@ -26,7 +26,7 @@ def assert_same_resolution(images):
             raise Exception("Images are not of the same resolution/affine")
 
 
-def get_data_as_mask(in_img, dtype=np.uint8):
+def get_data_as_mask(in_img, dtype=np.uint8, force_typecast=True):
     """
     Get data as mask (force type np.uint8 or bool), check data type before
     casting.
@@ -51,9 +51,10 @@ def get_data_as_mask(in_img, dtype=np.uint8):
 
     curr_type = in_img.get_data_dtype().type
     basename = os.path.basename(in_img.get_filename())
-    if np.issubdtype(curr_type, np.signedinteger) or \
-        np.issubdtype(curr_type, np.unsignedinteger) \
-            or np.issubdtype(curr_type, np.dtype(bool).type):
+    if np.issubdtype(curr_type, np.signedinteger)\
+       or np.issubdtype(curr_type, np.unsignedinteger)\
+       or np.issubdtype(curr_type, np.dtype(bool).type)\
+       or force_typecast:
         data = np.asanyarray(in_img.dataobj).astype(dtype)
         unique_vals = np.unique(data)
         if len(unique_vals) == 2:
