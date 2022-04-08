@@ -103,7 +103,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     original_number = len(sft.streamlines)
     
-    if args.never_upsample:
+    if args.never_upsample and args.nb_streamlines > original_number:
         args.nb_streamlines = original_number
 
     if args.nb_streamlines > original_number:
