@@ -21,6 +21,7 @@ import nibabel as nib
 import time
 import argparse
 import logging
+from scilpy.io.image import get_data_as_mask
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
@@ -35,12 +36,12 @@ from scilpy.reconst.bingham import (compute_fiber_density,
 EPILOG = """
 [1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
     fractional anisotropy: Extraction of bundle-specific structural metrics
-    from crossing fiber models,” NeuroImage, vol. 100, pp. 176–191, Oct. 2014,
+    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
     doi: 10.1016/j.neuroimage.2014.06.015.
 
 [2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
     Tracking: A method to evaluate anatomical connectivity and microstructural
-    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163–178, Apr.
+    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
     2014, doi: 10.1016/j.neuroimage.2014.01.002.
 """
 
@@ -59,6 +60,9 @@ def _build_arg_parser():
                    help='Path to fiber fraction file. [ff.nii.gz]')
     p.add_argument('--not_all', action='store_true',
                    help='Do not compute all metrics.')
+    p.add_argument('--mask',
+                   help='Optional mask image. Only voxels inside '
+                        'the mask are computed.')
 
     p.add_argument('--nbr_integration_steps', type=int, default=50,
                    help='Number of integration steps along the theta axis for'
@@ -86,18 +90,20 @@ def main():
         parser.error('At least one output file must be specified.')
 
     outputs = [args.out_fd, args.out_fs, args.out_ff]
-    assert_inputs_exist(parser, args.in_bingham)
+    assert_inputs_exist(parser, args.in_bingham, args.mask)
     assert_outputs_exist(parser, args, outputs)
 
     bingham_im = nib.load(args.in_bingham)
     bingham = bingham_im.get_fdata()
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool)\
+        if args.mask else None
 
     nbr_processes = validate_nbr_processes(parser, args)
 
     t0 = time.perf_counter()
     logging.info('Computing fiber density.')
     fd = compute_fiber_density(bingham, m=args.nbr_integration_steps,
-                               nbr_processes=nbr_processes)
+                               mask=mask, nbr_processes=nbr_processes)
     t1 = time.perf_counter()
     logging.info('FD computed in (s): {0}'.format(t1 - t0))
     if args.out_fd:

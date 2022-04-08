@@ -134,7 +134,7 @@ def bingham_to_peak_direction(bingham_volume):
 
 def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
                    rel_th=0., min_sep_angle=25.,
-                   max_fit_angle=15,
+                   max_fit_angle=15, mask=None,
                    nbr_processes=None):
     """
     Approximate SH field by fitting Bingham distributions to
@@ -179,7 +179,11 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
         or nbr_processes > multiprocessing.cpu_count() \
         else nbr_processes
 
-    sh = sh.reshape((-1, sh.shape[-1]))
+    if mask is not None:
+        sh = sh[mask]
+    else:
+        sh = sh.reshape((-1, shape[-1]))
+
     sh = np.array_split(sh, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
     out = pool.map(_bingham_fit_sh_chunk, zip(sh, itertools.repeat(B_mat),
@@ -193,6 +197,11 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
     pool.join()
 
     out = np.concatenate(out, axis=0)
+    if mask is not None:
+        bingham = np.zeros(shape[:3] + (max_lobes, NB_PARAMS))
+        bingham[mask] = out
+        return bingham
+
     out = out.reshape(shape[:3] + (max_lobes, NB_PARAMS))
     return out
 
@@ -336,7 +345,7 @@ def _bingham_fit_peak(sf, peak, sphere, max_angle):
     return BinghamDistribution(f0, k1 * mu1, k2 * mu2)
 
 
-def compute_fiber_density(bingham, m=50, nbr_processes=None):
+def compute_fiber_density(bingham, m=50, mask=None, nbr_processes=None):
     """
     Compute fiber density for each lobe for a given Bingham volume.
 
@@ -374,6 +383,9 @@ def compute_fiber_density(bingham, m=50, nbr_processes=None):
         or nbr_processes > multiprocessing.cpu_count() \
         else nbr_processes
 
+    if mask is not None:
+        bingham = bingham[mask]
+
     bingham = bingham.reshape((-1, np.prod(shape[-2:])))
     bingham = np.array_split(bingham, nbr_processes)
     pool = multiprocessing.Pool(nbr_processes)
@@ -385,8 +397,14 @@ def compute_fiber_density(bingham, m=50, nbr_processes=None):
     pool.close()
     pool.join()
 
-    nbr_lobes = shape[-2]
     res = np.concatenate(res, axis=0)
+    nbr_lobes = shape[-2]
+
+    if mask is not None:
+        fd = np.zeros(shape[:3] + (nbr_lobes,))
+        fd[mask] = res
+        return fd
+
     res = np.reshape(np.array(res), shape[:3] + (nbr_lobes,))
     return res
 
