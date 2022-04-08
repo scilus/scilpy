@@ -156,6 +156,8 @@ def bingham_fit_sh(sh, max_lobes=5, abs_th=0.,
     max_fit_angle: float, optional
         The maximum distance in degrees around a peak direction for
         fitting the Bingham function.
+    mask: ndarray (X, Y, Z), optional
+        Mask to apply to the data.
     nbr_processes: unsigned int, optional
         The number of processes to use. If None, than
         ``multiprocessing.cpu_count()`` processes are executed.
@@ -360,6 +362,8 @@ def compute_fiber_density(bingham, m=50, mask=None, nbr_processes=None):
     m: unsigned int, optional
         Number of steps along theta axis for the integration. The number of
         steps along the phi axis is 2*m.
+    mask: ndarray (X, Y, Z), optional
+        Mask to apply to the computation.
     nbr_processes: unsigned int, optional
         The number of processes to use. If None, then
         ``multithreading.cpu_count()`` processes are launched.
