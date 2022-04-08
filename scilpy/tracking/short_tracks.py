@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+from dipy.data import get_sphere
+from scilpy.gpuparallel.opencl_utils import CLKernel
+
 
 def track_short_tracks(in_odf, in_seed, in_mask, step_size=0.5,
                        min_length=10., max_length=20.,
@@ -32,3 +36,11 @@ def track_short_tracks(in_odf, in_seed, in_mask, step_size=0.5,
     streamlines: list
         List of short-tracks.
     """
+
+    sphere = get_sphere('symmetric362')
+    cl_kernel = CLKernel('track', 'tracking', 'short_tracks.cl')
+    cl_kernel.set_define('IM_DIM_X', in_odf.shape[0])
+    cl_kernel.set_define('IM_DIM_Y', in_odf.shape[1])
+    cl_kernel.set_define('IM_DIM_Z', in_odf.shape[2])
+    cl_kernel.set_define('IM_N_COEFFS', in_odf.shape[3])
+    cl_kernel.set_define('N_DIRS', len(sphere.vertices))
