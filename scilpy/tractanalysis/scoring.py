@@ -253,13 +253,14 @@ def make_sft_from_ids(ids, sft):
     return new_sft
 
 
-def extract_true_connections(
-        sft, head_filename, tail_filename, bundle_prefix,
-        limits_length, angle, orientation_length,
-        inclusion_inv_mask, dilate_endpoints, use_abs):
+def extract_vb_vs(
+        sft, head_filename, tail_filename, limits_length, angle,
+        orientation_length, inclusion_inv_mask, dilate_endpoints, use_abs):
     """
-    Extract true connections based on two regions from a tractogram.
-    May extract false and no connections if the config is passed.
+    Extract valid bundle (and valid streamline ids) from a tractogram, based
+    on two regions of interest for the endpoints, one region of interest for
+    the inclusion of streamlines, and maximum length, maximum angle,
+    maximum length per orientation.
 
     Parameters
     ----------
@@ -269,16 +270,14 @@ def extract_true_connections(
         Filename of the "head" of the bundle.
     tail_filename: str
         Filename of the "tail" of the bundle.
-    bundle_prefix: str
-        Bundle's name.
-    limits_length: list
-        Bundle's length parameters: [min max]
-    angle: int
+    limits_length: list or None
+        Bundle's length parameters: [min max].
+    angle: int or None
         Bundle's max angle.
-    orientation_length: list
+    orientation_length: list or None
         Bundle's length parameters in each direction:
         [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
-    inclusion_inv_mask: np.ndarray
+    inclusion_inv_mask: np.ndarray or None
         Inverse mask of the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
@@ -307,10 +306,10 @@ def extract_true_connections(
         mask_1 = binary_dilation(mask_1, iterations=dilate_endpoints)
         mask_2 = binary_dilation(mask_2, iterations=dilate_endpoints)
 
-    _, tc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
+    _, vs_ids = filter_grid_roi_both(sft, mask_1, mask_2)
 
     wpc_ids = []
-    bundle_stats = {"Initial TC head to tail": len(tc_ids)}
+    bundle_stats = {"Initial count head to tail": len(vs_ids)}
 
     # Remove invalid lengths from tc
     if limits_length is not None:
@@ -319,7 +318,7 @@ def extract_true_connections(
         # Bring streamlines to world coordinates so proper length
         # is calculated
         sft.to_rasmm()
-        lengths = np.array(list(length(sft.streamlines[tc_ids])))
+        lengths = np.array(list(length(sft.streamlines[vs_ids])))
         sft.to_vox()
 
         # Compute valid lengths
@@ -330,8 +329,8 @@ def extract_true_connections(
             "WPC_invalid_length": sum(~valid_length_ids_mask_from_tc)})
 
         # Update ids
-        wpc_ids.extend(tc_ids[~valid_length_ids_mask_from_tc])
-        tc_ids = tc_ids[valid_length_ids_mask_from_tc]
+        wpc_ids.extend(vs_ids[~valid_length_ids_mask_from_tc])
+        vs_ids = vs_ids[valid_length_ids_mask_from_tc]
 
     # Remove invalid lengths per orientation from tc
     if orientation_length is not None:
@@ -340,52 +339,52 @@ def extract_true_connections(
 
         _, valid_orientation_ids_from_tc, _ = \
             filter_streamlines_by_total_length_per_dim(
-                make_sft_from_ids(tc_ids, sft), limits_x, limits_y, limits_z,
+                make_sft_from_ids(vs_ids, sft), limits_x, limits_y, limits_z,
                 use_abs, save_rejected=False)
 
         # Update ids
-        valid_orientation_ids = tc_ids[valid_orientation_ids_from_tc]
-        invalid_orientation_ids = np.setdiff1d(tc_ids, valid_orientation_ids)
+        valid_orientation_ids = vs_ids[valid_orientation_ids_from_tc]
+        invalid_orientation_ids = np.setdiff1d(vs_ids, valid_orientation_ids)
 
         bundle_stats.update({
             "WPC_invalid_orientation": len(invalid_orientation_ids)})
 
         wpc_ids.extend(invalid_orientation_ids)
-        tc_ids = valid_orientation_ids
+        vs_ids = valid_orientation_ids
 
     # Remove loops from tc
     if angle is not None:
         # Compute valid angles
         valid_angle_ids_from_tc = remove_loops_and_sharp_turns(
-            sft.streamlines[tc_ids], angle)
+            sft.streamlines[vs_ids], angle)
 
         # Update ids
-        valid_angle_ids = tc_ids[valid_angle_ids_from_tc]
-        invalid_angle_ids = np.setdiff1d(tc_ids, valid_angle_ids)
+        valid_angle_ids = vs_ids[valid_angle_ids_from_tc]
+        invalid_angle_ids = np.setdiff1d(vs_ids, valid_angle_ids)
 
         bundle_stats.update({"WPC_invalid_length": len(invalid_angle_ids)})
 
         wpc_ids.extend(invalid_angle_ids)
-        tc_ids = valid_angle_ids
+        vs_ids = valid_angle_ids
 
     # Streamlines getting out of the bundle mask can be considered
     # separately as wrong path connection (wpc)
     if inclusion_inv_mask is not None:
 
-        tmp_sft = StatefulTractogram.from_sft(sft.streamlines[tc_ids], sft)
+        tmp_sft = StatefulTractogram.from_sft(sft.streamlines[vs_ids], sft)
         _, out_of_mask_ids_from_tc = filter_grid_roi(
             tmp_sft, inclusion_inv_mask, 'any', False)
-        out_of_mask_ids = tc_ids[out_of_mask_ids_from_tc]
+        out_of_mask_ids = vs_ids[out_of_mask_ids_from_tc]
 
         bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
 
         # Update ids
         wpc_ids.extend(out_of_mask_ids)
-        tc_ids = np.setdiff1d(tc_ids, wpc_ids)
+        vs_ids = np.setdiff1d(vs_ids, wpc_ids)
 
-    bundle_stats.update({"TC": len(tc_ids)})
+    bundle_stats.update({"VS": len(vs_ids)})
 
-    return list(tc_ids), list(wpc_ids), bundle_stats
+    return list(vs_ids), list(wpc_ids), bundle_stats
 
 
 def extract_false_connections(sft, mask_1_filename, mask_2_filename,
