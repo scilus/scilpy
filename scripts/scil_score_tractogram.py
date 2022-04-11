@@ -104,13 +104,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
                                           make_sft_from_ids,
-                                          extract_vb_vs, compute_f1_score)
+                                          extract_vb_vs, compute_f1_score,
+                                          compute_dice_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
 def_len = [0, np.inf]
@@ -158,7 +158,7 @@ def _build_arg_parser():
                    help="If set, streamlines rejected from VC based on the "
                         "config\nfile criteria will be saved separately from "
                         "IS (and IC)\nin one file *_WPC.tck per bundle.")
-    g.add_argument("--compute_IC", action='store_true',
+    g.add_argument("--compute_ic", action='store_true',
                    help="If set, IS are split into NC + IC, where IC are "
                         "computed as one bundle per\npair of ROI not "
                         "belonging to a true connection, named\n*_*_IC.tck.")
@@ -217,7 +217,7 @@ def load_and_verify_everything(parser, args):
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
     os.makedirs(os.path.join(args.out_dir, 'segmented_VB'))
-    if args.compute_IC:
+    if args.compute_ic:
         os.makedirs(os.path.join(args.out_dir, 'segmented_IB'))
     if args.save_wpc_separately:
         os.makedirs(os.path.join(args.out_dir, 'segmented_WPC'))
@@ -603,7 +603,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         "total_streamlines": total_count,
     }
 
-    if args.compute_fc:
+    if args.compute_ic:
         final_results.update({
             "IC": ic_count,
             "NC": nc_count,
@@ -620,42 +620,31 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     bundle_wise_dict = {}
     for i in range(nb_bundles):
         current_vb = vb_sft_list[i].streamlines
+        bundle_results = {"VS": len(current_vb)}
 
-        # Getting the recovered mask
-        current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
-            current_vb, sft)
-
-        current_vb_results = {"VS": len(current_vb)}
         wpc_results = {}
         if gt_masks[i] is not None:
+            # Getting the recovered mask
+            current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
+                current_vb, sft)
+
             gt_total_nb_voxels = np.count_nonzero(gt_masks[i])
 
-            # Dice
-            dice = compute_dice_voxel(gt_masks[i], current_vb_voxels)[0]
+            dice, current_overlap, current_overreach, current_lacking = \
+                compute_dice_overlap_overreach(current_vb_voxels, gt_masks[i],
+                                               dimensions)
 
-            # Overlap and overreach
-            overlap_mask = gt_masks[i] * current_vb_voxels
-            overreach_mask = np.zeros(dimensions)
-            overreach_mask[np.where(
-                (gt_masks[i] == 0) & (current_vb_voxels >= 1))] = 1
-
-            bundle_lacking = np.zeros(dimensions)
-            bundle_lacking[np.where(
-                (gt_masks[i] == 1) & (current_vb_voxels == 0))] = 1
-
-            current_overlap = np.count_nonzero(overlap_mask)
-            current_overreach = np.count_nonzero(overreach_mask)
-            current_lacking = np.count_nonzero(bundle_lacking)
-            current_overlap_pct = current_overlap / gt_total_nb_voxels,
+            current_overlap_pct = current_overlap / gt_total_nb_voxels
             current_overreach_pct = current_overreach / gt_total_nb_voxels
 
             # Endpoints coverage
+            # todo. What is this? Useful?
             endpoints_overlap = gt_masks[i] * current_vb_endpoints_voxels
             endpoints_overreach = np.zeros(dimensions)
             endpoints_overreach[np.where(
                 (gt_masks[i] == 0) & (current_vb_endpoints_voxels >= 1))] = 1
 
-            current_vb_results.update({
+            bundle_results.update({
                 "dice": dice,
                 "OL": current_overlap,
                 "OR": current_overreach,
@@ -690,19 +679,17 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                     "Count": len(current_wpc_streamlines),
                     "OR": wpc_overreach,
                     "OL": wpc_overlap,
-                    "OR_PCT": wpc_overreach / gt_total_nb_voxels,
-                    "OL_PCT": wpc_overlap / gt_total_nb_voxels
+                    "OR_pct": wpc_overreach / gt_total_nb_voxels,
+                    "OL_pct": wpc_overlap / gt_total_nb_voxels
                 }
-        bundle_results = {"VB": current_vb_results}
-        if args.save_wpc_separately:
-            bundle_results.update({"WPC": wpc_results})
+                bundle_results.update({"WPC": wpc_results})
 
-        mean_overlap += current_vb_results["OL_PCT"]
-        mean_overreach += current_vb_results["OR_PCT"]
-        mean_f1 += current_vb_results["F1"]
+        mean_overlap += bundle_results["OL_pct"]
+        mean_overreach += bundle_results["OR_pct"]
+        mean_f1 += bundle_results["f1"]
         bundle_wise_dict.update({bundles_names[i]: bundle_results})
 
-    if args.compute_IC:
+    if args.compute_ic:
         # -----------
         # False connections stats: number of voxels
         # -----------
@@ -768,7 +755,7 @@ def main():
                   sort_keys=args.sort_keys)
 
     # IC
-    if args.compute_IC:
+    if args.compute_ic:
         logging.info("Scoring invalid connections")
 
         # Keep all possible combinations
@@ -799,14 +786,14 @@ def main():
     all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
     all_nc_ids = np.setdiff1d(all_nc_ids, all_ic_ids)
 
-    if args.compute_IC:
+    if args.compute_ic:
         logging.info("The remaining {} / {} streamlines will be scored as NC."
                      .format(len(all_nc_ids), len(sft)))
-        filename = "nc{}".format(ext)
+        filename = "NC{}".format(ext)
     else:
         logging.info("The remaining {} / {} streamlines will be scored as IS."
                      .format(len(all_nc_ids), len(sft)))
-        filename = "is{}".format(ext)
+        filename = "IS{}".format(ext)
 
     nc_sft = make_sft_from_ids(all_nc_ids, sft)
     if len(nc_sft) > 0 or not args.no_empty:

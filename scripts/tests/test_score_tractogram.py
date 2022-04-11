@@ -24,8 +24,8 @@ def test_score_bundles(script_runner):
         "example_bundle": {
             "angle": 300,
             "length": [30, 190],
-            "bundle_mask": os.path.join(get_home(), 'tracking',
-                                        'seeding_mask.nii.gz'),
+            "gt_mask": os.path.join(get_home(), 'tracking',
+                                    'seeding_mask.nii.gz'),
             "endpoints": os.path.join(get_home(), 'tracking',
                                       'interface.nii.gz')
         }
@@ -35,5 +35,6 @@ def test_score_bundles(script_runner):
 
     ret = script_runner.run('scil_score_tractogram.py',
                             in_tractogram, "config_file.json",
-                            'scoring_results/', '--no_empty')
+                            'scoring_results/', '--no_empty',
+                            '--use_gt_masks_as_limits_masks')
     assert ret.success

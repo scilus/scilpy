@@ -15,17 +15,49 @@ from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
 from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
-    get_endpoints_density_map
+    get_endpoints_density_map, compute_dice_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
 def compute_f1_score(overlap, overreach):
-    # https://en.wikipedia.org/wiki/F1_score
+    """
+    Compute the F1 score between overlap and overreach (they must be
+    percentages).
+
+    Ref: https://en.wikipedia.org/wiki/F1_score
+    """
+    logging.debug("?????????? OVERLAP {} AND OVERREACH {}".format(overlap, overreach))
     recall = overlap
-    precision = 1 - overreach
-    f1_score = 2 * (precision * recall) / (precision + recall)
+    precision = 1.0 - overreach
+    f1_score = 2.0 * (precision * recall) / (precision + recall)
     return f1_score
+
+
+def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
+    """
+    Compute dice, OL and OR based on a ground truth mask.
+
+    Results are returned in number of voxels, not as percentages.
+    """
+    # Dice
+    dice = compute_dice_voxel(gt_mask, current_vb_voxels)[0]
+
+    # Overlap and overreach
+    overlap_mask = gt_mask * current_vb_voxels
+    overreach_mask = np.zeros(dimensions)
+    overreach_mask[np.where(
+        (gt_mask == 0) & (current_vb_voxels >= 1))] = 1
+
+    bundle_lacking = np.zeros(dimensions)
+    bundle_lacking[np.where(
+        (gt_mask == 1) & (current_vb_voxels == 0))] = 1
+
+    overlap = np.count_nonzero(overlap_mask)
+    overreach = np.count_nonzero(overreach_mask)
+    lacking = np.count_nonzero(bundle_lacking)
+
+    return dice, overlap, overreach, lacking
 
 
 def get_binary_maps(streamlines, sft):
