@@ -20,6 +20,14 @@ from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
 
+def compute_f1_score(overlap, overreach):
+    # https://en.wikipedia.org/wiki/F1_score
+    recall = overlap
+    precision = 1 - overreach
+    f1_score = 2 * (precision * recall) / (precision + recall)
+    return f1_score
+
+
 def get_binary_maps(streamlines, sft):
     """
     Extract a mask from a bundle

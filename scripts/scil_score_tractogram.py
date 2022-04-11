@@ -110,7 +110,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           get_binary_maps,
                                           compute_endpoint_masks,
                                           make_sft_from_ids,
-                                          extract_vb_vs)
+                                          extract_vb_vs, compute_f1_score)
 from scilpy.utils.filenames import split_name_with_nii
 
 def_len = [0, np.inf]
@@ -592,9 +592,6 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         "tractogram_overlap": 0.0,
         "VS": vs_count,
         "WPC": wpc_count,
-        "IC": ic_count,
-        "NC": nc_count,
-        "IS = IC + NC": ic_count + nc_count,
         "VB": len([x for x in vs_ids_list if len(x) > 0]),
         "IB": len([x for x in ic_ids_list if len(x) > 0]),
         "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
@@ -606,9 +603,19 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         "total_streamlines": total_count,
     }
 
+    if args.compute_fc:
+        final_results.update({
+            "IC": ic_count,
+            "NC": nc_count,
+            "IS = IC + NC": ic_count + nc_count})
+    else:
+        final_results.update({
+            "IS": ic_count + nc_count})  # = 0 + nc_count.
+
     # Tractometry stats over volume: OL, OR, Dice score
     mean_overlap = 0.0
     mean_overreach = 0.0
+    mean_f1 = 0.0
 
     bundle_wise_dict = {}
     for i in range(nb_bundles):
@@ -618,7 +625,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
             current_vb, sft)
 
-        vb_results = {"VS": len(current_vb)}
+        current_vb_results = {"VS": len(current_vb)}
         wpc_results = {}
         if gt_masks[i] is not None:
             gt_total_nb_voxels = np.count_nonzero(gt_masks[i])
@@ -636,9 +643,11 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
             bundle_lacking[np.where(
                 (gt_masks[i] == 1) & (current_vb_voxels == 0))] = 1
 
-            vs_overlap = np.count_nonzero(overlap_mask)
-            vs_overreach = np.count_nonzero(overreach_mask)
-            vs_lacking = np.count_nonzero(bundle_lacking)
+            current_overlap = np.count_nonzero(overlap_mask)
+            current_overreach = np.count_nonzero(overreach_mask)
+            current_lacking = np.count_nonzero(bundle_lacking)
+            current_overlap_pct = current_overlap / gt_total_nb_voxels,
+            current_overreach_pct = current_overreach / gt_total_nb_voxels
 
             # Endpoints coverage
             endpoints_overlap = gt_masks[i] * current_vb_endpoints_voxels
@@ -646,13 +655,15 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
             endpoints_overreach[np.where(
                 (gt_masks[i] == 0) & (current_vb_endpoints_voxels >= 1))] = 1
 
-            vb_results.update({
+            current_vb_results.update({
                 "dice": dice,
-                "OL": vs_overlap,
-                "OR": vs_overreach,
-                "lacking": vs_lacking,
-                "OL_PCT": vs_overlap / gt_total_nb_voxels,
-                "OR_PCT": vs_overreach / gt_total_nb_voxels,
+                "OL": current_overlap,
+                "OR": current_overreach,
+                "lacking": current_lacking,
+                "OL_pct": current_overlap_pct,
+                "OR_pct": current_overreach_pct,
+                "f1": compute_f1_score(current_overlap_pct,
+                                       current_overreach_pct),
                 "endpoints_OL": np.count_nonzero(endpoints_overlap),
                 "endpoints_OR": np.count_nonzero(endpoints_overreach)
             })
@@ -682,12 +693,13 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                     "OR_PCT": wpc_overreach / gt_total_nb_voxels,
                     "OL_PCT": wpc_overlap / gt_total_nb_voxels
                 }
-        bundle_results = {"VB": vb_results}
+        bundle_results = {"VB": current_vb_results}
         if args.save_wpc_separately:
             bundle_results.update({"WPC": wpc_results})
 
-        mean_overlap += vb_results["OL_PCT"]
-        mean_overreach += vb_results["OR_PCT"]
+        mean_overlap += current_vb_results["OL_PCT"]
+        mean_overreach += current_vb_results["OR_PCT"]
+        mean_f1 += current_vb_results["F1"]
         bundle_wise_dict.update({bundles_names[i]: bundle_results})
 
     if args.compute_IC:
@@ -714,6 +726,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         "bundle_wise": bundle_wise_dict,
         "mean_OL": mean_overlap / nb_bundles,
         "mean_OR": mean_overreach / nb_bundles,
+        "mean_f1": mean_f1 / nb_bundles
     })
 
     return final_results
