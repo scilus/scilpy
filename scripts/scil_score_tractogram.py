@@ -240,7 +240,6 @@ def load_and_verify_everything(parser, args):
         logging.basicConfig(level=logging.INFO)
 
     logging.info("Loading tractogram.")
-    _, ext = os.path.splitext(args.in_tractogram)
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
 
@@ -276,7 +275,7 @@ def load_and_verify_everything(parser, args):
 
     return (gt_tails, gt_heads, sft, bundle_names, all_rois,
             lengths, angles, orientation_lengths, abs_orientation_lengths,
-            limits_inv_masks, gt_masks, dimensions, ext)
+            limits_inv_masks, gt_masks, dimensions)
 
 
 def read_config_file(args):
@@ -414,8 +413,7 @@ def read_config_file(args):
 
 def compute_vb_vs_all_bundles(
         gt_tails, gt_heads, sft, bundle_names, lengths, angles,
-        orientation_lengths, abs_orientation_lengths, limits_inv_masks, args,
-        ext):
+        orientation_lengths, abs_orientation_lengths, limits_inv_masks, args):
     """
     Loop on all bundles and extract VS and WPC. Saves the VC but WPC will only
     be saved later if asked by user. Else, they will be included back into IS.
@@ -449,7 +447,7 @@ def compute_vb_vs_all_bundles(
 
         # Save results
         if len(vb_sft) > 0 or not args.no_empty:
-            filename = "segmented_VB/{}_VS{}".format(bundle_names[i], ext)
+            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
             save_tractogram(vb_sft, os.path.join(args.out_dir, filename),
                             bbox_valid_check=False)
 
@@ -487,8 +485,8 @@ def compute_vb_vs_all_bundles(
     return vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats
 
 
-def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, ext,
-                         vs_ids_list, bundles_stats):
+def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
+                         bundles_stats):
     """
     Cleans WPC (Possibly remove WPC belonging to another bundle) and saves
     them.
@@ -511,7 +509,7 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, ext,
         wpc_sft_list.append(wpc_sft)
 
         if len(wpc_ids) > 0 or not args.no_empty:
-            filename = "segmented_WPC/{}_wpc{}".format(bundles_names[i], ext)
+            filename = "segmented_WPC/{}_wpc.trk".format(bundles_names[i])
             save_tractogram(wpc_sft, os.path.join(args.out_dir, filename),
                             bbox_valid_check=False)
         bundles_stats[i].update({"Cleaned WPC": len(wpc_ids)})
@@ -537,13 +535,12 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
         # Automatically generate filename for Q/C
         prefix_1 = extract_prefix(roi1_filename)
         prefix_2 = extract_prefix(roi2_filename)
-        _, ext = os.path.splitext(args.in_tractogram)
 
         ib_sft, ic_ids = extract_false_connections(
             sft, roi1_filename, roi2_filename, args.dilate_endpoints)
 
         if len(ib_sft) > 0 or not args.no_empty:
-            file = "segmented_IB/{}_{}_IC{}".format(prefix_1, prefix_2, ext)
+            file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
             save_tractogram(ib_sft, os.path.join(args.out_dir, file),
                             bbox_valid_check=False)
 
@@ -622,7 +619,6 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         current_vb = vb_sft_list[i].streamlines
         bundle_results = {"VS": len(current_vb)}
 
-        wpc_results = {}
         if gt_masks[i] is not None:
             # Getting the recovered mask
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
@@ -726,7 +722,7 @@ def main():
     # Load
     (gt_tails, gt_heads, sft, bundle_names, all_rois, lengths, angles,
      orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
-     dimensions, ext) = load_and_verify_everything(parser, args)
+     dimensions) = load_and_verify_everything(parser, args)
 
     # VS
     logging.info("Scoring valid connections")
@@ -734,14 +730,13 @@ def main():
         compute_vb_vs_all_bundles(
             gt_tails, gt_heads, sft, bundle_names, lengths, angles,
             orientation_lengths, abs_orientation_lengths, limits_inv_masks,
-            args, ext)
+            args)
 
     # WPC
     if args.save_wpc_separately:
         logging.info("Verifying wpc")
         wpc_sft_list, bundles_stats = save_wpc_all_bundles(
-            wpc_ids_list, sft, bundle_names, args, ext, vs_ids_list,
-            bundles_stats)
+            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
     else:
         wpc_sft_list = []
         wpc_ids_list = []
@@ -789,11 +784,11 @@ def main():
     if args.compute_ic:
         logging.info("The remaining {} / {} streamlines will be scored as NC."
                      .format(len(all_nc_ids), len(sft)))
-        filename = "NC{}".format(ext)
+        filename = "NC.trk"
     else:
         logging.info("The remaining {} / {} streamlines will be scored as IS."
                      .format(len(all_nc_ids), len(sft)))
-        filename = "IS{}".format(ext)
+        filename = "IS.trk"
 
     nc_sft = make_sft_from_ids(all_nc_ids, sft)
     if len(nc_sft) > 0 or not args.no_empty:
