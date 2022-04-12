@@ -360,7 +360,7 @@ def extract_vb_vs(
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
 
     # Remove out of inclusion mask (limits_mask)
-    if inclusion_inv_mask is not None:
+    if len(vs_ids) > 0 and inclusion_inv_mask is not None:
         tmp_sft = StatefulTractogram.from_sft(sft.streamlines[vs_ids], sft)
         _, out_of_mask_ids_from_vs = filter_grid_roi(
             tmp_sft, inclusion_inv_mask, 'any', False)
@@ -373,7 +373,7 @@ def extract_vb_vs(
         vs_ids = np.setdiff1d(vs_ids, wpc_ids)
 
     # Remove invalid lengths
-    if limits_length is not None:
+    if len(vs_ids) > 0 and limits_length is not None:
         min_len, max_len = limits_length
 
         # Bring streamlines to world coordinates so proper length
@@ -394,7 +394,7 @@ def extract_vb_vs(
         vs_ids = vs_ids[valid_length_ids_mask_from_vs]
 
     # Remove invalid lengths per orientation
-    if orientation_length is not None:
+    if len(vs_ids) > 0 and orientation_length is not None:
         # Compute valid lengths
         limits_x, limits_y, limits_z = orientation_length
 
@@ -414,7 +414,7 @@ def extract_vb_vs(
         vs_ids = valid_orientation_ids
 
     # Idem in abs
-    if abs_orientation_length is not None:
+    if len(vs_ids) > 0 and abs_orientation_length is not None:
         # Compute valid lengths
         limits_x, limits_y, limits_z = abs_orientation_length
 
@@ -436,7 +436,7 @@ def extract_vb_vs(
         vs_ids = valid_orientation_ids
 
     # Remove loops from tc
-    if angle is not None:
+    if len(vs_ids) > 0 and angle is not None:
         # Compute valid angles
         valid_angle_ids_from_vs = remove_loops_and_sharp_turns(
             sft.streamlines[vs_ids], angle)
