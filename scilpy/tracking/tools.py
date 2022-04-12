@@ -9,35 +9,6 @@ from scipy.interpolate import splev, splprep
 from scipy.ndimage.filters import gaussian_filter1d
 
 
-def _filter_sft_by_id(sft, ids_to_keep):
-    """
-    Keep only the streamlines for which the associated value is True in mask.
-
-    Params
-    ------
-    sft: Stateful Tractogram
-    mask_of_ids_to_keep: list[bool]
-        List of length len(sft), with one bool per streamline indicating if it
-        should be kept.
-
-    Returns
-    -------
-    filtered_sft: StatefulTractogram
-    """
-    filtered_streamlines = list(np.asarray(sft.streamlines,
-                                           dtype=object)[ids_to_keep])
-    filtered_data_per_point = sft.data_per_point[ids_to_keep]
-    filtered_data_per_streamline = sft.data_per_streamline[ids_to_keep]
-
-    # Create final sft
-    filtered_sft = StatefulTractogram.from_sft(
-        filtered_streamlines, sft,
-        data_per_point=filtered_data_per_point,
-        data_per_streamline=filtered_data_per_streamline)
-
-    return filtered_sft
-
-
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
     Filter streamlines using minimum and max length.
@@ -71,7 +42,7 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     else:
         filter_stream = []
 
-    filtered_sft = _filter_sft_by_id(sft, filter_stream)
+    filtered_sft = sft[filter_stream]
 
     # Return to original space
     filtered_sft.to_space(orig_space)
@@ -152,11 +123,11 @@ def filter_streamlines_by_total_length_per_dim(
     mask_good_ids = np.logical_and(mask_good_x, mask_good_y)
     mask_good_ids = np.logical_and(mask_good_ids, mask_good_z)
 
-    filtered_sft = _filter_sft_by_id(sft, mask_good_ids)
+    filtered_sft = sft[mask_good_ids]
 
     rejected_sft = None
     if save_rejected:
-        rejected_sft = _filter_sft_by_id(sft, ~mask_good_ids)
+        rejected_sft = sft[~mask_good_ids]
 
     # Return to original space
     filtered_sft.to_space(orig_space)
