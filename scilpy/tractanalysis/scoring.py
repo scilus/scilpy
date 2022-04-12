@@ -123,6 +123,7 @@ def compute_masks(gt_files, parser, args):
     mask_2: numpy.ndarray
         "Tail" of the mask.
     """
+    save_ref = args.reference
 
     gt_bundle_masks = []
     gt_bundle_inv_masks = []
@@ -145,6 +146,13 @@ def compute_masks(gt_files, parser, args):
                 affine = gt_img.affine
                 dimensions = gt_mask.shape
             else:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
                 gt_sft = load_tractogram_with_reference(
                     parser, args, gt_bundle, bbox_check=False)
                 gt_sft.to_vox()

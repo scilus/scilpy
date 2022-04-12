@@ -191,10 +191,19 @@ def _verify_compatibility_with_bundles(sft, masks_files, parser, args):
     Verifies the compatibility of the main sft with the bundle masks, which can
     be either tractograms or nifti files.
     """
+    save_ref = args.reference
+
     for file in masks_files:
         if file is not None:
             _, ext = os.path.splitext(file)
             if ext in ['.trk', '.tck']:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
                 mask = load_tractogram_with_reference(parser, args, file,
                                                       bbox_check=False)
             else:
@@ -586,28 +595,27 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
     final_results = {
         "tractogram_filename": str(args.in_tractogram),
-        "tractogram_overlap": 0.0,
-        "VS": vs_count,
-        "WPC": wpc_count,
-        "VB": len([x for x in vs_ids_list if len(x) > 0]),
-        "IB": len([x for x in ic_ids_list if len(x) > 0]),
-        "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
-        "VS_ratio": vs_count / total_count,
-        "IC_ratio": ic_count / total_count,
-        "NC_ratio": nc_count / total_count,
-        "IS_ratio": (ic_count + nc_count) / total_count,
-        "WPC_ratio": wpc_count / total_count,
         "total_streamlines": total_count,
+        "VB": len([x for x in vs_ids_list if len(x) > 0]),
+        "VS": vs_count,
+        "VS_ratio": vs_count / total_count,
+        "IS": ic_count + nc_count,  # ic_count = 0 if not args.compute_ic
+        "IS_ratio": (ic_count + nc_count) / total_count,
     }
 
     if args.compute_ic:
         final_results.update({
+            "IB": len([x for x in ic_ids_list if len(x) > 0]),
             "IC": ic_count,
+            "IC_ratio": ic_count / total_count,
             "NC": nc_count,
-            "IS = IC + NC": ic_count + nc_count})
-    else:
+            "NC_ratio": nc_count / total_count})
+
+    if args.save_wpc_separately:
         final_results.update({
-            "IS": ic_count + nc_count})  # = 0 + nc_count.
+            "WPC": wpc_count,
+            "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
+            "WPC_ratio": wpc_count / total_count})
 
     # Tractometry stats over volume: OL, OR, Dice score
     mean_overlap = 0.0
