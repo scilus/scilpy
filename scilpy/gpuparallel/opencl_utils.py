@@ -20,13 +20,13 @@ class CLManager(object):
     cl_kernel: CLKernel object
         The CLKernel containing the OpenCL program to manage.
     """
-    def __init__(self, cl_kernel):
+    def __init__(self, cl_kernel, n_inputs, n_outputs):
         if not have_opencl:
             raise RuntimeError('pyopencl is not installed. '
                                'Cannot create CLManager instance.')
 
-        self.input_buffers = []
-        self.output_buffers = []
+        self.input_buffers = [0] * n_inputs
+        self.output_buffers = [0] * n_outputs
 
         # Find the best device for running GPU tasks
         platforms = cl.get_platforms()
@@ -63,7 +63,7 @@ class CLManager(object):
             self.shape = shape
             self.dtype = dtype
 
-    def add_input_buffer(self, arr, dtype=np.float32):
+    def add_input_buffer(self, arg_pos, arr, dtype=np.float32):
         """
         Add an input buffer to the kernel program. Input buffers
         must be added in the same order as they are declared inside
@@ -76,6 +76,11 @@ class CLManager(object):
         dtype: dtype, optional
             Optional type for array data. It is recommended to use float32
             whenever possible to avoid unexpected behaviours.
+
+        Returns
+        -------
+        indice: int
+            Index of the input buffer in the input buffers list.
 
         Note
         ----
@@ -90,9 +95,9 @@ class CLManager(object):
         buf = cl.Buffer(self.context,
                         cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
                         hostbuf=arr)
-        self.input_buffers.append(buf)
+        self.input_buffers[arg_pos] = buf
 
-    def add_output_buffer(self, shape, dtype=np.float32):
+    def add_output_buffer(self, arg_pos, shape, dtype=np.float32):
         """
         Add an output buffer.
 
@@ -106,7 +111,7 @@ class CLManager(object):
         """
         buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY,
                         np.prod(shape) * np.dtype(dtype).itemsize)
-        self.output_buffers.append(self.OutBuffer(buf, shape, dtype))
+        self.output_buffers[arg_pos] = self.OutBuffer(buf, shape, dtype)
 
     def run(self, global_size, local_size=None):
         """
