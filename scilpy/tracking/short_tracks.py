@@ -62,7 +62,7 @@ def track_short_tracks(in_odf, in_seed, in_mask,
 
     # Convert theta to list
     if isinstance(theta, float):
-        theta = np.array([max_cos_theta])
+        theta = np.array([theta])
     max_cos_theta = np.cos(np.deg2rad(theta))
 
     cl_kernel = CLKernel('track', 'tracking', 'short_tracks.cl')
