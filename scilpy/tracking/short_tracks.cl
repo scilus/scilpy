@@ -11,6 +11,7 @@ SH volume. Tracking is performed in voxel space.
 #define N_DIRS 0
 
 #define N_THETAS 0
+#define STEP_SIZE 0
 #define MAX_LENGTH 0
 #define SHARPEN_ODF_FACTOR 0
 
@@ -122,21 +123,19 @@ int sample_sf(const float* odf_sf, const float randv)
     return index;
 }
 
-__kernel void track(__global const float* sh_coeffs, // whole brain fits easily
-                    __global const float* vertices, // 724 x 3 floats
-                    __global const float* sh_to_sf_mat, // 45 * 724 floats
-                    __global const float* tracking_mask, // dim.x*dim.y*dim.z floats
-                    __global const float* seed_positions, // n_seeds_batch * 3 floats
-                    __global const float* rand_f, // n_seeds_batch * (max_length - 1) floats
-                    __global const float* step_size,
+__kernel void track(__global const float* sh_coeffs,
+                    __global const float* vertices,
+                    __global const float* sh_to_sf_mat,
+                    __global const float* tracking_mask,
+                    __global const float* seed_positions,
+                    __global const float* rand_f,
                     __global const float* max_cos_theta,
-                    __global float* out_streamlines, // n_seeds_batch * max_length * 3 floats
-                    __global float* out_nb_points) // n_seeds_batch
+                    __global float* out_streamlines,
+                    __global float* out_nb_points)
 {
     // 1. Get seed position from global_id.
     const size_t seed_indice = get_global_id(0);
     const int n_seeds = get_global_size(0);
-    float step_size_local = step_size[0];
     float max_cos_theta_local = max_cos_theta[0];
 
     const float3 seed_pos = {
@@ -186,7 +185,7 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
             };
 
             // 3. Try step.
-            const float3 next_pos = last_pos + step_size_local * direction;
+            const float3 next_pos = last_pos + STEP_SIZE * direction;
             is_valid = is_valid_pos(tracking_mask, next_pos);
             last_dir = normalize(next_pos - last_pos);
             last_pos = next_pos;

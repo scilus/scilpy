@@ -75,11 +75,12 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     cl_kernel.set_define('N_DIRS', len(sphere.vertices))
 
     cl_kernel.set_define('N_THETAS', len(theta))
+    cl_kernel.set_define('STEP_SIZE', '{}f'.format(step_size))
     cl_kernel.set_define('SHARPEN_ODF_FACTOR', '{}f'.format(sharpness))
     cl_kernel.set_define('MAX_LENGTH', max_strl_points)
 
     # Create CL program
-    n_input_params = 8
+    n_input_params = 7
     n_output_params = 2
     cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
 
@@ -94,8 +95,7 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     cl_manager.add_input_buffer(2, B_mat)
     cl_manager.add_input_buffer(3, in_mask.astype(np.float32))
 
-    cl_manager.add_input_buffer(6, step_size)
-    cl_manager.add_input_buffer(7, max_cos_theta)
+    cl_manager.add_input_buffer(6, max_cos_theta)
 
     # Output buffers
     cl_manager.add_output_buffer(0, (batch_size, max_strl_points, 3))
