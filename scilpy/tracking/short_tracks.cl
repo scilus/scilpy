@@ -10,30 +10,28 @@ SH volume. Tracking is performed in voxel space.
 #define IM_N_COEFFS 0
 #define N_DIRS 0
 
-#define STEP_SIZE 0
 #define MAX_LENGTH 0
-#define MAX_COS_THETA 0
+#define SHARPEN_ODF_FACTOR 0
 
 // CONSTANTS
 #define FLOAT_TO_BOOL_EPSILON 0.1f
 #define NULL_SF_EPS 0.0001f
 
+// TODO: Spectrum of step_size
+// TODO: Replace max angle by minimum radius of
+// curvature, R = step_size / (2 * sin(theta / 2))
+// TODO: Spectrum of curvature radiis
 
-int get_flat_index(const int x, const int y,
-                   const int z, const int w,
-                   const int xLen,
-                   const int yLen,
-                   const int zLen)
+
+int get_flat_index(const int x, const int y, const int z, const int w,
+                   const int xLen, const int yLen, const int zLen)
 {
-    return x +
-           y * xLen +
-           z * xLen * yLen +
-           w * xLen * yLen * zLen;
+    return x + y * xLen + z * xLen * yLen + w * xLen * yLen * zLen;
 }
 
 void sh_to_sf(const float* sh_coeffs, global const float* sh_to_sf_mat,
               const bool is_first_step, const float* vertices,
-              const float3 last_dir, float* sf_coeffs)
+              const float3 last_dir, const float max_cos_theta, float* sf_coeffs)
 {
     for(int u = 0; u < N_DIRS; ++u)
     {
@@ -42,25 +40,37 @@ void sh_to_sf(const float* sh_coeffs, global const float* sh_to_sf_mat,
             vertices[get_flat_index(u, 1, 0, 0, N_DIRS, 3, 1)],
             vertices[get_flat_index(u, 2, 0, 0, N_DIRS, 3, 1)],
         };
-        sf_coeffs[u] = 0.0f;
+
+        // all directions are valid for first step.
         bool is_valid = is_first_step;
+        // if not in first step, we need to check that
+        // we are inside the tracking cone
         if(!is_valid)
         {
-            is_valid = dot(last_dir, vertice) > MAX_COS_THETA;
+            is_valid = dot(last_dir, vertice) > max_cos_theta;
         }
+
+        sf_coeffs[u] = 0.0f;
         if(is_valid)
         {
             for(int j = 0; j < IM_N_COEFFS; ++j)
             {
                 const float ylmu_inv = sh_to_sf_mat[get_flat_index(j, u, 0, 0,
-                                                                IM_N_COEFFS,
-                                                                N_DIRS, 1)];
+                                                                   IM_N_COEFFS,
+                                                                   N_DIRS, 1)];
                 sf_coeffs[u] += ylmu_inv * sh_coeffs[j];
             }
-        }
-        if(sf_coeffs[u] < 0.0f)
-        {
-            sf_coeffs[u] = 0.0f;
+            // clip negative values
+            if(sf_coeffs[u] < 0.0f)
+            {
+                sf_coeffs[u] = 0.0f;
+            }
+            // when not at first step, we may sharpen the odf to increase
+            // the probability of directions of higher amplitude.
+            else if(!is_first_step)
+            {
+                sf_coeffs[u] = pow(sf_coeffs[u], SHARPEN_ODF_FACTOR);
+            }
         }
     }
 }
@@ -122,12 +132,17 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
                     __global const float* tracking_mask, // dim.x*dim.y*dim.z floats
                     __global const float* seed_positions, // n_seeds_batch * 3 floats
                     __global const float* rand_f, // n_seeds_batch * (max_length - 1) floats
+                    __global const float* step_size,
+                    __global const float* max_cos_angle,
                     __global float* out_streamlines, // n_seeds_batch * max_length * 3 floats
                     __global float* out_nb_points) // n_seeds_batch
 {
     // 1. Get seed position from global_id.
     const size_t seed_indice = get_global_id(0);
     const int NB_SEEDS = get_global_size(0);
+    const float step_size_local = step_size[0];
+    const float max_cos_theta_local = max_cos_angle[0];
+
     const float3 seed_pos = {
         seed_positions[get_flat_index(seed_indice, 0, 0, 0, NB_SEEDS, 3, 1)],
         seed_positions[get_flat_index(seed_indice, 1, 0, 0, NB_SEEDS, 3, 1)],
@@ -153,7 +168,8 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
         float odf_sh[IM_N_COEFFS];
         float odf_sf[N_DIRS];
         get_value_nn(sh_coeffs, IM_N_COEFFS, last_pos, odf_sh);
-        sh_to_sf(odf_sh, sh_to_sf_mat, is_first_step, vertices, last_dir, odf_sf);
+        sh_to_sf(odf_sh, sh_to_sf_mat, is_first_step, vertices,
+                 last_dir, max_cos_theta_local, odf_sf);
 
         const float randv = rand_f[get_flat_index(seed_indice, current_length, 0, 0,
                                                   NB_SEEDS, MAX_LENGTH, 1)];
@@ -167,7 +183,7 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
             };
 
             // 3. Try step.
-            const float3 next_pos = last_pos + STEP_SIZE * direction;
+            const float3 next_pos = last_pos + step_size_local * direction;
             is_valid = is_valid_pos(tracking_mask, next_pos);
             last_dir = normalize(next_pos - last_pos);
             last_pos = next_pos;
