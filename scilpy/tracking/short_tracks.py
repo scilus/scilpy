@@ -36,8 +36,9 @@ def track_short_tracks(in_odf, in_seed, in_mask,
         Minimum length of a streamline in voxel space.
     max_length : float, optional
         Maximum length of a streamline in voxel space.
-    theta : float, optional
-        Maximum angle (degrees) between 2 steps.
+    theta : float or list of float, optional
+        Maximum angle (degrees) between 2 steps. If a list, a theta
+        is randomly drawn from the list for each streamline.
     sharpness : float, optional
         Exponent on ODF amplitude to control sharpness.
     batch_size : int, optional
@@ -58,6 +59,10 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     sphere = get_sphere('symmetric724')
     min_strl_points = int(min_length / step_size) + 1
     max_strl_points = int(max_length / step_size) + 1
+
+    # Convert theta to list
+    if isinstance(theta, float):
+        theta = np.array([max_cos_theta])
     max_cos_theta = np.cos(np.deg2rad(theta))
 
     cl_kernel = CLKernel('track', 'tracking', 'short_tracks.cl')
@@ -68,8 +73,9 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     cl_kernel.set_define('IM_Z_DIM', in_odf.shape[2])
     cl_kernel.set_define('IM_N_COEFFS', in_odf.shape[3])
     cl_kernel.set_define('N_DIRS', len(sphere.vertices))
-    cl_kernel.set_define('SHARPEN_ODF_FACTOR', '{}f'.format(sharpness))
 
+    cl_kernel.set_define('N_THETAS', len(theta))
+    cl_kernel.set_define('SHARPEN_ODF_FACTOR', '{}f'.format(sharpness))
     cl_kernel.set_define('MAX_LENGTH', max_strl_points)
 
     # Create CL program
@@ -77,7 +83,6 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     n_output_params = 2
     cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
 
-    streamlines = []
     seed_batches = np.array_split(in_seed, np.ceil(len(in_seed)/batch_size))
 
     # Input buffers
@@ -89,8 +94,8 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     cl_manager.add_input_buffer(2, B_mat)
     cl_manager.add_input_buffer(3, in_mask.astype(np.float32))
 
-    cl_manager.add_input_buffer(6, np.array([step_size]))
-    cl_manager.add_input_buffer(7, np.array([max_cos_theta]))
+    cl_manager.add_input_buffer(6, step_size)
+    cl_manager.add_input_buffer(7, max_cos_theta)
 
     # Output buffers
     cl_manager.add_output_buffer(0, (batch_size, max_strl_points, 3))
@@ -101,6 +106,8 @@ def track_short_tracks(in_odf, in_seed, in_mask,
     # Generate streamlines in batches
     t0 = perf_counter()
     nb_streamlines = 0
+    streamlines = []
+    seeds = []
     for seed_batch in seed_batches:
         # generate random values for sf sampling
         rand_vals =\
@@ -115,14 +122,15 @@ def track_short_tracks(in_odf, in_seed, in_mask,
         # Run the kernel
         tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
         n_points = n_points.squeeze().astype(np.int16)
-        for (strl, n_pts) in zip(tracks, n_points):
+        for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
             if n_pts >= min_strl_points:
                 # shift to origin center
                 streamlines.append(strl[:n_pts] - 0.5)
+                seeds.append(seed - 0.5)
         nb_streamlines += len(seed_batch)
         logging.info('{0:>8}/{1} streamlines generated'
                      .format(nb_streamlines, len(in_seed)))
 
     logging.info('Tracked {0} streamlines in {1:.2f}s.'
                  .format(len(streamlines), perf_counter() - t0))
-    return streamlines
+    return streamlines, seeds

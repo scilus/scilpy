@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic tracking on a ODF field inside a binary mask. The
-tracking is executed on the GPU using the OpenCL API.
+Perform probabilistic short-tracks tractography[1] on a ODF field inside a
+binary mask. The tracking is executed on the GPU using the OpenCL API.
 
 In short-tracks tractography, streamlines are seeded inside the tracking
-mask and are of short length. Therefore, they are not expected to connect
-two regions of interest (they can end inside the deep white mask). For this
-reason, no backward tracking is done from the seed point and streamlines are
-returned as soon as they reach maximum length. The ODF image is interpolated
-using nearest neighbor interpolation.
+mask and all have a similar length. They are not expected to connect two
+regions of interest and can end inside the white matter mask.
+
+No backward tracking is done from the seed point and the streamlines are
+returned as soon as they reach maximum length. The ODF image and mask are
+interpolated using nearest-neighbor interpolation.
+
+The script also incorporates ideas from Ensemble Tractography[2] (ET). Given
+a list of maximum angles, a different angle drawn at random from the set will
+be used for each streamline.
 """
 
 import argparse
@@ -30,8 +35,16 @@ from dipy.tracking.utils import random_seeds_from_mask
 from dipy.io.utils import get_reference_info, create_tractogram_header
 
 
+EPILOG = """
+[1] Calamante, F. et al (2012). Super-resolution track-density imaging studies
+    of mouse brain: Comparison to histology. NeuroImage, 59(1), 286-296.
+[2] Takemura, H. et al (2016). Ensemble tractography. PLoS Computational
+    Biology, 12(2), e1004692.
+"""
+
+
 def _build_arg_parser():
-    p = argparse.ArgumentParser(description=__doc__,
+    p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
     # mandatory tracking options
     p.add_argument('in_odf',
@@ -47,8 +60,11 @@ def _build_arg_parser():
     add_seeding_options(p)
     p.add_argument('--step_size', type=float, default=0.5,
                    help='Step size in mm. [%(default)s]')
-    p.add_argument('--theta', type=float, default=20.0,
-                   help='Maximum angle between 2 steps. [%(default)s]')
+    p.add_argument('--theta', type=float, nargs='+', default=20.0,
+                   help='Maximum angle between 2 steps. If more than one value'
+                        'are given, the maximum angle will be drawn at random '
+                        'from the distribution for each streamline. '
+                        '[%(default)s]')
     p.add_argument('--min_length', type=float, default=10.0,
                    help='Minimum length of the streamline '
                         'in mm. [%(default)s]')
@@ -60,6 +76,8 @@ def _build_arg_parser():
                         ' sharpness. [%(default)s]')
     p.add_argument('--batch_size', type=int, default=100000,
                    help='Approximate size of GPU batches. [%(default)s]')
+    p.add_argument('--save_seeds', action='store_true',
+                   help='Save seed positions in data_per_streamline.')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -110,18 +128,18 @@ def main():
     vox_step_size = args.step_size / voxel_size
     vox_max_length = args.max_length / voxel_size
     vox_min_length = args.min_length / voxel_size
-    streamlines = track_short_tracks(odf_sh, seeds, mask,
-                                     vox_step_size, vox_min_length,
-                                     vox_max_length, args.theta,
-                                     args.odf_sharpness, args.batch_size,
-                                     order, args.sh_basis)
+    streamlines, seeds = track_short_tracks(odf_sh, seeds, mask,
+                                            vox_step_size, vox_min_length,
+                                            vox_max_length, args.theta,
+                                            args.odf_sharpness,
+                                            args.batch_size, order,
+                                            args.sh_basis)
 
     # Save tractogram to file
     t0 = perf_counter()
-    # sft = StatefulTractogram(streamlines, odf_sh_img, Space.VOX,
-    #                          Origin.TRACKVIS)
-    # save_tractogram(sft, args.out_tractogram)
+    data_per_streamlines = {'seeds': lambda: seeds} if args.save_seeds else {}
     tractogram = LazyTractogram(lambda: streamlines,
+                                data_per_streamline=data_per_streamlines,
                                 affine_to_rasmm=odf_sh_img.affine)
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)

@@ -10,17 +10,13 @@ SH volume. Tracking is performed in voxel space.
 #define IM_N_COEFFS 0
 #define N_DIRS 0
 
+#define N_THETAS 0
 #define MAX_LENGTH 0
 #define SHARPEN_ODF_FACTOR 0
 
 // CONSTANTS
 #define FLOAT_TO_BOOL_EPSILON 0.1f
 #define NULL_SF_EPS 0.0001f
-
-// TODO: Spectrum of step_size
-// TODO: Replace max angle by minimum radius of
-// curvature, R = step_size / (2 * sin(theta / 2))
-// TODO: Spectrum of curvature radiis
 
 
 int get_flat_index(const int x, const int y, const int z, const int w,
@@ -133,21 +129,28 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
                     __global const float* seed_positions, // n_seeds_batch * 3 floats
                     __global const float* rand_f, // n_seeds_batch * (max_length - 1) floats
                     __global const float* step_size,
-                    __global const float* max_cos_angle,
+                    __global const float* max_cos_theta,
                     __global float* out_streamlines, // n_seeds_batch * max_length * 3 floats
                     __global float* out_nb_points) // n_seeds_batch
 {
     // 1. Get seed position from global_id.
     const size_t seed_indice = get_global_id(0);
-    const int NB_SEEDS = get_global_size(0);
-    const float step_size_local = step_size[0];
-    const float max_cos_theta_local = max_cos_angle[0];
+    const int n_seeds = get_global_size(0);
+    float step_size_local = step_size[0];
+    float max_cos_theta_local = max_cos_theta[0];
 
     const float3 seed_pos = {
-        seed_positions[get_flat_index(seed_indice, 0, 0, 0, NB_SEEDS, 3, 1)],
-        seed_positions[get_flat_index(seed_indice, 1, 0, 0, NB_SEEDS, 3, 1)],
-        seed_positions[get_flat_index(seed_indice, 2, 0, 0, NB_SEEDS, 3, 1)]
+        seed_positions[get_flat_index(seed_indice, 0, 0, 0, n_seeds, 3, 1)],
+        seed_positions[get_flat_index(seed_indice, 1, 0, 0, n_seeds, 3, 1)],
+        seed_positions[get_flat_index(seed_indice, 2, 0, 0, n_seeds, 3, 1)]
     };
+
+    if(N_THETAS > 1) // Varying radius of curvature.
+    {
+        float itpr;
+        const float rand_v = fract(seed_pos.x*seed_pos.y*seed_pos.z, &itpr);
+        max_cos_theta_local = max_cos_theta[(int)(rand_v * (float)N_THETAS)];
+    }
 
     float3 last_pos = seed_pos;
     float3 last_dir;
@@ -158,11 +161,11 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
     {
         // save current streamline position
         out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
-                                       NB_SEEDS, MAX_LENGTH, 3)] = last_pos.x;
+                                       n_seeds, MAX_LENGTH, 3)] = last_pos.x;
         out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
-                                       NB_SEEDS, MAX_LENGTH, 3)] = last_pos.y;
+                                       n_seeds, MAX_LENGTH, 3)] = last_pos.y;
         out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
-                                       NB_SEEDS, MAX_LENGTH, 3)] = last_pos.z;
+                                       n_seeds, MAX_LENGTH, 3)] = last_pos.z;
 
         // 2. Sample SF at position.
         float odf_sh[IM_N_COEFFS];
@@ -172,7 +175,7 @@ __kernel void track(__global const float* sh_coeffs, // whole brain fits easily
                  last_dir, max_cos_theta_local, odf_sf);
 
         const float randv = rand_f[get_flat_index(seed_indice, current_length, 0, 0,
-                                                  NB_SEEDS, MAX_LENGTH, 1)];
+                                                  n_seeds, MAX_LENGTH, 1)];
         const int vert_indice = sample_sf(odf_sf, randv);
         if(vert_indice > 0)
         {
