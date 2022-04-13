@@ -19,6 +19,10 @@ class CLManager(object):
     ----------
     cl_kernel: CLKernel object
         The CLKernel containing the OpenCL program to manage.
+    n_inputs: int
+        Number of input buffers for the kernel.
+    n_outputs: int
+        Number of output buffers for the kernel.
     """
     def __init__(self, cl_kernel, n_inputs, n_outputs):
         if not have_opencl:
@@ -71,6 +75,8 @@ class CLManager(object):
 
         Parameters
         ----------
+        arg_pos: int
+            Position of the buffer in the input buffers list.
         arr: numpy ndarray
             Data array.
         dtype: dtype, optional
@@ -103,6 +109,8 @@ class CLManager(object):
 
         Parameters
         ----------
+        arg_pos: int
+            Position of the buffer in the output buffers list.
         shape: tuple
             Shape of the output array.
         dtype: dtype, optional
