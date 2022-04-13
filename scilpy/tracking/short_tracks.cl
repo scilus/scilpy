@@ -146,8 +146,9 @@ __kernel void track(__global const float* sh_coeffs,
 
     if(N_THETAS > 1) // Varying radius of curvature.
     {
+        // extract random value using fractional part of voxel position
         float itpr;
-        const float rand_v = fract(seed_pos.x*seed_pos.y*seed_pos.z, &itpr);
+        const float rand_v = fract(seed_pos.x+seed_pos.y+seed_pos.z, &itpr);
         max_cos_theta_local = max_cos_theta[(int)(rand_v * (float)N_THETAS)];
     }
 
