@@ -110,7 +110,7 @@ def main():
     if ext != '.trk':
         parser.error("Output tractogram file must have .trk extension.")
 
-    pvalues = np.loadtxt(args.in_pvalues)
+    pvalues = np.loadtxt(args.in_pvalues).reshape((-1,))
     tractogram = nib.streamlines.load(args.in_bundle)
 
     # resample streamlines if necessary
