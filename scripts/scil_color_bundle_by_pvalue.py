@@ -15,9 +15,12 @@ import numpy as np
 from dipy.tracking.streamline import set_number_of_points
 from fury import window, actor, colormap
 
-from scilpy.io.utils import assert_inputs_exist, parser_color_type
+from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+                             assert_outputs_exist, parser_color_type)
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.streamline import save_tractogram
+from scipy.interpolate import interp1d
+from matplotlib import pyplot as plt
 
 streamline_actor = {'tube': actor.streamtube,
                     'line': actor.line}
@@ -28,14 +31,18 @@ def _build_arg_parser():
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
                    help='Input bundle file.')
-    p.add_argument('in_metric',
-                   help='Input metric vector as text file of'
-                        ' whitespace-separated values.')
+    p.add_argument('in_pvalues',
+                   help='Input p-values text file of '
+                        'whitespace-separated values.')
     p.add_argument('out_tractogram',
-                   help='Output tractogram file.')
+                   help='Output tractogram file (.trk).')
+    p.add_argument('out_colormap',
+                   help='Output colormap image.')
 
     p.add_argument('--colormap', default='plasma',
                    help='Colormap to use for coloring the streamlines.')
+    p.add_argument('--resample', type=int,
+                   help='Optionally resample the streamlines.')
 
     p.add_argument('--interactive', action='store_true',
                    help='If true, fibers will be rendered to a FURY window.')
@@ -50,6 +57,8 @@ def _build_arg_parser():
                    default=[0, 0, 0], type=parser_color_type,
                    help='RBG values [0, 255] of the color of the background.'
                    '\n[Default: %(default)s]')
+
+    add_overwrite_arg(p)
     return p
 
 
@@ -69,36 +78,68 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_metric])
+    assert_inputs_exist(parser, [args.in_bundle, args.in_pvalues])
+    assert_outputs_exist(parser, args,
+                         [args.out_tractogram, args.out_colormap])
 
-    pvalues = np.loadtxt(args.in_metric)
+    pvalues = np.loadtxt(args.in_pvalues)
     n_timepoints = len(pvalues)
 
     tractogram = nib.streamlines.load(args.in_bundle)
     streamlines = tractogram.streamlines
 
-    # TODO: For each streamline, do not resample. Keep original number of
-    # points and interpolate the p-values instead.
-    # Or maybe resample only when the number of points is smaller than the
-    # number of p-values.
-    streamlines = set_number_of_points(streamlines, n_timepoints)
+    # create interpolation function
+    f_interp = interp1d(np.linspace(0.0, 1.0, n_timepoints), pvalues)
 
-    color = np.tile(pvalues, len(streamlines))
-    color = colormap.create_colormap(color, args.colormap, auto=False)
+    # interpolation weights [0, 1) for p-values
+    mapped_pvals = []
+    resampled_strl = []
+    for strl in streamlines:
+        if len(strl) < n_timepoints or args.resample is not None:
+            resample = args.resample if args.resample is not None\
+                 else n_timepoints
+            strl = set_number_of_points(strl, resample)
+        resampled_strl.append(strl)
 
-    width = get_width(args)
+        # compute interpolation weights
+        distances = np.sqrt(np.sum((strl[1:] - strl[:-1])**2, axis=-1))
+        distances = np.append([0], distances)
+        weights = np.cumsum(distances)
+        weights /= weights[-1]
+        pvals = f_interp(weights)
+        mapped_pvals.append(pvals)
 
-    sft = StatefulTractogram(streamlines, tractogram, Space.RASMM)
+    # assign colors to streamlines
+    color = colormap.create_colormap(np.ravel(mapped_pvals),
+                                     args.colormap, auto=False)
+    sft = StatefulTractogram(resampled_strl, tractogram, Space.RASMM)
     sft.data_per_point['color'] = sft.streamlines
     sft.data_per_point['color']._data = color * 255
     save_tractogram(sft, args.out_tractogram)
 
+    # output colormap to png file
+    xticks = np.linspace(0, 1, 256)
+    gradient = colormap.create_colormap(xticks,
+                                        args.colormap,
+                                        auto=False)
+    gradient = gradient[None, ...]  # 2D RGB image
+    _, ax = plt.subplots(1, 1, figsize=(10, 1), dpi=100)
+    ax.imshow(gradient, aspect=10)
+    ax.set_xticks([0, 255])
+    ax.set_xticklabels(['0.0', '1.0'])
+    ax.set_yticks([])
+    plt.savefig(args.out_colormap)
+
     if args.interactive:
+        width = get_width(args)
         scene = window.Scene()
         scene.background(np.asarray(args.background)/255.0)
-        line_actor = streamline_actor[args.shape](streamlines, colors=color,
+        line_actor = streamline_actor[args.shape](resampled_strl, colors=color,
                                                   linewidth=width)
+        start_pos = np.array([s[0] for s in resampled_strl])
+        dot_actor = actor.dots(start_pos)
         scene.add(line_actor)
+        scene.add(dot_actor)
 
         # Showtime !
         showm = window.ShowManager(scene)
