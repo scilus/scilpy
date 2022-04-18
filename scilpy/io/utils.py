@@ -28,6 +28,8 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
 
+axis_name_choices = ["axial", "coronal", "sagittal"]
+
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
     """
@@ -544,3 +546,39 @@ def snapshot(scene, filename, **kwargs):
     out = window.snapshot(scene, **kwargs)
     image = Image.fromarray(out[::-1])
     image.save(filename)
+
+
+def ranged_type(value_type, min_value, max_value):
+    """Return a function handle of an argument type function for ArgumentParser
+    checking a range: `min_value` <= arg <= `max_value`.
+
+    Parameters
+    ----------
+    value_type : Type
+        Value-type to convert the argument.
+    min_value : scalar
+        Minimum acceptable argument value.
+    max_value : scalar
+       Maximum acceptable argument value.
+
+    Returns
+    -------
+    Function handle of an argument type function for ArgumentParser.
+
+    Usage
+    -----
+        ranged_type(float, 0.0, 1.0)
+    """
+
+    def range_checker(arg: str):
+        try:
+            f = value_type(arg)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
+        if f < min_value or f > max_value:
+            raise argparse.ArgumentTypeError(
+                f"must be within [{min_value}, {max_value}]")
+        return f
+
+    # Return handle to checking function
+    return range_checker
