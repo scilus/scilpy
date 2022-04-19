@@ -279,7 +279,7 @@ def main():
                 np.average(labels_val, weights=dist_vox))
             distance_map[tuple(ind)] = np.average(dist_vox)
 
-    nib.save(nib.Nifti1Image(curr_labels, sft_list[0].affine),
+    nib.save(nib.Nifti1Image(labels_map, sft_list[0].affine),
              os.path.join(args.out_dir, 'labels_map.nii.gz'))
     nib.save(nib.Nifti1Image(distance_map, sft_list[0].affine),
              os.path.join(args.out_dir, 'distance_map.nii.gz'))
@@ -287,10 +287,11 @@ def main():
     for i, sft in enumerate(sft_list):
         if len(sft_list) > 1:
             sub_out_dir = os.path.join(args.out_dir, 'session_{}'.format(i+1))
-            new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
         else:
             sub_out_dir = args.out_dir
-        os.mkdir(sub_out_dir)
+        new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
+        if not os.path.isdir(sub_out_dir):
+            os.mkdir(sub_out_dir)
 
         # Save each session map if multiple inputs
         nib.save(nib.Nifti1Image(binary_list[i]*labels_map,
