@@ -330,7 +330,7 @@ def assert_outputs_exist(parser, args, required, optional=None,
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    args: list
+    args: argparse namespace
         Argument list.
     required: string or list of paths to files
         Required paths to be checked.
@@ -376,8 +376,12 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
         Parser.
     args: argparse namespace
         Argument list.
-    dirs: list
-        Required directory paths to be checked.
+    required: string or list of paths to files
+        Required paths to be checked.
+    optional: string or list of paths to files
+        Optional paths to be checked.
+    create_dir: bool
+        If true, create the directory if it does not exist.
     """
     def check(path):
         if not os.path.isdir(path):

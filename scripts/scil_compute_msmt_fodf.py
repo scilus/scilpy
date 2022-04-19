@@ -198,6 +198,9 @@ def main():
 
     shm_coeff = np.where(np.isnan(shm_coeff), 0, shm_coeff)
 
+    vf = msmt_fit.volume_fractions
+    vf = np.where(np.isnan(vf), 0, vf)
+
     # Saving results
     if args.wm_out_fODF:
         wm_coeff = shm_coeff[..., 2:]
@@ -226,11 +229,10 @@ def main():
                                  vol.affine), args.csf_out_fODF)
 
     if args.vf:
-        nib.save(nib.Nifti1Image(msmt_fit.volume_fractions.astype(np.float32),
+        nib.save(nib.Nifti1Image(vf.astype(np.float32),
                                  vol.affine), args.vf)
 
     if args.vf_rgb:
-        vf = msmt_fit.volume_fractions
         vf_rgb = vf / np.max(vf) * 255
         vf_rgb = np.clip(vf_rgb, 0, 255)
         nib.save(nib.Nifti1Image(vf_rgb.astype(np.uint8),
