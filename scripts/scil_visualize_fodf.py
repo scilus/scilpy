@@ -249,7 +249,7 @@ def main():
 
     # Instantiate a peaks slicer actor if peaks are supplied
     if 'peaks' in data:
-        peaks_values = None
+
         if 'peaks_values' in data:
             peaks_values = data['peaks_values']
         else:
