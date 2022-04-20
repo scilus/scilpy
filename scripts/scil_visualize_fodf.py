@@ -11,14 +11,11 @@ peaks on top of fODF.
 """
 
 import argparse
-import logging
-import warnings
 
 import nibabel as nib
 import numpy as np
 
 from dipy.data import get_sphere
-from dipy.reconst.shm import order_from_ncoef
 
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
