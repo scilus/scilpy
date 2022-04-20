@@ -453,10 +453,11 @@ def create_scene(actors, orientation, slice_index, volume_shape):
 
 
 def render_scene(scene, window_size, interactor,
-                 output, silent, title='Viewer'):
+                 output, silent, mask_scene=None, title='Viewer'):
     """
     Render a scene. If a output is supplied, a snapshot of the rendered
-    scene is taken.
+    scene is taken. If a mask is supplied, all values outside the mask are set
+    to full transparency in the saved scene.
 
     Parameters
     ----------
@@ -470,6 +471,8 @@ def render_scene(scene, window_size, interactor,
         Path to output file.
     silent : bool
         If True, disable interactive visualization.
+    mask_scene : window.Scene(), optional
+        Transparency mask scene.
     title : str, optional
         Title of the scene. Defaults to Viewer.
     """
@@ -483,7 +486,23 @@ def render_scene(scene, window_size, interactor,
         showm.start()
 
     if output:
-        snapshot(scene, output, size=window_size)
+        if mask_scene is not None:
+            # Create the screenshots
+            scene_arr = window.snapshot(scene, size=window_size)
+            mask_scene_arr = window.snapshot(mask_scene, size=window_size)
+            # Create the target image
+            out_img = create_canvas(*window_size, 0, 0, 1, 1)
+            # Convert the mask scene data to grayscale and adjust for handling
+            # with Pillow
+            _mask_arr = rgb2gray4pil(mask_scene_arr)
+            # Create the masked image
+            draw_scene_at_pos(
+                out_img, scene_arr, window_size, 0, 0, mask=_mask_arr
+            )
+
+            out_img.save(output)
+        else:
+            snapshot(scene, output, size=window_size)
 
 
 def screenshot_slice(img, axis_name, slice_ids, size):
