@@ -62,8 +62,8 @@ def _build_arg_parser():
                    help='Step size in mm. [%(default)s]')
     p.add_argument('--theta', type=float, nargs='+', default=20.0,
                    help='Maximum angle between 2 steps. If more than one value'
-                        'are given, the maximum angle will be drawn at random '
-                        'from the distribution for each streamline. '
+                        '\nare given, the maximum angle will be drawn at '
+                        'random\nfrom the distribution for each streamline. '
                         '[%(default)s]')
     p.add_argument('--min_length', type=float, default=10.0,
                    help='Minimum length of the streamline '
