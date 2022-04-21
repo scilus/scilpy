@@ -31,6 +31,7 @@ def fit_from_model_parallel(args):
                 coeff = np.full((len(model.n)), np.NaN)
                 sub_fit_array[i] = MSDeconvFit(model, coeff, None)
             except ArpackNoConvergence:
+                print("toto")
                 coeff = np.full((len(model.n)), np.NaN)
                 sub_fit_array[i] = MSDeconvFit(model, coeff, None)
 

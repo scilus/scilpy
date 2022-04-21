@@ -70,12 +70,6 @@ def test_execution_processing(script_runner):
                                'linear.bvals')
     in_bvec_lin = os.path.join(get_home(), 'btensor',
                                'linear.bvecs')
-    in_dwi_plan = os.path.join(get_home(), 'btensor',
-                               'dwi_planar.nii.gz')
-    in_bval_plan = os.path.join(get_home(), 'btensor',
-                                'planar.bvals')
-    in_bvec_plan = os.path.join(get_home(), 'btensor',
-                                'planar.bvecs')
     in_dwi_sph = os.path.join(get_home(), 'btensor',
                               'dwi_spherical.nii.gz')
     in_bval_sph = os.path.join(get_home(), 'btensor',

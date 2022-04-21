@@ -10,7 +10,7 @@ kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
 nilearn==0.6.*
-numpy==1.21.*
+numpy==1.18.*
 Pillow==9.0.1
 bids-validator==1.6.0
 pybids==0.10.*
@@ -34,5 +34,5 @@ bctpy==0.5.*
 statsmodels==0.11.*
 dmri-commit==1.4.*
 openpyxl==2.6.*
-cvxpy==1.1.*
+cvxpy==1.0.*
 dmri-amico==1.2.*
