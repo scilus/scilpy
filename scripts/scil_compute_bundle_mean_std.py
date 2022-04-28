@@ -65,7 +65,7 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     sft.to_vox()
     sft.to_corner()
-    
+
     if args.distance_weighting:
         img = nib.load(args.distance_weighting)
         distances_map = img.get_fdata()
