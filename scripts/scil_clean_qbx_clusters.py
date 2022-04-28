@@ -96,7 +96,7 @@ def main():
             return
 
         if key == 'q':
-            show_manager.exit()
+            #show_manager.exit()
             if iterator < len(sft_accepted_on_size):
                 logging.warning(
                     'Early exit, everything remaining to be rejected.')

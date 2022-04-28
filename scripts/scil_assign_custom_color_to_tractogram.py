@@ -11,6 +11,8 @@ no equivalent in tck file.
 
 The usage of --use_dps, --use_dpp and --from_anatomy is more complex. It maps
 the raw values from these sources to RGB using a colormap.
+    --use_dps: nbr. streamlines = len(streamlines)
+    --use_dpp: nbr. points = len(streamlines._data)
 
 A minimum and a maximum range can be provided to clip values. If the range of
 values is too large for intuitive visualization, a log transform can be applied.
@@ -115,6 +117,14 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+
+    if args.LUT:
+        LUT = load_matrix_in_any_format(args.LUT)
+        if np.any(sft.streamlines._lengths < len(LUT)):
+            logging.warning('Some streamlines have fewer point than the size '
+                            'of the provided LUT.\nConsider using '
+                            'scil_resample_streamlines.py')
+
     cmap = plt.get_cmap(args.colormap)
     if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:
         if args.use_dps:
