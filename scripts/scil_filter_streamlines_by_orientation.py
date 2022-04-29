@@ -2,8 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to filter streamlines based on their orientation (total length per
-dimension).
+Script to filter streamlines based on their distance traveled in a specific
+dimension (x, y, or z).
+
+Useful to help differentiate bundles.
+
+Examples: In a brain aligned with x coordinates in left - right axis and y
+coordinates in anterior-posterior axis, a streamline from the ...
+    - corpus callosum will likely travel a very short distance in the y axis.
+    - cingulum will likely travel a very short distance in the x axis.
 
 Note: we consider that x, y, z are the coordinates of the streamlines; we
 do not verify if they are aligned with the brain's orientation.
