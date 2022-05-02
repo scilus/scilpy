@@ -7,6 +7,7 @@
 """
 
 import argparse
+import logging
 from operator import itemgetter
 import os
 
@@ -60,6 +61,9 @@ def main():
                                        args.out_clusters_dir,
                                        create_dir=True)
 
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines = sft.streamlines
     thresholds = [40, 30, 20, args.dist_thresh]
@@ -67,8 +71,8 @@ def main():
                              nb_pts=args.nb_points, verbose=False)
 
     if args.verbose:
-        print("Tractogram was separated into {} clusters. Saving..."
-              .format(len(clusters)))
+        logging.info("Tractogram was separated into {} clusters. Saving..."
+                     .format(len(clusters)))
 
     for i, cluster in enumerate(clusters):
         if len(cluster.indices) > 1:
