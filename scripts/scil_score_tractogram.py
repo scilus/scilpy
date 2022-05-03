@@ -76,13 +76,13 @@ Ex 1:
 }
 
 Ex 2:
-(with options --gt_masks_dir PATH1 --rois_dir PATH2 --limits_mask_dir PATH3)
+(with options --gt_dir PATH)
 {
   "Ground_truth_bundle_1": {
-    "gt_mask": "bundle1.trk"
-    "head": 'file2',
-    "tail": 'file3',
-    "limits_mask": "general_envelope_bundle_1.nii.gz"
+    "gt_mask": "masks/bundle1.trk"
+    "head": 'roi/file2',
+    "tail": 'roi/file3',
+    "limits_mask": "masks/general_envelope_bundle_1.nii.gz"
   }
 }
 
@@ -129,18 +129,10 @@ def _build_arg_parser():
                    help="Output directory.")
 
     g = p.add_argument_group("Additions to gt_config")
-    g.add_argument("--gt_masks_dir", default='', metavar="DIR",
-                   help="Path of the gt_masks listed in the gt_config.\n"
-                        "If not set, filenames in the config file are "
-                        "considered\n as complete paths.")
-    g.add_argument("--limits_masks_dir", default='', metavar="DIR",
-                   help="Path of the limits_masks listed in the gt_config.\n"
-                        "If not set, filenames in the config file are "
-                        "considered\n as complete paths.")
-    g.add_argument("--rois_dir", default='', metavar="DIR",
-                   help="Path of the ROI files listed in the gt_config\n"
-                        "(head + tail or endpoints). If not set, filenames in "
-                        "the\nconfig file are considered as complete paths.")
+    p.add_argument("--gt_dir", metavar='DIR',
+                   help="Root path of the ground truth files listed in the "
+                        "gt_config.\n If not set, filenames in the config "
+                        "file are considered\n as complete paths.")
     g.add_argument("--use_gt_masks_as_limits_masks", action='store_true',
                    help="If set, the gt_config's 'gt_mask' will also be used "
                         "as\n'limits_mask' for each bundle. Note that this "
@@ -359,8 +351,12 @@ def read_config_file(args):
                 elif key == 'length_z_abs':
                     length_z_abs = bundle_config['length_z_abs']
                 elif key == 'gt_mask':
-                    gt_mask = os.path.join(args.gt_masks_dir,
-                                           bundle_config['gt_mask'])
+                    if args.gt_dir:
+                        gt_mask = os.path.join(args.gt_dir,
+                                               bundle_config['gt_mask'])
+                    else:
+                        gt_mask = bundle_config['gt_mask']
+                        
                     if args.use_gt_masks_as_limits_masks:
                         limit_mask = gt_mask
                 elif key == 'limits_mask':
@@ -369,24 +365,34 @@ def read_config_file(args):
                             "With the option --use_gt_masks_as_limits_masks, "
                             "you should not add any limits_mask in the config "
                             "file.")
-                    limit_mask = os.path.join(args.limits_masks_dir,
-                                              bundle_config['limits_mask'])
+                    if args.gt_dir:
+                        limit_mask = os.path.join(args.gt_dir,
+                                                  bundle_config['limits_mask'])
+                    else:
+                        limit_mask = bundle_config['limits_mask']
                 elif key == 'endpoints':
                     if 'head' in bundle_config or 'tail' in bundle_config:
                         raise ValueError(
                             "Bundle {} has confusing keywords in the config "
                             "file. Please choose either endpoints OR "
                             "head/tail.".format(bundle))
-                    endpoints = os.path.join(args.rois_dir,
-                                             bundle_config['endpoints'])
+                    if args.gt_dir:
+                        endpoints = os.path.join(args.gt_dir,
+                                                 bundle_config['endpoints'])
+                    else:
+                        endpoints = bundle_config['endpoints']
                     roi_option = {'gt_endpoints': endpoints}
                 elif key == 'head':
                     if 'tail' not in bundle_config:
                         raise ValueError(
                             "You have provided the head for bundle {}, but "
                             "not the tail".format(bundle))
-                    head = os.path.join(args.rois_dir, bundle_config['head'])
-                    tail = os.path.join(args.rois_dir, bundle_config['tail'])
+                    if args.gt_dir:
+                        head = os.path.join(args.gt_dir, bundle_config['head'])
+                        tail = os.path.join(args.gt_dir, bundle_config['tail'])
+                    else:
+                        head = bundle_config['head']
+                        tail = bundle_config['tail']
                     roi_option = {'gt_head': head, 'gt_tail': tail}
                 elif key == 'tail':
                     pass  # dealt with at head
