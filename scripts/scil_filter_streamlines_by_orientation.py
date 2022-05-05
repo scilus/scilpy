@@ -69,7 +69,7 @@ def _build_arg_parser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
-                   help='Print streamline count before and after filtering')
+                   help='Print streamline count before and after filtering.')
     p.add_argument('--save_rejected', metavar='filename',
                    help="Save the SFT of rejected streamlines.")
 
