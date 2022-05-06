@@ -23,7 +23,7 @@ from dipy.data import get_sphere
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
                                     render_scene)
@@ -176,36 +176,25 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
 
-    def _check_mask_shape(_mask, _fodf):
-        if _mask.shape != _fodf.shape[:-1]:
-            raise ValueError(
-                'Mask dimensions {0} do not agree with fODF dimensions {1}.'.
-                format(_mask.shape, _fodf.shape))
-
     fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
     data = {'fodf': fodf}
     if args.background:
+        assert_same_resolution([args.background, args.in_fodf])
         bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
-        if bg.shape[:3] != fodf.shape[:-1]:
-            raise ValueError('Background dimensions {0} do not agree with fODF'
-                             ' dimensions {1}.'.format(bg.shape, fodf.shape))
         data['bg'] = bg
     if args.in_transparency_mask:
+        assert_same_resolution([args.in_transparency_mask, args.in_fodf])
         transparency_mask = get_data_as_mask(
             nib.nifti1.load(args.in_transparency_mask), dtype=bool
         )
-        _check_mask_shape(transparency_mask, fodf)
         data['transparency_mask'] = transparency_mask
     if args.mask:
+        assert_same_resolution([args.mask, args.in_fodf])
         mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
-        _check_mask_shape(mask, fodf)
         data['mask'] = mask
     if args.peaks:
+        assert_same_resolution([args.peaks, args.in_fodf])
         peaks = nib.nifti1.load(args.peaks).get_fdata(dtype=np.float32)
-        if peaks.shape[:3] != fodf.shape[:-1]:
-            raise ValueError('Peaks volume dimensions {0} do not agree '
-                             'with fODF dimensions {1}.'.format(bg.shape,
-                                                                fodf.shape))
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -217,12 +206,9 @@ def _get_data_from_inputs(args):
                                  .format(peaks.shape[-1]))
         data['peaks'] = peaks
         if args.peaks_values:
+            assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
                 nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
-            if peak_vals.shape[:3] != fodf.shape[:-1]:
-                raise ValueError('Peaks volume dimensions {0} do not agree '
-                                 'with fODF dimensions {1}.'
-                                 .format(peak_vals.shape, fodf.shape))
             data['peaks_values'] = peak_vals
 
     return data
