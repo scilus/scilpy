@@ -65,17 +65,16 @@ def filter_grid_roi_both(sft, mask_1, mask_2):
         Binary mask in which the streamlines should start or end.
     Returns
     -------
-    ids : tuple
+    new_sft: StatefulTractogram
         Filtered sft.
+    ids: list
         Ids of the streamlines passing through the mask.
     """
-    line_based_indices = []
     sft.to_vox()
     sft.to_corner()
     streamline_vox = sft.streamlines
     # For endpoint filtering, we need to keep 2 separately
     # Could be faster for either end, but the code look cleaner like this
-    line_based_indices = []
     voxel_beg = np.asarray([s[0] for s in streamline_vox],
                            dtype=np.int16).transpose(1, 0)
     voxel_end = np.asarray([s[-1] for s in streamline_vox],
@@ -111,7 +110,7 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
     ----------
     sft : StatefulTractogram
         StatefulTractogram containing the streamlines to segment.
-    target_mask : numpy.ndarray
+    mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
     filter_type: str
         One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
@@ -119,8 +118,9 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     Returns
     -------
-    ids : tuple
+    new_sft: StatefulTractogram
         Filtered sft.
+    ids: list
         Ids of the streamlines passing through the mask.
     """
     line_based_indices = []

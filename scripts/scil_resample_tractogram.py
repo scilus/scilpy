@@ -3,6 +3,11 @@
 
 """
 Script to resample a tractogram to a set number of streamlines.
+Default behavior:
+- IF number of requested streamlines is lower than streamline count: DOWNSAMPLE
+- IF number of requested streamlines is higher than streamline count: UPSAMPLE
+To prevent upsample if not desired use --never_upsample.
+
 Can be useful to build training sets for machine learning algorithms, to
 upsample under-represented bundles or downsample over-represented bundles.
 
@@ -63,6 +68,9 @@ def _build_arg_parser():
                             'spline.\nA good sigma choice would be around 5 '
                             'and control point around 10.')
 
+    p.add_argument('--never_upsample', action='store_true',
+                   help='Make sure to never upsample a tractogram.\n'
+                        'Useful when downsample batch of files using bash.')
     p.add_argument('--keep_invalid_streamlines', action='store_true',
                    help='Keep invalid newly generated streamlines that may ' +
                         'go out of the bounding box.')
@@ -94,6 +102,9 @@ def main():
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     original_number = len(sft.streamlines)
+    
+    if args.never_upsample and args.nb_streamlines > original_number:
+        args.nb_streamlines = original_number
 
     if args.nb_streamlines > original_number:
         # Check is done here because it is not required if downsampling
