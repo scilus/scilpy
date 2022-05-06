@@ -46,5 +46,5 @@ def test_execution_processing_mask(script_runner):
                             '--min_sep_angle', '25.',
                             '--max_fit_angle', '15.',
                             '--processes', '1',
-                            '--mask', in_mask)
+                            '--mask', in_mask, '-f')
     assert ret.success

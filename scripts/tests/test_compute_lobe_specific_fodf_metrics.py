@@ -38,7 +38,7 @@ def test_execution_processing_mask(script_runner):
 
     ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
-                            '--processes', '1', '--mask', in_mask)
+                            '--processes', '1', '--mask', in_mask, '-f')
 
     assert ret.success
 
