@@ -83,9 +83,9 @@ class DataVolume(object):
         out: bool
             True if voxel is in dataset range, False otherwise.
         """
-        return (0 <= i <= (self.dim[0] - 1) and
-                0 <= j <= (self.dim[1] - 1) and
-                0 <= k <= (self.dim[2] - 1))
+        return (0 <= i < (self.dim[0]) and
+                0 <= j < (self.dim[1]) and
+                0 <= k < (self.dim[2]))
 
     def voxmm_to_idx(self, x, y, z, origin):
         """
