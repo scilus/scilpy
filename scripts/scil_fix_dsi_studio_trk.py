@@ -127,10 +127,15 @@ def main():
     # LPS -> RAS convention in voxel space
     sft.to_vox()
     flip_axis = ['x', 'y']
-    sft.streamlines._data -= get_axis_shift_vector(flip_axis)
     sft_fix = StatefulTractogram(sft.streamlines, args.in_dsi_fa,
-                                 Space.VOX)
+                                 Space.VOXMM)
+    sft_fix.to_vox()
+    sft_fix.streamlines._data -= get_axis_shift_vector(flip_axis)
+
     sft_flip = flip_sft(sft_fix, flip_axis)
+
+    sft_flip.to_rasmm()
+    sft_flip.streamlines._data -= [0.5, 0.5, -0.5]
 
     if not args.in_native_fa:
         if args.cut_invalid:

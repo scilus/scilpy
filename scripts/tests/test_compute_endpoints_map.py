@@ -22,6 +22,6 @@ def test_execution_tractometry(script_runner):
     in_bundle = os.path.join(get_home(), 'tractometry',
                              'IFGWM_uni.trk')
     ret = script_runner.run('scil_compute_endpoints_map.py', in_bundle,
-                            'head.nii.gz', 'tail.nii.gz')
+                            'head.nii.gz', 'tail.nii.gz', '--binary')
 
     assert ret.success
