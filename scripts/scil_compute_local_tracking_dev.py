@@ -70,7 +70,7 @@ def _build_arg_parser():
                          default=0.5, dest='sf_threshold_init',
                          help="Spherical function relative threshold value "
                               "for the \ninitial direction. [%(default)s]")
-    track_g.add_argument('--rk_order', metavar="K", type=int, default=2,
+    track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
                          choices=[1, 2, 4],
                          help="The order of the Runge-Kutta integration used "
                               "for the \nstep function [%(default)s]. As a "
