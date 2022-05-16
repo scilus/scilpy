@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic short-tracks tractography[1] on a ODF field inside a
+Perform probabilistic short-tracks tractography [1] on a ODF field inside a
 binary mask. The tracking is executed on the GPU using the OpenCL API.
 
 In short-tracks tractography, streamlines are seeded inside the tracking
@@ -11,7 +11,7 @@ No backward tracking is done from the seed point and the streamlines are
 returned as soon as they reach maximum length. The ODF image and mask are
 interpolated using nearest-neighbor interpolation.
 
-The script also incorporates ideas from Ensemble Tractography[2] (ET). Given
+The script also incorporates ideas from Ensemble Tractography [2] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
 be used for each streamline.
 """
