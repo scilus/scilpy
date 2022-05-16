@@ -26,8 +26,8 @@ int get_flat_index(const int x, const int y, const int z, const int w,
     return x + y * xLen + z * xLen * yLen + w * xLen * yLen * zLen;
 }
 
-void sh_to_sf(const float* sh_coeffs, global const float* sh_to_sf_mat,
-              const bool is_first_step, const float* vertices,
+void sh_to_sf(const float* sh_coeffs, __global const float* sh_to_sf_mat,
+              const bool is_first_step, __global const float* vertices,
               const float3 last_dir, const float max_cos_theta, float* sf_coeffs)
 {
     for(int u = 0; u < N_DIRS; ++u)
