@@ -53,11 +53,11 @@ Config file:
         - angle: angle criteria. Streamlines containing loops and sharp turns
             above given angle will be rejected from the bundle.
         - length: maximum and minimum lengths per bundle.
-        - length_x / length_x_abs: maximum and mimimum total distance in the x
+        - length_x / length_x_abs: maximum and minimum total distance in the x
             direction (i.e. first coordinate).**
-        - length_y / length_y_abs: maximum and mimimum total distance in the y
+        - length_y / length_y_abs: maximum and minimum total distance in the y
             direction (i.e. second coordinate).**
-        - length_z / length_z_abs: maximum and mimimum total distance in the z
+        - length_z / length_z_abs: maximum and minimum total distance in the z
             direction (i.e. third coordinate).**
 
 * Files must be .tck, .trk, .nii or .nii.gz. If it is a tractogram, a mask will
