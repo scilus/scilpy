@@ -25,6 +25,15 @@ def compute_f1_score(overlap, overreach):
     Compute the F1 score between overlap and overreach (they must be
     percentages).
 
+    Params
+    ------
+    overlap: float, The overlap value.
+    overreach: float, The overreach value.
+
+    Returns
+    -------
+    f1_score: float, The f1 score.
+
     Ref: https://en.wikipedia.org/wiki/F1_score
     """
     recall = overlap
@@ -37,7 +46,25 @@ def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     """
     Compute dice, OL and OR based on a ground truth mask.
 
-    Results are returned in number of voxels, not as percentages.
+    Params
+    ------
+    current_vb_voxels: 3D array
+        The voxels touched by at least one streamlines for a given bundle.
+    gt_mask: 3D array
+        The ground truth mask.
+    dimensions: array
+        The nibabel dimensions of the data (3D).
+
+    Returns
+    -------
+    dice: float
+        The dice score
+    overlap: int
+        The overlap (in number of voxels, not as percentages).
+    overreach: int
+        The overreach (in number of voxels).
+    lacking: int
+        The number of voxels from the gt_mask that have not been recovered.
     """
     # Dice
     dice = compute_dice_voxel(gt_mask, current_vb_voxels)[0]
