@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic short-tracks tractography [1] on a ODF field inside a
+Perform probabilistic tractography [1] on a ODF field inside a
 binary mask. The tracking is executed on the GPU using the OpenCL API.
 
-In short-tracks tractography, streamlines are seeded inside the tracking
-mask and all have a similar length. They are not expected to connect two
-regions of interest and can end inside the white matter mask.
+The streamlines are returned as soon as they reach maximum length.
+Streamlines are filtered by minimum length, but not by maximum length. The
+ODF image and mask are interpolated using nearest-neighbor interpolation.
 
-No backward tracking is done from the seed point and the streamlines are
-returned as soon as they reach maximum length. The ODF image and mask are
-interpolated using nearest-neighbor interpolation.
-
-The script also incorporates ideas from Ensemble Tractography [2] (ET). Given
+The script also incorporates ideas from Ensemble Tractography [1] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
 be used for each streamline.
+
+In order to use the script, you must have a OpenCL compatible GPU and install
+the pyopencl package via `pip install pyopencl`.
 """
 
 import argparse
@@ -27,18 +26,15 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
-from scilpy.reconst.utils import find_order_from_nb_coeff
-from scilpy.tracking.utils import add_seeding_options
-from scilpy.tracking.short_tracks import track_short_tracks
-from scilpy.gpuparallel.opencl_utils import have_opencl
+from scilpy.tracking.utils import (add_seeding_options,
+                                   add_mandatory_options_tracking)
+from scilpy.tracking.tracker import GPUTacker
 from dipy.tracking.utils import random_seeds_from_mask
 from dipy.io.utils import get_reference_info, create_tractogram_header
 
 
 EPILOG = """
-[1] Calamante, F. et al (2012). Super-resolution track-density imaging studies
-    of mouse brain: Comparison to histology. NeuroImage, 59(1), 286-296.
-[2] Takemura, H. et al (2016). Ensemble tractography. PLoS Computational
+[1] Takemura, H. et al (2016). Ensemble tractography. PLoS Computational
     Biology, 12(2), e1004692.
 """
 
@@ -47,15 +43,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
     # mandatory tracking options
-    p.add_argument('in_odf',
-                   help='File containing the orientation diffusion function \n'
-                        'as spherical harmonics file (.nii.gz). Ex: ODF or '
-                        'fODF.')
-    p.add_argument('in_mask',
-                   help='Tracking mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask.')
-    p.add_argument('out_tractogram',
-                   help='Tractogram output file (must be .trk or .tck).')
+    add_mandatory_options_tracking(p)
 
     add_seeding_options(p)
     p.add_argument('--step_size', type=float, default=0.5,
@@ -65,17 +53,15 @@ def _build_arg_parser():
                         '\nare given, the maximum angle will be drawn at '
                         'random\nfrom the distribution for each streamline. '
                         '[%(default)s]')
-    p.add_argument('--min_length', type=float, default=10.0,
+    p.add_argument('--min_length', type=float, default=20.0,
                    help='Minimum length of the streamline '
                         'in mm. [%(default)s]')
-    p.add_argument('--max_length', type=float, default=20.0,
+    p.add_argument('--max_length', type=float, default=300.0,
                    help='Maximum length of the streamline '
                         'in mm. [%(default)s]')
-    p.add_argument('--odf_sharpness', type=float, default=1.0,
-                   help='Exponent on ODF amplitude to control'
-                        ' sharpness. [%(default)s]')
     p.add_argument('--batch_size', type=int, default=100000,
-                   help='Approximate size of GPU batches. [%(default)s]')
+                   help='Approximate size of GPU batches. The default value is'
+                        ' quite conservative. [%(default)s]')
     p.add_argument('--save_seeds', action='store_true',
                    help='Save seed positions in data_per_streamline.')
 
@@ -90,20 +76,16 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if not have_opencl:
-        raise RuntimeError('pyopencl is not installed. In order to run'
-                           'the script, you need to install it first.')
-
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.in_odf, args.in_mask])
+    assert_inputs_exist(parser, [args.in_odf, args.in_mask, args.in_seed])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     odf_sh_img = nib.load(args.in_odf)
     mask = get_data_as_mask(nib.load(args.in_mask))
-    odf_sh = odf_sh_img.get_fdata()
-    order = find_order_from_nb_coeff(odf_sh)
+    seed_mask = get_data_as_mask(nib.load(args.in_seed))
+    odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
     t0 = perf_counter()
     if args.npv:
@@ -117,7 +99,7 @@ def main():
         seed_per_vox = True
 
     seeds = random_seeds_from_mask(
-        mask, np.eye(4),
+        seed_mask, np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=None)
@@ -128,12 +110,15 @@ def main():
     vox_step_size = args.step_size / voxel_size
     vox_max_length = args.max_length / voxel_size
     vox_min_length = args.min_length / voxel_size
-    streamlines, seeds = track_short_tracks(odf_sh, seeds, mask,
-                                            vox_step_size, vox_min_length,
-                                            vox_max_length, args.theta,
-                                            args.odf_sharpness,
-                                            args.batch_size, order,
-                                            args.sh_basis)
+    min_strl_len = int(vox_min_length / vox_step_size) + 1
+    max_strl_len = int(vox_max_length / vox_step_size) + 1
+
+    # initialize and launch tracking
+    tracker = GPUTacker(odf_sh, mask, seeds,
+                        vox_step_size, min_strl_len,
+                        max_strl_len, args.theta,
+                        args.sh_basis, args.batch_size)
+    streamlines, seeds = tracker.track()
 
     # Save tractogram to file
     t0 = perf_counter()
