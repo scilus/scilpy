@@ -20,6 +20,21 @@ As in scil_compute_local_tracking:
 
 Contrary to scil_compute_local_tracking:
     - Input nifti files do not necessarily need to be in isotropic resolution.
+    - The script works with asymmetric input ODF.
+    - The interpolation for the tracking mask and spherical function can be
+      one of 'nearest' or 'trilinear'.
+    - Runge-Kutta integration is supported for the step function.
+
+A few notes on Runge-Kutta integration.
+    1. Runge-Kutta integration is used to approximate the next tracking
+       direction by estimating directions from future tracking steps. This
+       works well for deterministic tracking. However, in the context of
+       probabilistic tracking, the next tracking directions cannot be estimated
+       in advance, because they are picked randomly from a distribution. It is
+       therefore recommanded to keep the rk_order to 1 for probabilistic
+       tracking.
+    2. As a rule of thumb, doubling the rk_order will double the computation
+       time in the worst case.
 
 References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
@@ -73,9 +88,9 @@ def _build_arg_parser():
     track_g.add_argument('--rk_order', metavar="K", type=int, default=1,
                          choices=[1, 2, 4],
                          help="The order of the Runge-Kutta integration used "
-                              "for the \nstep function [%(default)s]. As a "
-                              "rule of thumb, doubling the rk_order \nwill "
-                              "double the computation time in the worst case.")
+                              "for the step function.\n"
+                              "For more information, refer to the note in the"
+                              " script description. [%(default)s]")
     track_g.add_argument('--max_invalid_length', metavar='MAX', type=float,
                          default=1,
                          help="Maximum length without valid direction, in mm. "
