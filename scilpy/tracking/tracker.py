@@ -439,6 +439,7 @@ class GPUTacker():
         cl_kernel = CLKernel('track', 'tracking', 'local_tracking.cl')
 
         # Set tracking parameters
+        # TODO: Add relative sf_threshold parameter.
         cl_kernel.set_define('IM_X_DIM', self.sh.shape[0])
         cl_kernel.set_define('IM_Y_DIM', self.sh.shape[1])
         cl_kernel.set_define('IM_Z_DIM', self.sh.shape[2])
