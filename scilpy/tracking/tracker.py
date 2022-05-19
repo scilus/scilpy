@@ -270,7 +270,7 @@ class Tracker(object):
         np.random.seed(np.uint32(hash((seeding_pos, self.rng_seed))))
 
         # Forward
-        line = [seeding_pos]
+        line = [np.asarray(seeding_pos)]
         tracking_info = self.propagator.prepare_forward(seeding_pos)
         if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
@@ -303,8 +303,9 @@ class Tracker(object):
 
         Parameters
         ----------
-        line: List
-            Beginning of the line to propagate.
+        line: List[np.ndarrays]
+            Beginning of the line to propagate: list of 3D coordinates
+            formatted as arrays.
         tracking_info: Any
             Information necessary to know how to propagate. Type: as understood
             by the propagator. Example, with the typical fODF propagator: the
