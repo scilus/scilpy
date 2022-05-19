@@ -108,7 +108,6 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
-                                          make_sft_from_ids,
                                           extract_vb_vs, compute_f1_score,
                                           compute_dice_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
@@ -458,7 +457,7 @@ def compute_vb_vs_all_bundles(
                 orientation_lengths[i], abs_orientation_lengths[i],
                 limits_inv_masks[i], args.dilate_endpoints)
 
-        vb_sft = make_sft_from_ids(vs_ids, sft)
+        vb_sft = sft[vs_ids]
 
         # Save results
         if len(vb_sft) > 0 or not args.no_empty:
@@ -520,7 +519,7 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
                 {"Belonging to another bundle": nb_rejected})
             wpc_ids = new_wpc_ids
 
-        wpc_sft = make_sft_from_ids(wpc_ids, sft)
+        wpc_sft = sft[wpc_ids]
         wpc_sft_list.append(wpc_sft)
 
         if len(wpc_ids) > 0 or not args.no_empty:
@@ -804,7 +803,7 @@ def main():
                      .format(len(all_nc_ids), len(sft)))
         filename = "IS.trk"
 
-    nc_sft = make_sft_from_ids(all_nc_ids, sft)
+    nc_sft = sft[all_nc_ids]
     if len(nc_sft) > 0 or not args.no_empty:
         save_tractogram(nc_sft, os.path.join(
             args.out_dir, filename), bbox_valid_check=False)

@@ -27,7 +27,6 @@ def compute_f1_score(overlap, overreach):
 
     Ref: https://en.wikipedia.org/wiki/F1_score
     """
-    logging.debug("?????????? OVERLAP {} AND OVERREACH {}".format(overlap, overreach))
     recall = overlap
     precision = 1.0 - overreach
     f1_score = 2.0 * (precision * recall) / (precision + recall)
@@ -62,7 +61,7 @@ def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
 
 def get_binary_maps(streamlines, sft):
     """
-    Extract a mask from a bundle
+    Extract a mask from a bundle.
 
     Parameters
     ----------
@@ -181,7 +180,7 @@ def compute_masks(gt_files, parser, args):
 
 def split_heads_tails_kmeans(data):
     """
-    Split a mask between head and tail with k means
+    Split a mask between head and tail with k means.
 
     Parameters
     ----------
@@ -215,6 +214,8 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
     ----------
     gt_endpoints: str
         Ground-truth mask filename.
+    out_dir: str
+        Path where to save the heads and tails.
 
     Returns
     -------
@@ -251,7 +252,21 @@ def extract_tails_heads_from_endpoints(gt_endpoints, out_dir):
 def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     """
     If endpoints without heads/tails are loaded, split them and continue
-    normally after. Q/C of the output is important
+    normally after. Q/C of the output is important.
+
+    Params
+    ------
+    roi_options: dict
+        Keys are the bundle names. For each bundle, the value is itself a
+        dictionary either key 'gt_endpoints' (the name of the file
+        containing the bundle's endpoints), or both keys 'gt_tail' and
+        'gt_head' (the names of the respetive files).
+    affine: array
+        A nibabel affine. Final masks must be compatible.
+    dimensions: array
+        A nibabel dimensions. Final masks must be compatible.
+    out_dir: str
+        Where to save the heads and tails.
 
     Returns:
         tails, heads: lists of filenames with length the number of bundles.
@@ -283,24 +298,6 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     return tails, heads
 
 
-def make_sft_from_ids(ids, sft):
-    if len(ids) > 0:
-        streamlines = sft.streamlines[ids]
-        data_per_streamline = sft.data_per_streamline[ids]
-        data_per_point = sft.data_per_point[ids]
-    else:
-        streamlines = []
-        data_per_streamline = None
-        data_per_point = None
-
-    new_sft = StatefulTractogram.from_sft(
-        streamlines, sft,
-        data_per_streamline=data_per_streamline,
-        data_per_point=data_per_point)
-
-    return new_sft
-
-
 def extract_vb_vs(
         sft, head_filename, tail_filename, limits_length, angle,
         orientation_length, abs_orientation_length, inclusion_inv_mask,
@@ -326,7 +323,7 @@ def extract_vb_vs(
     orientation_length: list or None
         Bundle's length parameters in each direction:
         [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
-    orientation_length: idem, computed in absolute values.
+    abs_orientation_length: idem, computed in absolute values.
     inclusion_inv_mask: np.ndarray or None
         Inverse mask of the bundle.
     dilate_endpoints: int or None
@@ -400,7 +397,7 @@ def extract_vb_vs(
 
         _, valid_orientation_ids_from_vs, _ = \
             filter_streamlines_by_total_length_per_dim(
-                make_sft_from_ids(vs_ids, sft), limits_x, limits_y, limits_z,
+                sft[vs_ids], limits_x, limits_y, limits_z,
                 use_abs=False, save_rejected=False)
 
         # Update ids
@@ -420,7 +417,7 @@ def extract_vb_vs(
 
         _, valid_orientation_ids_from_vs, _ = \
             filter_streamlines_by_total_length_per_dim(
-                make_sft_from_ids(vs_ids, sft), limits_x, limits_y,
+                sft[vs_ids], limits_x, limits_y,
                 limits_z,
                 use_abs=True, save_rejected=False)
 
@@ -490,5 +487,5 @@ def extract_false_connections(sft, mask_1_filename, mask_2_filename,
 
     _, fc_ids = filter_grid_roi_both(sft, mask_1, mask_2)
 
-    fc_sft = make_sft_from_ids(fc_ids, sft)
+    fc_sft = sft[fc_ids]
     return fc_sft, fc_ids
