@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic tractography [1] on a ODF field inside a
-binary mask. The tracking is executed on the GPU using the OpenCL API.
+Perform probabilistic tractography [1] on a ODF field inside a binary mask.
+The tracking is executed on the GPU using the OpenCL API.
 
-The streamlines are returned as soon as they reach maximum length.
-Streamlines are filtered by minimum length, but not by maximum length. The
-ODF image and mask are interpolated using nearest-neighbor interpolation.
+Streamlines are filtered by minimum length, but not by maximum length. For this
+reason, there may be streamlines ending in the deep white matter. In order to
+use the resulting tractogram for analysis, it should be cleaned with
+scil_filter_tractogram_anatomically.py.
+
+The ODF image and mask are interpolated using nearest-neighbor interpolation.
 
 The script also incorporates ideas from Ensemble Tractography [1] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
