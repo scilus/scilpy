@@ -22,19 +22,21 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist, validate_nbr_processes)
+                             assert_outputs_exist,
+                             validate_nbr_processes)
+from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.bingham import (bingham_fit_sh)
 
 
 EPILOG = """
 [1] T. W. Riffert, J. Schreiber, A. Anwander, and T. R. Knösche, “Beyond
     fractional anisotropy: Extraction of bundle-specific structural metrics
-    from crossing fiber models,” NeuroImage, vol. 100, pp. 176–191, Oct. 2014,
+    from crossing fiber models,” NeuroImage, vol. 100, pp. 176-191, Oct. 2014,
     doi: 10.1016/j.neuroimage.2014.06.015.
 
 [2] J. Schreiber, T. Riffert, A. Anwander, and T. R. Knösche, “Plausibility
     Tracking: A method to evaluate anatomical connectivity and microstructural
-    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163–178, Apr.
+    properties along fiber pathways,” NeuroImage, vol. 90, pp. 163-178, Apr.
     2014, doi: 10.1016/j.neuroimage.2014.01.002.
 """
 
@@ -64,6 +66,9 @@ def _build_arg_parser():
     p.add_argument('--max_fit_angle', type=float, default=15.,
                    help='Maximum distance in degrees around a peak direction'
                         ' for fitting the Bingham function. [%(default)s]')
+    p.add_argument('--mask',
+                   help='Optional mask file. Only SH inside'
+                        ' the mask are fitted.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -77,11 +82,13 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, args.in_sh)
+    assert_inputs_exist(parser, args.in_sh, args.mask)
     assert_outputs_exist(parser, args, args.out_bingham)
 
     sh_im = nib.load(args.in_sh)
     data = sh_im.get_fdata()
+    mask = get_data_as_mask(nib.load(args.mask), dtype=bool)\
+        if args.mask else None
 
     # validate number of processes
     nbr_processes = validate_nbr_processes(parser, args)
@@ -93,6 +100,7 @@ def main():
                              abs_th=args.at, rel_th=args.rt,
                              min_sep_angle=args.min_sep_angle,
                              max_fit_angle=args.max_fit_angle,
+                             mask=mask,
                              nbr_processes=nbr_processes)
     t1 = time.perf_counter()
     logging.info('Fitting done in (s): {0}'.format(t1 - t0))
