@@ -229,7 +229,7 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     distance_values: np.ndarray
         List of distances obtained with scil_compute_bundle_voxel_label_map.py
     correlation_values: np.ndarray
-        List of correlation obtained with scil_compute_bundle_voxel_label_map.py
+        List of correlations obtained with scil_compute_bundle_voxel_label_map.py
     density_weighting: bool
         If true, weight statistics by the number of streamlines passing through
         each voxel. [False]
