@@ -103,7 +103,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             verify_compatibility_with_reference_sft)
 from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
@@ -177,34 +178,6 @@ def extract_prefix(filename):
     return prefix
 
 
-def _verify_compatibility_with_bundles(sft, masks_files, parser, args):
-    """
-    Verifies the compatibility of the main sft with the bundle masks, which can
-    be either tractograms or nifti files.
-    """
-    save_ref = args.reference
-
-    for file in masks_files:
-        if file is not None:
-            _, ext = os.path.splitext(file)
-            if ext in ['.trk', '.tck']:
-                # Cheating ref because it may send a lot of warning if loading
-                # many trk with ref (reference was maybe added only for some
-                # of these files)
-                if ext == '.trk':
-                    args.reference = None
-                else:
-                    args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file,
-                                                      bbox_check=False)
-            else:
-                mask = file
-            compatible = is_header_compatible(sft, mask)
-            if not compatible:
-                parser.error("Input tractogram incompatible with {}"
-                             .format(file))
-
-
 def load_and_verify_everything(parser, args):
     """
     - Reads the config file
@@ -250,7 +223,7 @@ def load_and_verify_everything(parser, args):
                  "limits_masks.")
     all_masks = gt_masks_files + limits_masks_files
     all_masks = list(dict.fromkeys(all_masks))  # Removes duplicates
-    _verify_compatibility_with_bundles(sft, all_masks, parser, args)
+    verify_compatibility_with_reference_sft(sft, all_masks, parser, args)
 
     logging.info("Loading and/or computing ground-truth masks and limits "
                  "masks.")
