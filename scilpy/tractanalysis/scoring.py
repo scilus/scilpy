@@ -25,7 +25,7 @@ def compute_f1_score(overlap, overreach):
     Compute the F1 score between overlap and overreach (they must be
     percentages).
 
-    Params
+    Parameters
     ------
     overlap: float, The overlap value.
     overreach: float, The overreach value.
@@ -46,7 +46,7 @@ def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     """
     Compute dice, OL and OR based on a ground truth mask.
 
-    Params
+    Parameters
     ------
     current_vb_voxels: 3D array
         The voxels touched by at least one streamlines for a given bundle.
@@ -281,7 +281,7 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     If endpoints without heads/tails are loaded, split them and continue
     normally after. Q/C of the output is important.
 
-    Params
+    Parameters
     ------
     roi_options: dict
         Keys are the bundle names. For each bundle, the value is itself a
