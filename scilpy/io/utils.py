@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import logging
 import os
 import multiprocessing
 import re
@@ -8,11 +9,14 @@ import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from dipy.data import SPHERE_FILES
+from dipy.io.utils import is_header_compatible
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
@@ -159,6 +163,19 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
+def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
+    spheres = sorted(SPHERE_FILES.keys())
+    if symmetric_only:
+        spheres = [s for s in spheres if 'symmetric' in s]
+        if 'symmetric' not in default:
+            raise ValueError("Default cannot be {} if you only accept "
+                             "symmetric spheres.".format(default))
+
+    parser.add_argument('--sphere', choices=spheres,
+                        default=default,
+                        help='Dipy sphere; set of possible directions.')
+
+
 def add_overwrite_arg(parser):
     parser.add_argument(
         '-f', dest='overwrite', action='store_true',
@@ -206,9 +223,12 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
-def validate_nbr_processes(parser, args, default_nbr_cpu=None):
+def validate_nbr_processes(parser, args):
     """ Check if the passed number of processes arg is valid.
-    If not valid (0 < nbr_cpu_to_use <= cpu_count), raise parser.error.
+    Valid values are considered to be in the [0, CPU count] range:
+        - Raises a parser.error if an invalid value is provided.
+        - Returns the maximum number of cores retrieved if no value (or a value
+        of 0) is provided.
 
     Parameters
     ----------
@@ -216,12 +236,10 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
         Parser as created by argparse.
     args: argparse namespace
         Args as created by argparse.
-    default_nbr_cpu: int (or None)
-        Number of cpu to use, default is cpu_count (all).
 
-    Results
-    ------
-    nbr_cpu
+    Returns
+    -------
+    nbr_cpu: int
         The number of CPU to be used.
     """
 
@@ -230,7 +248,7 @@ def validate_nbr_processes(parser, args, default_nbr_cpu=None):
     else:
         nbr_cpu = multiprocessing.cpu_count()
 
-    if nbr_cpu <= 0:
+    if nbr_cpu < 0:
         parser.error('Number of processes must be > 0.')
     elif nbr_cpu > multiprocessing.cpu_count():
         parser.error('Max number of processes is {}. Got {}.'.format(
@@ -255,6 +273,24 @@ def validate_sh_basis_choice(sh_basis):
     if not (sh_basis == 'descoteaux07' or sh_basis == 'tournier07'):
         raise ValueError("sh_basis should be either 'descoteaux07' or"
                          "'tournier07'.")
+
+
+def verify_compression_th(compress_th):
+    """
+    Verify that the compression threshold is between 0.001 and 1. Else,
+    produce a warning.
+
+    Parameters
+    -----------
+    compress_th: float, the compression threshold.
+    """
+    if compress_th:
+        if compress_th < 0.001 or compress_th > 1:
+            logging.warning(
+                'You are using an error rate of {}.\nWe recommend setting it '
+                'between 0.001 and 1.\n0.001 will do almost nothing to the '
+                'tracts while 1 will higly compress/linearize the tracts.'
+                .format(compress_th))
 
 
 def assert_inputs_exist(parser, required, optional=None):
@@ -296,11 +332,11 @@ def assert_outputs_exist(parser, args, required, optional=None,
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    args: list
+    args: argparse namespace
         Argument list.
-    required: string or list of paths
+    required: string or list of paths to files
         Required paths to be checked.
-    optional: string or list of paths
+    optional: string or list of paths to files
         Optional paths to be checked.
     check_dir_exists: bool
         Test if output directory exists.
@@ -342,8 +378,12 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
         Parser.
     args: argparse namespace
         Argument list.
-    dirs: list
-        Required directory paths to be checked.
+    required: string or list of paths to files
+        Required paths to be checked.
+    optional: string or list of paths to files
+        Optional paths to be checked.
+    create_dir: bool
+        If true, create the directory if it does not exist.
     """
     def check(path):
         if not os.path.isdir(path):
@@ -379,6 +419,46 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
     for opt_dir in optional or []:
         if opt_dir:
             check(opt_dir)
+
+
+def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
+                                            parser, args):
+    """
+    Verifies the compatibility of a reference sft with a list of files.
+
+    Params
+    ------
+    ref_sft: StatefulTractogram
+        A tractogram to be used as reference.
+    files_to_verify: List[str]
+        List of files that should be compatible with the reference sft. Files
+        can be either other tractograms or nifti files (ex: masks).
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+    args: Namespace
+        Should contain a args.reference if any file is a .tck.
+    """
+    save_ref = args.reference
+
+    for file in files_to_verify:
+        if file is not None:
+            _, ext = os.path.splitext(file)
+            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
+                mask = load_tractogram_with_reference(parser, args, file,
+                                                      bbox_check=False)
+            else:  # should be a nifti file.
+                mask = file
+            compatible = is_header_compatible(ref_sft, mask)
+            if not compatible:
+                parser.error("Reference tractogram incompatible with {}"
+                             .format(file))
 
 
 def read_info_from_mb_bdo(filename):

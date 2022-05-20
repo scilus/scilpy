@@ -35,27 +35,104 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     if sft.streamlines:
         # Compute streamlines lengths
         lengths = length(sft.streamlines)
+
         # Filter lengths
         filter_stream = np.logical_and(lengths >= min_length,
                                        lengths <= max_length)
     else:
         filter_stream = []
 
-    filtered_streamlines = list(np.asarray(sft.streamlines,
-                                           dtype=object)[filter_stream])
-    filtered_data_per_point = sft.data_per_point[filter_stream]
-    filtered_data_per_streamline = sft.data_per_streamline[filter_stream]
-
-    # Create final sft
-    filtered_sft = StatefulTractogram.from_sft(
-        filtered_streamlines, sft,
-        data_per_point=filtered_data_per_point,
-        data_per_streamline=filtered_data_per_streamline)
+    filtered_sft = sft[filter_stream]
 
     # Return to original space
     filtered_sft.to_space(orig_space)
 
     return filtered_sft
+
+
+def filter_streamlines_by_total_length_per_dim(
+        sft, limits_x, limits_y, limits_z, use_abs, save_rejected):
+    """
+    Filter streamlines using sum of abs length per dimension.
+
+    Note: we consider that x, y, z are the coordinates of the streamlines; we
+    do not verify if they are aligned with the brain's orientation.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        SFT containing the streamlines to filter.
+    limits_x: [float float]
+        The list of [min, max] for the x coordinates.
+    limits_y: [float float]
+        The list of [min, max] for the y coordinates.
+    limits_z: [float float]
+        The list of [min, max] for the z coordinates.
+    use_abs: bool
+        If True, will use the total of distances in absolute value (ex,
+        coming back on yourself will contribute to the total distance
+        instead of cancelling it).
+    save_rejected: bool
+        If true, also returns the SFT of rejected streamlines. Else, returns
+        None.
+
+    Return
+    ------
+    filtered_sft : StatefulTractogram
+        A tractogram of accepted streamlines.
+    ids: list
+        The list of good ids.
+    rejected_sft: StatefulTractogram or None
+        A tractogram of rejected streamlines.
+    """
+    # Make sure we are in world space
+    orig_space = sft.space
+    sft.to_rasmm()
+
+    # Compute directions
+    all_dirs = [np.diff(s, axis=0) for s in sft.streamlines]
+    if use_abs:
+        total_per_orientation = np.asarray(
+            [np.sum(np.abs(d), axis=0) for d in all_dirs])
+    else:
+        # We add the abs on the total length, not on each small movement.
+        total_per_orientation = np.abs(np.asarray(
+            [np.sum(d, axis=0) for d in all_dirs]))
+
+    logging.debug("Total length per orientation is:\n"
+                  "Average: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  "Min: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  "Max: x: {:.2f}, y: {:.2f}, z: {:.2f} \n"
+                  .format(np.mean(total_per_orientation[:, 0]),
+                          np.mean(total_per_orientation[:, 1]),
+                          np.mean(total_per_orientation[:, 2]),
+                          np.min(total_per_orientation[:, 0]),
+                          np.min(total_per_orientation[:, 1]),
+                          np.min(total_per_orientation[:, 2]),
+                          np.max(total_per_orientation[:, 0]),
+                          np.max(total_per_orientation[:, 1]),
+                          np.max(total_per_orientation[:, 2])))
+
+    # Find good ids
+    mask_good_x = np.logical_and(limits_x[0] < total_per_orientation[:, 0],
+                                 total_per_orientation[:, 0] < limits_x[1])
+    mask_good_y = np.logical_and(limits_y[0] < total_per_orientation[:, 1],
+                                 total_per_orientation[:, 1] < limits_y[1])
+    mask_good_z = np.logical_and(limits_z[0] < total_per_orientation[:, 2],
+                                 total_per_orientation[:, 2] < limits_z[1])
+    mask_good_ids = np.logical_and(mask_good_x, mask_good_y)
+    mask_good_ids = np.logical_and(mask_good_ids, mask_good_z)
+
+    filtered_sft = sft[mask_good_ids]
+
+    rejected_sft = None
+    if save_rejected:
+        rejected_sft = sft[~mask_good_ids]
+
+    # Return to original space
+    filtered_sft.to_space(orig_space)
+
+    return filtered_sft, np.nonzero(mask_good_ids), rejected_sft
 
 
 def get_subset_streamlines(sft, max_streamlines, rng_seed=None):

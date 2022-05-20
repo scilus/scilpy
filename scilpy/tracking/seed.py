@@ -1,27 +1,47 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import numpy as np
 
 
 class SeedGenerator(object):
     """
-    Class to get seeding positions
+    Class to get seeding positions.
+
+    Generated seeds are in voxmm space, origin=corner. Ex: a seed sampled
+    exactly at voxel i,j,k = (0,1,2), with resolution 3x3x3mm will have
+    coordinates x,y,z = (0, 3, 6).
+
+    Using get_next_pos, seeds are placed randomly within the voxel. In the same
+    example as above, seed sampled in voxel i,j,k = (0,1,2) will be somewhere
+    in the range x = [0, 3], y = [3, 6], z = [6, 9].
     """
-    def __init__(self, img):
+    def __init__(self, data, voxres):
         """
         Parameters
         ----------
-        img: nibabel image
-            The seeding mask. Seeds will be randomly placed in voxels with
-            value >0.
+        data: np.array
+            The data, ex, loaded from nibabel img.get_fdata().
+        voxres: np.array(3,)
+            The pixel resolution, ex, using img.header.get_zooms()[:3].
         """
-        self.pixdim = img.header.get_zooms()[:3]
+        self.data = data
+        self.voxres = voxres
 
-        data = img.get_fdata(caching='unchanged', dtype=np.float64)
-        self.seeds = np.array(np.where(np.squeeze(data) > 0)).transpose()
+        # Everything scilpy.tracking is in 'corner', 'voxmm'
+        self.origin = 'corner'
+        self.space = 'voxmm'
+
+        # self.seed are all the voxels where a seed could be placed
+        # (voxel space, int numbers).
+        self.seeds = np.array(np.where(np.squeeze(data) > 0),
+                              dtype=float).transpose()
+        if len(self.seeds) == 0:
+            logging.warning("There are positive voxels in the seeding mask!")
 
     def get_next_pos(self, random_generator, indices, which_seed):
         """
-        Generate the next seed position.
+        Generate the next seed position (Space=voxmm, origin=corner).
 
         Parameters
         ----------
@@ -41,26 +61,21 @@ class SeedGenerator(object):
         if len_seeds == 0:
             return []
 
-        half_voxel_range = [self.pixdim[0] / 2,
-                            self.pixdim[1] / 2,
-                            self.pixdim[2] / 2]
+        voxel_dim = np.asarray(self.voxres)
 
         # Voxel selection from the seeding mask
         ind = which_seed % len_seeds
         x, y, z = self.seeds[indices[ind]]
 
         # Subvoxel initial positioning
-        r_x = random_generator.uniform(-half_voxel_range[0],
-                                       half_voxel_range[0])
-        r_y = random_generator.uniform(-half_voxel_range[1],
-                                       half_voxel_range[1])
-        r_z = random_generator.uniform(-half_voxel_range[2],
-                                       half_voxel_range[2])
+        r_x = random_generator.uniform(0, voxel_dim[0])
+        r_y = random_generator.uniform(0, voxel_dim[1])
+        r_z = random_generator.uniform(0, voxel_dim[2])
 
-        return x * self.pixdim[0] + r_x, y * self.pixdim[1] \
-            + r_y, z * self.pixdim[2] + r_z
+        return x * self.voxres[0] + r_x, y * self.voxres[1] \
+            + r_y, z * self.voxres[2] + r_z
 
-    def init_pos(self, random_initial_value, first_seed_of_chunk):
+    def init_generator(self, random_initial_value, first_seed_of_chunk):
         """
         Initialize numpy number generator according to user's parameter
         and indexes from the seeding map.

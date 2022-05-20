@@ -111,12 +111,12 @@ def main():
     original_length = len(streamlines)
     logging.debug('Loaded {} streamlines...'.format(original_length))
 
-    nbr_cpu = validate_nbr_processes(parser, args, args.nbr_processes)
+    nbr_cpu = validate_nbr_processes(parser, args)
     pool = multiprocessing.Pool(nbr_cpu)
     timer = time()
 
     logging.debug(
-        'Lauching subsampling on {} processes.'.format(args.nbr_processes))
+        'Lauching subsampling on {} processes.'.format(nbr_cpu))
     last_iteration = False
     iter_count = 0
     while True:

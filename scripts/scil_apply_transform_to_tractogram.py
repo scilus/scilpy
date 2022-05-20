@@ -134,6 +134,10 @@ def main():
             logging.warning('Saving tractogram with invalid streamlines.')
         save_tractogram(new_sft, args.out_tractogram, bbox_valid_check=False)
     else:
+        if not new_sft.is_bbox_in_vox_valid():
+            logging.warning('Removing invalid streamlines before '
+                            'saving tractogram.')
+            new_sft.remove_invalid_streamlines()
         save_tractogram(new_sft, args.out_tractogram)
 
 

@@ -28,5 +28,6 @@ def test_execution_filtering(script_runner):
     ret = script_runner.run('scil_filter_tractogram.py', in_tractogram,
                             'bundle_4.trk', '--display_counts',
                             '--drawn_roi', in_roi, 'any', 'include',
-                            '--bdo', in_bdo, 'any', 'include')
+                            '--bdo', in_bdo, 'any', 'include',
+                            '--save_rejected', 'bundle_4_rejected.trk')
     assert ret.success
