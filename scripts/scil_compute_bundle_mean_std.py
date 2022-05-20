@@ -43,7 +43,8 @@ def _build_arg_parser():
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
     p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
-                   help='')
+                   help='If set, weight statistics by the correlation strength '
+                        'between longitudinal data.')
     p.add_argument('--include_dps', action='store_true',
                    help='Save values from data_per_streamline.')
     add_reference_arg(p)
@@ -68,13 +69,13 @@ def main():
 
     if args.distance_weighting:
         img = nib.load(args.distance_weighting)
-        distances_map = img.get_fdata()
+        distances_map = img.get_fdata(dtype=np.float32)
     else:
         distances_map = None
 
     if args.correlation_weighting:
         img = nib.load(args.correlation_weighting)
-        correlation_map = img.get_fdata()
+        correlation_map = img.get_fdata(dtype=np.float32)
     else:
         correlation_map = None
 

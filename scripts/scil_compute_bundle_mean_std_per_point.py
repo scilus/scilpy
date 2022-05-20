@@ -15,7 +15,7 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution
+from scilpy.io.image import assert_same_resolution, get_data_as_label
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args, add_reference_arg,
                              add_overwrite_arg,
@@ -42,7 +42,8 @@ def _build_arg_parser():
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
     p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
-                   help='')
+                   help='If set, weight statistics by the correlation strength '
+                        'between longitudinal data.')
     p.add_argument('--out_json',
                    help='Path of the output json file. If not given, json '
                         'formatted stats are simply printed.')
@@ -77,17 +78,17 @@ def main():
     metrics = [nib.load(metric) for metric in args.in_metrics]
 
     labels_img = nib.load(args.in_labels)
-    labels = labels_img.get_fdata().astype(np.uint8)
+    labels = get_data_as_label(labels_img)
 
     if args.distance_weighting:
         distance_file = nib.load(args.distance_weighting)
-        distances_values = distance_file.get_fdata()
+        distances_values = distance_file.get_fdata(dtype=np.float32)
     else:
         distances_values = None
 
     if args.correlation_weighting:
         correlation_file = nib.load(args.correlation_weighting)
-        correlation_values = correlation_file.get_fdata()
+        correlation_values = correlation_file.get_fdata(dtype=np.float32)
     else:
         correlation_values = None
 

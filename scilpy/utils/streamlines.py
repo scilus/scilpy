@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from sklearn.cluster import KMeans
+
 import copy
 import itertools
 from functools import reduce
 import logging
-
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
@@ -12,10 +11,13 @@ from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.tracking.streamlinespeed import compress_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from sklearn.cluster import KMeans
+
 from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
+from scilpy.tractanalysis.reproducibility_measures import get_endpoints_density_map
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -99,8 +101,6 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     swap: boolean, optional
         Swap the orientation of streamlines
     """
-    from scilpy.tractanalysis.reproducibility_measures \
-        import get_endpoints_density_map
     old_space = sft.space
     old_origin = sft.origin
     sft.to_vox()

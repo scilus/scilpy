@@ -72,6 +72,25 @@ def _build_arg_parser():
 
 
 def cube_correlation(density_list, binary_list, size=5):
+    """
+    Compute a local correlation coefficient within a sliding window between
+    all the provided density maps. Computation time grows quickly as the length
+    of density_list increases, since np.corrcoef is pairwise (combinatorial).
+
+    Parameters
+    ----------
+    density_list: list of np.ndarray
+        List of density map from the same bundle across multiple acquisitions.
+    binary_list: list of np.ndarray
+        List of binary map from the same bundle across multiple acquisitions.
+    size: int
+        Total size of the sliding window for the correlation.
+    Returns
+    -------
+    corr_map: np.ndarray
+        Array with local corralation between density maps, same shape as inputs.
+        Between -1 and 1, as floating point values.
+    """
     elem = np.arange(-(size//2), size//2 + 1).tolist()
     cube_ind = np.array(list(itertools.product(elem, elem, elem)))
     union = np.sum(binary_list, axis=0)
