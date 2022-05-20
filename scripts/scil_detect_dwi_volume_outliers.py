@@ -2,6 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
+This script simply find the 3 closest angular neighbors of each direction
+(per shell) and compute the voxel-wise correlation.
+If the angles or correlations to neighbors is below the shell average (by
+args.std_scale x STD) it will flag the volume as a potential outlier.
+
+This script support multi-shells, but each shell is independant and detected
+using the args.b0_thr parameter.
+
+This script can be run before any processing to identify potential problem
+before launching pre-processing.
 """
 
 import argparse
@@ -11,7 +21,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (assert_inputs_exist,
-                             add_force_b0_arg)
+                             add_force_b0_arg,
+                             add_verbose_arg)
 from scilpy.utils.bvec_bval_tools import check_b0_threshold, normalize_bvecs
 import math
 
@@ -28,13 +39,15 @@ def _build_arg_parser():
     p.add_argument('in_bvec',
                    help='The b-vectors files in FSL format (.bvec).')
 
-    p.add_argument('--print_all', action='store_true',
-                   help='')
-    p.add_argument('--b0_thr', type=float, default=0.0,
+    p.add_argument('--b0_thr', type=float, default=20.0,
                    help='All b-values with values less than or equal '
                         'to b0_thr are considered as b0s i.e. without '
                         'diffusion weighting. [%(default)s]')
+    p.add_argument('--std_scale', type=float, default=2.0,
+                   help='How many deviation from the mean are required to be '
+                        'considered an outliers. [%(default)s]')
     add_force_b0_arg(p)
+    add_verbose_arg(p)
     return p
 
 
@@ -78,27 +91,38 @@ def main():
                                      np.average(corr[0, 1:])]
 
     for key in results_dict.keys():
-        avg_angle = np.average(results_dict[key][:, 1])
-        std_angle = np.std(results_dict[key][:, 1])
+        avg_angle = np.round(np.average(results_dict[key][:, 1]), 4)
+        std_angle = np.round(np.std(results_dict[key][:, 1]), 4)
 
-        avg_corr = np.average(results_dict[key][:, 2])
-        std_corr = np.std(results_dict[key][:, 2])
+        avg_corr = np.round(np.average(results_dict[key][:, 2]), 4)
+        std_corr = np.round(np.std(results_dict[key][:, 2]), 4)
 
         outliers_angle = np.argwhere(
-            results_dict[key][:, 1] < avg_angle-(2*std_angle))
+            results_dict[key][:, 1] < avg_angle-(args.std_scale*std_angle))
         outliers_corr = np.argwhere(
-            results_dict[key][:, 2] < avg_corr-(2*std_corr))
+            results_dict[key][:, 2] < avg_corr-(args.std_scale*std_corr))
 
-        print('Shell {} average and standard deviation of angle: {} +/- {}'.format(
-            key, avg_angle, std_angle))
-        print('Shell {} average and standard deviation of correlation: {} +/- {}'.format(
-            key, avg_corr, std_corr))
-        for i in outliers_angle:
-            print('angle', results_dict[key][i, :])
-        for i in outliers_corr:
-            print('corr', results_dict[key][i, :])
+        print('Results for shell {} with {} directions:'.format(
+            key, len(results_dict[key])))
+        print('AVG and STD of angles: {} +/- {}'.format(
+            avg_angle, std_angle))
+        print('AVG and STD of correlations: {} +/- {}'.format(
+            avg_corr, std_corr))
 
-        if args.print_all:
+        if len(outliers_angle) or len(outliers_corr):
+            print('Possible outliers ({} STD below or above average):'.format(
+                args.std_scale))
+            print('Outliers based on angle [position (4D), value]')
+            for i in outliers_angle:
+                print(results_dict[key][i, :][0][0:2])
+            print('Outliers based on correlation [position (4D), value]')
+            for i in outliers_corr:
+                print(results_dict[key][i, :][0][0::2])
+        else:
+            print('No outliers detected.')
+        print()
+
+        if args.verbose:
             print()
             print(results_dict)
 
