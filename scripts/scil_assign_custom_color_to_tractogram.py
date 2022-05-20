@@ -94,10 +94,8 @@ def _build_arg_parser():
 def transform_data(args, data):
     if args.LUT:
         LUT = load_matrix_in_any_format(args.LUT)
-        print(LUT)
         for i, val in enumerate(LUT):
             data[data == i+1] = val
-            print(i+1, val)
 
     if args.min_range is not None or args.max_range is not None:
         data = np.clip(data, args.min_range, args.max_range)
