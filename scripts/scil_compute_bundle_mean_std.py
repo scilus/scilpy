@@ -69,13 +69,13 @@ def main():
 
     if args.distance_weighting:
         img = nib.load(args.distance_weighting)
-        distances_map = img.get_fdata(dtype=np.float32)
+        distances_map = img.get_fdata(dtype=float)
     else:
         distances_map = None
 
     if args.correlation_weighting:
         img = nib.load(args.correlation_weighting)
-        correlation_map = img.get_fdata(dtype=np.float32)
+        correlation_map = img.get_fdata(dtype=float)
     else:
         correlation_map = None
 

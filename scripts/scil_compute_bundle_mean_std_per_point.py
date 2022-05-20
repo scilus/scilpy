@@ -82,13 +82,13 @@ def main():
 
     if args.distance_weighting:
         distance_file = nib.load(args.distance_weighting)
-        distances_values = distance_file.get_fdata(dtype=np.float32)
+        distances_values = distance_file.get_fdata(dtype=float)
     else:
         distances_values = None
 
     if args.correlation_weighting:
         correlation_file = nib.load(args.correlation_weighting)
-        correlation_values = correlation_file.get_fdata(dtype=np.float32)
+        correlation_values = correlation_file.get_fdata(dtype=float)
     else:
         correlation_values = None
 
