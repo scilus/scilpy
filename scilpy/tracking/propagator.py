@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from enum import Enum
+import logging
 
 import dipy
 import numpy as np
@@ -352,6 +353,12 @@ class ODFPropagator(PropagatorOnSphere):
             candidate direction.
         """
         super().__init__(dataset, step_size, rk_order, dipy_sphere)
+
+        # Warn user if the rk order does not match the algo
+        if rk_order != 1 and algo == 'prob':
+            logging.warning('Probabilistic tracking with RK order != 1 is '
+                            'not recommended! Use deterministic tracking '
+                            'or set rk_order to 1 instead.')
 
         # Propagation params
         self.theta = theta

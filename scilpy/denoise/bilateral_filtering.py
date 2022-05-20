@@ -5,7 +5,7 @@ import multiprocessing
 import itertools
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.data import get_sphere
-from scilpy.denoise.opencl_utils import (have_opencl, CLKernel, CLManager)
+from scilpy.gpuparallel.opencl_utils import (have_opencl, CLKernel, CLManager)
 
 
 def angle_aware_bilateral_filtering(in_sh, sh_order=8,
@@ -140,13 +140,13 @@ def angle_aware_bilateral_filtering_gpu(in_sh, sh_order=8,
     cl_kernel.set_define('OUT_N_COEFFS', out_n_coeffs)
     cl_kernel.set_define('N_DIRS', n_dirs)
 
-    cl_manager = CLManager(cl_kernel)
-    cl_manager.add_input_buffer(in_sh)
-    cl_manager.add_input_buffer(h_weights)
-    cl_manager.add_input_buffer(sh_to_sf_mat)
-    cl_manager.add_input_buffer(sf_to_sh_mat)
+    cl_manager = CLManager(cl_kernel, 4, 1)
+    cl_manager.add_input_buffer(0, in_sh)
+    cl_manager.add_input_buffer(1, h_weights)
+    cl_manager.add_input_buffer(2, sh_to_sf_mat)
+    cl_manager.add_input_buffer(3, sf_to_sh_mat)
 
-    cl_manager.add_output_buffer(volume_shape[:3] + (out_n_coeffs,),
+    cl_manager.add_output_buffer(0, volume_shape[:3] + (out_n_coeffs,),
                                  np.float32)
 
     outputs = cl_manager.run(volume_shape[:3])
