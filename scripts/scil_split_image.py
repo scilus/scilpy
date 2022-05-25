@@ -2,18 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Extracts the DWI volumes that are on specific b-value shells. Many shells
-can be extracted at once by specifying multiple b-values. The extracted
-volumes are in the same order as in the original file.
+Splits the DWI image at certain indices along the last dimension (b-values).
+Many indices can be given at once by specifying multiple values. The splited
+volumes are in the same order as in the original file. Also outputs the
+corresponding .bval and .bvec files.
 
-If the b-values of a shell are not all identical, use the --tolerance
-argument to adjust the accepted interval. For example, a b-value of 2000
-and a tolerance of 20 will extract all volumes with a b-values from 1980 to
-2020.
-
-Files that are too large to be loaded in memory can still be processed by
-setting the --block-size argument. A block size of X means that X DWI volumes
-are loaded at a time for processing.
+This script can be useful for splitting images at places where a b-value
+extraction does not work. For instance, if one wants to split the x first
+b-1500s from the rest of the b-1500s in an image, simply put x as an index.
 
 """
 
