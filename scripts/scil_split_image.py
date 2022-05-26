@@ -44,20 +44,20 @@ def _build_arg_parser():
                         'example 3 10. This would split the image in three '
                         'parts, such as [:3], [3:10], [10:].')
 
-    p.add_argument('--out_dwi', nargs='+', default='',
+    p.add_argument('--out_dwi', nargs='+', default=[],
                    help='The names of the output DWI files. There must be '
                         'one more name than indices in split_indices. By '
                         'default, indices number will be appended to in_dwi, '
                         'such as in_dwi_0_3, in_dwi_3_10, in_dwi_10_end.')
 
-    p.add_argument('--out_bval', nargs='+', default='',
+    p.add_argument('--out_bval', nargs='+', default=[],
                    help='The names of the output b-value files (.bval). There '
                         'must be one more name than indices in split_indices. '
                         'By default, indices number will be appended to '
                         'in_dwi, such as in_dwi_0_3, in_dwi_3_10, '
                         'in_dwi_10_end.')
 
-    p.add_argument('--out_bvec', nargs='+', default='',
+    p.add_argument('--out_bvec', nargs='+', default=[],
                    help='The names of the output b-vector files (.bvec).There '
                         'must be one more name than indices in split_indices. '
                         'By default, indices number will be appended to '
@@ -96,6 +96,7 @@ def main():
                                                        args.out_bval,
                                                        args.out_bvec))))
 
+    # Check if the number of names given is equal to the number of indices + 1
     if args.out_dwi and len(args.out_dwi) != len(args.split_indices) + 1:
         parser.error('--out_dwi must contain len(split_indices) + 1 names.')
     if args.out_bval and len(args.out_bval) != len(args.split_indices) + 1:
@@ -108,26 +109,33 @@ def main():
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
 
+    # Check if the indices fit inside the range of possible values
+    if np.max(args.split_indices) > data.shape[-1]:
+        parser.error('split_indices values must be lower than the total '
+                     'number of direcitons.')
+    if np.min(args.split_indices) <= 0:
+        parser.error('split_indices values must be higher than 0.')
+
     indices = np.concatenate(([0], args.split_indices, [data.shape[-1]]))
 
     for i in range(len(indices)-1):
         data_split = data[..., indices[i]:indices[i+1]]
         bvals_split = bvals[indices[i]:indices[i+1]]
         bvecs_split = bvecs[indices[i]:indices[i+1]]
-
+        # Saving the dwi file
         if args.out_dwi:
             data_name = args.out_dwi[i]
         else:
             data_name = create_name_from_indices(indices[i:i+2], args.in_dwi)
         nib.save(nib.Nifti1Image(data_split, img.affine, header=img.header),
                  data_name)
-
+        # Saving the bval file
         if args.out_bval:
             bval_name = args.out_bval[i]
         else:
             bval_name = create_name_from_indices(indices[i:i+2], args.in_bval)
         np.savetxt(bval_name, bvals_split, '%d')
-
+        # Saving the bvec file
         if args.out_bvec:
             bvec_name = args.out_bvec[i]
         else:

@@ -25,7 +25,7 @@ def test_execution_processing_no_output_given(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5 15 25')
+                            in_bval, in_bvec, '5', '15', '25')
     assert ret.success
 
 
@@ -38,10 +38,11 @@ def test_execution_processing_good_output_given(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5 15',
-                            '--out_dwi dwi0.nii.gz dwi1.nii.gz dwi2.nii.gz',
-                            '--out_bval dwi0.bval dwi1.bval dwi2.bval',
-                            '--out_bvec dwi0.bvec dwi1.bvec dwi2.bvec')
+                            in_bval, in_bvec, '5', '15',
+                            '--out_dwi', 'dwi0.nii.gz', 'dwi1.nii.gz',
+                            'dwi2.nii.gz', '--out_bval', 'dwi0.bval',
+                            'dwi1.bval', 'dwi2.bval', '--out_bvec',
+                            'dwi0.bvec', 'dwi1.bvec', 'dwi2.bvec')
     assert ret.success
 
 
@@ -54,22 +55,25 @@ def test_execution_processing_wrong_output(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
     ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5 15',
-                            '--out_dwi dwi0.nii.gz dwi1.nii.gz',
-                            '--out_bval dwi0.bval dwi1.bval dwi2.bval',
-                            '--out_bvec dwi0.bvec dwi1.bvec dwi2.bvec')
+                            in_bval, in_bvec, '5', '15',
+                            '--out_dwi', 'dwi0.nii.gz', 'dwi1.nii.gz',
+                            '--out_bval', 'dwi0.bval',
+                            'dwi1.bval', 'dwi2.bval', '--out_bvec',
+                            'dwi0.bvec', 'dwi1.bvec', 'dwi2.bvec')
     assert (not ret.success)
 
     ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5 15',
-                            '--out_dwi dwi0.nii.gz dwi1.nii.gz dwi2.nii.gz',
-                            '--out_bval dwi0.bval dwi1.bval dwi2.bval',
-                            '--out_bvec dwi0.bvec dwi1.bvec')
+                            in_bval, in_bvec, '5', '15',
+                            '--out_dwi', 'dwi0.nii.gz', 'dwi1.nii.gz',
+                            'dwi2.nii.gz', '--out_bval', 'dwi0.bval',
+                            'dwi1.bval', '--out_bvec',
+                            'dwi0.bvec', 'dwi1.bvec', 'dwi2.bvec')
     assert (not ret.success)
 
     ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5 15',
-                            '--out_dwi dwi0.nii.gz dwi1.nii.gz dwi2.nii.gz',
-                            '--out_bval dwi0.bval dwi1.bval',
-                            '--out_bvec dwi0.bvec dwi1.bvec dwi2.bvec')
+                            in_bval, in_bvec, '5', '15',
+                            '--out_dwi', 'dwi0.nii.gz', 'dwi1.nii.gz',
+                            'dwi2.nii.gz', '--out_bval', 'dwi0.bval',
+                            'dwi1.bval', 'dwi2.bval', '--out_bvec',
+                            'dwi0.bvec', 'dwi1.bvec')
     assert (not ret.success)
