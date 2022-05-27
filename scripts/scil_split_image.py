@@ -108,10 +108,9 @@ def main():
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
     img = nib.load(args.in_dwi)
-    data = img.get_fdata(dtype=np.float32)
 
     # Check if the indices fit inside the range of possible values
-    if np.max(args.split_indices) > data.shape[-1]:
+    if np.max(args.split_indices) > img.shape[-1]:
         parser.error('split_indices values must be lower than the total '
                      'number of direcitons.')
     if np.min(args.split_indices) <= 0:
@@ -120,10 +119,10 @@ def main():
     if not np.all(np.diff(args.split_indices) > 0):
         parser.error('split_indices values must be in increasing order.')
 
-    indices = np.concatenate(([0], args.split_indices, [data.shape[-1]]))
+    indices = np.concatenate(([0], args.split_indices, [img.shape[-1]]))
 
     for i in range(len(indices)-1):
-        data_split = data[..., indices[i]:indices[i+1]]
+        data_split = img.dataobj[..., indices[i]:indices[i+1]]
         bvals_split = bvals[indices[i]:indices[i+1]]
         bvecs_split = bvecs[indices[i]:indices[i+1]]
         # Saving the dwi file
