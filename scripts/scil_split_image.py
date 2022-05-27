@@ -42,7 +42,8 @@ def _build_arg_parser():
     p.add_argument('split_indices', nargs='+', type=int,
                    help='The list of indices where to split the image. For '
                         'example 3 10. This would split the image in three '
-                        'parts, such as [:3], [3:10], [10:].')
+                        'parts, such as [:3], [3:10], [10:]. Indices must be '
+                        'in increasing order.')
 
     p.add_argument('--out_dwi', nargs='+', default=[],
                    help='The names of the output DWI files. There must be '
