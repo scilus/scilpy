@@ -78,6 +78,7 @@ def test_execution_processing_wrong_output(script_runner):
                             'dwi0.bvec', 'dwi1.bvec')
     assert (not ret.success)
 
+
 def test_execution_processing_wrong_indices_given(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
