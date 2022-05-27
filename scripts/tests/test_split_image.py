@@ -77,3 +77,15 @@ def test_execution_processing_wrong_output(script_runner):
                             'dwi1.bval', 'dwi2.bval', '--out_bvec',
                             'dwi0.bvec', 'dwi1.bvec')
     assert (not ret.success)
+
+def test_execution_processing_wrong_indices_given(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(get_home(), 'processing',
+                          'dwi_crop.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing',
+                           'dwi.bval')
+    in_bvec = os.path.join(get_home(), 'processing',
+                           'dwi.bvec')
+    ret = script_runner.run('scil_split_image.py', in_dwi,
+                            in_bval, in_bvec, '5', '25', '15')
+    assert (not ret.success)

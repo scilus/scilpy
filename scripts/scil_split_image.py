@@ -115,6 +115,9 @@ def main():
                      'number of direcitons.')
     if np.min(args.split_indices) <= 0:
         parser.error('split_indices values must be higher than 0.')
+    # Check if the indices are in increasing order
+    if not np.all(np.diff(args.split_indices) > 0):
+        parser.error('split_indices values must be in increasing order.')
 
     indices = np.concatenate(([0], args.split_indices, [data.shape[-1]]))
 
