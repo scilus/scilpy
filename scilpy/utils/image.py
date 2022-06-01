@@ -42,7 +42,12 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
     static_data = nib.load(reference).get_fdata(dtype=np.float32)
 
     nib_file = nib.load(moving)
-    moving_data = nib_file.get_fdata(dtype=np.float32)
+    curr_type = nib_file.get_data_dtype()
+    if np.issubdtype(curr_type, np.signedinteger) or \
+       np.issubdtype(curr_type, np.unsignedinteger):
+        moving_data = np.asanyarray(nib_file.dataobj).astype(curr_type)
+    else:
+        moving_data = nib_file.get_fdata(dtype=curr_type)
     moving_affine = nib_file.affine
 
     if moving_data.ndim == 3 and isinstance(moving_data[0, 0, 0],
