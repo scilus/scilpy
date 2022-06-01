@@ -147,7 +147,7 @@ class AbstractPropagator(object):
 
         return is_direction_valid, v_out
 
-    def propagate(self, pos, v_in):
+    def propagate(self, line, v_in):
         """
         Given the current position and direction, computes the next position
         and direction using Runge-Kutta integration method. If no valid
@@ -155,7 +155,7 @@ class AbstractPropagator(object):
 
         Parameters
         ----------
-        pos: ndarrray (3,)
+        line: list[ndarrray (3,)]
             Current position.
         v_in: ndarray (3,) or TrackingDirection
             Previous tracking direction.
@@ -169,6 +169,9 @@ class AbstractPropagator(object):
         is_direction_valid: bool
             True if new_dir is valid.
         """
+        # Finding last coordinate
+        pos = line[-1]
+
         if self.rk_order == 1:
             is_direction_valid, new_dir = \
                 self._sample_next_direction_or_go_straight(pos, v_in)

@@ -370,7 +370,7 @@ class Tracker(object):
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line[-1], tracking_info)
+                self.propagator.propagate(line, tracking_info)
 
             # Verifying and appending
             if is_direction_valid:
