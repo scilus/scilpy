@@ -24,11 +24,7 @@ from time import perf_counter
 import nibabel as nib
 import numpy as np
 
-
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-from nibabel.affines import apply_affine
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -147,7 +143,9 @@ def main():
 
             # TODO: Investigate why the streamline must not be shifted to
             # origin `corner` for LazyTractogram.
-            strl *= voxel_size
+            strl *= voxel_size  # in mm.
+            if args.compress:
+                strl = compress_streamlines(strl, args.compress)
             yield TractogramItem(strl, dps, {})
 
     # instantiate tractogram
