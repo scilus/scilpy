@@ -115,11 +115,14 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
+    # Seeds are returned with origin `center`.
+    # However, GPUTracker expects origin to be `corner`.
+    # Therefore, we need to shift the seed positions by half voxel.
     seeds = random_seeds_from_mask(
         seed_mask, np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
-        random_seed=args.rng_seed)
+        random_seed=args.rng_seed) + 0.5
     logging.info('Generated {0} seed positions in {1:.2f}s.'
                  .format(len(seeds), perf_counter() - t0))
 
@@ -135,18 +138,20 @@ def main():
                         max_strl_len, args.theta, args.sh_basis,
                         args.batch_size, args.forward_only, args.rng_seed)
 
-    rotation = odf_sh_img.affine[:3, :3]
-    translation = 0  # odf_sh_img.affine[:3, 3]
-
-    def lil_wrapper_boi():
+    # wrapper for tracker.track() yielding one TractogramItem per
+    # streamline for use with the LazyTractogram.
+    def tracks_generator_wrapper():
         for strl, seed in tracker.track():
-            dps = {'seeds': seed} if args.save_seeds else {}
-            strl = strl.dot(rotation) + translation
+            # seed must be saved in voxel space, with origin `center`.
+            dps = {'seeds': seed - 0.5} if args.save_seeds else {}
+
+            # TODO: Investigate why the streamline must not be shifted to
+            # origin `corner` for LazyTractogram.
+            strl *= voxel_size
             yield TractogramItem(strl, dps, {})
 
-    # Save tractogram to file
-    t0 = perf_counter()
-    tractogram = LazyTractogram.from_data_func(lil_wrapper_boi)
+    # instantiate tractogram
+    tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
     tractogram.affine_to_rasmm = odf_sh_img.affine
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)
@@ -155,9 +160,7 @@ def main():
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
-
-    logging.info('Saved tractogram to {0} in {1:.2f}s.'
-                 .format(args.out_tractogram, perf_counter() - t0))
+    logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 
     # Total runtime
     logging.info('Total runtime of {0:.2f}s.'.format(perf_counter() - t_init))

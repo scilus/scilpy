@@ -403,7 +403,7 @@ class GPUTacker():
         Spherical harmonics volume. Ex: ODF or fODF.
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
-    seed : ndarray (n_seeds, 3)
+    seeds : ndarray (n_seeds, 3)
         Seed positions with origin center.
     step_size : float
         Step size in voxel space.
@@ -414,19 +414,14 @@ class GPUTacker():
     theta : float or list of float, optional
         Maximum angle (degrees) between 2 steps. If a list, a theta
         is randomly drawn from the list for each streamline.
-    sh_order : int, optional
-        Spherical harmonics order.
     sh_basis : str, optional
         Spherical harmonics basis.
     batch_size : int, optional
         Approximate size of GPU batches.
+    forward_only: bool, optional
+        If True, only forward tracking is performed.
     rng_seed : int, optional
         Seed for random number generator.
-
-    Returns
-    -------
-    streamlines: list
-        List of streamlines.
     """
     def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
                  theta=20.0, sh_basis='descoteaux07', batch_size=100000,
@@ -437,8 +432,9 @@ class GPUTacker():
         self.sh = sh
         self.mask = mask
 
-        # Seeds
-        seeds = seeds + 0.5  # translate to origin corner
+        if (seeds < 0).any():
+            raise ValueError('Invalid seed positions.\nGPUTracker works with'
+                             ' origin \'corner\'.')
         self.n_seeds = len(seeds)
         self.seed_batches =\
             np.array_split(seeds, np.ceil(len(seeds)/batch_size))
@@ -461,7 +457,8 @@ class GPUTacker():
 
     def track(self):
         """
-        Generate streamlines on the GPU. Yield them one by one.
+        GPU streamlines generator yielding streamlines with corresponding
+        seed positions one by one.
         """
         t0 = perf_counter()
 
@@ -535,14 +532,13 @@ class GPUTacker():
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
                 if n_pts >= self.min_strl_points:
-                    # translate back to original space
-                    strl = strl[:n_pts] - 0.5
-                    seed = seed - 0.5
+                    strl = strl[:n_pts]
+                    nb_valid_streamlines += 1
 
                     # output is yielded so that we can use lazy tractogram.
                     yield strl, seed
-                    nb_valid_streamlines += 1
 
+            # per-batch logging information
             nb_processed_streamlines += len(seed_batch)
             logging.info('{0:>8}/{1} streamlines generated'
                          .format(nb_processed_streamlines, self.n_seeds))
