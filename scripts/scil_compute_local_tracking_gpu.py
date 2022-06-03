@@ -24,7 +24,11 @@ from time import perf_counter
 import nibabel as nib
 import numpy as np
 
-from nibabel.streamlines.tractogram import LazyTractogram
+
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.streamline import save_tractogram
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
+from nibabel.affines import apply_affine
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -64,14 +68,17 @@ def _build_arg_parser():
     p.add_argument('--max_length', type=float, default=300.0,
                    help='Maximum length of the streamline '
                         'in mm. [%(default)s]')
+    p.add_argument('--forward_only', action='store_true',
+                   help='Only perform forward tracking.')
     p.add_argument('--batch_size', type=int, default=100000,
                    help='Approximate size of GPU batches. The default value is'
                         ' quite conservative. [%(default)s]')
     p.add_argument('--save_seeds', action='store_true',
                    help='Save seed positions in data_per_streamline.')
     p.add_argument('--compress', type=float,
-                   help='Compress streamlines using the given threshold. '
-                        '[%(default)s]')
+                   help='Compress streamlines using the given threshold.')
+    p.add_argument('--rng_seed', type=int,
+                   help='Random number generator seed.')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -112,7 +119,7 @@ def main():
         seed_mask, np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
-        random_seed=None)
+        random_seed=args.rng_seed)
     logging.info('Generated {0} seed positions in {1:.2f}s.'
                  .format(len(seeds), perf_counter() - t0))
 
@@ -123,30 +130,24 @@ def main():
     min_strl_len = int(vox_min_length / vox_step_size) + 1
     max_strl_len = int(vox_max_length / vox_step_size) + 1
 
-    # initialize and launch tracking
-    tracker = GPUTacker(odf_sh, mask, seeds,
-                        vox_step_size, min_strl_len,
-                        max_strl_len, args.theta,
-                        args.sh_basis, args.batch_size)
-    streamlines, seeds = tracker.track()
+    # initialize tracking
+    tracker = GPUTacker(odf_sh, mask, seeds, vox_step_size, min_strl_len,
+                        max_strl_len, args.theta, args.sh_basis,
+                        args.batch_size, args.forward_only, args.rng_seed)
 
-    # Compress streamlines
-    t0 = perf_counter()
-    filtered_streamlines = streamlines
-    if args.compress:
-        logging.info('Compressing streamlines.')
-        filtered_streamlines = (
-            compress_streamlines(s, args.compress)
-            for s in filtered_streamlines)
-        logging.info('Compression done in {0:.4f}s.'
-                     .format(perf_counter() - t0))
+    rotation = odf_sh_img.affine[:3, :3]
+    translation = 0  # odf_sh_img.affine[:3, 3]
+
+    def lil_wrapper_boi():
+        for strl, seed in tracker.track():
+            dps = {'seeds': seed} if args.save_seeds else {}
+            strl = strl.dot(rotation) + translation
+            yield TractogramItem(strl, dps, {})
 
     # Save tractogram to file
     t0 = perf_counter()
-    data_per_streamlines = {'seeds': lambda: seeds} if args.save_seeds else {}
-    tractogram = LazyTractogram(lambda: filtered_streamlines,
-                                data_per_streamline=data_per_streamlines,
-                                affine_to_rasmm=odf_sh_img.affine)
+    tractogram = LazyTractogram.from_data_func(lil_wrapper_boi)
+    tractogram.affine_to_rasmm = odf_sh_img.affine
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)
     reference = get_reference_info(odf_sh_img)
@@ -159,8 +160,7 @@ def main():
                  .format(args.out_tractogram, perf_counter() - t0))
 
     # Total runtime
-    logging.info('Total runtime of {0:.2f}s.'
-                 .format(perf_counter() - t_init))
+    logging.info('Total runtime of {0:.2f}s.'.format(perf_counter() - t_init))
 
 
 if __name__ == '__main__':

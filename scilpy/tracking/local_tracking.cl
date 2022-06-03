@@ -13,6 +13,7 @@ SH volume. Tracking is performed in voxel space.
 #define N_THETAS 0
 #define STEP_SIZE 0
 #define MAX_LENGTH 0
+#define FORWARD_ONLY false
 
 // CONSTANTS
 #define FLOAT_TO_BOOL_EPSILON 0.1f
@@ -241,7 +242,7 @@ __kernel void track(__global const float* sh_coeffs,
                                sh_to_sf_mat,  out_streamlines);
 
     // reverse streamline for backward tracking
-    if(current_length > 1 && current_length < MAX_LENGTH)
+    if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
     {
         // reset last direction to initial direction
         last_dir.x = out_streamlines[get_flat_index(seed_indice, 0, 0, 0,
