@@ -370,7 +370,7 @@ class GPUTacker():
     """
     Perform probabilistic tracking on a ODF field inside a binary mask. The
     tracking is executed on the GPU using the OpenCL API. Tracking is performed
-    in voxel space.
+    in voxel space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -384,7 +384,7 @@ class GPUTacker():
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
     seeds : ndarray (n_seeds, 3)
-        Seed positions with origin center.
+        Seed positions in voxel space with origin `corner`.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int

@@ -141,7 +141,7 @@ def main():
             # seed must be saved in voxel space, with origin `center`.
             dps = {'seeds': seed - 0.5} if args.save_seeds else {}
 
-            # TODO: Investigate why the streamline must not be shifted to
+            # TODO: Investigate why the streamline must NOT be shifted to
             # origin `corner` for LazyTractogram.
             strl *= voxel_size  # in mm.
             if args.compress:
