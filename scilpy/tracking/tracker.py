@@ -29,8 +29,7 @@ class Tracker(object):
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False, mmap_mode=None,
-                 rng_seed=1234, track_forward_only=False, skip=0,
-                 finalize_streamlines=True):
+                 rng_seed=1234, track_forward_only=False, skip=0):
         """
         Parameters
         ----------
@@ -43,9 +42,9 @@ class Tracker(object):
         nbr_seeds: int
             Number of seeds to create via the seed generator.
         min_nbr_pts: int
-            Minimum number of points for valid streamlines.
+            Minimum number of points for streamlines.
         max_nbr_pts: int
-            Maximum number of points for valid streamlines.
+            Maximum number of points for streamlines.
         max_invalid_dirs: int
             Number of consecutives invalid directions allowed during tracking.
         compression_th : float,
@@ -69,9 +68,6 @@ class Tracker(object):
             tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
             with nbr_seeds=1,000,000, you can create tractogram_2 with
             skip 1,000,000.
-        finalize_streamlines: bool
-            If True, an additional step is performed to finalize streamlines
-            by calling propagator.finalize_streamline().
         """
         self.propagator = propagator
         self.mask = mask
@@ -86,7 +82,6 @@ class Tracker(object):
         self.rng_seed = rng_seed
         self.track_forward_only = track_forward_only
         self.skip = skip
-        self.finalize_streamlines = finalize_streamlines
 
         # Everything scilpy.tracking is in 'corner', 'voxmm'
         self.origin = 'corner'
@@ -118,7 +113,7 @@ class Tracker(object):
             streamline.
         """
         if self.nbr_processes < 2:
-            chunk_id = 0
+            chunk_id = 1
             lines, seeds = self._get_streamlines(chunk_id)
         else:
             # Each process will use get_streamlines_at_seeds
@@ -285,7 +280,7 @@ class Tracker(object):
         if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
             return None
-        line = self._propagate_line(line, True, tracking_info)
+        line = self._propagate_line(line, tracking_info)
 
         # Backward
         if not self.track_forward_only:
@@ -294,14 +289,14 @@ class Tracker(object):
 
             tracking_info = self.propagator.prepare_backward(line,
                                                              tracking_info)
-            line = self._propagate_line(line, False, tracking_info)
+            line = self._propagate_line(line, tracking_info)
 
         # Clean streamline
         if self.min_nbr_pts <= len(line) <= self.max_nbr_pts:
             return line
         return None
 
-    def _propagate_line(self, line, is_forward, tracking_info):
+    def _propagate_line(self, line, tracking_info):
         """
         Generate a streamline in forward or backward direction from an initial
         position following the tracking parameters.
@@ -330,20 +325,7 @@ class Tracker(object):
         """
         invalid_direction_count = 0
         propagation_can_continue = True
-        if self.track_forward_only:
-            max_nbr_pts = self.max_nbr_pts
-        elif is_forward:  # maybe a problem for non-centered seeds
-            max_nbr_pts = self.max_nbr_pts // 2
-            # -1 to account for extra step from finalize_streamline
-            if self.finalize_streamlines:
-                max_nbr_pts -= 1
-        else:  # backward
-            max_nbr_pts = self.max_nbr_pts
-            # -1 to account for extra step from finalize_streamline
-            if self.finalize_streamlines:
-                max_nbr_pts -= 1
-
-        while len(line) < max_nbr_pts and propagation_can_continue:
+        while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line[-1], tracking_info)
 
@@ -360,14 +342,12 @@ class Tracker(object):
             tracking_info = new_tracking_info
 
         # Possible last step.
-        if self.finalize_streamlines:
-            final_pos = self.propagator.finalize_streamline(line[-1],
-                                                            tracking_info)
-            if (final_pos is not None and
-                    not np.array_equal(final_pos, line[-1]) and
-                    self.mask.is_voxmm_in_bound(*final_pos, self.origin)):
-                line.append(final_pos)
-
+        final_pos = self.propagator.finalize_streamline(line[-1],
+                                                        tracking_info)
+        if (final_pos is not None and
+                not np.array_equal(final_pos, line[-1]) and
+                self.mask.is_voxmm_in_bound(*final_pos, origin=self.origin)):
+            line.append(final_pos)
         return line
 
     def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
@@ -403,8 +383,8 @@ class GPUTacker():
         Spherical harmonics volume. Ex: ODF or fODF.
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
-    seeds : ndarray (n_seeds, 3)
-        Seed positions with origin center.
+    seed : ndarray (n_seeds, 3)
+        Seed positions.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int
@@ -414,52 +394,41 @@ class GPUTacker():
     theta : float or list of float, optional
         Maximum angle (degrees) between 2 steps. If a list, a theta
         is randomly drawn from the list for each streamline.
-    sh_basis : str, optional
-        Spherical harmonics basis.
+    sharpness : float, optional
+        Exponent on ODF amplitude to control sharpness.
     batch_size : int, optional
         Approximate size of GPU batches.
-    forward_only: bool, optional
-        If True, only forward tracking is performed.
-    rng_seed : int, optional
-        Seed for random number generator.
+    sh_order : int, optional
+        Spherical harmonics order.
+    sh_basis : str, optional
+        Spherical harmonics basis.
+
+    Returns
+    -------
+    streamlines: list
+        List of streamlines.
     """
-    def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
-                 theta=20.0, sh_basis='descoteaux07', batch_size=100000,
-                 forward_only=False, rng_seed=None):
+    def __init__(self, sh, mask, seeds, step_size,
+                 min_nbr_pts, max_nbr_pts, theta=20.0,
+                 sh_basis='descoteaux07', batch_size=100000):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
         self.sh = sh
         self.mask = mask
-
-        if (seeds < 0).any():
-            raise ValueError('Invalid seed positions.\nGPUTracker works with'
-                             ' origin \'corner\'.')
-        self.n_seeds = len(seeds)
-        self.seed_batches =\
-            np.array_split(seeds, np.ceil(len(seeds)/batch_size))
-
-        # tracking step_size and number of points
+        self.seeds = seeds + 0.5  # move to origin center
         self.step_size = step_size
         self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
-        # convert theta to array
         if isinstance(theta, float):
             theta = np.array([theta])
         self.theta = theta
 
         self.sh_basis = sh_basis
-        self.forward_only = forward_only
-
-        # Instantiate random number generator
-        self.rng = np.random.default_rng(rng_seed)
+        self.batch_size = batch_size
 
     def track(self):
-        """
-        GPU streamlines generator yielding streamlines with corresponding
-        seed positions one by one.
-        """
         t0 = perf_counter()
 
         # Load the sphere
@@ -481,13 +450,14 @@ class GPUTacker():
         cl_kernel.set_define('N_THETAS', len(self.theta))
         cl_kernel.set_define('STEP_SIZE', '{}f'.format(self.step_size))
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
-        cl_kernel.set_define('FORWARD_ONLY',
-                             'true' if self.forward_only else 'false')
 
         # Create CL program
         n_input_params = 7
         n_output_params = 2
         cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
+
+        seed_batches = np.array_split(
+            self.seeds, np.ceil(len(self.seeds)/self.batch_size))
 
         # Input buffers
         # Constant input buffers
@@ -502,29 +472,31 @@ class GPUTacker():
 
         cl_manager.add_input_buffer(6, max_cos_theta)
 
+        # Output buffers
+        cl_manager.add_output_buffer(
+            0, (self.batch_size, self.max_strl_points, 3))
+        cl_manager.add_output_buffer(1, (self.batch_size, 1))
         logging.debug('Initialized OpenCL program in {:.2f}s.'
                       .format(perf_counter() - t0))
 
         # Generate streamlines in batches
         t0 = perf_counter()
-        nb_processed_streamlines = 0
-        nb_valid_streamlines = 0
-        for seed_batch in self.seed_batches:
+        nb_streamlines = 0
+        streamlines = []
+        seeds = []
+        for seed_batch in seed_batches:
             # Generate random values for sf sampling
             # TODO: Implement random number generator directly
             #       on the GPU to generate values on-the-fly.
-            rand_vals = self.rng.uniform(0.0, 1.0,
-                                         (len(seed_batch),
-                                          self.max_strl_points))
+            rand_vals = np.random.uniform(0.0, 1.0,
+                                          (len(seed_batch),
+                                           self.max_strl_points))
 
             # Update buffers
             cl_manager.add_input_buffer(4, seed_batch)
             cl_manager.add_input_buffer(5, rand_vals)
-
-            # output streamlines buffer
             cl_manager.add_output_buffer(
                 0, (len(seed_batch), self.max_strl_points, 3))
-            # output streamlines length buffer
             cl_manager.add_output_buffer(1, (len(seed_batch), 1))
 
             # Run the kernel
@@ -532,16 +504,13 @@ class GPUTacker():
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
                 if n_pts >= self.min_strl_points:
-                    strl = strl[:n_pts]
-                    nb_valid_streamlines += 1
-
-                    # output is yielded so that we can use lazy tractogram.
-                    yield strl, seed
-
-            # per-batch logging information
-            nb_processed_streamlines += len(seed_batch)
+                    # shift to origin center
+                    streamlines.append(strl[:n_pts] - 0.5)
+                    seeds.append(seed - 0.5)
+            nb_streamlines += len(seed_batch)
             logging.info('{0:>8}/{1} streamlines generated'
-                         .format(nb_processed_streamlines, self.n_seeds))
+                         .format(nb_streamlines, len(self.seeds)))
 
         logging.info('Tracked {0} streamlines in {1:.2f}s.'
-                     .format(nb_valid_streamlines, perf_counter() - t0))
+                     .format(len(streamlines), perf_counter() - t0))
+        return streamlines, seeds
