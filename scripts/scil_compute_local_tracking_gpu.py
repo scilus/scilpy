@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic tractography [1] on a ODF field inside a binary mask.
+Perform probabilistic tractography on a ODF field inside a binary mask.
 The tracking is executed on the GPU using the OpenCL API.
 
 Streamlines are filtered by minimum length, but not by maximum length. For this
