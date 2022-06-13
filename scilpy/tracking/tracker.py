@@ -16,9 +16,9 @@ from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.tracking.seed import SeedGenerator
 
 # For the multi-processing:
-# Iterable. Will contain all parameters necessary for a sub-process
+# Dictionary. Will contain all parameters necessary for a sub-process
 # initialization.
-multiprocess_init_args = []
+multiprocess_init_args = {}
 
 
 class Tracker(object):
@@ -184,7 +184,10 @@ class Tracker(object):
         pool = multiprocessing.Pool(
             self.nbr_processes,
             initializer=self._send_multiprocess_args_to_global,
-            initargs=(data_file_name, self.mmap_mode))
+            initargs={
+                'data_file_name': data_file_name,
+                'mmap_mode': self.mmap_mode
+            })
 
         return pool
 
@@ -236,7 +239,7 @@ class Tracker(object):
             (file where the data is saved, mmap_mode).
         """
         self.propagator.reset_data(np.load(
-            init_args[0], mmap_mode=init_args[1]))
+            init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
     def _get_streamlines(self, chunk_id):
         """
