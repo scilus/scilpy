@@ -22,8 +22,6 @@ multiprocess_init_args = []
 
 
 class Tracker(object):
-    printing_frequency = 1000
-
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
@@ -97,6 +95,8 @@ class Tracker(object):
             self.mmap_mode = None
 
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
+
+        self.printing_frequency = 1000
 
     def track(self):
         """
@@ -173,9 +173,8 @@ class Tracker(object):
         # doing manually with a static class.
         # Be careful however, parameter changes inside the method will
         # not be kept.
-        # toDo
-        # must be better designed for dipy
-        # the tracking should not know which data to deal with
+
+        # Saving data. We will reload it in each process.
         data_file_name = os.path.join(tmpdir, 'data.npy')
         np.save(data_file_name, self.propagator.dataset.data)
 
