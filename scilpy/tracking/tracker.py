@@ -21,7 +21,9 @@ from scilpy.tracking.seed import SeedGenerator
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
 
 # For the multi-processing:
-data_file_info = None
+# Dictionary. Will contain all parameters necessary for a sub-process
+# initialization.
+multiprocess_init_args = {}
 
 
 class Tracker(object):
@@ -99,6 +101,8 @@ class Tracker(object):
 
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 
+        self.printing_frequency = 1000
+
     def track(self):
         """
         Generate a set of streamline from seed, mask and odf files. Results
@@ -119,22 +123,8 @@ class Tracker(object):
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
             with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
-                # toDo
-                # must be better designed for dipy
-                # the tracking should not know which data to deal with
-                data_file_name = os.path.join(tmpdir, 'data.npy')
-                np.save(data_file_name, self.propagator.dataset.data)
-                self.propagator.reset_data()
 
-                # Using pool with a class method will serialize all parameters
-                # in the class, which can be heavy, but it is what we would be
-                # doing manually with a static class.
-                # Be careful however, parameter changes inside the method will
-                # not be kept.
-                pool = multiprocessing.Pool(self.nbr_processes,
-                                            initializer=self._init_sub_process,
-                                            initargs=(data_file_name,
-                                                      self.mmap_mode))
+                pool = self._prepare_multiprocessing_pool(tmpdir)
 
                 lines_per_process, seeds_per_process = zip(*pool.map(
                     self._get_streamlines_sub, chunk_ids))
@@ -148,7 +138,10 @@ class Tracker(object):
         return lines, seeds
 
     def _set_nbr_processes(self, nbr_processes):
-        # Verifying the number of processes
+        """
+        If user did not define the number of processes, define it automatically
+        (or set to 1 -- no multiprocessing -- if we can't).
+        """
         if nbr_processes <= 0:
             try:
                 nbr_processes = multiprocessing.cpu_count()
@@ -163,15 +156,61 @@ class Tracker(object):
                           "less seeds than processes.".format(nbr_processes))
         return nbr_processes
 
+    def _prepare_multiprocessing_pool(self, tmpdir):
+        """
+        Prepare multiprocessing pool.
+
+        Data must be carefully managed to avoid corruption with
+        multiprocessing.
+
+        Params
+        ------
+        tmpdir: str
+            Path where to save temporarily the data. This will allow clearing
+            the data from memory. We will fetch it back later.
+
+        Returns
+        -------
+        pool: The multiprocessing pool.
+        """
+        # Using pool with a class method will serialize all parameters
+        # in the class, which can be heavy, but it is what we would be
+        # doing manually with a static class.
+        # Be careful however, parameter changes inside the method will
+        # not be kept.
+
+        # Saving data. We will reload it in each process.
+        data_file_name = os.path.join(tmpdir, 'data.npy')
+        np.save(data_file_name, self.propagator.dataset.data)
+
+        # Clear data from memory
+        self.propagator.reset_data(new_data=None)
+
+        pool = multiprocessing.Pool(
+            self.nbr_processes,
+            initializer=self._send_multiprocess_args_to_global,
+            initargs={
+                'data_file_name': data_file_name,
+                'mmap_mode': self.mmap_mode
+            })
+
+        return pool
+
     @staticmethod
-    def _init_sub_process(date_file_name, mmap_mod):
-        global data_file_info
-        data_file_info = (date_file_name, mmap_mod)
+    def _send_multiprocess_args_to_global(init_args):
+        """
+        Sends subprocess' initialisation arguments to global for easier access
+        by the multiprocessing pool.
+        """
+        global multiprocess_init_args
+        multiprocess_init_args = init_args
         return
 
     def _get_streamlines_sub(self, chunk_id):
         """
-        multiprocessing.pool.map input function.
+        multiprocessing.pool.map input function. Calls the main tracking
+        method (_get_streamlines) with correct initialization arguments
+        (taken from the global variable multiprocess_init_args).
 
         Parameters
         ----------
@@ -183,11 +222,9 @@ class Tracker(object):
         lines: list
             List of list of 3D positions (streamlines).
         """
-        global data_file_info
+        global multiprocess_init_args
 
-        self.propagator.reset_data(np.load(
-            data_file_info[0], mmap_mode=data_file_info[1]))
-
+        self._reload_data_for_new_process(multiprocess_init_args)
         try:
             streamlines, seeds = self._get_streamlines(chunk_id)
             return streamlines, seeds
@@ -195,6 +232,19 @@ class Tracker(object):
             logging.error("Operation _get_streamlines_sub() failed.")
             traceback.print_exception(*sys.exc_info(), file=sys.stderr)
             raise e
+
+    def _reload_data_for_new_process(self, init_args):
+        """
+        Once process is started, load back data.
+
+        Params
+        ------
+        init_args: Iterable
+            Args necessary to reset data. In current implementation: a tuple;
+            (file where the data is saved, mmap_mode).
+        """
+        self.propagator.reset_data(np.load(
+            init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
     def _get_streamlines(self, chunk_id):
         """
@@ -230,9 +280,9 @@ class Tracker(object):
 
         # Getting streamlines
         for s in range(chunk_size):
-            if s % 1000 == 0:
-                logging.info(str(os.getpid()) + " : " + str(s)
-                             + " / " + str(chunk_size))
+            if s % self.printing_frequency == 0:
+                logging.info("Process {} (id {}): {} / {}"
+                             .format(chunk_id, os.getpid(), s, chunk_size))
 
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
@@ -327,7 +377,7 @@ class Tracker(object):
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line[-1], tracking_info)
+                self.propagator.propagate(line, tracking_info)
 
             # Verifying and appending
             if is_direction_valid:
