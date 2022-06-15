@@ -69,8 +69,8 @@ def main():
                          optional=list((args.out_basename)))
 
     # Check if the number of names given is equal to the number of indices + 1
-    if (args.out_basename and 
-        len(args.out_basename) != len(args.split_indices) + 1):
+    if (args.out_basename and
+            len(args.out_basename) != len(args.split_indices) + 1):
         parser.error('--out_basename must contain len(split_indices) + 1 '
                      'names.')
 
