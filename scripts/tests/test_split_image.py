@@ -29,7 +29,7 @@ def test_execution_processing_no_output_given(script_runner):
     assert ret.success
 
 
-def test_execution_processing_good_output_given(script_runner):
+def test_execution_processing_output_given(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
                           'dwi_crop.nii.gz')
@@ -39,29 +39,8 @@ def test_execution_processing_good_output_given(script_runner):
                            'dwi.bvec')
     ret = script_runner.run('scil_split_image.py', in_dwi,
                             in_bval, in_bvec, '5', '15',
-                            '--out_basename', 'dwi0', 'dwi1',
-                            'dwi2')
+                            '--out_basename', 'dwi')
     assert ret.success
-
-
-def test_execution_processing_wrong_output(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi = os.path.join(get_home(), 'processing',
-                          'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
-                           'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
-                           'dwi.bvec')
-    ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5', '15',
-                            '--out_basename', 'dwi0', 'dwi1')
-    assert (not ret.success)
-
-    ret = script_runner.run('scil_split_image.py', in_dwi,
-                            in_bval, in_bvec, '5', '15',
-                            '--out_basename', 'dwi0', 'dwi1',
-                            'dwi2', 'dwi3')
-    assert (not ret.success)
 
 
 def test_execution_processing_wrong_indices_given(script_runner):

@@ -15,6 +15,7 @@ b-1500s from the rest of the b-1500s in an image, simply put x as an index.
 
 import argparse
 import logging
+from operator import index
 from pathlib import Path
 
 from dipy.io import read_bvals_bvecs
@@ -45,10 +46,12 @@ def _build_arg_parser():
                         'parts, such as [:3], [3:10], [10:]. Indices must be '
                         'in increasing order.')
 
-    p.add_argument('--out_basename', nargs='+', default=[],
-                   help='The basenames of the output files. There must be '
-                        'one more name than indices in split_indices. By '
-                        'default, indices number will be appended to in_dwi, '
+    p.add_argument('--out_basename',
+                   help='The basename of the output files. Indices number '
+                        'will be appended to out_basename, such as '
+                        'out_basename_0_3, out_basename_3_10, '
+                        'out_basename_10_end. By default, indices number'
+                        'will be appended to in_dwi, '
                         'such as in_dwi_0_3, in_dwi_3_10, in_dwi_10_end.')
 
     add_verbose_arg(p)
@@ -66,13 +69,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, [],
-                         optional=list((args.out_basename)))
-
-    # Check if the number of names given is equal to the number of indices + 1
-    if (args.out_basename and
-            len(args.out_basename) != len(args.split_indices) + 1):
-        parser.error('--out_basename must contain len(split_indices) + 1 '
-                     'names.')
+                         optional=args.out_basename)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
@@ -95,12 +92,12 @@ def main():
         bvals_split = bvals[indices[i]:indices[i+1]]
         bvecs_split = bvecs[indices[i]:indices[i+1]]
         # Saving the output files
+        index_name = "_" + str(indices[i]) + "_" + str(indices[i+1])
         if args.out_basename:
-            data_name = args.out_basename[i]
-            bval_name = args.out_basename[i]
-            bvec_name = args.out_basename[i]
+            data_name = args.out_basename + index_name
+            bval_name = args.out_basename + index_name
+            bvec_name = args.out_basename + index_name
         else:
-            index_name = "_" + str(indices[i]) + "_" + str(indices[i+1])
             data_name = str(Path(Path(args.in_dwi).stem).stem) + index_name
             bval_name = str(Path(Path(args.in_bval).stem).stem) + index_name
             bvec_name = str(Path(Path(args.in_bvec).stem).stem) + index_name
