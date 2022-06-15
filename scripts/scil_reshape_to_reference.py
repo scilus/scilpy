@@ -37,7 +37,7 @@ def _build_arg_parser():
 
     p.add_argument('--keep_dtype', action='store_true',
                    help='If True, keeps the data_type of the input image '
-                        '(in_file) when saving the output image (out_file)')
+                        '(in_file) when saving the output image (out_file).')
 
     add_overwrite_arg(p)
     return p
