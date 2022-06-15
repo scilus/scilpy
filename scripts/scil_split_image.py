@@ -45,43 +45,16 @@ def _build_arg_parser():
                         'parts, such as [:3], [3:10], [10:]. Indices must be '
                         'in increasing order.')
 
-    p.add_argument('--out_dwi', nargs='+', default=[],
-                   help='The names of the output DWI files. There must be '
+    p.add_argument('--out_basename', nargs='+', default=[],
+                   help='The basenames of the output files. There must be '
                         'one more name than indices in split_indices. By '
                         'default, indices number will be appended to in_dwi, '
                         'such as in_dwi_0_3, in_dwi_3_10, in_dwi_10_end.')
-
-    p.add_argument('--out_bval', nargs='+', default=[],
-                   help='The names of the output b-value files (.bval). There '
-                        'must be one more name than indices in split_indices. '
-                        'By default, indices number will be appended to '
-                        'in_dwi, such as in_dwi_0_3, in_dwi_3_10, '
-                        'in_dwi_10_end.')
-
-    p.add_argument('--out_bvec', nargs='+', default=[],
-                   help='The names of the output b-vector files (.bvec).There '
-                        'must be one more name than indices in split_indices. '
-                        'By default, indices number will be appended to '
-                        'in_dwi, such as in_dwi_0_3, in_dwi_3_10, '
-                        'in_dwi_10_end.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
-
-
-def create_name_from_indices(indices, input):
-    input_path = Path(input)
-    parent_dir = input_path.parent
-    input_name = Path(input_path.stem).stem
-    index_name = "_" + str(indices[0]) + "_" + str(indices[1])
-    suffix = ""
-    for suff in input_path.suffixes:
-        suffix += suff
-    output_name = Path(parent_dir, input_name + index_name + suffix)
-
-    return str(output_name)
 
 
 def main():
@@ -93,17 +66,13 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, [],
-                         optional=list(np.concatenate((args.out_dwi,
-                                                       args.out_bval,
-                                                       args.out_bvec))))
+                         optional=list((args.out_basename)))
 
     # Check if the number of names given is equal to the number of indices + 1
-    if args.out_dwi and len(args.out_dwi) != len(args.split_indices) + 1:
-        parser.error('--out_dwi must contain len(split_indices) + 1 names.')
-    if args.out_bval and len(args.out_bval) != len(args.split_indices) + 1:
-        parser.error('--out_bval must contain len(split_indices) + 1 names.')
-    if args.out_bvec and len(args.out_bvec) != len(args.split_indices) + 1:
-        parser.error('--out_bvec must contain len(split_indices) + 1 names.')
+    if (args.out_basename and 
+        len(args.out_basename) != len(args.split_indices) + 1):
+        parser.error('--out_basename must contain len(split_indices) + 1 '
+                     'names.')
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
@@ -125,25 +94,20 @@ def main():
         data_split = img.dataobj[..., indices[i]:indices[i+1]]
         bvals_split = bvals[indices[i]:indices[i+1]]
         bvecs_split = bvecs[indices[i]:indices[i+1]]
-        # Saving the dwi file
-        if args.out_dwi:
-            data_name = args.out_dwi[i]
+        # Saving the output files
+        if args.out_basename:
+            data_name = args.out_basename[i]
+            bval_name = args.out_basename[i]
+            bvec_name = args.out_basename[i]
         else:
-            data_name = create_name_from_indices(indices[i:i+2], args.in_dwi)
+            index_name = "_" + str(indices[i]) + "_" + str(indices[i+1])
+            data_name = str(Path(Path(args.in_dwi).stem).stem) + index_name
+            bval_name = str(Path(Path(args.in_bval).stem).stem) + index_name
+            bvec_name = str(Path(Path(args.in_bvec).stem).stem) + index_name
         nib.save(nib.Nifti1Image(data_split, img.affine, header=img.header),
-                 data_name)
-        # Saving the bval file
-        if args.out_bval:
-            bval_name = args.out_bval[i]
-        else:
-            bval_name = create_name_from_indices(indices[i:i+2], args.in_bval)
-        np.savetxt(bval_name, bvals_split, '%d')
-        # Saving the bvec file
-        if args.out_bvec:
-            bvec_name = args.out_bvec[i]
-        else:
-            bvec_name = create_name_from_indices(indices[i:i+2], args.in_bvec)
-        np.savetxt(bvec_name, bvecs_split, '%0.15f')
+                 data_name + ".nii.gz")
+        np.savetxt(bval_name + ".bval", bvals_split, '%d')
+        np.savetxt(bvec_name + ".bvec", bvecs_split, '%0.15f')
 
 
 if __name__ == "__main__":
