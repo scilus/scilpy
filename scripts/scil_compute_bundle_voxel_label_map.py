@@ -55,10 +55,10 @@ def _build_arg_parser():
                         'Default is the number of points of the centroid.')
     p.add_argument('--new_labeling', action='store_true',
                    help='.')
-    p.add_argument('--min_streamline_count', type=int, default=100,
+    p.add_argument('--min_streamline_count', type=int, default=100000,
                    help='Minimum number of streamlines for filtering/cutting'
                         'operation [%(default)s].')
-    p.add_argument('--min_voxel_count', type=int, default=1000,
+    p.add_argument('--min_voxel_count', type=int, default=1000000,
                    help='Minimum number of voxels for filtering/cutting'
                         'operation [%(default)s].')
     p.add_argument('--colormap', default='jet',
@@ -173,7 +173,7 @@ def main():
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = np.zeros(corr_map.shape, dtype=bool)
     binary_bundle[corr_map > 0.5] = 1
-    min_streamlines_count = 0
+    min_streamlines_count = 1e16
     for sft in sft_list:
         min_streamlines_count = min(len(sft), min_streamlines_count)
 
