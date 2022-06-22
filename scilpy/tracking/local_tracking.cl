@@ -141,6 +141,15 @@ int sample_sf(const float* odf_sf, const float randv)
 
     const float where = (randv * cumsum[N_DIRS - 1]);
     int index = 0;
+
+    // increase index until the probability of
+    // first element is non-null
+    while(cumsum[index] < NULL_SF_EPS)
+    {
+        ++index;
+    }
+
+    // pick sampled direction
     while(cumsum[index] < where && index < N_DIRS)
     {
         ++index;
@@ -161,25 +170,17 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
     bool is_valid = is_valid_pos(tracking_mask, last_pos);
     while(current_length < MAX_LENGTH && is_valid)
     {
-        // save current streamline position
-        out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
-                                       n_seeds, MAX_LENGTH, 3)] = last_pos.x;
-        out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
-                                       n_seeds, MAX_LENGTH, 3)] = last_pos.y;
-        out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
-                                       n_seeds, MAX_LENGTH, 3)] = last_pos.z;
-
-        // 2. Sample SF at position.
+        // Sample SF at position.
         float odf_sh[IM_N_COEFFS];
         float odf_sf[N_DIRS];
         get_value_nn(sh_coeffs, IM_N_COEFFS, last_pos, odf_sh);
-        sh_to_sf(odf_sh, sh_to_sf_mat, current_length == 0, vertices,
+        sh_to_sf(odf_sh, sh_to_sf_mat, current_length == 1, vertices,
                  last_dir, max_cos_theta_local, odf_sf);
 
         const float randv = rand_f[get_flat_index(seed_indice, current_length, 0, 0,
                                                   n_seeds, MAX_LENGTH, 1)];
         const int vert_indice = sample_sf(odf_sf, randv);
-        if(vert_indice > 0)
+        if(vert_indice >= 0)
         {
             const float3 direction = {
                 vertices[get_flat_index(vert_indice, 0, 0, 0, N_DIRS, 3, 1)],
@@ -187,7 +188,7 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
                 vertices[get_flat_index(vert_indice, 2, 0, 0, N_DIRS, 3, 1)]
             };
 
-            // 3. Try step.
+            // Try step.
             const float3 next_pos = last_pos + STEP_SIZE * direction;
             is_valid = is_valid_pos(tracking_mask, next_pos);
             last_dir = normalize(next_pos - last_pos);
@@ -197,7 +198,20 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
         {
             is_valid = false;
         }
-        ++current_length;
+
+        if(is_valid)
+        {
+            // save current streamline position
+            out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
+                                           n_seeds, MAX_LENGTH, 3)] = last_pos.x;
+            out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
+                                           n_seeds, MAX_LENGTH, 3)] = last_pos.y;
+            out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
+                                           n_seeds, MAX_LENGTH, 3)] = last_pos.z;
+
+            // increment track length
+            ++current_length;
+        }
     }
     return current_length;
 }
@@ -233,9 +247,18 @@ __kernel void track(__global const float* sh_coeffs,
     }
 
     float3 last_pos = seed_pos;
-    float3 last_dir;
     int current_length = 0;
+
+    // add seed position to track
+    out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
+                                   n_seeds, MAX_LENGTH, 3)] = last_pos.x;
+    out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
+                                   n_seeds, MAX_LENGTH, 3)] = last_pos.y;
+    out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
+                                   n_seeds, MAX_LENGTH, 3)] = last_pos.z;
     // forward track
+    float3 last_dir;
+    ++current_length;
     current_length = propagate(last_pos, last_dir, current_length,
                                seed_indice, n_seeds, max_cos_theta_local,
                                tracking_mask, sh_coeffs, rand_f, vertices,
