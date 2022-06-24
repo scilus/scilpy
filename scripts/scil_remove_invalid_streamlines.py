@@ -70,7 +70,7 @@ def main():
 
     if args.remove_overlapping_points:
         for i in np.setdiff1d(range(len(sft)), indices):
-            norm = np.linalg.norm(sft.streamlines[i][1:] - sft.streamlines[i][:-1],
+            norm = np.linalg.norm(np.diff(sft.streamlines[i], axis=0),
                                   axis=1)
             if (norm < 0.001).any():
                 indices.append(i)
