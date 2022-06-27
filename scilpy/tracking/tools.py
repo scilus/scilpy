@@ -3,6 +3,7 @@
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 import numpy as np
 from scipy.interpolate import splev, splprep
@@ -135,7 +136,8 @@ def filter_streamlines_by_total_length_per_dim(
     return filtered_sft, np.nonzero(mask_good_ids), rejected_sft
 
 
-def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
+def get_subset_streamlines(sft, max_streamlines, rng_seed=None,
+                           return_indices_only=False):
     """
     Extract a specific number of streamlines.
 
@@ -147,28 +149,185 @@ def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
         Maximum number of streamlines to output.
     rng_seed: int
         Random number to use for shuffling the data.
+    return_indices_only: bool
+        If true, return a random list of indices. Else, return the Stateful
+        Tractogram containing the chosen streamlines.
 
     Return
     ------
-    subset_sft: StatefulTractogram
-        The filtered streamlines as a sft.
+    subset_sft: StatefulTractogram or list
+        The filtered streamlines as a sft, or the list of indices if
+        return_indices_only.
     """
 
     rng = np.random.RandomState(rng_seed)
     ind = np.arange(len(sft.streamlines))
     rng.shuffle(ind)
 
-    subset_streamlines = list(np.asarray(sft.streamlines, dtype=object)[
-                              ind[:max_streamlines]])
-    subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
-    subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
+    if return_indices_only:
+        return ind[:max_streamlines]
 
-    subset_sft = StatefulTractogram.from_sft(
-        subset_streamlines, sft,
-        data_per_point=subset_data_per_point,
-        data_per_streamline=subset_data_per_streamline)
+    return sft[ind[:max_streamlines]]
 
-    return subset_sft
+
+def get_n_subsets_streamlines_sequentially(orig_sft, chunk_sizes):
+    """
+    Get n chunks of subsets of streamlines, sequentially through the sft.
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide
+    chunk_sizes: list[int]
+        Number of streamlines to keep per chunk.
+
+    Return
+    ------
+    all_chunks: list[StatefulTractogram]
+        The filtered streamlines as a sfts.
+    """
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    nb_chunks = len(chunk_sizes)
+
+    curr = 0
+    sfts = []
+    for i in range(nb_chunks):
+        nb_str = chunk_sizes[i]
+        sfts.append(orig_sft[curr:curr + nb_str])
+        curr += chunk_sizes[i]
+
+    return sfts
+
+
+def get_n_subsets_streamlines_random(orig_sft, chunk_sizes, seed,
+                                     return_indices_only=False):
+    """
+    Get n chunks of subsets of streamlines.
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide
+    chunk_sizes: list[int]
+        Number of streamlines to keep per chunk.
+    seed: int
+        Random seed.
+    return_indices_only: bool
+        If true, return a random list of indices. Else, return the Stateful
+        Tractogram containing the chosen streamlines.
+
+    Return
+    ------
+    all_chunks: list[list[int]] or list[StatefulTractogram]
+        The filtered streamlines as a sfts, or the lists of indices if
+        return_indices_only. Last item of the list contains streamlines that
+        were rejected.
+    """
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    nb_chunks = len(chunk_sizes)
+    final_indices = [[] for _ in chunk_sizes]
+    orig_indices_left = np.arange(len(orig_sft))
+    if return_indices_only:
+        sft_left = orig_sft  # No need to keep orig_sft intact.
+    else:
+        sft_left = orig_sft[:]  # Equivalent of deep copy
+
+    for i in range(nb_chunks):
+        nb_to_keep = chunk_sizes[i]
+
+        sub_ind = get_subset_streamlines(
+            sft_left, nb_to_keep, seed, return_indices_only=True)
+
+        final_indices[i] = [orig_indices_left[ind] for ind in sub_ind]
+
+        # Keep only the rejected as possible choice for next chunk.
+        sub_left_ind = np.setdiff1d(np.arange(len(sft_left)), sub_ind)
+        sft_left = sft_left[sub_left_ind]
+        orig_indices_left = np.setdiff1d(orig_indices_left,
+                                         final_indices[i])
+
+    # Append indices not included in any chunk
+    final_indices.append(list(orig_indices_left))
+
+    if return_indices_only:
+        return final_indices
+
+    all_sfts = []
+    for i in range(nb_chunks + 1):
+        all_sfts.append(orig_sft[final_indices[i]])
+
+    return all_sfts
+
+
+def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed):
+    """
+    Get a subset of streamline randomly per Quickbundle cluster (trying to help
+    the randomization to ensure there are streamlines from all bundles in each
+    subset).
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide
+    chunk_sizes: list[int]
+        Number of streamlines to keep per chunk. We will ensure that the number
+        of streamlines kept per cluster is proportional to the cluster's size.
+        Final number will be a good approximation of nb_streamlines.
+    seed: int
+        Random seed.
+
+    Returns
+    -------
+    all_sfts: list[StatefulTractogram]
+        The sub-sfts. Last item of the list contains streamlines that were
+        rejected.
+    """
+
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    # Percent of streamlines to keep per chunk.
+    nb_chunks = len(chunk_sizes)
+    percent_kept_per_chunk = [nb / len(orig_sft) for nb in chunk_sizes]
+
+    logging.debug("Computing QBx")
+    thresholds = [40, 30, 20]
+    clusters = qbx_and_merge(orig_sft.streamlines, thresholds, nb_pts=20,
+                             verbose=False)
+
+    logging.debug("Done. Now getting list of indices in each of the {} "
+                  "cluster.".format(len(clusters)))
+    total_indices = [[] for _ in range(nb_chunks + 1)]
+    for cluster in clusters:
+        if len(cluster.indices) > 1:
+            cluster_sft = orig_sft[cluster.indices]
+            size_cluster = len(cluster.indices)
+            chunk_sizes_in_cluster = \
+                [round(p * size_cluster) for p in percent_kept_per_chunk]
+
+            # If rounding created too many streamlines, removing some from the
+            # last chunk.
+            while sum(chunk_sizes_in_cluster) > size_cluster:
+                chunk_sizes_in_cluster[-1] -= 1
+
+            all_chunks_inds_in_cluster = get_n_subsets_streamlines_random(
+                cluster_sft, chunk_sizes_in_cluster, seed,
+                return_indices_only=True)
+
+            assert len(all_chunks_inds_in_cluster) == nb_chunks + 1
+
+            for i in range(nb_chunks + 1):
+                chunk_orig_inds = [cluster.indices[ind] for ind in
+                                   all_chunks_inds_in_cluster[i]]
+                total_indices[i].extend(chunk_orig_inds)
+
+    final_sfts = [orig_sft[inds] for inds in total_indices]
+
+    return final_sfts
 
 
 def resample_streamlines_num_points(sft, num_points):

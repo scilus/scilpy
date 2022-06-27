@@ -8,16 +8,20 @@ Split into X files, or split into files of Y streamlines
 
 
 import argparse
+import logging
 import os
 
-from dipy.io.stateful_tractogram import StatefulTractogram
+from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             add_verbose_arg)
+from scilpy.tracking.tools import get_n_subsets_streamlines_sequentially, \
+    get_n_subsets_streamlines_random, get_n_subsets_streamlines_per_cluster
 
 
 def _build_arg_parser():
@@ -32,7 +36,7 @@ def _build_arg_parser():
                         'index will be appended automatically.')
 
     p.add_argument('--out_dir', default='',
-                   help='Put all ouptput tractogram in a specific directory.')
+                   help='Put all output tractogram in a specific directory.')
 
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--chunk_size', type=int,
@@ -40,8 +44,23 @@ def _build_arg_parser():
     group.add_argument('--nb_chunk', type=int,
                        help='Divide the file in equal parts.')
 
+    group2 = p.add_mutually_exclusive_group()
+    group2.add_argument(
+        '--split_per_cluster', action='store_true',
+        help='If set, splitting will be done per cluster (computed with \n'
+             'Quickbundles) to ensure that at least some streamlines are \n'
+             'kept from each bundle in each chunk. Else, random splitting is\n'
+             'performed (default).')
+    group2.add_argument(
+        '--do_not_randomize', action='store_true',
+        help="If set, splitting is done sequentially through the original "
+             "sft instead of using random indices.")
+
+    p.add_argument('--seed', default=None, type=int,
+                   help='Use a specific random seed for the subsampling.')
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 
@@ -54,40 +73,52 @@ def main():
     _, out_extension = os.path.splitext(args.in_tractogram)
 
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
-    # Check only the first potential output filename
-    assert_outputs_exist(parser, args, os.path.join(args.out_dir,
-                                                    '{}_0{}'.format(args.out_prefix,
-                                                                    out_extension)))
+    # Check only the first potential output filename, we don't know how many
+    # there are yet.
+    assert_outputs_exist(parser, args, os.path.join(
+        args.out_dir, '{}_0{}'.format(args.out_prefix, out_extension)))
 
+    log_level = logging.WARNING
+    if args.verbose:
+        log_level = logging.DEBUG
+        set_sft_logger_level('INFO')
+    logging.basicConfig(level=log_level)
+
+    logging.debug("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines_count = len(sft.streamlines)
 
     if args.nb_chunk:
         chunk_size = int(streamlines_count/args.nb_chunk)
-        nb_chunk = args.nb_chunk
+        nb_chunks = args.nb_chunk
     else:
         chunk_size = args.chunk_size
-        nb_chunk = int(streamlines_count/chunk_size)+1
+        nb_chunks = int(streamlines_count/chunk_size)+1
+
+    # Check other outputs
+    out_names = ['{0}_{1}{2}'.format(args.out_prefix, i, out_extension) for
+                 i in range(nb_chunks)]
+    assert_outputs_exist(parser, args,
+                         [os.path.join(args.out_dir, out_names[i]) for i in
+                          range(1, nb_chunks)])
 
     # All chunks will be equal except the last one
-    chunk_sizes = np.ones((nb_chunk,), dtype=np.int16) * chunk_size
-    chunk_sizes[-1] += (streamlines_count - chunk_size * nb_chunk)
-    curr_count = 0
-    for i in range(nb_chunk):
-        streamlines = sft.streamlines[curr_count:curr_count + chunk_sizes[i]]
-        data_per_streamline = sft.data_per_streamline[curr_count:curr_count
-                                                      + chunk_sizes[i]]
-        data_per_point = sft.data_per_point[curr_count:curr_count
-                                            + chunk_sizes[i]]
-        curr_count += chunk_sizes[i]
-        new_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                              data_per_point=data_per_point,
-                                              data_per_streamline=data_per_streamline)
+    chunk_sizes = np.ones((nb_chunks,), dtype=np.int16) * chunk_size
+    chunk_sizes[-1] += (streamlines_count - chunk_size * nb_chunks)
 
-        out_name = os.path.join(args.out_dir,
-                                '{0}_{1}{2}'.format(args.out_prefix, i,
-                                                    out_extension))
-        save_tractogram(new_sft, out_name)
+    if args.do_not_randomize:
+        sfts = get_n_subsets_streamlines_sequentially(sft, chunk_sizes)
+    elif args.split_per_cluster:
+        # With this version, will contain an additional sft with non-included
+        # streamlines. Should be of size close to 0. Not using it.
+        sfts = get_n_subsets_streamlines_per_cluster(sft, chunk_sizes,
+                                                     args.seed)
+    else:
+        sfts = get_n_subsets_streamlines_random(sft, chunk_sizes, args.seed)
+
+    for i in range(nb_chunks):
+        out_name = os.path.join(args.out_dir, out_names[i])
+        save_tractogram(sfts[i], out_name)
 
 
 if __name__ == "__main__":
