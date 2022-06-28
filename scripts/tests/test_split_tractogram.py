@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_split_tractograms.py', '--help')
+    ret = script_runner.run('scil_split_tractogram.py', '--help')
     assert ret.success
 
 
@@ -20,6 +20,6 @@ def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(get_home(), 'tracking',
                              'local.trk')
-    ret = script_runner.run('scil_split_tractograms.py', in_tracto,
-                            'local_split.trk', '--nb_chunk', '3')
+    ret = script_runner.run('scil_split_tractogram.py', in_tracto,
+                            'local_split_', '--nb_chunks', '3')
     assert ret.success

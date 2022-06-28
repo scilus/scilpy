@@ -32,8 +32,9 @@ def _build_arg_parser():
     p.add_argument('in_tractogram',
                    help='Tractogram input file name.')
     p.add_argument('out_prefix',
-                   help='Prefix for the output tractogram,'
-                        'index will be appended automatically.')
+                   help='Prefix for the output tractogram, index will be '
+                        'appended \nautomatically (ex, _0.trk), based on '
+                        'input type.')
 
     p.add_argument('--out_dir', default='',
                    help='Put all output tractogram in a specific directory.')
@@ -41,7 +42,7 @@ def _build_arg_parser():
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument('--chunk_size', type=int,
                        help='The maximum number of streamlines per file.')
-    group.add_argument('--nb_chunk', type=int,
+    group.add_argument('--nb_chunks', type=int,
                        help='Divide the file in equal parts.')
 
     group2 = p.add_mutually_exclusive_group()
@@ -53,7 +54,7 @@ def _build_arg_parser():
              'performed (default).')
     group2.add_argument(
         '--do_not_randomize', action='store_true',
-        help="If set, splitting is done sequentially through the original "
+        help="If set, splitting is done sequentially through the original \n"
              "sft instead of using random indices.")
 
     p.add_argument('--seed', default=None, type=int,
@@ -88,9 +89,9 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     streamlines_count = len(sft.streamlines)
 
-    if args.nb_chunk:
-        chunk_size = int(streamlines_count/args.nb_chunk)
-        nb_chunks = args.nb_chunk
+    if args.nb_chunks:
+        chunk_size = int(streamlines_count/args.nb_chunks)
+        nb_chunks = args.nb_chunks
     else:
         chunk_size = args.chunk_size
         nb_chunks = int(streamlines_count/chunk_size)+1
