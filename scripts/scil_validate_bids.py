@@ -189,10 +189,9 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
                 if len(sbref[index]) == 1 and isinstance(sbref[index][0], list):
                     sbref[index] = [x for xs in sbref[index] for x in xs]
 
-
             conversion = {"i": "x", "j": "y", "k": "z"}
             dwi_metadata = get_metadata(curr_dwi)
-            if 'PhaseEncodingDirection' in dwi_metadata and index==0:
+            if 'PhaseEncodingDirection' in dwi_metadata and index == 0:
                 dwi_PE = dwi_metadata['PhaseEncodingDirection']
                 dwi_PE = dwi_PE.replace(dwi_PE[0], conversion[dwi_PE[0]])
                 if len(dwi_PE) == 1:
@@ -252,10 +251,10 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
         else:
             topup = ['', '']
     else:
-        logging.error("""
-                      BIDS structure unkown.Please send an issue:
-                      https://github.com/scilus/scilpy/issues
-                      """)
+        print("""
+              BIDS structure unkown.Please send an issue:
+              https://github.com/scilus/scilpy/issues
+              """)
 
     t1_path = 'todo'
     t1_nSess = []
@@ -318,7 +317,7 @@ def associate_dwis(layout, nSub):
         if len(dwis) == 1:
             all_dwis.append(dwis)
         elif len(dwis) > 1:
-            all_runs = [curr.entities['run'] for curr_dwi in dwis if curr_dwi.entities.has_key('run') ]
+            all_runs = [curr_dwi.entities['run'] for curr_dwi in dwis if 'run' in curr_dwi.entities]
             if all_runs:
                 for curr_run in all_runs:
                     dwis = layout.get(subject=nSub,
@@ -362,8 +361,8 @@ def main():
                            datatype='dwi', extension='bvec',
                            suffix='dwi')
         sbrefs = layout.get(subject=nSub,
-                           datatype='dwi', extension='nii.gz',
-                           suffix='sbref')
+                            datatype='dwi', extension='nii.gz',
+                            suffix='sbref')
 
         # Get associations relatives to DWIs
         associations = get_dwi_associations(fmaps, bvals, bvecs, sbrefs)
