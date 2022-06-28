@@ -74,7 +74,7 @@ def main():
     # Check if the indices fit inside the range of possible values
     if np.max(args.split_indices) >= img.shape[-1]:
         parser.error('split_indices values must be lower than the total '
-                     'number of direcitons.')
+                     'number of directions.')
     if np.min(args.split_indices) <= 0:
         parser.error('split_indices values must be higher than 0.')
     # Check if the indices are in increasing order
