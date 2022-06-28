@@ -431,8 +431,8 @@ def compute_vb_vs_all_bundles(
         # Extract true connection
         vs_ids, wpc_ids, bundle_stats = \
             extract_vb_vs(
-                sft[all_ids], head_filename, tail_filename, lengths[i], angles[i],
-                orientation_lengths[i], abs_orientation_lengths[i],
+                sft[all_ids], head_filename, tail_filename, lengths[i],
+                angles[i], orientation_lengths[i], abs_orientation_lengths[i],
                 limits_inv_masks[i], args.dilate_endpoints)
 
         if args.unique:
