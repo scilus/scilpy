@@ -154,6 +154,9 @@ def _build_arg_parser():
                    help="If set, IS are split into NC + IC, where IC are "
                         "computed as one bundle per\npair of ROI not "
                         "belonging to a true connection, named\n*_*_IC.tck.")
+    g.add_argument("--unique", action='store_true',
+                   help="If set, streamlines are assigned to the first bundle"
+                        " they fit in and not to all.")
     g.add_argument("--remove_wpc_belonging_to_another_bundle",
                    action='store_true',
                    help="If set, WPC actually belonging to VC (from another "
@@ -328,7 +331,7 @@ def read_config_file(args):
                                                bundle_config['gt_mask'])
                     else:
                         gt_mask = bundle_config['gt_mask']
-                        
+
                     if args.use_gt_masks_as_limits_masks:
                         limit_mask = gt_mask
                 elif key == 'limits_mask':
@@ -419,6 +422,8 @@ def compute_vb_vs_all_bundles(
     vs_ids_list = []
     wpc_ids_list = []
     bundles_stats = []
+
+    all_ids = np.arange(len(sft))
     for i in range(nb_bundles):
         head_filename = gt_heads[i]
         tail_filename = gt_tails[i]
@@ -426,9 +431,18 @@ def compute_vb_vs_all_bundles(
         # Extract true connection
         vs_ids, wpc_ids, bundle_stats = \
             extract_vb_vs(
-                sft, head_filename, tail_filename, lengths[i], angles[i],
+                sft[all_ids], head_filename, tail_filename, lengths[i], angles[i],
                 orientation_lengths[i], abs_orientation_lengths[i],
                 limits_inv_masks[i], args.dilate_endpoints)
+
+        if args.unique:
+            not_vs = np.setdiff1d(np.arange(len(all_ids)), vs_ids)
+            vs_ids = all_ids[vs_ids]
+
+            not_wpc = np.setdiff1d(np.arange(len(all_ids)), wpc_ids)
+            wpc_ids = all_ids[wpc_ids]
+            not_vs_wps = np.intersect1d(not_vs, not_wpc)
+            all_ids = all_ids[not_vs_wps]
 
         vb_sft = sft[vs_ids]
 
@@ -516,6 +530,7 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
     """
     ib_sft_list = []
     ic_ids_list = []
+    all_ids = np.arange(len(sft))
     for i, roi in enumerate(comb_filename):
         roi1_filename, roi2_filename = roi
 
@@ -524,7 +539,12 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
         prefix_2 = extract_prefix(roi2_filename)
 
         ib_sft, ic_ids = extract_false_connections(
-            sft, roi1_filename, roi2_filename, args.dilate_endpoints)
+            sft[all_ids], roi1_filename, roi2_filename, args.dilate_endpoints)
+
+        if args.unique:
+            not_ics = np.setdiff1d(np.arange(len(all_ids)), ic_ids)
+            ic_ids = all_ids[ic_ids]
+            all_ids = all_ids[not_ics]
 
         if len(ib_sft) > 0 or not args.no_empty:
             file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
@@ -555,7 +575,6 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
 
 
 def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
-                        vs_ids_list, wpc_ids_list, ic_ids_list,
                         vb_sft_list, wpc_sft_list, ib_sft_list, sft, args,
                         bundles_names, gt_masks, dimensions, comb_filename):
     """
@@ -574,7 +593,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     final_results = {
         "tractogram_filename": str(args.in_tractogram),
         "total_streamlines": total_count,
-        "VB": len([x for x in vs_ids_list if len(x) > 0]),
+        "VB": len(vb_sft_list),
         "VS": vs_count,
         "VS_ratio": vs_count / total_count,
         "IS": ic_count + nc_count,  # ic_count = 0 if not args.compute_ic
@@ -583,7 +602,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
     if args.compute_ic:
         final_results.update({
-            "IB": len([x for x in ic_ids_list if len(x) > 0]),
+            "IB": len(ib_sft_list),
             "IC": ic_count,
             "IC_ratio": ic_count / total_count,
             "NC": nc_count,
@@ -592,7 +611,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     if args.save_wpc_separately:
         final_results.update({
             "WPC": wpc_count,
-            "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
+            "WPC_bundle": len(wpc_sft_list),
             "WPC_ratio": wpc_count / total_count})
 
     # Tractometry stats over volume: OL, OR, Dice score
@@ -710,6 +729,8 @@ def main():
      orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
      dimensions) = load_and_verify_everything(parser, args)
 
+    remain_ids = np.arange(0, len(sft))
+
     # VS
     logging.info("Scoring valid connections")
     vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats = \
@@ -717,6 +738,13 @@ def main():
             gt_tails, gt_heads, sft, bundle_names, lengths, angles,
             orientation_lengths, abs_orientation_lengths, limits_inv_masks,
             args)
+
+    if args.unique:
+        detected_ids = np.concatenate((
+            np.concatenate(vs_ids_list),
+            np.concatenate(wpc_ids_list)))
+        not_vc_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
+        remain_ids = remain_ids[not_vc_ids]
 
     # WPC
     if args.save_wpc_separately:
@@ -736,7 +764,7 @@ def main():
                   sort_keys=args.sort_keys)
 
     # IC
-    if args.compute_ic:
+    if args.compute_ic and len(remain_ids) > 0:
         logging.info("Scoring invalid connections")
 
         # Keep all possible combinations
@@ -750,11 +778,16 @@ def main():
             vb_roi_pair = tuple(sorted(vb_roi_pair))
             comb_filename.remove(vb_roi_pair)
         ib_sft_list, ic_ids_list = compute_ib_ic_all_bundles(comb_filename,
-                                                             sft, args)
+                                                             sft[remain_ids],
+                                                             args)
+        if args.unique:
+            detected_ids = np.concatenate(ic_ids_list)
+            not_ic_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
+            remain_ids = remain_ids[not_ic_ids]
     else:
         ic_ids_list = []
         ib_sft_list = []
-        comb_filename = None
+        comb_filename = []
 
     all_vs_ids = np.unique(list(itertools.chain(*vs_ids_list)))
     all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
@@ -762,10 +795,11 @@ def main():
 
     # NC
     # = ids that are not VS, not wpc (if asked) and not IC (if asked).
-    all_nc_ids = np.arange(len(sft))
-    all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
-    all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
-    all_nc_ids = np.setdiff1d(all_nc_ids, all_ic_ids)
+    all_nc_ids = np.arange(len(remain_ids))
+    if not args.unique:
+        all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
+        all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
+        all_nc_ids = np.setdiff1d(all_nc_ids, all_ic_ids)
 
     if args.compute_ic:
         logging.info("The remaining {} / {} streamlines will be scored as NC."
@@ -783,8 +817,8 @@ def main():
 
     # Tractometry
     final_results = compute_tractometry(
-        all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids, vs_ids_list,
-        wpc_ids_list, ic_ids_list, vb_sft_list, wpc_sft_list, ib_sft_list, sft,
+        all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
+        vb_sft_list, wpc_sft_list, ib_sft_list, sft,
         args, bundle_names, gt_masks, dimensions, comb_filename)
     logging.info("Final results saved in {}".format(args.out_dir))
     with open(os.path.join(args.out_dir, "results.json"), "w") as f:
