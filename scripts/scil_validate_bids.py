@@ -56,7 +56,8 @@ def get_metadata(bf):
     Dictionnary containing the metadata
     """
     filename = bf.path.replace(
-        '.' + bf.get_entities()['extension'], '')
+        bf.entities['extension'], '')
+
     with open(filename + '.json', 'r') as handle:
         return json.load(handle)
 
@@ -154,79 +155,107 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
     -------
     Dictionnary containing the metadata
     """
-    bvec_path = ['todo'] * len(dwi)
-    bval_path = ['todo'] * len(dwi)
-    dwi_path = ['todo'] * len(dwi)
-    PE = ['todo'] * len(dwi)
-    topup = [''] * len(dwi)
-
+    bvec_path = ['todo', '']
+    bval_path = ['todo', '']
+    dwi_path = ['todo', '']
+    PE = ['todo', '']
+    topup_fmap = ['', '']
+    topup_sbref = ['', '']
+    fmaps = ['', '']
+    sbref = ['', '']
     nSess = 0
-    if 'session' in dwi[0].get_entities().keys():
-        nSess = dwi[0].get_entities()['session']
+    print(nSub)
+    if 'session' in dwi[0].entities:
+        nSess = dwi[0].entities['session']
 
     nRun = 0
-    if 'run' in dwi[0].get_entities().keys():
-        nRun = dwi[0].get_entities()['run']
+    if 'run' in dwi[0].entities:
+        nRun = dwi[0].entities['run']
 
     for index, curr_dwi in enumerate(dwi):
-        dwi_path[index] = dwi.path
+        dwi_path[index] = curr_dwi.path
 
-        fmaps = []
-        sbref = []
         if curr_dwi.filename in associations.keys():
             if "bval" in associations[curr_dwi.filename].keys():
                 bval_path[index] = associations[curr_dwi.filename]['bval']
             if "bvec" in associations[curr_dwi.filename].keys():
                 bvec_path[index] = associations[curr_dwi.filename]['bvec']
             if "fmap" in associations[curr_dwi.filename].keys():
-                fmaps[index] = associations[curr_dwi.filename]['fmap'])
+                fmaps[index] = associations[curr_dwi.filename]['fmap']
+                if len(fmaps[index]) == 1 and isinstance(fmaps[index][0], list):
+                    fmaps[index] = [x for xs in fmaps[index] for x in xs]
             if "sbref" in associations[curr_dwi.filename].keys():
-                sbref[index] = associations[curr_dwi.filename]['sbref'])
+                sbref[index] = associations[curr_dwi.filename]['sbref']
+                if len(sbref[index]) == 1 and isinstance(sbref[index][0], list):
+                    sbref[index] = [x for xs in sbref[index] for x in xs]
 
-            dwi_PE = 'todo'
-            dwi_revPE = -1
+
             conversion = {"i": "x", "j": "y", "k": "z"}
             dwi_metadata = get_metadata(curr_dwi)
-            if 'PhaseEncodingDirection' in dwi_metadata:
+            if 'PhaseEncodingDirection' in dwi_metadata and index==0:
                 dwi_PE = dwi_metadata['PhaseEncodingDirection']
                 dwi_PE = dwi_PE.replace(dwi_PE[0], conversion[dwi_PE[0]])
                 if len(dwi_PE) == 1:
-                    PE[index] = dwi_PE + '-'
+                    PE[index] = dwi_PE
+                    PE[index+1] = dwi_PE + '-'
                 else:
-                    PE[index] = dwi_PE[0]
-            elif clean or len(dwi) > 1:
+                    PE[index] = dwi_PE
+                    PE[index+1] = dwi_PE[0]
+            elif clean:
                 return {}
 
         # Find b0 for topup, take the first one
         # Check fMAP
-        if fmaps
-        rev_topup = ''
         totalreadout = default_readout
-        if len(fmaps) == 0:
+        fmaps = [fmap for fmap in fmaps if fmap != '']
+        if not fmaps:
             if 'TotalReadoutTime' in dwi_metadata:
                 totalreadout = dwi_metadata['TotalReadoutTime']
         else:
+            if isinstance(fmaps[0], list):
+                fmaps = [x for xs in fmaps for x in xs]
+
             for nfmap in fmaps:
                 nfmap_metadata = get_metadata(nfmap)
                 if 'PhaseEncodingDirection' in nfmap_metadata:
                     fmap_PE = nfmap_metadata['PhaseEncodingDirection']
                     fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
-                    if fmap_PE == dwi_revPE:
-                        if 'TotalReadoutTime' in dwi_metadata:
-                            if 'TotalReadoutTime' in nfmap_metadata:
-                                dwi_RT = dwi_metadata['TotalReadoutTime']
-                                fmap_RT = nfmap_metadata['TotalReadoutTime']
-                                if dwi_RT != fmap_RT and totalreadout == '':
-                                    totalreadout = 'error_readout'
-                                    rev_topup = 'error_readout'
-                                elif dwi_RT == fmap_RT:
-                                    rev_topup = nfmap.path
-                                    totalreadout = dwi_RT
-                                    break
-                        else:
-                            rev_topup[] = nfmap.path
-                            totalreadout = default_readout
 
+                    opposite_PE = PE.index(fmap_PE)
+                    if 'TotalReadoutTime' in dwi_metadata:
+                        if 'TotalReadoutTime' in nfmap_metadata:
+                            dwi_RT = dwi_metadata['TotalReadoutTime']
+                            fmap_RT = nfmap_metadata['TotalReadoutTime']
+                            if dwi_RT != fmap_RT and totalreadout == '':
+                                totalreadout = 'error_readout'
+                                topup_fmap[opposite_PE] = 'error_readout'
+                            elif dwi_RT == fmap_RT:
+                                topup_fmap[opposite_PE] = nfmap.path
+                                totalreadout = dwi_RT
+                    else:
+                        topup_fmap[opposite_PE] = nfmap.path
+                        totalreadout = default_readout
+
+        if sbref[index] != '' and len(sbref[index]) == 1:
+            topup_sbref[index] = sbref[index][0].path
+
+    if len(dwi) == 2:
+        if not any(s == '' for s in topup_sbref):
+            topup = topup_sbref
+        elif not any(s == '' for s in topup_fmap):
+            topup = topup_fmap
+        else:
+            topup = ['', '']
+    elif len(dwi) == 1:
+        if topup_fmap[1] != '':
+            topup = topup_fmap
+        else:
+            topup = ['', '']
+    else:
+        logging.error("""
+                      BIDS structure unkown.Please send an issue:
+                      https://github.com/scilus/scilpy/issues
+                      """)
 
     t1_path = 'todo'
     t1_nSess = []
@@ -234,16 +263,16 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
         return {}
 
     for t1 in t1s:
-        if 'session' in t1.get_entities().keys() and\
-                t1.get_entities()['session'] == nSess:
+        if 'session' in t1.entities and\
+                t1.entities['session'] == nSess:
             t1_nSess.append(t1)
-        elif 'session' not in t1.get_entities().keys():
+        elif 'session' not in t1.entities:
             t1_nSess.append(t1)
 
     # Take the right T1, if multiple T1s the field must be completed ('todo')
     if len(t1_nSess) == 1:
         t1_path = t1_nSess[0].path
-    elif 'run' in dwi.path:
+    elif 'run' in dwi[0].path:
         for t1 in t1_nSess:
             if 'run-' + str(nRun) in t1.path:
                 t1_path = t1.path
@@ -260,12 +289,12 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
             'rev_bval': bval_path[1],
             'topup': topup[0],
             'rev_topup': topup[1],
-            'DWIPhaseEncodingDir': PE[],
+            'DWIPhaseEncodingDir': PE[0],
             'rev_DWIPhaseEncodingDir': PE[1],
             'TotalReadoutTime': totalreadout}
 
 
-def associate_dwi(layout, nSub):
+def associate_dwis(layout, nSub):
     """ Return subject data
     Parameters
     ----------
@@ -287,7 +316,7 @@ def associate_dwi(layout, nSub):
                           datatype='dwi', extension='nii.gz',
                           suffix='dwi')
         if len(dwis) == 1:
-            all_dwis.append(dwi)
+            all_dwis.append(dwis)
         elif len(dwis) > 1:
             all_runs = [curr.entities['run'] for curr_dwi in dwis if curr_dwi.entities.has_key('run') ]
             if all_runs:
@@ -312,23 +341,20 @@ def main():
     assert_outputs_exist(parser, args, args.out_json)
 
     data = []
-    layout = BIDSLayout(args.in_bids, index_metadata=False)
+    layout = BIDSLayout(args.in_bids, validate=False)
     subjects = layout.get_subjects()
 
     if args.participants_label:
         subjects = [nSub for nSub in args.participants_label if nSub in subjects]
 
     for nSub in subjects:
-        dwis = get_dwis(layout, nSub)
+        dwis = associate_dwis(layout, nSub)
         t1s = layout.get(subject=nSub,
                          datatype='anat', extension='nii.gz',
                          suffix='T1w')
         fmaps = layout.get(subject=nSub,
                            datatype='fmap', extension='nii.gz',
                            suffix='epi')
-
-        fmaps exclude sbref HERE if sbref in name 
-
         bvals = layout.get(subject=nSub,
                            datatype='dwi', extension='bval',
                            suffix='dwi')
@@ -341,6 +367,11 @@ def main():
 
         # Get associations relatives to DWIs
         associations = get_dwi_associations(fmaps, bvals, bvecs, sbrefs)
+
+        for nKey in associations.keys():
+            print(nKey)
+            print(associations[nKey])
+            print('---------------------')
 
         # Get the data for each run of DWIs
         for dwi in dwis:
