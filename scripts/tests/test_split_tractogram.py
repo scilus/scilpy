@@ -28,3 +28,8 @@ def test_execution_tracking(script_runner):
                             'local_split_', '--nb_chunks', '3', '-f',
                             '--split_per_cluster')
     assert ret.success
+
+    ret = script_runner.run('scil_split_tractogram.py', in_tracto,
+                            'local_split_', '--nb_chunks', '3', '-f',
+                            '--do_not_randomize')
+    assert ret.success

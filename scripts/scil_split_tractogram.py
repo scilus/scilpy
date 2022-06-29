@@ -3,7 +3,13 @@
 
 """
 Split a tractogram into multiple files, 2 options available :
-Split into X files, or split into files of Y streamlines
+Split into X files, or split into files of Y streamlines.
+
+By default, streamlines to add to each chunk will be chosen randomly.
+Optionally, you can split streamlines...
+    - sequentially (the first n/nb_chunks streamlines in the first chunk and so
+     on).
+    - randomly, but per Quickbundles clusters.
 """
 
 
