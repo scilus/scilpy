@@ -56,6 +56,11 @@ def _build_arg_parser():
         '--do_not_randomize', action='store_true',
         help="If set, splitting is done sequentially through the original \n"
              "sft instead of using random indices.")
+    p.add_argument('--qbx_thresholds', nargs='+', type=float,
+                   default=[40, 30, 20], metavar='t',
+                   help="If you chose option '--split_per_cluster', you may "
+                        "set the \nQBx threshold value(s) here. Default: "
+                        "%(default)s")
 
     p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the subsampling.')
@@ -112,8 +117,8 @@ def main():
     elif args.split_per_cluster:
         # With this version, will contain an additional sft with non-included
         # streamlines. Should be of size close to 0. Not using it.
-        sfts = get_n_subsets_streamlines_per_cluster(sft, chunk_sizes,
-                                                     args.seed)
+        sfts = get_n_subsets_streamlines_per_cluster(
+            sft, chunk_sizes, args.seed, args.qbx_thresholds)
     else:
         sfts = get_n_subsets_streamlines_random(sft, chunk_sizes, args.seed)
 

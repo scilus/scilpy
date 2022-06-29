@@ -263,7 +263,8 @@ def get_n_subsets_streamlines_random(orig_sft, chunk_sizes, seed,
     return all_sfts
 
 
-def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed):
+def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed,
+                                          thresholds):
     """
     Get a subset of streamline randomly per Quickbundle cluster (trying to help
     the randomization to ensure there are streamlines from all bundles in each
@@ -279,6 +280,8 @@ def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed):
         Final number will be a good approximation of nb_streamlines.
     seed: int
         Random seed.
+    thresholds: list[float]
+        QBx threshold values. Suggestion: [40, 30, 20].
 
     Returns
     -------
@@ -295,7 +298,6 @@ def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed):
     percent_kept_per_chunk = [nb / len(orig_sft) for nb in chunk_sizes]
 
     logging.debug("Computing QBx")
-    thresholds = [40, 30, 20]
     clusters = qbx_and_merge(orig_sft.streamlines, thresholds, nb_pts=20,
                              verbose=False)
 

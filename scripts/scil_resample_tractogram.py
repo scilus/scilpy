@@ -90,6 +90,11 @@ def _build_arg_parser():
              'Quickbundles) to ensure that at least some streamlines are \n'
              'kept per bundle. Else, random downsampling is performed '
              '(default).')
+    downsampling_group.add_argument(
+        '--qbx_thresholds', nargs='+', type=float, default=[40, 30, 20],
+        metavar='t',
+        help="If you chose option '--downsample_per_cluster', you may set \n"
+             "the QBx threshold value(s) here. Default: %(default)s")
 
     # General
     p.add_argument('--seed', default=None, type=int,
@@ -142,7 +147,7 @@ def main():
         if args.downsample_per_cluster:
             # output contains rejected streamlines, we don't use them.
             sft, _ = get_n_subsets_streamlines_per_cluster(
-                sft, [args.nb_streamlines], args.seed)
+                sft, [args.nb_streamlines], args.seed, args.qbx_thresholds)
             logging.debug("Kept {} out of expected {} streamlines."
                           .format(len(sft), args.nb_streamlines))
         else:

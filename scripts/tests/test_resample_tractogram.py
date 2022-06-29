@@ -30,6 +30,13 @@ def test_execution_upsample(script_runner):
     in_tracto = os.path.join(get_home(), 'tracking',
                              'union_shuffle_sub.trk')
     ret = script_runner.run('scil_resample_tractogram.py', in_tracto,
-                            '2000', 'union_shuffle_sub_upsampled.trk',
+                            '2000', 'union_shuffle_sub_upsampled.trk', '-f',
                             '--point_wise_std', '0.5')
     assert ret.success
+
+    ret = script_runner.run('scil_resample_tractogram.py', in_tracto,
+                            '20', 'union_shuffle_sub_downsampled.trk',
+                            '--point_wise_std', '0.5', '-f',
+                            '--downsample_per_cluster')
+    assert ret.success
+
