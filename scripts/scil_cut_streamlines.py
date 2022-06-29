@@ -96,9 +96,9 @@ def main():
 
     else:
         logging.warning('The provided mask has MORE THAN 2 entity '
-                    'cut_between_masks_streamlines function selected. '
-                    'This may cause problems with the outputed streamlines.'
-                    'Please inspect the output carefully.')
+                        'cut_between_masks_streamlines function selected. '
+                        'This may cause problems with the outputed '
+                        'streamlines. Please inspect the output carefully.')
         new_sft = cut_between_masks_streamlines(sft, binary_mask)
 
     if len(new_sft) == 0:
