@@ -91,7 +91,7 @@ class SeedGenerator(object):
         ------
         random_generator : numpy random generator
             Initialized numpy number generator.
-        indices : List
+        indices : ndarray
             Indices of current seeding map.
         """
         random_generator = np.random.RandomState(random_initial_value)

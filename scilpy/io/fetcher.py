@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import hashlib
 import logging
 import os
-import shutil
-from time import sleep
-import zipfile
 
 from gdown import cached_download, extractall
 
 GOOGLE_URL = "https://drive.google.com/uc?id="
+
 
 # Set a user-writeable file-system location to put files:
 def get_home():
@@ -84,6 +81,9 @@ def fetch_data(files_dict, keys=None):
         For each file in `files_dict` the value should be (url, md5).
         The file will be downloaded from url, if the file does not already
         exist or if the file exists but the md5 checksum does not match.
+    keys: List[str] or str
+        Files to get. Must be keys in the files_dict. If None is given, fetch
+        all the keys from the files_dict.
 
     Raises
     ------
@@ -96,7 +96,6 @@ def fetch_data(files_dict, keys=None):
     if not os.path.exists(scilpy_home):
         os.makedirs(scilpy_home)
 
-    to_unzip = {}
     if keys is None:
         keys = files_dict.keys()
     elif isinstance(keys, str):

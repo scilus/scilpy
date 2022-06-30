@@ -79,12 +79,13 @@ def add_out_options(p):
 
 
 def verify_streamline_length_options(parser, args):
-    if not args.min_length > 0:
-        parser.error('min_length must be > 0, {}mm was provided.'
+    if not args.min_length >= 0:
+        parser.error('min_length must be >= 0, but {}mm was provided.'
                      .format(args.min_length))
     if args.max_length < args.min_length:
-        parser.error('max_length must be > than minL, but minL={}mm and '
-                     'maxL={}mm.'.format(args.min_length, args.max_length))
+        parser.error('max_length must be > than min_length, but '
+                     'min_length={}mm and max_length={}mm.'
+                     .format(args.min_length, args.max_length))
 
 
 def verify_seed_options(parser, args):

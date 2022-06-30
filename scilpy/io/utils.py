@@ -10,11 +10,13 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 from dipy.data import SPHERE_FILES
+from dipy.io.utils import is_header_compatible
 from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
 
+from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
@@ -417,6 +419,46 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
     for opt_dir in optional or []:
         if opt_dir:
             check(opt_dir)
+
+
+def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
+                                            parser, args):
+    """
+    Verifies the compatibility of a reference sft with a list of files.
+
+    Params
+    ------
+    ref_sft: StatefulTractogram
+        A tractogram to be used as reference.
+    files_to_verify: List[str]
+        List of files that should be compatible with the reference sft. Files
+        can be either other tractograms or nifti files (ex: masks).
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+    args: Namespace
+        Should contain a args.reference if any file is a .tck.
+    """
+    save_ref = args.reference
+
+    for file in files_to_verify:
+        if file is not None:
+            _, ext = os.path.splitext(file)
+            if ext in ['.trk', '.tck', '.fib', '.vtk', '.dpy']:
+                # Cheating ref because it may send a lot of warning if loading
+                # many trk with ref (reference was maybe added only for some
+                # of these files)
+                if ext == '.trk':
+                    args.reference = None
+                else:
+                    args.reference = save_ref
+                mask = load_tractogram_with_reference(parser, args, file,
+                                                      bbox_check=False)
+            else:  # should be a nifti file.
+                mask = file
+            compatible = is_header_compatible(ref_sft, mask)
+            if not compatible:
+                parser.error("Reference tractogram incompatible with {}"
+                             .format(file))
 
 
 def read_info_from_mb_bdo(filename):
