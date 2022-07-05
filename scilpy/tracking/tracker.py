@@ -401,17 +401,28 @@ class Tracker(object):
         return line
 
     def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
+
         # Checking number of consecutive invalid directions
         if invalid_direction_count > self.max_invalid_dirs:
             return False
 
         # Checking if out of bound
-        if not self.mask.is_voxmm_in_bound(*last_pos, origin=self.origin):
-            return False
+        # Space in voxmm in this class but verifying in case a child class
+        # allows a different space usage.
+        if self.space == 'voxmm':
+            if not self.mask.is_voxmm_in_bound(*last_pos, origin=self.origin):
+                return False
 
-        # Checking if out of mask
-        if self.mask.voxmm_to_value(*last_pos, origin=self.origin) <= 0:
-            return False
+            # Checking if out of mask
+            if self.mask.voxmm_to_value(*last_pos, origin=self.origin) <= 0:
+                return False
+        elif self.space == 'vox':
+            if not self.mask.is_vox_in_bound(*last_pos, origin=self.origin):
+                return False
+
+            # Checking if out of mask
+            if self.mask.vox_to_value(*last_pos, origin=self.origin) <= 0:
+                return False
 
         return True
 

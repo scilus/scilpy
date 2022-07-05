@@ -46,7 +46,7 @@ class DataVolume(object):
         self.dim = self.data.shape[0:4]
         self.nbr_voxel = self.data.size
 
-    def get_voxel_value(self, i, j, k):
+    def get_value_at_idx(self, i, j, k):
         """
         Get the voxel value at x, y, z in the dataset.
         If the coordinates are out of bound, the nearest voxel value is taken.
@@ -61,22 +61,17 @@ class DataVolume(object):
         value: ndarray (self.dim[-1],)
             The value evaluated at voxel x, y, z.
         """
-        if not self.is_voxel_in_bound(i, j, k):
-            i = max(0, min(self.dim[0] - 1, i))
-            j = max(0, min(self.dim[1] - 1, j))
-            k = max(0, min(self.dim[2] - 1, k))
-
+        i, j, k = self._idx_to_closest_coord(i, j, k)
         return self.data[i][j][k]
 
-    def is_voxel_in_bound(self, i, j, k):
+    def is_idx_in_bound(self, i, j, k):
         """
         Test if voxel is in dataset range.
 
         Parameters
         ----------
-        i, j, k: ints or floats
-            Voxel indice along each axis (as ints) or voxel coordinates in
-            voxel world (as floats).
+        i, j, k: ints
+            Voxel indice along each axis (as ints).
 
         Return
         ------
@@ -86,6 +81,139 @@ class DataVolume(object):
         return (0 <= i < (self.dim[0]) and
                 0 <= j < (self.dim[1]) and
                 0 <= k < (self.dim[2]))
+
+    def _idx_to_closest_coord(self, i, j, k):
+        if not self.is_idx_in_bound(i, j, k):
+            i = max(0, min(self.dim[0] - 1, i))
+            j = max(0, min(self.dim[1] - 1, j))
+            k = max(0, min(self.dim[2] - 1, k))
+        return i, j, k
+
+    def _vox_to_closest_coord(self, x, y, z, origin):
+        """
+        In voxel space, get closest coordinate in the voxel in out of bout.
+        Else, return initial coordinates.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Current coordinates (vox).
+        origin: str
+            'center' or 'corner'.
+
+        Return
+        ------
+        x, y, z: floats
+            Closest valid coordinates.
+        """
+        if not self.is_vox_in_bound(x, y, z, origin):
+            eps = float(1e-8)  # Epsilon to exclude upper borders
+            if origin == 'corner':
+                # Min = 0
+                # Max = 0.9999 in first voxel.
+                x = max(0, min(self.dim[0] - eps, x))
+                y = max(0, min(self.dim[1] - eps, y))
+                z = max(0, min(self.dim[2] - eps, z))
+            elif origin == 'center':
+                # Min = -0.5
+                # Max = 0.499999 in first voxel.
+                x = max(-0.5, min(self.dim[0] - 0.5 - eps, x))
+                y = max(-0.5, min(self.dim[1] - 0.5 - eps, y))
+                z = max(-0.5, min(self.dim[2] - 0.5 - eps, z))
+            else:
+                raise ValueError("Origin should be 'center' or 'corner'.")
+        return x, y, z
+
+    @staticmethod
+    def vox_to_idx(x, y, z, origin):
+        """
+        Get the 3D indice of the closest voxel at position x, y, z expressed
+        in mm.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate in voxel space along x, y, z axis.
+        origin: str
+            'center' or 'corner'.
+
+        Return
+        ------
+        out: list
+            3D indice of voxel at position x, y, z.
+        """
+        if origin == 'corner':
+            return np.floor((x, y, z))
+        elif origin == 'center':
+            return np.floor((x + 0.5, y + 0.5, z + 0.5))
+        else:
+            raise ValueError("Origin must be 'center' or 'corner'.")
+
+    def vox_to_value(self, x, y, z, origin):
+        """
+        Get the voxel value at voxel position x, y, z (vox) in the dataset.
+        If the coordinates are out of bound, the nearest voxel value is taken.
+        Value is interpolated based on the value of self.interpolation.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Position coordinate (vox) along x, y, z axis.
+        origin: str
+            'center' or 'corner'.
+
+        Return
+        ------
+        value: ndarray (self.dims[-1],) or float
+            Interpolated value at position x, y, z (mm). If the last dimension
+            is of length 1, return a scalar value.
+        """
+        if self.interpolation is not None:
+            # Checking if out of bound.
+            x, y, z = self._vox_to_closest_coord(x, y, z, origin)
+
+            # Interpolation: Using dipy's pyx methods. The doc can be found in
+            # the file dipy.core.interpolation.pxd. Dipy works with origin
+            # center.
+            coord = np.array((x, y, z), dtype=np.float64)
+            if origin == 'corner':
+                coord -= 0.5
+
+            if self.interpolation == 'nearest':
+                # They use round(point), not floor. This is the equivalent of
+                # origin = 'center'.
+                result = nearestneighbor_interpolate(self.data, coord)
+            else:
+                # Trilinear
+                # They do not say it explicitly but they verify if
+                # point[i] < -.5 or point[i] >= (data.shape[i] - .5),
+                # meaning that they work with origin='center'.
+                result = trilinear_interpolate4d(self.data, coord)
+
+            # Squeezing returns only value instead of array of length 1 if 3D
+            # data
+            return np.squeeze(result)
+        else:
+            raise Exception("No interpolation method was given, cannot run "
+                            "this method..")
+
+    def is_vox_in_bound(self, x, y, z, origin):
+        """
+        Test if voxel is in dataset range.
+
+        Parameters
+        ----------
+        x, y, z: floats
+            Voxel coordinates along each axis in voxel space.
+        origin: str
+            Origin ('center' or 'corner').
+
+        Return
+        ------
+        out: bool
+            True if voxel is in dataset range, False otherwise.
+        """
+        return self.is_idx_in_bound(*self.vox_to_idx(x, y, z, origin))
 
     def voxmm_to_idx(self, x, y, z, origin):
         """
@@ -97,18 +225,16 @@ class DataVolume(object):
         x, y, z: floats
             Position coordinate (mm) along x, y, z axis.
         origin: str
-            'center': Voxel 0,0,0 goes from [-resx/2, -resy/2, -resz/2] to
-                [resx/2, resy/2, resz/2].
-            'corner': Voxel 0,0,0 goes from [0,0,0] to [resx, resy, resz].
+            'center' or 'corner'.
 
         Return
         ------
-        out: list
+        x, y, z: ints
             3D indice of voxel at position x, y, z.
         """
-        return np.floor(self.voxmm_to_vox(x, y, z, origin))
+        return self.vox_to_idx(*self.voxmm_to_vox(x, y, z), origin)
 
-    def voxmm_to_vox(self, x, y, z, origin):
+    def voxmm_to_vox(self, x, y, z):
         """
         Get voxel space coordinates at position x, y, z (mm).
 
@@ -116,27 +242,19 @@ class DataVolume(object):
         ----------
         x, y, z: floats
             Position coordinate (mm) along x, y, z axis.
-        origin: str
-            'center': Voxel 0,0,0 goes from [-resx/2, -resy/2, -resz/2] to
-                [resx/2, resy/2, resz/2].
-            'corner': Voxel 0,0,0 goes from [0,0,0] to [resx, resy, resz].
 
         Return
         ------
-        out: list
+        x, y, z: floats
             Voxel space coordinates for position x, y, z.
         """
-        if origin == 'center':
-            half_res = self.voxres / 2.
-            return [(x + half_res[0]) / self.voxres[0],
-                    (y + half_res[1]) / self.voxres[1],
-                    (z + half_res[2]) / self.voxres[2]]
-        elif origin == 'corner':
-            return [x / self.voxres[0],
-                    y / self.voxres[1],
-                    z / self.voxres[2]]
-        else:
-            raise ValueError("Origin should be 'center' or 'corner'.")
+        # Does not depend on origin!
+        # In each dimension:
+        #   In corner: 0 to voxres will become 0 to 1.
+        #   In center: -0.5*voxres to 0.5*voxres will become -0.5 to 0.5.
+        return [x / self.voxres[0],
+                y / self.voxres[1],
+                z / self.voxres[2]]
 
     def voxmm_to_value(self, x, y, z, origin):
         """
@@ -149,9 +267,7 @@ class DataVolume(object):
         x, y, z: floats
             Position coordinate (mm) along x, y, z axis.
         origin: str
-            'center': Voxel 0,0,0 goes from [-resx/2, -resy/2, -resz/2] to
-                [resx/2, resy/2, resz/2].
-            'corner': Voxel 0,0,0 goes from [0,0,0] to [resx, resy, resz].
+            'center' or 'corner'.
 
         Return
         ------
@@ -159,51 +275,7 @@ class DataVolume(object):
             Interpolated value at position x, y, z (mm). If the last dimension
             is of length 1, return a scalar value.
         """
-        if self.interpolation is not None:
-            if not self.is_voxmm_in_bound(x, y, z, origin):
-                eps = float(1e-8)  # Epsilon to exclude upper borders
-                if origin == 'corner':
-                    x = max(0,
-                            min(self.voxres[0] * (self.dim[0] - eps), x))
-                    y = max(0,
-                            min(self.voxres[1] * (self.dim[1] - eps), y))
-                    z = max(0,
-                            min(self.voxres[2] * (self.dim[2] - eps), z))
-                elif origin == 'center':
-                    x = max(-self.voxres[0] / 2,
-                            min(self.voxres[0] * (self.dim[0] - 0.5 - eps), x))
-                    y = max(-self.voxres[1] / 2,
-                            min(self.voxres[1] * (self.dim[1] - 0.5 - eps), y))
-                    z = max(-self.voxres[2] / 2,
-                            min(self.voxres[2] * (self.dim[2] - 0.5 - eps), z))
-                else:
-                    raise ValueError("Origin should be 'center' or 'corner'.")
-
-            coord = np.array(self.voxmm_to_vox(x, y, z, origin),
-                             dtype=np.float64)
-
-            # Interpolation: Using dipy's pyx methods. The doc can be found in
-            # the file dipy.core.interpolation.pxd. Dipy works with origin
-            # center.
-            if origin == 'corner':
-                coord -= 0.5
-            if self.interpolation == 'nearest':
-                # They use round(point), not floor. This is the equivalent of
-                # origin = 'center'.
-                result = nearestneighbor_interpolate(self.data, coord)
-            else:
-                # Trilinear
-                # They do not say it explicitely but they verify if
-                # point[i] < -.5 or point[i] >= (data.shape[i] - .5),
-                # meaning that they work with origin='center'.
-                result = trilinear_interpolate4d(self.data, coord)
-
-            # Squeezing returns only value instead of array of length 1 if 3D
-            # data
-            return np.squeeze(result)
-        else:
-            raise Exception("No interpolation method was given, cannot run "
-                            "this method..")
+        return self.vox_to_value(*self.voxmm_to_vox(x, y, z), origin)
 
     def is_voxmm_in_bound(self, x, y, z, origin):
         """
@@ -223,4 +295,4 @@ class DataVolume(object):
         value: bool
             True if position is in dataset range and false otherwise.
         """
-        return self.is_voxel_in_bound(*self.voxmm_to_vox(x, y, z, origin))
+        return self.is_idx_in_bound(*self.voxmm_to_idx(x, y, z, origin))
