@@ -4,7 +4,7 @@ from itertools import count, takewhile
 import logging
 
 from dipy.segment.clustering import QuickBundles, qbx_and_merge
-from dipy.segment.metric import ResampleFeature
+from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
 from scilpy.tracking.tools import resample_streamlines_num_points
