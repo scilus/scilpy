@@ -34,7 +34,6 @@ class SeedGenerator(object):
 
         # self.seed are all the voxels where a seed could be placed
         # (voxel space, int numbers).
-        # See also dipy's random_seeds_from_mask
         self.seeds = np.array(np.where(np.squeeze(data) > 0),
                               dtype=float).transpose()
         if len(self.seeds) == 0:

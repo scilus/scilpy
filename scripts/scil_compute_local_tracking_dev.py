@@ -47,6 +47,7 @@ import time
 
 import dipy.core.geometry as gm
 import nibabel as nib
+import numpy as np
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
                                         set_sft_logger_level
@@ -186,6 +187,19 @@ def main():
     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
+    if not np.array_equal(mask_res, odf_sh_res):
+        parser.error("Not the same resolution for the ODF data and tracking "
+                     "mask!")
+    if not np.array_equal(mask_res, seed_res):
+        parser.error("Not the same resolution for the tracking and seeding "
+                     "masks!")
+    if not np.array_equal(mask_data.shape, odf_sh_data.shape[0:3]):
+        parser.error("Not the same data size for the ODF data and tracking "
+                     "mask!")
+    if not np.array_equal(mask_data.shape, seed_data.shape):
+        parser.error("Not the same data size for the tracking and seeding "
+                     "masks!")
+
     logging.debug("Instantiating propagator.")
     propagator = ODFPropagator(
         dataset, args.step_size, args.rk_order, args.algo, args.sh_basis,
@@ -211,7 +225,15 @@ def main():
                   .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    data_per_streamline = {'seeds': seeds} if args.save_seeds else {}
+    # We seeded (and tracked) in voxmm, corner, but in dipy, they use
+    # vox, center. In other scripts using the seeds (ex,
+    # scil_compute_density_map), this is what they will expect.
+    if args.save_seeds:
+        seeds = [seed / seed_res for seed in seeds]  # to_vox
+        seeds = [seed - 0.5 for seed in seeds]  # to_center
+        data_per_streamline = {'seeds': seeds}
+    else:
+        data_per_streamline = {}
 
     # Silencing SFT's logger if our logging is in DEBUG mode, because it
     # typically produces a lot of outputs!

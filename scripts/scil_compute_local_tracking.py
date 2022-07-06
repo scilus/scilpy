@@ -194,6 +194,9 @@ def main():
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
+
+    # Note. Seeds are in voxel world, center origin.
+    # (See the examples in random_seeds_from_mask).
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_fdata(dtype=np.float32),
         np.eye(4),

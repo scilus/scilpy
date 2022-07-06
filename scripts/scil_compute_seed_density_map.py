@@ -22,7 +22,9 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('tractogram_filename',
-                   help='Tracts filename. Format must be .trk.')
+                   help='Tracts filename. Format must be .trk. \nFile should '
+                        'contain a "seeds" value in the data_per_streamline.\n'
+                        'These seeds must be in voxel world, center origin.')
     p.add_argument('seed_density_filename',
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
@@ -58,10 +60,18 @@ def main():
     # Can handle streamlines outside of bbox
     sft = load_tractogram(args.tractogram_filename, 'same',
                           bbox_valid_check=False)
-    # Streamlines are saved in RASMM but seeds are saved in VOX
-    # This might produce weird behavior with non-iso
+    # Streamlines are saved in RASMM by nibabel but seeds are saved in VOX,
+    # the default space in dipy.
+    # Also, origin should be center when creating the seeds (wee below, we
+    # are using round, not floor; works with center origin), which is the
+    # default in dipy.
+    # Changing sft here just to make sure, but it will not have consequences on
+    # the code below as it does not modify the data_per_streamline nor the
+    # affine.
     sft.to_vox()
-    sft.to_corner()
+    sft.to_center()
+
+    # Get the seeds
     if 'seeds' in sft.data_per_streamline:
         seeds = sft.data_per_streamline['seeds']
     else:
