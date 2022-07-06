@@ -13,7 +13,7 @@ nilearn==0.6.*
 numpy==1.21.*
 Pillow==9.0.1
 bids-validator==1.6.0
-pybids==0.10.*
+pybids==0.15.*
 pyparsing==2.2.*
 PySocks==1.7.*
 python-dateutil==2.7.*
@@ -36,4 +36,3 @@ dmri-commit==1.4.*
 openpyxl==2.6.*
 cvxpy==1.1.*
 dmri-amico==1.2.*
-formulaic==0.2.4
