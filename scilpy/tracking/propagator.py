@@ -34,7 +34,8 @@ class AbstractPropagator(object):
         dataset: scilpy.image.datasets.DataVolume
             Trackable Dataset object.
         step_size: float
-            The step size for tracking.
+            The step size for tracking. Important: step size should be in the
+            same units as the space of the tracking! Here, voxmm => in mm.
         rk_order: int
             Order for the Runge Kutta integration.
         """

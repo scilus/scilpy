@@ -21,11 +21,11 @@ class SeedGenerator(object):
         Parameters
         ----------
         data: np.array
-            The data, ex, loaded from nibabel img.get_fdata().
+            The data, ex, loaded from nibabel img.get_fdata(). It will be used
+            to find all voxels with values > 0, but will not be kept in memory.
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         """
-        self.data = data
         self.voxres = voxres
 
         # Everything scilpy.tracking is in 'corner', 'voxmm'
@@ -33,11 +33,13 @@ class SeedGenerator(object):
         self.space = 'voxmm'
 
         # self.seed are all the voxels where a seed could be placed
-        # (voxel space, int numbers).
-        self.seeds = np.array(np.where(np.squeeze(data) > 0),
-                              dtype=float).transpose()
-        if len(self.seeds) == 0:
-            logging.warning("There are positive voxels in the seeding mask!")
+        # (voxel space, origin=corner, int numbers).
+        self.seeds_vox = np.array(np.where(np.squeeze(data) > 0),
+                                  dtype=float).transpose()
+
+        if len(self.seeds_vox) == 0:
+            logging.warning("There are no positive voxels in the seeding "
+                            "mask!")
 
     def get_next_pos(self, random_generator, indices, which_seed):
         """
@@ -57,23 +59,32 @@ class SeedGenerator(object):
         seed_pos: tuple
             Position of next seed expressed in mm.
         """
-        len_seeds = len(self.seeds)
+        len_seeds = len(self.seeds_vox)
         if len_seeds == 0:
             return []
 
-        voxel_dim = np.asarray(self.voxres)
-
         # Voxel selection from the seeding mask
         ind = which_seed % len_seeds
-        x, y, z = self.seeds[indices[ind]]
+        x, y, z = self.seeds_vox[indices[ind]]
 
-        # Subvoxel initial positioning
-        r_x = random_generator.uniform(0, voxel_dim[0])
-        r_y = random_generator.uniform(0, voxel_dim[1])
-        r_z = random_generator.uniform(0, voxel_dim[2])
+        # Subvoxel initial positioning. Right now x, y, z are in vox space,
+        # origin=corner, so between 0 and 1.
+        r_x = random_generator.uniform(0, 1)
+        r_y = random_generator.uniform(0, 1)
+        r_z = random_generator.uniform(0, 1)
 
-        return x * self.voxres[0] + r_x, y * self.voxres[1] \
-            + r_y, z * self.voxres[2] + r_z
+        # Moving inside the voxel
+        x += r_x
+        y += r_y
+        z += r_z
+
+        assert self.origin == 'corner'
+        if self.space == 'vox':
+            return x, y, z
+        elif self.space == 'voxmm':
+            return x * self.voxres[0], y * self.voxres[1], z * self.voxres[2]
+        else:
+            raise NotImplementedError("We do not support rasmm space.")
 
     def init_generator(self, random_initial_value, first_seed_of_chunk):
         """
@@ -97,7 +108,7 @@ class SeedGenerator(object):
         random_generator = np.random.RandomState(random_initial_value)
 
         # 1. Initializing seeding maps indices (shuffling in-place)
-        indices = np.arange(len(self.seeds))
+        indices = np.arange(len(self.seeds_vox))
         random_generator.shuffle(indices)
 
         # 2. Initializing the random generator

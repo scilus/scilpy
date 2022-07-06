@@ -165,13 +165,13 @@ def main():
     if args.npv:
         # toDo. This will not really produce n seeds per voxel, only true
         #  in average.
-        nbr_seeds = len(seed_generator.seeds) * args.npv
+        nbr_seeds = len(seed_generator.seeds_vox) * args.npv
     elif args.nt:
         nbr_seeds = args.nt
     else:
         # Setting npv = 1.
-        nbr_seeds = len(seed_generator.seeds)
-    if len(seed_generator.seeds) == 0:
+        nbr_seeds = len(seed_generator.seeds_vox)
+    if len(seed_generator.seeds_vox) == 0:
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
