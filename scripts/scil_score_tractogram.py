@@ -415,6 +415,7 @@ def compute_vb_vs_all_bundles(
      +
     WPC connections:
        1) connect the head and tail but criteria 2 and 3 are not respected
+
     """
     nb_bundles = len(bundle_names)
 
@@ -441,8 +442,8 @@ def compute_vb_vs_all_bundles(
 
             not_wpc = np.setdiff1d(np.arange(len(all_ids)), wpc_ids)
             wpc_ids = all_ids[wpc_ids]
-            not_vs_wps = np.intersect1d(not_vs, not_wpc)
-            all_ids = all_ids[not_vs_wps]
+            not_vs_wpc = np.intersect1d(not_vs, not_wpc)
+            all_ids = all_ids[not_vs_wpc]
 
         vb_sft = sft[vs_ids]
 
@@ -575,6 +576,7 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
 
 
 def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
+                        vs_ids_list, wpc_ids_list, ic_ids_list,
                         vb_sft_list, wpc_sft_list, ib_sft_list, sft, args,
                         bundles_names, gt_masks, dimensions, comb_filename):
     """
@@ -593,7 +595,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     final_results = {
         "tractogram_filename": str(args.in_tractogram),
         "total_streamlines": total_count,
-        "VB": len(vb_sft_list),
+        "VB": len([x for x in vs_ids_list if len(x) > 0]),
         "VS": vs_count,
         "VS_ratio": vs_count / total_count,
         "IS": ic_count + nc_count,  # ic_count = 0 if not args.compute_ic
@@ -602,7 +604,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
     if args.compute_ic:
         final_results.update({
-            "IB": len(ib_sft_list),
+            "IB": len([x for x in ic_ids_list if len(x) > 0]),
             "IC": ic_count,
             "IC_ratio": ic_count / total_count,
             "NC": nc_count,
@@ -611,7 +613,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     if args.save_wpc_separately:
         final_results.update({
             "WPC": wpc_count,
-            "WPC_bundle": len(wpc_sft_list),
+            "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
             "WPC_ratio": wpc_count / total_count})
 
     # Tractometry stats over volume: OL, OR, Dice score
@@ -818,6 +820,7 @@ def main():
     # Tractometry
     final_results = compute_tractometry(
         all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
+        vs_ids_list, ic_ids_list, wpc_ids_list,
         vb_sft_list, wpc_sft_list, ib_sft_list, sft,
         args, bundle_names, gt_masks, dimensions, comb_filename)
     logging.info("Final results saved in {}".format(args.out_dir))
