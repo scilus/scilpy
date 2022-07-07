@@ -164,7 +164,6 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
     fmaps = ['', '']
     sbref = ['', '']
     nSess = 0
-    print(nSub)
     if 'session' in dwi[0].entities:
         nSess = dwi[0].entities['session']
 
@@ -366,11 +365,6 @@ def main():
 
         # Get associations relatives to DWIs
         associations = get_dwi_associations(fmaps, bvals, bvecs, sbrefs)
-
-        for nKey in associations.keys():
-            print(nKey)
-            print(associations[nKey])
-            print('---------------------')
 
         # Get the data for each run of DWIs
         for dwi in dwis:
