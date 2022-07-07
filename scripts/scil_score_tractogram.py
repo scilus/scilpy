@@ -745,8 +745,8 @@ def main():
         detected_ids = np.concatenate((
             np.concatenate(vs_ids_list),
             np.concatenate(wpc_ids_list)))
-        not_vc_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
-        remain_ids = remain_ids[not_vc_ids]
+        not_vs_wpc_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
+        remain_ids = remain_ids[not_vs_wpc_ids]
 
     # WPC
     if args.save_wpc_separately:
