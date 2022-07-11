@@ -86,8 +86,12 @@ class AbstractPropagator(object):
 
     def prepare_backward(self, line, forward_dir):
         """
-        Called at the beginning of backward tracking, in case we need to
-        reset some parameters
+        Called at the beginning of backward tracking. Returns the initial
+        direction of the backward tracking (either the inversed first direction
+        of the forward line if available, or else the inverse direction used to
+        initiate forward tracking (the two are not necessarily equal, ex, if
+        probabilistic tracking added some variation to forward_dir when
+        actually propagating).
 
         Parameters
         ----------
@@ -105,7 +109,10 @@ class AbstractPropagator(object):
         """
         if len(line) > 1:
             v = line[-1] - line[-2]
-            return v / np.linalg.norm(v)
+
+            # Not normalizing here as it comes from forward tracking and should
+            # already be normalized.
+            return v
         elif forward_dir is not None:
             return [-dir_i for dir_i in forward_dir]
         else:
@@ -252,8 +259,13 @@ class PropagatorOnSphere(AbstractPropagator):
 
     def prepare_backward(self, line, forward_dir):
         """
-        Called at the beginning of backward tracking, in case we need to
-        reset some parameters
+        Called at the beginning of backward tracking. Returns the initial
+        direction of the backward tracking (either the inversed first direction
+        of the forward line if available, or else the inverse direction used to
+        initiate forward tracking (the two are not necessarily equal, ex, if
+        probabilistic tracking added some variation to forward_dir when
+        actually propagating). Finding closest peak on the sphere for the
+        chosen direction.
 
         Parameters
         ----------
@@ -449,7 +461,8 @@ class ODFPropagator(PropagatorOnSphere):
         Return
         ------
         direction: ndarray (3,)
-            A valid tracking direction. None if no valid direction is found.
+            A valid normalized tracking direction. None if no valid direction
+            is found.
         """
         if self.algo == 'prob':
             # Tracking field returns the sf and directions
