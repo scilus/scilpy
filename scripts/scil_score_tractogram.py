@@ -96,6 +96,7 @@ import os
 
 from dipy.io.utils import is_header_compatible
 from dipy.io.streamline import save_tractogram
+from dipy.tracking.utils import length
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -112,6 +113,10 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_vb_vs, compute_f1_score,
                                           compute_dice_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
+
+import faulthandler
+
+faulthandler.enable()
 
 def_len = [0, np.inf]
 
@@ -144,6 +149,11 @@ def _build_arg_parser():
                    help="Dilate inclusion masks n-times. Default: 0.")
     g.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
+    g.add_argument('--min_length', type=float, default=10.,
+                   metavar='m',
+                   help='Minimum length of a streamline in mm. '
+                        'Below this length, streamlines will be '
+                        'considered as NC. [%(default)s]')
 
     g = p.add_argument_group("Tractometry choices")
     g.add_argument("--save_wpc_separately", action='store_true',
@@ -579,10 +589,13 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                         vs_ids_list, wpc_ids_list, ic_ids_list,
                         vb_sft_list, wpc_sft_list, ib_sft_list, sft, args,
                         bundles_names, gt_masks, dimensions, comb_filename):
+
     """
     Tractometry stats: First in terms of connections (NC, IC, VS, WPC), then
     in terms of volume (OL, OR, Dice score)
     """
+    logging.info("Computing tractometry")
+
     nb_bundles = len(bundles_names)
 
     # Total number of streamlines for each category
@@ -625,7 +638,6 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     for i in range(nb_bundles):
         current_vb = vb_sft_list[i].streamlines
         bundle_results = {"VS": len(current_vb)}
-
         if gt_masks[i] is not None:
             # Getting the recovered mask
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
@@ -727,19 +739,28 @@ def main():
     args = parser.parse_args()
 
     # Load
-    (gt_tails, gt_heads, sft, bundle_names, all_rois, lengths, angles,
+    (gt_tails, gt_heads, sft, bundle_names, all_rois, bundle_lengths, angles,
      orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
      dimensions) = load_and_verify_everything(parser, args)
 
     remain_ids = np.arange(0, len(sft))
+    sft.to_rasmm()
+    streamline_lengths = np.asarray(list(length(sft.streamlines)))
+    long_enough_mask = streamline_lengths > args.min_length
+    long_enough_ids = remain_ids[long_enough_mask]
+    too_short_ids = np.setdiff1d(remain_ids, long_enough_ids)
+    remain_ids = long_enough_ids
+    logging.info("{} streamlines are above {} mm.".format(
+        len(remain_ids), args.min_length))
+    sft.to_vox()
 
     # VS
     logging.info("Scoring valid connections")
     vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats = \
         compute_vb_vs_all_bundles(
-            gt_tails, gt_heads, sft, bundle_names, lengths, angles,
-            orientation_lengths, abs_orientation_lengths, limits_inv_masks,
-            args)
+            gt_tails, gt_heads, sft[remain_ids], bundle_names, bundle_lengths,
+            angles, orientation_lengths, abs_orientation_lengths,
+            limits_inv_masks, args)
 
     if args.unique:
         detected_ids = np.concatenate((
@@ -797,7 +818,7 @@ def main():
 
     # NC
     # = ids that are not VS, not wpc (if asked) and not IC (if asked).
-    all_nc_ids = np.arange(len(remain_ids))
+    all_nc_ids = np.concatenate((too_short_ids, np.arange(len(remain_ids))))
     if not args.unique:
         all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
         all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
