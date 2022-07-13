@@ -52,6 +52,9 @@ class AbstractPropagator(object):
                              str(rk_order) + ". Choices : 1, 2, 4")
         self.rk_order = rk_order
 
+        # By default, normalizing directions. Adding option for child classes.
+        self.normalize_directions = True
+
     def reset_data(self, new_data=None):
         """
         Reset data before starting a new process. In current implementation,
@@ -106,7 +109,10 @@ class AbstractPropagator(object):
         """
         if len(line) > 1:
             v = line[-1] - line[-2]
-            return v / np.linalg.norm(v)
+            if self.normalize_directions:
+                return v / np.linalg.norm(v)
+            else:
+                return v
         elif forward_dir is not None:
             return [-dir_i for dir_i in forward_dir]
         else:
