@@ -114,9 +114,6 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           compute_dice_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
-import faulthandler
-
-faulthandler.enable()
 
 def_len = [0, np.inf]
 
@@ -449,11 +446,7 @@ def compute_vb_vs_all_bundles(
         if args.unique:
             not_vs = np.setdiff1d(np.arange(len(all_ids)), vs_ids)
             vs_ids = all_ids[vs_ids]
-
-            not_wpc = np.setdiff1d(np.arange(len(all_ids)), wpc_ids)
-            wpc_ids = all_ids[wpc_ids]
-            not_vs_wpc = np.intersect1d(not_vs, not_wpc)
-            all_ids = all_ids[not_vs_wpc]
+            all_ids = all_ids[not_vs]
 
         vb_sft = sft[vs_ids]
 
@@ -470,6 +463,19 @@ def compute_vb_vs_all_bundles(
 
         logging.info("Bundle {}: nb VS = {}"
                      .format(bundle_names[i], bundle_stats["VS"]))
+
+    if args.remove_wpc_belonging_to_another_bundle and args.unique:
+        print(wpc_ids_list)
+        all_wpc = np.unique(np.concatenate(tuple(wpc_ids_list)))
+        print(all_wpc)
+        for i in range(nb_bundles):
+            duplicate_wpc = np.intersect1d(vs_ids_list[i], all_wpc)
+            if len(duplicate_wpc) > 0:
+                print('Hit', i)
+            all_wpc = np.setdiff1d(all_wpc, duplicate_wpc)
+
+        for i in range(nb_bundles):
+            wpc_ids_list[i] = np.intersect1d(wpc_ids_list[i], all_wpc)
 
     # Duplicates?
     for i in range(nb_bundles):
