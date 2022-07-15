@@ -58,7 +58,7 @@ def get_metadata(bf):
     filename = bf.path.replace(
         bf.entities['extension'], '')
 
-    with open(filename + '.json', 'r') as handle:
+    with open(filename + 'json', 'r') as handle:
         return json.load(handle)
 
 
@@ -75,6 +75,9 @@ def get_dwi_associations(fmaps, bvals, bvecs, sbrefs):
 
     bvecs : List of BIDSFile object
         List of b-vector files
+
+    sbrefs : List of BIDSFile object
+        List of sbref files
 
     Returns
     -------
@@ -296,21 +299,39 @@ def associate_dwis(layout, nSub):
     """ Return subject data
     Parameters
     ----------
-    layout:
-
-    nSub:
-
+    layout: pyBIDS layout
+        BIDS layout
+    nSub: String
+        Current subject to analyse
     Returns
     -------
     all_dwis: list
-
-
+        List of dwi
     """
     all_dwis = []
-
-    for curr_sess in layout.get_sessions():
+    if layout.get_sessions(subject=nSub):
+        for curr_sess in layout.get_sessions(subject=nSub):
+            dwis = layout.get(subject=nSub,
+                              session=curr_sess,
+                              datatype='dwi', extension='nii.gz',
+                              suffix='dwi')
+            if len(dwis) == 1:
+                all_dwis.append(dwis)
+            elif len(dwis) > 1:
+                all_runs = [curr_dwi.entities['run'] for curr_dwi in dwis if 'run' in curr_dwi.entities]
+                if all_runs:
+                    for curr_run in all_runs:
+                        dwis = layout.get(subject=nSub,
+                                          session=curr_sess,
+                                          run=curr_run,
+                                          datatype='dwi', extension='nii.gz',
+                                          suffix='dwi')
+                        if dwis:
+                            all_dwis.append(dwis)
+                else:
+                    all_dwis.append(dwis)
+    else:
         dwis = layout.get(subject=nSub,
-                          session=curr_sess,
                           datatype='dwi', extension='nii.gz',
                           suffix='dwi')
         if len(dwis) == 1:
