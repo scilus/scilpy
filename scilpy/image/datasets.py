@@ -61,7 +61,7 @@ class DataVolume(object):
         value: ndarray (self.dim[-1],)
             The value evaluated at voxel x, y, z.
         """
-        i, j, k = self._idx_to_closest_coord(i, j, k)
+        i, j, k = self._clip_idx_to_bound(i, j, k)
         return self.data[i][j][k]
 
     def is_idx_in_bound(self, i, j, k):
@@ -82,17 +82,21 @@ class DataVolume(object):
                 0 <= j < (self.dim[1]) and
                 0 <= k < (self.dim[2]))
 
-    def _idx_to_closest_coord(self, i, j, k):
+    def _clip_idx_to_bound(self, i, j, k):
+        """
+        Returns i, j, k if the index is valid inside the bounding box. Else,
+        finds the closest valid index on the border.
+        """
         if not self.is_idx_in_bound(i, j, k):
             i = max(0, min(self.dim[0] - 1, i))
             j = max(0, min(self.dim[1] - 1, j))
             k = max(0, min(self.dim[2] - 1, k))
         return i, j, k
 
-    def _vox_to_closest_coord(self, x, y, z, origin):
+    def _clip_vox_to_bound(self, x, y, z, origin):
         """
-        In voxel space, get closest coordinate in the voxel in out of bout.
-        Else, return initial coordinates.
+        Returns x, y, z if the voxel coordinate is valid inside the bounding
+        box. Else, finds the closest valid value on the border.
 
         Parameters
         ----------
@@ -170,7 +174,7 @@ class DataVolume(object):
         """
         if self.interpolation is not None:
             # Checking if out of bound.
-            x, y, z = self._vox_to_closest_coord(x, y, z, origin)
+            x, y, z = self._clip_vox_to_bound(x, y, z, origin)
 
             # Interpolation: Using dipy's pyx methods. The doc can be found in
             # the file dipy.core.interpolation.pxd. Dipy works with origin

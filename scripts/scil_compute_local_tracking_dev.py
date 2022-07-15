@@ -54,6 +54,7 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 
+from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
@@ -157,6 +158,8 @@ def main():
     min_nbr_pts = int(args.min_length / args.step_size) + 1
     max_invalid_dirs = int(math.ceil(args.max_invalid_length / args.step_size))
 
+    assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
+
     logging.debug("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
     seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
@@ -187,19 +190,6 @@ def main():
     odf_sh_res = odf_sh_img.header.get_zooms()[:3]
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
-    if not np.array_equal(mask_res, odf_sh_res):
-        parser.error("Not the same resolution for the ODF data and tracking "
-                     "mask!")
-    if not np.array_equal(mask_res, seed_res):
-        parser.error("Not the same resolution for the tracking and seeding "
-                     "masks!")
-    if not np.array_equal(mask_data.shape, odf_sh_data.shape[0:3]):
-        parser.error("Not the same data size for the ODF data and tracking "
-                     "mask!")
-    if not np.array_equal(mask_data.shape, seed_data.shape):
-        parser.error("Not the same data size for the tracking and seeding "
-                     "masks!")
-
     logging.debug("Instantiating propagator.")
     propagator = ODFPropagator(
         dataset, args.step_size, args.rk_order, args.algo, args.sh_basis,
@@ -229,8 +219,8 @@ def main():
     # vox, center. In other scripts using the seeds (ex,
     # scil_compute_density_map), this is what they will expect.
     if args.save_seeds:
-        seeds = [seed / seed_res for seed in seeds]  # to_vox
-        seeds = [seed - 0.5 for seed in seeds]  # to_center
+        # to_vox, then to center
+        seeds = [(seed / seed_res) - 0.5 for seed in seeds]
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}

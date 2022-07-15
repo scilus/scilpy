@@ -78,13 +78,23 @@ class SeedGenerator(object):
         y += r_y
         z += r_z
 
-        assert self.origin == 'corner'
+        if self.origin == 'center':
+            # Bound [0, 0, 0] is now [-0.5, -0.5, -0.5]
+            x -= 0.5
+            y -= 0.5
+            z -= 0.5
+        elif self.origin != 'corner':
+            raise ValueError("Wrong origin!")
+
         if self.space == 'vox':
             return x, y, z
         elif self.space == 'voxmm':
             return x * self.voxres[0], y * self.voxres[1], z * self.voxres[2]
         else:
             raise NotImplementedError("We do not support rasmm space.")
+
+        # Dealing with origin
+
 
     def init_generator(self, random_initial_value, first_seed_of_chunk):
         """
