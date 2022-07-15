@@ -341,7 +341,6 @@ def associate_dwis(layout, nSub):
             if all_runs:
                 for curr_run in all_runs:
                     dwis = layout.get(subject=nSub,
-                                      session=curr_sess,
                                       run=curr_run,
                                       datatype='dwi', extension='nii.gz',
                                       suffix='dwi')
