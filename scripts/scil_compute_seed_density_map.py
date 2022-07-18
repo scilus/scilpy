@@ -60,25 +60,28 @@ def main():
     # Can handle streamlines outside of bbox
     sft = load_tractogram(args.tractogram_filename, 'same',
                           bbox_valid_check=False)
-    # Streamlines are saved in RASMM by nibabel but seeds are saved in VOX,
-    # the default space in dipy.
-    # Also, origin should be center when creating the seeds (wee below, we
+
+    # IMPORTANT
+    # Origin should be center when creating the seeds (see below, we
     # are using round, not floor; works with center origin), which is the
-    # default in dipy.
-    # Changing sft here just to make sure, but it will not have consequences on
-    # the code below as it does not modify the data_per_streamline nor the
-    # affine.
-    sft.to_vox()
-    sft.to_center()
+    # default in dipy. Can NOT be verified here.
+
+    # P.s. Streamlines are saved in RASMM by nibabel by default but nibabel
+    # does not change the values in data_per_streamline. They are also not
+    # impacted by methods in the sft such as to_vox or to_corner.
+    # data_per_streamline is thus always exactly as it was when created by
+    # user.
+
+    # SFT shape and affine are fixed, no matter the sft space and origin.
+    affine, shape, _, _ = sft.space_attributes
 
     # Get the seeds
-    if 'seeds' in sft.data_per_streamline:
-        seeds = sft.data_per_streamline['seeds']
-    else:
-        parser.error('Tractogram does not contain seeds')
+    if 'seeds' not in sft.data_per_streamline:
+        parser.error('Tractogram does not contain seeds.')
+
+    seeds = sft.data_per_streamline['seeds']
 
     # Create seed density map
-    _, shape, _, _ = sft.space_attributes
     seed_density = np.zeros(shape, dtype=np.int32)
     for seed in seeds:
         # Set value at mask, either binary or increment
@@ -89,8 +92,7 @@ def main():
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
-    dm_img = Nifti1Image(seed_density.astype(np.int32),
-                         sft.affine)
+    dm_img = Nifti1Image(seed_density.astype(np.int32), affine)
     dm_img.to_filename(args.seed_density_filename)
 
 
