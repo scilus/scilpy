@@ -10,9 +10,10 @@ from time import perf_counter
 import nibabel as nib
 import numpy as np
 
-from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.datasets import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
@@ -37,6 +38,8 @@ class Tracker(object):
         ----------
         propagator : AbstractPropagator
             Tracking object.
+            This tracker will use space and origin defined in the
+            propagator.
         mask : DataVolume
             Tracking volume(s).
         seed_generator : SeedGenerator
@@ -85,9 +88,16 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.skip = skip
 
-        # Everything scilpy.tracking is in 'corner', 'voxmm'
-        self.origin = 'corner'
-        self.space = 'voxmm'
+        self.origin = self.propagator.origin
+        self.space = self.propagator.space
+        if self.space == Space.RASMM:
+            raise NotImplementedError(
+                "This version of the Tracker is not ready to work in RASMM "
+                "space.")
+        if (seed_generator.origin != propagator.origin or
+                seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with "
+                             "the same space and origin!")
 
         if self.min_nbr_pts <= 0:
             logging.warning("Minimum number of points cannot be 0. Changed to "
@@ -105,8 +115,7 @@ class Tracker(object):
 
     def track(self):
         """
-        Generate a set of streamline from seed, mask and odf files. Results
-        are in voxmm space (i.e. in mm coordinates, starting at 0,0,0).
+        Generate a set of streamline from seed, mask and odf files.
 
         Return
         ------
@@ -396,7 +405,8 @@ class Tracker(object):
                                                         tracking_info)
         if (final_pos is not None and
                 not np.array_equal(final_pos, line[-1]) and
-                self.mask.is_voxmm_in_bound(*final_pos, origin=self.origin)):
+                self.mask.is_coordinate_in_bound(
+                    *final_pos, space=self.space, origin=self.origin)):
             line.append(final_pos)
         return line
 
@@ -407,22 +417,14 @@ class Tracker(object):
             return False
 
         # Checking if out of bound
-        # Space in voxmm in this class but verifying in case a child class
-        # allows a different space usage.
-        if self.space == 'voxmm':
-            if not self.mask.is_voxmm_in_bound(*last_pos, origin=self.origin):
-                return False
+        if not self.mask.is_coordinate_in_bound(
+                *last_pos, space=self.space, origin=self.origin):
+            return False
 
-            # Checking if out of mask
-            if self.mask.voxmm_to_value(*last_pos, origin=self.origin) <= 0:
-                return False
-        elif self.space == 'vox':
-            if not self.mask.is_vox_in_bound(*last_pos, origin=self.origin):
-                return False
-
-            # Checking if out of mask
-            if self.mask.vox_to_value(*last_pos, origin=self.origin) <= 0:
-                return False
+        # Checking if out of mask
+        if self.mask.get_value_at_coordinate(
+                *last_pos, space=self.space, origin=self.origin) <= 0:
+            return False
 
         return True
 

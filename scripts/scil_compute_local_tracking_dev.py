@@ -47,7 +47,6 @@ import time
 
 import dipy.core.geometry as gm
 import nibabel as nib
-import numpy as np
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
                                         set_sft_logger_level
@@ -160,11 +159,17 @@ def main():
 
     assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
+    # Choosing our space and origin for this tracking
+    our_space = Space.VOX
+    our_origin = Origin('center')
+
+    # Preparing everything
     logging.debug("Loading seeding mask.")
     seed_img = nib.load(args.in_seed)
     seed_data = seed_img.get_fdata(caching='unchanged', dtype=float)
     seed_res = seed_img.header.get_zooms()[:3]
-    seed_generator = SeedGenerator(seed_data, seed_res)
+    seed_generator = SeedGenerator(seed_data, seed_res,
+                                   space=our_space, origin=our_origin)
     if args.npv:
         # toDo. This will not really produce n seeds per voxel, only true
         #  in average.
@@ -191,9 +196,12 @@ def main():
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
     logging.debug("Instantiating propagator.")
+    # Using space and origin in the propagator: vox and center, like
+    # in dipy.
     propagator = ODFPropagator(
         dataset, args.step_size, args.rk_order, args.algo, args.sh_basis,
-        args.sf_threshold, args.sf_threshold_init, theta, args.sphere)
+        args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
+        space=our_space, origin=our_origin)
 
     logging.debug("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
@@ -215,12 +223,11 @@ def main():
                   .format(len(streamlines), nbr_seeds, str_time))
 
     # save seeds if args.save_seeds is given
-    # We seeded (and tracked) in voxmm, corner, but in dipy, they use
-    # vox, center. In other scripts using the seeds (ex,
-    # scil_compute_density_map), this is what they will expect.
+    # We seeded (and tracked) in vox, center, which is what is expected for
+    # seeds.
     if args.save_seeds:
-        # to_vox, then to center
-        seeds = [(seed / seed_res) - 0.5 for seed in seeds]
+        assert our_origin == Origin('center')
+        assert our_space == Space.VOX
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}
@@ -235,8 +242,8 @@ def main():
     # space after tracking is voxmm.
     # Smallest possible streamline coordinate is (0,0,0), equivalent of
     # corner origin (TrackVis)
-    sft = StatefulTractogram(streamlines, mask_img, Space.VOXMM,
-                             Origin.TRACKVIS,
+    sft = StatefulTractogram(streamlines, mask_img,
+                             space=our_space, origin=our_origin,
                              data_per_streamline=data_per_streamline)
     save_tractogram(sft, args.out_tractogram)
 

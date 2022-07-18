@@ -3,6 +3,8 @@ import logging
 
 import numpy as np
 
+from dipy.io.stateful_tractogram import Space, Origin
+
 
 class SeedGenerator(object):
     """
@@ -16,7 +18,8 @@ class SeedGenerator(object):
     example as above, seed sampled in voxel i,j,k = (0,1,2) will be somewhere
     in the range x = [0, 3], y = [3, 6], z = [6, 9].
     """
-    def __init__(self, data, voxres):
+    def __init__(self, data, voxres,
+                 space=Space('vox'), origin=Origin('center')):
         """
         Parameters
         ----------
@@ -28,9 +31,10 @@ class SeedGenerator(object):
         """
         self.voxres = voxres
 
-        # Everything scilpy.tracking is in 'corner', 'voxmm'
-        self.origin = 'corner'
-        self.space = 'voxmm'
+        self.origin = origin
+        self.space = space
+        if space == Space.RASMM:
+            raise NotImplementedError("We do not support rasmm space.")
 
         # self.seed are all the voxels where a seed could be placed
         # (voxel space, origin=corner, int numbers).
@@ -78,23 +82,18 @@ class SeedGenerator(object):
         y += r_y
         z += r_z
 
-        if self.origin == 'center':
+        if self.origin == Origin.NIFTI:  # center
             # Bound [0, 0, 0] is now [-0.5, -0.5, -0.5]
             x -= 0.5
             y -= 0.5
             z -= 0.5
-        elif self.origin != 'corner':
-            raise ValueError("Wrong origin!")
 
-        if self.space == 'vox':
+        if self.space == Space.VOX:
             return x, y, z
-        elif self.space == 'voxmm':
+        elif self.space == Space.VOXMM:
             return x * self.voxres[0], y * self.voxres[1], z * self.voxres[2]
         else:
             raise NotImplementedError("We do not support rasmm space.")
-
-        # Dealing with origin
-
 
     def init_generator(self, random_initial_value, first_seed_of_chunk):
         """

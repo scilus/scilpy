@@ -2,8 +2,10 @@
 from enum import Enum
 import logging
 
-import dipy
 import numpy as np
+
+import dipy
+from dipy.io.stateful_tractogram import Space, Origin
 from dipy.reconst.shm import sh_to_sf_matrix
 
 from scilpy.reconst.utils import (get_sphere_neighbours,
@@ -27,7 +29,7 @@ class AbstractPropagator(object):
     Propagation depends on the type of data (ex, DTI, fODF) and the way to get
     a direction from it (ex, det, prob).
     """
-    def __init__(self, dataset, step_size, rk_order):
+    def __init__(self, dataset, step_size, rk_order,  space, origin):
         """
         Parameters
         ----------
@@ -35,15 +37,18 @@ class AbstractPropagator(object):
             Trackable Dataset object.
         step_size: float
             The step size for tracking. Important: step size should be in the
-            same units as the space of the tracking! Here, voxmm => in mm.
+            same units as the space of the tracking!
         rk_order: int
             Order for the Runge Kutta integration.
+        space: dipy Space
+            Space of the streamlines during tracking.
+        origin: dipy Origin
+            Origin of the streamlines during tracking.
         """
         self.dataset = dataset
 
-        # Everything scilpy.tracking is in 'corner', 'voxmm'
-        self.origin = 'corner'
-        self.space = 'voxmm'
+        self.origin = origin
+        self.space = space
 
         # Propagation options
         self.step_size = step_size
@@ -233,7 +238,8 @@ class AbstractPropagator(object):
 
 
 class PropagatorOnSphere(AbstractPropagator):
-    def __init__(self, dataset, step_size, rk_order, dipy_sphere):
+    def __init__(self, dataset, step_size, rk_order, dipy_sphere,
+                 space, origin):
         """
         Parameters
         ----------
@@ -246,8 +252,12 @@ class PropagatorOnSphere(AbstractPropagator):
         dipy_sphere: string, optional
             If necessary, name of the DIPY sphere object to use to evaluate
             directions.
+        space: dipy Space
+            Space of the streamlines during tracking.
+        origin: dipy Origin
+            Origin of the streamlines during tracking.
         """
-        super().__init__(dataset, step_size, rk_order)
+        super().__init__(dataset, step_size, rk_order, space, origin)
 
         self.sphere = dipy.data.get_sphere(dipy_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
@@ -316,7 +326,8 @@ class ODFPropagator(PropagatorOnSphere):
     def __init__(self, dataset, step_size,
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
-                 min_separation_angle=np.pi / 16.):
+                 min_separation_angle=np.pi / 16.,
+                 space=Space('vox'), origin=Origin('center')):
         """
 
         Parameters
@@ -350,8 +361,23 @@ class ODFPropagator(PropagatorOnSphere):
             neighbourhood, where the neighbourhood includes all the sphere
             directions located at most `min_separation_angle` from the
             candidate direction.
+        space: dipy Space
+            Space of the streamlines during tracking. Default: VOX, like in
+            dipy. Interpolation of the ODF is done in VOX space (see
+            DataVolume.vox_to_value) so this choice implies the less data
+            modification.
+        origin: dipy Origin
+            Origin of the streamlines during tracking. Default: center, like in
+            dipy. Interpolation of the ODF is done in center origin so this
+            choice implies the less data modification.
         """
-        super().__init__(dataset, step_size, rk_order, dipy_sphere)
+        super().__init__(dataset, step_size, rk_order, dipy_sphere,
+                         space, origin)
+
+        if self.space == Space.RASMM:
+            raise NotImplementedError(
+                "This version of the propagator on ODF is not ready to work "
+                "in RASMM space.")
 
         # Warn user if the rk order does not match the algo
         if rk_order != 1 and algo == 'prob':
@@ -387,7 +413,7 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         pos: ndarray (3,)
-            Position in voxmm in the trackable dataset.
+            Position in the trackable dataset, either in vox or voxmm space.
 
         Return
         ------
@@ -395,7 +421,9 @@ class ODFPropagator(PropagatorOnSphere):
             Spherical function evaluated at pos, normalized by
             its maximum amplitude.
         """
-        sh = self.dataset.voxmm_to_value(*pos, self.origin)
+        # Interpolation:
+        sh = self.dataset.get_value_at_coordinate(
+            *pos, space=self.space, origin=self.origin)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
         sf_max = np.max(sf)
