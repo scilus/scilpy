@@ -361,7 +361,7 @@ def extract_vb_vs(
     vs_ids: list
         List of ids of valid streamlines
     wpc_ids: list
-        List of ids of valid streamlines
+        List of ids of wrong-path connections
     bundle_stats: dict
         Dictionary of recognized streamlines statistics
     """

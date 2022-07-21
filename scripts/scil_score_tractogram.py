@@ -465,13 +465,9 @@ def compute_vb_vs_all_bundles(
                      .format(bundle_names[i], bundle_stats["VS"]))
 
     if args.remove_wpc_belonging_to_another_bundle and args.unique:
-        print(wpc_ids_list)
         all_wpc = np.unique(np.concatenate(tuple(wpc_ids_list)))
-        print(all_wpc)
         for i in range(nb_bundles):
             duplicate_wpc = np.intersect1d(vs_ids_list[i], all_wpc)
-            if len(duplicate_wpc) > 0:
-                print('Hit', i)
             all_wpc = np.setdiff1d(all_wpc, duplicate_wpc)
 
         for i in range(nb_bundles):
