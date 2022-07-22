@@ -235,7 +235,7 @@ class DataVolume(object):
             # Interpolation: Using dipy's pyx methods. The doc can be found in
             # the file dipy.core.interpolation.pxd. Dipy works with origin
             # center.
-            coord = np.array((x, y, z), dtype=np.float64)
+            coord = np.array((x, y, z), dtype=np.float32)
             if origin == Origin('corner'):
                 coord -= 0.5
 
