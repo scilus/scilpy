@@ -160,6 +160,8 @@ def main():
     assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
     # Choosing our space and origin for this tracking
+    # If save_seeds, space and origin must be vox, center. Choosing those
+    # values.
     our_space = Space.VOX
     our_origin = Origin('center')
 
@@ -226,8 +228,6 @@ def main():
     # We seeded (and tracked) in vox, center, which is what is expected for
     # seeds.
     if args.save_seeds:
-        assert our_origin == Origin('center')
-        assert our_space == Space.VOX
         data_per_streamline = {'seeds': seeds}
     else:
         data_per_streamline = {}

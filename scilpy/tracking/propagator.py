@@ -42,8 +42,15 @@ class AbstractPropagator(object):
             Order for the Runge Kutta integration.
         space: dipy Space
             Space of the streamlines during tracking.
+            value.
         origin: dipy Origin
-            Origin of the streamlines during tracking.
+            Origin of the streamlines during tracking. All coordinates received
+            in the propagator's methods will be expected to respect that origin.
+
+        A note on space and origin: All coordinates received in the
+        propagator's methods will be expected to respect those values.
+        Tracker will verify that the propagator has the same internal values as
+        itself.
         """
         self.dataset = dataset
 
@@ -83,6 +90,8 @@ class AbstractPropagator(object):
         Parameters
         ----------
         seeding_pos: tuple(x,y,z)
+            The seeding position. Important, position must be in the same space
+            and origin as self.space, self.origin!
 
         Returns
         -------
@@ -130,7 +139,8 @@ class AbstractPropagator(object):
         Parameters
         ----------
         last_pos: ndarray (3,)
-            Last propagated position.
+            Last propagated position. Important, position must be in the same
+            space and origin as self.space, self.origin!
         v_in: TrackingDirection
             Last propagated direction.
 
@@ -175,7 +185,8 @@ class AbstractPropagator(object):
         Return
         ------
         new_pos: ndarray (3,)
-            The new segment position.
+            The new segment position, expressed in propagator's space and
+            origin.
         new_dir: ndarray (3,) or TrackingDirection
             The new segment direction.
         is_direction_valid: bool
@@ -224,7 +235,8 @@ class AbstractPropagator(object):
         Parameters
         ----------
         pos: ndarray (3,)
-            Current tracking position.
+            Current tracking position.  Important, position must be in the same
+            space and origin as self.space, self.origin!
         v_in: ndarray (3,)
             Previous tracking direction.
 
@@ -264,9 +276,6 @@ class PropagatorOnSphere(AbstractPropagator):
         for i in range(len(self.sphere.vertices)):
             self.dirs[i] = TrackingDirection(self.sphere.vertices[i], i)
 
-    def prepare_forward(self, seeding_pos):
-        raise NotImplementedError
-
     def prepare_backward(self, line, forward_dir):
         """
         Called at the beginning of backward tracking, in case we need to
@@ -297,26 +306,6 @@ class PropagatorOnSphere(AbstractPropagator):
         #  x,y, z or rho, phi? self.sphere.vertices[ind] might not be
         #  exactly equal to last_dir or to backward_dir.
         return TrackingDirection(self.sphere.vertices[ind], ind)
-
-    def _sample_next_direction(self, pos, v_in):
-        """
-        Chooses a next tracking direction from all possible directions offered
-        by the tracking field.
-
-        Parameters
-        ----------
-        pos: ndarray (3,)
-            Current tracking position.
-        v_in: ndarray (3,)
-            Previous tracking direction.
-
-        Return
-        -------
-        direction: ndarray (3,)
-            A valid tracking direction. None if no valid direction is found.
-            Direction should be normalized.
-        """
-        raise NotImplementedError
 
 
 class ODFPropagator(PropagatorOnSphere):
@@ -413,7 +402,8 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         pos: ndarray (3,)
-            Position in the trackable dataset, either in vox or voxmm space.
+            Position in the trackable dataset. Important, position should be
+            in the same space and origin as self.space, self.origin!
 
         Return
         ------
@@ -445,6 +435,8 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         seeding_pos: tuple(x,y,z)
+            The seeding position. Important, position must be in the same space
+            and origin as self.space, self.origin!
 
         Returns
         -------
@@ -477,7 +469,8 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         pos: ndarray (3,)
-            Current tracking position.
+            Current tracking position.  Important, position must be in the same
+            space and origin as self.space, self.origin!
         v_in: ndarray (3,)
             Previous tracking direction.
 
@@ -521,7 +514,8 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         pos: ndarray (3,)
-            Position in trackable dataset, expressed in mm.
+            Position in trackable dataset. Important, position must be in the
+            same space and origin as self.space, self.origin!
         v_in: TrackingDirection
             Incoming direction. Outcoming direction won't be further than an
             angle theta.
@@ -546,7 +540,8 @@ class ODFPropagator(PropagatorOnSphere):
         Parameters
         ----------
         pos: ndarray (3,)
-            Position in trackable dataset, expressed in mm.
+            Position in trackable dataset. Important, position must be in the
+            same space and origin as self.space, self.origin!
         previous_direction: TrackingDirection
             Incoming direction. Outcoming direction won't be further than an
             angle theta.
