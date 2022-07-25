@@ -9,6 +9,11 @@ formation of bundles (ex: the number of wpc per criteria), and splits the input
 tractogram into one file per bundle : *_VS.tck. Remaining streamlines are
 combined in a IS.tck file.
 
+By default, if a streamline fits in many bundles, it will be included in every
+one. This means a streamline may be a VS for a bundle and an IS for
+(potentially many) others. If you want to assign each streamline to at most one
+bundle, use the `--unique` flag.
+
 Definitions:
     In terms of number of streamlines:
         Computed by default:
@@ -19,6 +24,10 @@ Definitions:
             statistics are saved into processing_stats.json, but the results
             are only saved if specified in the options. Else, they are merged
             back with the IS.
+
+            **WPC are only computed if "limits masks" are provided.** Else,
+            they are considered VS.
+
         - IS: invalid streamlines. All other streamlines.
 
         Optional:
@@ -412,8 +421,8 @@ def compute_vb_vs_all_bundles(
         gt_tails, gt_heads, sft, bundle_names, lengths, angles,
         orientation_lengths, abs_orientation_lengths, limits_inv_masks, args):
     """
-    Loop on all bundles and extract VS and WPC. Saves the VC but WPC will only
-    be saved later if asked by user. Else, they will be included back into IS.
+    Loop on all bundles and extract VS and WPC. Saves the VC and WPC if
+    asked by user. Else, they will be included back into IS.
 
     VS:
        1) Connect the head and tail
@@ -423,6 +432,19 @@ def compute_vb_vs_all_bundles(
     WPC connections:
        1) connect the head and tail but criteria 2 and 3 are not respected
 
+
+    Returns
+    -------
+    vb_sft_list: list
+        List of StatefulTractograms of VS
+    vs_ids_list: list
+        List of list of VS streamline ids
+    wpc_sft_list: list
+        List of StatefulTractograms of WPC
+    wpc_ids_list: list
+        List of list of WPC streamline ids
+    bundle_stats: dict
+        Information on the recognized streamlines
     """
     nb_bundles = len(bundle_names)
 
@@ -468,18 +490,17 @@ def compute_vb_vs_all_bundles(
             bundles_stats[i].update({"Cleaned WPC": len(new_wpc_ids)})
 
         logging.info("Bundle {}: nb WPC = {}"
-                     .format(bundle_names[i], len(new_wpc_ids)))
+                     .format(bundle_names[i], len(wpc_ids_list[i])))
 
     # WPC
-    if not args.save_wpc_separately:
-        # Add WPCs to VS if they are not to be saved separately
+    if args.save_wpc_separately:
+        wpc_sft_list = save_wpc_all_bundles(
+            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
+    else:
+        # Remove WPCs to be included as IS in the future
         for i in range(nb_bundles):
-            vs_ids_list[i] = np.append(vs_ids_list[i], wpc_ids_list[i])
             wpc_ids_list[i] = []
         wpc_sft_list = []
-    else:
-        wpc_sft_list, bundles_stats = save_wpc_all_bundles(
-            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
 
     # Duplicates?
     if not args.unique:
@@ -506,7 +527,7 @@ def compute_vb_vs_all_bundles(
                         '_' + bundle_names[j] + '.trk'))
 
     for i in range(nb_bundles):
-        vb_sft = sft[vs_ids]
+        vb_sft = sft[vs_ids_list[i]]
         vb_sft_list.append(vb_sft)
         # Save results
         if len(vb_sft) > 0 or not args.no_empty:
@@ -517,8 +538,7 @@ def compute_vb_vs_all_bundles(
     return vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats
 
 
-def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
-                         bundles_stats):
+def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list):
     """
     Save WPC to file.
     """
@@ -538,7 +558,7 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
             save_tractogram(wpc_sft, os.path.join(args.out_dir, filename),
                             bbox_valid_check=False)
 
-    return wpc_sft_list, bundles_stats
+    return wpc_sft_list
 
 
 def compute_ib_ic_all_bundles(comb_filename, sft, args):
@@ -563,7 +583,7 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
 
         if args.unique:
             ic_ids = all_ids[ic_ids]
-            all_ids = np.setdiff1d(all_ids, ic_ids)
+            all_ids = np.setdiff1d(all_ids, ic_ids, assume_unique=True)
 
         if len(ib_sft) > 0 or not args.no_empty:
             file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
