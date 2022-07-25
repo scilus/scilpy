@@ -136,55 +136,24 @@ def filter_streamlines_by_total_length_per_dim(
     return filtered_sft, np.nonzero(mask_good_ids), rejected_sft
 
 
-def get_subset_streamlines(sft, max_streamlines, rng_seed=None,
-                           return_indices_only=False):
+def split_sft_sequentially(orig_sft, chunk_sizes):
     """
-    Extract a specific number of streamlines.
-
-    Parameters
-    ----------
-    sft: StatefulTractogram
-        SFT containing the streamlines to subsample.
-    max_streamlines: int
-        Maximum number of streamlines to output.
-    rng_seed: int
-        Random number to use for shuffling the data.
-    return_indices_only: bool
-        If true, return a random list of indices. Else, return the Stateful
-        Tractogram containing the chosen streamlines.
-
-    Return
-    ------
-    subset_sft: StatefulTractogram or list
-        The filtered streamlines as a sft, or the list of indices if
-        return_indices_only.
-    """
-
-    rng = np.random.RandomState(rng_seed)
-    ind = np.arange(len(sft.streamlines))
-    rng.shuffle(ind)
-
-    if return_indices_only:
-        return ind[:max_streamlines]
-
-    return sft[ind[:max_streamlines]]
-
-
-def get_n_subsets_streamlines_sequentially(orig_sft, chunk_sizes):
-    """
-    Get n chunks of subsets of streamlines, sequentially through the sft.
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated sequentially from the initial
+    streamlines.
 
     Parameters
     ----------
     orig_sft: StatefulTractogram
-        Initial tractogram to subdivide
+        Initial tractogram to subdivide.
     chunk_sizes: list[int]
         Number of streamlines to keep per chunk.
 
     Return
     ------
     all_chunks: list[StatefulTractogram]
-        The filtered streamlines as a sfts.
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes).
     """
     if sum(chunk_sizes) > len(orig_sft):
         raise ValueError("You asked for more streamlines than are available.")
@@ -201,18 +170,20 @@ def get_n_subsets_streamlines_sequentially(orig_sft, chunk_sizes):
     return sfts
 
 
-def get_n_subsets_streamlines_random(orig_sft, chunk_sizes, seed,
-                                     return_indices_only=False):
+def split_sft_randomly(orig_sft, chunk_sizes, rng_seed,
+                       return_indices_only=False):
     """
-    Get n chunks of subsets of streamlines.
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated randomly from the initial
+    streamlines.
 
     Parameters
     ----------
     orig_sft: StatefulTractogram
         Initial tractogram to subdivide
-    chunk_sizes: list[int]
-        Number of streamlines to keep per chunk.
-    seed: int
+    chunk_sizes: int or list[int]
+        Number of streamlines to keep (per sub-tractogram if it is a list).
+    rng_seed: int
         Random seed.
     return_indices_only: bool
         If true, return a random list of indices. Else, return the Stateful
@@ -220,53 +191,50 @@ def get_n_subsets_streamlines_random(orig_sft, chunk_sizes, seed,
 
     Return
     ------
-    all_chunks: list[list[int]] or list[StatefulTractogram]
-        The filtered streamlines as a sfts, or the lists of indices if
-        return_indices_only. Last item of the list contains streamlines that
-        were rejected.
+    all_chunks: list[StatefulTractogram] or list[list[int]]
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes) + 1, where the last item of the list contains
+        streamlines that were not included in any.
+        (Or the lists of indices if return_indices_only.)
     """
+    if isinstance(chunk_sizes, int):
+        chunk_sizes = [chunk_sizes]
+
     if sum(chunk_sizes) > len(orig_sft):
         raise ValueError("You asked for more streamlines than are available.")
 
-    nb_chunks = len(chunk_sizes)
-    final_indices = [[] for _ in chunk_sizes]
-    orig_indices_left = np.arange(len(orig_sft))
-    if return_indices_only:
-        sft_left = orig_sft  # No need to keep orig_sft intact.
-    else:
-        sft_left = orig_sft[:]  # Equivalent of deep copy
+    # Shuffle all streamline indices
+    rng = np.random.RandomState(rng_seed)
+    ind = np.arange(len(orig_sft.streamlines))
+    rng.shuffle(ind)
 
-    for i in range(nb_chunks):
-        nb_to_keep = chunk_sizes[i]
-
-        sub_ind = get_subset_streamlines(
-            sft_left, nb_to_keep, seed, return_indices_only=True)
-
-        final_indices[i] = [orig_indices_left[ind] for ind in sub_ind]
-
-        # Keep only the rejected as possible choice for next chunk.
-        sub_left_ind = np.setdiff1d(np.arange(len(sft_left)), sub_ind)
-        sft_left = sft_left[sub_left_ind]
-        orig_indices_left = np.setdiff1d(orig_indices_left,
-                                         final_indices[i])
+    # Separate indices.
+    final_indices = []
+    start = 0
+    for next_nb_streamlines in chunk_sizes:
+        sub_ind = ind[start:start+next_nb_streamlines]
+        final_indices.append(sub_ind)
+        start += next_nb_streamlines
 
     # Append indices not included in any chunk
-    final_indices.append(list(orig_indices_left))
+    final_indices.append(ind[start:])
 
     if return_indices_only:
         return final_indices
 
+    # Format as sft
     all_sfts = []
-    for i in range(nb_chunks + 1):
+    for i in range(len(chunk_sizes) + 1):
         all_sfts.append(orig_sft[final_indices[i]])
 
     return all_sfts
 
 
-def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed,
-                                          thresholds):
+def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     """
-    Get a subset of streamline randomly per Quickbundle cluster (trying to help
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated randomly from each Quickbundle
+    cluster created from the initial streamlines (trying to help
     the randomization to ensure there are streamlines from all bundles in each
     subset).
 
@@ -277,7 +245,8 @@ def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed,
     chunk_sizes: list[int]
         Number of streamlines to keep per chunk. We will ensure that the number
         of streamlines kept per cluster is proportional to the cluster's size.
-        Final number will be a good approximation of nb_streamlines.
+        Final number will be a good approximation of nb_streamlines, but not
+        exact.
     seed: int
         Random seed.
     thresholds: list[float]
@@ -286,8 +255,9 @@ def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed,
     Returns
     -------
     all_sfts: list[StatefulTractogram]
-        The sub-sfts. Last item of the list contains streamlines that were
-        rejected.
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes) + 1, where the last item of the list contains
+        streamlines that were not included in any.
     """
 
     if sum(chunk_sizes) > len(orig_sft):
@@ -316,7 +286,7 @@ def get_n_subsets_streamlines_per_cluster(orig_sft, chunk_sizes, seed,
             while sum(chunk_sizes_in_cluster) > size_cluster:
                 chunk_sizes_in_cluster[-1] -= 1
 
-            all_chunks_inds_in_cluster = get_n_subsets_streamlines_random(
+            all_chunks_inds_in_cluster = split_sft_randomly(
                 cluster_sft, chunk_sizes_in_cluster, seed,
                 return_indices_only=True)
 

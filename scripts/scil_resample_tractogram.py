@@ -38,9 +38,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-
-from scilpy.tracking.tools import get_subset_streamlines, \
-    get_n_subsets_streamlines_per_cluster
+from scilpy.tracking.tools import (split_sft_randomly,
+                                   split_sft_randomly_per_cluster)
 from scilpy.utils.streamlines import upsample_tractogram
 
 
@@ -150,12 +149,13 @@ def main():
     elif args.nb_streamlines < original_number:
         if args.downsample_per_cluster:
             # output contains rejected streamlines, we don't use them.
-            sft, _ = get_n_subsets_streamlines_per_cluster(
+            sft, _ = split_sft_randomly_per_cluster(
                 sft, [args.nb_streamlines], args.seed, args.qbx_thresholds)
-            logging.debug("Kept {} out of expected {} streamlines."
+            logging.debug("Kept {} out of {} expected streamlines."
                           .format(len(sft), args.nb_streamlines))
         else:
-            sft = get_subset_streamlines(sft, args.nb_streamlines, args.seed)
+            # output is a list of two: kept and rejected.
+            sft = split_sft_randomly(sft, args.nb_streamlines, args.seed)[0]
 
     if not args.keep_invalid_streamlines:
         sft.remove_invalid_streamlines()

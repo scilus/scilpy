@@ -26,8 +26,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              add_verbose_arg)
-from scilpy.tracking.tools import get_n_subsets_streamlines_sequentially, \
-    get_n_subsets_streamlines_random, get_n_subsets_streamlines_per_cluster
+from scilpy.tracking.tools import split_sft_sequentially, \
+    split_sft_randomly, split_sft_randomly_per_cluster
 
 
 def _build_arg_parser():
@@ -119,14 +119,14 @@ def main():
     chunk_sizes[-1] += (streamlines_count - chunk_size * nb_chunks)
 
     if args.do_not_randomize:
-        sfts = get_n_subsets_streamlines_sequentially(sft, chunk_sizes)
+        sfts = split_sft_sequentially(sft, chunk_sizes)
     elif args.split_per_cluster:
         # With this version, will contain an additional sft with non-included
         # streamlines. Should be of size close to 0. Not using it.
-        sfts = get_n_subsets_streamlines_per_cluster(
+        sfts = split_sft_randomly_per_cluster(
             sft, chunk_sizes, args.seed, args.qbx_thresholds)
     else:
-        sfts = get_n_subsets_streamlines_random(sft, chunk_sizes, args.seed)
+        sfts = split_sft_randomly(sft, chunk_sizes, args.seed)
 
     for i in range(nb_chunks):
         out_name = os.path.join(args.out_dir, out_names[i])
