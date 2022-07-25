@@ -444,19 +444,11 @@ def compute_vb_vs_all_bundles(
                 limits_inv_masks[i], args.dilate_endpoints)
 
         if args.unique:
-            not_vs = np.setdiff1d(np.arange(len(all_ids)), vs_ids)
-            vs_ids = all_ids[vs_ids]
-            all_ids = all_ids[not_vs]
+            vs_ids = all_ids[vs_ids]  # Assign actual VS ids, not from subset
+            wpc_ids = all_ids[wpc_ids]  # Assign actual WPC ids, not from sub
+            all_ids = np.setdiff1d(
+                all_ids, vs_ids, assume_unique=True)
 
-        vb_sft = sft[vs_ids]
-
-        # Save results
-        if len(vb_sft) > 0 or not args.no_empty:
-            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
-            save_tractogram(vb_sft, os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
-
-        vb_sft_list.append(vb_sft)
         vs_ids_list.append(vs_ids)
         wpc_ids_list.append(wpc_ids)
         bundles_stats.append(bundle_stats)
@@ -464,60 +456,76 @@ def compute_vb_vs_all_bundles(
         logging.info("Bundle {}: nb VS = {}"
                      .format(bundle_names[i], bundle_stats["VS"]))
 
-    if args.remove_wpc_belonging_to_another_bundle and args.unique:
-        all_wpc = np.unique(np.concatenate(tuple(wpc_ids_list)))
-        for i in range(nb_bundles):
-            duplicate_wpc = np.intersect1d(vs_ids_list[i], all_wpc)
-            all_wpc = np.setdiff1d(all_wpc, duplicate_wpc)
+    all_gt = list(itertools.chain(*vs_ids_list))
+    for i in range(nb_bundles):
+        # Remove duplicate VS/WPC
+        if args.remove_wpc_belonging_to_another_bundle or args.unique:
+            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt)
+            nb_rejected = len(wpc_ids_list[i]) - len(new_wpc_ids)
+            bundles_stats[i].update(
+                {"Belonging to another bundle": nb_rejected})
+            wpc_ids_list[i] = new_wpc_ids
+            bundles_stats[i].update({"Cleaned WPC": len(new_wpc_ids)})
 
+        logging.info("Bundle {}: nb WPC = {}"
+                     .format(bundle_names[i], len(new_wpc_ids)))
+
+    # WPC
+    if not args.save_wpc_separately:
+        # Add WPCs to VS if they are not to be saved separately
         for i in range(nb_bundles):
-            wpc_ids_list[i] = np.intersect1d(wpc_ids_list[i], all_wpc)
+            vs_ids_list[i] = np.append(vs_ids_list[i], wpc_ids_list[i])
+            wpc_ids_list[i] = []
+        wpc_sft_list = []
+    else:
+        wpc_sft_list, bundles_stats = save_wpc_all_bundles(
+            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
 
     # Duplicates?
+    if not args.unique:
+        for i in range(nb_bundles):
+            for j in range(i + 1, nb_bundles):
+                duplicate_ids = np.intersect1d(vs_ids_list[i], vs_ids_list[j])
+                if len(duplicate_ids) > 0:
+                    logging.warning(
+                        "{} streamlines belong to true connections of both "
+                        "bundles {} and {}.\n"
+                        "Please verify your criteria!"
+                        .format(len(duplicate_ids), bundle_names[i],
+                                bundle_names[j]))
+
+                    # Duplicates directory only created if at least one
+                    # duplicate is found.
+                    path_duplicates = os.path.join(args.out_dir,
+                                                   'segmented_conflicts')
+                    if not os.path.isdir(path_duplicates):
+                        os.makedirs(path_duplicates)
+
+                    save_tractogram(sft[duplicate_ids], os.path.join(
+                        path_duplicates, 'duplicates_' + bundle_names[i] +
+                        '_' + bundle_names[j] + '.trk'))
+
     for i in range(nb_bundles):
-        for j in range(i + 1, nb_bundles):
-            duplicate_ids = np.intersect1d(vs_ids_list[i], vs_ids_list[j])
-            if len(duplicate_ids) > 0:
-                logging.warning(
-                    "{} streamlines belong to true connections of both "
-                    "bundles {} and {}.\n"
-                    "Please verify your criteria!"
-                    .format(len(duplicate_ids), bundle_names[i],
-                            bundle_names[j]))
+        vb_sft = sft[vs_ids]
+        vb_sft_list.append(vb_sft)
+        # Save results
+        if len(vb_sft) > 0 or not args.no_empty:
+            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
+            save_tractogram(vb_sft, os.path.join(args.out_dir, filename),
+                            bbox_valid_check=False)
 
-                # Duplicates directory only created if at least one duplicate
-                # is found.
-                path_duplicates = os.path.join(args.out_dir,
-                                               'segmented_conflicts')
-                if not os.path.isdir(path_duplicates):
-                    os.makedirs(path_duplicates)
-
-                save_tractogram(sft[duplicate_ids], os.path.join(
-                    path_duplicates, 'duplicates_' + bundle_names[i] + '_' +
-                                     bundle_names[j] + '.trk'))
-
-    return vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats
+    return vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats
 
 
 def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
                          bundles_stats):
     """
-    Cleans WPC (Possibly remove WPC belonging to another bundle) and saves
-    them.
+    Save WPC to file.
     """
     nb_bundles = len(wpc_ids_list)
     wpc_sft_list = []
     for i in range(nb_bundles):
         wpc_ids = wpc_ids_list[i]
-
-        if args.remove_wpc_belonging_to_another_bundle:
-            all_other_gt = list(itertools.chain(
-                *[vs_ids_list[j] for j in range(nb_bundles) if j != i]))
-            new_wpc_ids = np.setdiff1d(wpc_ids, all_other_gt)
-            nb_rejected = len(wpc_ids) - len(new_wpc_ids)
-            bundles_stats[i].update(
-                {"Belonging to another bundle": nb_rejected})
-            wpc_ids = new_wpc_ids
 
         if len(wpc_ids) == 0:
             wpc_sft = None
@@ -529,10 +537,6 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
             filename = "segmented_WPC/{}_wpc.trk".format(bundles_names[i])
             save_tractogram(wpc_sft, os.path.join(args.out_dir, filename),
                             bbox_valid_check=False)
-        bundles_stats[i].update({"Cleaned WPC": len(wpc_ids)})
-
-        logging.info("Bundle {}: nb WPC = {}"
-                     .format(bundles_names[i], len(wpc_ids)))
 
     return wpc_sft_list, bundles_stats
 
@@ -558,9 +562,8 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
             sft[all_ids], roi1_filename, roi2_filename, args.dilate_endpoints)
 
         if args.unique:
-            not_ics = np.setdiff1d(np.arange(len(all_ids)), ic_ids)
             ic_ids = all_ids[ic_ids]
-            all_ids = all_ids[not_ics]
+            all_ids = np.setdiff1d(all_ids, ic_ids)
 
         if len(ib_sft) > 0 or not args.no_empty:
             file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
@@ -575,17 +578,18 @@ def compute_ib_ic_all_bundles(comb_filename, sft, args):
         ic_ids_list.append(ic_ids)
 
     # Duplicates?
-    nb_pairs = len(ic_ids_list)
-    for i in range(nb_pairs):
-        for j in range(i + 1, nb_pairs):
-            duplicate_ids = np.intersect1d(ic_ids_list[i], ic_ids_list[j])
-            if len(duplicate_ids) > 0:
-                logging.warning(
-                    "{} streamlines are scored twice as invalid connections\n"
-                    "(between pair {}\n and between pair {}).\n"
-                    "You probably have overlapping ROIs!"
-                    .format(len(duplicate_ids), comb_filename[i],
-                            comb_filename[j]))
+    if not args.unique:
+        nb_pairs = len(ic_ids_list)
+        for i in range(nb_pairs):
+            for j in range(i + 1, nb_pairs):
+                duplicate_ids = np.intersect1d(ic_ids_list[i], ic_ids_list[j])
+                if len(duplicate_ids) > 0:
+                    logging.warning(
+                        "{} streamlines are scored twice as invalid "
+                        "connections\n (between pair {}\n and between pair "
+                        "{}). You probably have overlapping ROIs!"
+                        .format(len(duplicate_ids), comb_filename[i],
+                                comb_filename[j]))
 
     return ib_sft_list, ic_ids_list
 
@@ -756,36 +760,32 @@ def main():
     sft.to_rasmm()
     streamline_lengths = np.asarray(list(length(sft.streamlines)))
     long_enough_mask = streamline_lengths > args.min_length
-    long_enough_ids = remain_ids[long_enough_mask]
-    too_short_ids = np.setdiff1d(remain_ids, long_enough_ids)
-    remain_ids = long_enough_ids
+    too_short_ids = remain_ids[~long_enough_mask]
+    remain_ids = remain_ids[long_enough_mask]
     logging.info("{} streamlines are above {} mm.".format(
         len(remain_ids), args.min_length))
     sft.to_vox()
 
     # VS
     logging.info("Scoring valid connections")
-    vb_sft_list, vs_ids_list, wpc_ids_list, bundles_stats = \
+    vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats = \
         compute_vb_vs_all_bundles(
             gt_tails, gt_heads, sft[remain_ids], bundle_names, bundle_lengths,
             angles, orientation_lengths, abs_orientation_lengths,
             limits_inv_masks, args)
 
     if args.unique:
+        for i in range(len(vs_ids_list)):
+            # Assign actual ids
+            vs_ids_list[i] = remain_ids[vs_ids_list[i]]
+        for i in range(len(wpc_ids_list)):
+            # Assign actual ids
+            wpc_ids_list[i] = remain_ids[wpc_ids_list[i]]
+
         detected_ids = np.concatenate((
             np.concatenate(vs_ids_list),
             np.concatenate(wpc_ids_list)))
-        not_vs_wpc_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
-        remain_ids = remain_ids[not_vs_wpc_ids]
-
-    # WPC
-    if args.save_wpc_separately:
-        logging.info("Verifying wpc")
-        wpc_sft_list, bundles_stats = save_wpc_all_bundles(
-            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
-    else:
-        wpc_sft_list = []
-        wpc_ids_list = []
+        remain_ids = np.setdiff1d(remain_ids, detected_ids)
 
     # Save bundle stats
     bundle_stats_dict = {}
@@ -813,9 +813,11 @@ def main():
                                                              sft[remain_ids],
                                                              args)
         if args.unique:
+            for i in range(len(ic_ids_list)):
+                # Assign actual ids
+                ic_ids_list[i] = remain_ids[ic_ids_list[i]]
             detected_ids = np.concatenate(ic_ids_list)
-            not_ic_ids = np.setdiff1d(np.arange(len(remain_ids)), detected_ids)
-            remain_ids = remain_ids[not_ic_ids]
+            remain_ids = np.setdiff1d(remain_ids, detected_ids)
     else:
         ic_ids_list = []
         ib_sft_list = []
@@ -827,7 +829,7 @@ def main():
 
     # NC
     # = ids that are not VS, not wpc (if asked) and not IC (if asked).
-    all_nc_ids = np.concatenate((too_short_ids, np.arange(len(remain_ids))))
+    all_nc_ids = np.concatenate((too_short_ids, remain_ids))
     if not args.unique:
         all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
         all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
