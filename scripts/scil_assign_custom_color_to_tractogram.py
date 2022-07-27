@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-The script use scalar in data_per_point and data_per_streamline
-(e.g commit_weights) to visualise on the streamlines.
+The script uses scalars in data_per_point and data_per_streamline
+(e.g commit_weights) to visualize them on the streamlines.
 Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 
 If called with .tck, the output will always be .trk, because data_per_point has
@@ -11,8 +11,8 @@ no equivalent in tck file.
 
 The usage of --use_dps, --use_dpp and --from_anatomy is more complex. It maps
 the raw values from these sources to RGB using a colormap.
-    --use_dps: nbr. streamlines = len(streamlines)
-    --use_dpp: nbr. points = len(streamlines._data)
+    --use_dps: total nbr of streamlines of the tractogram = len(streamlines)
+    --use_dpp: total nbr of points of the tractogram = len(streamlines._data)
 
 A minimum and a maximum range can be provided to clip values. If the range of
 values is too large for intuitive visualization, a log transform can be applied.
