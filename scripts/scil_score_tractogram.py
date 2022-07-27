@@ -492,7 +492,10 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list,
                 {"Belonging to another bundle": nb_rejected})
             wpc_ids = new_wpc_ids
 
-        wpc_sft = sft[wpc_ids]
+        if len(wpc_ids) == 0:
+            wpc_sft = None
+        else:
+            wpc_sft = sft[wpc_ids]
         wpc_sft_list.append(wpc_sft)
 
         if len(wpc_ids) > 0 or not args.no_empty:
@@ -641,30 +644,34 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
             # WPC
             if args.save_wpc_separately:
-                current_wpc_streamlines = wpc_sft_list[i].streamlines
-                current_wpc_voxels, _ = get_binary_maps(
-                    current_wpc_streamlines, sft)
+                wpc = wpc_sft_list[i]
+                if wpc is not None and len(wpc.streamlines) > 0:
+                    current_wpc_streamlines = wpc.streamlines
+                    current_wpc_voxels, _ = get_binary_maps(
+                        current_wpc_streamlines, sft)
 
-                # We could add an option to include wpc streamlines to the
-                # overreach count. But it seams more natural to exclude wpc
-                # streamlines from any count. Separating into a different
-                # statistic dict.
-                bundle_wpc_overlap = gt_masks[i] * current_wpc_voxels
-                bundle_wpc_overreach = np.zeros(dimensions)
-                bundle_wpc_overreach[np.where(
-                    (gt_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
+                    # We could add an option to include wpc streamlines to the
+                    # overreach count. But it seams more natural to exclude wpc
+                    # streamlines from any count. Separating into a different
+                    # statistic dict.
+                    bundle_wpc_overlap = gt_masks[i] * current_wpc_voxels
+                    bundle_wpc_overreach = np.zeros(dimensions)
+                    bundle_wpc_overreach[np.where(
+                        (gt_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
 
-                wpc_overlap = np.count_nonzero(bundle_wpc_overlap)
-                wpc_overreach = np.count_nonzero(bundle_wpc_overreach)
+                    wpc_overlap = np.count_nonzero(bundle_wpc_overlap)
+                    wpc_overreach = np.count_nonzero(bundle_wpc_overreach)
 
-                wpc_results = {
-                    "Count": len(current_wpc_streamlines),
-                    "OR": wpc_overreach,
-                    "OL": wpc_overlap,
-                    "OR_pct": wpc_overreach / gt_total_nb_voxels,
-                    "OL_pct": wpc_overlap / gt_total_nb_voxels
-                }
-                bundle_results.update({"WPC": wpc_results})
+                    wpc_results = {
+                        "Count": len(current_wpc_streamlines),
+                        "OR": wpc_overreach,
+                        "OL": wpc_overlap,
+                        "OR_pct": wpc_overreach / gt_total_nb_voxels,
+                        "OL_pct": wpc_overlap / gt_total_nb_voxels
+                    }
+                    bundle_results.update({"WPC": wpc_results})
+                else:
+                    bundle_results.update({"WPC": None})
 
         mean_overlap += bundle_results["OL_pct"]
         mean_overreach += bundle_results["OR_pct"]
