@@ -52,8 +52,17 @@ class AbstractPropagator(object):
         self.rk_order = rk_order
 
     def reset_data(self, new_data=None):
-        # Maybe not necessary. See #toDo in tracker
-        #  For multiprocessing.
+        """
+        Reset data before starting a new process. In current implementation,
+        we reset the internal data to None before starting a multiprocess, then
+        load it back when process has started.
+
+        Params
+        ------
+        new_data: Any
+            Will replace self.dataset.data.
+
+        """
         self.dataset.data = new_data
 
     def prepare_forward(self, seeding_pos):
@@ -138,7 +147,7 @@ class AbstractPropagator(object):
 
         return is_direction_valid, v_out
 
-    def propagate(self, pos, v_in):
+    def propagate(self, line, v_in):
         """
         Given the current position and direction, computes the next position
         and direction using Runge-Kutta integration method. If no valid
@@ -146,7 +155,7 @@ class AbstractPropagator(object):
 
         Parameters
         ----------
-        pos: ndarrray (3,)
+        line: list[ndarrray (3,)]
             Current position.
         v_in: ndarray (3,) or TrackingDirection
             Previous tracking direction.
@@ -160,6 +169,9 @@ class AbstractPropagator(object):
         is_direction_valid: bool
             True if new_dir is valid.
         """
+        # Finding last coordinate
+        pos = line[-1]
+
         if self.rk_order == 1:
             is_direction_valid, new_dir = \
                 self._sample_next_direction_or_go_straight(pos, v_in)
@@ -191,26 +203,6 @@ class AbstractPropagator(object):
         new_pos = pos + self.step_size * np.array(new_dir)
 
         return new_pos, new_dir, is_direction_valid
-
-    def is_voxmm_in_bound(self, pos, origin):
-        """
-        Test if the streamline point is inside the boundary of the image.
-
-        Parameters
-        ----------
-        pos : tuple
-            3D positions.
-        origin: str
-            'Center': Voxel 0,0,0 goes from [-resx/2, -resy/2, -resz/2] to
-                [resx/2, resy/2, resz/2].
-            'Corner': Voxel 0,0,0 goes from [0,0,0] to [resx, resy, resz].
-
-        Return
-        ------
-        value: bool
-            True if the streamline point is inside the boundary of the image.
-        """
-        return self.dataset.is_voxmm_in_bound(*pos, origin)
 
     def _sample_next_direction(self, pos, v_in):
         """

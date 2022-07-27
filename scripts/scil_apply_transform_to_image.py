@@ -35,6 +35,10 @@ def _build_arg_parser():
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse transformation.')
 
+    p.add_argument('--keep_dtype', action='store_true',
+                   help='If True, keeps the data_type of the input image '
+                        '(in_file) when saving the output image (out_name).')
+
     add_overwrite_arg(p)
 
     return p
@@ -60,7 +64,7 @@ def main():
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
     transform_anatomy(transfo, args.in_target_file, args.in_file,
-                      args.out_name)
+                      args.out_name, keep_dtype=args.keep_dtype)
 
 
 if __name__ == "__main__":

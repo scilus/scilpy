@@ -21,7 +21,9 @@ from scilpy.tracking.seed import SeedGenerator
 from scilpy.gpuparallel.opencl_utils import CLKernel, CLManager, have_opencl
 
 # For the multi-processing:
-data_file_info = None
+# Dictionary. Will contain all parameters necessary for a sub-process
+# initialization.
+multiprocess_init_args = {}
 
 
 class Tracker(object):
@@ -99,6 +101,8 @@ class Tracker(object):
 
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 
+        self.printing_frequency = 1000
+
     def track(self):
         """
         Generate a set of streamline from seed, mask and odf files. Results
@@ -119,22 +123,8 @@ class Tracker(object):
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
             with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
-                # toDo
-                # must be better designed for dipy
-                # the tracking should not know which data to deal with
-                data_file_name = os.path.join(tmpdir, 'data.npy')
-                np.save(data_file_name, self.propagator.dataset.data)
-                self.propagator.reset_data()
 
-                # Using pool with a class method will serialize all parameters
-                # in the class, which can be heavy, but it is what we would be
-                # doing manually with a static class.
-                # Be careful however, parameter changes inside the method will
-                # not be kept.
-                pool = multiprocessing.Pool(self.nbr_processes,
-                                            initializer=self._init_sub_process,
-                                            initargs=(data_file_name,
-                                                      self.mmap_mode))
+                pool = self._prepare_multiprocessing_pool(tmpdir)
 
                 lines_per_process, seeds_per_process = zip(*pool.map(
                     self._get_streamlines_sub, chunk_ids))
@@ -148,7 +138,10 @@ class Tracker(object):
         return lines, seeds
 
     def _set_nbr_processes(self, nbr_processes):
-        # Verifying the number of processes
+        """
+        If user did not define the number of processes, define it automatically
+        (or set to 1 -- no multiprocessing -- if we can't).
+        """
         if nbr_processes <= 0:
             try:
                 nbr_processes = multiprocessing.cpu_count()
@@ -163,15 +156,61 @@ class Tracker(object):
                           "less seeds than processes.".format(nbr_processes))
         return nbr_processes
 
+    def _prepare_multiprocessing_pool(self, tmpdir):
+        """
+        Prepare multiprocessing pool.
+
+        Data must be carefully managed to avoid corruption with
+        multiprocessing.
+
+        Params
+        ------
+        tmpdir: str
+            Path where to save temporarily the data. This will allow clearing
+            the data from memory. We will fetch it back later.
+
+        Returns
+        -------
+        pool: The multiprocessing pool.
+        """
+        # Using pool with a class method will serialize all parameters
+        # in the class, which can be heavy, but it is what we would be
+        # doing manually with a static class.
+        # Be careful however, parameter changes inside the method will
+        # not be kept.
+
+        # Saving data. We will reload it in each process.
+        data_file_name = os.path.join(tmpdir, 'data.npy')
+        np.save(data_file_name, self.propagator.dataset.data)
+
+        # Clear data from memory
+        self.propagator.reset_data(new_data=None)
+
+        pool = multiprocessing.Pool(
+            self.nbr_processes,
+            initializer=self._send_multiprocess_args_to_global,
+            initargs={
+                'data_file_name': data_file_name,
+                'mmap_mode': self.mmap_mode
+            })
+
+        return pool
+
     @staticmethod
-    def _init_sub_process(date_file_name, mmap_mod):
-        global data_file_info
-        data_file_info = (date_file_name, mmap_mod)
+    def _send_multiprocess_args_to_global(init_args):
+        """
+        Sends subprocess' initialisation arguments to global for easier access
+        by the multiprocessing pool.
+        """
+        global multiprocess_init_args
+        multiprocess_init_args = init_args
         return
 
     def _get_streamlines_sub(self, chunk_id):
         """
-        multiprocessing.pool.map input function.
+        multiprocessing.pool.map input function. Calls the main tracking
+        method (_get_streamlines) with correct initialization arguments
+        (taken from the global variable multiprocess_init_args).
 
         Parameters
         ----------
@@ -183,11 +222,9 @@ class Tracker(object):
         lines: list
             List of list of 3D positions (streamlines).
         """
-        global data_file_info
+        global multiprocess_init_args
 
-        self.propagator.reset_data(np.load(
-            data_file_info[0], mmap_mode=data_file_info[1]))
-
+        self._reload_data_for_new_process(multiprocess_init_args)
         try:
             streamlines, seeds = self._get_streamlines(chunk_id)
             return streamlines, seeds
@@ -195,6 +232,19 @@ class Tracker(object):
             logging.error("Operation _get_streamlines_sub() failed.")
             traceback.print_exception(*sys.exc_info(), file=sys.stderr)
             raise e
+
+    def _reload_data_for_new_process(self, init_args):
+        """
+        Once process is started, load back data.
+
+        Params
+        ------
+        init_args: Iterable
+            Args necessary to reset data. In current implementation: a tuple;
+            (file where the data is saved, mmap_mode).
+        """
+        self.propagator.reset_data(np.load(
+            init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
     def _get_streamlines(self, chunk_id):
         """
@@ -230,9 +280,9 @@ class Tracker(object):
 
         # Getting streamlines
         for s in range(chunk_size):
-            if s % 1000 == 0:
-                logging.info(str(os.getpid()) + " : " + str(s)
-                             + " / " + str(chunk_size))
+            if s % self.printing_frequency == 0:
+                logging.info("Process {} (id {}): {} / {}"
+                             .format(chunk_id, os.getpid(), s, chunk_size))
 
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
@@ -327,7 +377,7 @@ class Tracker(object):
         propagation_can_continue = True
         while len(line) < self.max_nbr_pts and propagation_can_continue:
             new_pos, new_tracking_info, is_direction_valid = \
-                self.propagator.propagate(line[-1], tracking_info)
+                self.propagator.propagate(line, tracking_info)
 
             # Verifying and appending
             if is_direction_valid:
@@ -370,7 +420,7 @@ class GPUTacker():
     """
     Perform probabilistic tracking on a ODF field inside a binary mask. The
     tracking is executed on the GPU using the OpenCL API. Tracking is performed
-    in voxel space.
+    in voxel space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -383,8 +433,8 @@ class GPUTacker():
         Spherical harmonics volume. Ex: ODF or fODF.
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
-    seed : ndarray (n_seeds, 3)
-        Seed positions.
+    seeds : ndarray (n_seeds, 3)
+        Seed positions in voxel space with origin `corner`.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int
@@ -394,41 +444,52 @@ class GPUTacker():
     theta : float or list of float, optional
         Maximum angle (degrees) between 2 steps. If a list, a theta
         is randomly drawn from the list for each streamline.
-    sharpness : float, optional
-        Exponent on ODF amplitude to control sharpness.
-    batch_size : int, optional
-        Approximate size of GPU batches.
-    sh_order : int, optional
-        Spherical harmonics order.
     sh_basis : str, optional
         Spherical harmonics basis.
-
-    Returns
-    -------
-    streamlines: list
-        List of streamlines.
+    batch_size : int, optional
+        Approximate size of GPU batches.
+    forward_only: bool, optional
+        If True, only forward tracking is performed.
+    rng_seed : int, optional
+        Seed for random number generator.
     """
-    def __init__(self, sh, mask, seeds, step_size,
-                 min_nbr_pts, max_nbr_pts, theta=20.0,
-                 sh_basis='descoteaux07', batch_size=100000):
+    def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
+                 theta=20.0, sh_basis='descoteaux07', batch_size=100000,
+                 forward_only=False, rng_seed=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
         self.sh = sh
         self.mask = mask
-        self.seeds = seeds + 0.5  # move to origin center
+
+        if (seeds < 0).any():
+            raise ValueError('Invalid seed positions.\nGPUTracker works with'
+                             ' origin \'corner\'.')
+        self.n_seeds = len(seeds)
+        self.seed_batches =\
+            np.array_split(seeds, np.ceil(len(seeds)/batch_size))
+
+        # tracking step_size and number of points
         self.step_size = step_size
         self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
+        # convert theta to array
         if isinstance(theta, float):
             theta = np.array([theta])
         self.theta = theta
 
         self.sh_basis = sh_basis
-        self.batch_size = batch_size
+        self.forward_only = forward_only
+
+        # Instantiate random number generator
+        self.rng = np.random.default_rng(rng_seed)
 
     def track(self):
+        """
+        GPU streamlines generator yielding streamlines with corresponding
+        seed positions one by one.
+        """
         t0 = perf_counter()
 
         # Load the sphere
@@ -450,14 +511,13 @@ class GPUTacker():
         cl_kernel.set_define('N_THETAS', len(self.theta))
         cl_kernel.set_define('STEP_SIZE', '{}f'.format(self.step_size))
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
+        cl_kernel.set_define('FORWARD_ONLY',
+                             'true' if self.forward_only else 'false')
 
         # Create CL program
         n_input_params = 7
         n_output_params = 2
         cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
-
-        seed_batches = np.array_split(
-            self.seeds, np.ceil(len(self.seeds)/self.batch_size))
 
         # Input buffers
         # Constant input buffers
@@ -472,31 +532,29 @@ class GPUTacker():
 
         cl_manager.add_input_buffer(6, max_cos_theta)
 
-        # Output buffers
-        cl_manager.add_output_buffer(
-            0, (self.batch_size, self.max_strl_points, 3))
-        cl_manager.add_output_buffer(1, (self.batch_size, 1))
         logging.debug('Initialized OpenCL program in {:.2f}s.'
                       .format(perf_counter() - t0))
 
         # Generate streamlines in batches
         t0 = perf_counter()
-        nb_streamlines = 0
-        streamlines = []
-        seeds = []
-        for seed_batch in seed_batches:
+        nb_processed_streamlines = 0
+        nb_valid_streamlines = 0
+        for seed_batch in self.seed_batches:
             # Generate random values for sf sampling
             # TODO: Implement random number generator directly
             #       on the GPU to generate values on-the-fly.
-            rand_vals = np.random.uniform(0.0, 1.0,
-                                          (len(seed_batch),
-                                           self.max_strl_points))
+            rand_vals = self.rng.uniform(0.0, 1.0,
+                                         (len(seed_batch),
+                                          self.max_strl_points))
 
             # Update buffers
             cl_manager.add_input_buffer(4, seed_batch)
             cl_manager.add_input_buffer(5, rand_vals)
+
+            # output streamlines buffer
             cl_manager.add_output_buffer(
                 0, (len(seed_batch), self.max_strl_points, 3))
+            # output streamlines length buffer
             cl_manager.add_output_buffer(1, (len(seed_batch), 1))
 
             # Run the kernel
@@ -504,13 +562,16 @@ class GPUTacker():
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
                 if n_pts >= self.min_strl_points:
-                    # shift to origin center
-                    streamlines.append(strl[:n_pts] - 0.5)
-                    seeds.append(seed - 0.5)
-            nb_streamlines += len(seed_batch)
+                    strl = strl[:n_pts]
+                    nb_valid_streamlines += 1
+
+                    # output is yielded so that we can use lazy tractogram.
+                    yield strl, seed
+
+            # per-batch logging information
+            nb_processed_streamlines += len(seed_batch)
             logging.info('{0:>8}/{1} streamlines generated'
-                         .format(nb_streamlines, len(self.seeds)))
+                         .format(nb_processed_streamlines, self.n_seeds))
 
         logging.info('Tracked {0} streamlines in {1:.2f}s.'
-                     .format(len(streamlines), perf_counter() - t0))
-        return streamlines, seeds
+                     .format(nb_valid_streamlines, perf_counter() - t0))
