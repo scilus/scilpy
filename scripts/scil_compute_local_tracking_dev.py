@@ -198,10 +198,16 @@ def main():
     dataset = DataVolume(odf_sh_data, odf_sh_res, args.sh_interp)
 
     logging.debug("Instantiating propagator.")
+    # Converting step size to vox space
+    # We only support iso vox for now.
+    assert odf_sh_res[0] == odf_sh_res[1] == odf_sh_res[2]
+    voxel_size = odf_sh_img.header.get_zooms()[0]
+    vox_step_size = args.step_size / voxel_size
+
     # Using space and origin in the propagator: vox and center, like
     # in dipy.
     propagator = ODFPropagator(
-        dataset, args.step_size, args.rk_order, args.algo, args.sh_basis,
+        dataset, vox_step_size, args.rk_order, args.algo, args.sh_basis,
         args.sf_threshold, args.sf_threshold_init, theta, args.sphere,
         space=our_space, origin=our_origin)
 

@@ -309,6 +309,7 @@ class Tracker(object):
 
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
+
         return streamlines, seeds
 
     def _get_line_both_directions(self, seeding_pos):
