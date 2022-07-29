@@ -24,7 +24,7 @@ def _build_arg_parser():
     p.add_argument('tractogram_filename',
                    help='Tracts filename. Format must be .trk. \nFile should '
                         'contain a "seeds" value in the data_per_streamline.\n'
-                        'These seeds must be in voxel world, center origin.')
+                        'These seeds must be in space: voxel, origin: corner.')
     p.add_argument('seed_density_filename',
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
