@@ -110,7 +110,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           get_binary_maps,
                                           compute_endpoint_masks,
                                           extract_vb_vs, compute_f1_score,
-                                          compute_dice_overlap_overreach)
+                                          compute_dice_f1_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
 def_len = [0, np.inf]
@@ -600,7 +600,8 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
     # Tractometry stats over volume: OL, OR, Dice score
     mean_overlap = 0.0
-    mean_overreach = 0.0
+    mean_overreach_gt = 0.0
+    mean_overreach_n = 0.0
     mean_f1 = 0.0
 
     bundle_wise_dict = {}
@@ -613,14 +614,10 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
                 current_vb, sft)
 
-            gt_total_nb_voxels = np.count_nonzero(gt_masks[i])
-
-            dice, current_overlap, current_overreach, current_lacking = \
-                compute_dice_overlap_overreach(current_vb_voxels, gt_masks[i],
-                                               dimensions)
-
-            current_overlap_pct = current_overlap / gt_total_nb_voxels
-            current_overreach_pct = current_overreach / gt_total_nb_voxels
+            (dice, f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
+             overlap, overreach_pct_gt, overreach_pct_total) = \
+                compute_dice_f1_overlap_overreach(
+                    current_vb_voxels, gt_masks[i], dimensions)
 
             # Endpoints coverage
             # todo. What is this? Useful?
@@ -631,13 +628,13 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
 
             bundle_results.update({
                 "dice": dice,
-                "OL": current_overlap,
-                "OR": current_overreach,
-                "lacking": current_lacking,
-                "OL_pct": current_overlap_pct,
-                "OR_pct": current_overreach_pct,
-                "f1": compute_f1_score(current_overlap_pct,
-                                       current_overreach_pct),
+                "TP": tp_nb_voxels,
+                "FP": fp_nb_voxels,
+                "FN": fn_nb_voxels,
+                "OL": overlap,
+                "OR_gt": overreach_pct_gt,
+                "ORn": overreach_pct_total,
+                "f1": f1,
                 "endpoints_OL": np.count_nonzero(endpoints_overlap),
                 "endpoints_OR": np.count_nonzero(endpoints_overreach)
             })
@@ -651,30 +648,29 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                         current_wpc_streamlines, sft)
 
                     # We could add an option to include wpc streamlines to the
-                    # overreach count. But it seams more natural to exclude wpc
+                    # overreach count. But it seems more natural to exclude wpc
                     # streamlines from any count. Separating into a different
                     # statistic dict.
-                    bundle_wpc_overlap = gt_masks[i] * current_wpc_voxels
-                    bundle_wpc_overreach = np.zeros(dimensions)
-                    bundle_wpc_overreach[np.where(
-                        (gt_masks[i] == 0) & (current_wpc_voxels >= 1))] = 1
-
-                    wpc_overlap = np.count_nonzero(bundle_wpc_overlap)
-                    wpc_overreach = np.count_nonzero(bundle_wpc_overreach)
+                    (_, _, tp_nb_voxels, fp_nb_voxels, _, overlap,
+                     overreach_pct_gt, overreach_pct_total) = \
+                        compute_dice_f1_overlap_overreach(
+                            current_vb_voxels, gt_masks[i], dimensions)
 
                     wpc_results = {
                         "Count": len(current_wpc_streamlines),
-                        "OR": wpc_overreach,
-                        "OL": wpc_overlap,
-                        "OR_pct": wpc_overreach / gt_total_nb_voxels,
-                        "OL_pct": wpc_overlap / gt_total_nb_voxels
+                        "TP": tp_nb_voxels,
+                        "FP": fp_nb_voxels,
+                        "OL": overlap,
+                        "OR_gt": overreach_pct_gt,
+                        "ORn": overreach_pct_total,
                     }
                     bundle_results.update({"WPC": wpc_results})
                 else:
                     bundle_results.update({"WPC": None})
 
-        mean_overlap += bundle_results["OL_pct"]
-        mean_overreach += bundle_results["OR_pct"]
+        mean_overlap += bundle_results["OL"]
+        mean_overreach_gt += bundle_results["OR_gt"]
+        mean_overreach_n += bundle_results["ORn"]
         mean_f1 += bundle_results["f1"]
         bundle_wise_dict.update({bundles_names[i]: bundle_results})
 
@@ -701,7 +697,8 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
     final_results.update({
         "bundle_wise": bundle_wise_dict,
         "mean_OL": mean_overlap / nb_bundles,
-        "mean_OR": mean_overreach / nb_bundles,
+        "mean_OR_gt": mean_overreach_gt / nb_bundles,
+        "mean_ORn": mean_overreach_n / nb_bundles,
         "mean_f1": mean_f1 / nb_bundles
     })
 
