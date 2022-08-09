@@ -28,8 +28,13 @@ Definitions:
         - NC: no connections. Invalid streamlines minus invalid connections.
 
     In terms of number of voxels:
-    - OL : ground truth voxels containing VS streamline(s).
-    - OR: voxels containing VS streamline(s) when it shouldn't.
+    - OL : percentage of ground truth voxels containing VS streamline(s).
+    - OR/ORn: percentage of voxels containing VS streamline(s) when it
+        shouldn't. We compute two versions of the overreach:
+        OR = % of the recovered bundle. Values range between 0 and 100%. Values
+           are not defined with we recovered no streamline for a bundle, but we
+           set the OR to 0 in that case.
+        ORn = % of the ground truth bundle. Values could be higher than 100%.
 
 Config file:
     The config file needs to be a json containing a dict of the ground-truth
@@ -109,7 +114,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
-                                          extract_vb_vs, compute_f1_score,
+                                          extract_vb_vs,
                                           compute_dice_f1_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 

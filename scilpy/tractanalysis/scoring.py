@@ -66,7 +66,9 @@ def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     Returns
     -------
     dice: float
-        The dice score
+        The dice score.
+    f1: float
+        The f1 score.
     tp_nb_voxels: int
         The TP (true positive) count in number of voxels.
     fp_nb_voxels: int
@@ -80,7 +82,8 @@ def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     overlap: float
         TP divided by the ground truth count (i.e. TP + FN), in percentage.
     overreach_pct_total: float
-        The overreach, normalized by the recovered bundle's area.
+        The overreach, normalized by the recovered bundle's area. (Or 0 if
+        no streamline have been recovered for this bundle).
     overreach_pct_gt: float
         The overreach, normalized by the ground truth area.
     """
@@ -111,7 +114,10 @@ def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
 
     # Overreach: two versions are sometimes used.
     # |B except A| / |A| or |B except A| / |B|
-    overreach_pct_total = fp_nb_voxels / nb_voxels_total
+    if nb_voxels_total == 0:
+        overreach_pct_total = 0
+    else:
+        overreach_pct_total = fp_nb_voxels / nb_voxels_total
     overreach_pct_gt = fp_nb_voxels / gt_total_nb_voxels
 
     # Dice and f1. Should be the same.
