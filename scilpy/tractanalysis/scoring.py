@@ -442,7 +442,7 @@ def extract_vb_vs(
         wpc_ids.extend(out_of_mask_ids)
         vs_ids = np.setdiff1d(vs_ids, wpc_ids)
 
-    # Remove streamlines no passing through must_pass_mask
+    # Remove streamlines not passing through must_pass_mask
     if len(vs_ids) > 0 and must_pass_mask is not None:
         tmp_sft = sft[vs_ids]
         _, in_mask_ids_from_vs = filter_grid_roi(
