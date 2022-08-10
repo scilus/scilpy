@@ -15,7 +15,7 @@ from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
 from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
-    get_endpoints_density_map, compute_dice_voxel
+    get_endpoints_density_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -50,7 +50,7 @@ def compute_f1_score(overlap, overreach):
     return f1_score
 
 
-def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
+def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     """
     Compute dice, OL and OR based on a ground truth mask.
 
@@ -65,8 +65,6 @@ def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
 
     Returns
     -------
-    dice: float
-        The dice score.
     f1: float
         The f1 score.
     tp_nb_voxels: int
@@ -120,11 +118,10 @@ def compute_dice_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
         overreach_pct_total = fp_nb_voxels / nb_voxels_total
     overreach_pct_gt = fp_nb_voxels / gt_total_nb_voxels
 
-    # Dice and f1. Should be the same.
-    dice = compute_dice_voxel(gt_mask, current_vb_voxels)[0]
+    # f1 score (=dice)
     f1 = compute_f1_score(overlap, overreach_pct_total)
 
-    return (dice, f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
+    return (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
             overlap, overreach_pct_gt, overreach_pct_total)
 
 
@@ -337,8 +334,9 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     out_dir: str
         Where to save the heads and tails.
 
-    Returns:
-        tails, heads: lists of filenames with length the number of bundles.
+    Returns
+    -------
+    tails, heads: lists of filenames with length the number of bundles.
     """
     tails = []
     heads = []

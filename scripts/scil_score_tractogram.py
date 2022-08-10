@@ -115,7 +115,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           get_binary_maps,
                                           compute_endpoint_masks,
                                           extract_vb_vs,
-                                          compute_dice_f1_overlap_overreach)
+                                          compute_f1_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
 def_len = [0, np.inf]
@@ -619,9 +619,9 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
                 current_vb, sft)
 
-            (dice, f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
+            (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
              overlap, overreach_pct_gt, overreach_pct_total) = \
-                compute_dice_f1_overlap_overreach(
+                compute_f1_overlap_overreach(
                     current_vb_voxels, gt_masks[i], dimensions)
 
             # Endpoints coverage
@@ -632,7 +632,6 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                 (gt_masks[i] == 0) & (current_vb_endpoints_voxels >= 1))] = 1
 
             bundle_results.update({
-                "dice": dice,
                 "TP": tp_nb_voxels,
                 "FP": fp_nb_voxels,
                 "FN": fn_nb_voxels,
@@ -658,7 +657,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                     # statistic dict.
                     (_, _, tp_nb_voxels, fp_nb_voxels, _, overlap,
                      overreach_pct_gt, overreach_pct_total) = \
-                        compute_dice_f1_overlap_overreach(
+                        compute_f1_overlap_overreach(
                             current_vb_voxels, gt_masks[i], dimensions)
 
                     wpc_results = {
