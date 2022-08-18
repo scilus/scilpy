@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic tractography [1] on a ODF field inside a binary mask.
+Perform probabilistic tractography on a ODF field inside a binary mask.
 The tracking is executed on the GPU using the OpenCL API.
 
 Streamlines are filtered by minimum length, but not by maximum length. For this
@@ -24,7 +24,7 @@ from time import perf_counter
 import nibabel as nib
 import numpy as np
 
-from nibabel.streamlines.tractogram import LazyTractogram
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist)
@@ -33,7 +33,9 @@ from scilpy.tracking.utils import (add_seeding_options,
                                    add_mandatory_options_tracking)
 from scilpy.tracking.tracker import GPUTacker
 from dipy.tracking.utils import random_seeds_from_mask
+from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.io.utils import get_reference_info, create_tractogram_header
+from scilpy.io.utils import verify_compression_th
 
 
 EPILOG = """
@@ -56,17 +58,30 @@ def _build_arg_parser():
                         '\nare given, the maximum angle will be drawn at '
                         'random\nfrom the distribution for each streamline. '
                         '[%(default)s]')
-    p.add_argument('--min_length', type=float, default=20.0,
+    p.add_argument('--min_length', type=float, default=10.0,
                    help='Minimum length of the streamline '
                         'in mm. [%(default)s]')
     p.add_argument('--max_length', type=float, default=300.0,
                    help='Maximum length of the streamline '
                         'in mm. [%(default)s]')
+    p.add_argument('--sf_threshold', type=float, default=0.1,
+                   help='Relative threshold on sf amplitudes. [%(default)s]')
+    p.add_argument('--sh_interp', default='nearest',
+                   choices=['nearest', 'trilinear'],
+                   help='SH interpolation mode. [%(default)s]')
+    p.add_argument('--forward_only', action='store_true',
+                   help='Only perform forward tracking.')
     p.add_argument('--batch_size', type=int, default=100000,
                    help='Approximate size of GPU batches. The default value is'
                         ' quite conservative. [%(default)s]')
     p.add_argument('--save_seeds', action='store_true',
                    help='Save seed positions in data_per_streamline.')
+    p.add_argument('--save_status', action='store_true',
+                   help='Save endpoint status in data_per_streamline.')
+    p.add_argument('--compress', type=float,
+                   help='Compress streamlines using the given threshold.')
+    p.add_argument('--rng_seed', type=int,
+                   help='Random number generator seed.')
 
     add_sh_basis_args(p)
     add_overwrite_arg(p)
@@ -84,6 +99,8 @@ def main():
 
     assert_inputs_exist(parser, [args.in_odf, args.in_mask, args.in_seed])
     assert_outputs_exist(parser, args, args.out_tractogram)
+    if args.compress is not None:
+        verify_compression_th(args.compress)
 
     odf_sh_img = nib.load(args.in_odf)
     mask = get_data_as_mask(nib.load(args.in_mask))
@@ -101,11 +118,14 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
+    # Seeds are returned with origin `center`.
+    # However, GPUTracker expects origin to be `corner`.
+    # Therefore, we need to shift the seed positions by half voxel.
     seeds = random_seeds_from_mask(
         seed_mask, np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
-        random_seed=None)
+        random_seed=args.rng_seed) + 0.5
     logging.info('Generated {0} seed positions in {1:.2f}s.'
                  .format(len(seeds), perf_counter() - t0))
 
@@ -116,19 +136,38 @@ def main():
     min_strl_len = int(vox_min_length / vox_step_size) + 1
     max_strl_len = int(vox_max_length / vox_step_size) + 1
 
-    # initialize and launch tracking
-    tracker = GPUTacker(odf_sh, mask, seeds,
-                        vox_step_size, min_strl_len,
-                        max_strl_len, args.theta,
-                        args.sh_basis, args.batch_size)
-    streamlines, seeds = tracker.track()
+    # initialize tracking
+    tracker = GPUTacker(odf_sh, mask, seeds, vox_step_size, min_strl_len,
+                        max_strl_len, theta=args.theta,
+                        sf_threshold=args.sf_threshold,
+                        sh_interp=args.sh_interp,
+                        sh_basis=args.sh_basis,
+                        batch_size=args.batch_size,
+                        forward_only=args.forward_only,
+                        rng_seed=args.rng_seed)
 
-    # Save tractogram to file
-    t0 = perf_counter()
-    data_per_streamlines = {'seeds': lambda: seeds} if args.save_seeds else {}
-    tractogram = LazyTractogram(lambda: streamlines,
-                                data_per_streamline=data_per_streamlines,
-                                affine_to_rasmm=odf_sh_img.affine)
+    # wrapper for tracker.track() yielding one TractogramItem per
+    # streamline for use with the LazyTractogram.
+    def tracks_generator_wrapper():
+        for strl, seed, start_status, end_status in tracker.track():
+            # seed must be saved in voxel space, with origin `center`.
+            dps = {}
+            if args.save_seeds:
+                dps['seeds'] = seed - 0.5
+            if args.save_status:
+                dps['start_status'] = start_status
+                dps['end_status'] = end_status
+
+            # TODO: Investigate why the streamline must NOT be shifted to
+            # origin `center` for LazyTractogram.
+            strl *= voxel_size  # in mm.
+            if args.compress:
+                strl = compress_streamlines(strl, args.compress)
+            yield TractogramItem(strl, dps, {})
+
+    # instantiate tractogram
+    tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
+    tractogram.affine_to_rasmm = odf_sh_img.affine
 
     filetype = nib.streamlines.detect_format(args.out_tractogram)
     reference = get_reference_info(odf_sh_img)
@@ -136,13 +175,10 @@ def main():
 
     # Use generator to save the streamlines on-the-fly
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
-
-    logging.info('Saved tractogram to {0} in {1:.2f}s.'
-                 .format(args.out_tractogram, perf_counter() - t0))
+    logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
 
     # Total runtime
-    logging.info('Total runtime of {0:.2f}s.'
-                 .format(perf_counter() - t_init))
+    logging.info('Total runtime of {0:.2f}s.'.format(perf_counter() - t_init))
 
 
 if __name__ == '__main__':

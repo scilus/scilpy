@@ -370,7 +370,7 @@ class GPUTacker():
     """
     Perform probabilistic tracking on a ODF field inside a binary mask. The
     tracking is executed on the GPU using the OpenCL API. Tracking is performed
-    in voxel space.
+    in voxel space with origin `corner`.
 
     Streamlines are interrupted as soon as they reach maximum length and
     returned even if they end inside the tracking mask. The ODF image is
@@ -383,8 +383,8 @@ class GPUTacker():
         Spherical harmonics volume. Ex: ODF or fODF.
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
-    seed : ndarray (n_seeds, 3)
-        Seed positions.
+    seeds : ndarray (n_seeds, 3)
+        Seed positions in voxel space with origin `corner`.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int
@@ -394,41 +394,66 @@ class GPUTacker():
     theta : float or list of float, optional
         Maximum angle (degrees) between 2 steps. If a list, a theta
         is randomly drawn from the list for each streamline.
-    sharpness : float, optional
-        Exponent on ODF amplitude to control sharpness.
-    batch_size : int, optional
-        Approximate size of GPU batches.
-    sh_order : int, optional
-        Spherical harmonics order.
     sh_basis : str, optional
         Spherical harmonics basis.
-
-    Returns
-    -------
-    streamlines: list
-        List of streamlines.
+    batch_size : int, optional
+        Approximate size of GPU batches.
+    forward_only: bool, optional
+        If True, only forward tracking is performed.
+    rng_seed : int, optional
+        Seed for random number generator.
     """
-    def __init__(self, sh, mask, seeds, step_size,
-                 min_nbr_pts, max_nbr_pts, theta=20.0,
-                 sh_basis='descoteaux07', batch_size=100000):
+    def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
+                 theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
+                 sh_basis='descoteaux07', batch_size=100000,
+                 forward_only=False, rng_seed=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
         self.sh = sh
+        if sh_interp not in ['nearest', 'trilinear']:
+            raise ValueError('Invalid SH interpolation mode: {}'
+                             .format(sh_interp))
+        self.sh_interp_nn = sh_interp == 'nearest'
         self.mask = mask
-        self.seeds = seeds + 0.5  # move to origin center
+
+        if (seeds < 0).any():
+            raise ValueError('Invalid seed positions.\nGPUTracker works with'
+                             ' origin \'corner\'.')
+        self.n_seeds = len(seeds)
+        self.seed_batches =\
+            np.array_split(seeds, np.ceil(len(seeds)/batch_size))
+
+        # tracking step_size and number of points
         self.step_size = step_size
+        self.sf_threshold = sf_threshold
         self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
+        # convert theta to array
         if isinstance(theta, float):
             theta = np.array([theta])
         self.theta = theta
 
         self.sh_basis = sh_basis
-        self.batch_size = batch_size
+        self.forward_only = forward_only
+
+        # Instantiate random number generator
+        self.rng = np.random.default_rng(rng_seed)
+
+    def _get_max_amplitudes(self, B_mat):
+        fodf_max = np.zeros(self.mask.shape,
+                            dtype=np.float32)
+        fodf_max[self.mask > 0] = np.max(self.sh[self.mask > 0].dot(B_mat),
+                                         axis=-1)
+
+        return fodf_max
 
     def track(self):
+        """
+        GPU streamlines generator yielding streamlines with corresponding
+        seed positions one by one.
+        """
         t0 = perf_counter()
 
         # Load the sphere
@@ -437,10 +462,9 @@ class GPUTacker():
         # Convert theta to cos(theta)
         max_cos_theta = np.cos(np.deg2rad(self.theta))
 
-        cl_kernel = CLKernel('track', 'tracking', 'local_tracking.cl')
+        cl_kernel = CLKernel('main', 'tracking', 'local_tracking.cl')
 
         # Set tracking parameters
-        # TODO: Add relative sf_threshold parameter.
         cl_kernel.set_define('IM_X_DIM', self.sh.shape[0])
         cl_kernel.set_define('IM_Y_DIM', self.sh.shape[1])
         cl_kernel.set_define('IM_Z_DIM', self.sh.shape[2])
@@ -448,16 +472,19 @@ class GPUTacker():
         cl_kernel.set_define('N_DIRS', len(sphere.vertices))
 
         cl_kernel.set_define('N_THETAS', len(self.theta))
-        cl_kernel.set_define('STEP_SIZE', '{}f'.format(self.step_size))
+        cl_kernel.set_define('STEP_SIZE', '{:.8f}f'.format(self.step_size))
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
+        cl_kernel.set_define('FORWARD_ONLY',
+                             'true' if self.forward_only else 'false')
+        cl_kernel.set_define('SF_THRESHOLD',
+                             '{:.8f}f'.format(self.sf_threshold))
+        cl_kernel.set_define('SH_INTERP_NN',
+                             'true' if self.sh_interp_nn else 'false')
 
         # Create CL program
-        n_input_params = 7
-        n_output_params = 2
+        n_input_params = 8
+        n_output_params = 4
         cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
-
-        seed_batches = np.array_split(
-            self.seeds, np.ceil(len(self.seeds)/self.batch_size))
 
         # Input buffers
         # Constant input buffers
@@ -468,49 +495,63 @@ class GPUTacker():
         B_mat = sh_to_sf_matrix(sphere, sh_order, self.sh_basis,
                                 return_inv=False)
         cl_manager.add_input_buffer(2, B_mat)
-        cl_manager.add_input_buffer(3, self.mask.astype(np.float32))
 
-        cl_manager.add_input_buffer(6, max_cos_theta)
+        fodf_max = self._get_max_amplitudes(B_mat)
+        cl_manager.add_input_buffer(3, fodf_max)
+        cl_manager.add_input_buffer(4, self.mask.astype(np.float32))
 
-        # Output buffers
-        cl_manager.add_output_buffer(
-            0, (self.batch_size, self.max_strl_points, 3))
-        cl_manager.add_output_buffer(1, (self.batch_size, 1))
+        cl_manager.add_input_buffer(5, max_cos_theta)
+
         logging.debug('Initialized OpenCL program in {:.2f}s.'
                       .format(perf_counter() - t0))
 
         # Generate streamlines in batches
         t0 = perf_counter()
-        nb_streamlines = 0
-        streamlines = []
-        seeds = []
-        for seed_batch in seed_batches:
+        nb_processed_streamlines = 0
+        nb_valid_streamlines = 0
+        for seed_batch in self.seed_batches:
             # Generate random values for sf sampling
             # TODO: Implement random number generator directly
             #       on the GPU to generate values on-the-fly.
-            rand_vals = np.random.uniform(0.0, 1.0,
-                                          (len(seed_batch),
-                                           self.max_strl_points))
+            rand_vals = self.rng.uniform(0.0, 1.0,
+                                         (len(seed_batch),
+                                          self.max_strl_points))
 
             # Update buffers
-            cl_manager.add_input_buffer(4, seed_batch)
-            cl_manager.add_input_buffer(5, rand_vals)
-            cl_manager.add_output_buffer(
-                0, (len(seed_batch), self.max_strl_points, 3))
+            cl_manager.add_input_buffer(6, seed_batch)
+            cl_manager.add_input_buffer(7, rand_vals)
+
+            # output streamlines buffer
+            cl_manager.add_output_buffer(0, (len(seed_batch),
+                                             self.max_strl_points, 3))
+            # output streamlines length buffer
             cl_manager.add_output_buffer(1, (len(seed_batch), 1))
+            # output streamline first point status buffer
+            cl_manager.add_output_buffer(2, (len(seed_batch), 1),
+                                         dtype=np.uint32)
+            # output streamline last point status buffer
+            cl_manager.add_output_buffer(3, (len(seed_batch), 1),
+                                         dtype=np.uint32)
 
             # Run the kernel
-            tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
+            tracks, n_points, first_pt_status, last_pt_status =\
+                cl_manager.run((len(seed_batch), 1, 1))
             n_points = n_points.squeeze().astype(np.int16)
-            for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
+            for (strl, seed, n_pts,
+                 start_status, end_status) in zip(tracks, seed_batch, n_points,
+                                                  first_pt_status,
+                                                  last_pt_status):
                 if n_pts >= self.min_strl_points:
-                    # shift to origin center
-                    streamlines.append(strl[:n_pts] - 0.5)
-                    seeds.append(seed - 0.5)
-            nb_streamlines += len(seed_batch)
+                    strl = strl[:n_pts]
+                    nb_valid_streamlines += 1
+
+                    # output is yielded so that we can use lazy tractogram.
+                    yield strl, seed, start_status, end_status
+
+            # per-batch logging information
+            nb_processed_streamlines += len(seed_batch)
             logging.info('{0:>8}/{1} streamlines generated'
-                         .format(nb_streamlines, len(self.seeds)))
+                         .format(nb_processed_streamlines, self.n_seeds))
 
         logging.info('Tracked {0} streamlines in {1:.2f}s.'
-                     .format(len(streamlines), perf_counter() - t0))
-        return streamlines, seeds
+                     .format(nb_valid_streamlines, perf_counter() - t0))
