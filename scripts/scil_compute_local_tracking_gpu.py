@@ -25,11 +25,10 @@ import nibabel as nib
 import numpy as np
 
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
-from scilpy.tracking.utils import (add_seeding_options,
+from scilpy.tracking.utils import (add_out_options, add_seeding_options,
                                    add_mandatory_options_tracking)
 from scilpy.tracking.tracker import GPUTacker
 from dipy.tracking.utils import random_seeds_from_mask
@@ -81,16 +80,10 @@ def _build_arg_parser():
     # seeding options
     add_seeding_options(p)
 
-    out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--save_seeds', action='store_true',
-                       help='Save seed positions in data_per_streamline.')
-    out_g.add_argument('--compress', type=float,
-                       help='Compress streamlines using the given threshold.')
-
+    out_g = add_out_options(p)
     # random number generator for SF sampling
     out_g.add_argument('--rng_seed', type=int,
                        help='Random number generator seed.')
-    add_overwrite_arg(out_g)
 
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--batch_size', type=int, default=100000,
