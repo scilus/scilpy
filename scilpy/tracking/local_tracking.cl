@@ -370,7 +370,6 @@ int track(float3 seed_pos,
     // reverse streamline for backward tracking
     if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
     {
-        // * reverse will also invert first and last point status
         reverse_streamline(current_length, n_seeds,
                            seed_indice, out_streamlines,
                            &last_pos, &last_dir);
