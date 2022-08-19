@@ -35,6 +35,10 @@ def _build_arg_parser():
                    choices=['linear', 'nearest'],
                    help='Interpolation: "linear" or "nearest". [%(default)s]')
 
+    p.add_argument('--keep_dtype', action='store_true',
+                   help='If True, keeps the data_type of the input image '
+                        '(in_file) when saving the output image (out_file).')
+
     add_overwrite_arg(p)
     return p
 
@@ -47,7 +51,8 @@ def main():
     assert_outputs_exist(parser, args, args.out_file)
 
     transform_anatomy(np.eye(4), args.in_ref_file, args.in_file,
-                      args.out_file, interp=args.interpolation)
+                      args.out_file, interp=args.interpolation,
+                      keep_dtype=args.keep_dtype)
 
 
 if __name__ == "__main__":

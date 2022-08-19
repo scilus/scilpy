@@ -47,45 +47,59 @@ EPILOG = """
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__, epilog=EPILOG,
                                 formatter_class=argparse.RawTextHelpFormatter)
+
+    # rename `optional arguments` group to `Generic options`
+    p._optionals.title = 'Generic options'
+
     # mandatory tracking options
     add_mandatory_options_tracking(p)
 
-    add_seeding_options(p)
-    p.add_argument('--step_size', type=float, default=0.5,
-                   help='Step size in mm. [%(default)s]')
-    p.add_argument('--theta', type=float, nargs='+', default=20.0,
-                   help='Maximum angle between 2 steps. If more than one value'
-                        '\nare given, the maximum angle will be drawn at '
-                        'random\nfrom the distribution for each streamline. '
-                        '[%(default)s]')
-    p.add_argument('--min_length', type=float, default=10.0,
-                   help='Minimum length of the streamline '
-                        'in mm. [%(default)s]')
-    p.add_argument('--max_length', type=float, default=300.0,
-                   help='Maximum length of the streamline '
-                        'in mm. [%(default)s]')
-    p.add_argument('--sf_threshold', type=float, default=0.1,
-                   help='Relative threshold on sf amplitudes. [%(default)s]')
-    p.add_argument('--sh_interp', default='nearest',
-                   choices=['nearest', 'trilinear'],
-                   help='SH interpolation mode. [%(default)s]')
-    p.add_argument('--forward_only', action='store_true',
-                   help='Only perform forward tracking.')
-    p.add_argument('--batch_size', type=int, default=100000,
-                   help='Approximate size of GPU batches. The default value is'
-                        ' quite conservative. [%(default)s]')
-    p.add_argument('--save_seeds', action='store_true',
-                   help='Save seed positions in data_per_streamline.')
-    p.add_argument('--save_status', action='store_true',
-                   help='Save endpoint status in data_per_streamline.')
-    p.add_argument('--compress', type=float,
-                   help='Compress streamlines using the given threshold.')
-    p.add_argument('--rng_seed', type=int,
-                   help='Random number generator seed.')
+    track_g = p.add_argument_group('Tracking options')
+    track_g.add_argument('--step_size', type=float, default=0.5,
+                         help='Step size in mm. [%(default)s]')
+    track_g.add_argument('--theta', type=float, nargs='+', default=20.0,
+                         help='Maximum angle between 2 steps. If more than one'
+                              ' value\nare given, the maximum angle will be '
+                              'drawn at random\nfrom the distribution for each'
+                              ' streamline. [%(default)s]')
+    track_g.add_argument('--min_length', type=float, default=20.0,
+                         help='Minimum length of the streamline '
+                              'in mm. [%(default)s]')
+    track_g.add_argument('--max_length', type=float, default=300.0,
+                         help='Maximum length of the streamline '
+                              'in mm. [%(default)s]')
+    track_g.add_argument('--sf_threshold', type=float, default=0.1,
+                         help='Relative threshold on sf amplitudes.'
+                              ' [%(default)s]')
+    track_g.add_argument('--sh_interp', default='nearest',
+                         choices=['nearest', 'trilinear'],
+                         help='SH interpolation mode. [%(default)s]')
+    track_g.add_argument('--forward_only', action='store_true',
+                         help='Only perform forward tracking.')
+    add_sh_basis_args(track_g)
 
-    add_sh_basis_args(p)
-    add_overwrite_arg(p)
-    add_verbose_arg(p)
+    # seeding options
+    add_seeding_options(p)
+
+    out_g = p.add_argument_group('Output options')
+    out_g.add_argument('--save_seeds', action='store_true',
+                       help='Save seed positions in data_per_streamline.')
+    out_g.add_argument('--compress', type=float,
+                       help='Compress streamlines using the given threshold.')
+
+    # random number generator for SF sampling
+    out_g.add_argument('--rng_seed', type=int,
+                       help='Random number generator seed.')
+    add_overwrite_arg(out_g)
+
+    gpu_g = p.add_argument_group('GPU options')
+    gpu_g.add_argument('--batch_size', type=int, default=100000,
+                       help='Approximate size of GPU batches (number\n'
+                            'of streamlines to track in parallel).'
+                            ' [%(default)s]')
+
+    log_g = p.add_argument_group('Logging options')
+    add_verbose_arg(log_g)
     return p
 
 

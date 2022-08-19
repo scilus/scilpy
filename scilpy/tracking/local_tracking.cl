@@ -256,8 +256,8 @@ int sample_sf(const float* odf_sf, const float randv)
     const float where = (randv * cumsum[N_DIRS - 1]);
     int index = 0;
 
-    // increase index until the probability
-    // of first element is non-null
+    // increase index until the probability of
+    // first element is non-null
     while(cumsum[index] < NULL_SF_EPS)
     {
         ++index;

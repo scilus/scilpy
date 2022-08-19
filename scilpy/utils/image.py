@@ -20,7 +20,7 @@ from scilpy.utils.bvec_bval_tools import identify_shells
 
 
 def transform_anatomy(transfo, reference, moving, filename_to_save,
-                      interp='linear'):
+                      interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
 
@@ -37,12 +37,19 @@ def transform_anatomy(transfo, reference, moving, filename_to_save,
     interp : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
+    keep_dtype : bool
+        If True, keeps the data_type of the input moving image when saving
+        the output image
     """
     grid2world, dim, _, _ = get_reference_info(reference)
     static_data = nib.load(reference).get_fdata(dtype=np.float32)
 
     nib_file = nib.load(moving)
-    moving_data = nib_file.get_fdata(dtype=np.float32)
+    curr_type = nib_file.get_data_dtype()
+    if keep_dtype:
+        moving_data = np.asanyarray(nib_file.dataobj).astype(curr_type)
+    else:
+        moving_data = nib_file.get_fdata(dtype=np.float32)
     moving_affine = nib_file.affine
 
     if moving_data.ndim == 3 and isinstance(moving_data[0, 0, 0],
