@@ -1,6 +1,6 @@
 /*
-OpenCL kernel code for computing short-tracks tractogram from
-SH volume. Tracking is performed in voxel space.
+OpenCL local tracking including anatomical priors through
+the continuous map criterion from Girard et al, 2014.
 */
 
 // Compiler definitions with placeholder values
@@ -213,22 +213,6 @@ void get_value(__global const float* image, const int n_channels,
     }
 }
 
-bool is_valid_pos(__global const float* tracking_mask, const float3 pos)
-{
-    const bool is_inside_volume = pos.x >= 0.0 && pos.x < IM_X_DIM &&
-                                  pos.y >= 0.0 && pos.y < IM_Y_DIM &&
-                                  pos.z >= 0.0 && pos.z < IM_Z_DIM;
-
-    if(is_inside_volume)
-    {
-        float mask_value[1];
-        get_value_nn(tracking_mask, 1, pos, mask_value);
-        const bool is_inside_mask = mask_value[0] > FLOAT_TO_BOOL_EPSILON;
-        return is_inside_mask;
-    }
-    return false;
-}
-
 int sample_sf(const float* odf_sf, const float randv)
 {
     float cumsum[N_DIRS];
@@ -261,27 +245,66 @@ int sample_sf(const float* odf_sf, const float randv)
     return index;
 }
 
+bool is_streamline_included(__global const float* map_include,
+                            __global const float* map_exclude,
+                            const float randv, const float3 position)
+{
+    float map_in_p;
+    float map_ex_p;
+    get_value_trilinear(map_include, 1, position, &map_in_p);
+    get_value_trilinear(map_exclude, 1, position, &map_ex_p);
+
+    if(map_in_p > FLT_EPSILON)
+    {
+        const float prob_included = map_in_p / (map_in_p + map_ex_p);
+        return prob_included >= randv;
+    }
+    // map_in_p is 0, we reject streamline
+    return false;
+}
+
+bool propagation_can_continue(__global const float* map_include,
+                              __global const float* map_exclude,
+                              const float randv, const float3 position)
+{
+    float map_in_p;
+    float map_ex_p;
+    get_value_trilinear(map_include, 1, position, &map_in_p);
+    get_value_trilinear(map_exclude, 1, position, &map_ex_p);
+
+    const float prob_continue = pow(1.0f - map_in_p - map_ex_p, STEP_SIZE);
+    return prob_continue >= randv;
+}
+
 int propagate(float3 last_pos, float3 last_dir, int current_length,
               bool is_forward, const size_t seed_indice,
-              const size_t n_seeds, const float max_cos_theta_local,
-              __global const float* tracking_mask,
+              const size_t n_seeds, const float max_cos_theta,
               __global const float* sh_coeffs,
               __global const float* sf_max,
-              __global const float* rand_f,
+              __global const float* sf_rand_values,
               __global const float* vertices,
               __global const float* sh_to_sf_mat,
+              __global const float* map_include,
+              __global const float* map_exclude,
+              __global const float* continue_rand_values,
+              __global const float* include_rand_values,
               __global float* out_streamlines)
 {
-    bool is_valid = is_valid_pos(tracking_mask, last_pos);
-
-    // fix to force streamlines to be of MAX_LENGTH/2 per direction at most.
-    // to be closer to TODI method.
-    const int max_length = is_forward ?
-                           MAX_LENGTH / 2 :
+    const int max_length = is_forward ? MAX_LENGTH / 2 :
                            current_length + MAX_LENGTH / 2;
+    float continue_randv =  continue_rand_values[get_flat_index(seed_indice, current_length,
+                                                                0, 0, n_seeds, MAX_LENGTH, 1)];
+    bool can_propagate = propagation_can_continue(map_include, map_exclude,
+                                                  continue_randv, last_pos);
 
-    while(current_length < max_length && is_valid)
+    while(can_propagate)
     {
+        if(!(current_length < max_length))
+        {
+            // when the propagation can continue, but maximum track length is
+            // reached, we return the streamline as is.
+            return current_length;
+        }
         // Sample SF at position.
         // Get SH at position.
         float odf_sh[IM_N_COEFFS];
@@ -293,12 +316,13 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
                                                         IM_Y_DIM, IM_Z_DIM)];
         float odf_sf[N_DIRS];
         sh_to_sf(odf_sh, sh_to_sf_mat, curr_sf_max, current_length == 1,
-                 vertices, last_dir, max_cos_theta_local, odf_sf);
+                 vertices, last_dir, max_cos_theta, odf_sf);
 
         // Sample distribution.
-        const float randv = rand_f[get_flat_index(seed_indice, current_length, 0, 0,
-                                                  n_seeds, MAX_LENGTH, 1)];
+        const float randv = sf_rand_values[get_flat_index(seed_indice, current_length,
+                                                          0, 0, n_seeds, MAX_LENGTH, 1)];
         const int vert_indice = sample_sf(odf_sf, randv);
+
         if(vert_indice >= 0)
         {
             const float3 direction = {
@@ -309,43 +333,56 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
 
             // Try step.
             const float3 next_pos = last_pos + STEP_SIZE * direction;
-            is_valid = is_valid_pos(tracking_mask, next_pos);
             last_dir = normalize(next_pos - last_pos);
             last_pos = next_pos;
         }
         else
         {
-            is_valid = false;
+            // reached a region where we can't track; exclude streamline
+            return 0;
         }
 
-        if(is_valid)
-        {
-            // save current streamline position
-            out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
-                                           n_seeds, MAX_LENGTH, 3)] = last_pos.x;
-            out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
-                                           n_seeds, MAX_LENGTH, 3)] = last_pos.y;
-            out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
-                                           n_seeds, MAX_LENGTH, 3)] = last_pos.z;
+        // save current streamline position
+        out_streamlines[get_flat_index(seed_indice, current_length, 0, 0,
+                                        n_seeds, MAX_LENGTH, 3)] = last_pos.x;
+        out_streamlines[get_flat_index(seed_indice, current_length, 1, 0,
+                                        n_seeds, MAX_LENGTH, 3)] = last_pos.y;
+        out_streamlines[get_flat_index(seed_indice, current_length, 2, 0,
+                                        n_seeds, MAX_LENGTH, 3)] = last_pos.z;
 
-            // increment track length
-            ++current_length;
-        }
+        // increment track length
+        ++current_length;
+        continue_randv =  continue_rand_values[get_flat_index(seed_indice, current_length,
+                                                              0, 0, n_seeds, MAX_LENGTH, 1)];
+        can_propagate = propagation_can_continue(map_include, map_exclude,
+                                                 continue_randv, last_pos);
     }
-    // finally, we return the streamline length
-    return current_length;
+
+    // we reached this code because propagation stopped.
+    const float include_randv = include_rand_values[get_flat_index(seed_indice, (int)is_forward,
+                                                                   0, 0, n_seeds, 2, 1)];
+    if(is_streamline_included(map_include, map_exclude, include_randv, last_pos))
+    {
+        // include streamline
+        return current_length;
+    }
+    // discard streamline
+    return 0;
 }
 
 int track(float3 seed_pos,
           const size_t seed_indice,
           const size_t n_seeds,
           const float max_cos_theta_local,
-          __global const float* tracking_mask,
           __global const float* sh_coeffs,
           __global const float* sf_max,
-          __global const float* rand_f,
+          __global const float* sf_rand_values,
           __global const float* vertices,
           __global const float* sh_to_sf_mat,
+          __global const float* map_include,
+          __global const float* map_exclude,
+          __global const float* continue_rand_values,
+          __global const float* include_rand_values,
           __global float* out_streamlines)
 {
     float3 last_pos = seed_pos;
@@ -364,8 +401,10 @@ int track(float3 seed_pos,
     float3 last_dir;
     current_length = propagate(last_pos, last_dir, current_length, true,
                                seed_indice, n_seeds, max_cos_theta_local,
-                               tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
-                               sh_to_sf_mat, out_streamlines);
+                               sh_coeffs, sf_max, sf_rand_values, vertices,
+                               sh_to_sf_mat, map_include, map_exclude,
+                               continue_rand_values, include_rand_values,
+                               out_streamlines);
 
     // reverse streamline for backward tracking
     if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
@@ -377,8 +416,10 @@ int track(float3 seed_pos,
         // track backward
         current_length = propagate(last_pos, last_dir, current_length, false,
                                    seed_indice, n_seeds, max_cos_theta_local,
-                                   tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
-                                   sh_to_sf_mat, out_streamlines);
+                                   sh_coeffs, sf_max, sf_rand_values, vertices,
+                                   sh_to_sf_mat, map_include, map_exclude,
+                                   continue_rand_values, include_rand_values,
+                                   out_streamlines);
     }
     return current_length;
 }
@@ -389,8 +430,11 @@ __kernel void main(__global const float* sh_coeffs,
                    __global const float* sf_max,
                    __global const float* max_cos_theta,
                    __global const float* seed_positions,
-                   __global const float* rand_f,
-                   __global const float* tracking_mask,
+                   __global const float* sf_rand_values,
+                   __global const float* map_include,
+                   __global const float* map_exclude,
+                   __global const float* continue_rand_values,
+                   __global const float* include_rand_values,
                    __global float* out_streamlines,
                    __global float* out_nb_points)
 {
@@ -415,9 +459,10 @@ __kernel void main(__global const float* sh_coeffs,
     }
 
     int current_length = track(seed_pos, seed_indice, n_seeds,
-                               max_cos_theta_local, tracking_mask,
-                               sh_coeffs, sf_max, rand_f, vertices,
-                               sh_to_sf_mat, out_streamlines);
+                               max_cos_theta_local, sh_coeffs, sf_max,
+                               sf_rand_values, vertices, sh_to_sf_mat,
+                               map_include, map_exclude, continue_rand_values,
+                               include_rand_values, out_streamlines);
 
     out_nb_points[seed_indice] = (float)current_length;
 }

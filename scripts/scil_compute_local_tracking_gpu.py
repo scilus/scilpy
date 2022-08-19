@@ -28,9 +28,8 @@ from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 from scilpy.io.utils import (add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
-from scilpy.tracking.utils import (add_out_options, add_seeding_options,
-                                   add_mandatory_options_tracking)
-from scilpy.tracking.tracker import GPUTacker
+from scilpy.tracking.utils import (add_out_options, add_seeding_options)
+from scilpy.tracking.tracker import GPUTrackerCMC, GPUTrackerLocal
 from dipy.tracking.utils import random_seeds_from_mask
 from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.io.utils import get_reference_info, create_tractogram_header
@@ -50,8 +49,24 @@ def _build_arg_parser():
     # rename `optional arguments` group to `Generic options`
     p._optionals.title = 'Generic options'
 
-    # mandatory tracking options
-    add_mandatory_options_tracking(p)
+    # positional arguments
+    p.add_argument('in_odf',
+                   help='File containing the orientation diffusion function \n'
+                        'as spherical harmonics file (.nii.gz). Ex: ODF or '
+                        'fODF.')
+    p.add_argument('in_seed',
+                   help='Seeding mask (.nii.gz).')
+    p.add_argument('out_tractogram',
+                   help='Tractogram output file (must be .trk or .tck).')
+
+    stop_g = p.add_argument_group('Stopping options')
+    mutex_stop_g = stop_g.add_mutually_exclusive_group(required=True)
+    mutex_stop_g.add_argument('--binary_mask',
+                              help='Binary mask file. Tracking will stop'
+                                   ' outside this mask.')
+    mutex_stop_g.add_argument('--cmc_maps', nargs=2,
+                              metavar=('MAP_INCLUDE', 'MAP_EXCLUDE'),
+                              help='Maps for continuous map criterion.')
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument('--step_size', type=float, default=0.5,
@@ -104,13 +119,18 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    assert_inputs_exist(parser, [args.in_odf, args.in_mask, args.in_seed])
+    inputs = [args.in_odf, args.in_seed]
+    if args.binary_mask:
+        inputs.append(args.binary_mask)
+    elif args.cmc_maps:
+        inputs.extend(args.cmc_maps)
+
+    assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, args.out_tractogram)
     if args.compress is not None:
         verify_compression_th(args.compress)
 
     odf_sh_img = nib.load(args.in_odf)
-    mask = get_data_as_mask(nib.load(args.in_mask))
     seed_mask = get_data_as_mask(nib.load(args.in_seed))
     odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
@@ -144,14 +164,29 @@ def main():
     max_strl_len = int(vox_max_length / vox_step_size) + 1
 
     # initialize tracking
-    tracker = GPUTacker(odf_sh, mask, seeds, vox_step_size, min_strl_len,
-                        max_strl_len, theta=args.theta,
-                        sf_threshold=args.sf_threshold,
-                        sh_interp=args.sh_interp,
-                        sh_basis=args.sh_basis,
-                        batch_size=args.batch_size,
-                        forward_only=args.forward_only,
-                        rng_seed=args.rng_seed)
+    if args.binary_mask:
+        mask = get_data_as_mask(nib.load(args.binary_mask))
+        tracker = GPUTrackerLocal(odf_sh, mask, seeds, vox_step_size,
+                                  min_strl_len, max_strl_len,
+                                  theta=args.theta,
+                                  sf_threshold=args.sf_threshold,
+                                  sh_interp=args.sh_interp,
+                                  sh_basis=args.sh_basis,
+                                  batch_size=args.batch_size,
+                                  forward_only=args.forward_only,
+                                  rng_seed=args.rng_seed)
+    elif args.cmc_maps:
+        map_include = nib.load(args.cmc_maps[0]).get_fdata(dtype=np.float32)
+        map_exclude = nib.load(args.cmc_maps[1]).get_fdata(dtype=np.float32)
+        tracker = GPUTrackerCMC(odf_sh, map_include, map_exclude, seeds,
+                                vox_step_size, min_strl_len, max_strl_len,
+                                theta=args.theta,
+                                sf_threshold=args.sf_threshold,
+                                sh_interp=args.sh_interp,
+                                sh_basis=args.sh_basis,
+                                batch_size=args.batch_size,
+                                forward_only=args.forward_only,
+                                rng_seed=args.rng_seed)
 
     # wrapper for tracker.track() yielding one TractogramItem per
     # streamline for use with the LazyTractogram.
