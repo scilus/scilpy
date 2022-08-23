@@ -326,10 +326,14 @@ def associate_dwis(layout, nSub):
                                           run=curr_run,
                                           datatype='dwi', extension='nii.gz',
                                           suffix='dwi')
-                        if dwis:
+                        if len(dwis)==2:
                             all_dwis.append(dwis)
-                else:
+                        else:
+                            print("ERROR MORE DWI THAN EXPECTED")
+                elif len(dwis)==2:
                     all_dwis.append(dwis)
+                else:
+                    print("ERROR MORE DWI THAN EXPECTED")
     else:
         dwis = layout.get(subject=nSub,
                           datatype='dwi', extension='nii.gz',
@@ -344,10 +348,14 @@ def associate_dwis(layout, nSub):
                                       run=curr_run,
                                       datatype='dwi', extension='nii.gz',
                                       suffix='dwi')
-                    if dwis:
+                    if len(dwis)<=2:
                         all_dwis.append(dwis)
-            else:
+                    else:
+                        print("ERROR MORE DWI THAN EXPECTED")
+            elif len(dwis)==2:
                 all_dwis.append(dwis)
+            else:
+                print("ERROR MORE DWI THAN EXPECTED")
 
     return all_dwis
 
