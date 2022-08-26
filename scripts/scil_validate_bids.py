@@ -9,6 +9,7 @@ import os
 
 import argparse
 from bids import BIDSLayout
+from glob import glob
 import json
 
 from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
@@ -24,6 +25,10 @@ def _build_arg_parser():
 
     p.add_argument("out_json",
                    help="Output json file.")
+
+    p.add_argument("--fs",
+                   help='Output freesurfer path. It will add keys wmparc and '
+                        'aparc+aseg.')
 
     p.add_argument('--participants_label', nargs="+",
                    help='The label(s) of the specific participant(s) you'
@@ -134,7 +139,7 @@ def get_dwi_associations(fmaps, bvals, bvecs, sbrefs):
     return associations
 
 
-def get_data(nSub, dwi, t1s, associations, default_readout, clean):
+def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
     """ Return subject data
 
     Parameters
@@ -259,24 +264,23 @@ def get_data(nSub, dwi, t1s, associations, default_readout, clean):
               """)
 
     t1_path = 'todo'
-    t1_nSess = []
-    if not t1s and clean:
-        return {}
+    wmparc_path = ''
+    aparc_aseg = ''
+    if fs:
+        t1_path = fs[0]
+        wmparc_path = fs[1]
+        aparc_aseg_path = fs[2]
+    else:
+        t1_nSess = []
+        if not t1s and clean:
+            return {}
 
-    for t1 in t1s:
-        if 'session' in t1.entities and\
-                t1.entities['session'] == nSess:
-            t1_nSess.append(t1)
-        elif 'session' not in t1.entities:
-            t1_nSess.append(t1)
-
-    # Take the right T1, if multiple T1s the field must be completed ('todo')
-    if len(t1_nSess) == 1:
-        t1_path = t1_nSess[0].path
-    elif 'run' in dwi[0].path:
-        for t1 in t1_nSess:
-            if 'run-' + str(nRun) in t1.path:
-                t1_path = t1.path
+        for t1 in t1s:
+            if 'session' in t1.get_entities().keys() and\
+                    t1.get_entities()['session'] == nSess:
+                t1_nSess.append(t1)
+            elif 'session' not in t1.get_entities().keys():
+                t1_nSess.append(t1)
 
     return {'subject': nSub,
             'session': nSess,
@@ -375,9 +379,17 @@ def main():
 
     for nSub in subjects:
         dwis = associate_dwis(layout, nSub)
-        t1s = layout.get(subject=nSub,
-                         datatype='anat', extension='nii.gz',
-                         suffix='T1w')
+
+        if args.fs:
+            t1_fs = glob(os.path(args.fs,'sub'+nSub,'mri/T1.mgz'))
+            wmparc = glob(os.path(args.fs,'sub'+nSub,'mri/wmparc.mgz'))
+            aparc_aseg = glob(os.path(args.fs,'sub'+nSub,'mri/aparc+aseg.mgz')
+            if t1_fs and wmparc and aparc:
+                fs_inputs = [t1_fs, wmparc, aparc_aseg]
+        else:
+            t1s = layout.get(subject=nSub,
+                             datatype='anat', extension='nii.gz',
+                             suffix='T1w')
         fmaps = layout.get(subject=nSub,
                            datatype='fmap', extension='nii.gz',
                            suffix='epi')
@@ -396,7 +408,7 @@ def main():
 
         # Get the data for each run of DWIs
         for dwi in dwis:
-            data.append(get_data(nSub, dwi, t1s, associations,
+            data.append(get_data(nSub, dwi, t1s, fs, associations,
                                  args.readout, args.clean))
 
     if args.clean:
