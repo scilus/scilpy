@@ -383,7 +383,7 @@ def main():
         if args.fs:
             t1_fs = glob(os.path(args.fs,'sub'+nSub,'mri/T1.mgz'))
             wmparc = glob(os.path(args.fs,'sub'+nSub,'mri/wmparc.mgz'))
-            aparc_aseg = glob(os.path(args.fs,'sub'+nSub,'mri/aparc+aseg.mgz')
+            aparc_aseg = glob(os.path(args.fs,'sub'+nSub,'mri/aparc+aseg.mgz'))
             if t1_fs and wmparc and aparc:
                 fs_inputs = [t1_fs, wmparc, aparc_aseg]
         else:
