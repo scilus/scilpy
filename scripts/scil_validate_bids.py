@@ -11,8 +11,13 @@ import argparse
 from bids import BIDSLayout
 from glob import glob
 import json
+import logging
+import pathlib
 
-from scilpy.io.utils import add_overwrite_arg, assert_outputs_exist
+import coloredlogs
+
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                            assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -45,8 +50,28 @@ def _build_arg_parser():
                    help="Default total readout time value [%(default)s].")
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
+
+
+def _load_bidsignore_(bids_root):
+    """Load .bidsignore file from a BIDS dataset, returns list of regexps"""
+    bids_root = pathlib.Path(bids_root)
+    bids_ignore_path = bids_root / ".bidsignore"
+    if bids_ignore_path.exists():
+        import re
+        import fnmatch
+
+        bids_ignores = bids_ignore_path.read_text().splitlines()
+        return tuple(
+            [
+                re.compile(fnmatch.translate(bi))
+                for bi in bids_ignores
+                if len(bi) and bi.strip()[0] != "#"
+            ]
+        )
+    return tuple()
 
 
 def get_metadata(bf):
@@ -63,7 +88,7 @@ def get_metadata(bf):
     filename = bf.path.replace(
         bf.entities['extension'], '')
 
-    with open(filename + 'json', 'r') as handle:
+    with open(filename + '.json', 'r') as handle:
         return json.load(handle)
 
 
@@ -265,7 +290,7 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
 
     t1_path = 'todo'
     wmparc_path = ''
-    aparc_aseg = ''
+    aparc_aseg_path = ''
     if fs:
         t1_path = fs[0]
         wmparc_path = fs[1]
@@ -286,6 +311,8 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
             'session': nSess,
             'run': nRun,
             't1': t1_path,
+            'wmparc': wmparc_path,
+            'aparc_aseg': aparc_aseg_path,
             'dwi': dwi_path[0],
             'bvec': bvec_path[0],
             'bval': bval_path[0],
@@ -319,6 +346,7 @@ def associate_dwis(layout, nSub):
                               session=curr_sess,
                               datatype='dwi', extension='nii.gz',
                               suffix='dwi')
+
             if len(dwis) == 1:
                 all_dwis.append(dwis)
             elif len(dwis) > 1:
@@ -337,6 +365,7 @@ def associate_dwis(layout, nSub):
                 elif len(dwis)==2:
                     all_dwis.append(dwis)
                 else:
+                    print(dwis)
                     print("ERROR MORE DWI THAN EXPECTED")
     else:
         dwis = layout.get(subject=nSub,
@@ -370,26 +399,45 @@ def main():
 
     assert_outputs_exist(parser, args, args.out_json)
 
+    log_level = logging.WARNING
+    if args.verbose:
+        log_level = logging.INFO
+    logging.basicConfig(level=log_level)
+    coloredlogs.install(level=log_level)
+
     data = []
-    layout = BIDSLayout(args.in_bids, validate=False)
+    layout = BIDSLayout(args.in_bids, validate=False,
+                        ignore=_load_bidsignore_(args.in_bids))
     subjects = layout.get_subjects()
 
     if args.participants_label:
         subjects = [nSub for nSub in args.participants_label if nSub in subjects]
 
+    logging.info("Found {} subject(s)".format(len(subjects)))
+
     for nSub in subjects:
+        mess = '# Validating subject: {}'.format(nSub)
+        logging.info("-" * len(mess))
+        logging.info(mess)
         dwis = associate_dwis(layout, nSub)
 
+        fs_inputs = []
+        t1s = []
+
         if args.fs:
-            t1_fs = glob(os.path(args.fs,'sub'+nSub,'mri/T1.mgz'))
-            wmparc = glob(os.path(args.fs,'sub'+nSub,'mri/wmparc.mgz'))
-            aparc_aseg = glob(os.path(args.fs,'sub'+nSub,'mri/aparc+aseg.mgz'))
-            if t1_fs and wmparc and aparc:
-                fs_inputs = [t1_fs, wmparc, aparc_aseg]
+            logging.info("# Looking for FS files")
+            t1_fs = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/T1.mgz'))
+            wmparc = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
+            aparc_aseg = glob(os.path.join(args.fs, 'sub-' + nSub,
+                                      'mri/aparc+aseg.mgz'))
+            if len(t1_fs)==1 and len(wmparc)==1 and len(aparc_aseg)==1:
+                fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
         else:
+            logging.info("# Looking for T1 files")
             t1s = layout.get(subject=nSub,
                              datatype='anat', extension='nii.gz',
                              suffix='T1w')
+
         fmaps = layout.get(subject=nSub,
                            datatype='fmap', extension='nii.gz',
                            suffix='epi')
@@ -408,7 +456,7 @@ def main():
 
         # Get the data for each run of DWIs
         for dwi in dwis:
-            data.append(get_data(nSub, dwi, t1s, fs, associations,
+            data.append(get_data(nSub, dwi, t1s, fs_inputs, associations,
                                  args.readout, args.clean))
 
     if args.clean:
