@@ -290,7 +290,7 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
 
     t1_path = 'todo'
     wmparc_path = ''
-    aparc_aseg_path = ''
+    aparc_aseg = ''
     if fs:
         t1_path = fs[0]
         wmparc_path = fs[1]
@@ -412,6 +412,8 @@ def main():
 
     if args.participants_label:
         subjects = [nSub for nSub in args.participants_label if nSub in subjects]
+
+    subjects.sort()
 
     logging.info("Found {} subject(s)".format(len(subjects)))
 
