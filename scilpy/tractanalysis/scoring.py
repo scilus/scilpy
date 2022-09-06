@@ -52,7 +52,7 @@ def compute_f1_score(overlap, overreach):
 
 def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     """
-    Compute dice, OL and OR based on a ground truth mask.
+    Compute f1, OL and OR/ORn based on a ground truth mask.
 
     Parameters
     ------
