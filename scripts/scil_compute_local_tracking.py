@@ -234,9 +234,10 @@ def main():
         # Compressing. Threshold is in mm, but we are working in voxel space.
         # Equivalent of sft.to_voxmm:  streamline *= voxres
         # Equivalent of sft.to_vox: streamline /= voxres
+        voxres = np.asarray(odf_sh_img.header.get_zooms()[0:3])
         filtered_streamlines = (
-            compress_streamlines(s * voxel_size,
-                                 args.compress) / voxel_size
+            compress_streamlines(s * voxres,
+                                 args.compress) / voxres
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,
