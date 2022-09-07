@@ -142,6 +142,8 @@ def main():
     vox_min_length = args.min_length / voxel_size
     min_strl_len = int(vox_min_length / vox_step_size) + 1
     max_strl_len = int(vox_max_length / vox_step_size) + 1
+    if args.compress:
+        compress_th_vox = args.compress / voxel_size
 
     # initialize tracking
     tracker = GPUTacker(odf_sh, mask, seeds, vox_step_size, min_strl_len,
@@ -166,7 +168,7 @@ def main():
             # origin `center` for LazyTractogram.
             strl *= voxel_size  # in mm.
             if args.compress:
-                strl = compress_streamlines(strl, args.compress)
+                strl = compress_streamlines(strl, compress_th_vox)
             yield TractogramItem(strl, dps, {})
 
     # instantiate tractogram
