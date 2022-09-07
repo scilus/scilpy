@@ -231,8 +231,12 @@ def main():
         data_per_streamlines = {}
 
     if args.compress:
+        # Compressing. Threshold is in mm, but we are working in voxel space.
+        # Equivalent of sft.to_voxmm:  streamline *= voxres
+        # Equivalent of sft.to_vox: streamline /= voxres
         filtered_streamlines = (
-            compress_streamlines(s, args.compress)
+            compress_streamlines(s * voxel_size,
+                                 args.compress) / voxel_size
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,

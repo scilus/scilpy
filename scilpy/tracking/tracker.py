@@ -11,7 +11,7 @@ import nibabel as nib
 import numpy as np
 
 from dipy.data import get_sphere
-from dipy.io.stateful_tractogram import Space
+from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
@@ -300,12 +300,20 @@ class Tracker(object):
             line = self._get_line_both_directions(seed)
 
             if line is not None:
+                streamline = np.array(line, dtype='float32')
+
                 if self.compression_th and self.compression_th > 0:
-                    streamlines.append(
-                        compress_streamlines(np.array(line, dtype='float32'),
-                                             self.compression_th))
-                else:
-                    streamlines.append((np.array(line, dtype='float32')))
+                    # Compressing. Threshold is in mm. Verifying space.
+                    if self.space == Space.VOX:
+                        # Equivalent of sft.to_voxmm:
+                        streamline *= self.seed_generator.voxres
+                        compress_streamlines(streamline, self.compression_th)
+                        # Equivalent of sft.to_vox:
+                        streamline /= self.seed_generator.voxres
+                    else:
+                        compress_streamlines(streamline, self.compression_th)
+
+                streamlines.append(streamline)
 
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
