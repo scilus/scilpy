@@ -1,6 +1,7 @@
 /*
-OpenCL kernel code for computing short-tracks tractogram from
-SH volume. Tracking is performed in voxel space.
+Local tracking OpenCL implementation.
+
+Tracking is performed in voxel space with origin corner.
 */
 
 // Compiler definitions with placeholder values
