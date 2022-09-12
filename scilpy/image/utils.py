@@ -74,3 +74,36 @@ def volume_iterator(img, blocksize=1, start=0, end=0):
             logging.info(
                 "Loading volumes {} to {}.".format(stop, end - 1))
             yield list(range(stop, end)), img.dataobj[..., stop:end]
+
+
+def check_slice_indices(vol_img, axis_name, slice_ids):
+    """Check that the given volume can be sliced at the given slice indices
+    along the requested axis.
+
+    Parameters
+    ----------
+    vol_img : nib.Nifti1Image
+        Volume image.
+    axis_name : str
+        Slicing axis name.
+    slice_ids : array-like
+        Slice indices.
+    """
+
+    shape = vol_img.shape
+    if axis_name == "axial":
+        idx = 2
+    elif axis_name == "coronal":
+        idx = 1
+    elif axis_name == "sagittal":
+        idx = 0
+    else:
+        raise NotImplementedError(
+            f"Unsupported axis name:\n"
+            f"Found: {axis_name}; Available: axial, coronal, sagittal")
+
+    _slice_ids = list(filter(lambda x: x > shape[idx], slice_ids))
+    if _slice_ids:
+        raise ValueError(
+            "Slice indices exceed the volume shape along the given axis:\n"
+            f"Slices {_slice_ids} exceed shape {shape} along dimension {idx}.")

@@ -11,7 +11,7 @@ def assert_same_resolution(images):
     Check the resolution of multiple images.
     Parameters
     ----------
-    images : array of string or string
+    images : list of string or string
         List of images or an image.
     """
     if isinstance(images, str):
