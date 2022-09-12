@@ -10,7 +10,7 @@ kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
 nilearn==0.6.*
-numpy==1.21.*
+numpy==1.22.*
 Pillow==9.0.1
 bids-validator==1.6.0
 pybids==0.15.*
