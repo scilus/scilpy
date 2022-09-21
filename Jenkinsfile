@@ -8,8 +8,8 @@ pipeline {
                     steps {
                         withPythonEnv('CPython-3.8') {
                             sh '''
-                                pip3 install numpy==1.22.* wheel
                                 pip3 install Cython==0.29.*
+                                pip3 install numpy==1.22.* wheel
                                 pip3 install -e .
                             '''
                         }
