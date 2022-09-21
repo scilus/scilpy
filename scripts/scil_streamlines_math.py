@@ -131,22 +131,39 @@ def main():
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '
                      'checks are performed.\nMetadata will be lost, only '
-                     'trk/tck file are supported.')
+                     'trk/tck file are supported.\n To use trk, at least one '
+                     'input must be a trk.')
+        _, out_ext = os.path.splitext(args.out_tractogram)
+
+        # In some cases, if -f is used and previous file contained errors
+        # (ex, wrong header), the lazy version does not overwrite the file
+        # completely. Deleting manually
+        if os.path.isfile(args.out_tractogram) and args.overwrite:
+            os.remove(args.out_tractogram)
 
         def list_generator_from_nib(filenames):
             for in_file in filenames:
+                logging.info("Lazy-loading file {}".format(in_file))
                 tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
                 for s in tractogram_file.streamlines:
                     yield s
+
+        # Verifying headers
+        # Header will stay None for tck output. Will become a trk header (for
+        # trk output) if we find at least one trk input.
         header = None
         for in_file in args.in_tractograms:
             _, ext = os.path.splitext(in_file)
-            if ext == '.trk':
+            if ext == '.trk' and out_ext == '.trk':
                 if header is None:
                     header = nib.streamlines.load(
                         in_file, lazy_load=True).header
                 elif not is_header_compatible(header, in_file):
                     logging.warning('Incompatible headers in the list.')
+
+        if out_ext == '.trk' and header is None:
+            raise ValueError("No trk file encountered in the input list. "
+                             "Result cannot be saved as a .trk.")
 
         generator = list_generator_from_nib(args.in_tractograms)
         out_tractogram = LazyTractogram(lambda: generator,
@@ -158,6 +175,7 @@ def main():
     # Load all input streamlines.
     sft_list = []
     for f in args.in_tractograms:
+        logging.info("Loading file {}".format(f))
         sft_list.append(load_tractogram_with_reference(
             parser, args, f, bbox_check=not args.ignore_invalid))
 

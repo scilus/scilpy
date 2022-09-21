@@ -8,22 +8,22 @@ given orientation. The user can also add a background on top of which the
 fODF are to be displayed. Using a full SH basis, the script can be used to
 visualize asymmetric fODF. The user can supply a peaks image to visualize
 peaks on top of fODF.
+
+If a transparency_mask is given (e.g. a brain mask), all values outside the
+mask non-zero values are set to full transparency in the saved scene.
 """
 
 import argparse
-import logging
-import warnings
 
 import nibabel as nib
 import numpy as np
 
 from dipy.data import get_sphere
-from dipy.reconst.shm import order_from_ncoef
 
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.io.image import get_data_as_mask
+from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
                                     render_scene)
@@ -56,6 +56,8 @@ def _build_arg_parser():
 
     p.add_argument('--silent', action='store_true',
                    help='Disable interactive visualization.')
+
+    p.add_argument('--in_transparency_mask', help='Input mask image file.')
 
     p.add_argument('--output', help='Path to output file.')
 
@@ -146,6 +148,8 @@ def _parse_args(parser):
         if args.silent:
             parser.error('Silent mode is enabled but no output is specified.'
                          'Specify an output with --output to use silent mode.')
+    if args.in_transparency_mask:
+        inputs.append(args.in_transparency_mask)
     if args.mask:
         inputs.append(args.mask)
     if args.background:
@@ -171,26 +175,26 @@ def _get_data_from_inputs(args):
     Load data given by args. Perform checks to ensure dimensions agree
     between the data for mask, background, peaks and fODF.
     """
+
     fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
     data = {'fodf': fodf}
     if args.background:
+        assert_same_resolution([args.background, args.in_fodf])
         bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
-        if bg.shape[:3] != fodf.shape[:-1]:
-            raise ValueError('Background dimensions {0} do not agree with fODF'
-                             ' dimensions {1}.'.format(bg.shape, fodf.shape))
         data['bg'] = bg
+    if args.in_transparency_mask:
+        assert_same_resolution([args.in_transparency_mask, args.in_fodf])
+        transparency_mask = get_data_as_mask(
+            nib.nifti1.load(args.in_transparency_mask), dtype=bool
+        )
+        data['transparency_mask'] = transparency_mask
     if args.mask:
+        assert_same_resolution([args.mask, args.in_fodf])
         mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
-        if mask.shape != fodf.shape[:-1]:
-            raise ValueError('Mask dimensions {0} do not agree with fODF '
-                             'dimensions {1}.'.format(mask.shape, fodf.shape))
         data['mask'] = mask
     if args.peaks:
+        assert_same_resolution([args.peaks, args.in_fodf])
         peaks = nib.nifti1.load(args.peaks).get_fdata(dtype=np.float32)
-        if peaks.shape[:3] != fodf.shape[:-1]:
-            raise ValueError('Peaks volume dimensions {0} do not agree '
-                             'with fODF dimensions {1}.'.format(bg.shape,
-                                                                fodf.shape))
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -202,12 +206,9 @@ def _get_data_from_inputs(args):
                                  .format(peaks.shape[-1]))
         data['peaks'] = peaks
         if args.peaks_values:
+            assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
                 nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
-            if peak_vals.shape[:3] != fodf.shape[:-1]:
-                raise ValueError('Peaks volume dimensions {0} do not agree '
-                                 'with fODF dimensions {1}.'
-                                 .format(peak_vals.shape, fodf.shape))
             data['peaks_values'] = peak_vals
 
     return data
@@ -252,7 +253,7 @@ def main():
 
     # Instantiate a peaks slicer actor if peaks are supplied
     if 'peaks' in data:
-        peaks_values = None
+
         if 'peaks_values' in data:
             peaks_values = data['peaks_values']
         else:
@@ -273,8 +274,25 @@ def main():
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
                          data['fodf'].shape[:3])
+
+    mask_scene = None
+    if 'transparency_mask' in data:
+        mask_actor = create_texture_slicer(
+            data['transparency_mask'].astype("uint8"),
+            args.axis_name,
+            args.slice_index,
+            offset=0.0,
+            )
+
+        mask_scene = create_scene(
+            [mask_actor],
+            args.axis_name,
+            args.slice_index,
+            data['transparency_mask'].shape,
+        )
+
     render_scene(scene, args.win_dims, args.interactor,
-                 args.output, args.silent)
+                 args.output, args.silent, mask_scene=mask_scene)
 
 
 if __name__ == '__main__':

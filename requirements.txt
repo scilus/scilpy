@@ -6,6 +6,7 @@ dipy==1.5.*
 fury==0.7.*
 future==0.17.*
 h5py==2.10.*
+joblib==1.1.0
 kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
@@ -13,7 +14,7 @@ nilearn==0.6.*
 numpy==1.21.*
 Pillow==9.0.1
 bids-validator==1.6.0
-pybids==0.15.*
+pybids==0.10.*
 pyparsing==2.2.*
 PySocks==1.7.*
 python-dateutil==2.7.*
