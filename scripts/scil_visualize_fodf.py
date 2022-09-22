@@ -88,7 +88,7 @@ def _build_arg_parser():
 
     q.add_argument('--color_rgb', nargs=3, type=float, default=None,
                    help='Uniform color for the ODF slicer given as GRB, '
-                        'between 0 and 255. [%(default)s]')
+                        'scaled between 0 and 1. [%(default)s]')
 
     p.add_argument('--scale', default=0.5, type=float,
                    help='Scaling factor for FODF. [%(default)s]')
@@ -241,6 +241,9 @@ def main():
     else:
         mask = None
 
+    if args.color_rgb:
+        color_rgb = np.round(np.asarray(args.color_rgb) * 255)
+
     # Instantiate the ODF slicer actor
     odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                   args.slice_index, mask, sph,
@@ -249,7 +252,7 @@ def main():
                                   args.scale,
                                   not args.radial_scale_off,
                                   not args.norm_off,
-                                  args.colormap or args.color_rgb)
+                                  args.colormap or color_rgb)
     actors.append(odf_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
