@@ -243,6 +243,8 @@ def main():
 
     if args.color_rgb:
         color_rgb = np.round(np.asarray(args.color_rgb) * 255)
+    else:
+        color_rgb = None
 
     # Instantiate the ODF slicer actor
     odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
@@ -306,6 +308,7 @@ def main():
             args.axis_name,
             args.slice_index,
             data['transparency_mask'].shape,
+            args.bg_color,
         )
 
     render_scene(scene, args.win_dims, args.interactor,
