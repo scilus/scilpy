@@ -122,9 +122,9 @@ def _build_arg_parser():
                         '[%(default)s]')
 
     p.add_argument('--bg_color', nargs=3, type=float, default=(0, 0, 0),
-                   help='The color of the real background, behind everything. '
-                        'Must be RGB values scaled between 0 and 1. '
-                        '[%(default)s]')
+                   help='The color of the overall background, behind '
+                        'everything. Must be RGB values scaled between 0 and '
+                        '1. [%(default)s]')
 
     # Peaks input file options
     p.add_argument('--peaks',
