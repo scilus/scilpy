@@ -80,9 +80,15 @@ def _build_arg_parser():
                    help='Optional mask file. Only fODF inside '
                         'the mask are displayed.')
 
-    p.add_argument('--colormap', default=None,
-                   help='Colormap for the ODF slicer. If None, '
-                        'then a RGB colormap will be used. [%(default)s]')
+    q = p.add_mutually_exclusive_group()
+
+    q.add_argument('--colormap', default=None,
+                       help='Colormap for the ODF slicer. If None, '
+                            'then a RGB colormap will be used. [%(default)s]')
+
+    q.add_argument('--color_rgb', nargs=3, type=float, default=None,
+                       help='Uniform color for the ODF slicer given as GRB, '
+                            'between 0 and 255. [%(default)s]')
 
     p.add_argument('--scale', default=0.5, type=float,
                    help='Scaling factor for FODF. [%(default)s]')
@@ -115,13 +121,19 @@ def _build_arg_parser():
                    help='Interpolation mode for the background image. '
                         '[%(default)s]')
 
+    p.add_argument('--bg_color', nargs=3, type=float, default=(0, 0, 0),
+                   help='The color of the real background, behind everything. '
+                        'Must be RGB values scaled between 0 and 1. '
+                        '[%(default)s]')
+
     # Peaks input file options
     p.add_argument('--peaks',
                    help='Peaks image file.')
 
     p.add_argument('--peaks_color', nargs=3, type=float,
-                   help='Color used for peaks. If None, '
-                        'then a RGB colormap is used. [%(default)s]')
+                   help='Color used for peaks, as RGB values scaled between 0 '
+                        'and 1. If None, then a RGB colormap is used. '
+                        '[%(default)s]')
 
     p.add_argument('--peaks_width', default=1.0, type=float,
                    help='Width of peaks segments. [%(default)s]')
@@ -229,6 +241,9 @@ def main():
     else:
         mask = None
 
+    print("TTTTTTTTTTOOO")
+    print(args.colormap or args.color_rgb)
+
     # Instantiate the ODF slicer actor
     odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                   args.slice_index, mask, sph,
@@ -236,7 +251,8 @@ def main():
                                   args.sh_basis, full_basis,
                                   args.scale,
                                   not args.radial_scale_off,
-                                  not args.norm_off, args.colormap)
+                                  not args.norm_off, 
+                                  args.colormap or args.color_rgb)
     actors.append(odf_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
@@ -273,7 +289,8 @@ def main():
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
-                         data['fodf'].shape[:3])
+                         data['fodf'].shape[:3],
+                         args.bg_color)
 
     mask_scene = None
     if 'transparency_mask' in data:
