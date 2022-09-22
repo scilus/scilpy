@@ -6,6 +6,7 @@ dipy==1.5.*
 fury==0.7.*
 future==0.17.*
 h5py==2.10.*
+joblib==1.1.0
 kiwisolver==1.0.*
 matplotlib==2.2.*
 nibabel==3.0.*
