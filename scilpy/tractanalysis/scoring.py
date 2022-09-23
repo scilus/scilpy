@@ -15,7 +15,7 @@ from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
 from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractanalysis.reproducibility_measures import \
-    get_endpoints_density_map, compute_dice_voxel
+    get_endpoints_density_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -28,7 +28,8 @@ def compute_f1_score(overlap, overreach):
     Parameters
     ------
     overlap: float, The overlap value.
-    overreach: float, The overreach value.
+    overreach: float, The overreach value
+        (Version normalized over bundle area, not version normalized over gt).
 
     Returns
     -------
@@ -36,15 +37,22 @@ def compute_f1_score(overlap, overreach):
 
     Ref: https://en.wikipedia.org/wiki/F1_score
     """
+    # Recall = True positive / (True positive + False negative)
+    #        = |B inter A| / |A|
+    #        = overlap
     recall = overlap
+    # Precision = True positive / (True positive + False positive)
+    #        = |B inter A| / |B|
+    #        = 1 - |B except A| / |B|
+    #        = 1 - overreach
     precision = 1.0 - overreach
     f1_score = 2.0 * (precision * recall) / (precision + recall)
     return f1_score
 
 
-def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
+def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     """
-    Compute dice, OL and OR based on a ground truth mask.
+    Compute f1, OL and OR/ORn based on a ground truth mask.
 
     Parameters
     ------
@@ -52,38 +60,69 @@ def compute_dice_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
         The voxels touched by at least one streamlines for a given bundle.
     gt_mask: 3D array
         The ground truth mask.
-    dimensions: array
+    dimensions: np.array
         The nibabel dimensions of the data (3D).
 
     Returns
     -------
-    dice: float
-        The dice score
-    overlap: int
-        The overlap (in number of voxels, not as percentages).
-    overreach: int
-        The overreach (in number of voxels).
-    lacking: int
-        The number of voxels from the gt_mask that have not been recovered.
+    f1: float
+        The f1 score.
+    tp_nb_voxels: int
+        The TP (true positive) count in number of voxels.
+    fp_nb_voxels: int
+        The FP (false positive) count in number of voxels.
+        Hint: Divide it by the ground truth count to get the overreach, or
+        by the recovered bundle count to get the ORn (scores used in the
+        ismrm2015 tractography challenge).
+    fn_nb_voxels: int
+        The number of voxels from the gt_mask that have not been recovered;
+        corresponds to the FN count (false negative).
+    overlap: float
+        TP divided by the ground truth count (i.e. TP + FN), in percentage.
+    overreach_pct_total: float
+        The overreach, normalized by the recovered bundle's area. (Or 0 if
+        no streamline have been recovered for this bundle).
+    overreach_pct_gt: float
+        The overreach, normalized by the ground truth area.
     """
-    # Dice
-    dice = compute_dice_voxel(gt_mask, current_vb_voxels)[0]
+    # True positive = |B inter A|
+    tp_mask = gt_mask * current_vb_voxels
+    tp_nb_voxels = np.count_nonzero(tp_mask)
 
-    # Overlap and overreach
-    overlap_mask = gt_mask * current_vb_voxels
-    overreach_mask = np.zeros(dimensions)
-    overreach_mask[np.where(
+    # False positive = |B except A|
+    fp_mask = np.zeros(dimensions)
+    fp_mask[np.where(
         (gt_mask == 0) & (current_vb_voxels >= 1))] = 1
+    fp_nb_voxels = np.count_nonzero(fp_mask)
 
-    bundle_lacking = np.zeros(dimensions)
-    bundle_lacking[np.where(
+    # False negative = |A except B|
+    fn_mask = np.zeros(dimensions)
+    fn_mask[np.where(
         (gt_mask == 1) & (current_vb_voxels == 0))] = 1
+    fn_nb_voxels = np.count_nonzero(fn_mask)
 
-    overlap = np.count_nonzero(overlap_mask)
-    overreach = np.count_nonzero(overreach_mask)
-    lacking = np.count_nonzero(bundle_lacking)
+    gt_total_nb_voxels = tp_nb_voxels + fn_nb_voxels
+    # Same as np.count_nonzero(gt_mask)
 
-    return dice, overlap, overreach, lacking
+    nb_voxels_total = tp_nb_voxels + fp_nb_voxels
+    # Same as np.count_nonzero(current_vb_voxels)
+
+    # Overlap = |B inter A| / |A|
+    overlap = tp_nb_voxels / gt_total_nb_voxels
+
+    # Overreach: two versions are sometimes used.
+    # |B except A| / |A| or |B except A| / |B|
+    if nb_voxels_total == 0:
+        overreach_pct_total = 0
+    else:
+        overreach_pct_total = fp_nb_voxels / nb_voxels_total
+    overreach_pct_gt = fp_nb_voxels / gt_total_nb_voxels
+
+    # f1 score (=dice)
+    f1 = compute_f1_score(overlap, overreach_pct_total)
+
+    return (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
+            overlap, overreach_pct_gt, overreach_pct_total)
 
 
 def get_binary_maps(streamlines, sft):
@@ -295,8 +334,9 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     out_dir: str
         Where to save the heads and tails.
 
-    Returns:
-        tails, heads: lists of filenames with length the number of bundles.
+    Returns
+    -------
+    tails, heads: lists of filenames with length the number of bundles.
     """
     tails = []
     heads = []

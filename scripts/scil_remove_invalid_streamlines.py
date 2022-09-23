@@ -40,6 +40,9 @@ def _build_arg_parser():
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
                    help='Consider streamlines with overlapping points invalid.')
+    p.add_argument('--threshold', type=float, default=0.001,
+                   help='Maximum distance between two points to be considered'
+                        ' overlapping [%(default)s mm].')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -53,6 +56,9 @@ def main():
 
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
+
+    if args.threshold < 0:
+        parser.error("Threshold must be positive.")
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
                                          bbox_check=False)
@@ -70,9 +76,9 @@ def main():
 
     if args.remove_overlapping_points:
         for i in np.setdiff1d(range(len(sft)), indices):
-            norm = np.linalg.norm(np.gradient(sft.streamlines[i],
-                                              axis=0), axis=1)
-            if (norm < 0.001).any():
+            norm = np.linalg.norm(np.diff(sft.streamlines[i], axis=0),
+                                  axis=1)
+            if (norm < args.threshold).any():
                 indices.append(i)
 
     indices = np.setdiff1d(range(len(sft)), indices).astype(np.uint32)
