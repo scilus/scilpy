@@ -77,6 +77,7 @@ def main():
         nonlocal curr_streamlines_actor, concat_streamlines_actor, \
             show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
+        iren = interactor_style.GetInteractor()
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
 
@@ -96,7 +97,8 @@ def main():
             return
 
         if key == 'q':
-            #show_manager.exit()
+            iren.TerminateApp()
+            del renwin, iren
             if iterator < len(sft_accepted_on_size):
                 logging.warning(
                     'Early exit, everything remaining to be rejected.')
@@ -240,7 +242,7 @@ def main():
                                          args.out_accepted_dir,
                                          filename_accepted_on_size)
 
-    accepted_sft = StatefulTractogram(accepted_streamlines,
+    accepted_sft = StatefulTractogram.from_sft(accepted_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
     save_tractogram(accepted_sft, args.out_accepted, bbox_valid_check=False)
@@ -257,7 +259,7 @@ def main():
                                               args.out_rejected_dir,
                                               filename_rejected_on_size))
 
-    rejected_sft = StatefulTractogram(rejected_streamlines,
+    rejected_sft = StatefulTractogram.from_sft(rejected_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
     save_tractogram(rejected_sft, args.out_rejected, bbox_valid_check=False)
