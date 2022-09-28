@@ -24,7 +24,8 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
-                             assert_inputs_exist)
+                             assert_inputs_exist,
+                             verify_compatibility)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_roi_metrics_mean_std
 
@@ -98,9 +99,12 @@ def main():
 
     # Load all metrics files.
     if args.metrics_dir:
+        verify_compatibility(parser, [args.in_mask] +
+                              os.listdir(args.metrics_dir))
         metrics_files = [nib.load(args.metrics_dir + f)
                          for f in sorted(os.listdir(args.metrics_dir))]
     elif args.metrics_file_list:
+        verify_compatibility(parser, [args.in_mask] + args.metrics_file_list)
         metrics_files = [nib.load(f) for f in args.metrics_file_list]
 
     # Compute the mean values and standard deviations

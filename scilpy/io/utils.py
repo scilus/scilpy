@@ -18,6 +18,7 @@ import six
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.utils.filenames import split_name_with_nii
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -461,6 +462,35 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
             if not compatible:
                 parser.error("Reference tractogram incompatible with {}"
                              .format(file))
+
+
+def verify_compatibility(parser, list_files):
+    """
+    Verifies the compatibility between the first item in list_files
+    and the remaining files in list.
+
+    WARNING: order matters.
+
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+
+    list_files: List
+        List of files to test
+    """
+    all_valid = True
+    for filepath in list_files:
+        _, in_extension = split_name_with_nii(filepath)
+        if in_extension not in ['.trk', '.nii', '.nii.gz']:
+            parser.error('{} does not have a supported extension'.format(
+                filepath))
+        if not is_header_compatible(list_files[0], filepath):
+            print('ERROR:{} and {} do not have compatible header.'.format(
+                list_files[0], filepath))
+            all_valid = False
+    if all_valid:
+        print('All input files have compatible headers.')
+    else:
+        parser.error('All input files have not compatible header.')
 
 
 def read_info_from_mb_bdo(filename):
