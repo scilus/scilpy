@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import itertools
 import logging
 import os
 import multiprocessing
@@ -464,12 +465,10 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
                              .format(file))
 
 
-def verify_compatibility(parser, list_files):
+def is_header_compatible_multiple_files(parser, list_files):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
-
-    WARNING: order matters.
 
     parser: argument parser
         Will raise an error if a file is not compatible.
@@ -478,15 +477,20 @@ def verify_compatibility(parser, list_files):
         List of files to test
     """
     all_valid = True
+
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
         if in_extension not in ['.trk', '.nii', '.nii.gz']:
             parser.error('{} does not have a supported extension'.format(
                 filepath))
-        if not is_header_compatible(list_files[0], filepath):
+
+    all_pairs = list(itertools.combinations(list_files, 2))
+    for curr_pair in all_pairs:
+        if not is_header_compatible(curr_pair[0], curr_pair[1]):
             print('ERROR:{} and {} do not have compatible header.'.format(
-                list_files[0], filepath))
+                curr_pair[0], curr_pair[1]))
             all_valid = False
+
     if all_valid:
         print('All input files have compatible headers.')
     else:

@@ -10,9 +10,8 @@ Spatial attributes are: affine, dimensions, voxel sizes and voxel order.
 
 import argparse
 
-from dipy.io.utils import is_header_compatible
 
-from scilpy.io.utils import assert_inputs_exist, verify_compatibility
+from scilpy.io.utils import assert_inputs_exist, is_header_compatible_multiple_files
 
 
 def _build_arg_parser():
@@ -30,7 +29,7 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_files)
-    verify_compatibility(parser, args.in_files)
+    is_header_compatible_multiple_files(parser, args.in_files)
 
 
 if __name__ == "__main__":
