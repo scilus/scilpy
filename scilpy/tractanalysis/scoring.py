@@ -404,16 +404,12 @@ def extract_vb_vs(
 
     Returns
     -------
-    tc_sft: StatefulTractogram
-        SFT of true connections.
-    wpc_sft: StatefulTractogram
-        SFT of wrong-path-connections.
-    fc_sft: StatefulTractogram
-        SFT of false connections (streamlines that are too long).
-    nc_streamlines: StatefulTractogram
-        SFT of no connections (streamlines that loop)
-    sft: StatefulTractogram
-        SFT of remaining streamlines.
+    vs_ids: list
+        List of ids of valid streamlines
+    wpc_ids: list
+        List of ids of wrong-path connections
+    bundle_stats: dict
+        Dictionary of recognized streamlines statistics
     """
     mask_1_img = nib.load(head_filename)
     mask_2_img = nib.load(tail_filename)
