@@ -110,7 +110,6 @@ import os
 
 from dipy.io.utils import is_header_compatible
 from dipy.io.streamline import save_tractogram
-from dipy.tracking.utils import length
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -160,11 +159,6 @@ def _build_arg_parser():
                    help="Dilate inclusion masks n-times. Default: 0.")
     g.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
-    g.add_argument('--min_length', type=float, default=10.,
-                   metavar='m',
-                   help='Minimum length of a streamline in mm. '
-                        'Below this length, streamlines will be '
-                        'considered as NC. [%(default)s]')
 
     g = p.add_argument_group("Tractometry choices")
     g.add_argument("--save_wpc_separately", action='store_true',
@@ -778,13 +772,6 @@ def main():
      dimensions) = load_and_verify_everything(parser, args)
 
     remain_ids = np.arange(0, len(sft))
-    sft.to_rasmm()
-    streamline_lengths = np.asarray(list(length(sft.streamlines)))
-    long_enough_mask = streamline_lengths > args.min_length
-    too_short_ids = remain_ids[~long_enough_mask]
-    remain_ids = remain_ids[long_enough_mask]
-    logging.info("{} streamlines are above {} mm.".format(
-        len(remain_ids), args.min_length))
     sft.to_vox()
 
     # VS
@@ -850,7 +837,7 @@ def main():
 
     # NC
     # = ids that are not VS, not wpc (if asked) and not IC (if asked).
-    all_nc_ids = np.concatenate((too_short_ids, remain_ids))
+    all_nc_ids = remain_ids
     if not args.unique:
         all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
         all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
