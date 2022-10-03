@@ -61,7 +61,7 @@ Config file:
             this.*
 
         Concerning inclusion criteria (other streamlines will be WPC):
-        - limits_mask: ROI serving as "all include" criteria of the
+        - all_mask: ROI serving as "all include" criteria of the
             streamlines. To be included in the bundle, streamlines must be
             entirely included in this mask.*
         - must_pass_mask: ROI serving as "any" criteria. The streamlines
@@ -99,7 +99,7 @@ Ex 2:
     "gt_mask": "masks/bundle1.trk"
     "head": 'roi/file2',
     "tail": 'roi/file3',
-    "limits_mask": "masks/general_envelope_bundle_1.nii.gz"
+    "all_mask": "masks/general_envelope_bundle_1.nii.gz"
   }
 }
 
@@ -151,9 +151,9 @@ def _build_arg_parser():
                    help="Root path of the ground truth files listed in the "
                         "gt_config.\n If not set, filenames in the config "
                         "file are considered\n as complete paths.")
-    g.add_argument("--use_gt_masks_as_limits_masks", action='store_true',
+    g.add_argument("--use_gt_masks_as_all_masks", action='store_true',
                    help="If set, the gt_config's 'gt_mask' will also be used "
-                        "as\n'limits_mask' for each bundle. Note that this "
+                        "as\n'all_mask' for each bundle. Note that this "
                         "means the\nOR will necessarily be 0.")
 
     g = p.add_argument_group("Preprocessing")
@@ -221,13 +221,14 @@ def load_and_verify_everything(parser, args):
      roi_options, lengths, angles, orientation_lengths,
      abs_orientation_lengths) = read_config_file(args)
 
-    # Find all mandatory masks to be loaded.
-    all_mask_files = list(itertools.chain(
+    # Find every mandatory mask to be loaded
+    list_masks_files = list(itertools.chain(
         *[list(roi_option.values()) for roi_option in roi_options]))
-    all_mask_files = list(dict.fromkeys(all_mask_files))  # Removes duplicates
+    # (This removes duplicates:)
+    list_masks_files = list(dict.fromkeys(list_masks_files))
 
     # Verify options
-    assert_inputs_exist(parser, all_mask_files + [args.in_tractogram],
+    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram],
                         gt_masks_files + limits_masks_files +
                         must_pass_masks_files)
 
@@ -243,9 +244,12 @@ def load_and_verify_everything(parser, args):
 
     logging.info("Verifying compatibility of tractogram with gt_masks, "
                  "limits_masks and must_pass_masks")
-    all_masks = gt_masks_files + limits_masks_files + must_pass_masks_files
-    all_masks = list(dict.fromkeys(all_masks))  # Removes duplicates
-    verify_compatibility_with_reference_sft(sft, all_masks, parser, args)
+    list_masks_files = gt_masks_files + limits_masks_files + \
+                       must_pass_masks_files
+    # Removing duplicates:
+    list_masks_files = list(dict.fromkeys(list_masks_files))
+    verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
+                                            args)
 
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and must_pass_masks.")
@@ -260,17 +264,17 @@ def load_and_verify_everything(parser, args):
     gt_tails, gt_heads = compute_endpoint_masks(
         roi_options, affine, dimensions, args.out_dir)
 
-    # Update all_rois, remove duplicates
-    all_rois = gt_tails + gt_heads
-    all_rois = list(dict.fromkeys(all_rois))  # Removes duplicates
+    # Update the list of every ROI, remove duplicates
+    list_rois = gt_tails + gt_heads
+    list_rois = list(dict.fromkeys(list_rois))  # Removes duplicates
 
     logging.info("Verifying tractogram compatibility with endpoint ROIs.")
-    for file in all_rois:
+    for file in list_rois:
         compatible = is_header_compatible(sft, file)
         if not compatible:
             parser.error("Input tractogram incompatible with {}".format(file))
 
-    return (gt_tails, gt_heads, sft, bundle_names, all_rois,
+    return (gt_tails, gt_heads, sft, bundle_names, list_rois,
             lengths, angles, orientation_lengths, abs_orientation_lengths,
             limits_inv_masks, gt_masks, must_pass_masks, dimensions)
 
@@ -432,12 +436,12 @@ def read_config_file(args):
             lengths, angles, orientation_lengths, abs_orientation_lengths)
 
 
-def compute_vb_vs_all_bundles(
+def compute_vb_vs(
         gt_tails, gt_heads, sft, bundle_names, lengths, angles,
         orientation_lengths, abs_orientation_lengths, limits_inv_masks,
         must_pass_masks, args):
     """
-    Loop on all bundles and extract VS and WPC. Saves the VC and WPC if
+    Loop on every bundles and extract VS and WPC. Saves the VC and WPC if
     asked by user. Else, they will be included back into IS.
 
     VS:
@@ -494,11 +498,11 @@ def compute_vb_vs_all_bundles(
         logging.info("Bundle {}: nb VS = {}"
                      .format(bundle_names[i], bundle_stats["VS"]))
 
-    all_gt = list(itertools.chain(*vs_ids_list))
+    all_gt_ids = list(itertools.chain(*vs_ids_list))
     for i in range(nb_bundles):
         # Remove duplicate VS/WPC
         if args.remove_wpc_belonging_to_another_bundle or args.unique:
-            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt)
+            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt_ids)
             nb_rejected = len(wpc_ids_list[i]) - len(new_wpc_ids)
             bundles_stats[i].update(
                 {"Belonging to another bundle": nb_rejected})
@@ -510,8 +514,7 @@ def compute_vb_vs_all_bundles(
 
     # WPC
     if args.save_wpc_separately:
-        wpc_sft_list = save_wpc_all_bundles(
-            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
+        wpc_sft_list = save_wpc(wpc_ids_list, sft, bundle_names, args)
     else:
         # Remove WPCs to be included as IS in the future
         for i in range(nb_bundles):
@@ -554,7 +557,7 @@ def compute_vb_vs_all_bundles(
     return vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats
 
 
-def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list):
+def save_wpc(wpc_ids_list, sft, bundles_names, args):
     """
     Save WPC to file.
     """
@@ -577,9 +580,9 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list):
     return wpc_sft_list
 
 
-def compute_ib_ic_all_bundles(comb_filename, sft, args):
+def compute_ib_ic(comb_filename, sft, args):
     """
-    Loop on all bundles and compute false connections, defined as connections
+    Loop on every bundle and compute false connections, defined as connections
     between ROIs pairs that do not form gt bundles.
 
     (Goes through all the possible combinations of endpoints masks)
@@ -784,7 +787,7 @@ def main():
     args = parser.parse_args()
 
     # Load
-    (gt_tails, gt_heads, sft, bundle_names, all_rois, bundle_lengths, angles,
+    (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,
      orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
      must_pass_masks, dimensions) = load_and_verify_everything(parser, args)
 
@@ -794,7 +797,7 @@ def main():
     # VS
     logging.info("Scoring valid connections")
     vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats = \
-        compute_vb_vs_all_bundles(
+        compute_vb_vs(
             gt_tails, gt_heads, sft[remain_ids], bundle_names, bundle_lengths,
             angles, orientation_lengths, abs_orientation_lengths,
             limits_inv_masks, must_pass_masks, args)
@@ -825,8 +828,8 @@ def main():
         logging.info("Scoring invalid connections")
 
         # Keep all possible combinations
-        all_rois = sorted(all_rois)
-        comb_filename = list(itertools.combinations(all_rois, r=2))
+        list_rois = sorted(list_rois)
+        comb_filename = list(itertools.combinations(list_rois, r=2))
 
         # Remove the true connections from all combinations, leaving only
         # false connections
@@ -834,9 +837,8 @@ def main():
         for vb_roi_pair in vb_roi_filenames:
             vb_roi_pair = tuple(sorted(vb_roi_pair))
             comb_filename.remove(vb_roi_pair)
-        ib_sft_list, ic_ids_list = compute_ib_ic_all_bundles(comb_filename,
-                                                             sft[remain_ids],
-                                                             args)
+        ib_sft_list, ic_ids_list = compute_ib_ic(comb_filename,
+                                                 sft[remain_ids], args)
         if args.unique:
             for i in range(len(ic_ids_list)):
                 # Assign actual ids
