@@ -156,8 +156,9 @@ def weighted_mean_std(weights, data):
         a tuple containing the mean and standard deviation of the data
     """
 
-    mean = np.average(data, weights=weights)
-    variance = np.average((data-mean)**2, weights=weights)
+    masked_data = np.ma.masked_array(data, np.isnan(data))
+    mean = np.average(masked_data, weights=weights)
+    variance = np.average((masked_data-mean)**2, weights=weights)
 
     return mean, np.sqrt(variance)
 
@@ -276,7 +277,8 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                 label_weight = None
 
             # Check if NaNs in metrics
-            label_masked_data = np.ma.masked_array(label_metric, np.isnan(label_metric))
+            label_masked_data = np.ma.masked_array(label_metric,
+                                                   np.isnan(label_metric))
             label_mean = np.average(label_masked_data,
                                     weights=label_weight)
             label_std = np.sqrt(np.average(
