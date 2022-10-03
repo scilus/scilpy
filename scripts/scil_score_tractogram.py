@@ -125,7 +125,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
-                                          extract_vb_vs,
+                                          extract_vb_vs_one_bundle,
                                           compute_f1_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -479,7 +479,7 @@ def compute_vb_vs(
 
         # Extract true connection
         vs_ids, wpc_ids, bundle_stats = \
-            extract_vb_vs(
+            extract_vb_vs_one_bundle(
                 sft[all_ids], head_filename, tail_filename, lengths[i],
                 angles[i], orientation_lengths[i], abs_orientation_lengths[i],
                 inv_all_masks[i], any_masks[i], args.dilate_endpoints)

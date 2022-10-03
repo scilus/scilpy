@@ -368,10 +368,10 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     return tails, heads
 
 
-def extract_vb_vs(
+def extract_vb_vs_one_bundle(
         sft, head_filename, tail_filename, limits_length, angle,
-        orientation_length, abs_orientation_length, inclusion_inv_mask,
-        must_pass_mask, dilate_endpoints):
+        orientation_length, abs_orientation_length, inv_all_mask,
+        any_mask, dilate_endpoints):
     """
     Extract valid bundle (and valid streamline ids) from a tractogram, based
     on two regions of interest for the endpoints, one region of interest for
@@ -394,11 +394,12 @@ def extract_vb_vs(
         Bundle's length parameters in each direction:
         [[min_x, max_x], [min_y, max_y], [min_z, max_z]]
     abs_orientation_length: idem, computed in absolute values.
-    inclusion_inv_mask: np.ndarray or None
-        Inverse mask of the bundle.
-    must_pass_mask: np.ndarray or None
-        Mask. Streamlines must pass through this mask (touch it) to be included
-        in the bundle (mode 'any').
+    inv_all_mask: np.ndarray or None
+        Inverse ALL mask for this bundle: no point must be outside the mask.
+    any_mask: np.ndarray or None
+        ANY mask for this bundle.
+        Streamlines must pass through this mask (touch it) to be included
+        in the bundle.
     dilate_endpoints: int or None
         If set, dilate the masks for n iterations.
 
@@ -426,10 +427,10 @@ def extract_vb_vs(
     bundle_stats = {"Initial count head to tail": len(vs_ids)}
 
     # Remove out of inclusion mask (limits_mask)
-    if len(vs_ids) > 0 and inclusion_inv_mask is not None:
+    if len(vs_ids) > 0 and inv_all_mask is not None:
         tmp_sft = sft[vs_ids]
         _, out_of_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, inclusion_inv_mask, 'any', False)
+            tmp_sft, inv_all_mask, 'any', False)
         out_of_mask_ids = vs_ids[out_of_mask_ids_from_vs]
 
         bundle_stats.update({"WPC_out_of_mask": len(out_of_mask_ids)})
@@ -438,15 +439,16 @@ def extract_vb_vs(
         wpc_ids.extend(out_of_mask_ids)
         vs_ids = np.setdiff1d(vs_ids, wpc_ids)
 
-    # Remove streamlines not passing through must_pass_mask
-    if len(vs_ids) > 0 and must_pass_mask is not None:
+    # Remove streamlines not passing through any_mask
+    if len(vs_ids) > 0 and any_mask is not None:
         tmp_sft = sft[vs_ids]
         _, in_mask_ids_from_vs = filter_grid_roi(
-            tmp_sft, must_pass_mask, 'any', False)
+            tmp_sft, any_mask, 'any', False)
         in_mask_ids = vs_ids[in_mask_ids_from_vs]
 
         out_of_mask_ids = np.setdiff1d(vs_ids, in_mask_ids)
-        bundle_stats.update({"WPC_not_in_must_pass_mask": len(out_of_mask_ids)})
+        bundle_stats.update({"WPC_not_reaching_the_ANY_mask":
+                                 len(out_of_mask_ids)})
 
         # Update ids
         wpc_ids.extend(out_of_mask_ids)
@@ -500,8 +502,7 @@ def extract_vb_vs(
 
         _, valid_orientation_ids_from_vs, _ = \
             filter_streamlines_by_total_length_per_dim(
-                sft[vs_ids], limits_x, limits_y,
-                limits_z,
+                sft[vs_ids], limits_x, limits_y, limits_z,
                 use_abs=True, save_rejected=False)
 
         # Update ids
