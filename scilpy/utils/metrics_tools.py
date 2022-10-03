@@ -275,10 +275,12 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                                 'Disabling weighting')
                 label_weight = None
 
-            label_mean = np.average(label_metric,
+            # Check if NaNs in metrics
+            label_masked_data = np.ma.masked_array(label_metric, np.isnan(label_metric))
+            label_mean = np.average(label_masked_data,
                                     weights=label_weight)
             label_std = np.sqrt(np.average(
-                (label_metric - label_mean) ** 2,
+                (label_masked_data - label_mean) ** 2,
                 weights=label_weight))
             label_stats['mean'] = float(label_mean)
             label_stats['std'] = float(label_std)
