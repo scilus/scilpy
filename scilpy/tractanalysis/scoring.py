@@ -1,6 +1,39 @@
 # -*- coding: utf-8 -*-
 
+"""
+Tractometry
+-----------
+
+Global connectivity metrics:
+    Computed by default:
+    - VS: valid streamlines, belonging to a bundle (i.e. respecting all the
+        criteria for that bundle; endpoints, limit_mask, gt_mask.).
+    - IS: invalid streamlines. All other streamlines. IS = IC + NC.
+
+    Optional:
+    - WPC: wrong path connections, streamlines connecting correct ROIs but not
+        respecting the other criteria for that bundle. Such streamlines always
+        exist but they are only saved separately if specified in the options.
+        Else, they are merged back with the IS.
+        ** By definition. WPC are only computed if "limits masks" are provided.
+    - IC: invalid connections, streamlines joining an incorrect combination of
+        ROIs. Use carefully, quality depends on the quality of your ROIs and no
+        analysis is done on the shape of the streamlines.
+    - NC: no connections. Invalid streamlines minus invalid connections.
+
+Fidelity metrics:
+    - OL : percentage of ground truth voxels containing VS streamline(s).
+    - OR/ORn: percentage of voxels containing VS streamline(s) when it
+        shouldn't. We compute two versions of the overreach:
+        OR = % of the recovered bundle. Values range between 0 and 100%. Values
+           are not defined when we recovered no streamline for a bundle, but we
+           set the OR to 0 in that case.
+        ORn = % of the ground truth bundle. Values could be higher than 100%.
+    - f1 score (which is the same as the Dice score).
+"""
+
 import logging
+
 import numpy as np
 
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -157,48 +190,58 @@ def get_binary_maps(streamlines, sft):
     return bundles_voxels, endpoints_voxels
 
 
-def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
-                        vs_ids_list, wpc_ids_list, ic_ids_list,
-                        vb_sft_list, wpc_sft_list, ib_sft_list, sft, args,
-                        bundles_names, gt_masks, dimensions, comb_filename):
-
+def compute_tractometry(
+        vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, args,
+        bundles_names, gt_masks, dimensions, comb_filename):
     """
     Tractometry stats: First in terms of connections (NC, IC, VS, WPC), then
     in terms of volume (OL, OR, Dice score)
     """
     logging.info("Computing tractometry")
 
-    nb_bundles = len(bundles_names)
+    vs_per_bundle = [len(x) if x is not None else 0 for x in vb_sft_list]
+    vb_count = np.count_nonzero(vs_per_bundle)
+    vs_count = np.sum(vs_per_bundle)
 
-    # Total number of streamlines for each category
-    vs_count = len(all_vs_ids)
-    wpc_count = len(all_wpc_ids)
-    ic_count = len(all_ic_ids)
-    nc_count = len(all_nc_ids)
-    total_count = len(sft)
+    if wpc_sft_list is not None:
+        wpc_per_bundle = [len(x) if x is not None else 0 for x in wpc_sft_list]
+        wpb_count = np.count_nonzero(wpc_per_bundle)
+        wpc_count = np.sum(wpc_per_bundle)
+    else:
+        wpb_count = 0
+        wpc_count = 0
+
+    ic_per_ib_bundle = [len(x) for x in ib_sft_list]
+    ib_count = np.count_nonzero(ic_per_ib_bundle)
+    ic_count = np.sum(ic_per_ib_bundle)
+
+    nc_count = len(nc_sft)
+    total_count = vb_count + wpc_count + ic_count + nc_count
+
+    nb_bundles = len(bundles_names)
+    ref_sft = vb_sft_list[0]
 
     final_results = {
-        "tractogram_filename": str(args.in_tractogram),
-        "total_streamlines": total_count,
-        "VB": len([x for x in vs_ids_list if len(x) > 0]),
-        "VS": vs_count,
+        "total_streamlines": int(total_count),
+        "VB": int(vb_count),
+        "VS": int(vs_count),
         "VS_ratio": vs_count / total_count,
-        "IS": ic_count + nc_count,  # ic_count = 0 if not args.compute_ic
+        "IS": int(ic_count + nc_count),  # ic_count = 0 if not args.compute_ic
         "IS_ratio": (ic_count + nc_count) / total_count,
     }
 
     if args.compute_ic:
         final_results.update({
-            "IB": len([x for x in ic_ids_list if len(x) > 0]),
-            "IC": ic_count,
+            "IB": int(ib_count),
+            "IC": int(ic_count),
             "IC_ratio": ic_count / total_count,
-            "NC": nc_count,
+            "NC": int(nc_count),
             "NC_ratio": nc_count / total_count})
 
     if args.save_wpc_separately:
         final_results.update({
-            "WPC": wpc_count,
-            "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
+            "WPC": int(wpc_count),
+            "WPC_bundle": wpb_count,
             "WPC_ratio": wpc_count / total_count})
 
     # Tractometry stats over volume: OL, OR, Dice score
@@ -214,7 +257,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         if gt_masks[i] is not None:
             # Getting the recovered mask
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
-                current_vb, sft)
+                current_vb, ref_sft)
 
             (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
              overlap, overreach_pct_gt, overreach_pct_total) = \
@@ -246,12 +289,13 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
                 if wpc is not None and len(wpc.streamlines) > 0:
                     current_wpc_streamlines = wpc.streamlines
                     current_wpc_voxels, _ = get_binary_maps(
-                        current_wpc_streamlines, sft)
+                        current_wpc_streamlines, ref_sft)
 
                     # We could add an option to include wpc streamlines to the
                     # overreach count. But it seems more natural to exclude wpc
                     # streamlines from any count. Separating into a different
-                    # statistic dict.
+                    # statistic dict. Else, user may simply not include a "ALL"
+                    # mask, there won't be any wpc.
                     (_, tp_nb_voxels, fp_nb_voxels, _, overlap,
                      overreach_pct_gt, overreach_pct_total) = \
                         compute_f1_overlap_overreach(
@@ -284,7 +328,7 @@ def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
             current_ib = ib_sft_list[i].streamlines
 
             if len(current_ib):
-                current_ib_voxels, _ = get_binary_maps(current_ib, sft)
+                current_ib_voxels, _ = get_binary_maps(current_ib, ref_sft)
 
                 bundle_results = {
                     "filename": filename,
