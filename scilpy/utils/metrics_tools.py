@@ -256,6 +256,11 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}
 
+        # Check if NaNs in metrics
+        if np.any(np.isnan(metric_data)):
+            logging.warning('Metric \"{}\" contains some NaN.'.format(metric.get_filename()) +
+                            ' Ignoring voxels with NaN.')
+
         for i in unique_labels:
             number_key = '{}'.format(i).zfill(num_digits_labels)
             label_stats = {}
@@ -279,10 +284,6 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
             # Check if NaNs in metrics
             label_masked_data = np.ma.masked_array(label_metric,
                                                    np.isnan(label_metric))
-            if np.any(label_masked_data):
-                logging.warning('Metric {} contains some NaN.'.format(current_metric_fname) +
-                                'Ignore voxels with NaN')
-
             label_mean = np.average(label_masked_data,
                                     weights=label_weight)
             label_std = np.sqrt(np.average(
