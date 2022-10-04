@@ -61,9 +61,11 @@ Config file:
             this.*
 
         Concerning inclusion criteria (other streamlines will be WPC):
-        - limits_mask: ROI serving as "all include" criteria of the
-            streamlines. To be included in the bundle, streamlines must be
-            entirely included in this mask.*
+        - all_mask: ROI serving as "all" criteria: to be included in the
+            bundle, ALL points of a streamline must be inside the mask.*
+        - any_mask: ROI serving as "any" criteria: streamlines
+            must touch that mask in at least one point ("any" point) to be
+            included in the bundle.
         - angle: angle criteria. Streamlines containing loops and sharp turns
             above given angle will be rejected from the bundle.
         - length: maximum and minimum lengths per bundle.
@@ -96,7 +98,7 @@ Ex 2:
     "gt_mask": "masks/bundle1.trk"
     "head": 'roi/file2',
     "tail": 'roi/file3',
-    "limits_mask": "masks/general_envelope_bundle_1.nii.gz"
+    "all_mask": "masks/general_envelope_bundle_1.nii.gz"
   }
 }
 
@@ -123,7 +125,7 @@ from scilpy.tractanalysis.scoring import (compute_masks,
                                           extract_false_connections,
                                           get_binary_maps,
                                           compute_endpoint_masks,
-                                          extract_vb_vs,
+                                          extract_vb_vs_one_bundle,
                                           compute_f1_overlap_overreach)
 from scilpy.utils.filenames import split_name_with_nii
 
@@ -148,9 +150,9 @@ def _build_arg_parser():
                    help="Root path of the ground truth files listed in the "
                         "gt_config.\n If not set, filenames in the config "
                         "file are considered\n as complete paths.")
-    g.add_argument("--use_gt_masks_as_limits_masks", action='store_true',
+    g.add_argument("--use_gt_masks_as_all_masks", action='store_true',
                    help="If set, the gt_config's 'gt_mask' will also be used "
-                        "as\n'limits_mask' for each bundle. Note that this "
+                        "as\n'all_mask' for each bundle. Note that this "
                         "means the\nOR will necessarily be 0.")
 
     g = p.add_argument_group("Preprocessing")
@@ -214,18 +216,20 @@ def load_and_verify_everything(parser, args):
         os.makedirs(os.path.join(args.out_dir, 'segmented_WPC'))
 
     # Read the config file
-    (bundle_names, gt_masks_files, limits_masks_files,
+    (bundle_names, gt_masks_files, all_masks_files, any_masks_files,
      roi_options, lengths, angles, orientation_lengths,
      abs_orientation_lengths) = read_config_file(args)
 
-    # Find all masks to be loaded.
-    all_mask_files = list(itertools.chain(
+    # Find every mandatory mask to be loaded
+    list_masks_files = list(itertools.chain(
         *[list(roi_option.values()) for roi_option in roi_options]))
-    all_mask_files = list(dict.fromkeys(all_mask_files))  # Removes duplicates
+    # (This removes duplicates:)
+    list_masks_files = list(dict.fromkeys(list_masks_files))
 
     # Verify options
-    assert_inputs_exist(parser, all_mask_files + [args.in_tractogram],
-                        gt_masks_files + limits_masks_files)
+    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram],
+                        gt_masks_files + all_masks_files +
+                        any_masks_files)
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -237,36 +241,41 @@ def load_and_verify_everything(parser, args):
     if args.remove_invalid:
         sft.remove_invalid_streamlines()
 
-    logging.info("Verifying compatibility of tractogram with gt_masks and "
-                 "limits_masks.")
-    all_masks = gt_masks_files + limits_masks_files
-    all_masks = list(dict.fromkeys(all_masks))  # Removes duplicates
-    verify_compatibility_with_reference_sft(sft, all_masks, parser, args)
+    logging.info("Verifying compatibility of tractogram with gt_masks, "
+                 "all_masks and any_masks")
+    list_masks_files = gt_masks_files + all_masks_files + \
+                       any_masks_files
+    # Removing duplicates:
+    list_masks_files = list(dict.fromkeys(list_masks_files))
+    verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
+                                            args)
 
-    logging.info("Loading and/or computing ground-truth masks and limits "
-                 "masks.")
+    logging.info("Loading and/or computing ground-truth masks, limits "
+                 "masks and any_masks.")
     gt_masks, _, affine, dimensions, = \
         compute_masks(gt_masks_files, parser, args)
-    limits_masks, limits_inv_masks, _, _, = \
-        compute_masks(limits_masks_files, parser, args)
+    _, inv_all_masks, _, _, = \
+        compute_masks(all_masks_files, parser, args)
+    any_masks, _, _, _, = \
+        compute_masks(any_masks_files, parser, args)
 
     logging.info("Extracting ground-truth head and tail masks.")
     gt_tails, gt_heads = compute_endpoint_masks(
         roi_options, affine, dimensions, args.out_dir)
 
-    # Update all_rois, remove duplicates
-    all_rois = gt_tails + gt_heads
-    all_rois = list(dict.fromkeys(all_rois))  # Removes duplicates
+    # Update the list of every ROI, remove duplicates
+    list_rois = gt_tails + gt_heads
+    list_rois = list(dict.fromkeys(list_rois))  # Removes duplicates
 
     logging.info("Verifying tractogram compatibility with endpoint ROIs.")
-    for file in all_rois:
+    for file in list_rois:
         compatible = is_header_compatible(sft, file)
         if not compatible:
             parser.error("Input tractogram incompatible with {}".format(file))
 
-    return (gt_tails, gt_heads, sft, bundle_names, all_rois,
+    return (gt_tails, gt_heads, sft, bundle_names, list_rois,
             lengths, angles, orientation_lengths, abs_orientation_lengths,
-            limits_inv_masks, gt_masks, dimensions)
+            inv_all_masks, gt_masks, any_masks, dimensions)
 
 
 def read_config_file(args):
@@ -279,16 +288,18 @@ def read_config_file(args):
         The names of each bundle.
     gt_masks: List
         The gt_mask filenames per bundle (None if not set) (used for
-        tractometry statistics)
-    limits_masks: List
-        The limits_masks filenames per bundles (None if not set)
+        tractometry statistics).
+    all_masks: List
+        The all_masks filenames per bundles (None if not set).
+    any_masks: List
+        The any_masks filenames per bundles (None if not set).
     roi_options: List
         The roi_option dict per bundle. Keys are 'gt_head', 'gt_tail' if
         they are set, else 'gt_endpoints'.
     angles: List
-        The maximum angles per bundle (None if not set)
+        The maximum angles per bundle (None if not set).
     lengths: List
-        The [min max] lengths per bundle (None if not set)
+        The [min max] lengths per bundle (None if not set).
     orientation_length: List
         The [[min_x, max_x], [min_y, max_y], [min_z, max_z]] per bundle.
         (None they are all not set).
@@ -298,7 +309,8 @@ def read_config_file(args):
     orientation_lengths = []
     abs_orientation_lengths = []
     gt_masks = []
-    limits_masks = []
+    all_masks = []
+    any_masks = []
     roi_options = []
 
     with open(args.gt_config, "r") as json_file:
@@ -321,7 +333,7 @@ def read_config_file(args):
             angle = length = None
             length_x = length_y = length_z = None
             length_x_abs = length_y_abs = length_z_abs = None
-            gt_mask = limit_mask = roi_option = None
+            gt_mask = all_mask = any_mask = roi_option = None
 
             for key in bundle_config.keys():
                 if key == 'angle':
@@ -347,19 +359,19 @@ def read_config_file(args):
                     else:
                         gt_mask = bundle_config['gt_mask']
 
-                    if args.use_gt_masks_as_limits_masks:
-                        limit_mask = gt_mask
-                elif key == 'limits_mask':
-                    if args.use_gt_masks_as_limits_masks:
+                    if args.use_gt_masks_as_all_masks:
+                        all_mask = gt_mask
+                elif key == 'all_mask':
+                    if args.use_gt_masks_as_all_masks:
                         raise ValueError(
-                            "With the option --use_gt_masks_as_limits_masks, "
-                            "you should not add any limits_mask in the config "
+                            "With the option --use_gt_masks_as_all_masks, "
+                            "you should not add any all_mask in the config "
                             "file.")
                     if args.gt_dir:
-                        limit_mask = os.path.join(args.gt_dir,
-                                                  bundle_config['limits_mask'])
+                        all_mask = os.path.join(args.gt_dir,
+                                                  bundle_config['all_mask'])
                     else:
-                        limit_mask = bundle_config['limits_mask']
+                        all_mask = bundle_config['all_mask']
                 elif key == 'endpoints':
                     if 'head' in bundle_config or 'tail' in bundle_config:
                         raise ValueError(
@@ -386,6 +398,12 @@ def read_config_file(args):
                     roi_option = {'gt_head': head, 'gt_tail': tail}
                 elif key == 'tail':
                     pass  # dealt with at head
+                elif key == 'any_mask':
+                    if args.gt_dir:
+                        any_mask = os.path.join(
+                            args.gt_dir, bundle_config['any_mask'])
+                    else:
+                        any_mask = bundle_config['any_mask']
                 else:
                     raise ValueError("Unrecognized value {} in the config "
                                      "file for bundle {}".format(key, bundle))
@@ -409,23 +427,25 @@ def read_config_file(args):
                      length_y_abs if length_y_abs is not None else def_len,
                      length_z_abs if length_z_abs is not None else def_len])
             gt_masks.append(gt_mask)
-            limits_masks.append(limit_mask)
+            all_masks.append(all_mask)
+            any_masks.append(any_mask)
             roi_options.append(roi_option)
 
-    return (bundles, gt_masks, limits_masks, roi_options,
+    return (bundles, gt_masks, all_masks, any_masks, roi_options,
             lengths, angles, orientation_lengths, abs_orientation_lengths)
 
 
-def compute_vb_vs_all_bundles(
+def compute_vb_vs(
         gt_tails, gt_heads, sft, bundle_names, lengths, angles,
-        orientation_lengths, abs_orientation_lengths, limits_inv_masks, args):
+        orientation_lengths, abs_orientation_lengths, inv_all_masks,
+        any_masks, args):
     """
-    Loop on all bundles and extract VS and WPC. Saves the VC and WPC if
+    Loop on every bundles and extract VS and WPC. Saves the VC and WPC if
     asked by user. Else, they will be included back into IS.
 
     VS:
        1) Connect the head and tail
-       2) Are completely included in the limits_mask (if any)
+       2) Are completely included in the all_mask (if any)
        3) Have acceptable angle, length and length per orientation.
      +
     WPC connections:
@@ -459,10 +479,10 @@ def compute_vb_vs_all_bundles(
 
         # Extract true connection
         vs_ids, wpc_ids, bundle_stats = \
-            extract_vb_vs(
+            extract_vb_vs_one_bundle(
                 sft[all_ids], head_filename, tail_filename, lengths[i],
                 angles[i], orientation_lengths[i], abs_orientation_lengths[i],
-                limits_inv_masks[i], args.dilate_endpoints)
+                inv_all_masks[i], any_masks[i], args.dilate_endpoints)
 
         if args.unique:
             vs_ids = all_ids[vs_ids]  # Assign actual VS ids, not from subset
@@ -477,11 +497,11 @@ def compute_vb_vs_all_bundles(
         logging.info("Bundle {}: nb VS = {}"
                      .format(bundle_names[i], bundle_stats["VS"]))
 
-    all_gt = list(itertools.chain(*vs_ids_list))
+    all_gt_ids = list(itertools.chain(*vs_ids_list))
     for i in range(nb_bundles):
         # Remove duplicate VS/WPC
         if args.remove_wpc_belonging_to_another_bundle or args.unique:
-            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt)
+            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt_ids)
             nb_rejected = len(wpc_ids_list[i]) - len(new_wpc_ids)
             bundles_stats[i].update(
                 {"Belonging to another bundle": nb_rejected})
@@ -493,8 +513,7 @@ def compute_vb_vs_all_bundles(
 
     # WPC
     if args.save_wpc_separately:
-        wpc_sft_list = save_wpc_all_bundles(
-            wpc_ids_list, sft, bundle_names, args, vs_ids_list, bundles_stats)
+        wpc_sft_list = save_wpc(wpc_ids_list, sft, bundle_names, args)
     else:
         # Remove WPCs to be included as IS in the future
         for i in range(nb_bundles):
@@ -537,7 +556,7 @@ def compute_vb_vs_all_bundles(
     return vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats
 
 
-def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list):
+def save_wpc(wpc_ids_list, sft, bundles_names, args):
     """
     Save WPC to file.
     """
@@ -560,9 +579,9 @@ def save_wpc_all_bundles(wpc_ids_list, sft, bundles_names, args, vs_ids_list):
     return wpc_sft_list
 
 
-def compute_ib_ic_all_bundles(comb_filename, sft, args):
+def compute_ib_ic(comb_filename, sft, args):
     """
-    Loop on all bundles and compute false connections, defined as connections
+    Loop on every bundle and compute false connections, defined as connections
     between ROIs pairs that do not form gt bundles.
 
     (Goes through all the possible combinations of endpoints masks)
@@ -767,9 +786,9 @@ def main():
     args = parser.parse_args()
 
     # Load
-    (gt_tails, gt_heads, sft, bundle_names, all_rois, bundle_lengths, angles,
-     orientation_lengths, abs_orientation_lengths, limits_inv_masks, gt_masks,
-     dimensions) = load_and_verify_everything(parser, args)
+    (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,
+     orientation_lengths, abs_orientation_lengths, inv_all_masks, gt_masks,
+     any_masks, dimensions) = load_and_verify_everything(parser, args)
 
     remain_ids = np.arange(0, len(sft))
     sft.to_vox()
@@ -777,10 +796,10 @@ def main():
     # VS
     logging.info("Scoring valid connections")
     vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats = \
-        compute_vb_vs_all_bundles(
+        compute_vb_vs(
             gt_tails, gt_heads, sft[remain_ids], bundle_names, bundle_lengths,
             angles, orientation_lengths, abs_orientation_lengths,
-            limits_inv_masks, args)
+            inv_all_masks, any_masks, args)
 
     if args.unique:
         for i in range(len(vs_ids_list)):
@@ -808,8 +827,8 @@ def main():
         logging.info("Scoring invalid connections")
 
         # Keep all possible combinations
-        all_rois = sorted(all_rois)
-        comb_filename = list(itertools.combinations(all_rois, r=2))
+        list_rois = sorted(list_rois)
+        comb_filename = list(itertools.combinations(list_rois, r=2))
 
         # Remove the true connections from all combinations, leaving only
         # false connections
@@ -817,9 +836,8 @@ def main():
         for vb_roi_pair in vb_roi_filenames:
             vb_roi_pair = tuple(sorted(vb_roi_pair))
             comb_filename.remove(vb_roi_pair)
-        ib_sft_list, ic_ids_list = compute_ib_ic_all_bundles(comb_filename,
-                                                             sft[remain_ids],
-                                                             args)
+        ib_sft_list, ic_ids_list = compute_ib_ic(comb_filename,
+                                                 sft[remain_ids], args)
         if args.unique:
             for i in range(len(ic_ids_list)):
                 # Assign actual ids
