@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-The script uses scalars in data_per_point and data_per_streamline
+The script uses scalars from an anatomy, data_per_point or data_per_streamline
 (e.g commit_weights) to visualize them on the streamlines.
 Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 
@@ -22,7 +22,7 @@ labels, they can be mapped using a LookUp Table (--LUT).
 The file provided as a LUT should be either .txt or .npy and if the
 size is N=20, then the data provided should be between 1-20.
 
-Example: Use --anatomy with a voxel labels map (values from 1-20) with a text
+Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a text
 file containing 20 p-values to map p-values to the bundle for visualisation.
 """
 
