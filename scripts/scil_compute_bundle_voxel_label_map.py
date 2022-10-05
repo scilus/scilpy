@@ -54,7 +54,7 @@ def _build_arg_parser():
                    help='Number of divisions for the bundles.\n'
                         'Default is the number of points of the centroid.')
     p.add_argument('--new_labeling', action='store_true',
-                   help='.')
+                   help='Activate the new labeling method based on clusters.')
     p.add_argument('--min_streamline_count', type=int, default=100000,
                    help='Minimum number of streamlines for filtering/cutting'
                         'operation [%(default)s].')
@@ -298,7 +298,7 @@ def main():
                 np.average(labels_val, weights=dist_vox))
             distance_map[tuple(ind)] = np.average(dist_vox)
 
-    nib.save(nib.Nifti1Image(labels_map, sft_list[0].affine),
+    nib.save(nib.Nifti1Image(labels_map.astype(np.uint16), sft_list[0].affine),
              os.path.join(args.out_dir, 'labels_map.nii.gz'))
     nib.save(nib.Nifti1Image(distance_map, sft_list[0].affine),
              os.path.join(args.out_dir, 'distance_map.nii.gz'))
@@ -313,7 +313,7 @@ def main():
             os.mkdir(sub_out_dir)
 
         # Save each session map if multiple inputs
-        nib.save(nib.Nifti1Image(binary_list[i]*labels_map,
+        nib.save(nib.Nifti1Image((binary_list[i]*labels_map).astype(np.uint16),
                                  sft_list[0].affine),
                  os.path.join(sub_out_dir, 'labels_map.nii.gz'))
         nib.save(nib.Nifti1Image(binary_list[i]*distance_map,
