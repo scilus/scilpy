@@ -263,10 +263,24 @@ bool is_streamline_included(__global const float* map_include,
     return false;
 }
 
+bool is_inside_volume(const float3 position)
+{
+    const bool is_valid_x = position.x >= 0.0f && position.x < (float)IM_X_DIM;
+    const bool is_valid_y = position.y >= 0.0f && position.y < (float)IM_Y_DIM;
+    const bool is_valid_z = position.z >= 0.0f && position.z < (float)IM_Z_DIM;
+    return is_valid_x && is_valid_y && is_valid_z;
+}
+
 bool propagation_can_continue(__global const float* map_include,
                               __global const float* map_exclude,
                               const float randv, const float3 position)
 {
+    // if outside of image boundaries, propagation can't continue
+    if(!is_inside_volume(position))
+    {
+        return false;
+    }
+
     float map_in_p;
     float map_ex_p;
     get_value_trilinear(map_include, 1, position, &map_in_p);
@@ -338,7 +352,8 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
         }
         else
         {
-            // reached a region where we can't track; exclude streamline
+            // NOTE: reached a region where we can't track; exclude streamline
+            // ONLY MAKES SENSE IN THE SPECIFIC CASE OF SHORT-TRACKS TRACKING.
             return 0;
         }
 
@@ -363,6 +378,13 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
                                                                    0, 0, n_seeds, 2, 1)];
     if(is_streamline_included(map_include, map_exclude, include_randv, last_pos))
     {
+        // it is possible that the streamline stopped propagating because
+        // it reached the outside of the volume. In that case, we want to
+        // remove the last position which is outside the volume.
+        if(!is_inside_volume(last_pos))
+        {
+            return current_length - 1;
+        }
         // include streamline
         return current_length;
     }
