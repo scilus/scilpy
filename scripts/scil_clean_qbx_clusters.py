@@ -242,8 +242,9 @@ def main():
                                          args.out_accepted_dir,
                                          filename_accepted_on_size)
 
-    accepted_sft = StatefulTractogram.from_sft(accepted_streamlines,
-                                               sft_accepted_on_size[0])
+    accepted_sft = StatefulTractogram(accepted_streamlines,
+                                      sft_accepted_on_size[0],
+                                      Space.RASMM)
     save_tractogram(accepted_sft, args.out_accepted, bbox_valid_check=False)
 
     # Save rejected clusters (by GUI)
@@ -258,8 +259,9 @@ def main():
                                               args.out_rejected_dir,
                                               filename_rejected_on_size))
 
-    rejected_sft = StatefulTractogram.from_sft(rejected_streamlines,
-                                               sft_accepted_on_size[0])
+    rejected_sft = StatefulTractogram(rejected_streamlines,
+                                      sft_accepted_on_size[0],
+                                      Space.RASMM)
     save_tractogram(rejected_sft, args.out_rejected, bbox_valid_check=False)
 
 
