@@ -157,8 +157,9 @@ def weighted_mean_std(weights, data):
         a tuple containing the mean and standard deviation of the data
     """
 
-    mean = np.average(data, weights=weights)
-    variance = np.average((data-mean)**2, weights=weights)
+    masked_data = np.ma.masked_array(data, np.isnan(data))
+    mean = np.average(masked_data, weights=weights)
+    variance = np.average((masked_data-mean)**2, weights=weights)
 
     return mean, np.sqrt(variance)
 
@@ -267,6 +268,11 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
             os.path.basename(metric.get_filename()))
         stats[bundle_name][current_metric_fname] = {}
 
+        # Check if NaNs in metrics
+        if np.any(np.isnan(metric_data)):
+            logging.warning('Metric \"{}\" contains some NaN.'.format(metric.get_filename()) +
+                            ' Ignoring voxels with NaN.')
+
         for i in unique_labels:
             number_key = '{}'.format(i).zfill(num_digits_labels)
             label_stats = {}
@@ -286,10 +292,14 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
                 logging.warning('Weights sum to zero, can\'t be normalized. '
                                 'Disabling weighting')
                 label_weight = None
-            label_mean = np.average(label_metric,
+
+            # Check if NaNs in metrics
+            label_masked_data = np.ma.masked_array(label_metric,
+                                                   np.isnan(label_metric))
+            label_mean = np.average(label_masked_data,
                                     weights=label_weight)
             label_std = np.sqrt(np.average(
-                (label_metric - label_mean) ** 2,
+                (label_masked_data - label_mean) ** 2,
                 weights=label_weight))
             label_stats['mean'] = float(label_mean)
             label_stats['std'] = float(label_std)

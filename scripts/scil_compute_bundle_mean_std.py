@@ -11,6 +11,7 @@ streamline count to reduce influence of spurious streamlines.
 
 import argparse
 import json
+import logging
 import os
 
 import nibabel as nib
@@ -78,6 +79,11 @@ def main():
         correlation_map = img.get_fdata(dtype=float)
     else:
         correlation_map = None
+
+    for index, metric in enumerate(metrics):
+        if np.any(np.isnan(metric.get_fdata())):
+            logging.warning('Metric \"{}\" contains some NaN.'.format(args.in_metrics[index]) +
+                            ' Ignoring voxels with NaN.')
 
     bundle_stats = get_bundle_metrics_mean_std(sft.streamlines,
                                                metrics,
