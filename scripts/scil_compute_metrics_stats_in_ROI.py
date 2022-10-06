@@ -98,16 +98,28 @@ def main():
         mask_data[np.where(mask_data > 0.0)] = 1.0
 
     # Load all metrics files.
+    metrics_files = []
     if args.metrics_dir:
         is_header_compatible_multiple_files(parser, [args.in_mask] +
                                             list_metrics_files)
-        metrics_files = [nib.load(os.path.join(args.metrics_dir, f))
-                         for f in sorted(os.listdir(args.metrics_dir))]
+
+        for f in sorted(os.listdir(args.metrics_dir)):
+            metric_img = nib.load(os.path.join(args.metrics_dir, f))
+            if len(metric_img.shape)==3:
+                metrics_files.append(metric_img)
+            else:
+                parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
+                                                                               len(metric_img.shape)))
     elif args.metrics_file_list:
         is_header_compatible_multiple_files(parser, [args.in_mask] +
                                             args.metrics_file_list)
-        metrics_files = [nib.load(f) for f in args.metrics_file_list]
-
+        for f in args.metrics_file_list:
+            metric_data = nib.load(f)
+            if len(metric_data.shape)==3:
+                metrics_files.append(metric_data)
+            else:
+                parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
+                                                                               len(metric_img.shape)))
     # Compute the mean values and standard deviations
     stats = get_roi_metrics_mean_std(mask_data, metrics_files)
 

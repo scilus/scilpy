@@ -465,7 +465,8 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
                              .format(file))
 
 
-def is_header_compatible_multiple_files(parser, list_files):
+def is_header_compatible_multiple_files(parser, list_files,
+                                        verbose_all_compatible=False):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
@@ -475,6 +476,9 @@ def is_header_compatible_multiple_files(parser, list_files):
 
     list_files: List
         List of files to test
+
+    verbose_all_compatible: bool
+        If true will print a message when everything is okay
     """
     all_valid = True
 
@@ -491,9 +495,9 @@ def is_header_compatible_multiple_files(parser, list_files):
                 curr_pair[0], curr_pair[1]))
             all_valid = False
 
-    if all_valid:
+    if all_valid and verbose_all_compatible:
         print('All input files have compatible headers.')
-    else:
+    elif not all_valid:
         parser.error('All input files have not compatible header.')
 
 

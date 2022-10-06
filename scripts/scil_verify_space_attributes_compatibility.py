@@ -29,7 +29,8 @@ def main():
     args = parser.parse_args()
 
     assert_inputs_exist(parser, args.in_files)
-    is_header_compatible_multiple_files(parser, args.in_files)
+    is_header_compatible_multiple_files(parser, args.in_files,
+                                        verbose_all_compatible=True)
 
 
 if __name__ == "__main__":
