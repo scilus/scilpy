@@ -106,6 +106,10 @@ def main():
         for f in sorted(os.listdir(args.metrics_dir)):
             metric_img = nib.load(os.path.join(args.metrics_dir, f))
             if len(metric_img.shape)==3:
+                # Check if NaNs in metrics
+                if np.any(np.isnan(metric_img.get_fdata(dtype=np.float64))):
+                    logging.warning('Metric \"{}\" contains some NaN.'.format(metric_img.get_filename()) +
+                                    ' Ignoring voxels with NaN.')
                 metrics_files.append(metric_img)
             else:
                 parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
@@ -114,9 +118,13 @@ def main():
         is_header_compatible_multiple_files(parser, [args.in_mask] +
                                             args.metrics_file_list)
         for f in args.metrics_file_list:
-            metric_data = nib.load(f)
-            if len(metric_data.shape)==3:
-                metrics_files.append(metric_data)
+            metric_img = nib.load(f)
+            if len(metric_img.shape)==3:
+                # Check if NaNs in metrics
+                if np.any(np.isnan(metric_img.get_fdata(dtype=np.float64))):
+                    logging.warning('Metric \"{}\" contains some NaN.'.format(metric_img.get_filename()) +
+                                    ' Ignoring voxels with NaN.')
+                metrics_files.append(metric_img)
             else:
                 parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
                                                                                len(metric_img.shape)))

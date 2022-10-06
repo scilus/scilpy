@@ -491,7 +491,7 @@ def is_header_compatible_multiple_files(parser, list_files,
     all_pairs = list(itertools.combinations(list_files, 2))
     for curr_pair in all_pairs:
         if not is_header_compatible(curr_pair[0], curr_pair[1]):
-            print('ERROR:{} and {} do not have compatible header.'.format(
+            print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
                 curr_pair[0], curr_pair[1]))
             all_valid = False
 
