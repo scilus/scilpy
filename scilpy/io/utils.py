@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import itertools
 import logging
 import os
 import multiprocessing
@@ -18,6 +19,7 @@ import six
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.utils.filenames import split_name_with_nii
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -461,6 +463,42 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
             if not compatible:
                 parser.error("Reference tractogram incompatible with {}"
                              .format(file))
+
+
+def is_header_compatible_multiple_files(parser, list_files,
+                                        verbose_all_compatible=False):
+    """
+    Verifies the compatibility between the first item in list_files
+    and the remaining files in list.
+
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+
+    list_files: List
+        List of files to test
+
+    verbose_all_compatible: bool
+        If true will print a message when everything is okay
+    """
+    all_valid = True
+
+    for filepath in list_files:
+        _, in_extension = split_name_with_nii(filepath)
+        if in_extension not in ['.trk', '.nii', '.nii.gz']:
+            parser.error('{} does not have a supported extension'.format(
+                filepath))
+
+    all_pairs = list(itertools.combinations(list_files, 2))
+    for curr_pair in all_pairs:
+        if not is_header_compatible(curr_pair[0], curr_pair[1]):
+            print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
+                curr_pair[0], curr_pair[1]))
+            all_valid = False
+
+    if all_valid and verbose_all_compatible:
+        print('All input files have compatible headers.')
+    elif not all_valid:
+        parser.error('All input files have not compatible header.')
 
 
 def read_info_from_mb_bdo(filename):
