@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-This script simply find the 3 closest angular neighbors of each direction
+This script simply finds the 3 closest angular neighbors of each direction
 (per shell) and compute the voxel-wise correlation.
-If the angles or correlations to neighbors is below the shell average (by
+If the angles or correlations to neighbors are below the shell average (by
 args.std_scale x STD) it will flag the volume as a potential outlier.
 
-This script support multi-shells, but each shell is independant and detected
+This script supports multi-shells, but each shell is independant and detected
 using the args.b0_thr parameter.
 
 This script can be run before any processing to identify potential problem
