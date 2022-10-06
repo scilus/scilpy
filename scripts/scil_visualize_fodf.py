@@ -87,7 +87,7 @@ def _build_arg_parser():
                         'then a RGB colormap will be used. [%(default)s]')
 
     q.add_argument('--color_rgb', nargs=3, type=float, default=None,
-                   help='Uniform color for the ODF slicer given as GRB, '
+                   help='Uniform color for the ODF slicer given as RGB, '
                         'scaled between 0 and 1. [%(default)s]')
 
     p.add_argument('--scale', default=0.5, type=float,
