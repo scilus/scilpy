@@ -101,7 +101,7 @@ def main():
     if args.metrics_dir:
         is_header_compatible_multiple_files(parser, [args.in_mask] +
                                             list_metrics_files)
-        metrics_files = [nib.load(args.metrics_dir + f)
+        metrics_files = [nib.load(os.path.join(args.metrics_dir, f))
                          for f in sorted(os.listdir(args.metrics_dir))]
     elif args.metrics_file_list:
         is_header_compatible_multiple_files(parser, [args.in_mask] +
