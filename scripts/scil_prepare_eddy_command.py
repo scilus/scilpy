@@ -58,7 +58,8 @@ def _build_arg_parser():
                         'used to run topup.')
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
-                   choices=['eddy_openmp', 'eddy_cuda'],
+                   choices=['eddy_openmp', 'eddy_cuda', 'eddy_cuda8.0',
+                            'eddy_cuda9.1', 'eddy_cuda10.2'],
                    help='Eddy command [%(default)s].')
 
     p.add_argument('--b0_thr', type=float, default=20,
