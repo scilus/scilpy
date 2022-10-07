@@ -3,12 +3,18 @@
 Perform probabilistic tractography on a ODF field inside a binary mask.
 The tracking is executed on the GPU using the OpenCL API.
 
-Streamlines are filtered by minimum length, but not by maximum length. For this
-reason, there may be streamlines ending in the deep white matter. In order to
-use the resulting tractogram for analysis, it should be cleaned with
-scil_filter_tractogram_anatomically.py.
+Streamlines are filtered by minimum length, but not by maximum length. This
+means that streamlines are stopped and returned as soon as they reach the
+maximum length instead of being discarded if they go above the maximum allowed
+length. This allows for short-tracks tractography, where streamlines are
+prematurely stopped once they reach some target length.
 
-The ODF image and mask are interpolated using nearest-neighbor interpolation.
+However, for this reason, there may be streamlines ending in the deep white
+matter. In order to use the resulting tractogram for analysis, it should be
+cleaned with scil_filter_tractogram_anatomically.py.
+
+The white matter mask is interpolated using nearest-neighbor interpolation and
+the SH interpolation defaults to trilinear.
 
 The script also incorporates ideas from Ensemble Tractography [1] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
@@ -70,9 +76,14 @@ def _build_arg_parser():
     track_g.add_argument('--sf_threshold', type=float, default=0.1,
                          help='Relative threshold on sf amplitudes.'
                               ' [%(default)s]')
-    track_g.add_argument('--sh_interp', default='nearest',
+    track_g.add_argument('--sh_interp', default='trilinear',
                          choices=['nearest', 'trilinear'],
                          help='SH interpolation mode. [%(default)s]')
+    track_g.add_argument('--mask_interp', default='nearest',
+                         choices=['nearest', 'trilinear'],
+                         help='Mask interpolation. Only nearest-neighbour '
+                              'interpolation \nis available for now. '
+                              '[%(default)s]')
     track_g.add_argument('--forward_only', action='store_true',
                          help='Only perform forward tracking.')
     add_sh_basis_args(track_g)
@@ -108,6 +119,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
     if args.compress is not None:
         verify_compression_th(args.compress)
+
+    if args.mask_interp == 'trilinear':
+        parser.error('Trilinear interpolation for tracking mask'
+                     ' is not available yet. Please set to \'nearest\'.')
 
     odf_sh_img = nib.load(args.in_odf)
     mask = get_data_as_mask(nib.load(args.in_mask))
