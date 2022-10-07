@@ -17,7 +17,7 @@ import pathlib
 import coloredlogs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
-                            assert_outputs_exist)
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -290,7 +290,7 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
 
     t1_path = 'todo'
     wmparc_path = ''
-    aparc_aseg = ''
+    aparc_aseg_path = ''
     if fs:
         t1_path = fs[0]
         wmparc_path = fs[1]
@@ -358,11 +358,11 @@ def associate_dwis(layout, nSub):
                                           run=curr_run,
                                           datatype='dwi', extension='nii.gz',
                                           suffix='dwi')
-                        if len(dwis)==2:
+                        if len(dwis) == 2:
                             all_dwis.append(dwis)
                         else:
                             print("ERROR MORE DWI THAN EXPECTED")
-                elif len(dwis)==2:
+                elif len(dwis) == 2:
                     all_dwis.append(dwis)
                 else:
                     print(dwis)
@@ -381,11 +381,11 @@ def associate_dwis(layout, nSub):
                                       run=curr_run,
                                       datatype='dwi', extension='nii.gz',
                                       suffix='dwi')
-                    if len(dwis)<=2:
+                    if len(dwis) <= 2:
                         all_dwis.append(dwis)
                     else:
                         print("ERROR MORE DWI THAN EXPECTED")
-            elif len(dwis)==2:
+            elif len(dwis) == 2:
                 all_dwis.append(dwis)
             else:
                 print("ERROR MORE DWI THAN EXPECTED")
@@ -431,8 +431,8 @@ def main():
             t1_fs = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/T1.mgz'))
             wmparc = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
             aparc_aseg = glob(os.path.join(args.fs, 'sub-' + nSub,
-                                      'mri/aparc+aseg.mgz'))
-            if len(t1_fs)==1 and len(wmparc)==1 and len(aparc_aseg)==1:
+                                           'mri/aparc+aseg.mgz'))
+            if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                 fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
         else:
             logging.info("# Looking for T1 files")
