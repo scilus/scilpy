@@ -104,7 +104,7 @@ def _build_arg_parser():
                          choices=['nearest', 'trilinear'],
                          help="Spherical harmonic interpolation: "
                               "nearest-neighbor \nor trilinear. [%(default)s]")
-    track_g.add_argument('--mask_interp', default='trilinear',
+    track_g.add_argument('--mask_interp', default='nearest',
                          choices=['nearest', 'trilinear'],
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
