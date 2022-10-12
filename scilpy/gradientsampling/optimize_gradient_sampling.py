@@ -49,7 +49,8 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
         # System energy matrix
         # TODO: test other energy functions such as electron repulsion
-        dist = squareform(pdist(shell_pts, 'Euclidean')) + 2 * np.eye(shell_pts.shape[0])
+        dist = squareform(pdist(shell_pts, 'Euclidean')) \
+            + 2 * np.eye(shell_pts.shape[0])
 
         it = 0
         converged = False
@@ -183,10 +184,9 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
     new_points = points.copy()
 
-    non_b0_pts = points[np.where(shell_idx != -1)]
-
     # Assume non-collinearity of non-b0s bvecs (i.e. Caruyer sampler type)
-    new_points[np.where(shell_idx == -1)[0]] = non_b0_pts
+    new_points[np.where(shell_idx == -1)[0][1:]] \
+        = new_points[np.where(shell_idx == -1)[0][1:] - 1]
 
     logging.info('Done adapting b0s for Philips scanner.')
 
@@ -260,7 +260,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
             logging.debug('Iter {} / {}  : {}'.format(it, Niter, power_best))
 
         ordering_current = np.random.permutation(N_dir)
-        q_scheme_current[non_b0s_mask] = q_scheme[non_b0s_mask][ordering_current]
+        q_scheme_current[non_b0s_mask] \
+            = q_scheme[non_b0s_mask][ordering_current]
 
         power_current = compute_peak_power(q_scheme_current, ker_size=ker_size)
 

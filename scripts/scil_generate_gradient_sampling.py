@@ -5,8 +5,8 @@
 Generate multi-shell gradient sampling with various processing to accelerate
 acquisition and help artefact correction.
 
-Multi-shell gradient sampling is generated as in [1], the bvecs are then flipped
-to maximize spread for eddy current correction, b0s are interleaved
+Multi-shell gradient sampling is generated as in [1], the bvecs are then
+flipped to maximize spread for eddy current correction, b0s are interleaved
 at equal spacing and the non-b0 samples are finally shuffled
 to minimize the total diffusion gradient amplitude over a few TR.
 """
@@ -21,6 +21,7 @@ from scilpy.io.utils import (assert_outputs_exist,
 from scilpy.gradientsampling.gen_gradient_sampling import generate_gradient_sampling
 from scilpy.gradientsampling.optimize_gradient_sampling import (add_b0s,
                                                                 add_bvalue_b0,
+                                                                correct_b0s_philips,
                                                                 compute_bvalue_lin_b,
                                                                 compute_bvalue_lin_q,
                                                                 compute_min_duty_cycle_bruteforce,
@@ -72,6 +73,10 @@ def _build_arg_parser():
                    help='Add a b0 as last sample. [%(default)s]')
     p.add_argument('--b0_value',
                    type=float, default=0.0,
+                   help='b-value of the b0s. [%(default)s]')
+
+    p.add_argument('--b0_philips',
+                   action='store_true',
                    help='b-value of the b0s. [%(default)s]')
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
@@ -138,6 +143,7 @@ def main():
     b0_every = args.b0_every
     b0_end = args.b0_end
     b0_value = args.b0_value
+    b0_philips = args.b0_philips
 
     # Only a b0 at the beginning
     if (b0_every > K) or (b0_every < 0):
@@ -180,6 +186,10 @@ def main():
     if duty:
         points, shell_idx = compute_min_duty_cycle_bruteforce(
             points, shell_idx, bvals)
+
+    # Correcting b0s bvecs for Philips
+    if b0_philips and np.sum(shell_idx == -1) > 1:
+        points, shell_idx = correct_b0s_philips(points, shell_idx)
 
     if fsl:
         save_gradient_sampling_fsl(points, shell_idx, bvals,
