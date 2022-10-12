@@ -82,7 +82,7 @@ class SeedGenerator(object):
         y += r_y
         z += r_z
 
-        if self.origin == Origin.NIFTI:  # center
+        if self.origin == Origin('center'):
             # Bound [0, 0, 0] is now [-0.5, -0.5, -0.5]
             x -= 0.5
             y -= 0.5
@@ -94,6 +94,69 @@ class SeedGenerator(object):
             return x * self.voxres[0], y * self.voxres[1], z * self.voxres[2]
         else:
             raise NotImplementedError("We do not support rasmm space.")
+
+    def get_next_n_pos(self, random_generator, indices, which_seeds):
+        """
+        Generate the next n seed positions. Intended for GPU usage.
+
+        Parameters
+        ----------
+        random_generator : numpy random generator
+            Initialized numpy number generator.
+        indices : numpy array
+            Indices of current seeding map.
+        which_seeds : numpy array
+            Seed numbers (i.e. IDs) to be processed.
+
+        Return
+        ------
+        seed_pos: List[tuple]
+            Positions of next seeds expressed seed_generator's space and
+            origin.
+        """
+
+        len_seeds = len(self.seeds_vox)
+
+        if len_seeds == 0:
+            return []
+
+        # Voxel selection from the seeding mask
+        inds = which_seeds % len_seeds
+
+        # Sub-voxel initial positioning
+        # Prepare sub-voxel random movement now (faster out of loop)
+        n = len(which_seeds)
+        r_x = random_generator.uniform(0, 1, size=n)
+        r_y = random_generator.uniform(0, 1, size=n)
+        r_z = random_generator.uniform(0, 1, size=n)
+
+        seeds = []
+        # Looping. toDo, see if can be done faster.
+        for i in range(len(which_seeds)):
+            x, y, z = self.seeds_vox[indices[inds[i]]]
+
+            # Moving inside the voxel
+            x += r_x[i]
+            y += r_y[i]
+            z += r_z[i]
+
+            if self.origin == Origin('center'):
+                # Bound [0, 0, 0] is now [-0.5, -0.5, -0.5]
+                x -= 0.5
+                y -= 0.5
+                z -= 0.5
+
+            if self.space == Space.VOX:
+                seed = [x, y, z]
+            elif self.space == Space.VOXMM:
+                seed = [x * self.voxres[0],
+                        y * self.voxres[1],
+                        z * self.voxres[2]]
+            else:
+                raise NotImplementedError("We do not support rasmm space.")
+            seeds.append(seed)
+
+        return seeds
 
     def init_generator(self, random_initial_value, first_seed_of_chunk):
         """
