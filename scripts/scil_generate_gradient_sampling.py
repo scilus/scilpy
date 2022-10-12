@@ -74,10 +74,10 @@ def _build_arg_parser():
     p.add_argument('--b0_value',
                    type=float, default=0.0,
                    help='b-value of the b0s. [%(default)s]')
-
     p.add_argument('--b0_philips',
                    action='store_true',
-                   help='b-value of the b0s. [%(default)s]')
+                   help='Replace values of b0s bvecs by existing bvecs for '
+                        'Philips handling. [%(default)s]')
 
     bvals_group = p.add_mutually_exclusive_group(required=True)
     bvals_group.add_argument('--bvals',
