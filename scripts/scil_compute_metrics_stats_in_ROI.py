@@ -24,7 +24,8 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
-                             assert_inputs_exist)
+                             assert_inputs_exist,
+                             is_header_compatible_multiple_files)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.metrics_tools import get_roi_metrics_mean_std
 
@@ -97,12 +98,36 @@ def main():
         mask_data[np.where(mask_data > 0.0)] = 1.0
 
     # Load all metrics files.
+    metrics_files = []
     if args.metrics_dir:
-        metrics_files = [nib.load(args.metrics_dir + f)
-                         for f in sorted(os.listdir(args.metrics_dir))]
-    elif args.metrics_file_list:
-        metrics_files = [nib.load(f) for f in args.metrics_file_list]
+        is_header_compatible_multiple_files(parser, [args.in_mask] +
+                                            list_metrics_files)
 
+        for f in sorted(os.listdir(args.metrics_dir)):
+            metric_img = nib.load(os.path.join(args.metrics_dir, f))
+            if len(metric_img.shape)==3:
+                # Check if NaNs in metrics
+                if np.any(np.isnan(metric_img.get_fdata(dtype=np.float64))):
+                    logging.warning('Metric \"{}\" contains some NaN.'.format(metric_img.get_filename()) +
+                                    ' Ignoring voxels with NaN.')
+                metrics_files.append(metric_img)
+            else:
+                parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
+                                                                               len(metric_img.shape)))
+    elif args.metrics_file_list:
+        is_header_compatible_multiple_files(parser, [args.in_mask] +
+                                            args.metrics_file_list)
+        for f in args.metrics_file_list:
+            metric_img = nib.load(f)
+            if len(metric_img.shape)==3:
+                # Check if NaNs in metrics
+                if np.any(np.isnan(metric_img.get_fdata(dtype=np.float64))):
+                    logging.warning('Metric \"{}\" contains some NaN.'.format(metric_img.get_filename()) +
+                                    ' Ignoring voxels with NaN.')
+                metrics_files.append(metric_img)
+            else:
+                parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
+                                                                               len(metric_img.shape)))
     # Compute the mean values and standard deviations
     stats = get_roi_metrics_mean_std(mask_data, metrics_files)
 

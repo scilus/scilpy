@@ -111,7 +111,6 @@ import numpy as np
 import os
 
 from dipy.io.utils import is_header_compatible
-from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -121,14 +120,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              verify_compatibility_with_reference_sft)
-from scilpy.tractanalysis.scoring import (compute_masks,
-                                          extract_false_connections,
-                                          get_binary_maps,
-                                          compute_endpoint_masks,
-                                          extract_vb_vs_one_bundle,
-                                          compute_f1_overlap_overreach)
-from scilpy.utils.filenames import split_name_with_nii
-
+from scilpy.segment.tractogram_from_roi import segment_tractogram_from_roi, \
+    compute_masks, compute_endpoint_masks
+from scilpy.tractanalysis.scoring import compute_tractometry
 
 def_len = [0, np.inf]
 
@@ -191,13 +185,6 @@ def _build_arg_parser():
     return p
 
 
-def extract_prefix(filename):
-    prefix = os.path.basename(filename)
-    prefix, _ = split_name_with_nii(prefix)
-
-    return prefix
-
-
 def load_and_verify_everything(parser, args):
     """
     - Reads the config file
@@ -243,8 +230,7 @@ def load_and_verify_everything(parser, args):
 
     logging.info("Verifying compatibility of tractogram with gt_masks, "
                  "all_masks and any_masks")
-    list_masks_files = gt_masks_files + all_masks_files + \
-                       any_masks_files
+    list_masks_files = gt_masks_files + all_masks_files + any_masks_files
     # Removing duplicates:
     list_masks_files = list(dict.fromkeys(list_masks_files))
     verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
@@ -369,7 +355,7 @@ def read_config_file(args):
                             "file.")
                     if args.gt_dir:
                         all_mask = os.path.join(args.gt_dir,
-                                                  bundle_config['all_mask'])
+                                                bundle_config['all_mask'])
                     else:
                         all_mask = bundle_config['all_mask']
                 elif key == 'endpoints':
@@ -435,352 +421,6 @@ def read_config_file(args):
             lengths, angles, orientation_lengths, abs_orientation_lengths)
 
 
-def compute_vb_vs(
-        gt_tails, gt_heads, sft, bundle_names, lengths, angles,
-        orientation_lengths, abs_orientation_lengths, inv_all_masks,
-        any_masks, args):
-    """
-    Loop on every bundles and extract VS and WPC. Saves the VC and WPC if
-    asked by user. Else, they will be included back into IS.
-
-    VS:
-       1) Connect the head and tail
-       2) Are completely included in the all_mask (if any)
-       3) Have acceptable angle, length and length per orientation.
-     +
-    WPC connections:
-       1) connect the head and tail but criteria 2 and 3 are not respected
-
-
-    Returns
-    -------
-    vb_sft_list: list
-        List of StatefulTractograms of VS
-    vs_ids_list: list
-        List of list of VS streamline ids
-    wpc_sft_list: list
-        List of StatefulTractograms of WPC
-    wpc_ids_list: list
-        List of list of WPC streamline ids
-    bundle_stats: dict
-        Information on the recognized streamlines
-    """
-    nb_bundles = len(bundle_names)
-
-    vb_sft_list = []
-    vs_ids_list = []
-    wpc_ids_list = []
-    bundles_stats = []
-
-    all_ids = np.arange(len(sft))
-    for i in range(nb_bundles):
-        head_filename = gt_heads[i]
-        tail_filename = gt_tails[i]
-
-        # Extract true connection
-        vs_ids, wpc_ids, bundle_stats = \
-            extract_vb_vs_one_bundle(
-                sft[all_ids], head_filename, tail_filename, lengths[i],
-                angles[i], orientation_lengths[i], abs_orientation_lengths[i],
-                inv_all_masks[i], any_masks[i], args.dilate_endpoints)
-
-        if args.unique:
-            vs_ids = all_ids[vs_ids]  # Assign actual VS ids, not from subset
-            wpc_ids = all_ids[wpc_ids]  # Assign actual WPC ids, not from sub
-            all_ids = np.setdiff1d(
-                all_ids, vs_ids, assume_unique=True)
-
-        vs_ids_list.append(vs_ids)
-        wpc_ids_list.append(wpc_ids)
-        bundles_stats.append(bundle_stats)
-
-        logging.info("Bundle {}: nb VS = {}"
-                     .format(bundle_names[i], bundle_stats["VS"]))
-
-    all_gt_ids = list(itertools.chain(*vs_ids_list))
-    for i in range(nb_bundles):
-        # Remove duplicate VS/WPC
-        if args.remove_wpc_belonging_to_another_bundle or args.unique:
-            new_wpc_ids = np.setdiff1d(wpc_ids_list[i], all_gt_ids)
-            nb_rejected = len(wpc_ids_list[i]) - len(new_wpc_ids)
-            bundles_stats[i].update(
-                {"Belonging to another bundle": nb_rejected})
-            wpc_ids_list[i] = new_wpc_ids
-            bundles_stats[i].update({"Cleaned WPC": len(new_wpc_ids)})
-
-        logging.info("Bundle {}: nb WPC = {}"
-                     .format(bundle_names[i], len(wpc_ids_list[i])))
-
-    # WPC
-    if args.save_wpc_separately:
-        wpc_sft_list = save_wpc(wpc_ids_list, sft, bundle_names, args)
-    else:
-        # Remove WPCs to be included as IS in the future
-        for i in range(nb_bundles):
-            wpc_ids_list[i] = []
-        wpc_sft_list = []
-
-    # Duplicates?
-    if not args.unique:
-        for i in range(nb_bundles):
-            for j in range(i + 1, nb_bundles):
-                duplicate_ids = np.intersect1d(vs_ids_list[i], vs_ids_list[j])
-                if len(duplicate_ids) > 0:
-                    logging.warning(
-                        "{} streamlines belong to true connections of both "
-                        "bundles {} and {}.\n"
-                        "Please verify your criteria!"
-                        .format(len(duplicate_ids), bundle_names[i],
-                                bundle_names[j]))
-
-                    # Duplicates directory only created if at least one
-                    # duplicate is found.
-                    path_duplicates = os.path.join(args.out_dir,
-                                                   'segmented_conflicts')
-                    if not os.path.isdir(path_duplicates):
-                        os.makedirs(path_duplicates)
-
-                    save_tractogram(sft[duplicate_ids], os.path.join(
-                        path_duplicates, 'duplicates_' + bundle_names[i] +
-                        '_' + bundle_names[j] + '.trk'))
-
-    for i in range(nb_bundles):
-        vb_sft = sft[vs_ids_list[i]]
-        vb_sft_list.append(vb_sft)
-        # Save results
-        if len(vb_sft) > 0 or not args.no_empty:
-            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
-            save_tractogram(vb_sft, os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
-
-    return vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats
-
-
-def save_wpc(wpc_ids_list, sft, bundles_names, args):
-    """
-    Save WPC to file.
-    """
-    nb_bundles = len(wpc_ids_list)
-    wpc_sft_list = []
-    for i in range(nb_bundles):
-        wpc_ids = wpc_ids_list[i]
-
-        if len(wpc_ids) == 0:
-            wpc_sft = None
-        else:
-            wpc_sft = sft[wpc_ids]
-        wpc_sft_list.append(wpc_sft)
-
-        if len(wpc_ids) > 0 or not args.no_empty:
-            filename = "segmented_WPC/{}_wpc.trk".format(bundles_names[i])
-            save_tractogram(wpc_sft, os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
-
-    return wpc_sft_list
-
-
-def compute_ib_ic(comb_filename, sft, args):
-    """
-    Loop on every bundle and compute false connections, defined as connections
-    between ROIs pairs that do not form gt bundles.
-
-    (Goes through all the possible combinations of endpoints masks)
-    """
-    ib_sft_list = []
-    ic_ids_list = []
-    all_ids = np.arange(len(sft))
-    for i, roi in enumerate(comb_filename):
-        roi1_filename, roi2_filename = roi
-
-        # Automatically generate filename for Q/C
-        prefix_1 = extract_prefix(roi1_filename)
-        prefix_2 = extract_prefix(roi2_filename)
-
-        ib_sft, ic_ids = extract_false_connections(
-            sft[all_ids], roi1_filename, roi2_filename, args.dilate_endpoints)
-
-        if args.unique:
-            ic_ids = all_ids[ic_ids]
-            all_ids = np.setdiff1d(all_ids, ic_ids, assume_unique=True)
-
-        if len(ib_sft) > 0 or not args.no_empty:
-            file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
-            save_tractogram(ib_sft, os.path.join(args.out_dir, file),
-                            bbox_valid_check=False)
-
-        if len(ib_sft.streamlines) > 0:
-            logging.info("IB: Recognized {} streamlines between {} and {}"
-                         .format(len(ib_sft.streamlines), prefix_1, prefix_2))
-
-        ib_sft_list.append(ib_sft)
-        ic_ids_list.append(ic_ids)
-
-    # Duplicates?
-    if not args.unique:
-        nb_pairs = len(ic_ids_list)
-        for i in range(nb_pairs):
-            for j in range(i + 1, nb_pairs):
-                duplicate_ids = np.intersect1d(ic_ids_list[i], ic_ids_list[j])
-                if len(duplicate_ids) > 0:
-                    logging.warning(
-                        "{} streamlines are scored twice as invalid "
-                        "connections\n (between pair {}\n and between pair "
-                        "{}). You probably have overlapping ROIs!"
-                        .format(len(duplicate_ids), comb_filename[i],
-                                comb_filename[j]))
-
-    return ib_sft_list, ic_ids_list
-
-
-def compute_tractometry(all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
-                        vs_ids_list, wpc_ids_list, ic_ids_list,
-                        vb_sft_list, wpc_sft_list, ib_sft_list, sft, args,
-                        bundles_names, gt_masks, dimensions, comb_filename):
-
-    """
-    Tractometry stats: First in terms of connections (NC, IC, VS, WPC), then
-    in terms of volume (OL, OR, Dice score)
-    """
-    logging.info("Computing tractometry")
-
-    nb_bundles = len(bundles_names)
-
-    # Total number of streamlines for each category
-    vs_count = len(all_vs_ids)
-    wpc_count = len(all_wpc_ids)
-    ic_count = len(all_ic_ids)
-    nc_count = len(all_nc_ids)
-    total_count = len(sft)
-
-    final_results = {
-        "tractogram_filename": str(args.in_tractogram),
-        "total_streamlines": total_count,
-        "VB": len([x for x in vs_ids_list if len(x) > 0]),
-        "VS": vs_count,
-        "VS_ratio": vs_count / total_count,
-        "IS": ic_count + nc_count,  # ic_count = 0 if not args.compute_ic
-        "IS_ratio": (ic_count + nc_count) / total_count,
-    }
-
-    if args.compute_ic:
-        final_results.update({
-            "IB": len([x for x in ic_ids_list if len(x) > 0]),
-            "IC": ic_count,
-            "IC_ratio": ic_count / total_count,
-            "NC": nc_count,
-            "NC_ratio": nc_count / total_count})
-
-    if args.save_wpc_separately:
-        final_results.update({
-            "WPC": wpc_count,
-            "WPC_bundle": len([x for x in wpc_ids_list if len(x) > 0]),
-            "WPC_ratio": wpc_count / total_count})
-
-    # Tractometry stats over volume: OL, OR, Dice score
-    mean_overlap = 0.0
-    mean_overreach_gt = 0.0
-    mean_overreach_n = 0.0
-    mean_f1 = 0.0
-
-    bundle_wise_dict = {}
-    for i in range(nb_bundles):
-        current_vb = vb_sft_list[i].streamlines
-        bundle_results = {"VS": len(current_vb)}
-        if gt_masks[i] is not None:
-            # Getting the recovered mask
-            current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
-                current_vb, sft)
-
-            (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
-             overlap, overreach_pct_gt, overreach_pct_total) = \
-                compute_f1_overlap_overreach(
-                    current_vb_voxels, gt_masks[i], dimensions)
-
-            # Endpoints coverage
-            # todo. What is this? Useful?
-            endpoints_overlap = gt_masks[i] * current_vb_endpoints_voxels
-            endpoints_overreach = np.zeros(dimensions)
-            endpoints_overreach[np.where(
-                (gt_masks[i] == 0) & (current_vb_endpoints_voxels >= 1))] = 1
-
-            bundle_results.update({
-                "TP": tp_nb_voxels,
-                "FP": fp_nb_voxels,
-                "FN": fn_nb_voxels,
-                "OL": overlap,
-                "OR_gt": overreach_pct_gt,
-                "ORn": overreach_pct_total,
-                "f1": f1,
-                "endpoints_OL": np.count_nonzero(endpoints_overlap),
-                "endpoints_OR": np.count_nonzero(endpoints_overreach)
-            })
-
-            # WPC
-            if args.save_wpc_separately:
-                wpc = wpc_sft_list[i]
-                if wpc is not None and len(wpc.streamlines) > 0:
-                    current_wpc_streamlines = wpc.streamlines
-                    current_wpc_voxels, _ = get_binary_maps(
-                        current_wpc_streamlines, sft)
-
-                    # We could add an option to include wpc streamlines to the
-                    # overreach count. But it seems more natural to exclude wpc
-                    # streamlines from any count. Separating into a different
-                    # statistic dict.
-                    (_, _, tp_nb_voxels, fp_nb_voxels, _, overlap,
-                     overreach_pct_gt, overreach_pct_total) = \
-                        compute_f1_overlap_overreach(
-                            current_vb_voxels, gt_masks[i], dimensions)
-
-                    wpc_results = {
-                        "Count": len(current_wpc_streamlines),
-                        "TP": tp_nb_voxels,
-                        "FP": fp_nb_voxels,
-                        "OL": overlap,
-                        "OR_gt": overreach_pct_gt,
-                        "ORn": overreach_pct_total,
-                    }
-                    bundle_results.update({"WPC": wpc_results})
-                else:
-                    bundle_results.update({"WPC": None})
-
-        mean_overlap += bundle_results["OL"]
-        mean_overreach_gt += bundle_results["OR_gt"]
-        mean_overreach_n += bundle_results["ORn"]
-        mean_f1 += bundle_results["f1"]
-        bundle_wise_dict.update({bundles_names[i]: bundle_results})
-
-    if args.compute_ic:
-        # -----------
-        # False connections stats: number of voxels
-        # -----------
-        ic_results = {}
-        for i, filename in enumerate(comb_filename):
-            current_ib = ib_sft_list[i].streamlines
-
-            if len(current_ib):
-                current_ib_voxels, _ = get_binary_maps(current_ib, sft)
-
-                bundle_results = {
-                    "filename": filename,
-                    "IC": len(current_ib),
-                    "nb_voxels": np.count_nonzero(current_ib_voxels)
-                }
-                ic_results.update({str(filename): bundle_results})
-
-        bundle_wise_dict.update({"IB": ic_results})
-
-    final_results.update({
-        "bundle_wise": bundle_wise_dict,
-        "mean_OL": mean_overlap / nb_bundles,
-        "mean_OR_gt": mean_overreach_gt / nb_bundles,
-        "mean_ORn": mean_overreach_n / nb_bundles,
-        "mean_f1": mean_f1 / nb_bundles
-    })
-
-    return final_results
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -790,92 +430,18 @@ def main():
      orientation_lengths, abs_orientation_lengths, inv_all_masks, gt_masks,
      any_masks, dimensions) = load_and_verify_everything(parser, args)
 
-    remain_ids = np.arange(0, len(sft))
     sft.to_vox()
 
-    # VS
-    logging.info("Scoring valid connections")
-    vb_sft_list, vs_ids_list, wpc_sft_list, wpc_ids_list, bundles_stats = \
-        compute_vb_vs(
-            gt_tails, gt_heads, sft[remain_ids], bundle_names, bundle_lengths,
-            angles, orientation_lengths, abs_orientation_lengths,
-            inv_all_masks, any_masks, args)
+    # Segment VB, WPC, IB
+    (all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
+     vs_ids_list, ic_ids_list, wpc_ids_list,
+     vb_sft_list, wpc_sft_list, ib_sft_list,
+     comb_filename) = segment_tractogram_from_roi(
+        sft, gt_tails, gt_heads, bundle_names, bundle_lengths, angles,
+        orientation_lengths, abs_orientation_lengths, inv_all_masks, any_masks,
+        list_rois, args)
 
-    if args.unique:
-        for i in range(len(vs_ids_list)):
-            # Assign actual ids
-            vs_ids_list[i] = remain_ids[vs_ids_list[i]]
-        for i in range(len(wpc_ids_list)):
-            # Assign actual ids
-            wpc_ids_list[i] = remain_ids[wpc_ids_list[i]]
-
-        detected_ids = np.concatenate((
-            np.concatenate(vs_ids_list),
-            np.concatenate(wpc_ids_list)))
-        remain_ids = np.setdiff1d(remain_ids, detected_ids)
-
-    # Save bundle stats
-    bundle_stats_dict = {}
-    for i in range(len(bundle_names)):
-        bundle_stats_dict.update({bundle_names[i]: bundles_stats[i]})
-    with open(os.path.join(args.out_dir, "processing_stats.json"), "w") as f:
-        json.dump(bundle_stats_dict, f, indent=args.indent,
-                  sort_keys=args.sort_keys)
-
-    # IC
-    if args.compute_ic and len(remain_ids) > 0:
-        logging.info("Scoring invalid connections")
-
-        # Keep all possible combinations
-        list_rois = sorted(list_rois)
-        comb_filename = list(itertools.combinations(list_rois, r=2))
-
-        # Remove the true connections from all combinations, leaving only
-        # false connections
-        vb_roi_filenames = list(zip(gt_tails, gt_heads))
-        for vb_roi_pair in vb_roi_filenames:
-            vb_roi_pair = tuple(sorted(vb_roi_pair))
-            comb_filename.remove(vb_roi_pair)
-        ib_sft_list, ic_ids_list = compute_ib_ic(comb_filename,
-                                                 sft[remain_ids], args)
-        if args.unique:
-            for i in range(len(ic_ids_list)):
-                # Assign actual ids
-                ic_ids_list[i] = remain_ids[ic_ids_list[i]]
-            detected_ids = np.concatenate(ic_ids_list)
-            remain_ids = np.setdiff1d(remain_ids, detected_ids)
-    else:
-        ic_ids_list = []
-        ib_sft_list = []
-        comb_filename = []
-
-    all_vs_ids = np.unique(list(itertools.chain(*vs_ids_list)))
-    all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
-    all_ic_ids = np.unique(list(itertools.chain(*ic_ids_list)))
-
-    # NC
-    # = ids that are not VS, not wpc (if asked) and not IC (if asked).
-    all_nc_ids = remain_ids
-    if not args.unique:
-        all_nc_ids = np.setdiff1d(all_nc_ids, all_vs_ids)
-        all_nc_ids = np.setdiff1d(all_nc_ids, all_wpc_ids)
-        all_nc_ids = np.setdiff1d(all_nc_ids, all_ic_ids)
-
-    if args.compute_ic:
-        logging.info("The remaining {} / {} streamlines will be scored as NC."
-                     .format(len(all_nc_ids), len(sft)))
-        filename = "NC.trk"
-    else:
-        logging.info("The remaining {} / {} streamlines will be scored as IS."
-                     .format(len(all_nc_ids), len(sft)))
-        filename = "IS.trk"
-
-    nc_sft = sft[all_nc_ids]
-    if len(nc_sft) > 0 or not args.no_empty:
-        save_tractogram(nc_sft, os.path.join(
-            args.out_dir, filename), bbox_valid_check=False)
-
-    # Tractometry
+    # Tractometry on bundles
     final_results = compute_tractometry(
         all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
         vs_ids_list, ic_ids_list, wpc_ids_list,
