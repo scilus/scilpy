@@ -5,7 +5,10 @@
 Now supports sequential filtering condition and mixed filtering object.
 For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - ROI_NAME is the filename of a Nifti
-- ID is the integer value in the atlas
+- ID is one or multiple integer values in the atlas. If multiple values ID
+    needs to be between quotes.
+    Example: "1:6 9 10:15" will use values between 1 and 6 and
+                           between 10 and 15 included as well as value 9.
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
 
@@ -216,7 +219,20 @@ def main():
             else:
                 atlas = get_data_as_label(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
-                mask[atlas == int(filter_arg_2)] = 1
+
+                if ' ' in filter_arg_2:
+                    values = filter_arg_2.split(' ')
+                    for filter_opt in values:
+                        if ':' in filter_opt:
+                            values = filter_opt.split(':')
+                            mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
+                        else:
+                            mask[atlas == int(filter_opt)] = 1
+                elif ':' in filter_arg_2:
+                    values = filter_arg_2.split(':')
+                    mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
+                else:
+                    mask[atlas == int(filter_arg_2)] = 1
 
             if args.soft_distance is not None:
                 mask = ndimage.binary_dilation(mask, bin_struct,
