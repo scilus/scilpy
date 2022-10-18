@@ -227,7 +227,6 @@ def main():
                             values = [int(x) for x in filter_opt.split(':')]
                             mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
                         else:
-                            print(filter_opt)
                             mask[atlas == int(filter_opt)] = 1
                 elif ':' in filter_arg_2:
                     values = [int(x) for x in filter_arg_2.split(':')]
