@@ -15,15 +15,20 @@ the raw values from these sources to RGB using a colormap.
     --use_dpp: total nbr of points of the tractogram = len(streamlines._data)
 
 A minimum and a maximum range can be provided to clip values. If the range of
-values is too large for intuitive visualization, a log transform can be applied.
+values is too large for intuitive visualization, a log transform can be
+applied.
 
 If the data provided from --use_dps, --use_dpp and --from_anatomy are integer
 labels, they can be mapped using a LookUp Table (--LUT).
 The file provided as a LUT should be either .txt or .npy and if the
 size is N=20, then the data provided should be between 1-20.
 
-Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a text
-file containing 20 p-values to map p-values to the bundle for visualisation.
+Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a
+text file containing 20 p-values to map p-values to the bundle for
+visualisation.
+
+The colormap used for mapping values to colors can be saved to a png/jpg image
+using the --out_colorbar option.
 """
 
 import argparse
@@ -52,6 +57,9 @@ def _build_arg_parser():
                    help='Input tractogram (.trk or .tck).')
     p.add_argument('out_tractogram',
                    help='Output tractogram (.trk or .tck).')
+
+    p.add_argument('--out_colorbar',
+                   help='Optional output colorbar.')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group()
@@ -101,9 +109,26 @@ def transform_data(args, data):
         data = np.clip(data, args.min_range, args.max_range)
     if args.log:
         data[data > 0] = np.log10(data[data > 0])
+
+    # normalize data between 0 and 1
     data -= np.min(data)
     data = data / np.max(data) if np.max(data) > 0 else data
     return data
+
+
+def save_colorbar(cmap, args):
+    resolution = 255
+    gradient = cmap(np.linspace(0, 1, resolution))[:, 0:3]
+    gradient = gradient[None, ...]  # 2D RGB image
+    _, ax = plt.subplots(1, 1, figsize=(10, 2), dpi=100)
+    ax.imshow(gradient, aspect=10)
+    ax.set_xticks([0, resolution - 1])
+
+    xticks_labels = ['{}'.format(args.min_range if args.min_range else 0.0),
+                     '{}'.format(args.max_range if args.max_range else 1.0)]
+    ax.set_xticklabels(xticks_labels)
+    ax.set_yticks([])
+    plt.savefig(args.out_colorbar)
 
 
 def main():
@@ -112,7 +137,8 @@ def main():
     logging.basicConfig(level=logging.WARNING)
 
     assert_inputs_exist(parser, args.in_tractogram)
-    assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.out_colorbar)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
@@ -164,6 +190,10 @@ def main():
         sft.data_per_point['color'] = sft.streamlines
         sft.data_per_point['color']._data = color
     save_tractogram(sft, args.out_tractogram)
+
+    # output colormap
+    if args.out_colorbar:
+        save_colorbar(cmap, args)
 
 
 if __name__ == '__main__':
