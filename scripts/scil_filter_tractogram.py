@@ -7,7 +7,7 @@ For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - ROI_NAME is the filename of a Nifti
 - ID is one or multiple integer values in the atlas. If multiple values ID
     needs to be between quotes.
-    Example: "1:6 9 10:15" will use values between 1 and 6 and
+    Example: "1:6 9 10:15" will use values between 1 and 6 and values
                            between 10 and 15 included as well as value 9.
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
