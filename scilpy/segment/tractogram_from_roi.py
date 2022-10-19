@@ -31,11 +31,12 @@ def _extract_prefix(filename):
     return prefix
 
 
-def compute_masks_from_bundles(gt_files, parser, args):
+def compute_masks_from_bundles(gt_files, parser, args, inverse_mask=False):
     """
     Compute ground-truth masks. If the file is already a mask, load it.
     If it is a bundle, compute the mask. If the filename is None, appends None
-    to the lists of masks.
+    to the lists of masks. Compatibility between files should already be
+    verified.
 
     Parameters
     ----------
@@ -45,23 +46,18 @@ def compute_masks_from_bundles(gt_files, parser, args):
         Argument parser which handles the script's arguments.
     args: Namespace
         List of arguments passed to the script.
+    inverse_mask: bool
+        If true, returns the list of inversed masks instead.
 
     Returns
     -------
-    mask: numpy.ndarray
-        The loaded mask.
-    inv_mask: numpy.ndarray
-        The inverted mask (contains True where mask was False and vice-versa).
-    affine: the affine of the last image.
-    dimensions: the dimensions of the last image.
+    mask: list[numpy.ndarray]
+        The loaded masks.
     """
     save_ref = args.reference
 
     gt_bundle_masks = []
-    gt_bundle_inv_masks = []
 
-    affine = None
-    dimensions = None
     for gt_bundle in gt_files:
         if gt_bundle is not None:
             # Support ground truth as streamlines or masks
@@ -70,12 +66,6 @@ def compute_masks_from_bundles(gt_files, parser, args):
             if ext in ['.gz', '.nii.gz']:
                 gt_img = nib.load(gt_bundle)
                 gt_mask = get_data_as_mask(gt_img)
-
-                if affine is not None:
-                    # compare affines.
-                    # todO
-                    logging.debug('Previous affine discarded. (todo)')
-                affine = gt_img.affine
                 dimensions = gt_mask.shape
             else:
                 # Cheating ref because it may send a lot of warning if loading
@@ -89,26 +79,21 @@ def compute_masks_from_bundles(gt_files, parser, args):
                     parser, args, gt_bundle, bbox_check=False)
                 gt_sft.to_vox()
                 gt_sft.to_corner()
-                _affine, _dimensions, _, _ = gt_sft.space_attributes
-                if affine is not None:
-                    # compare affines.
-                    # todO
-                    logging.debug('Previous affine discarded. (todo)')
-                affine = _affine
-                dimensions = _dimensions
+                _, dimensions, _, _ = gt_sft.space_attributes
                 gt_mask = compute_tract_counts_map(gt_sft.streamlines,
                                                    dimensions).astype(np.int16)
-            gt_inv_mask = np.zeros(dimensions, dtype=np.int16)
-            gt_inv_mask[gt_mask == 0] = 1
             gt_mask[gt_mask > 0] = 1
+
+            if inverse_mask:
+                gt_inv_mask = np.zeros(dimensions, dtype=np.int16)
+                gt_inv_mask[gt_mask == 0] = 1
+                gt_mask = gt_inv_mask
         else:
             gt_mask = None
-            gt_inv_mask = None
 
         gt_bundle_masks.append(gt_mask)
-        gt_bundle_inv_masks.append(gt_inv_mask)
 
-    return gt_bundle_masks, gt_bundle_inv_masks, affine, dimensions
+    return gt_bundle_masks
 
 
 def _extract_and_save_tails_heads_from_endpoints(gt_endpoints, out_dir):
@@ -140,24 +125,20 @@ def _extract_and_save_tails_heads_from_endpoints(gt_endpoints, out_dir):
 
     head, tail = split_heads_tails_kmeans(mask)
 
-    basename = os.path.basename(
-        split_name_with_nii(gt_endpoints)[0])
-    tail_filename = os.path.join(
-        out_dir, '{}_tail.nii.gz'.format(basename))
-    head_filename = os.path.join(
-        out_dir, '{}_head.nii.gz'.format(basename))
-    nib.save(nib.Nifti1Image(head.astype(
-        mask.dtype), affine), head_filename)
-    nib.save(nib.Nifti1Image(tail.astype(
-        mask.dtype), affine), tail_filename)
+    basename = os.path.basename(split_name_with_nii(gt_endpoints)[0])
+    tail_filename = os.path.join(out_dir, '{}_tail.nii.gz'.format(basename))
+    head_filename = os.path.join(out_dir, '{}_head.nii.gz'.format(basename))
+    nib.save(nib.Nifti1Image(head.astype(mask.dtype), affine), head_filename)
+    nib.save(nib.Nifti1Image(tail.astype(mask.dtype), affine), tail_filename)
 
     return tail_filename, head_filename, affine, dimensions
 
 
-def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
+def compute_endpoint_masks(roi_options, out_dir):
     """
     If endpoints without heads/tails are loaded, split them and continue
-    normally after. Q/C of the output is important.
+    normally after. Q/C of the output is important. Compatibility between files
+    should be already verified.
 
     Parameters
     ------
@@ -166,10 +147,6 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
         dictionary either key 'gt_endpoints' (the name of the file
         containing the bundle's endpoints), or both keys 'gt_tail' and
         'gt_head' (the names of the respetive files).
-    affine: array
-        A nibabel affine. Final masks must be compatible.
-    dimensions: array
-        A nibabel dimensions. Final masks must be compatible.
     out_dir: str
         Where to save the heads and tails.
 
@@ -181,19 +158,8 @@ def compute_endpoint_masks(roi_options, affine, dimensions, out_dir):
     heads = []
     for bundle_options in roi_options:
         if 'gt_endpoints' in bundle_options:
-            tail, head, _affine, _dimensions = \
-                _extract_and_save_tails_heads_from_endpoints(
-                    bundle_options['gt_endpoints'], out_dir)
-            if affine is not None:
-                # Compare affine
-                # todo
-                pass
-            logging.debug('_affine discarded. (todo)')
-            if dimensions is not None:
-                # Compare dimensions
-                # todo
-                pass
-            logging.debug("_dimensions discarded (todo)")
+            tail, head, _, _ = _extract_and_save_tails_heads_from_endpoints(
+                bundle_options['gt_endpoints'], out_dir)
         else:
             tail = bundle_options['gt_tail']
             head = bundle_options['gt_head']

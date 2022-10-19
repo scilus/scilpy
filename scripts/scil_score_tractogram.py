@@ -191,11 +191,10 @@ def load_and_verify_everything(parser, args):
         *[list(roi_option.values()) for roi_option in roi_options]))
     # (This removes duplicates:)
     list_masks_files = list(dict.fromkeys(list_masks_files))
+    list_masks_files += gt_masks_files + all_masks_files + any_masks_files
 
     # Verify options
-    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram],
-                        gt_masks_files + all_masks_files +
-                        any_masks_files)
+    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram])
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
@@ -203,31 +202,25 @@ def load_and_verify_everything(parser, args):
     logging.info("Loading tractogram.")
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
+    _, dimensions, _, _ = sft.space_attributes
 
     if args.remove_invalid:
         sft.remove_invalid_streamlines()
 
     logging.info("Verifying compatibility of tractogram with gt_masks, "
-                 "all_masks and any_masks")
-    list_masks_files = gt_masks_files + all_masks_files + any_masks_files
-
-    # Removing duplicates:
-    list_masks_files = list(dict.fromkeys(list_masks_files))
+                 "all_masks, any_masks, ROI masks")
     verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
                                             args)
 
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and any_masks.")
-    gt_masks, _, affine, dimensions, = \
-        compute_masks_from_bundles(gt_masks_files, parser, args)
-    _, inv_all_masks, _, _, = \
-        compute_masks_from_bundles(all_masks_files, parser, args)
-    any_masks, _, _, _, = \
-        compute_masks_from_bundles(any_masks_files, parser, args)
+    gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
+    inv_all_masks = compute_masks_from_bundles(all_masks_files, parser, args,
+                                               inverse_mask=True)
+    any_masks = compute_masks_from_bundles(any_masks_files, parser, args)
 
     logging.info("Extracting ground-truth head and tail masks.")
-    gt_tails, gt_heads = compute_endpoint_masks(
-        roi_options, affine, dimensions, args.out_dir)
+    gt_tails, gt_heads = compute_endpoint_masks(roi_options, args.out_dir)
 
     # Update the list of every ROI, remove duplicates
     list_rois = gt_tails + gt_heads
