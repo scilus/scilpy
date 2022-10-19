@@ -7,7 +7,6 @@ import logging
 import nibabel as nib
 import numpy as np
 import os
-
 from scipy.ndimage import binary_dilation
 
 from dipy.io.stateful_tractogram import StatefulTractogram
@@ -170,10 +169,10 @@ def compute_endpoint_masks(roi_options, out_dir):
     return tails, heads
 
 
-def _extract_and_save_vb_and_wpc_all_bundles(
+def _extract_vb_and_wpc_all_bundles(
         gt_tails, gt_heads, sft, bundle_names, lengths, angles,
         orientation_lengths, abs_orientation_lengths, inv_all_masks,
-        any_masks, args, processing_stats_json_name):
+        any_masks, args):
     """
     Loop on every ground truth bundles and extract VS and WPC.
 
@@ -198,10 +197,7 @@ def _extract_and_save_vb_and_wpc_all_bundles(
 
     Saves
     -----
-    - Each VB in segmented_VB/*_VS.trk
-    - Each WPC bundle in segmented_WPC/*_wpc.trk if args.save_wpc_separately
     - Each duplicate in segmented_conflicts/duplicates_*_*.trk
-    - Bundle stats in processing_stats_json_name.
     """
     nb_bundles = len(bundle_names)
 
@@ -212,7 +208,7 @@ def _extract_and_save_vb_and_wpc_all_bundles(
 
     remaining_ids = np.arange(len(sft))  # For args.unique management.
 
-    # 1. Extract VB and WPC. Save VB (WPC will be saved later).
+    # 1. Extract VB and WPC.
     for i in range(nb_bundles):
         head_filename = gt_heads[i]
         tail_filename = gt_tails[i]
@@ -231,15 +227,9 @@ def _extract_and_save_vb_and_wpc_all_bundles(
             remaining_ids = np.setdiff1d(remaining_ids, vs_ids,
                                          assume_unique=True)
 
-        # Save final VB SFTs. WPC will be saved later after cleaning.
+        # Append info
         vb_sft = sft[vs_ids]
         vb_sft_list.append(vb_sft)
-        if len(vb_sft) > 0 or not args.no_empty:
-            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
-            save_tractogram(vb_sft, os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
-
-        # Append info to list of all ids
         vs_ids_list.append(vs_ids)
         wpc_ids_list.append(wpc_ids)
         bundles_stats.append(bundle_stats)
@@ -259,7 +249,16 @@ def _extract_and_save_vb_and_wpc_all_bundles(
                 wpc_ids_list[i] = new_wpc_ids
                 bundles_stats[i].update({"Cleaned WPC": len(new_wpc_ids)})
 
-        wpc_sft_list = _save_wpc(wpc_ids_list, sft, bundle_names, args)
+        wpc_sft_list = []
+        for i in range(nb_bundles):
+            logging.info("Bundle {}: nb WPC = {}"
+                         .format(bundle_names[i], len(wpc_ids_list[i])))
+            wpc_ids = wpc_ids_list[i]
+            if len(wpc_ids) == 0:
+                wpc_sft = None
+            else:
+                wpc_sft = sft[wpc_ids]
+            wpc_sft_list.append(wpc_sft)
     else:
         # Remove WPCs to be included as IS in the future
         wpc_ids_list = [[] for _ in range(nb_bundles)]
@@ -294,15 +293,12 @@ def _extract_and_save_vb_and_wpc_all_bundles(
     bundle_stats_dict = {}
     for i in range(len(bundle_names)):
         bundle_stats_dict.update({bundle_names[i]: bundles_stats[i]})
-    with open(processing_stats_json_name, "w") as f:
-        json.dump(bundle_stats_dict, f, indent=args.indent,
-                  sort_keys=args.sort_keys)
 
     all_vs_ids = np.unique(list(itertools.chain(*vs_ids_list)))
     all_wpc_ids = np.unique(list(itertools.chain(*wpc_ids_list)))
     all_vs_wpc_ids = np.concatenate((all_vs_ids, all_wpc_ids))
 
-    return vb_sft_list, wpc_sft_list, all_vs_wpc_ids
+    return vb_sft_list, wpc_sft_list, all_vs_wpc_ids, bundle_stats_dict
 
 
 def _extract_vb_one_bundle(
@@ -473,32 +469,6 @@ def _extract_vb_one_bundle(
     return list(vs_ids), list(wpc_ids), bundle_stats
 
 
-def _save_wpc(wpc_ids_list, sft, bundles_names, args):
-    """
-    Save WPC to file.
-    """
-    nb_bundles = len(wpc_ids_list)
-    wpc_sft_list = []
-    for i in range(nb_bundles):
-        logging.info("Bundle {}: nb WPC = {}"
-                     .format(bundles_names[i], len(wpc_ids_list[i])))
-
-        wpc_ids = wpc_ids_list[i]
-
-        if len(wpc_ids) == 0:
-            wpc_sft = None
-        else:
-            wpc_sft = sft[wpc_ids]
-        wpc_sft_list.append(wpc_sft)
-
-        if len(wpc_ids) > 0 or not args.no_empty:
-            filename = "segmented_WPC/{}_wpc.trk".format(bundles_names[i])
-            save_tractogram(wpc_sft, os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
-
-    return wpc_sft_list
-
-
 def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
                            dilate_endpoints):
     """
@@ -538,7 +508,7 @@ def _extract_ib_one_bundle(sft, mask_1_filename, mask_2_filename,
     return fc_sft, fc_ids
 
 
-def _extract_and_save_ib_all_bundles(comb_filename, sft, args):
+def _extract_ib_all_bundles(comb_filename, sft, args):
     """
     Loop on every bundle and compute false connections, defined as connections
     between ROIs pairs that do not form gt bundles.
@@ -547,6 +517,8 @@ def _extract_and_save_ib_all_bundles(comb_filename, sft, args):
     """
     ib_sft_list = []
     ic_ids_list = []
+    ib_bundle_names = []
+
     all_ids = np.arange(len(sft))
     for i, roi in enumerate(comb_filename):
         roi1_filename, roi2_filename = roi
@@ -562,17 +534,13 @@ def _extract_and_save_ib_all_bundles(comb_filename, sft, args):
             ic_ids = all_ids[ic_ids]
             all_ids = np.setdiff1d(all_ids, ic_ids, assume_unique=True)
 
-        if len(ib_sft) > 0 or not args.no_empty:
-            file = "segmented_IB/{}_{}_IC.trk".format(prefix_1, prefix_2)
-            save_tractogram(ib_sft, os.path.join(args.out_dir, file),
-                            bbox_valid_check=False)
-
         if len(ib_sft.streamlines) > 0:
             logging.info("IB: Recognized {} streamlines between {} and {}"
                          .format(len(ib_sft.streamlines), prefix_1, prefix_2))
 
-        ib_sft_list.append(ib_sft)
-        ic_ids_list.append(ic_ids)
+            ib_sft_list.append(ib_sft)
+            ic_ids_list.append(ic_ids)
+            ib_bundle_names.append(prefix_1 + '_' + prefix_2)
 
     # Duplicates?
     if not args.unique:
@@ -588,13 +556,13 @@ def _extract_and_save_ib_all_bundles(comb_filename, sft, args):
                         .format(len(duplicate_ids), comb_filename[i],
                                 comb_filename[j]))
 
-    return ib_sft_list, ic_ids_list
+    return ib_sft_list, ic_ids_list, ib_bundle_names
 
 
 def segment_tractogram_from_roi(
         sft, gt_tails, gt_heads, bundle_names, bundle_lengths, angles,
         orientation_lengths, abs_orientation_lengths, inv_all_masks, any_masks,
-        list_rois, args, processing_stats_json_name):
+        list_rois, args):
     """
     Segments valid bundles (VB). Based on args:
         - args.compute_ic: computes invalid bundles (IB)
@@ -623,11 +591,11 @@ def segment_tractogram_from_roi(
 
     # VS
     logging.info("Extracting valid bundles (and wpc, if any)")
-    vb_sft_list, wpc_sft_list, detected_vs_wpc_ids = \
-        _extract_and_save_vb_and_wpc_all_bundles(
+    vb_sft_list, wpc_sft_list, detected_vs_wpc_ids, bundle_stats = \
+        _extract_vb_and_wpc_all_bundles(
             gt_tails, gt_heads, sft, bundle_names, bundle_lengths,
             angles, orientation_lengths, abs_orientation_lengths,
-            inv_all_masks, any_masks, args, processing_stats_json_name)
+            inv_all_masks, any_masks, args)
 
     remaining_ids = np.arange(0, len(sft))
     if args.unique:
@@ -647,7 +615,7 @@ def segment_tractogram_from_roi(
         for vb_roi_pair in vb_roi_filenames:
             vb_roi_pair = tuple(sorted(vb_roi_pair))
             comb_filename.remove(vb_roi_pair)
-        ib_sft_list, ic_ids_list = _extract_and_save_ib_all_bundles(
+        ib_sft_list, ic_ids_list, ib_names = _extract_ib_all_bundles(
             comb_filename, sft[remaining_ids], args)
         if args.unique:
             for i in range(len(ic_ids_list)):
@@ -658,7 +626,7 @@ def segment_tractogram_from_roi(
     else:
         ic_ids_list = []
         ib_sft_list = []
-        comb_filename = []
+        ib_names = []
 
     all_ic_ids = np.unique(list(itertools.chain(*ic_ids_list)))
 
@@ -683,4 +651,5 @@ def segment_tractogram_from_roi(
         save_tractogram(nc_sft, os.path.join(
             args.out_dir, filename), bbox_valid_check=False)
 
-    return vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, comb_filename
+    return (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, ib_names,
+            bundle_stats)

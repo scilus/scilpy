@@ -75,6 +75,7 @@ import logging
 import numpy as np
 import os
 
+from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -406,15 +407,38 @@ def main():
 
     # Segment VB, WPC, IB
     (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
-     comb_filename) = segment_tractogram_from_roi(
+     ib_names, bundle_stats) = segment_tractogram_from_roi(
         sft, gt_tails, gt_heads, bundle_names, bundle_lengths, angles,
         orientation_lengths, abs_orientation_lengths, inv_all_masks, any_masks,
-        list_rois, args, json_outputs[0])
+        list_rois, args)
+
+    # Save results
+    with open(json_outputs[0], "w") as f:
+        json.dump(bundle_stats, f, indent=args.indent,
+                  sort_keys=args.sort_keys)
+        
+    for i in range(len(bundle_names)):
+        if len(vb_sft_list[i]) > 0 or not args.no_empty:
+            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
+            save_tractogram(vb_sft_list[i],
+                            os.path.join(args.out_dir, filename),
+                            bbox_valid_check=False)
+        if (args.save_wpc_separately and
+                (len(wpc_sft_list[i]) > 0 or not args.no_empty)):
+            filename = "segmented_WPC/{}_wpc.trk".format(bundle_names[i])
+            save_tractogram(wpc_sft_list[i],
+                            os.path.join(args.out_dir, filename),
+                            bbox_valid_check=False)
+    for i in range(len(ib_sft_list)):
+        if len(ib_sft_list[i]) > 0 or not args.no_empty:
+            file = "segmented_IB/{}_IC.trk".format(ib_names[i])
+            save_tractogram(ib_sft_list[i], os.path.join(args.out_dir, file),
+                            bbox_valid_check=False)
 
     # Tractometry on bundles
     final_results = compute_tractometry(
         vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
-        args, bundle_names, gt_masks, dimensions, comb_filename)
+        args, bundle_names, gt_masks, dimensions, ib_names)
     final_results.update({
         "tractogram_filename": str(args.in_tractogram),
     })

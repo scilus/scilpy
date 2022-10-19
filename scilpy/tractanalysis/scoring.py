@@ -192,7 +192,7 @@ def get_binary_maps(streamlines, sft):
 
 def compute_tractometry(
         vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, args,
-        bundles_names, gt_masks, dimensions, comb_filename):
+        bundles_names, gt_masks, dimensions, ib_names):
     """
     Tractometry stats: First in terms of connections (NC, IC, VS, WPC), then
     in terms of volume (OL, OR, Dice score)
@@ -324,18 +324,17 @@ def compute_tractometry(
         # False connections stats: number of voxels
         # -----------
         ic_results = {}
-        for i, filename in enumerate(comb_filename):
+        for i in range(len(ib_names)):
             current_ib = ib_sft_list[i].streamlines
 
             if len(current_ib):
                 current_ib_voxels, _ = get_binary_maps(current_ib, ref_sft)
 
                 bundle_results = {
-                    "filename": filename,
                     "IC": len(current_ib),
                     "nb_voxels": np.count_nonzero(current_ib_voxels)
                 }
-                ic_results.update({str(filename): bundle_results})
+                ic_results.update({ib_names[i]: bundle_results})
 
         bundle_wise_dict.update({"IB": ic_results})
 
