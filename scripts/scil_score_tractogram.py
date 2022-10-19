@@ -188,17 +188,16 @@ def load_and_verify_everything(parser, args):
      abs_orientation_lengths) = read_config_file(args)
 
     # Find every mandatory mask to be loaded
-    list_masks_files = list(itertools.chain(
+    list_masks_files_r = list(itertools.chain(
         *[list(roi_option.values()) for roi_option in roi_options]))
+    list_masks_files_o = gt_masks_files + all_masks_files + any_masks_files
     # (This removes duplicates:)
-    list_masks_files = list(dict.fromkeys(list_masks_files))
-    list_masks_files += gt_masks_files + all_masks_files + any_masks_files
+    list_masks_files_r = list(dict.fromkeys(list_masks_files_r))
+    list_masks_files_o = list(dict.fromkeys(list_masks_files_o))
 
     # Verify options
-    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram])
-
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    assert_inputs_exist(parser, list_masks_files_r + [args.in_tractogram],
+                        list_masks_files_o)
 
     logging.info("Loading tractogram.")
     sft = load_tractogram_with_reference(
@@ -210,8 +209,8 @@ def load_and_verify_everything(parser, args):
 
     logging.info("Verifying compatibility of tractogram with gt_masks, "
                  "all_masks, any_masks, ROI masks")
-    verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
-                                            args)
+    verify_compatibility_with_reference_sft(
+        sft, list_masks_files_r + list_masks_files_o, parser, args)
 
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and any_masks.")
@@ -272,6 +271,7 @@ def read_config_file(args):
     all_masks = []
     any_masks = []
     roi_options = []
+    show_warning_gt = False
 
     with open(args.gt_config, "r") as json_file:
         config = json.load(json_file)
@@ -281,9 +281,7 @@ def read_config_file(args):
             bundle_config = config[bundle]
 
             if 'gt_mask' not in bundle_config:
-                logging.warning(
-                    "No gt_mask set for bundle {}. Some tractometry metrics "
-                    "won't be computed (OR, OL).".format(bundle))
+                show_warning_gt = True
             if 'endpoints' not in bundle_config and \
                     'head' not in bundle_config:
                 raise ValueError(
@@ -391,6 +389,11 @@ def read_config_file(args):
             any_masks.append(any_mask)
             roi_options.append(roi_option)
 
+    if show_warning_gt:
+        logging.info(
+            "At least one bundle had no gt_mask. Some tractometry metrics "
+            "won't be computed (OR, OL) for these bundles.")
+
     return (bundles, gt_masks, all_masks, any_masks, roi_options,
             lengths, angles, orientation_lengths, abs_orientation_lengths)
 
@@ -398,6 +401,9 @@ def read_config_file(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     # Load
     (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,
@@ -417,14 +423,16 @@ def main():
         json.dump(bundle_stats, f, indent=args.indent,
                   sort_keys=args.sort_keys)
 
+    logging.info("Final segmented bundles will be saved in {}"
+                 .format(args.out_dir))
     for i in range(len(bundle_names)):
         if len(vb_sft_list[i]) > 0 or not args.no_empty:
             filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
             save_tractogram(vb_sft_list[i],
                             os.path.join(args.out_dir, filename),
                             bbox_valid_check=False)
-        if (args.save_wpc_separately and
-                (len(wpc_sft_list[i]) > 0 or not args.no_empty)):
+        if (args.save_wpc_separately and wpc_sft_list[i] is not None
+                and (len(wpc_sft_list[i]) > 0 or not args.no_empty)):
             filename = "segmented_WPC/{}_wpc.trk".format(bundle_names[i])
             save_tractogram(wpc_sft_list[i],
                             os.path.join(args.out_dir, filename),
@@ -439,10 +447,9 @@ def main():
     final_results = compute_tractometry(
         vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
         args, bundle_names, gt_masks, dimensions, ib_names)
-    final_results.update({
-        "tractogram_filename": str(args.in_tractogram),
-    })
-    logging.info("Final results saved in {}".format(args.out_dir))
+
+    logging.info("Final scores will be saved in {}".format(json_outputs[1]))
+    final_results.update({"tractogram_filename": str(args.in_tractogram)})
     with open(json_outputs[1], "w") as f:
         json.dump(final_results, f, indent=args.indent,
                   sort_keys=args.sort_keys)

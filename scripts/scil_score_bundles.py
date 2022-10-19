@@ -84,9 +84,6 @@ def _build_arg_parser():
 
 def load_and_verify_everything(parser, args):
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
-
     assert_inputs_exist(parser, [args.gt_config])
     if not os.path.isdir(args.bundles_dir):
         parser.error("Bundles dir ({}) does not exist."
@@ -126,8 +123,7 @@ def load_and_verify_everything(parser, args):
 
     # Now loading everything
     # Load gt masks
-    logging.info("Loading and/or computing ground-truth masks, limits "
-                 "masks and any_masks.")
+    logging.info("Loading and/or computing ground-truth masks.")
     gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
 
     # Load valid bundles
@@ -139,7 +135,7 @@ def load_and_verify_everything(parser, args):
             vb_sft_list.append(load_tractogram(vb_name, 'same'))
         else:
             logging.debug("Bundle {} was not found!".format(bundle))
-            vb_sft_list.append(None)
+            vb_sft_list.append([])  # nb streamlines will be len([]) = 0.
 
     # Load wpc bundles
     wpc_sft_list = []
@@ -203,6 +199,9 @@ def read_config_file(args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
 
     (bundle_names, gt_masks, dimensions,
      vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,

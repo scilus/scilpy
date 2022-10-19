@@ -148,16 +148,14 @@ def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
             overlap, overreach_pct_gt, overreach_pct_total)
 
 
-def get_binary_maps(streamlines, sft):
+def get_binary_maps(sft):
     """
     Extract a mask from a bundle.
 
     Parameters
     ----------
-    streamlines: list
-        List of streamlines.
-    sft : StatefulTractogram
-        Reference tractogram.
+    sft: StatefulTractogram
+        Bundle.
 
     Returns
     -------
@@ -166,22 +164,17 @@ def get_binary_maps(streamlines, sft):
     endpoints_voxels: numpy.ndarray
         Mask representing the bundle's endpoints.
     """
-    dimensions = sft.dimensions
-    if not len(streamlines):
-        return np.zeros(dimensions), np.zeros(dimensions)
-    elif len(streamlines) == 1:
-        streamlines = [streamlines]
-    tmp_sft = StatefulTractogram.from_sft(streamlines, sft)
-    tmp_sft.to_vox()
-    tmp_sft.to_corner()
+    sft.to_vox()
+    sft.to_corner()
+    _, dimensions, _, _ = sft.space_attributes
 
-    if len(tmp_sft) == 1:
+    if len(sft) == 0:
         return np.zeros(dimensions), np.zeros(dimensions)
 
-    bundles_voxels = compute_tract_counts_map(tmp_sft.streamlines,
+    bundles_voxels = compute_tract_counts_map(sft.streamlines,
                                               dimensions).astype(np.int16)
 
-    endpoints_voxels = get_endpoints_density_map(tmp_sft.streamlines,
+    endpoints_voxels = get_endpoints_density_map(sft.streamlines,
                                                  dimensions).astype(np.int16)
 
     bundles_voxels[bundles_voxels > 0] = 1
@@ -219,7 +212,6 @@ def compute_tractometry(
     total_count = vb_count + wpc_count + ic_count + nc_count
 
     nb_bundles = len(bundles_names)
-    ref_sft = vb_sft_list[0]
 
     final_results = {
         "total_streamlines": int(total_count),
@@ -249,15 +241,28 @@ def compute_tractometry(
     mean_overreach_gt = 0.0
     mean_overreach_n = 0.0
     mean_f1 = 0.0
+    nb_bundles_in_stats = 0
 
     bundle_wise_dict = {}
     for i in range(nb_bundles):
-        current_vb = vb_sft_list[i].streamlines
+        logging.debug("Scoring bundle {}".format({bundles_names[i]}))
+
+        current_vb = vb_sft_list[i]
         bundle_results = {"VS": len(current_vb)}
+
         if gt_masks[i] is not None:
+            if current_vb is None or len(current_vb) == 0:
+                logging.debug("   Empty bundle or bundle not found.")
+                bundle_results.update({
+                    "TP": 0, "FP": 0, "FN": 0,
+                    "OL": 0, "OR_gt": 0, "ORn": 0, "f1": 0,
+                    "endpoints_OL": 0, "endpoints_OR": 0
+                })
+                continue
+
             # Getting the recovered mask
             current_vb_voxels, current_vb_endpoints_voxels = get_binary_maps(
-                current_vb, ref_sft)
+                current_vb)
 
             (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
              overlap, overreach_pct_gt, overreach_pct_total) = \
@@ -285,11 +290,9 @@ def compute_tractometry(
 
             # WPC
             if args.save_wpc_separately:
-                wpc = wpc_sft_list[i]
-                if wpc is not None and len(wpc.streamlines) > 0:
-                    current_wpc_streamlines = wpc.streamlines
-                    current_wpc_voxels, _ = get_binary_maps(
-                        current_wpc_streamlines, ref_sft)
+                wpc_sft = wpc_sft_list[i]
+                if wpc_sft is not None and len(wpc_sft) > 0:
+                    current_wpc_voxels, _ = get_binary_maps(wpc_sft)
 
                     # We could add an option to include wpc streamlines to the
                     # overreach count. But it seems more natural to exclude wpc
@@ -302,7 +305,7 @@ def compute_tractometry(
                             current_vb_voxels, gt_masks[i], dimensions)
 
                     wpc_results = {
-                        "Count": len(current_wpc_streamlines),
+                        "Count": len(wpc_sft),
                         "TP": tp_nb_voxels,
                         "FP": fp_nb_voxels,
                         "OL": overlap,
@@ -313,10 +316,14 @@ def compute_tractometry(
                 else:
                     bundle_results.update({"WPC": None})
 
-        mean_overlap += bundle_results["OL"]
-        mean_overreach_gt += bundle_results["OR_gt"]
-        mean_overreach_n += bundle_results["ORn"]
-        mean_f1 += bundle_results["f1"]
+            mean_overlap += bundle_results["OL"]
+            mean_overreach_gt += bundle_results["OR_gt"]
+            mean_overreach_n += bundle_results["ORn"]
+            mean_f1 += bundle_results["f1"]
+            nb_bundles_in_stats += 1
+        else:
+            bundle_results.update({"Scoring skipped": "No gt_mask provided"})
+
         bundle_wise_dict.update({bundles_names[i]: bundle_results})
 
     if args.compute_ic:
@@ -325,10 +332,9 @@ def compute_tractometry(
         # -----------
         ic_results = {}
         for i in range(len(ib_names)):
-            current_ib = ib_sft_list[i].streamlines
-
-            if len(current_ib):
-                current_ib_voxels, _ = get_binary_maps(current_ib, ref_sft)
+            current_ib = ib_sft_list[i]
+            if len(current_ib) > 0:
+                current_ib_voxels, _ = get_binary_maps(current_ib)
 
                 bundle_results = {
                     "IC": len(current_ib),
@@ -338,12 +344,14 @@ def compute_tractometry(
 
         bundle_wise_dict.update({"IB": ic_results})
 
-    final_results.update({
-        "bundle_wise": bundle_wise_dict,
-        "mean_OL": mean_overlap / nb_bundles,
-        "mean_OR_gt": mean_overreach_gt / nb_bundles,
-        "mean_ORn": mean_overreach_n / nb_bundles,
-        "mean_f1": mean_f1 / nb_bundles
-    })
+    final_results.update({"bundle_wise": bundle_wise_dict})
+
+    if nb_bundles_in_stats > 0:
+        final_results.update({
+            "mean_OL": mean_overlap / nb_bundles_in_stats,
+            "mean_OR_gt": mean_overreach_gt / nb_bundles_in_stats,
+            "mean_ORn": mean_overreach_n / nb_bundles_in_stats,
+            "mean_f1": mean_f1 / nb_bundles_in_stats
+        })
 
     return final_results
