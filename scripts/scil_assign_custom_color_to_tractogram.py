@@ -59,7 +59,8 @@ def _build_arg_parser():
                    help='Output tractogram (.trk or .tck).')
 
     p.add_argument('--out_colorbar',
-                   help='Optional output colorbar.')
+                   help='Optional output colorbar (.png, .jpg or any '
+                        'format supported by matplotlib).')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group()
@@ -107,25 +108,34 @@ def transform_data(args, data):
 
     if args.min_range is not None or args.max_range is not None:
         data = np.clip(data, args.min_range, args.max_range)
+
+    # get data values range
+    lbound = np.min(data)
+    ubound = np.max(data)
+
     if args.log:
         data[data > 0] = np.log10(data[data > 0])
 
     # normalize data between 0 and 1
     data -= np.min(data)
     data = data / np.max(data) if np.max(data) > 0 else data
-    return data
+    return data, lbound, ubound
 
 
-def save_colorbar(cmap, args):
+def save_colorbar(cmap, lbound, ubound, args):
     resolution = 255
     gradient = cmap(np.linspace(0, 1, resolution))[:, 0:3]
     gradient = gradient[None, ...]  # 2D RGB image
-    _, ax = plt.subplots(1, 1, figsize=(10, 2), dpi=100)
+    _, ax = plt.subplots(1, 1, figsize=(10, 1), dpi=100)
     ax.imshow(gradient, aspect=10)
-    ax.set_xticks([0, resolution - 1])
 
-    xticks_labels = ['{}'.format(args.min_range if args.min_range else 0.0),
-                     '{}'.format(args.max_range if args.max_range else 1.0)]
+    xticks_labels = ['{0:.3f}'.format(lbound), '{0:.3f}'.format(ubound)]
+
+    if args.log:
+        xticks_labels[0] = 'log(' + xticks_labels[0] + ')'
+        xticks_labels[1] = 'log(' + xticks_labels[1] + ')'
+
+    ax.set_xticks([0, resolution - 1])
     ax.set_xticklabels(xticks_labels)
     ax.set_yticks([])
     plt.savefig(args.out_colorbar)
@@ -169,17 +179,19 @@ def main():
             data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
             if len(data) != len(sft.streamlines._data):
                 parser.error('Wrong dpp size!')
-        data = transform_data(args, data)
+        data, lbound, ubound = transform_data(args, data)
         color = cmap(data)[:, 0:3] * 255
     elif args.from_anatomy:
         data = nib.load(args.from_anatomy).get_fdata()
-        data = transform_data(args, data)
+        data, lbound, ubound = transform_data(args, data)
 
         sft.to_vox()
         values = map_coordinates(data, sft.streamlines._data.T,
                                  order=0)
         color = cmap(values)[:, 0:3] * 255
         sft.to_rasmm()
+    else:
+        parser.error('No coloring method specified.')
 
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
@@ -193,7 +205,7 @@ def main():
 
     # output colormap
     if args.out_colorbar:
-        save_colorbar(cmap, args)
+        save_colorbar(cmap, lbound, ubound, args)
 
 
 if __name__ == '__main__':
