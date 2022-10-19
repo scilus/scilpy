@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import json
 import logging
 
 import nibabel as nib
@@ -194,6 +193,8 @@ def _extract_vb_and_wpc_all_bundles(
         None.
     all_vs_wpc_ids: list
         List of list of all VS + WPC streamlines detected.
+    bundle_stats_dict: dict
+        Dictionnary of the processing information for each bundle.
 
     Saves
     -----
@@ -584,8 +585,11 @@ def segment_tractogram_from_roi(
         ** This is only computed if args.compute_ic. Else, this is None.
     nc_sft_list: list
         The list of rejected streamlines that were not included in any IB.
-    comb_filename: list
-        The list of combinations of ROIs used for IB computations.
+    ib_names: list
+        The list of names for invalid bundles (IB). They are created from the
+        combinations of ROIs used for IB computations.
+    bundle_stats: dict
+        Dictionnary of the processing information for each VB bundle.
     """
     sft.to_vox()
 

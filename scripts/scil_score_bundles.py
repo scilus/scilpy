@@ -40,7 +40,8 @@ from dipy.io.streamline import load_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
                              add_reference_arg,
-                             add_verbose_arg, assert_inputs_exist)
+                             add_verbose_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.segment.tractogram_from_roi import compute_masks_from_bundles
 from scilpy.tractanalysis.scoring import compute_tractometry
 from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
@@ -59,11 +60,9 @@ def _build_arg_parser():
                         "It is expected to contain a file IS.trk and \n"
                         "files segmented_VB/*_VS.trk, with, possibly, files \n"
                         "segmented_WPC/*_wpc.trk and segmented_IC/")
-    p.add_argument("--json_prefix", metavar='p',
-                   help="Prefix of the output json files. May contain "
-                        "a path. \n"
-                        "- Suffix will be 'results.json'.\n"
-                        "- Default: File will be saved inside bundles_dir.")
+    p.add_argument("--out_json_file", metavar='p',
+                   help="Path and name of the output json file.\n Default: "
+                        "File results.json will be saved inside bundles_dir.")
 
     g = p.add_argument_group("Additions to gt_config")
     g.add_argument("--gt_dir", metavar='DIR',
@@ -92,6 +91,10 @@ def load_and_verify_everything(parser, args):
     if not os.path.isdir(args.bundles_dir):
         parser.error("Bundles dir ({}) does not exist."
                      .format(args.bundles_dir))
+
+    out_filename = (args.out_json_file or
+                    os.path.join(args.bundles_dir, 'results.json'))
+    assert_outputs_exist(parser, args, out_filename)
 
     # Read the config file
     bundle_names, gt_masks_files = read_config_file(args)
@@ -125,8 +128,7 @@ def load_and_verify_everything(parser, args):
     # Load gt masks
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and any_masks.")
-    gt_masks, _, affine, dimensions, = \
-        compute_masks_from_bundles(gt_masks_files, parser, args)
+    gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
 
     # Load valid bundles
     vb_sft_list = []
@@ -150,20 +152,21 @@ def load_and_verify_everything(parser, args):
 
     # Load invalid bundles
     ib_sft_list = []
-    comb_filename = []
+    ib_names = []
     if ib_path is not None:
         logging.info("Loading invalid bundles")
         for bundle in glob.glob(ib_path + '/*'):
-            comb_filename.append(os.path.basename(bundle))
+            ib_names.append(os.path.basename(bundle))
             ib_sft_list.append(load_tractogram(bundle, 'same'))
     else:
         logging.info("Did not find any invalid bundles.")
 
     # Load either NC or IS
     nc_sft = load_tractogram(nc_filename, 'same')
+    _, dimensions, _, _ = nc_sft.space_attributes
 
-    return (bundle_names, gt_masks, dimensions,
-            vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, comb_filename)
+    return (bundle_names, gt_masks, dimensions, vb_sft_list, wpc_sft_list,
+            ib_sft_list, nc_sft, ib_names, out_filename)
 
 
 def read_config_file(args):
@@ -203,17 +206,21 @@ def main():
 
     (bundle_names, gt_masks, dimensions,
      vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
-     comb_filename) = load_and_verify_everything(parser, args)
+     ib_names, out_filename) = load_and_verify_everything(parser, args)
+
+    args.compute_ic = True if len(ib_sft_list) > 0 else False
+    args.save_wpc_separately = True if len(wpc_sft_list) > 0 else False
 
     # Tractometry
     final_results = compute_tractometry(
         vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
-        args, bundle_names, gt_masks, dimensions, comb_filename)
+        args, bundle_names, gt_masks, dimensions, ib_names)
     final_results.update({
         "bundles_dir": str(args.bundles_dir),
     })
-    logging.info("Final results saved in {}".format(args.out_dir))
-    with open(os.path.join(args.out_dir, "results.json"), "w") as f:
+
+    logging.info("Final results saved in {}".format(out_filename))
+    with open(out_filename, "w") as f:
         json.dump(final_results, f, indent=args.indent,
                   sort_keys=args.sort_keys)
 

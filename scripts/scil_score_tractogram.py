@@ -416,7 +416,7 @@ def main():
     with open(json_outputs[0], "w") as f:
         json.dump(bundle_stats, f, indent=args.indent,
                   sort_keys=args.sort_keys)
-        
+
     for i in range(len(bundle_names)):
         if len(vb_sft_list[i]) > 0 or not args.no_empty:
             filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])

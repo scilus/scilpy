@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import tempfile
 
 from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
@@ -11,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_score_tractogram.py',
+    ret = script_runner.run('scil_score_bundles.py',
                             '--help')
     assert ret.success
 
@@ -20,23 +21,28 @@ def test_score_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tractogram = os.path.join(get_home(), 'tracking', 'pft.trk')
 
+    # Pretend we have our segmented bundles on disk
+    shutil.copyfile(in_tractogram, './NC.trk')
+    os.mkdir('./segmented_VB')
+    shutil.copyfile(in_tractogram, './segmented_VB/bundle1_VS.trk')
+    shutil.copyfile(in_tractogram, './segmented_VB/bundle2_VS.trk')
+    os.mkdir('./segmented_IB')
+    shutil.copyfile(in_tractogram, './segmented_IB/roi1_roi2_VS.trk')
+
     json_contents = {
-        "example_bundle": {
-            "angle": 300,
-            "length": [30, 190],
-            "any_mask": os.path.join(get_home(), 'tracking',
-                                     'seeding_mask.nii.gz'),
+        "bundle1": {
             "gt_mask": os.path.join(get_home(), 'tracking',
                                     'seeding_mask.nii.gz'),
-            "endpoints": os.path.join(get_home(), 'tracking',
-                                      'interface.nii.gz')
+        },
+        "bundle2": {
+            "gt_mask": os.path.join(get_home(), 'tracking',
+                                    'seeding_mask.nii.gz'),
         }
     }
     with open(os.path.join("config_file.json"), "w") as f:
         json.dump(json_contents, f)
 
-    ret = script_runner.run('scil_score_tractogram.py',
-                            in_tractogram, "config_file.json",
-                            'scoring_tractogram/', '--no_empty',
-                            '--use_gt_masks_as_all_masks')
+    ret = script_runner.run('scil_score_bundles.py',
+                            "config_file.json", "./")
+
     assert ret.success
