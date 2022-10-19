@@ -95,6 +95,8 @@ def _build_arg_parser():
                         'The value is in voxel (NOT mm).\n'
                         'Anisotropic data will affect each direction '
                         'differently')
+    p.add_argument('--extract_masks_atlas_roi', action='store_true',
+                   help='Extract atlas roi masks.')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -195,6 +197,8 @@ def main():
     # Streamline count before filtering
     o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
 
+    atlas_roi_item = 0
+
     total_kept_ids = np.arange(len(sft.streamlines))
     for i, roi_opt in enumerate(roi_opt_list):
         logging.debug("Preparing filtering from option: {}".format(roi_opt))
@@ -237,6 +241,11 @@ def main():
                     mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
                 else:
                     mask[atlas == int(filter_arg_2)] = 1
+
+                if args.extract_masks_atlas_roi:
+                    atlas_roi_item = atlas_roi_item + 1
+                    nib.Nifti1Image(mask.astype(np.uint16),
+                                    img.affine).to_filename('mask_atlas_roi_{}.nii.gz'.format(str(atlas_roi_item)))
 
             if args.soft_distance is not None:
                 mask = ndimage.binary_dilation(mask, bin_struct,
