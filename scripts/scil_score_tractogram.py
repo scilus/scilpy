@@ -107,12 +107,11 @@ def _build_arg_parser():
     p.add_argument("out_dir",
                    help="Output directory for the resulting segmented "
                         "bundles.")
-    p.add_argument("--json_prefix", metavar='p',
-                   help="Prefix of the two output json files. May contain "
-                        "a path. \n"
-                        "- Suffixes will be 'processing_stats.json' and "
-                        "'results.json'.\n"
-                        "- Default: Files will be saved inside out_dir.")
+    p.add_argument("--json_prefix", metavar='p', default='',
+                   help="Prefix of the two output json files. Ex: 'study_x_'."
+                        "Files will be saved inside out_dir.\n"
+                        "Suffixes will be 'processing_stats.json' and "
+                        "'results.json'.")
 
     g = p.add_argument_group("Additions to gt_config")
     g.add_argument("--gt_dir", metavar='DIR',
@@ -168,8 +167,7 @@ def load_and_verify_everything(parser, args):
           sub-rois.
     - Verifies compatibility
     """
-    if args.json_prefix is None:
-        args.json_prefix = args.out_dir + '/'
+    args.json_prefix = os.path.join(args.out_dir, args.json_prefix)
     json_outputs = [args.json_prefix + 'processing_stats.json',
                     args.json_prefix + 'results.json']
     assert_inputs_exist(parser, args.gt_config)

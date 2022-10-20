@@ -60,9 +60,10 @@ def _build_arg_parser():
                         "It is expected to contain a file IS.trk and \n"
                         "files segmented_VB/*_VS.trk, with, possibly, files \n"
                         "segmented_WPC/*_wpc.trk and segmented_IC/")
-    p.add_argument("--out_json_file", metavar='p',
-                   help="Path and name of the output json file.\n Default: "
-                        "File results.json will be saved inside bundles_dir.")
+    p.add_argument("--json_prefix", metavar='p', default='',
+                   help="Prefix of the output json file. Ex: 'study_x_'.\n"
+                        "Suffix will be results.json. File will be saved "
+                        "inside bundles_dir.\n")
 
     g = p.add_argument_group("Additions to gt_config")
     g.add_argument("--gt_dir", metavar='DIR',
@@ -89,9 +90,9 @@ def load_and_verify_everything(parser, args):
         parser.error("Bundles dir ({}) does not exist."
                      .format(args.bundles_dir))
 
-    out_filename = (args.out_json_file or
-                    os.path.join(args.bundles_dir, 'results.json'))
-    assert_outputs_exist(parser, args, out_filename)
+    args.json_prefix = os.path.join(args.bundles_dir, args.json_prefix)
+    json_output = args.json_prefix + 'results.json'
+    assert_outputs_exist(parser, args, json_output)
 
     # Read the config file
     bundle_names, gt_masks_files = read_config_file(args)
@@ -162,7 +163,7 @@ def load_and_verify_everything(parser, args):
     _, dimensions, _, _ = nc_sft.space_attributes
 
     return (bundle_names, gt_masks, dimensions, vb_sft_list, wpc_sft_list,
-            ib_sft_list, nc_sft, ib_names, out_filename)
+            ib_sft_list, nc_sft, ib_names, json_output)
 
 
 def read_config_file(args):
