@@ -155,7 +155,7 @@ def prepare_filtering_list(parser, args):
                 tmp_opt = [i.strip() for i in roi_opt.strip().split("\"")]
                 roi_opt_list.append(tmp_opt[0].split() + [tmp_opt[1]] + tmp_opt[2].split())
             else:
-                roi_opt_list.append(tmp_opt)
+                roi_opt_list.append(roi_opt.strip().split())
 
     for roi_opt in roi_opt_list:
         if roi_opt[0] == 'atlas_roi':
