@@ -47,6 +47,8 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_reference_arg,
                              load_matrix_in_any_format)
 
+COLORBAR_NB_VALUES = 255
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -58,9 +60,12 @@ def _build_arg_parser():
     p.add_argument('out_tractogram',
                    help='Output tractogram (.trk or .tck).')
 
-    p.add_argument('--out_colorbar',
-                   help='Optional output colorbar (.png, .jpg or any '
-                        'format supported by matplotlib).')
+    cbar_g = p.add_argument_group('Colorbar Options')
+    cbar_g.add_argument('--out_colorbar',
+                        help='Optional output colorbar (.png, .jpg or any '
+                             'format supported by matplotlib).')
+    cbar_g.add_argument('--horizontal_cbar', action='store_true',
+                        help='Draw horizontal colorbar (vertical by default).')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group()
@@ -123,22 +128,33 @@ def transform_data(args, data):
 
 
 def save_colorbar(cmap, lbound, ubound, args):
-    resolution = 255
-    gradient = cmap(np.linspace(0, 1, resolution))[:, 0:3]
-    gradient = gradient[None, ...]  # 2D RGB image
-    _, ax = plt.subplots(1, 1, figsize=(10, 1), dpi=100)
-    ax.imshow(gradient, aspect=10)
+    gradient = cmap(np.linspace(0, 1, COLORBAR_NB_VALUES))[:, 0:3]
 
-    xticks_labels = ['{0:.3f}'.format(lbound), '{0:.3f}'.format(ubound)]
+    # TODO: Is there a better way to draw a gradient-filled rectangle?
+    width = int(COLORBAR_NB_VALUES * 0.1)
+    gradient = np.tile(gradient, (width, 1, 1))
+    if not args.horizontal_cbar:
+        gradient = np.swapaxes(gradient, 0, 1)
+
+    _, ax = plt.subplots(1, 1)
+    ax.imshow(gradient, origin='lower')
+
+    ticks_labels = ['{0:.3f}'.format(lbound), '{0:.3f}'.format(ubound)]
 
     if args.log:
-        xticks_labels[0] = 'log(' + xticks_labels[0] + ')'
-        xticks_labels[1] = 'log(' + xticks_labels[1] + ')'
+        ticks_labels[0] = 'log(' + ticks_labels[0] + ')'
+        ticks_labels[1] = 'log(' + ticks_labels[1] + ')'
 
-    ax.set_xticks([0, resolution - 1])
-    ax.set_xticklabels(xticks_labels)
-    ax.set_yticks([])
-    plt.savefig(args.out_colorbar)
+    if not args.horizontal_cbar:
+        ax.set_yticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_yticklabels(ticks_labels)
+        ax.set_xticks([])
+    else:
+        ax.set_xticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_xticklabels(ticks_labels)
+        ax.set_yticks([])
+
+    plt.savefig(args.out_colorbar, bbox_inches='tight')
 
 
 def main():
@@ -149,6 +165,10 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.out_colorbar)
+
+    if args.horizontal_cbar and not args.out_colorbar:
+        logging.warning('Colorbar output not supplied. Ignoring '
+                        '--horizontal_cbar.')
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
