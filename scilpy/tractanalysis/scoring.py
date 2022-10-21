@@ -208,7 +208,7 @@ def compute_tractometry(
     ib_count = np.count_nonzero(ic_per_ib_bundle)
     ic_count = np.sum(ic_per_ib_bundle)
 
-    nc_count = len(nc_sft)
+    nc_count = len(nc_sft) if nc_sft is not None else 0
     total_count = vb_count + wpc_count + ic_count + nc_count
 
     nb_bundles = len(bundles_names)

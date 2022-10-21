@@ -117,15 +117,19 @@ def load_and_verify_everything(parser, args):
         ib_path = None
         nc_filename = os.path.join(args.bundles_dir, 'IS.trk')
     if not os.path.isfile(nc_filename):
-        parser.error("We expect bundles_dir to contain either a "
+        logging.info("We expect bundles_dir to contain either a "
                      "segmented_IB dir together with a file NC.trk,"
-                     "or a file IS.trk.\n"
-                     "Read the help for more information.")
+                     "or a file IS.trk but neither was found.\n"
+                     "Are you scoring a perfect tractogram?\n"
+                     "Else, read the help for more information.")
+        nc_filename = None
 
     # Now loading everything
     # Load gt masks
     logging.info("Loading and/or computing ground-truth masks.")
     gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
+
+    ref_sft = None
 
     # Load valid bundles
     vb_sft_list = []
@@ -133,7 +137,10 @@ def load_and_verify_everything(parser, args):
     for bundle in bundle_names:
         vb_name = os.path.join(vb_path, bundle + '_VS.trk')
         if os.path.isfile(vb_name):
-            vb_sft_list.append(load_tractogram(vb_name, 'same'))
+            sft = load_tractogram(vb_name, 'same')
+            vb_sft_list.append(sft)
+            if ref_sft is None:
+                ref_sft = sft
         else:
             logging.debug("Bundle {} was not found!".format(bundle))
             vb_sft_list.append([])  # nb streamlines will be len([]) = 0.
@@ -143,7 +150,10 @@ def load_and_verify_everything(parser, args):
     if wpc_path is not None:
         logging.info("Loading WPC bundles")
         for bundle in glob.glob(wpc_path + '/*'):
-            wpc_sft_list.append(load_tractogram(bundle, 'same'))
+            sft = load_tractogram(bundle, 'same')
+            wpc_sft_list.append(sft)
+            if ref_sft is None:
+                ref_sft = sft
     else:
         logging.info("Did not find any WPC bundles.")
 
@@ -154,13 +164,24 @@ def load_and_verify_everything(parser, args):
         logging.info("Loading invalid bundles")
         for bundle in glob.glob(ib_path + '/*'):
             ib_names.append(os.path.basename(bundle))
-            ib_sft_list.append(load_tractogram(bundle, 'same'))
+            sft = load_tractogram(bundle, 'same')
+            ib_sft_list.append(ref_sft)
+            if ref_sft is None:
+                ref_sft = sft
     else:
         logging.info("Did not find any invalid bundles.")
 
     # Load either NC or IS
-    nc_sft = load_tractogram(nc_filename, 'same')
-    _, dimensions, _, _ = nc_sft.space_attributes
+    if nc_filename is not None:
+        nc_sft = load_tractogram(nc_filename, 'same')
+        ref_sft = nc_sft
+    else:
+        nc_sft = None
+
+    if ref_sft is None:
+        print("No bundle found (VB, WPC, IS, NC). Stopping.")
+        exit(0)
+    _, dimensions, _, _ = ref_sft.space_attributes
 
     return (bundle_names, gt_masks, dimensions, vb_sft_list, wpc_sft_list,
             ib_sft_list, nc_sft, ib_names, json_output)
