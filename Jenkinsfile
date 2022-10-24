@@ -8,10 +8,10 @@ pipeline {
                     steps {
                         withPythonEnv('CPython-3.7') {
                             sh '''
-                                #pip3 install wheel==0.37.*
+                                pip3 install wheel==0.37.*
                                 pip3 install numpy==1.21.*
                                 pip3 install Cython==0.29.*
-                                pip3 install -e .
+                                pip3 install -e . --force-reinstall
                             '''
                         }
                     }
@@ -23,9 +23,9 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.7') {
                     sh '''
-                        #pip3 install wheel==0.37.*
+                        pip3 install wheel==0.37.*
                         pip3 install numpy==1.21.*
-                        pip3 install -e .
+                        pip3 install -e . --force-reinstall
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
                         pytest -v
