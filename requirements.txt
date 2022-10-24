@@ -27,7 +27,7 @@ vtk>=8.0.0,<10.0.0
 trimeshpy==0.0.*
 coloredlogs==10.0.*
 nilearn==0.6.*
-pytest==5.3.*
+pytest==6.0.*
 pytest_console_scripts==0.2.*
 gdown==4.3.*
 requests==2.23.*
