@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 
 
+from warnings import simplefilter
+
 import numpy as np
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import reverse_cuthill_mckee
+from scipy.cluster import hierarchy
+
+simplefilter("ignore", hierarchy.ClusterWarning)
 
 
-def compute_RCM(array, is_symmetric=True):
+def compute_OLO(array, is_symmetric=True):
     """
-    Reverse Cuthill–McKee algorithm permutes a sparse matrix that has a
-    symmetric sparsity pattern into a band matrix form with a small bandwidth.
+    Optimal Leaf Ordering permutes a weighted matrix that has a
+    symmetric sparsity pattern using hierarchical clustering.
 
     Parameters
     ----------
     array: ndarray (NxN)
-        Sparse connectivity matrix.
+        Connectivity matrix.
     is_symmetric: bool, optional
         Is the matrice symmetric. (if from scil_compute_connectivity.py, True)
 
@@ -25,13 +28,15 @@ def compute_RCM(array, is_symmetric=True):
     """
     if array.ndim != 2:
         raise ValueError('RCM can only be applied to 2D array.')
-    csr_arr = csr_matrix(array)
-    perm = reverse_cuthill_mckee(csr_arr, symmetric_mode=is_symmetric)
+
+    Z = hierarchy.ward(array)
+    perm = hierarchy.leaves_list(
+        hierarchy.optimal_leaf_ordering(Z, array))
 
     return perm
 
 
-def apply_RCM(array, perm):
+def apply_OLO(array, perm):
     """
     Apply the permutation from compute_RCM.
 

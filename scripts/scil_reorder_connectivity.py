@@ -15,7 +15,7 @@ one provided to the scil_decompose_connectivity.py
 To subsequently use scil_visualize_connectivity.py with a lookup table, you
 must use a label-based reording json and use --labels_list.
 
-You can also use the Reverse Cuthill–McKee (RCM) algorithm to transform a
+You can also use the Optimal Leaf Ordering(OLO) algorithm to transform a
 sparse matrix into an ordering that reduces the matrix bandwidth. The output
 file can then be re-used with --in_ordering. Only one input can be used with
 this option, we recommand an average streamline count or volume matrix.
@@ -26,7 +26,7 @@ import os
 
 import numpy as np
 
-from scilpy.connectivity.utils import (compute_RCM,
+from scilpy.connectivity.utils import (compute_OLO,
                                        parse_ordering,
                                        apply_reordering)
 from scilpy.io.utils import (add_overwrite_arg,
@@ -53,7 +53,7 @@ def _build_arg_parser():
     ord = p.add_mutually_exclusive_group(required=True)
     ord.add_argument('--in_ordering',
                      help='Txt file with the first row as x and second as y.')
-    ord.add_argument('--reverse_cuthill_mckee', metavar='OUT_FILE',
+    ord.add_argument('--optimal_leaf_ordering', metavar='OUT_FILE',
                      help='Output a text file with an ordering that aligns'
                           'structures along the diagonal.')
 
@@ -79,13 +79,14 @@ def main():
                         [args.labels_list, args.in_ordering])
     assert_output_dirs_exist_and_empty(parser, args, [], args.out_dir)
 
-    if args.reverse_cuthill_mckee is not None:
+    if args.optimal_leaf_ordering is not None:
         if len(args.in_matrices) > 1:
             parser.error('Only one input is supported with RCM.')
+        assert_outputs_exist(parser, args, args.optimal_leaf_ordering)
 
         matrix = load_matrix_in_any_format(args.in_matrices[0])
-        perm = compute_RCM(matrix).astype(np.uint16)
-        np.savetxt(args.reverse_cuthill_mckee, [perm.tolist(), perm.tolist()],
+        perm = compute_OLO(matrix).astype(np.uint16)
+        np.savetxt(args.optimal_leaf_ordering, [perm.tolist(), perm.tolist()],
                    fmt='%i')
     else:
         # Verify all the possible outputs to avoid overwriting files
