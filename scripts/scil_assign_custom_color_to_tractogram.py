@@ -46,6 +46,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
                              load_matrix_in_any_format)
+from scilpy.utils.streamlines import get_color_streamlines_along_length
 
 COLORBAR_NB_VALUES = 255
 
@@ -82,6 +83,9 @@ def _build_arg_parser():
     p1.add_argument('--from_anatomy', metavar='FILE',
                     help='Use the voxel data for coloring,\n'
                          'linear scaling from minmax.')
+    p1.add_argument('--along_profile', action='store_true',
+                    help='Color streamlines according to each point position'
+                         'along its length.\nMust be uniformized head/tail.')
 
     g2 = p.add_argument_group(title='Coloring Options')
     g2.add_argument('--colormap', default='jet',
@@ -210,8 +214,11 @@ def main():
                                  order=0)
         color = cmap(values)[:, 0:3] * 255
         sft.to_rasmm()
+    elif args.along_profile:
+        color = get_color_streamlines_along_length(sft, args.colormap)
     else:
         parser.error('No coloring method specified.')
+
 
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
