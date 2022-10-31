@@ -47,7 +47,6 @@ pipeline {
     }
     post {
         always {
-            cleanWs()
             script {
                 if (env.CHANGE_ID) {
                     if (pullRequest.createdBy != "arnaudbore"){
