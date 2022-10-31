@@ -8,7 +8,6 @@ pipeline {
                     steps {
                         withPythonEnv('CPython-3.7') {
                             sh '''
-                                virtualenv --clear CPython-3.7
                                 pip3 install wheel==0.37.*
                                 pip3 install setuptools==65.2.*
                                 pip3 install numpy==1.21.*
@@ -25,7 +24,6 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.7') {
                     sh '''
-                        virtualenv --clear CPython-3.7
                         pip3 install wheel==0.37.*
                         pip3 install setuptools==65.2.*
                         pip3 install numpy==1.21.*
