@@ -10,6 +10,10 @@ If the input bundle is poorly defined, it is possible heuristic will be wrong.
 
 The default is to flip each streamline so their first point's coordinate in the
 defined axis is smaller than their last point (--swap does the opposite).
+
+The --target option will use the barycenter of the target mask to define the
+axis. The target mask can be a binary mask or an atlas. If an atlas is
+used, labels are expected in the form of --target atlas.nii.gz 2 3 5:7.
 """
 
 import argparse
@@ -18,8 +22,14 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 
+<<<<<<< HEAD
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import merge_labels_into_mask
+=======
+from scilpy.io.image import (merge_labels_into_mask,
+get_data_as_label,
+get_data_as_mask)
+>>>>>>> e0570904 (support mask)
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
