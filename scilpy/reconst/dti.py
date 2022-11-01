@@ -1,35 +1,28 @@
 # -*- coding: utf-8 -*-
 
-"""
-Dipy's order is [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz]
-[See _lt_rows and _lt_cols in dipy.reconst.dti]
-
-MRTRIX's order is : [D11, D22, D33, D12, D13, D23]
-                    [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
-https://mrtrix.readthedocs.io/en/dev/reference/commands/dwi2tensor.html
-
-ANTS's order ('nifti format') is : [dxx, dxy, dyy, dxz, dyz, dzz].
-https://github.com/ANTsX/ANTs/wiki/Importing-diffusion-tensor-data-from-other-software
-
-FSL's order is [Dxx, Dxy, Dxz, Dyy, Dyz, Dzz]
-https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FDT/UserGuide
-(Also used for the Fibernavigator)
-"""
 import numpy as np
 
 supported_tensor_formats = ['fsl', 'nifti', 'mrtrix', 'dipy']
 tensor_format_description = \
-    ("  - Dipy standard: tensor elements are Dxx, Dxy, Dyy, Dxz, Dyz, Dzz\n"
-     "    (shape [i, j , k, 6])\n"
-     "  - Nifti standard: tensor elements have the same order as above, but\n"
-     "    are placed on the 5th dimension of the volume; \n"
-     "    shape [i, j, k, 1, 6]\n"
-     "    Used in ANTS.\n"
-     "  - FSL standard: tensor elements are Dxx, Dxy, Dxz, Dyy, Dyz, Dzz\n"
-     "    (shape [i, j , k, 6])\n"
-     "    This format is also used in Fibernavigator.\n"
-     "  - Mrtrix standard: elements are Dxx, Dyy, Dzz, Dxy, Dxz, Dyz\n"
-     "    (shape [i, j , k, 6])")
+    """
+    Dipy's order is [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz]
+       Shape: [i, j , k, 6].
+       Ref: [See _lt_rows and _lt_cols in dipy.reconst.dti]
+    
+    MRTRIX's order is : [D11, D22, D33, D12, D13, D23]
+                        [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
+       Shape: [i, j , k, 6].
+       Ref: https://mrtrix.readthedocs.io/en/dev/reference/commands/dwi2tensor.html
+    
+    ANTS's order ('nifti format') is : [dxx, dxy, dyy, dxz, dyz, dzz].
+       Shape: [i, j , k, 1, 6] (Careful, file is 5D).
+       Ref: https://github.com/ANTsX/ANTs/wiki/Importing-diffusion-tensor-data-from-other-software
+    
+    FSL's order is [Dxx, Dxy, Dxz, Dyy, Dyz, Dzz]
+       Shape: [i, j , k, 6].
+       Ref: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FDT/UserGuide
+       (Also used for the Fibernavigator)
+    """
 
 
 def convert_tensor_to_dipy_format(tensor, initial_format):
