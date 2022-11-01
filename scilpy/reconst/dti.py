@@ -29,8 +29,8 @@ def convert_tensor_to_dipy_format(tensor, initial_format):
     """
     See description of formats at the top of this file.
     """
-    assert(initial_format in supported_tensor_formats,
-           "Tensor format not supported")
+    assert initial_format in supported_tensor_formats, \
+        "Tensor format not supported"
 
     if initial_format == 'nifti' or initial_format == 'dipy':
         correct_order = [0, 1, 2, 3, 4, 5]
@@ -47,8 +47,8 @@ def convert_tensor_from_dipy_format(tensor, final_format):
     """
     See description of formats at the top of this file.
     """
-    assert(final_format in supported_tensor_formats,
-           "Tensor format not supported")
+    assert final_format in supported_tensor_formats, \
+        "Tensor format not supported"
 
     if final_format == 'nifti' or final_format == 'dipy':
         correct_order = [0, 1, 2, 3, 4, 5]
