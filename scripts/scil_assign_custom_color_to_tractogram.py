@@ -37,7 +37,6 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -47,6 +46,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_reference_arg,
                              load_matrix_in_any_format)
 from scilpy.utils.streamlines import get_color_streamlines_along_length
+from scilpy.viz.utils import get_colormap
 
 COLORBAR_NB_VALUES = 255
 
@@ -90,7 +90,8 @@ def _build_arg_parser():
     g2 = p.add_argument_group(title='Coloring Options')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
-                    '[%(default)s].')
+                    '[%(default)s].\nUse two Matplotlib named color separeted '
+                    'by a - to create your own colormap.')
     g2.add_argument('--min_range', type=float,
                     help='Set the minimum value when using dps/dpp/anatomy.')
     g2.add_argument('--max_range', type=float,
@@ -183,7 +184,7 @@ def main():
                             'of the provided LUT.\nConsider using '
                             'scil_resample_streamlines.py')
 
-    cmap = plt.get_cmap(args.colormap)
+    cmap = get_colormap(args.colormap)
     if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:
         if args.use_dps:
             data = np.squeeze(sft.data_per_streamline[args.use_dps])
@@ -218,7 +219,6 @@ def main():
         color = get_color_streamlines_along_length(sft, args.colormap)
     else:
         parser.error('No coloring method specified.')
-
 
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],

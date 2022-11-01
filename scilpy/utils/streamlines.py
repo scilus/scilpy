@@ -9,7 +9,6 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines, set_number_of_points
 from dipy.tracking.streamlinespeed import compress_streamlines
-import matplotlib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -19,7 +18,7 @@ from sklearn.cluster import KMeans
 from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 
-from scilpy.tracking.tools import resample_streamlines_num_points
+from scilpy.viz.utils import get_colormap
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
 
@@ -191,7 +190,7 @@ def uniformize_bundle_sft_using_mask_barycenter(sft, mask, swap=False):
     barycenter = np.average(np.argwhere(mask), axis=0)
 
     for i in range(len(sft.streamlines)):
-        if (np.linalg.norm(sft.streamlines[i][0] - barycenter) > \
+        if (np.linalg.norm(sft.streamlines[i][0] - barycenter) >
                 np.linalg.norm(sft.streamlines[i][-1] - barycenter)) ^ bool(swap):
             sft.streamlines[i] = sft.streamlines[i][::-1]
             for key in sft.data_per_point[i]:
@@ -216,11 +215,12 @@ def get_color_streamlines_along_length(sft, colormap='jet'):
         streamlines
 
     """
-    cmap = matplotlib.cm.get_cmap(colormap)
+    cmap = get_colormap(colormap)
     color_dpp = copy.deepcopy(sft.streamlines)
 
     for i in range(len(sft.streamlines)):
-        color_dpp[i] = cmap(np.linspace(0, 1, len(sft.streamlines[i])))[:, 0:3] * 255
+        color_dpp[i] = cmap(np.linspace(0, 1, len(sft.streamlines[i])))[
+            :, 0:3] * 255
 
     return color_dpp._data
 
