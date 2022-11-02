@@ -7,7 +7,7 @@ tensor_format_description = \
     """
     Dipy's order is [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz]
        Shape: [i, j , k, 6].
-       Ref: [See _lt_rows and _lt_cols in dipy.reconst.dti]
+       Ref: https://github.com/dipy/dipy/blob/master/dipy/reconst/dti.py#L1639
     
     MRTRIX's order is : [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
        Shape: [i, j , k, 6].
