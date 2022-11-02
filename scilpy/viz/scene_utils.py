@@ -3,10 +3,12 @@
 from enum import Enum
 import numpy as np
 
+import matplotlib.pyplot as plt
+import vtk
 from dipy.reconst.shm import sh_to_sf_matrix
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
-import vtk
+from PIL import Image
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import bingham_to_sf
@@ -411,7 +413,7 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
     return actor
 
 
-def create_scene(actors, orientation, slice_index, volume_shape):
+def create_scene(actors, orientation, slice_index, volume_shape, bg_color):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -437,6 +439,7 @@ def create_scene(actors, orientation, slice_index, volume_shape):
     camera = initialize_camera(orientation, slice_index, volume_shape)
 
     scene = window.Scene()
+    scene.background(bg_color)
     scene.projection('parallel')
     scene.set_camera(position=camera[CamParams.VIEW_POS],
                      focal_point=camera[CamParams.VIEW_CENTER],
@@ -451,10 +454,11 @@ def create_scene(actors, orientation, slice_index, volume_shape):
 
 
 def render_scene(scene, window_size, interactor,
-                 output, silent, title='Viewer'):
+                 output, silent, mask_scene=None, title='Viewer'):
     """
     Render a scene. If a output is supplied, a snapshot of the rendered
-    scene is taken.
+    scene is taken. If a mask is supplied, all values outside the mask are set
+    to full transparency in the saved scene.
 
     Parameters
     ----------
@@ -468,6 +472,8 @@ def render_scene(scene, window_size, interactor,
         Path to output file.
     silent : bool
         If True, disable interactive visualization.
+    mask_scene : window.Scene(), optional
+        Transparency mask scene.
     title : str, optional
         Title of the scene. Defaults to Viewer.
     """
@@ -481,4 +487,406 @@ def render_scene(scene, window_size, interactor,
         showm.start()
 
     if output:
-        snapshot(scene, output, size=window_size)
+        if mask_scene is not None:
+            # Create the screenshots
+            scene_arr = window.snapshot(scene, size=window_size)
+            mask_scene_arr = window.snapshot(mask_scene, size=window_size)
+            # Create the target image
+            out_img = create_canvas(*window_size, 0, 0, 1, 1)
+            # Convert the mask scene data to grayscale and adjust for handling
+            # with Pillow
+            _mask_arr = rgb2gray4pil(mask_scene_arr)
+            # Create the masked image
+            draw_scene_at_pos(
+                out_img, scene_arr, window_size, 0, 0, mask=_mask_arr
+            )
+
+            out_img.save(output)
+        else:
+            snapshot(scene, output, size=window_size)
+
+
+def screenshot_slice(img, axis_name, slice_ids, size):
+    """Take a screenshot of the given image with the appropriate slice data at
+    the provided slice indices.
+
+    Parameters
+    ----------
+    img : nib.Nifti1Image
+        Volume image.
+    axis_name : str
+        Slicing axis name.
+    slice_ids : array-like
+        Slice indices.
+    size : array-like
+        Size of the screenshot image (pixels).
+
+    Returns
+    -------
+    scene_container : list
+        Scene screenshot data container.
+    """
+
+    scene_container = []
+
+    for idx in slice_ids:
+
+        slice_actor = create_texture_slicer(
+            img.get_fdata(), axis_name, idx, offset=0.0,
+        )
+        scene = create_scene([slice_actor], axis_name, idx, img.shape)
+        scene_arr = window.snapshot(scene, size=size)
+        scene_container.append(scene_arr)
+
+    return scene_container
+
+
+def check_mosaic_layout(img_count, rows, cols):
+    """Check whether a mosaic can be built given the image count and the
+    requested number of rows and columns. Raise a `ValueError` if it cannot be
+    built.
+
+    Parameters
+    ----------
+    img_count : int
+        Image count to be arranged in the mosaic.
+    rows : int
+        Row count.
+    cols : int
+        Column count.
+    """
+
+    cell_count = rows * cols
+
+    if img_count < cell_count:
+        raise ValueError(
+            f"Less slices than cells requested.\nImage count: {img_count}; "
+            f"Cell count: {cell_count} (rows: {rows}; cols: {cols}).\n"
+            "Please provide an appropriate value for the rows, cols for the "
+            "slice count.")
+    elif img_count > cell_count:
+        raise ValueError(
+            f"More slices than cells requested.\nImage count: {img_count}; "
+            f"Cell count: {cell_count} (rows: {rows}; cols: {cols}).\n"
+            "Please provide an appropriate value for the rows, cols for the "
+            "slice count.")
+
+
+def rgb2gray4pil(rgb_arr):
+    """Convert an RGB array to grayscale and convert to `uint8` so that it can
+    be appropriately handled by `PIL`.
+
+    Parameters
+    ----------
+    rgb_arr : ndarray
+        RGB value data.
+
+    Returns
+    -------
+    Grayscale `unit8` data.
+    """
+
+    def _rgb2gray(rgb):
+        img = Image.fromarray(np.uint8(rgb * 255)).convert("L")
+        return np.array(img)
+
+    # Convert from RGB to grayscale
+    gray_arr = _rgb2gray(rgb_arr)
+
+    # Relocate overflow values to the dynamic range
+    return (gray_arr * 255).astype("uint8")
+
+
+def create_image_from_scene(scene, size, mode=None, cmap_name=None):
+    """Create a `PIL.Image` from the scene data.
+
+    Parameters
+    ----------
+    scene : ndarray
+        Scene data.
+    size : array-like
+        Image size (pixels) (width, height).
+    mode : str, optional
+        Type and depth of a pixel in the `Pillow` image.
+    cmap_name : str, optional
+        Colormap name.
+
+    Returns
+    -------
+    image : PIL.Image
+        Image.
+    """
+
+    _arr = scene
+    if cmap_name:
+        # Apply the colormap
+        cmap = plt.get_cmap(cmap_name)
+        # data returned by cmap is normalized to the [0,1] range: scale to the
+        # [0, 255] range and convert to uint8 for Pillow
+        _arr = (cmap(_arr) * 255).astype("uint8")
+
+    # Need to flip the array due to some bug in the FURY image buffer. Might be
+    # solved in newer versions of the package.
+    image = Image.fromarray(_arr, mode=mode).transpose(Image.FLIP_TOP_BOTTOM)
+
+    return image.resize(size, Image.ANTIALIAS)
+
+
+def create_mask_from_scene(scene, size):
+    """Create a binary `PIL.Image` from the scene data.
+
+    Parameters
+    ----------
+    scene : ndarray
+        Scene data.
+    size : array-like
+        Image size (pixels) (width, height).
+
+    Returns
+    -------
+    image : PIL.Image
+        Image.
+    """
+
+    _bin_arr = scene > 0
+    _bin_arr = rgb2gray4pil(_bin_arr) * 255
+    image = create_image_from_scene(_bin_arr, size)
+
+    return image
+
+
+def draw_scene_at_pos(
+    canvas,
+    scene,
+    size,
+    left_pos,
+    top_pos,
+    mask=None,
+    labelmap_overlay=None,
+    vol_cmap_name=None,
+    labelmap_cmap_name=None,
+):
+    """Draw a scene in the given target image at the specified position.
+
+    Parameters
+    ----------
+    canvas : PIL.Image
+        Target image.
+    scene : ndarray
+        Scene data to be drawn.
+    size : array-like
+        Image size (pixels) (width, height).
+    left_pos : int
+        Left position (pixels).
+    top_pos : int
+        Top position (pixels).
+    mask : ndarray, optional
+        Transparency mask.
+    labelmap_overlay : ndarray
+        Labelmap overlay scene data to be drawn.
+    vol_cmap_name : str, optional
+        Colormap name for the image scene data.
+    labelmap_cmap_name : str, optional
+        Colormap name for the labelmap overlay scene data.
+    """
+
+    image = create_image_from_scene(scene, size, cmap_name=vol_cmap_name)
+
+    mask_img = None
+    if mask is not None:
+        mask_img = create_image_from_scene(mask, size, mode="L")
+
+    canvas.paste(image, (left_pos, top_pos), mask=mask_img)
+
+    # Draw the labelmap overlay image if any
+    if labelmap_overlay is not None:
+
+        labelmap_img = create_image_from_scene(
+            labelmap_overlay, size, cmap_name=labelmap_cmap_name
+        )
+
+        # Create a mask over the labelmap overlay image
+        label_mask = create_mask_from_scene(labelmap_overlay, size)
+
+        canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
+
+
+def compute_canvas_size(
+    cell_width,
+    cell_height,
+    overlap_horiz,
+    overlap_vert,
+    rows,
+    cols,
+):
+    """Compute the size of a canvas with the given number of rows and columns,
+    and the requested cell size and overlap values.
+
+    Parameters
+    ----------
+    cell_width : int
+        Cell width (pixels).
+    cell_height : int
+        Cell height (pixels).
+    overlap_horiz : int
+        Horizontal overlap (pixels).
+    overlap_vert : int
+        Vertical overlap (pixels).
+    rows : int
+        Row count.
+    cols : int
+        Column count.
+    """
+
+    def _compute_canvas_length(line_count, cell_length, overlap):
+        return (line_count - 1) * (cell_length - overlap) + cell_length
+
+    width = _compute_canvas_length(cols, cell_width, overlap_horiz)
+    height = _compute_canvas_length(rows, cell_height, overlap_vert)
+
+    return width, height
+
+
+def create_canvas(
+    cell_width,
+    cell_height,
+    overlap_horiz,
+    overlap_vert,
+    rows,
+    cols,
+):
+    """Create a canvas for given number of rows and columns, and the requested
+     cell size and overlap values.
+
+    Parameters
+    ----------
+    cell_width : int
+        Cell width (pixels).
+    cell_height : int
+        Cell height (pixels).
+    overlap_horiz : int
+        Horizontal overlap (pixels).
+    overlap_vert : int
+        Vertical overlap (pixels).
+    rows : int
+        Row count.
+    cols : int
+        Column count.
+    """
+
+    width, height = compute_canvas_size(
+        cell_width, cell_height, overlap_horiz, overlap_vert, rows, cols
+    )
+    mosaic = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    return mosaic
+
+
+def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
+    """Compute the top-left position of a cell to be drawn in a mosaic.
+
+    Parameters
+    ----------
+    idx : int
+       Cell index in the mosaic.
+    cols : int
+        Column count.
+    offset_h :
+        Horizontal offset (pixels).
+    offset_v :
+        Vertical offset (pixels).
+    """
+
+    row_idx = int(np.floor(idx / cols))
+    top_pos = row_idx * offset_v
+    col_idx = idx % cols
+    left_pos = col_idx * offset_h
+
+    return top_pos, left_pos
+
+
+def compose_mosaic(
+    img_scene_container,
+    mask_scene_container,
+    cell_size,
+    rows,
+    cols,
+    overlap_factor,
+    labelmap_scene_container=None,
+    vol_cmap_name=None,
+    labelmap_cmap_name=None,
+):
+    """Create the mosaic canvas for given number of rows and columns, and the
+    requested cell size and overlap values.
+
+    Parameters
+    ----------
+    img_scene_container : list
+        Image scene data container.
+    mask_scene_container : list
+        Mask scene data container.
+    cell_size : array-like
+        Cell size (pixels) (width, height).
+    rows : int
+        Row count.
+    cols : int
+        Column count.
+    overlap_factor : array-like
+        Overlap factor (horizontal, vertical).
+    labelmap_scene_container : list, optional
+        Labelmap scene data container.
+    vol_cmap_name : str, optional
+        Colormap name for the image scene data.
+    labelmap_cmap_name : str, optional
+        Colormap name for the labelmap scene data.
+    """
+
+    def _compute_overlap_length(length, _overlap):
+        return round(length * _overlap)
+
+    cell_width = cell_size[0]
+    cell_height = cell_size[1]
+
+    overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
+    overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
+
+    mosaic = create_canvas(*cell_size, overlap_h, overlap_v, rows, cols)
+
+    offset_h = cell_width - overlap_h
+    offset_v = cell_height - overlap_v
+    from itertools import zip_longest
+    for idx, (img_arr, mask_arr, labelmap_arr) in enumerate(
+            list(zip_longest(
+                img_scene_container,
+                mask_scene_container,
+                labelmap_scene_container,
+                fillvalue=tuple()))
+    ):
+
+        # Compute the mosaic cell position
+        top_pos, left_pos = compute_cell_topleft_pos(
+            idx, cols, offset_h, offset_v
+        )
+
+        # Convert the scene data to grayscale and adjust for handling with
+        # Pillow
+        _img_arr = rgb2gray4pil(img_arr)
+        _mask_arr = rgb2gray4pil(mask_arr)
+
+        _labelmap_arr = None
+        if len(labelmap_arr):
+            _labelmap_arr = rgb2gray4pil(labelmap_arr)
+
+        # Draw the image (and labelmap overlay, if any) in the cell
+        draw_scene_at_pos(
+            mosaic,
+            _img_arr,
+            (cell_width, cell_height),
+            left_pos,
+            top_pos,
+            mask=_mask_arr,
+            labelmap_overlay=_labelmap_arr,
+            vol_cmap_name=vol_cmap_name,
+            labelmap_cmap_name=labelmap_cmap_name,
+        )
+
+    return mosaic

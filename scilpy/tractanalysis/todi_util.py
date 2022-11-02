@@ -85,7 +85,13 @@ def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False):
     seg_dir, seg_norm = get_segments_dir_and_norm(segments,
                                                   seg_mid,
                                                   asymmetric)
-    return seg_mid, seg_dir, seg_norm
+
+    mask = seg_norm > 1.0e-20
+    if ~mask.any():
+        logging.warning("WARNING : There is at least one streamline with "
+                        "overlapping points in the tractogram.")
+
+    return seg_mid[mask], seg_dir[mask], seg_norm[mask]
 
 
 def get_segments_mid_pts_positions(segments):
