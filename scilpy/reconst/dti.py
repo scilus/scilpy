@@ -9,12 +9,11 @@ tensor_format_description = \
        Shape: [i, j , k, 6].
        Ref: [See _lt_rows and _lt_cols in dipy.reconst.dti]
     
-    MRTRIX's order is : [D11, D22, D33, D12, D13, D23]
-                        [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
+    MRTRIX's order is : [Dxx, Dyy, Dzz, Dxy, Dxz, Dyz]
        Shape: [i, j , k, 6].
        Ref: https://mrtrix.readthedocs.io/en/dev/reference/commands/dwi2tensor.html
     
-    ANTS's order ('nifti format') is : [dxx, dxy, dyy, dxz, dyz, dzz].
+    ANTS's order ('nifti format') is : [Dxx, Dxy, Dyy, Dxz, Dyz, Dzz].
        Shape: [i, j , k, 1, 6] (Careful, file is 5D).
        Ref: https://github.com/ANTsX/ANTs/wiki/Importing-diffusion-tensor-data-from-other-software
     
