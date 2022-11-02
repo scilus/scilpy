@@ -16,7 +16,6 @@ import argparse
 import logging
 
 from dipy.io.streamline import save_tractogram
-import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -38,13 +37,15 @@ def _build_arg_parser():
 
     method = p.add_mutually_exclusive_group(required=True)
     method.add_argument('--axis', choices=['x', 'y', 'z'],
-                        help='Match endpoints of the streamlines along this axis.\n'
-                        'SUGGESTION: Commissural = x, Association = y, '
+                        help='Match endpoints of the streamlines along this axis.'
+                        '\nSUGGESTION: Commissural = x, Association = y, '
                         'Projection = z')
     method.add_argument('--auto', action='store_true',
                         help='Match endpoints of the streamlines along an '
                              'automatically determined axis.')
-
+    method.add_argument('--centroid', metavar='FILE',
+                        help='Match endpoints of the streamlines along an '
+                             'automatically determined axis.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '
                         'Can be useful when the reference is not in RAS.')
@@ -68,7 +69,13 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_bundle)
     if args.auto:
         args.axis = None
-    uniformize_bundle_sft(sft, args.axis, swap=args.swap)
+    if args.centroid:
+        centroid_sft = load_tractogram_with_reference(parser, args,
+                                                      args.centroid)
+    else:
+        centroid_sft = None
+    uniformize_bundle_sft(sft, args.axis, ref_bundle=centroid_sft,
+                          swap=args.swap)
     save_tractogram(sft, args.out_bundle)
 
 
