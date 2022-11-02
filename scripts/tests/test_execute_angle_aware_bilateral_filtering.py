@@ -1,15 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import nibabel as nib
+import numpy as np
 import os
+import pytest
 import tempfile
+import time
 
-from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
 
-
-# If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['processing.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
+cwd = os.getcwd()
+
+
+@pytest.fixture
+def mock_filtering(mocker, out_fodf):
+    def _mock(*args, **kwargs):
+        img = nib.load(out_fodf)
+        return img.get_fdata()
+
+    script = 'scil_execute_angle_aware_bilateral_filtering'
+    filtering_fn = "angle_aware_bilateral_filtering"
+    return mocker.patch("scripts.{}.{}".format(script, filtering_fn),
+                        side_effect=_mock)
 
 
 def test_help_option(script_runner):
@@ -18,37 +31,74 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_asym_basis_output(script_runner):
+@pytest.mark.parametrize("out_fodf",
+                         [os.path.join(cwd, "test_fodf.nii.gz")])
+def test_asym_basis_output(script_runner, mock_filtering, out_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub.nii.gz')
 
-    # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
-                            in_fodf, 'out_0.nii.gz',
-                            '--sphere', 'repulsion100')
+                            os.path.join(cwd, 'in_fodf.nii.gz'),
+                            'out_fodf1.nii.gz',
+                            '--sphere', 'repulsion100',
+                            '--sigma_angular', '1.0',
+                            '--sigma_spatial', '1.0',
+                            '--sigma_range', '1.0',
+                            '--sh_basis', 'descoteaux07',
+                            '--processes', '1', '-f',
+                            print_result=True, shell=True)
+
     assert ret.success
+    mock_filtering.assert_called_once()
+
+    ret_fodf = nib.load("out_fodf1.nii.gz")
+    test_fodf = nib.load(out_fodf)
+    assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
 
 
-def test_sym_basis_output(script_runner):
+@pytest.mark.parametrize("out_fodf",
+                         [os.path.join(cwd, "test_fodf.nii.gz")])
+def test_sym_basis_output(script_runner, mock_filtering, out_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub.nii.gz')
 
-    # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
-                            in_fodf, 'out_1.nii.gz', '--out_sym',
-                            'out_sym.nii.gz', '--sphere', 'repulsion100')
+                            os.path.join(cwd, 'in_fodf.nii.gz'),
+                            'out_fodf2.nii.gz',
+                            '--out_sym', 'out_sym.nii.gz',
+                            '--sphere', 'repulsion100',
+                            '--sigma_angular', '1.0',
+                            '--sigma_spatial', '1.0',
+                            '--sigma_range', '1.0',
+                            '--sh_basis', 'descoteaux07',
+                            '--processes', '1', '-f',
+                            print_result=True, shell=True)
+
     assert ret.success
+    mock_filtering.assert_called_once()
+    
+    ret_fodf = nib.load("out_sym.nii.gz")
+    test_fodf = nib.load(os.path.join(cwd, "test_fodf_sym.nii.gz"))
+    assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
 
 
-def test_asym_input(script_runner):
+@pytest.mark.parametrize("out_fodf",
+                         [os.path.join(cwd, "test_fodf2.nii.gz")])
+def test_asym_input(script_runner, mock_filtering, out_fodf):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_fodf = os.path.join(get_home(), 'processing',
-                           'fodf_descoteaux07_sub_full.nii.gz')
 
-    # We use a low resolution sphere to reduce execution time
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
-                            in_fodf, 'out_2.nii.gz',
-                            '--sphere', 'repulsion100', '-f')
+                            os.path.join(cwd, 'test_fodf.nii.gz'),
+                            'out_fodf3.nii.gz',
+                            '--sphere', 'repulsion100',
+                            '--sigma_angular', '1.0',
+                            '--sigma_spatial', '1.0',
+                            '--sigma_range', '1.0',
+                            '--sh_basis', 'descoteaux07',
+                            '--processes', '1', '-f',
+                            print_result=True, shell=True)
+
     assert ret.success
+    mock_filtering.assert_called_once()
+    
+    ret_fodf = nib.load("out_fodf3.nii.gz")
+    test_fodf = nib.load(out_fodf)
+    assert np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
