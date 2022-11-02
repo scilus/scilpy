@@ -476,12 +476,17 @@ class GPUTacker():
         Seed for random number generator.
     """
     def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
-                 theta=20.0, sh_basis='descoteaux07', batch_size=100000,
+                 theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
+                 sh_basis='descoteaux07', batch_size=100000,
                  forward_only=False, rng_seed=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
         self.sh = sh
+        if sh_interp not in ['nearest', 'trilinear']:
+            raise ValueError('Invalid SH interpolation mode: {}'
+                             .format(sh_interp))
+        self.sh_interp_nn = sh_interp == 'nearest'
         self.mask = mask
 
         if (seeds < 0).any():
@@ -493,6 +498,7 @@ class GPUTacker():
 
         # tracking step_size and number of points
         self.step_size = step_size
+        self.sf_threshold = sf_threshold
         self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
@@ -507,6 +513,14 @@ class GPUTacker():
         # Instantiate random number generator
         self.rng = np.random.default_rng(rng_seed)
 
+    def _get_max_amplitudes(self, B_mat):
+        fodf_max = np.zeros(self.mask.shape,
+                            dtype=np.float32)
+        fodf_max[self.mask > 0] = np.max(self.sh[self.mask > 0].dot(B_mat),
+                                         axis=-1)
+
+        return fodf_max
+
     def track(self):
         """
         GPU streamlines generator yielding streamlines with corresponding
@@ -520,10 +534,9 @@ class GPUTacker():
         # Convert theta to cos(theta)
         max_cos_theta = np.cos(np.deg2rad(self.theta))
 
-        cl_kernel = CLKernel('track', 'tracking', 'local_tracking.cl')
+        cl_kernel = CLKernel('main', 'tracking', 'local_tracking.cl')
 
         # Set tracking parameters
-        # TODO: Add relative sf_threshold parameter.
         cl_kernel.set_define('IM_X_DIM', self.sh.shape[0])
         cl_kernel.set_define('IM_Y_DIM', self.sh.shape[1])
         cl_kernel.set_define('IM_Z_DIM', self.sh.shape[2])
@@ -531,13 +544,17 @@ class GPUTacker():
         cl_kernel.set_define('N_DIRS', len(sphere.vertices))
 
         cl_kernel.set_define('N_THETAS', len(self.theta))
-        cl_kernel.set_define('STEP_SIZE', '{}f'.format(self.step_size))
+        cl_kernel.set_define('STEP_SIZE', '{:.8f}f'.format(self.step_size))
         cl_kernel.set_define('MAX_LENGTH', self.max_strl_points)
         cl_kernel.set_define('FORWARD_ONLY',
                              'true' if self.forward_only else 'false')
+        cl_kernel.set_define('SF_THRESHOLD',
+                             '{:.8f}f'.format(self.sf_threshold))
+        cl_kernel.set_define('SH_INTERP_NN',
+                             'true' if self.sh_interp_nn else 'false')
 
         # Create CL program
-        n_input_params = 7
+        n_input_params = 8
         n_output_params = 2
         cl_manager = CLManager(cl_kernel, n_input_params, n_output_params)
 
@@ -550,9 +567,12 @@ class GPUTacker():
         B_mat = sh_to_sf_matrix(sphere, sh_order, self.sh_basis,
                                 return_inv=False)
         cl_manager.add_input_buffer(2, B_mat)
-        cl_manager.add_input_buffer(3, self.mask.astype(np.float32))
 
-        cl_manager.add_input_buffer(6, max_cos_theta)
+        fodf_max = self._get_max_amplitudes(B_mat)
+        cl_manager.add_input_buffer(3, fodf_max)
+        cl_manager.add_input_buffer(4, self.mask.astype(np.float32))
+
+        cl_manager.add_input_buffer(5, max_cos_theta)
 
         logging.debug('Initialized OpenCL program in {:.2f}s.'
                       .format(perf_counter() - t0))
@@ -570,12 +590,12 @@ class GPUTacker():
                                           self.max_strl_points))
 
             # Update buffers
-            cl_manager.add_input_buffer(4, seed_batch)
-            cl_manager.add_input_buffer(5, rand_vals)
+            cl_manager.add_input_buffer(6, seed_batch)
+            cl_manager.add_input_buffer(7, rand_vals)
 
             # output streamlines buffer
-            cl_manager.add_output_buffer(
-                0, (len(seed_batch), self.max_strl_points, 3))
+            cl_manager.add_output_buffer(0, (len(seed_batch),
+                                             self.max_strl_points, 3))
             # output streamlines length buffer
             cl_manager.add_output_buffer(1, (len(seed_batch), 1))
 

@@ -40,9 +40,6 @@ class CLManager(object):
             for d in devices:
                 if best_device is None:
                     best_device = d
-                elif (d.info.IMAGE_MAX_BUFFER_SIZE >
-                      best_device.info.IMAGE_MAX_BUFFER_SIZE):
-                    best_device = d
 
         self.context = cl.Context(devices=[best_device])
         self.queue = cl.CommandQueue(self.context)
