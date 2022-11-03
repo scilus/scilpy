@@ -6,7 +6,15 @@ Projects metrics onto the endpoints of streamlines. The idea is to visualize
 the cortical areas affected by metrics (assuming streamlines start/end in
 the cortex).
 
+This script can project data from maps (--in_metrics), from data_per_point
+(dpp) or data_per_streamline (dps): --load_dpp and --load_dps require an array
+from a file (must be the right shape), --use_dpp and --use_dps work only for
+.trk file and the key must exist in the metadata.
 
+The default options will take data from endpoints and project it to endpoints.
+--from_wm will use data from whole streamlines.
+--to_wm will project the data to whole streamline coverage.
+This creates 4 combinations of data source and projection.
 """
 
 import argparse
