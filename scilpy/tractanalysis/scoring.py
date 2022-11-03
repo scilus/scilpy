@@ -60,6 +60,11 @@ def compute_f1_score(overlap, overreach):
 
     Ref: https://en.wikipedia.org/wiki/F1_score
     """
+    # In the case where overlap = 0 (found the bundle but entirely out of the
+    # mask; overreach = 100%), we avoid division by 0 and define f1 as 0.
+    if overlap == 0 and overreach == 1:
+        return 0.
+
     # Recall = True positive / (True positive + False negative)
     #        = |B inter A| / |A|
     #        = overlap
