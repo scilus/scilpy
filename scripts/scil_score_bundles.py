@@ -137,7 +137,7 @@ def load_and_verify_everything(parser, args):
     for bundle in bundle_names:
         vb_name = os.path.join(vb_path, bundle + '_VS.trk')
         if os.path.isfile(vb_name):
-            sft = load_tractogram(vb_name, 'same')
+            sft = load_tractogram(vb_name, 'same', bbox_valid_check=False)
             vb_sft_list.append(sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -150,7 +150,7 @@ def load_and_verify_everything(parser, args):
     if wpc_path is not None:
         logging.info("Loading WPC bundles")
         for bundle in glob.glob(wpc_path + '/*'):
-            sft = load_tractogram(bundle, 'same')
+            sft = load_tractogram(bundle, 'same', bbox_valid_check=False)
             wpc_sft_list.append(sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -164,7 +164,7 @@ def load_and_verify_everything(parser, args):
         logging.info("Loading invalid bundles")
         for bundle in glob.glob(ib_path + '/*'):
             ib_names.append(os.path.basename(bundle))
-            sft = load_tractogram(bundle, 'same')
+            sft = load_tractogram(bundle, 'same', bbox_valid_check=False)
             ib_sft_list.append(ref_sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -173,7 +173,7 @@ def load_and_verify_everything(parser, args):
 
     # Load either NC or IS
     if nc_filename is not None:
-        nc_sft = load_tractogram(nc_filename, 'same')
+        nc_sft = load_tractogram(nc_filename, 'same', bbox_valid_check=False)
         ref_sft = nc_sft
     else:
         nc_sft = None
