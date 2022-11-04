@@ -44,7 +44,6 @@ def main():
     IN BVEC
     """
     in_bvec = np.genfromtxt(args.in_bvec)
-    print(in_bvec.shape)
     in_bvec_split = np.hsplit(in_bvec, int(in_bvec.shape[1]/args.nb_dirs))
     if len(in_bvec_split)==2:
         out_bvec = np.mean( np.array([ in_bvec_split[0], in_bvec_split[1] ]), axis=0 )

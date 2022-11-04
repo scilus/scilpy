@@ -19,9 +19,9 @@ def test_help_option(script_runner):
 def test_execution_extract_half(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(get_home(), 'processing',
-                              'dwi.bval')
-    in_bval = os.path.join(get_home(), 'processing',
                               'dwi.bvec')
+    in_bval = os.path.join(get_home(), 'processing',
+                              'dwi.bval')
     ret = script_runner.run('scil_extract_gradients_eddy.py',
                             in_bvec, in_bval, "32",
                             'out.bvec',
@@ -31,9 +31,9 @@ def test_execution_extract_half(script_runner):
 def test_execution_extract_total(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bvec = os.path.join(get_home(), 'processing',
-                              'dwi.bval')
-    in_bval = os.path.join(get_home(), 'processing',
                               'dwi.bvec')
+    in_bval = os.path.join(get_home(), 'processing',
+                              'dwi.bval')
     ret = script_runner.run('scil_extract_gradients_eddy.py',
                             in_bvec, in_bval, "64",
                             'out.bvec',
