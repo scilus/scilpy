@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Extract gradient from eddy outputs
+Validate and correct gradients from eddy outputs
 With full AP-PA eddy outputs a full bvec bval (2x nb of dirs and bval)
 that doesnt fit with the output dwi (1x nb of dir)
 """

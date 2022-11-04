@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_extract_gradients_eddy.py', '--help')
+    ret = script_runner.run('scripts/scil_validate_and_correct_eddy_gradients.py', '--help')
     assert ret.success
 
 
@@ -22,7 +22,7 @@ def test_execution_extract_half(script_runner):
                               'dwi.bvec')
     in_bval = os.path.join(get_home(), 'processing',
                               'dwi.bval')
-    ret = script_runner.run('scil_extract_gradients_eddy.py',
+    ret = script_runner.run('scripts/scil_validate_and_correct_eddy_gradients.py',
                             in_bvec, in_bval, "32",
                             'out.bvec',
                             'out.bval')
@@ -34,7 +34,7 @@ def test_execution_extract_total(script_runner):
                               'dwi.bvec')
     in_bval = os.path.join(get_home(), 'processing',
                               'dwi.bval')
-    ret = script_runner.run('scil_extract_gradients_eddy.py',
+    ret = script_runner.run('scripts/scil_validate_and_correct_eddy_gradients.py',
                             in_bvec, in_bval, "64",
                             'out.bvec',
                             'out.bval',
