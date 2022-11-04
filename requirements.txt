@@ -3,6 +3,7 @@ coloredlogs==10.0.*
 cycler==0.10.*
 Cython==0.29.*
 dipy==1.5.*
+docopt==0.6.2
 fury==0.7.*
 future==0.17.*
 h5py==2.10.*
@@ -37,3 +38,4 @@ dmri-commit==1.4.*
 openpyxl==2.6.*
 cvxpy==1.1.*
 dmri-amico==1.2.*
+formulaic==0.2.4
