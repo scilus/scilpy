@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scripts/scil_validate_and_correct_eddy_gradients.py', '--help')
+    ret = script_runner.run('scil_validate_and_correct_eddy_gradients.py', '--help')
     assert ret.success
 
 
