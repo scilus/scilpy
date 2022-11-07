@@ -2,7 +2,7 @@ bz2file==0.98.*
 coloredlogs==10.0.*
 cycler==0.10.*
 Cython==0.29.*
-dipy==1.4.*
+dipy==1.5.*
 fury==0.7.*
 future==0.17.*
 h5py==2.10.*
