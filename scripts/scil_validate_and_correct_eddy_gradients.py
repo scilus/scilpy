@@ -9,11 +9,11 @@ that doesnt fit with the output dwi (1x nb of dir)
 
 import argparse
 
-import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -24,7 +24,7 @@ def _build_arg_parser():
     p.add_argument('in_bval',
                    help='In bval file.')
     p.add_argument('nb_dirs', type=int,
-			       help='Number of directions per DWI.')
+                   help='Number of directions per DWI.')
     p.add_argument('out_bvec',
                    help='Out bvec file.')
     p.add_argument('out_bval',
@@ -44,9 +44,15 @@ def main():
     IN BVEC
     """
     in_bvec = np.genfromtxt(args.in_bvec)
-    in_bvec_split = np.hsplit(in_bvec, int(in_bvec.shape[1]/args.nb_dirs))
-    if len(in_bvec_split)==2:
-        out_bvec = np.mean( np.array([ in_bvec_split[0], in_bvec_split[1] ]), axis=0 )
+    split_dirs = in_bvec.shape[1] / args.nb_dirs
+    if int(split_dirs) != split_dirs:
+        parser.error('Number of directions in bvec ({}) can\'t be splited in '
+                     'even parts using nb_dirs ({}).'.format(in_bvec.shape[1],
+                                                             args.nb_dirs))
+    in_bvec_split = np.hsplit(in_bvec, int(split_dirs))
+    if len(in_bvec_split) == 2:
+        out_bvec = np.mean(np.array([in_bvec_split[0],
+                                     in_bvec_split[1]]), axis=0)
     else:
         out_bvec = in_bvec_split[0]
     np.savetxt(args.out_bvec, out_bvec, '%.8f')
@@ -55,7 +61,8 @@ def main():
     IN BVAL
     """
     in_bval = np.genfromtxt(args.in_bval)
-    np.savetxt(args.out_bval, in_bval[0:args.nb_dirs], '%.0f')
+    np.savetxt(args.out_bval, in_bval[0:out_bvec.shape[1]], '%.0f')
+
 
 if __name__ == '__main__':
     main()
