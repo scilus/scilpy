@@ -23,7 +23,8 @@ def test_execution_extract_half(script_runner):
     ret = script_runner.run('scil_validate_and_correct_eddy_gradients.py',
                             in_bvec, in_bval, "32",
                             'out.bvec',
-                            'out.bval')
+                            'out.bval',
+                            '-f')
     assert ret.success
 
 def test_execution_extract_total(script_runner):
