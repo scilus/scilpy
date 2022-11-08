@@ -307,6 +307,9 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
             elif 'session' not in t1.get_entities().keys():
                 t1_nSess.append(t1)
 
+        if len(t1_nSess) == 1:
+            t1_path = t1_nSess[0].path
+
     return {'subject': nSub,
             'session': nSess,
             'run': nRun,
@@ -443,6 +446,7 @@ def main():
         fmaps = layout.get(subject=nSub,
                            datatype='fmap', extension='nii.gz',
                            suffix='epi')
+
         bvals = layout.get(subject=nSub,
                            datatype='dwi', extension='bval',
                            suffix='dwi')
