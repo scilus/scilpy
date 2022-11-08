@@ -22,14 +22,17 @@ Global connectivity metrics:
     - NC: no connections. Invalid streamlines minus invalid connections.
 
 Fidelity metrics:
-    - OL : percentage of ground truth voxels containing VS streamline(s).
-    - OR/ORn: percentage of voxels containing VS streamline(s) when it
-        shouldn't. We compute two versions of the overreach:
-        OR_pct_vs = % of the recovered bundle. Values range between 0 and 100%.
-           Values are not defined when we recovered no streamline for a bundle,
-           but we set the OR to 0 in that case.
-        OR_pct_gt = % of the ground truth bundle. Values could be higher than
-           100%.
+    - OL : Overlap. Percentage of ground truth voxels containing streamline(s)
+        for a given bundle.
+    - OR: Overreach. Amount of voxels containing streamline(s) when they
+        shouldn't, for a given bundle. We compute two versions :
+        OR_pct_vs = divided by the total number of voxel covered by the bundle.
+           (percentage of the voxels touched by VS).
+           Values range between 0 and 100%. Values are not defined when we
+           recovered no streamline for a bundle, but we set the OR_pct_vs to 0
+           in that case.
+        OR_pct_gt = divided by the total size of the ground truth bundle mask.
+           Values could be higher than 100%.
     - f1 score (which is the same as the Dice score).
 """
 
@@ -110,7 +113,7 @@ def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
         TP divided by the ground truth count (i.e. TP + FN), in percentage.
     overreach_pct_gt: float
         The overreach, normalized by the ground truth area.
-    overreach_pct_total: float
+    overreach_pct_vs: float
         The overreach, normalized by the recovered bundle's area. (Or 0 if
         no streamline have been recovered for this bundle).
     """
@@ -142,16 +145,16 @@ def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     # Overreach: two versions are sometimes used.
     # |B except A| / |A| or |B except A| / |B|
     if nb_voxels_total == 0:
-        overreach_pct_total = 0
+        overreach_pct_vs = 0
     else:
-        overreach_pct_total = fp_nb_voxels / nb_voxels_total
+        overreach_pct_vs = fp_nb_voxels / nb_voxels_total
     overreach_pct_gt = fp_nb_voxels / gt_total_nb_voxels
 
     # f1 score (=dice)
-    f1 = compute_f1_score(overlap, overreach_pct_total)
+    f1 = compute_f1_score(overlap, overreach_pct_vs)
 
     return (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
-            overlap, overreach_pct_gt, overreach_pct_total)
+            overlap, overreach_pct_gt, overreach_pct_vs)
 
 
 def get_binary_maps(sft):
