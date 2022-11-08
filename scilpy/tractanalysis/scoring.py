@@ -22,13 +22,17 @@ Global connectivity metrics:
     - NC: no connections. Invalid streamlines minus invalid connections.
 
 Fidelity metrics:
-    - OL : percentage of ground truth voxels containing VS streamline(s).
-    - OR/ORn: percentage of voxels containing VS streamline(s) when it
-        shouldn't. We compute two versions of the overreach:
-        OR = % of the recovered bundle. Values range between 0 and 100%. Values
-           are not defined when we recovered no streamline for a bundle, but we
-           set the OR to 0 in that case.
-        ORn = % of the ground truth bundle. Values could be higher than 100%.
+    - OL : Overlap. Percentage of ground truth voxels containing streamline(s)
+        for a given bundle.
+    - OR: Overreach. Amount of voxels containing streamline(s) when they
+        shouldn't, for a given bundle. We compute two versions :
+        OR_pct_vs = divided by the total number of voxel covered by the bundle.
+           (percentage of the voxels touched by VS).
+           Values range between 0 and 100%. Values are not defined when we
+           recovered no streamline for a bundle, but we set the OR_pct_vs to 0
+           in that case.
+        OR_pct_gt = divided by the total size of the ground truth bundle mask.
+           Values could be higher than 100%.
     - f1 score (which is the same as the Dice score).
 """
 
@@ -107,11 +111,11 @@ def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
         corresponds to the FN count (false negative).
     overlap: float
         TP divided by the ground truth count (i.e. TP + FN), in percentage.
-    overreach_pct_total: float
-        The overreach, normalized by the recovered bundle's area. (Or 0 if
-        no streamline have been recovered for this bundle).
     overreach_pct_gt: float
         The overreach, normalized by the ground truth area.
+    overreach_pct_vs: float
+        The overreach, normalized by the recovered bundle's area. (Or 0 if
+        no streamline have been recovered for this bundle).
     """
     # True positive = |B inter A|
     tp_mask = gt_mask * current_vb_voxels
@@ -141,16 +145,16 @@ def compute_f1_overlap_overreach(current_vb_voxels, gt_mask, dimensions):
     # Overreach: two versions are sometimes used.
     # |B except A| / |A| or |B except A| / |B|
     if nb_voxels_total == 0:
-        overreach_pct_total = 0
+        overreach_pct_vs = 0
     else:
-        overreach_pct_total = fp_nb_voxels / nb_voxels_total
+        overreach_pct_vs = fp_nb_voxels / nb_voxels_total
     overreach_pct_gt = fp_nb_voxels / gt_total_nb_voxels
 
     # f1 score (=dice)
-    f1 = compute_f1_score(overlap, overreach_pct_total)
+    f1 = compute_f1_score(overlap, overreach_pct_vs)
 
     return (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
-            overlap, overreach_pct_gt, overreach_pct_total)
+            overlap, overreach_pct_gt, overreach_pct_vs)
 
 
 def get_binary_maps(sft):
@@ -244,7 +248,7 @@ def compute_tractometry(
     # Tractometry stats over volume: OL, OR, Dice score
     mean_overlap = 0.0
     mean_overreach_gt = 0.0
-    mean_overreach_n = 0.0
+    mean_overreach_vs = 0.0
     mean_f1 = 0.0
     nb_bundles_in_stats = 0
 
@@ -260,7 +264,7 @@ def compute_tractometry(
                 logging.debug("   Empty bundle or bundle not found.")
                 bundle_results.update({
                     "TP": 0, "FP": 0, "FN": 0,
-                    "OL": 0, "OR_gt": 0, "ORn": 0, "f1": 0,
+                    "OL": 0, "OR_pct_gt": 0, "OR_pct_vs": 0, "f1": 0,
                     "endpoints_OL": 0, "endpoints_OR": 0
                 })
                 continue
@@ -270,7 +274,7 @@ def compute_tractometry(
                 current_vb)
 
             (f1, tp_nb_voxels, fp_nb_voxels, fn_nb_voxels,
-             overlap, overreach_pct_gt, overreach_pct_total) = \
+             overlap_count, overreach_pct_gt, overreach_pct_vs) = \
                 compute_f1_overlap_overreach(
                     current_vb_voxels, gt_masks[i], dimensions)
 
@@ -285,9 +289,9 @@ def compute_tractometry(
                 "TP": tp_nb_voxels,
                 "FP": fp_nb_voxels,
                 "FN": fn_nb_voxels,
-                "OL": overlap,
-                "OR_gt": overreach_pct_gt,
-                "ORn": overreach_pct_total,
+                "OL": overlap_count,
+                "OR_pct_vs": overreach_pct_vs,
+                "OR_pct_gt": overreach_pct_gt,
                 "f1": f1,
                 "endpoints_OL": np.count_nonzero(endpoints_overlap),
                 "endpoints_OR": np.count_nonzero(endpoints_overreach)
@@ -304,8 +308,8 @@ def compute_tractometry(
                     # streamlines from any count. Separating into a different
                     # statistic dict. Else, user may simply not include a "ALL"
                     # mask, there won't be any wpc.
-                    (_, tp_nb_voxels, fp_nb_voxels, _, overlap,
-                     overreach_pct_gt, overreach_pct_total) = \
+                    (_, tp_nb_voxels, fp_nb_voxels, _, overlap_count,
+                     overreach_pct_gt, overreach_pct_vs) = \
                         compute_f1_overlap_overreach(
                             current_vb_voxels, gt_masks[i], dimensions)
 
@@ -313,17 +317,17 @@ def compute_tractometry(
                         "Count": len(wpc_sft),
                         "TP": tp_nb_voxels,
                         "FP": fp_nb_voxels,
-                        "OL": overlap,
-                        "OR_gt": overreach_pct_gt,
-                        "ORn": overreach_pct_total,
+                        "OL": overlap_count,
+                        "OR_pct_vs": overreach_pct_vs,
+                        "OR_pct_gt": overreach_pct_gt,
                     }
                     bundle_results.update({"WPC": wpc_results})
                 else:
                     bundle_results.update({"WPC": None})
 
             mean_overlap += bundle_results["OL"]
-            mean_overreach_gt += bundle_results["OR_gt"]
-            mean_overreach_n += bundle_results["ORn"]
+            mean_overreach_gt += bundle_results["OR_pct_gt"]
+            mean_overreach_vs += bundle_results["OR_pct_vs"]
             mean_f1 += bundle_results["f1"]
             nb_bundles_in_stats += 1
         else:
@@ -355,7 +359,7 @@ def compute_tractometry(
         final_results.update({
             "mean_OL": mean_overlap / nb_bundles_in_stats,
             "mean_OR_gt": mean_overreach_gt / nb_bundles_in_stats,
-            "mean_ORn": mean_overreach_n / nb_bundles_in_stats,
+            "mean_OR_vs": mean_overreach_vs / nb_bundles_in_stats,
             "mean_f1": mean_f1 / nb_bundles_in_stats
         })
 
