@@ -3,85 +3,62 @@
 
 
 """
-Scores input tractogram overall and bundlewise. Outputs a results.json
-containing a full report, a processing_stats.json containing information on the
-formation of bundles (ex: the number of wpc per criteria), and splits the input
-tractogram into one file per bundle : *_VS.tck. Remaining streamlines are
-combined in a IS.tck file.
+Scores input tractogram overall and bundlewise.
+
+Outputs
+-------
+
+    - results.json: Contains a full tractometry report.
+    - processing_stats.json: Contains information on the segmentation of
+    bundles (ex: the number of wpc per criteria).
+    - Splits the input tractogram into
+        segmented_VB/*_VS.trk.
+        segmented_IB/*_*_IC.trk   (if args.compute_ic)
+        segmented_WPC/*_wpc.trk  (if args.save_wpc_separately)
+        IS.trk     OR      NC.trk  (if args.compute_ic)
 
 By default, if a streamline fits in many bundles, it will be included in every
 one. This means a streamline may be a VS for a bundle and an IS for
 (potentially many) others. If you want to assign each streamline to at most one
 bundle, use the `--unique` flag.
 
-Definitions:
-    In terms of number of streamlines:
-        Computed by default:
-        - VS: valid streamlines, belonging to a bundle (i.e. respecting all the
-            criteria for that bundle; endpoints, limit_mask, gt_mask.).
-        - WPC: wrong path connections, streamlines connecting correct ROIs but
-            not respecting the other criteria for that bundle. The WPC
-            statistics are saved into processing_stats.json, but the results
-            are only saved if specified in the options. Else, they are merged
-            back with the IS.
+Config file
+-----------
 
-            **WPC are only computed if "limits masks" are provided.** Else,
-            they are considered VS.
+The config file needs to be a json containing a dict of the ground-truth
+bundles as keys. The value for each bundle is itself a dictionnary with:
 
-        - IS: invalid streamlines. All other streamlines.
-
-        Optional:
-        - IC: invalid connections, streamlines joining an incorrect combination
-            of ROIs. Use carefully, quality depends on the quality of your ROIs
-            and no analysis is done on the shape of the streamlines.
-        - NC: no connections. Invalid streamlines minus invalid connections.
-
-    In terms of number of voxels:
-    - OL : percentage of ground truth voxels containing VS streamline(s).
-    - OR/ORn: percentage of voxels containing VS streamline(s) when it
-        shouldn't. We compute two versions of the overreach:
-        OR = % of the recovered bundle. Values range between 0 and 100%. Values
-           are not defined with we recovered no streamline for a bundle, but we
-           set the OR to 0 in that case.
-        ORn = % of the ground truth bundle. Values could be higher than 100%.
-
-Config file:
-    The config file needs to be a json containing a dict of the ground-truth
-    bundles as keys. The value for each bundle is itself a dictionnary with:
-
-    Mandatory:
+Mandatory:
     - endpoints OR [head AND tail]: filename for the endpoints ROI.
-        If 'enpoints' is used, we will automatically separate the mask into
-        two ROIs, acting as head and tail. Quality check is strongly
-        recommended.
+        If 'enpoints' is used, we will automatically separate the mask into two
+        ROIs, acting as head and tail. Quality check is strongly recommended.
 
-    Optional:
-        Concerning metrics:
-        - gt_mask: expected result. OL and OR metrics will be computed from
-            this.*
+Optional:
+    Concerning metrics:
+    - gt_mask: expected result. OL and OR metrics will be computed from this.*
 
-        Concerning inclusion criteria (other streamlines will be WPC):
-        - all_mask: ROI serving as "all" criteria: to be included in the
-            bundle, ALL points of a streamline must be inside the mask.*
-        - any_mask: ROI serving as "any" criteria: streamlines
-            must touch that mask in at least one point ("any" point) to be
-            included in the bundle.
-        - angle: angle criteria. Streamlines containing loops and sharp turns
-            above given angle will be rejected from the bundle.
-        - length: maximum and minimum lengths per bundle.
-        - length_x / length_x_abs: maximum and minimum total distance in the x
-            direction (i.e. first coordinate).**
-        - length_y / length_y_abs: maximum and minimum total distance in the y
-            direction (i.e. second coordinate).**
-        - length_z / length_z_abs: maximum and minimum total distance in the z
-            direction (i.e. third coordinate).**
+    Concerning inclusion criteria (other streamlines will be WPC):
+    - all_mask: ROI serving as "all" criteria: to be included in the bundle,
+        ALL points of a streamline must be inside the mask.*
+    - any_mask: ROI serving as "any" criteria: streamlines
+        must touch that mask in at least one point ("any" point) to be included
+        in the bundle.
+    - angle: angle criteria. Streamlines containing loops and sharp turns above
+        given angle will be rejected from the bundle.
+    - length: maximum and minimum lengths per bundle.
+    - length_x / length_x_abs: maximum and minimum total distance in the x
+        direction (i.e. first coordinate).**
+    - length_y / length_y_abs: maximum and minimum total distance in the y
+        direction (i.e. second coordinate).**
+    - length_z / length_z_abs: maximum and minimum total distance in the z
+        direction (i.e. third coordinate).**
 
 * Files must be .tck, .trk, .nii or .nii.gz. If it is a tractogram, a mask will
 be created. If it is a nifti file, it will be considered to be a mask.
 ** With absolute values: coming back on yourself will contribute to the total
 distance instead of cancelling it.
 
-Ex 1:
+Exemple config file:
 {
   "Ground_truth_bundle_0": {
     "gt_mask": "PATH/bundle0.nii.gz",
@@ -90,18 +67,6 @@ Ex 1:
     "endpoints": "PATH/file1.nii.gz"
   }
 }
-
-Ex 2:
-(with options --gt_dir PATH)
-{
-  "Ground_truth_bundle_1": {
-    "gt_mask": "masks/bundle1.trk"
-    "head": 'roi/file2',
-    "tail": 'roi/file3',
-    "all_mask": "masks/general_envelope_bundle_1.nii.gz"
-  }
-}
-
 """
 import argparse
 import json
@@ -110,26 +75,29 @@ import logging
 import numpy as np
 import os
 
+from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
                              add_reference_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
+                             add_verbose_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             verify_compatibility_with_reference_sft)
-from scilpy.segment.tractogram_from_roi import segment_tractogram_from_roi, \
-    compute_masks, compute_endpoint_masks
+                             verify_compatibility_with_reference_sft,
+                             assert_outputs_exist)
+from scilpy.segment.tractogram_from_roi import (compute_masks_from_bundles,
+                                                compute_endpoint_masks,
+                                                segment_tractogram_from_roi)
 from scilpy.tractanalysis.scoring import compute_tractometry
+from scilpy.tractanalysis.scoring import __doc__ as tractometry_description
 
 def_len = [0, np.inf]
 
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        description=__doc__,
+        description=__doc__ + tractometry_description,
         formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument("in_tractogram",
@@ -137,13 +105,19 @@ def _build_arg_parser():
     p.add_argument("gt_config",
                    help=".json dict configured as specified above.")
     p.add_argument("out_dir",
-                   help="Output directory.")
+                   help="Output directory for the resulting segmented "
+                        "bundles.")
+    p.add_argument("--json_prefix", metavar='p', default='',
+                   help="Prefix of the two output json files. Ex: 'study_x_'."
+                        "Files will be saved inside out_dir.\n"
+                        "Suffixes will be 'processing_stats.json' and "
+                        "'results.json'.")
 
     g = p.add_argument_group("Additions to gt_config")
-    p.add_argument("--gt_dir", metavar='DIR',
+    g.add_argument("--gt_dir", metavar='DIR',
                    help="Root path of the ground truth files listed in the "
-                        "gt_config.\n If not set, filenames in the config "
-                        "file are considered\n as complete paths.")
+                        "gt_config. \nIf not set, filenames in the config "
+                        "file are considered \nas absolute paths.")
     g.add_argument("--use_gt_masks_as_all_masks", action='store_true',
                    help="If set, the gt_config's 'gt_mask' will also be used "
                         "as\n'all_mask' for each bundle. Note that this "
@@ -152,7 +126,7 @@ def _build_arg_parser():
     g = p.add_argument_group("Preprocessing")
     g.add_argument("--dilate_endpoints",
                    metavar="NB_PASS", default=0, type=int,
-                   help="Dilate inclusion masks n-times. Default: 0.")
+                   help="Dilate endpoint masks n-times. Default: 0.")
     g.add_argument("--remove_invalid", action="store_true",
                    help="Remove invalid streamlines before scoring.")
 
@@ -160,7 +134,7 @@ def _build_arg_parser():
     g.add_argument("--save_wpc_separately", action='store_true',
                    help="If set, streamlines rejected from VC based on the "
                         "config\nfile criteria will be saved separately from "
-                        "IS (and IC)\nin one file *_WPC.tck per bundle.")
+                        "IS (and IC)\nin one file *_wpc.tck per bundle.")
     g.add_argument("--compute_ic", action='store_true',
                    help="If set, IS are split into NC + IC, where IC are "
                         "computed as one bundle per\npair of ROI not "
@@ -170,9 +144,9 @@ def _build_arg_parser():
                         " they fit in and not to all.")
     g.add_argument("--remove_wpc_belonging_to_another_bundle",
                    action='store_true',
-                   help="If set, WPC actually belonging to VC (from another "
-                        "bundle,\nof course; in the case of overlapping ROIs) "
-                        "will be removed\nfrom the WPC classification.")
+                   help="If set, WPC actually belonging to any VB (in the \n"
+                        "case of overlapping ROIs) will be removed\n"
+                        "from the WPC classification.")
 
     p.add_argument("--no_empty", action='store_true',
                    help='Do not write file if there is no streamline.')
@@ -193,9 +167,13 @@ def load_and_verify_everything(parser, args):
           sub-rois.
     - Verifies compatibility
     """
+    args.json_prefix = os.path.join(args.out_dir, args.json_prefix)
+    json_outputs = [args.json_prefix + 'processing_stats.json',
+                    args.json_prefix + 'results.json']
     assert_inputs_exist(parser, args.gt_config)
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                        create_dir=True)
+    assert_outputs_exist(parser, args, json_outputs)
     os.makedirs(os.path.join(args.out_dir, 'segmented_VB'))
     if args.compute_ic:
         os.makedirs(os.path.join(args.out_dir, 'segmented_IB'))
@@ -208,46 +186,39 @@ def load_and_verify_everything(parser, args):
      abs_orientation_lengths) = read_config_file(args)
 
     # Find every mandatory mask to be loaded
-    list_masks_files = list(itertools.chain(
+    list_masks_files_r = list(itertools.chain(
         *[list(roi_option.values()) for roi_option in roi_options]))
+    list_masks_files_o = gt_masks_files + all_masks_files + any_masks_files
     # (This removes duplicates:)
-    list_masks_files = list(dict.fromkeys(list_masks_files))
+    list_masks_files_r = list(dict.fromkeys(list_masks_files_r))
+    list_masks_files_o = list(dict.fromkeys(list_masks_files_o))
 
     # Verify options
-    assert_inputs_exist(parser, list_masks_files + [args.in_tractogram],
-                        gt_masks_files + all_masks_files +
-                        any_masks_files)
-
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+    assert_inputs_exist(parser, list_masks_files_r + [args.in_tractogram],
+                        list_masks_files_o)
 
     logging.info("Loading tractogram.")
     sft = load_tractogram_with_reference(
         parser, args, args.in_tractogram, bbox_check=False)
+    _, dimensions, _, _ = sft.space_attributes
 
     if args.remove_invalid:
         sft.remove_invalid_streamlines()
 
     logging.info("Verifying compatibility of tractogram with gt_masks, "
-                 "all_masks and any_masks")
-    list_masks_files = gt_masks_files + all_masks_files + any_masks_files
-    # Removing duplicates:
-    list_masks_files = list(dict.fromkeys(list_masks_files))
-    verify_compatibility_with_reference_sft(sft, list_masks_files, parser,
-                                            args)
+                 "all_masks, any_masks, ROI masks")
+    verify_compatibility_with_reference_sft(
+        sft, list_masks_files_r + list_masks_files_o, parser, args)
 
     logging.info("Loading and/or computing ground-truth masks, limits "
                  "masks and any_masks.")
-    gt_masks, _, affine, dimensions, = \
-        compute_masks(gt_masks_files, parser, args)
-    _, inv_all_masks, _, _, = \
-        compute_masks(all_masks_files, parser, args)
-    any_masks, _, _, _, = \
-        compute_masks(any_masks_files, parser, args)
+    gt_masks = compute_masks_from_bundles(gt_masks_files, parser, args)
+    inv_all_masks = compute_masks_from_bundles(all_masks_files, parser, args,
+                                               inverse_mask=True)
+    any_masks = compute_masks_from_bundles(any_masks_files, parser, args)
 
     logging.info("Extracting ground-truth head and tail masks.")
-    gt_tails, gt_heads = compute_endpoint_masks(
-        roi_options, affine, dimensions, args.out_dir)
+    gt_tails, gt_heads = compute_endpoint_masks(roi_options, args.out_dir)
 
     # Update the list of every ROI, remove duplicates
     list_rois = gt_tails + gt_heads
@@ -261,12 +232,12 @@ def load_and_verify_everything(parser, args):
 
     return (gt_tails, gt_heads, sft, bundle_names, list_rois,
             lengths, angles, orientation_lengths, abs_orientation_lengths,
-            inv_all_masks, gt_masks, any_masks, dimensions)
+            inv_all_masks, gt_masks, any_masks, dimensions, json_outputs)
 
 
 def read_config_file(args):
     """
-    Read the gt_config file and returns:
+    Reads the gt_config file and returns:
 
     Returns
     -------
@@ -298,6 +269,7 @@ def read_config_file(args):
     all_masks = []
     any_masks = []
     roi_options = []
+    show_warning_gt = False
 
     with open(args.gt_config, "r") as json_file:
         config = json.load(json_file)
@@ -307,9 +279,7 @@ def read_config_file(args):
             bundle_config = config[bundle]
 
             if 'gt_mask' not in bundle_config:
-                logging.warning(
-                    "No gt_mask set for bundle {}. Some tractometry metrics "
-                    "won't be computed (OR, OL).".format(bundle))
+                show_warning_gt = True
             if 'endpoints' not in bundle_config and \
                     'head' not in bundle_config:
                 raise ValueError(
@@ -417,6 +387,11 @@ def read_config_file(args):
             any_masks.append(any_mask)
             roi_options.append(roi_option)
 
+    if show_warning_gt:
+        logging.info(
+            "At least one bundle had no gt_mask. Some tractometry metrics "
+            "won't be computed (OR, OL) for these bundles.")
+
     return (bundles, gt_masks, all_masks, any_masks, roi_options,
             lengths, angles, orientation_lengths, abs_orientation_lengths)
 
@@ -425,30 +400,55 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    if args.verbose:
+        logging.basicConfig(level=logging.INFO)
+
     # Load
     (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,
      orientation_lengths, abs_orientation_lengths, inv_all_masks, gt_masks,
-     any_masks, dimensions) = load_and_verify_everything(parser, args)
-
-    sft.to_vox()
+     any_masks, dimensions,
+     json_outputs) = load_and_verify_everything(parser, args)
 
     # Segment VB, WPC, IB
-    (all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
-     vs_ids_list, ic_ids_list, wpc_ids_list,
-     vb_sft_list, wpc_sft_list, ib_sft_list,
-     comb_filename) = segment_tractogram_from_roi(
+    (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
+     ib_names, bundle_stats) = segment_tractogram_from_roi(
         sft, gt_tails, gt_heads, bundle_names, bundle_lengths, angles,
         orientation_lengths, abs_orientation_lengths, inv_all_masks, any_masks,
         list_rois, args)
 
+    # Save results
+    with open(json_outputs[0], "w") as f:
+        json.dump(bundle_stats, f, indent=args.indent,
+                  sort_keys=args.sort_keys)
+
+    logging.info("Final segmented bundles will be saved in {}"
+                 .format(args.out_dir))
+    for i in range(len(bundle_names)):
+        if len(vb_sft_list[i]) > 0 or not args.no_empty:
+            filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
+            save_tractogram(vb_sft_list[i],
+                            os.path.join(args.out_dir, filename),
+                            bbox_valid_check=False)
+        if (args.save_wpc_separately and wpc_sft_list[i] is not None
+                and (len(wpc_sft_list[i]) > 0 or not args.no_empty)):
+            filename = "segmented_WPC/{}_wpc.trk".format(bundle_names[i])
+            save_tractogram(wpc_sft_list[i],
+                            os.path.join(args.out_dir, filename),
+                            bbox_valid_check=False)
+    for i in range(len(ib_sft_list)):
+        if len(ib_sft_list[i]) > 0 or not args.no_empty:
+            file = "segmented_IB/{}_IC.trk".format(ib_names[i])
+            save_tractogram(ib_sft_list[i], os.path.join(args.out_dir, file),
+                            bbox_valid_check=False)
+
     # Tractometry on bundles
     final_results = compute_tractometry(
-        all_vs_ids, all_wpc_ids, all_ic_ids, all_nc_ids,
-        vs_ids_list, ic_ids_list, wpc_ids_list,
-        vb_sft_list, wpc_sft_list, ib_sft_list, sft,
-        args, bundle_names, gt_masks, dimensions, comb_filename)
-    logging.info("Final results saved in {}".format(args.out_dir))
-    with open(os.path.join(args.out_dir, "results.json"), "w") as f:
+        vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,
+        args, bundle_names, gt_masks, dimensions, ib_names)
+
+    logging.info("Final scores will be saved in {}".format(json_outputs[1]))
+    final_results.update({"tractogram_filename": str(args.in_tractogram)})
+    with open(json_outputs[1], "w") as f:
         json.dump(final_results, f, indent=args.indent,
                   sort_keys=args.sort_keys)
 

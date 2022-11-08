@@ -3,12 +3,18 @@
 Perform probabilistic tractography on a ODF field inside a binary mask.
 The tracking is executed on the GPU using the OpenCL API.
 
-Streamlines are filtered by minimum length, but not by maximum length. For this
-reason, there may be streamlines ending in the deep white matter. In order to
-use the resulting tractogram for analysis, it should be cleaned with
-scil_filter_tractogram_anatomically.py.
+Streamlines are filtered by minimum length, but not by maximum length. This
+means that streamlines are stopped and returned as soon as they reach the
+maximum length instead of being discarded if they go above the maximum allowed
+length. This allows for short-tracks tractography, where streamlines are
+prematurely stopped once they reach some target length.
 
-The ODF image and mask are interpolated using nearest-neighbor interpolation.
+However, for this reason, there may be streamlines ending in the deep white
+matter. In order to use the resulting tractogram for analysis, it should be
+cleaned with scil_filter_tractogram_anatomically.py.
+
+The white matter mask is interpolated using nearest-neighbor interpolation and
+the SH interpolation defaults to trilinear.
 
 The script also incorporates ideas from Ensemble Tractography [1] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
@@ -25,11 +31,10 @@ import nibabel as nib
 import numpy as np
 
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
-from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_verbose_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+from scilpy.io.utils import (add_sh_basis_args, add_verbose_arg,
+                             assert_inputs_exist, assert_outputs_exist)
 from scilpy.io.image import get_data_as_mask
-from scilpy.tracking.utils import (add_seeding_options,
+from scilpy.tracking.utils import (add_out_options, add_seeding_options,
                                    add_mandatory_options_tracking)
 from scilpy.tracking.tracker import GPUTacker
 from dipy.tracking.utils import random_seeds_from_mask
@@ -68,22 +73,28 @@ def _build_arg_parser():
     track_g.add_argument('--max_length', type=float, default=300.0,
                          help='Maximum length of the streamline '
                               'in mm. [%(default)s]')
+    track_g.add_argument('--sf_threshold', type=float, default=0.1,
+                         help='Relative threshold on sf amplitudes.'
+                              ' [%(default)s]')
+    track_g.add_argument('--sh_interp', default='trilinear',
+                         choices=['nearest', 'trilinear'],
+                         help='SH interpolation mode. [%(default)s]')
+    track_g.add_argument('--mask_interp', default='nearest',
+                         choices=['nearest', 'trilinear'],
+                         help='Mask interpolation. Only nearest-neighbour '
+                              'interpolation \nis available for now. '
+                              '[%(default)s]')
     track_g.add_argument('--forward_only', action='store_true',
                          help='Only perform forward tracking.')
     add_sh_basis_args(track_g)
 
     # seeding options
     add_seeding_options(p)
-    out_g = p.add_argument_group('Output options')
-    out_g.add_argument('--save_seeds', action='store_true',
-                       help='Save seed positions in data_per_streamline.')
-    out_g.add_argument('--compress', type=float,
-                       help='Compress streamlines using the given threshold.')
 
+    out_g = add_out_options(p)
     # random number generator for SF sampling
     out_g.add_argument('--rng_seed', type=int,
                        help='Random number generator seed.')
-    add_overwrite_arg(out_g)
 
     gpu_g = p.add_argument_group('GPU options')
     gpu_g.add_argument('--batch_size', type=int, default=100000,
@@ -108,6 +119,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
     if args.compress is not None:
         verify_compression_th(args.compress)
+
+    if args.mask_interp == 'trilinear':
+        parser.error('Trilinear interpolation for tracking mask'
+                     ' is not available yet. Please set to \'nearest\'.')
 
     odf_sh_img = nib.load(args.in_odf)
     mask = get_data_as_mask(nib.load(args.in_mask))
@@ -142,24 +157,33 @@ def main():
     vox_min_length = args.min_length / voxel_size
     min_strl_len = int(vox_min_length / vox_step_size) + 1
     max_strl_len = int(vox_max_length / vox_step_size) + 1
+    if args.compress:
+        compress_th_vox = args.compress / voxel_size
 
     # initialize tracking
     tracker = GPUTacker(odf_sh, mask, seeds, vox_step_size, min_strl_len,
-                        max_strl_len, args.theta, args.sh_basis,
-                        args.batch_size, args.forward_only, args.rng_seed)
+                        max_strl_len, theta=args.theta,
+                        sf_threshold=args.sf_threshold,
+                        sh_interp=args.sh_interp,
+                        sh_basis=args.sh_basis,
+                        batch_size=args.batch_size,
+                        forward_only=args.forward_only,
+                        rng_seed=args.rng_seed)
 
     # wrapper for tracker.track() yielding one TractogramItem per
     # streamline for use with the LazyTractogram.
     def tracks_generator_wrapper():
         for strl, seed in tracker.track():
             # seed must be saved in voxel space, with origin `center`.
-            dps = {'seeds': seed - 0.5} if args.save_seeds else {}
+            dps = {}
+            if args.save_seeds:
+                dps['seeds'] = seed - 0.5
 
             # TODO: Investigate why the streamline must NOT be shifted to
-            # origin `corner` for LazyTractogram.
+            # origin `center` for LazyTractogram.
             strl *= voxel_size  # in mm.
             if args.compress:
-                strl = compress_streamlines(strl, args.compress)
+                strl = compress_streamlines(strl, compress_th_vox)
             yield TractogramItem(strl, dps, {})
 
     # instantiate tractogram

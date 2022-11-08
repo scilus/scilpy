@@ -15,15 +15,20 @@ the raw values from these sources to RGB using a colormap.
     --use_dpp: total nbr of points of the tractogram = len(streamlines._data)
 
 A minimum and a maximum range can be provided to clip values. If the range of
-values is too large for intuitive visualization, a log transform can be applied.
+values is too large for intuitive visualization, a log transform can be
+applied.
 
 If the data provided from --use_dps, --use_dpp and --from_anatomy are integer
 labels, they can be mapped using a LookUp Table (--LUT).
 The file provided as a LUT should be either .txt or .npy and if the
 size is N=20, then the data provided should be between 1-20.
 
-Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a text
-file containing 20 p-values to map p-values to the bundle for visualisation.
+Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a
+text file containing 20 p-values to map p-values to the bundle for
+visualisation.
+
+The colormap used for mapping values to colors can be saved to a png/jpg image
+using the --out_colorbar option.
 """
 
 import argparse
@@ -42,6 +47,8 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_reference_arg,
                              load_matrix_in_any_format)
 
+COLORBAR_NB_VALUES = 255
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -52,6 +59,13 @@ def _build_arg_parser():
                    help='Input tractogram (.trk or .tck).')
     p.add_argument('out_tractogram',
                    help='Output tractogram (.trk or .tck).')
+
+    cbar_g = p.add_argument_group('Colorbar Options')
+    cbar_g.add_argument('--out_colorbar',
+                        help='Optional output colorbar (.png, .jpg or any '
+                             'format supported by matplotlib).')
+    cbar_g.add_argument('--horizontal_cbar', action='store_true',
+                        help='Draw horizontal colorbar (vertical by default).')
 
     g1 = p.add_argument_group(title='Coloring Methods')
     p1 = g1.add_mutually_exclusive_group()
@@ -99,11 +113,48 @@ def transform_data(args, data):
 
     if args.min_range is not None or args.max_range is not None:
         data = np.clip(data, args.min_range, args.max_range)
+
+    # get data values range
+    lbound = np.min(data)
+    ubound = np.max(data)
+
     if args.log:
         data[data > 0] = np.log10(data[data > 0])
+
+    # normalize data between 0 and 1
     data -= np.min(data)
     data = data / np.max(data) if np.max(data) > 0 else data
-    return data
+    return data, lbound, ubound
+
+
+def save_colorbar(cmap, lbound, ubound, args):
+    gradient = cmap(np.linspace(0, 1, COLORBAR_NB_VALUES))[:, 0:3]
+
+    # TODO: Is there a better way to draw a gradient-filled rectangle?
+    width = int(COLORBAR_NB_VALUES * 0.1)
+    gradient = np.tile(gradient, (width, 1, 1))
+    if not args.horizontal_cbar:
+        gradient = np.swapaxes(gradient, 0, 1)
+
+    _, ax = plt.subplots(1, 1)
+    ax.imshow(gradient, origin='lower')
+
+    ticks_labels = ['{0:.3f}'.format(lbound), '{0:.3f}'.format(ubound)]
+
+    if args.log:
+        ticks_labels[0] = 'log(' + ticks_labels[0] + ')'
+        ticks_labels[1] = 'log(' + ticks_labels[1] + ')'
+
+    if not args.horizontal_cbar:
+        ax.set_yticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_yticklabels(ticks_labels)
+        ax.set_xticks([])
+    else:
+        ax.set_xticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_xticklabels(ticks_labels)
+        ax.set_yticks([])
+
+    plt.savefig(args.out_colorbar, bbox_inches='tight')
 
 
 def main():
@@ -112,7 +163,12 @@ def main():
     logging.basicConfig(level=logging.WARNING)
 
     assert_inputs_exist(parser, args.in_tractogram)
-    assert_outputs_exist(parser, args, args.out_tractogram)
+    assert_outputs_exist(parser, args, args.out_tractogram,
+                         optional=args.out_colorbar)
+
+    if args.horizontal_cbar and not args.out_colorbar:
+        logging.warning('Colorbar output not supplied. Ignoring '
+                        '--horizontal_cbar.')
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
@@ -143,17 +199,19 @@ def main():
             data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
             if len(data) != len(sft.streamlines._data):
                 parser.error('Wrong dpp size!')
-        data = transform_data(args, data)
+        data, lbound, ubound = transform_data(args, data)
         color = cmap(data)[:, 0:3] * 255
     elif args.from_anatomy:
         data = nib.load(args.from_anatomy).get_fdata()
-        data = transform_data(args, data)
+        data, lbound, ubound = transform_data(args, data)
 
         sft.to_vox()
         values = map_coordinates(data, sft.streamlines._data.T,
                                  order=0)
         color = cmap(values)[:, 0:3] * 255
         sft.to_rasmm()
+    else:
+        parser.error('No coloring method specified.')
 
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
@@ -164,6 +222,10 @@ def main():
         sft.data_per_point['color'] = sft.streamlines
         sft.data_per_point['color']._data = color
     save_tractogram(sft, args.out_tractogram)
+
+    # output colormap
+    if args.out_colorbar:
+        save_colorbar(cmap, lbound, ubound, args)
 
 
 if __name__ == '__main__':
