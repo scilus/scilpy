@@ -82,11 +82,28 @@ def ichunk(sequence, n):
 
 def is_argument_set(args, arg_name):
     # Check that attribute is not None
-    return not getattr(args, 'reference', None) is None
+    return not getattr(args, arg_name, None) is None
 
 
-def load_tractogram_with_reference(parser, args, filepath,
-                                   bbox_check=True, arg_name=None):
+def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
+    """
+    Parameters
+    ----------
+    parser: Argument Parser
+        Used to print errors, if any.
+    args: Namespace
+        Parsed arguments. Used to get the 'ref' and 'bbox_check' args.
+        See scilpy.io.utils to add the arguments to your parser.
+    filepath: str
+        Path of the tractogram file.
+    arg_name: str, optional
+        Name of the reference argument. By default the args.ref is used. If
+        arg_name is given, then args.arg_name_ref will be used instead.
+    """
+    if is_argument_set(args, 'bbox_check'):
+        bbox_check = args.bbox_check
+    else:
+        bbox_check = True
 
     _, ext = os.path.splitext(filepath)
     if ext == '.trk':

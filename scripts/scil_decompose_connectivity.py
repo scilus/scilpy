@@ -46,7 +46,8 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_label
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -225,6 +226,7 @@ def _build_arg_parser():
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -270,8 +272,7 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
-                                         bbox_check=False)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     sft.remove_invalid_streamlines()
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(

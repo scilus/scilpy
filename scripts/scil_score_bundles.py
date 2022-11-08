@@ -37,10 +37,12 @@ import os
 
 from dipy.io.streamline import load_tractogram
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              add_json_args,
                              add_reference_arg,
-                             add_verbose_arg, assert_inputs_exist,
+                             add_verbose_arg,
+                             assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.segment.tractogram_from_roi import compute_masks_from_bundles
 from scilpy.tractanalysis.scoring import compute_tractometry
@@ -71,20 +73,16 @@ def _build_arg_parser():
                         "gt_config.\nIf not set, filenames in the config "
                         "file are considered \nas absolute paths.")
 
-    g = p.add_argument_group("Preprocessing")
-    g.add_argument("--ignore_invalid", action="store_true",
-                   help="Ignore invalid streamlines in loaded tractograms.")
-
     add_json_args(p)
     add_overwrite_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_bbox_arg(p)
 
     return p
 
 
 def load_and_verify_everything(parser, args):
-    bbox_check = False if args.ignore_invalid else True
 
     assert_inputs_exist(parser, [args.gt_config])
     if not os.path.isdir(args.bundles_dir):
@@ -138,7 +136,8 @@ def load_and_verify_everything(parser, args):
     for bundle in bundle_names:
         vb_name = os.path.join(vb_path, bundle + '_VS.trk')
         if os.path.isfile(vb_name):
-            sft = load_tractogram(vb_name, 'same', bbox_valid_check=bbox_check)
+            sft = load_tractogram(vb_name, 'same',
+                                  bbox_valid_check=args.bbox_check)
             vb_sft_list.append(sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -151,7 +150,8 @@ def load_and_verify_everything(parser, args):
     if wpc_path is not None:
         logging.info("Loading WPC bundles")
         for bundle in glob.glob(wpc_path + '/*'):
-            sft = load_tractogram(bundle, 'same', bbox_valid_check=bbox_check)
+            sft = load_tractogram(bundle, 'same',
+                                  bbox_valid_check=args.bbox_check)
             wpc_sft_list.append(sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -165,7 +165,8 @@ def load_and_verify_everything(parser, args):
         logging.info("Loading invalid bundles")
         for bundle in glob.glob(ib_path + '/*'):
             ib_names.append(os.path.basename(bundle))
-            sft = load_tractogram(bundle, 'same', bbox_valid_check=bbox_check)
+            sft = load_tractogram(bundle, 'same',
+                                  bbox_valid_check=args.bbox_check)
             ib_sft_list.append(ref_sft)
             if ref_sft is None:
                 ref_sft = sft
@@ -175,7 +176,7 @@ def load_and_verify_everything(parser, args):
     # Load either NC or IS
     if nc_filename is not None:
         nc_sft = load_tractogram(nc_filename, 'same',
-                                 bbox_valid_check=bbox_check)
+                                 bbox_valid_check=args.bbox_check)
         ref_sft = nc_sft
     else:
         nc_sft = None

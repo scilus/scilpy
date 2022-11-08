@@ -17,8 +17,9 @@ from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
+                             add_reference_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 from scilpy.utils.streamlines import cut_invalid_streamlines
 
 
@@ -46,6 +47,7 @@ def _build_arg_parser():
 
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -60,8 +62,7 @@ def main():
     if args.threshold < 0:
         parser.error("Threshold must be positive.")
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
-                                         bbox_check=False)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     ori_len = len(sft)
     if args.cut_invalid:
         sft, cutting_counter = cut_invalid_streamlines(sft)

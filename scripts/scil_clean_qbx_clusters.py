@@ -27,7 +27,8 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -65,6 +66,7 @@ def _build_arg_parser():
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -175,12 +177,11 @@ def main():
     concat_streamlines = []
 
     ref_bundle = load_tractogram_with_reference(
-        parser, args, args.in_bundles[0], bbox_check=False)
+        parser, args, args.in_bundles[0])
 
     for filename in args.in_bundles:
         basename = os.path.basename(filename)
-        sft = load_tractogram_with_reference(parser, args, filename,
-                                             bbox_check=False)
+        sft = load_tractogram_with_reference(parser, args, filename)
         if not is_header_compatible(ref_bundle, sft):
             return
         if len(sft) >= args.min_cluster_size:
@@ -240,32 +241,38 @@ def main():
     accepted_streamlines = save_clusters(sft_accepted_on_size,
                                          accepted_streamlines,
                                          args.out_accepted_dir,
-                                         filename_accepted_on_size)
+                                         filename_accepted_on_size,
+                                         args.bbox_check)
 
     accepted_sft = StatefulTractogram(accepted_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
-    save_tractogram(accepted_sft, args.out_accepted, bbox_valid_check=False)
+    save_tractogram(accepted_sft, args.out_accepted,
+                    bbox_valid_check=args.bbox_check)
 
     # Save rejected clusters (by GUI)
     rejected_streamlines = save_clusters(sft_accepted_on_size,
                                          rejected_streamlines,
                                          args.out_rejected_dir,
-                                         filename_accepted_on_size)
+                                         filename_accepted_on_size,
+                                         args.bbox_check)
 
     # Save rejected clusters (by size)
     rejected_streamlines.extend(save_clusters(sft_rejected_on_size,
                                               range(len(sft_rejected_on_size)),
                                               args.out_rejected_dir,
-                                              filename_rejected_on_size))
+                                              filename_rejected_on_size,
+                                              args.bbox_check))
 
     rejected_sft = StatefulTractogram(rejected_streamlines,
                                       sft_accepted_on_size[0],
                                       Space.RASMM)
-    save_tractogram(rejected_sft, args.out_rejected, bbox_valid_check=False)
+    save_tractogram(rejected_sft, args.out_rejected,
+                    bbox_valid_check=args.bbox_check)
 
 
-def save_clusters(cluster_lists, indexes_list, directory, basenames_list):
+def save_clusters(cluster_lists, indexes_list, directory, basenames_list,
+                  bbox_check):
     output_streamlines = []
     for idx in indexes_list:
         streamlines = cluster_lists[idx].streamlines
@@ -277,7 +284,8 @@ def save_clusters(cluster_lists, indexes_list, directory, basenames_list):
                                          Space.RASMM)
             tmp_filename = os.path.join(directory,
                                         basenames_list[idx])
-            save_tractogram(tmp_sft, tmp_filename, bbox_valid_check=False)
+            save_tractogram(tmp_sft, tmp_filename,
+                            bbox_valid_check=bbox_check)
 
     return output_streamlines
 

@@ -12,8 +12,9 @@ import os
 from dipy.io.streamline import save_tractogram
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
+                             add_reference_arg, assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -30,6 +31,7 @@ def _build_arg_parser():
 
     add_reference_arg(p)
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -48,9 +50,8 @@ def main():
 
     assert_outputs_exist(parser, args, args.output_name)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram,
-                                         bbox_check=False)
-    save_tractogram(sft, args.output_name, bbox_valid_check=False)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    save_tractogram(sft, args.output_name, bbox_valid_check=args.bbox_check)
 
 
 if __name__ == "__main__":
