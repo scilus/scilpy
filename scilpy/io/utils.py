@@ -199,11 +199,12 @@ def add_verbose_arg(parser):
 
 
 def add_bbox_arg(parser):
-    parser.add_argument('--bbox_check', type=bool, default=True,
-                        help='Set to false to ignore validity of the bounding '
+    parser.add_argument('--no_bbox_check', dest='bbox_check',
+                        action='store_false',
+                        help='Activate to ignore validity of the bounding '
                              'box during loading / saving of \n'
                              'tractograms (ignores the presence of invalid '
-                             'streamlines). Default: True.')
+                             'streamlines).')
 
 
 def add_sh_basis_args(parser, mandatory=False):
