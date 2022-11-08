@@ -88,7 +88,7 @@ def get_metadata(bf):
     filename = bf.path.replace(
         bf.entities['extension'], '')
 
-    with open(filename + 'json', 'r') as handle:
+    with open(filename + '.json', 'r') as handle:
         return json.load(handle)
 
 
