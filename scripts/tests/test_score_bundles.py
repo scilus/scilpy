@@ -43,6 +43,6 @@ def test_score_bundles(script_runner):
         json.dump(json_contents, f)
 
     ret = script_runner.run('scil_score_bundles.py',
-                            "config_file.json", "./")
+                            "config_file.json", "./", '--ignore_invalid')
 
     assert ret.success
