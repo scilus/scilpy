@@ -63,6 +63,7 @@ def _build_arg_parser():
                              'automatically determined axis.')
     method.add_argument('--target_roi', nargs='+',
                         help='Provide a target ROI and the labels to use.\n'
+                             'Align heads to be closest to the mask barycenter.\n'
                              'If no labels are provided, all labels will be used.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '

@@ -27,8 +27,13 @@ Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a
 text file containing 20 p-values to map p-values to the bundle for
 visualisation.
 
+A custom colormap can be provided using --colormap. It should be a string
+containing a colormap name OR multiple Matplotlib named colors separated by -.
 The colormap used for mapping values to colors can be saved to a png/jpg image
 using the --out_colorbar option.
+
+The script can also be used to color streamlines according to their length
+using the --along_profile option. The streamlines must be uniformized.
 """
 
 import argparse
