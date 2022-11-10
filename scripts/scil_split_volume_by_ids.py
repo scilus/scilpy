@@ -15,7 +15,7 @@ import re
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -77,7 +77,7 @@ def main():
     assert_inputs_exist(parser, required)
 
     label_img = nib.load(args.in_labels)
-    label_img_data = get_data_as_label(label_img)
+    label_img_data = get_data_as_labels(label_img)
 
     if args.range:
         label_indices = [item for sublist in args.range for item in sublist]

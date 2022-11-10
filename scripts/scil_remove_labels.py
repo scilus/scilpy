@@ -14,7 +14,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 EPILOG = """
@@ -53,7 +53,7 @@ def main():
 
     # Load volume
     label_img = nib.load(args.in_labels)
-    labels_volume = get_data_as_label(label_img)
+    labels_volume = get_data_as_labels(label_img)
 
     # Remove given labels from the volume
     for index in np.unique(args.indices):

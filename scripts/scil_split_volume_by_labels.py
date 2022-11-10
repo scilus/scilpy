@@ -19,7 +19,7 @@ import nibabel as nib
 import numpy as np
 
 import scilpy
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -79,7 +79,7 @@ def main():
     assert_inputs_exist(parser, required)
 
     label_img = nib.load(args.in_label)
-    label_img_data = get_data_as_label(label_img)
+    label_img_data = get_data_as_labels(label_img)
 
     if args.scilpy_lut:
         with open(os.path.join(get_lut_dir(), args.scilpy_lut + '.json')) as f:

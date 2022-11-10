@@ -22,7 +22,8 @@ import nibabel as nib
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
 
-from scilpy.io.image import get_data_as_label, get_data_as_mask
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
@@ -80,7 +81,7 @@ def main():
 
     # load volume
     volume_nib = nib.load(args.in_file)
-    data = get_data_as_label(volume_nib)
+    data = get_data_as_labels(volume_nib)
     vox_size = np.reshape(volume_nib.header.get_zooms(), (1, 3))
     img_shape = data.shape
 
