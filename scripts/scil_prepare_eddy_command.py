@@ -126,7 +126,7 @@ def main():
             "available in your path.".format(args.eddy_cmd))
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 

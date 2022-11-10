@@ -225,7 +225,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     (bundle_names, gt_masks, dimensions,
      vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft,

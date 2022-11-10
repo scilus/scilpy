@@ -50,10 +50,8 @@ def main():
     args = parser.parse_args()
 
     # Use INFO as default log level, switch to DEBUG if verbose
-    log_level = logging.INFO
-    if args.verbose:
-        log_level = logging.DEBUG
-    logging.basicConfig(level=log_level, format="")
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
 
     # Use directory of this script, should work with most installation setups
     script_dir = pathlib.Path(__file__).parent

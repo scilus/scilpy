@@ -257,7 +257,7 @@ def main():
                                        create_dir=True)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.angle <= 0:
         parser.error('Angle "{}" '.format(args.angle) +

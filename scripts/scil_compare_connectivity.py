@@ -127,7 +127,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_pval_matrix)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.filtering_mask:
         filtering_mask = load_matrix_in_any_format(args.filtering_mask)

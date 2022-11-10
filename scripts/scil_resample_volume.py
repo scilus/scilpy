@@ -67,7 +67,7 @@ def main():
         parser.error("Cannot enforce dimensions without a reference image")
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.volume_size and (not len(args.volume_size) == 1 and
                              not len(args.volume_size) == 3):

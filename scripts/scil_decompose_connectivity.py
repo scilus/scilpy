@@ -252,10 +252,8 @@ def main():
         assert_output_dirs_exist_and_empty(parser, args, args.out_dir,
                                            create_dir=True)
 
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.INFO
-    logging.basicConfig(level=log_level)
+    log_level = logging.INFO if args.verbose else logging.WARNING
+    logging.getLogger().setLevel(log_level)
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 

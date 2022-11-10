@@ -401,7 +401,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     # Load
     (gt_tails, gt_heads, sft, bundle_names, list_rois, bundle_lengths, angles,

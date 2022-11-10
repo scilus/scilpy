@@ -160,7 +160,7 @@ def main():
                                            create_dir=True)
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     if args.min_cluster_size < 1:
         parser.error('Minimum cluster size must be at least 1.')

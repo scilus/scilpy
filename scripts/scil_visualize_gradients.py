@@ -73,7 +73,7 @@ def main():
     assert_inputs_exist(parser, args.in_gradient_scheme)
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     if len(args.in_gradient_scheme) == 2:
         assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
@@ -117,7 +117,8 @@ def main():
         centroids, shell_idx = identify_shells(bvals)
 
     if args.verbose:
-        logging.info("Found {} centroids: {}".format(len(centroids), centroids))
+        logging.info("Found {} centroids: {}".format(
+            len(centroids), centroids))
 
     if args.out_basename:
         out_basename, ext = os.path.splitext(args.out_basename)
@@ -130,7 +131,7 @@ def main():
     for idx in np.where(centroids < 40)[0]:
         if args.verbose:
             logging.info("Removing bval = {} "
-                          "from display".format(centroids[idx]))
+                         "from display".format(centroids[idx]))
 
         indexes.append(idx)
         shell_idx[shell_idx == idx] = -1

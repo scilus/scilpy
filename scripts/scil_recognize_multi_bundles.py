@@ -120,8 +120,8 @@ def main():
     logging.basicConfig(filename=os.path.join(args.out_dir, 'logfile.txt'),
                         filemode='w',
                         format='%(asctime)s, %(name)s %(levelname)s %(message)s',
-                        datefmt='%H:%M:%S', level=args.log_level)
-
+                        datefmt='%H:%M:%S')
+    logging.getLogger().setLevel(args.log_level)
     coloredlogs.install(level=args.log_level)
 
     transfo = load_matrix_in_any_format(args.in_transfo)

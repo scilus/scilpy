@@ -63,7 +63,6 @@ from contextlib import redirect_stdout
 import io
 import logging
 import os
-import pickle
 import shutil
 import sys
 import tempfile
@@ -80,8 +79,7 @@ import h5py
 import numpy as np
 import nibabel as nib
 
-from scilpy.io.streamlines import (lazy_streamlines_count,
-                                   reconstruct_streamlines,
+from scilpy.io.streamlines import (reconstruct_streamlines,
                                    reconstruct_streamlines_from_hdf5)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
@@ -338,7 +336,7 @@ def main():
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
         redirected_stdout = redirect_stdout(sys.stdout)
     else:
         f = io.StringIO()

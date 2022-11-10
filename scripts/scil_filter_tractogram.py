@@ -182,7 +182,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
         set_sft_logger_level('WARNING')
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
