@@ -15,7 +15,6 @@ import json
 import os
 
 import nibabel as nib
-import numpy as np
 
 from scilpy.image.labels import get_data_as_labels, get_lut_dir, split_labels
 from scilpy.io.utils import (add_overwrite_arg,

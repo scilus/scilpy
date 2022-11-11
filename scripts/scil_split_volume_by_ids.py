@@ -10,7 +10,6 @@ IMPORTANT: your label image must be of an integer type.
 
 import argparse
 import os
-import re
 
 import nibabel as nib
 import numpy as np
@@ -19,33 +18,6 @@ from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
-
-
-# Taken from http://stackoverflow.com/a/6512463
-def parseNumList(str_to_parse):
-    """
-    Return a list of numbers from the range specified in the string.
-    String to parse should be formatted as '1-3' or '3 4'.
-    Example: parseNumList('2-5') == [2, 3, 4, 5]
-    """
-    m = re.match(r'(\d+)(?:-(\d+))?$', str_to_parse)
-
-    if not m:
-        raise argparse.ArgumentTypeError("'" + str_to_parse + "' is not a " +
-                                         "range of numbers. Expected forms " +
-                                         "like '1-3' or '3 4'.")
-
-    start = m.group(1)
-    end = m.group(2) or start
-
-    start = int(start)
-    end = int(end)
-
-    if end < start:
-        raise argparse.ArgumentTypeError("Range elements incorrectly " +
-                                         "ordered in '" + str_to_parse + "'.")
-
-    return list(range(start, end+1))
 
 
 def _build_arg_parser():
@@ -60,9 +32,10 @@ def _build_arg_parser():
     p.add_argument('--out_prefix', default='',
                    help='Prefix to be used for each output image.')
 
-    p.add_argument('-r', '--range', type=parseNumList, nargs='*',
-                   help='Specifies a subset of labels to split, '
-                        'formatted as 1-3 or 3 4.')
+    p.add_argument('-r', '--range', type=int, nargs=2, metavar='min max',
+                   action='append',
+                   help='Specifies a subset of labels to split, formatted as '
+                        'min max. Ex: -r 3 4.')
 
     add_overwrite_arg(p)
 
@@ -79,8 +52,9 @@ def main():
     label_img = nib.load(args.in_labels)
     label_img_data = get_data_as_labels(label_img)
 
-    if args.range:
-        label_indices = [item for sublist in args.range for item in sublist]
+    if args.range is not None:
+        label_indices = np.concatenate(
+            [np.arange(r[0], r[1]) for r in args.range])
     else:
         label_indices = np.unique(label_img_data)
     label_names = [str(i) for i in label_indices]
