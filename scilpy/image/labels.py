@@ -3,6 +3,7 @@ import logging
 import os
 
 import numpy as np
+from scipy.spatial.ckdtree import cKDTree
 
 
 def get_data_as_labels(in_img):
@@ -127,3 +128,102 @@ def combine_labels(data_list, indices_per_input_volume, out_labels_choice,
                 current_id += 1
 
     return resulting_labels
+
+
+def dilate_labels(data, vox_size, distance, nbr_processes,
+                  labels_to_dilate=None, labels_not_to_dilate=None,
+                  labels_to_fill=None, mask=None):
+    """
+    Parameters
+    ----------
+    data: np.ndarray
+        The data (as labels) to dilate.
+    vox_size: np.ndarray(1, 3)
+        The voxel size.
+    distance: float
+        Maximal distance to dilate (in mm).
+    nbr_processes: int
+        Number of processes.
+    labels_to_dilate: list, optional
+        Label list to dilate. By default it dilates all labels not in
+        labels_to_fill nor in labels_not_to_dilate.
+    labels_not_to_dilate: list, optional
+        Label list not to dilate.
+    labels_to_fill: list, optional
+        Background id / labels to be filled. The first one is given as output
+        background value. Default: [0]
+    mask: np.ndarray, optional
+        Only dilate values inside the mask.
+    """
+    if labels_to_fill is None:
+        labels_to_fill = [0]
+
+    img_shape = data.shape
+
+    # Check if in both: label_to_fill & not_to_fill
+    fill_and_not = np.intersect1d(labels_not_to_dilate, labels_to_fill)
+    if len(fill_and_not) > 0:
+        logging.error("Error, both in not_to_dilate and to_fill: {}".format(
+            np.asarray(labels_not_to_dilate)[fill_and_not]))
+
+    # Create background mask
+    is_background_mask = np.zeros(img_shape, dtype=bool)
+    for i in labels_to_fill:
+        is_background_mask = np.logical_or(is_background_mask, data == i)
+
+    # Create not_to_dilate mask (initialized to background)
+    not_to_dilate = np.copy(is_background_mask)
+    for i in labels_not_to_dilate:
+        not_to_dilate = np.logical_or(not_to_dilate, data == i)
+
+    # Add mask
+    if mask is not None:
+        to_dilate_mask = np.logical_and(is_background_mask, mask)
+    else:
+        to_dilate_mask = is_background_mask
+
+    # Create label mask
+    is_label_mask = ~not_to_dilate
+
+    if labels_to_dilate is not None:
+        # Check if in both: to_dilate & not_to_dilate
+        dil_and_not = np.in1d(labels_to_dilate, labels_not_to_dilate)
+        if np.any(dil_and_not):
+            logging.error("Error, both in dilate and Not to dilate: {}".format(
+                np.asarray(labels_to_dilate)[dil_and_not]))
+
+        # Check if in both: to_dilate & to_fill
+        dil_and_fill = np.in1d(labels_to_dilate, labels_to_fill)
+        if np.any(dil_and_fill):
+            logging.error("Error, both in dilate and to fill: {}".format(
+                np.asarray(labels_to_dilate)[dil_and_fill]))
+
+        # Create new label to dilate list
+        new_label_mask = np.zeros_like(data, dtype=bool)
+        for i in labels_to_dilate:
+            new_label_mask = np.logical_or(new_label_mask, data == i)
+
+        # Combine both new_label_mask and not_to_dilate
+        is_label_mask = np.logical_and(new_label_mask, ~not_to_dilate)
+
+    # Get the list of indices
+    background_pos = np.argwhere(to_dilate_mask) * vox_size
+    label_pos = np.argwhere(is_label_mask) * vox_size
+    ckd_tree = cKDTree(label_pos)
+
+    # Compute the nearest labels for each voxel of the background
+    dist, indices = ckd_tree.query(
+        background_pos, k=1, distance_upper_bound=distance,
+        n_jobs=nbr_processes)
+
+    # Associate indices to the nearest label (in distance)
+    valid_nearest = np.squeeze(np.isfinite(dist))
+    id_background = np.flatnonzero(to_dilate_mask)[valid_nearest]
+    id_label = np.flatnonzero(is_label_mask)[indices[valid_nearest]]
+
+    # Change values of those background
+    data = data.flatten()
+    data[id_background.T] = data[id_label.T]
+    data = data.reshape(img_shape)
+
+    return data
