@@ -14,7 +14,7 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.labels import get_data_as_labels
+from scilpy.image.labels import get_data_as_labels, split_labels
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -29,7 +29,7 @@ def _build_arg_parser():
                         'in a format supported by Nibabel.')
     p.add_argument('--out_dir', default='',
                    help='Put all ouptput images in a specific directory.')
-    p.add_argument('--out_prefix', default='',
+    p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
 
     p.add_argument('-r', '--range', type=int, nargs=2, metavar='min max',
@@ -63,31 +63,25 @@ def main():
     for label, name in zip(label_indices, label_names):
         if int(label) != 0:
             if args.out_prefix:
-                output_filenames.append(os.path.join(args.out_dir,
-                                                     '{0}_{1}.nii.gz'.format(
-                                                         args.out_prefix,
-                                                         name)))
+                output_filenames.append(os.path.join(
+                    args.out_dir,
+                    '{0}_{1}.nii.gz'.format(args.out_prefix, name)))
             else:
-                output_filenames.append(os.path.join(args.out_dir,
-                                                     '{0}.nii.gz'.format(
-                                                         name)))
+                output_filenames.append(os.path.join(
+                    args.out_dir, '{0}.nii.gz'.format(name)))
 
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, output_filenames)
 
     # Extract the voxels that match the label and save them to a file.
-    cnt_filename = 0
-    for label in label_indices:
-        if int(label) != 0:
-            split_label = np.zeros(label_img.shape,
-                                   dtype=np.uint16)
-            split_label[np.where(label_img_data == int(label))] = label
+    split_data = split_labels(label_img_data, label_indices)
 
-            split_image = nib.Nifti1Image(split_label,
+    for i in range(len(label_indices)):
+        if split_data[i] is not None:
+            split_image = nib.Nifti1Image(split_data[i],
                                           label_img.affine,
                                           header=label_img.header)
-            nib.save(split_image, output_filenames[cnt_filename])
-            cnt_filename += 1
+            nib.save(split_image, output_filenames[i])
 
 
 if __name__ == "__main__":
