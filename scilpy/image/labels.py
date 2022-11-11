@@ -32,13 +32,31 @@ def get_data_as_labels(in_img):
                       'image'.format(basename, curr_type))
 
 
+def remove_labels(labels_volume, indices, background):
+    """
+    Remove given labels from the volume.
+
+    Parameters
+    ----------
+    labels_volume: np.ndarray
+        The volume (as labels).
+    indices: list
+        List of labels indices to remove.
+    background: int
+        Value used for removed labels
+    """
+    for index in np.unique(indices):
+        mask = labels_volume == index
+        labels_volume[mask] = background
+        if np.count_nonzero(mask) == 0:
+            logging.warning("Label {} was not in the volume".format(index))
+    return labels_volume
+
+
 def combine_labels(data_list, indices_per_input_volume, out_labels_choice,
                    background_id=0, merge_groups=False):
     """
-    - Output options: Only one of out_labels, unique or group_in_m may be
-      chosen.
-    - Merge_groups can only be used in group_in_m.
-
+    
     Parameters
     ----------
     data_list: list
