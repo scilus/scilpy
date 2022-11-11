@@ -11,15 +11,13 @@ IMPORTANT: your label image must be of an integer type.
 """
 
 import argparse
-import inspect
 import json
 import os
 
 import nibabel as nib
 import numpy as np
 
-import scilpy
-from scilpy.image.labels import get_data_as_labels
+from scilpy.image.labels import get_data_as_labels, get_lut_dir, split_labels
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -28,55 +26,36 @@ from scilpy.io.utils import (add_overwrite_arg,
 def _build_arg_parser():
     luts = [os.path.splitext(f)[0] for f in os.listdir(get_lut_dir())]
 
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter)
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_label',
-                   help='Path of the input label file, '
-                        'in a format supported by Nibabel.')
+                   help='Path of the input label file, in a format supported '
+                        'by Nibabel.')
     p.add_argument('--out_dir', default='',
                    help='Put all ouptput images in a specific directory.')
     p.add_argument('--out_prefix', default='',
                    help='Prefix to be used for each output image.')
 
     mutual_group = p.add_mutually_exclusive_group(required=True)
-    mutual_group.add_argument('--scilpy_lut', choices=luts,
-                              help='Lookup table, in the file scilpy/data/LUT, '
-                              'used to name the output files.')
-    mutual_group.add_argument('--custom_lut',
-                              help='Path of the lookup table file, '
-                              'used to name the output files.')
+    mutual_group.add_argument(
+        '--scilpy_lut', choices=luts,
+        help='Lookup table, in the file scilpy/data/LUT, used to name the '
+             'output files.')
+    mutual_group.add_argument(
+        '--custom_lut',
+        help='Path of the lookup table file, used to name the output files.')
 
     add_overwrite_arg(p)
 
     return p
 
 
-def get_lut_dir():
-    """
-    Return LUT directory in scilpy repository
-
-    Returns
-    -------
-    lut_dir: string
-        LUT path
-    """
-    # Get the valid LUT choices.
-    module_path = inspect.getfile(scilpy)
-
-    lut_dir = os.path.join(os.path.dirname(
-        os.path.dirname(module_path)) + "/data/LUT/")
-
-    return lut_dir
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required = args.in_label
-    assert_inputs_exist(parser, required)
+    assert_inputs_exist(parser, args.in_label)
 
     label_img = nib.load(args.in_label)
     label_img_data = get_data_as_labels(label_img)
@@ -94,31 +73,25 @@ def main():
     for label, name in zip(label_indices, label_names):
         if int(label) != 0:
             if args.out_prefix:
-                output_filenames.append(os.path.join(args.out_dir,
-                                                     '{0}_{1}.nii.gz'.format(
-                                                         args.out_prefix,
-                                                         name)))
+                output_filenames.append(os.path.join(
+                    args.out_dir,
+                    '{0}_{1}.nii.gz'.format(args.out_prefix, name)))
             else:
-                output_filenames.append(os.path.join(args.out_dir,
-                                                     '{0}.nii.gz'.format(
-                                                         name)))
+                output_filenames.append(os.path.join(
+                    args.out_dir, '{0}.nii.gz'.format(name)))
 
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, output_filenames)
 
     # Extract the voxels that match the label and save them to a file.
-    cnt_filename = 0
-    for label in label_indices:
-        if int(label) != 0:
-            split_label = np.zeros(label_img.shape,
-                                   dtype=np.uint16)
-            split_label[np.where(label_img_data == int(label))] = label
+    split_data = split_labels(label_img_data, label_indices)
 
-            split_image = nib.Nifti1Image(split_label,
+    for i in range(len(label_indices)):
+        if split_data[i] is not None:
+            split_image = nib.Nifti1Image(split_data[i],
                                           label_img.affine,
                                           header=label_img.header)
-            nib.save(split_image, output_filenames[cnt_filename])
-            cnt_filename += 1
+            nib.save(split_image, output_filenames[i])
 
 
 if __name__ == "__main__":

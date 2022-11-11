@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+import inspect
 import logging
 import os
 
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
+
+import scilpy  # ToDo. Is this the only way?
 
 
 def get_data_as_labels(in_img):
@@ -32,6 +35,37 @@ def get_data_as_labels(in_img):
                       'image'.format(basename, curr_type))
 
 
+def get_lut_dir():
+    """
+    Return LUT directory in scilpy repository
+
+    Returns
+    -------
+    lut_dir: string
+        LUT path
+    """
+    # Get the valid LUT choices.
+    module_path = inspect.getfile(scilpy)
+
+    lut_dir = os.path.join(os.path.dirname(
+        os.path.dirname(module_path)) + "/data/LUT/")
+
+    return lut_dir
+
+
+def split_labels(labels_volume, label_indices):
+    split_data = []
+    for label in label_indices:
+        if int(label) != 0:
+            split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
+            split_label[np.where(labels_volume == int(label))] = label
+            split_data.append(split_label)
+        else:
+            logging.info("Label {} not present in the image.".format(label))
+            split_data.append(None)
+    return split_data
+
+
 def remove_labels(labels_volume, indices, background):
     """
     Remove given labels from the volume.
@@ -56,7 +90,7 @@ def remove_labels(labels_volume, indices, background):
 def combine_labels(data_list, indices_per_input_volume, out_labels_choice,
                    background_id=0, merge_groups=False):
     """
-    
+
     Parameters
     ----------
     data_list: list
