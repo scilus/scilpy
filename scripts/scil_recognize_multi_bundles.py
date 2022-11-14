@@ -117,11 +117,13 @@ def main():
 
     assert_output_dirs_exist_and_empty(parser, args, args.out_dir)
 
-    logging.basicConfig(filename=os.path.join(args.out_dir, 'logfile.txt'),
-                        filemode='w',
-                        format='%(asctime)s, %(name)s %(levelname)s %(message)s',
-                        datefmt='%H:%M:%S')
+    file_handler = logging.FileHandler(filename=os.path.join(args.out_dir,
+                                                             'logfile.txt'))
+    formatter = logging.Formatter(fmt='%(asctime)s, %(name)s %(levelname)s %(message)s',
+                                  datefmt='%H:%M:%S')
+    file_handler.setFormatter(formatter)
     logging.getLogger().setLevel(args.log_level)
+    logging.getLogger().addHandler(file_handler)
     coloredlogs.install(level=args.log_level)
 
     transfo = load_matrix_in_any_format(args.in_transfo)
