@@ -117,7 +117,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     required_args = [args.in_json, args.in_participants]
     assert_inputs_exist(parser, required_args)

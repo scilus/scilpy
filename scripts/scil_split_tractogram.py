@@ -94,7 +94,7 @@ def main():
     if args.verbose:
         log_level = logging.DEBUG
         set_sft_logger_level('INFO')
-    logging.basicConfig(level=log_level)
+    logging.getLogger().setLevel(log_level)
 
     logging.debug("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)

@@ -83,7 +83,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_dwi, args.in_bvec, args.in_bval, args.in_table]
 

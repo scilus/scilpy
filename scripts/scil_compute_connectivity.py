@@ -281,10 +281,8 @@ def main():
     assert_inputs_exist(parser, [args.in_hdf5, args.in_labels],
                         args.force_labels_list)
 
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.INFO
-    logging.basicConfig(level=log_level)
+    log_level = logging.INFO if args.verbose else logging.WARNING
+    logging.getLogger().setLevel(log_level)
     coloredlogs.install(level=log_level)
 
     measures_to_compute = []

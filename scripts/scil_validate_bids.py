@@ -402,10 +402,8 @@ def main():
 
     assert_outputs_exist(parser, args, args.out_json)
 
-    log_level = logging.WARNING
-    if args.verbose:
-        log_level = logging.INFO
-    logging.basicConfig(level=log_level)
+    log_level = logging.INFO if args.verbose else logging.WARNING
+    logging.getLogger().setLevel(log_level)
     coloredlogs.install(level=log_level)
 
     data = []

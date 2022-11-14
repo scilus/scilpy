@@ -156,7 +156,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)

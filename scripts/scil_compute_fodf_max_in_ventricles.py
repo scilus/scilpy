@@ -122,7 +122,7 @@ def main():
                          [args.max_value_output, args.mask_output])
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     # Load input image
     img_fODFs = nib.load(args.in_fodfs)

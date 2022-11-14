@@ -127,9 +127,8 @@ def main():
 
     assert_outputs_exist(parser, args, out_filename)
 
-    logging.basicConfig(level=logging.INFO)
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
 
     Ks = args.nb_samples
     eddy = args.eddy

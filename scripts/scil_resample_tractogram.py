@@ -125,12 +125,12 @@ def main():
     if args.verbose:
         log_level = logging.DEBUG
         set_sft_logger_level('INFO')
-    logging.basicConfig(level=log_level)
+    logging.getLogger().setLevel(log_level)
 
     logging.debug("Loading sft.")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     original_number = len(sft.streamlines)
-    
+
     if args.never_upsample and args.nb_streamlines > original_number:
         args.nb_streamlines = original_number
 

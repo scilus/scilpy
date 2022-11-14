@@ -11,7 +11,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.dti import (supported_tensor_formats,
                                 tensor_format_description,

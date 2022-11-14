@@ -160,7 +160,7 @@ def save_colorbar(cmap, lbound, ubound, args):
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.WARNING)
+    logging.getLogger().setLevel(logging.WARNING)
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram,

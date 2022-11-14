@@ -96,7 +96,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
 
     if not args.not_all:
         args.wm_out_fODF = args.wm_out_fODF or 'wm_fodf.nii.gz'

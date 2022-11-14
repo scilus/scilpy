@@ -137,7 +137,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +
