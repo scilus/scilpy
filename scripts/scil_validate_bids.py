@@ -276,7 +276,7 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
         elif not any(s == '' for s in topup_fmap):
             topup = topup_fmap
         else:
-            topup = ['todo', 'todo']
+            topup = ['', '']
     elif len(dwi) == 1:
         if topup_fmap[1] != '':
             topup = topup_fmap
