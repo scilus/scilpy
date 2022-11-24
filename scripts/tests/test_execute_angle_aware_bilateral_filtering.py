@@ -11,8 +11,8 @@ from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
 
 
 # If they already exist, this only takes 5 seconds (check md5sum)
-fetch_data(get_testing_files_dict(), keys=['processing.zip'])
-data_path = os.path.join(get_home(), 'processing')
+fetch_data(get_testing_files_dict(), keys=['fodf_filtering.zip'])
+data_path = os.path.join(get_home(), 'fodf_filtering')
 tmp_dir = tempfile.TemporaryDirectory()
 
 
