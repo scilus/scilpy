@@ -30,7 +30,6 @@ coloredlogs==10.0.*
 nilearn==0.6.*
 pytest==5.3.*
 pytest_console_scripts==0.2.*
-gdown==4.4.*
 requests==2.23.*
 bctpy==0.5.*
 statsmodels==0.11.*

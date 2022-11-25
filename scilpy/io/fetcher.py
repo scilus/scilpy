@@ -7,8 +7,6 @@ import pathlib
 import requests
 import zipfile
 
-from gdown import cached_download, extractall
-
 GOOGLE_URL = "https://drive.google.com/uc?id="
 
 
