@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-
+import io
 import logging
 import os
+import pathlib
 
-from gdown import cached_download, extractall
+import requests
+import zipfile
 
 GOOGLE_URL = "https://drive.google.com/uc?id="
 
@@ -70,23 +72,10 @@ def get_testing_files_dict():
 
 
 def fetch_data(files_dict, keys=None):
-    """ Downloads files to folder and checks their md5 checksums
-
-    Parameters
-    ----------
-    files_dict : dictionary
-        For each file in `files_dict` the value should be (url, md5).
-        The file will be downloaded from url, if the file does not already
-        exist or if the file exists but the md5 checksum does not match.
-    keys: List[str] or str
-        Files to get. Must be keys in the files_dict. If None is given, fetch
-        all the keys from the files_dict.
-
-    Raises
-    ------
-    ValueError
-        Raises if the md5 checksum of the file does not match the expected
-        value. The downloaded file is not deleted when this error is raised.
+    """
+    Fetch data. Typical use would be with gdown.
+    But with too many data accesses, downloaded become denied.
+    Using trick from https://github.com/wkentaro/gdown/issues/43.
     """
     scilpy_home = get_home()
 
@@ -100,10 +89,39 @@ def fetch_data(files_dict, keys=None):
     for f in keys:
         url, md5 = files_dict[f]
         full_path = os.path.join(scilpy_home, f)
+        full_path_no_ext, ext = os.path.splitext(full_path)
 
-        logging.info('Downloading {} to {}'.format(f, scilpy_home))
-        cached_download(url=GOOGLE_URL+url,
-                        path=full_path,
-                        md5=md5,
-                        quiet=True,
-                        postprocess=extractall)
+        if not os.path.isdir(full_path_no_ext):
+            url = GOOGLE_URL + url
+            if ext == '.zip' and not os.path.isdir(full_path_no_ext):
+                logging.warning('Downloading and extracting {} from url {} to '
+                                '{}'.format(f, url, scilpy_home))
+
+                # Adding param confirm. Most of our files have warning: too
+                # big to be analysed by antivirus, do you still want to
+                # download. Confirming that we do.
+                r = requests.get(url, params={'confirm': 't'})
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+
+                try:
+                    # When we extract in full_path, it creates, ex
+                    # home/tracking/tracking/files. We want to skip one level.
+                    # Looping on all files.
+                    zipinfos = z.infolist()
+                    root_dir = pathlib.Path(zipinfos[0].filename).parts[0] + '/'
+                    assert all([s.startswith(root_dir) for s in z.namelist()])
+                    nb_root = len(root_dir)
+                    for zipinfo in zipinfos:
+                        zipinfo.filename = zipinfo.filename[nb_root:]
+                        if zipinfo.filename != '':
+                            z.extract(zipinfo, path=full_path_no_ext)
+                except AssertionError:
+                    # Not root dir. Extracting directly.
+                    z.extractall(full_path)
+
+            else:
+                raise NotImplementedError("Data fetcher was expecting to deal "
+                                          "with a zip file.")
+
+        else:
+            logging.warning("Not fetching data; already on disk.")
