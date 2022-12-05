@@ -6,8 +6,6 @@ import os
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
 
-import scilpy  # ToDo. Is this the only way?
-
 
 def get_data_as_labels(in_img):
     """
@@ -45,6 +43,7 @@ def get_lut_dir():
         LUT path
     """
     # Get the valid LUT choices.
+    import scilpy  # ToDo. Is this the only way?
     module_path = inspect.getfile(scilpy)
 
     lut_dir = os.path.join(os.path.dirname(
@@ -54,11 +53,28 @@ def get_lut_dir():
 
 
 def split_labels(labels_volume, label_indices):
+    """
+    For each label in list, return a separate volume containing only that
+    label.
+
+    Parameters
+    ----------
+    labels_volume: np.ndarray
+        A 3D volume.
+    label_indices: list or np.array
+        The list of labels to extract.
+
+    Returns
+    -------
+    split_data: list
+        One 3D volume per label.
+    """
     split_data = []
     for label in label_indices:
-        if int(label) != 0:
+        label_occurences = np.where(labels_volume == int(label))
+        if len(label_occurences) != 0:
             split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
-            split_label[np.where(labels_volume == int(label))] = label
+            split_label[label_occurences] = label
             split_data.append(split_label)
         else:
             logging.info("Label {} not present in the image.".format(label))

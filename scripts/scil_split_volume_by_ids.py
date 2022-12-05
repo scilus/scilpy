@@ -53,8 +53,9 @@ def main():
     label_img_data = get_data_as_labels(label_img)
 
     if args.range is not None:
+        # Ex: From 173 to 175 = range(173, 176).
         label_indices = np.concatenate(
-            [np.arange(r[0], r[1]) for r in args.range])
+            [np.arange(r[0], r[1] + 1) for r in args.range])
     else:
         label_indices = np.unique(label_img_data)
     label_names = [str(i) for i in label_indices]
