@@ -3,7 +3,8 @@
 """
 Split a label image into multiple images where the name of the output images
 is the id of the label (ex. 35.nii.gz, 36.nii.gz, ...). If the --range option
-is not provided, all labels of the image are extracted.
+is not provided, all labels of the image are extracted. The label 0 is
+considered as the background and is ignored.
 
 IMPORTANT: your label image must be of an integer type.
 """
@@ -35,7 +36,10 @@ def _build_arg_parser():
     p.add_argument('-r', '--range', type=int, nargs=2, metavar='min max',
                    action='append',
                    help='Specifies a subset of labels to split, formatted as '
-                        'min max. Ex: -r 3 4.')
+                        'min max. Ex: -r 3 5 will give files _3, _4, _5.')
+    p.add_argument('--background', type=int, default=0,
+                   help="Background value. Will not be saved as a separate "
+                        "label. Default: 0.")
 
     add_overwrite_arg(p)
 
@@ -58,18 +62,18 @@ def main():
             [np.arange(r[0], r[1] + 1) for r in args.range])
     else:
         label_indices = np.unique(label_img_data)
+
+    label_indices = np.setdiff1d(label_indices, args.background)
     label_names = [str(i) for i in label_indices]
 
     output_filenames = []
     for label, name in zip(label_indices, label_names):
-        if int(label) != 0:
-            if args.out_prefix:
-                output_filenames.append(os.path.join(
-                    args.out_dir,
-                    '{0}_{1}.nii.gz'.format(args.out_prefix, name)))
-            else:
-                output_filenames.append(os.path.join(
-                    args.out_dir, '{0}.nii.gz'.format(name)))
+        if args.out_prefix:
+            output_filenames.append(os.path.join(
+                args.out_dir, '{0}_{1}.nii.gz'.format(args.out_prefix, name)))
+        else:
+            output_filenames.append(os.path.join(
+                args.out_dir, '{0}.nii.gz'.format(name)))
 
     assert_output_dirs_exist_and_empty(parser, args, [], optional=args.out_dir)
     assert_outputs_exist(parser, args, output_filenames)
