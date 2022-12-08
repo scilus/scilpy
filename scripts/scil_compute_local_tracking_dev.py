@@ -104,7 +104,7 @@ def _build_arg_parser():
                          choices=['nearest', 'trilinear'],
                          help="Spherical harmonic interpolation: "
                               "nearest-neighbor \nor trilinear. [%(default)s]")
-    track_g.add_argument('--mask_interp', default='trilinear',
+    track_g.add_argument('--mask_interp', default='nearest',
                          choices=['nearest', 'trilinear'],
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
@@ -137,7 +137,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if not nib.streamlines.is_supported(args.out_tractogram):
         parser.error('Invalid output streamline file format (must be trk or ' +

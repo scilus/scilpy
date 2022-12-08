@@ -56,7 +56,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if args.minL == 0 and np.isinf(args.maxL):
         logging.debug("You have not specified minL nor maxL. Output will "

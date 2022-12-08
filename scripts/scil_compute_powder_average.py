@@ -14,14 +14,10 @@ Script currently does not take into account the diffusion gradient directions
 being averaged.
 """
 
-from os.path import splitext
-import re
-
 import argparse
 import logging
 
 import nibabel as nib
-from nibabel.tmpdirs import InTemporaryDirectory
 
 import numpy as np
 
@@ -86,7 +82,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_avg)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     img = nib.load(args.in_dwi)
     data = img.get_fdata(dtype=np.float32)
@@ -103,7 +99,7 @@ def main():
     bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
     # Select diffusion volumes to average
-    if not(args.shells):
+    if not (args.shells):
         # If no shell given, average all diffusion weighted images
         pwd_avg_idx = np.squeeze(np.where(bvals > 0 + args.b0_thr))
         logging.debug('Calculating powder average from all diffusion'

@@ -140,7 +140,7 @@ def main():
     assert_inputs_exist(parser, required, args.target_template)
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     output_filenames_3d = []
     output_filenames_glass = []

@@ -84,7 +84,7 @@ def main():
         parser.error('At least one of the two options is required.')
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     conditions_list = []
     if args.lower_than:

@@ -413,7 +413,8 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
     return actor
 
 
-def create_scene(actors, orientation, slice_index, volume_shape):
+def create_scene(actors, orientation, slice_index,
+                 volume_shape, bg_color=(0, 0, 0)):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -429,6 +430,8 @@ def create_scene(actors, orientation, slice_index, volume_shape):
         Index of the slice to visualize along the chosen orientation.
     volume_shape : tuple
         Shape of the sliced volume.
+    bg_color: tuple, optional
+        Background color expressed as RGB triplet in the range [0, 1].
 
     Returns
     -------
@@ -439,6 +442,7 @@ def create_scene(actors, orientation, slice_index, volume_shape):
     camera = initialize_camera(orientation, slice_index, volume_shape)
 
     scene = window.Scene()
+    scene.background(bg_color)
     scene.projection('parallel')
     scene.set_camera(position=camera[CamParams.VIEW_POS],
                      focal_point=camera[CamParams.VIEW_CENTER],

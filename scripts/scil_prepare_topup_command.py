@@ -11,8 +11,6 @@ import logging
 import os
 import subprocess
 
-from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
@@ -86,7 +84,7 @@ def main():
             "available in your path.")
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_forward_b0, args.in_reverse_b0]
 

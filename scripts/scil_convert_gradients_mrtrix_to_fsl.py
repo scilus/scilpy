@@ -36,7 +36,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_gradients_filenames_valid(parser, args.mrtrix_enc, 'mrtrix')
     assert_gradients_filenames_valid(parser, [args.fsl_bval, args.fsl_bvec],

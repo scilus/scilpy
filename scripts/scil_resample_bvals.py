@@ -56,7 +56,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_bval)
     assert_outputs_exist(parser, args, args.out_bval)

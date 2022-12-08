@@ -23,14 +23,12 @@ def test_execution_tractometry(script_runner):
     in_bundle = os.path.join(get_home(), 'tractometry',
                              'IFGWM.trk')
     in_label = os.path.join(get_home(), 'tractometry',
-                            'label.npz')
-    in_distance = os.path.join(get_home(), 'tractometry',
-                               'distance.npz')
+                            'IFGWM_labels_map.nii.gz')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
     ret = script_runner.run('scil_compute_bundle_mean_std_per_point.py',
-                            in_bundle, in_label, in_distance, in_ref,
-                            '--density_weighting', '--distance_weighting',
+                            in_bundle, in_label, in_ref,
+                            '--density_weighting',
                             '--out_json', 'metric_label.json')
 
     assert ret.success

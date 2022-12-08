@@ -77,6 +77,7 @@ def main():
         nonlocal curr_streamlines_actor, concat_streamlines_actor, \
             show_curr_actor
         iterator = len(accepted_streamlines) + len(rejected_streamlines)
+        iren = interactor_style.GetInteractor()
         renwin = interactor_style.GetInteractor().GetRenderWindow()
         renderer = interactor_style.GetCurrentRenderer()
 
@@ -96,7 +97,8 @@ def main():
             return
 
         if key == 'q':
-            show_manager.exit()
+            iren.TerminateApp()
+            del renwin, iren
             if iterator < len(sft_accepted_on_size):
                 logging.warning(
                     'Early exit, everything remaining to be rejected.')
@@ -158,7 +160,7 @@ def main():
                                            create_dir=True)
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     if args.min_cluster_size < 1:
         parser.error('Minimum cluster size must be at least 1.')

@@ -70,7 +70,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_file, optional=args.mask)
     assert_outputs_exist(parser, args, args.out_file)
