@@ -8,12 +8,14 @@ individually. See scilpy.tractograms.streamline_operations.py for the later.
 """
 
 import itertools
+import os
 from functools import reduce
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamline import transform_streamlines
+import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
@@ -24,6 +26,32 @@ from scilpy.utils.streamlines import cut_invalid_streamlines
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
+
+
+def lazy_streamlines_count(in_tractogram_path):
+    """ Gets the number of streamlines as written in the tractogram header.
+
+    Parameters
+    ----------
+    in_tractogram_path: str
+        Tractogram filepath, must be .trk or .tck.
+
+    Return
+    ------
+    count: int
+        Number of streamlines present in the tractogram.
+    """
+    _, ext = os.path.splitext(in_tractogram_path)
+    if ext == '.trk':
+        key = 'nb_streamlines'
+    elif ext == '.tck':
+        key = 'count'
+    else:
+        raise IOError('{} is not supported for lazy loading'.format(ext))
+
+    tractogram_file = nib.streamlines.load(in_tractogram_path,
+                                           lazy_load=True)
+    return tractogram_file.header[key]
 
 
 def get_axis_flip_vector(flip_axes):

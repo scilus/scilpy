@@ -30,32 +30,6 @@ def check_tracts_same_format(parser, tractogram_1, tractogram_2):
             'Input and output tractogram files must use the same format.')
 
 
-def lazy_streamlines_count(in_tractogram_path):
-    """ Gets the number of streamlines as written in the tractogram header.
-
-    Parameters
-    ----------
-    in_tractogram_path: str
-        Tractogram filepath, must be .trk or .tck.
-
-    Return
-    ------
-    count: int
-        Number of streamlines present in the tractogram.
-    """
-    _, ext = os.path.splitext(in_tractogram_path)
-    if ext == '.trk':
-        key = 'nb_streamlines'
-    elif ext == '.tck':
-        key = 'count'
-    else:
-        raise IOError('{} is not supported for lazy loading'.format(ext))
-
-    tractogram_file = nib.streamlines.load(in_tractogram_path,
-                                           lazy_load=True)
-    return tractogram_file.header[key]
-
-
 def ichunk(sequence, n):
     """ Yield successive n-sized chunks from sequence.
 
