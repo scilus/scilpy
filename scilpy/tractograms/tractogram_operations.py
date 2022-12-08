@@ -14,6 +14,7 @@ import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
+from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
@@ -615,3 +616,168 @@ def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
 
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
     return new_sft
+
+def split_sft_sequentially(orig_sft, chunk_sizes):
+    """
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated sequentially from the initial
+    streamlines.
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide.
+    chunk_sizes: list[int]
+        Number of streamlines to keep per chunk.
+
+    Return
+    ------
+    all_chunks: list[StatefulTractogram]
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes).
+    """
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    nb_chunks = len(chunk_sizes)
+
+    curr = 0
+    sfts = []
+    for i in range(nb_chunks):
+        nb_str = chunk_sizes[i]
+        sfts.append(orig_sft[curr:curr + nb_str])
+        curr += chunk_sizes[i]
+
+    return sfts
+
+
+def split_sft_randomly(orig_sft, chunk_sizes, rng_seed,
+                       return_indices_only=False):
+    """
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated randomly from the initial
+    streamlines.
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide
+    chunk_sizes: int or list[int]
+        Number of streamlines to keep (per sub-tractogram if it is a list).
+    rng_seed: int
+        Random seed.
+    return_indices_only: bool
+        If true, return a random list of indices. Else, return the Stateful
+        Tractogram containing the chosen streamlines.
+
+    Return
+    ------
+    all_chunks: list[StatefulTractogram] or list[list[int]]
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes) + 1, where the last item of the list contains
+        streamlines that were not included in any.
+        (Or the lists of indices if return_indices_only.)
+    """
+    if isinstance(chunk_sizes, int):
+        chunk_sizes = [chunk_sizes]
+
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    # Shuffle all streamline indices
+    rng = np.random.RandomState(rng_seed)
+    ind = np.arange(len(orig_sft.streamlines))
+    rng.shuffle(ind)
+
+    # Separate indices.
+    final_indices = []
+    start = 0
+    for next_nb_streamlines in chunk_sizes:
+        sub_ind = ind[start:start+next_nb_streamlines]
+        final_indices.append(sub_ind)
+        start += next_nb_streamlines
+
+    # Append indices not included in any chunk
+    final_indices.append(ind[start:])
+
+    if return_indices_only:
+        return final_indices
+
+    # Format as sft
+    all_sfts = []
+    for i in range(len(chunk_sizes) + 1):
+        all_sfts.append(orig_sft[final_indices[i]])
+
+    return all_sfts
+
+
+def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
+    """
+    Divides a stateful tractogram into n sub-tractograms of sizes defined by
+    chunk_sizes. Streamlines are separated randomly from each Quickbundle
+    cluster created from the initial streamlines (trying to help
+    the randomization to ensure there are streamlines from all bundles in each
+    subset).
+
+    Parameters
+    ----------
+    orig_sft: StatefulTractogram
+        Initial tractogram to subdivide
+    chunk_sizes: list[int]
+        Number of streamlines to keep per chunk. We will ensure that the number
+        of streamlines kept per cluster is proportional to the cluster's size.
+        Final number will be a good approximation of nb_streamlines, but not
+        exact.
+    seed: int
+        Random seed.
+    thresholds: list[float]
+        QBx threshold values. Suggestion: [40, 30, 20].
+
+    Returns
+    -------
+    all_sfts: list[StatefulTractogram]
+        The list of sub-tractograms as sfts. The number of tractograms returned
+        is len(chunk_sizes) + 1, where the last item of the list contains
+        streamlines that were not included in any.
+    """
+
+    if sum(chunk_sizes) > len(orig_sft):
+        raise ValueError("You asked for more streamlines than are available.")
+
+    # Percent of streamlines to keep per chunk.
+    nb_chunks = len(chunk_sizes)
+    percent_kept_per_chunk = [nb / len(orig_sft) for nb in chunk_sizes]
+
+    logging.debug("Computing QBx")
+    clusters = qbx_and_merge(orig_sft.streamlines, thresholds, nb_pts=20,
+                             verbose=False)
+
+    logging.debug("Done. Now getting list of indices in each of the {} "
+                  "cluster.".format(len(clusters)))
+    total_indices = [[] for _ in range(nb_chunks + 1)]
+    for cluster in clusters:
+        if len(cluster.indices) > 1:
+            cluster_sft = orig_sft[cluster.indices]
+            size_cluster = len(cluster.indices)
+            chunk_sizes_in_cluster = \
+                [round(p * size_cluster) for p in percent_kept_per_chunk]
+
+            # If rounding created too many streamlines, removing some from the
+            # last chunk.
+            while sum(chunk_sizes_in_cluster) > size_cluster:
+                chunk_sizes_in_cluster[-1] -= 1
+
+            all_chunks_inds_in_cluster = split_sft_randomly(
+                cluster_sft, chunk_sizes_in_cluster, seed,
+                return_indices_only=True)
+
+            assert len(all_chunks_inds_in_cluster) == nb_chunks + 1
+
+            for i in range(nb_chunks + 1):
+                chunk_orig_inds = [cluster.indices[ind] for ind in
+                                   all_chunks_inds_in_cluster[i]]
+                total_indices[i].extend(chunk_orig_inds)
+
+    final_sfts = [orig_sft[inds] for inds in total_indices]
+
+    return final_sfts

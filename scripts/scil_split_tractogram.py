@@ -26,8 +26,10 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_output_dirs_exist_and_empty,
                              add_verbose_arg)
-from scilpy.tracking.tools import split_sft_sequentially, \
-    split_sft_randomly, split_sft_randomly_per_cluster
+from scilpy.tractograms.tractogram_operations import (
+    split_sft_sequentially,
+    split_sft_randomly,
+    split_sft_randomly_per_cluster)
 
 
 def _build_arg_parser():
