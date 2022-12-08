@@ -50,7 +50,7 @@ from scilpy.tractanalysis.reproducibility_measures \
             approximate_surface_node,
             compute_fractal_dimension)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.streamlines import uniformize_bundle_sft
+from scilpy.tractograms.tractogram_operations import uniformize_bundle_sft
 
 EPILOG = """
 References:

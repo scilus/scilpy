@@ -47,7 +47,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import transform_warp_sft
+from scilpy.tractograms.tractogram_operations import transform_warp_sft
 
 
 def _build_arg_parser():

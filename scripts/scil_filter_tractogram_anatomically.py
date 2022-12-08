@@ -55,11 +55,6 @@ import nibabel as nib
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
 
-from scilpy.segment.streamlines import filter_grid_roi
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-from scilpy.tracking.tools import filter_streamlines_by_length
-from scilpy.utils.streamlines import (filter_tractogram_data, difference,
-                                      perform_streamlines_operation)
 from scilpy.io.image import get_data_as_label, get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
@@ -68,6 +63,12 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.segment.streamlines import filter_grid_roi
+from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tracking.tools import filter_streamlines_by_length
+from scilpy.tractograms.tractogram_operations import (
+    difference, perform_streamlines_operation)
+from scilpy.utils.streamlines import filter_tractogram_data
 
 EPILOG = """
     References:

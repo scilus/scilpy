@@ -55,11 +55,10 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (difference_robust, difference,
-                                      union_robust, union,
-                                      intersection_robust, intersection,
-                                      perform_streamlines_operation,
-                                      concatenate_sft)
+from scilpy.tractograms.tractogram_operations import (
+    difference_robust, difference, union_robust, union,
+    intersection_robust, intersection, perform_streamlines_operation,
+    concatenate_sft)
 
 
 OPERATIONS = {

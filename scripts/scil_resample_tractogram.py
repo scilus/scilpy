@@ -40,7 +40,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_outputs_exist)
 from scilpy.tracking.tools import (split_sft_randomly,
                                    split_sft_randomly_per_cluster)
-from scilpy.utils.streamlines import upsample_tractogram
+from scilpy.tractograms.tractogram_operations import upsample_tractogram
 
 
 def _build_arg_parser():
