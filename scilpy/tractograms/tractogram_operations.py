@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module regroups small operations and util functions for tractogram.
+Meaning that these operations are applied on the streamlines as wholes (ex,
+registration, suffling, etc), not on each point of the streamlines separately /
+individually. See scilpy.tractograms.streamline_operations.py for the later.
+"""
+
 import itertools
 from functools import reduce
 import logging
@@ -44,9 +51,7 @@ def flip_sft(sft, flip_axes):
 
     flipped_streamlines = []
 
-    streamlines = sft.streamlines
-
-    for streamline in streamlines:
+    for streamline in sft.streamlines:
         mod_streamline = streamline + shift_vector
         mod_streamline *= flip_vector
         mod_streamline -= shift_vector
@@ -114,11 +119,7 @@ def difference(left, right):
 
 def union(left, right):
     """Union of two streamlines dict (see hash_streamlines)"""
-
-    # In python 3 : return {**left, **right}
-    result = right.copy()
-    result.update(left)
-    return result
+    return {**left, **right}
 
 
 def perform_streamlines_operation(operation, streamlines, precision=None):
@@ -151,9 +152,7 @@ def perform_streamlines_operation(operation, streamlines, precision=None):
         input streamlines.
     indices: np.ndarray
         The indices of the streamlines that are used in the output.
-
     """
-
     # Hash the streamlines using the desired precision.
     indices = np.cumsum([0] + [len(s) for s in streamlines[:-1]])
     hashes = [hash_streamlines(s, i, precision) for
@@ -172,8 +171,8 @@ def intersection_robust(streamlines_list, precision=3):
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
 
-    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
-                                                            epsilon=10**(-precision))
+    streamlines_fused, indices = find_identical_streamlines(
+        streamlines_list, epsilon=10**(-precision))
     return streamlines_fused[indices], indices
 
 
@@ -181,9 +180,8 @@ def difference_robust(streamlines_list, precision=3):
     """ Difference of a list of StatefulTractogram from the first element """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
-    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
-                                                            epsilon=10**(-precision),
-                                                            difference_mode=True)
+    streamlines_fused, indices = find_identical_streamlines(
+        streamlines_list, epsilon=10**(-precision), difference_mode=True)
     return streamlines_fused[indices], indices
 
 
@@ -191,9 +189,8 @@ def union_robust(streamlines_list, precision=3):
     """ Union of a list of StatefulTractogram """
     if not isinstance(streamlines_list, list):
         streamlines_list = [streamlines_list]
-    streamlines_fused, indices = find_identical_streamlines(streamlines_list,
-                                                            epsilon=10**(-precision),
-                                                            union_mode=True)
+    streamlines_fused, indices = find_identical_streamlines(
+        streamlines_list, epsilon=10**(-precision), union_mode=True)
     return streamlines_fused[indices], indices
 
 
@@ -248,8 +245,8 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
             break
 
         # Find the closest (first) points
-        distance_ind = all_tree[len(streamline)].query_ball_point(streamline[0],
-                                                                  r=2*epsilon)
+        distance_ind = all_tree[len(streamline)].query_ball_point(
+            streamline[0], r=2*epsilon)
         actual_ind = np.sort(all_tree_mapping[len(streamline)][distance_ind])
 
         # Intersection requires finding matches is all sets
@@ -265,11 +262,11 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
                 # 1) Yourself is not a match
                 # 2) If the streamline hasn't been selected (by another match)
                 # 3) The streamline is 'identical'
-                if i != j and streamlines_to_keep[i] == inversion_val \
-                        and (norm < 2*epsilon).all():
+                if (i != j and streamlines_to_keep[i] == inversion_val
+                        and (norm < 2*epsilon).all()):
                     streamlines_to_keep[j] = not inversion_val
-                    average_match_distance.append(np.average(sub_vector,
-                                                             axis=0))
+                    average_match_distance.append(
+                        np.average(sub_vector, axis=0))
             elif difference_mode:
                 # 1) Yourself is not a match
                 # 2) The streamline is 'identical'
@@ -282,12 +279,12 @@ def find_identical_streamlines(streamlines_list, epsilon=0.001,
                         # If it is the first 'encounter' add it
                         if streamlines_to_keep[actual_ind].all():
                             streamlines_to_keep[j] = not inversion_val
-                            average_match_distance.append(np.average(sub_vector,
-                                                                     axis=0))
+                            average_match_distance.append(
+                                np.average(sub_vector, axis=0))
                     else:
                         streamlines_to_keep[actual_ind] = not inversion_val
-                        average_match_distance.append(np.average(sub_vector,
-                                                                 axis=0))
+                        average_match_distance.append(
+                            np.average(sub_vector, axis=0))
             else:
                 # 1) The streamline is 'identical'
                 if (norm < 2*epsilon).all():
@@ -417,9 +414,10 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 def transform_warp_sft(sft, linear_transfo, target, inverse=False,
                        reverse_op=False, deformation_data=None,
                        remove_invalid=True, cut_invalid=False):
-    """ Transform tractogram using a affine Subsequently apply a warp from
+    """
+    Transforms a tractogram using a affine Subsequently apply a warp from
     antsRegistration (optional).
-    Remove/Cut invalid streamlines to preserve sft validity.
+    Removes/Cuts invalid streamlines to preserve sft validity.
 
     Parameters
     ----------
@@ -435,7 +433,6 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
         Apply both transformation in the reverse order
     deformation_data: np.ndarray
         4D array containing a 3D displacement vector in each voxel.
-
     remove_invalid: boolean
         Remove the streamlines landing out of the bounding box.
     cut_invalid: boolean
@@ -445,9 +442,7 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     Return
     ----------
     new_sft : StatefulTractogram
-
     """
-
     # Keep track of the streamlines' original space/origin
     space = sft.space
     origin = sft.origin
@@ -509,8 +504,7 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
             nb_iteration -= 1
 
     if reverse_op:
-        streamlines = transform_streamlines(streamlines,
-                                            linear_transfo)
+        streamlines = transform_streamlines(streamlines, linear_transfo)
 
     streamlines._data = streamlines._data.astype(dtype)
     new_sft = StatefulTractogram(streamlines, target, Space.RASMM,
@@ -531,12 +525,10 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     return new_sft
 
 
-def upsample_tractogram(
-    sft, nb, point_wise_std=None,
-    streamline_wise_std=None, gaussian=None, spline=None, seed=None
-):
+def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
+                        gaussian=None, spline=None, seed=None):
     """
-    Generate new streamlines by either adding gaussian noise around
+    Generates new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
     by a random amount.
 
@@ -583,15 +575,13 @@ def upsample_tractogram(
     for s in sft.streamlines[indices]:
         if point_wise_std:
             noise = rng.normal(scale=point_wise_std, size=s.shape)
-        elif streamline_wise_std:
-            noise = rng.normal(
-                scale=streamline_wise_std, size=s.shape[-1])
+        else:  # streamline_wise_std
+            noise = rng.normal(scale=streamline_wise_std, size=s.shape[-1])
         new_s = s + noise
         if gaussian:
             new_s = smooth_line_gaussian(new_s, gaussian)
         elif spline:
-            new_s = smooth_line_spline(new_s, spline[0],
-                                       spline[1])
+            new_s = smooth_line_spline(new_s, spline[0], spline[1])
 
         new_streamlines.append(new_s)
 
