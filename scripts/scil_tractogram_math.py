@@ -43,9 +43,7 @@ import logging
 import os
 
 from dipy.io.streamline import save_tractogram
-from dipy.io.utils import is_header_compatible
 import nibabel as nib
-from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -55,6 +53,7 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
     difference_robust, difference, union_robust, union,
     intersection_robust, intersection, perform_streamlines_operation,
@@ -140,33 +139,7 @@ def main():
         if os.path.isfile(args.out_tractogram) and args.overwrite:
             os.remove(args.out_tractogram)
 
-        def list_generator_from_nib(filenames):
-            for in_file in filenames:
-                logging.info("Lazy-loading file {}".format(in_file))
-                tractogram_file = nib.streamlines.load(in_file, lazy_load=True)
-                for s in tractogram_file.streamlines:
-                    yield s
-
-        # Verifying headers
-        # Header will stay None for tck output. Will become a trk header (for
-        # trk output) if we find at least one trk input.
-        header = None
-        for in_file in args.in_tractograms:
-            _, ext = os.path.splitext(in_file)
-            if ext == '.trk' and out_ext == '.trk':
-                if header is None:
-                    header = nib.streamlines.load(
-                        in_file, lazy_load=True).header
-                elif not is_header_compatible(header, in_file):
-                    logging.warning('Incompatible headers in the list.')
-
-        if out_ext == '.trk' and header is None:
-            raise ValueError("No trk file encountered in the input list. "
-                             "Result cannot be saved as a .trk.")
-
-        generator = list_generator_from_nib(args.in_tractograms)
-        out_tractogram = LazyTractogram(lambda: generator,
-                                        affine_to_rasmm=np.eye(4))
+        out_tractogram, header = lazy_concatenate(args.in_tractograms, out_ext)
         nib.streamlines.save(out_tractogram, args.out_tractogram,
                              header=header)
         return

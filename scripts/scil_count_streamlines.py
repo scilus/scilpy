@@ -11,7 +11,8 @@ import json
 import os
 
 from scilpy.io.utils import add_json_args, assert_inputs_exist
-from scilpy.tractograms.tractogram_operations import lazy_streamlines_count
+from scilpy.tractograms.lazy_tractogram_operations import \
+    lazy_streamlines_count
 
 
 def _build_arg_parser():

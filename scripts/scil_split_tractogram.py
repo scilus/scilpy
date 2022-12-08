@@ -11,8 +11,6 @@ Optionally, you can split streamlines...
      on).
     - randomly, but per Quickbundles clusters.
 """
-
-
 import argparse
 import logging
 import os
