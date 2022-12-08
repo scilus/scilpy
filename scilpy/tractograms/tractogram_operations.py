@@ -9,6 +9,7 @@ individually. See scilpy.tractograms.streamline_operations.py for the later.
 
 import itertools
 import os
+import random
 from functools import reduce
 import logging
 
@@ -53,6 +54,21 @@ def lazy_streamlines_count(in_tractogram_path):
     tractogram_file = nib.streamlines.load(in_tractogram_path,
                                            lazy_load=True)
     return tractogram_file.header[key]
+
+
+def shuffle_streamlines(sft, rng_seed=None):
+    indices = np.arange(len(sft.streamlines))
+    random.shuffle(indices, random=rng_seed)
+
+    streamlines = sft.streamlines[indices]
+    data_per_streamline = sft.data_per_streamline[indices]
+    data_per_point = sft.data_per_point[indices]
+
+    shuffled_sft = StatefulTractogram.from_sft(
+        streamlines, sft,
+        data_per_streamline=data_per_streamline,
+        data_per_point=data_per_point)
+    return shuffled_sft
 
 
 def get_axis_flip_vector(flip_axes):
