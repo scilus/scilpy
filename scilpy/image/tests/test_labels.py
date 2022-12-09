@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
+from glob import glob
+import os
 
+import nibabel as nib
 import numpy as np
 from numpy.testing import (assert_,
                            assert_equal,
@@ -108,3 +111,38 @@ def test_dilate_labels_without_mask():
 
     for i, val in enumerate([544, 156, 36, 36, 36, 36, 156]):
         assert len(out_labels[out_labels == i]) == val
+
+
+def test_get_data_as_labels_int():
+    data = np.zeros((2, 2, 2), dtype=np.int64)
+    img = nib.Nifti1Image(data, np.eye(4))
+    img.set_filename('test.nii.gz')
+
+    _ = get_data_as_labels(img)
+
+    img.set_data_dtype(np.uint8)
+    _ = get_data_as_labels(img)
+
+    img.set_data_dtype(np.uint16)
+    _ = get_data_as_labels(img)
+
+
+def test_get_data_as_labels_float():
+    data = np.zeros((2, 2, 2), dtype=np.float64)
+    img = nib.Nifti1Image(data, np.eye(4))
+    img.set_filename('test.nii.gz')
+
+    with pytest.raises(Exception):
+        _ = get_data_as_labels(img)
+
+    img.set_data_dtype(np.float32)
+    with pytest.raises(Exception):
+        _ = get_data_as_labels(img)
+
+
+def test_get_lut_dir():
+    lut_dir = get_lut_dir()
+    assert os.path.isdir(lut_dir)
+
+    lut_files = glob(os.path.join(lut_dir, '*.json'))
+    assert len(lut_files) == 3
