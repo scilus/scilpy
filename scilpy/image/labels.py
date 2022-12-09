@@ -70,7 +70,7 @@ def split_labels(labels_volume, label_indices):
         One 3D volume per label.
     """
     split_data = []
-    for label in label_indices:
+    for label in np.unique(label_indices):
         label_occurences = np.where(labels_volume == int(label))
         if len(label_occurences) != 0:
             split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
@@ -82,7 +82,7 @@ def split_labels(labels_volume, label_indices):
     return split_data
 
 
-def remove_labels(labels_volume, indices, background):
+def remove_labels(labels_volume, label_indices, background_id=0):
     """
     Remove given labels from the volume.
 
@@ -90,14 +90,14 @@ def remove_labels(labels_volume, indices, background):
     ----------
     labels_volume: np.ndarray
         The volume (as labels).
-    indices: list
+    label_indices: list
         List of labels indices to remove.
     background: int
         Value used for removed labels
     """
-    for index in np.unique(indices):
+    for index in np.unique(label_indices):
         mask = labels_volume == index
-        labels_volume[mask] = background
+        labels_volume[mask] = background_id
         if np.count_nonzero(mask) == 0:
             logging.warning("Label {} was not in the volume".format(index))
     return labels_volume

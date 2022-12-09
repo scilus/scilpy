@@ -146,3 +146,22 @@ def test_get_lut_dir():
 
     lut_files = glob(os.path.join(lut_dir, '*.json'))
     assert len(lut_files) == 3
+
+
+def test_remove_labels():
+    in_labels = deepcopy(ref_in_labels)
+    out_labels = remove_labels(in_labels, [3, 4, 5, 6, 7, 7])
+
+    exp_labels = deepcopy(ref_in_labels)
+    exp_labels[exp_labels >= 3] = 0
+
+    assert_equal(out_labels, exp_labels)
+
+
+def test_split_labels():
+    in_labels = deepcopy(ref_in_labels)
+    out_labels = split_labels(in_labels, [6, 7, 7])
+
+    assert len(out_labels) == 2
+    assert_equal(np.unique(out_labels[0]), [0, 6])
+    assert_equal(np.unique(out_labels[1]), [0])
