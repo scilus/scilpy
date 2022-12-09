@@ -45,7 +45,8 @@ import nibabel as nib
 import numpy as np
 from scipy import ndimage
 
-from scilpy.io.image import get_data_as_label, get_data_as_mask
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -225,7 +226,7 @@ def main():
             if filter_type == 'drawn_roi':
                 mask = get_data_as_mask(img)
             else:
-                atlas = get_data_as_label(img)
+                atlas = get_data_as_labels(img)
                 mask = np.zeros(atlas.shape, dtype=np.uint16)
 
                 if ' ' in filter_arg_2:

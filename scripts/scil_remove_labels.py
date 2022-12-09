@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-    Script to remove specific labels from a atlas volumes.
+    Script to remove specific labels from an atlas volume.
 
     >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
 """
@@ -14,7 +14,7 @@ import logging
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels, remove_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 EPILOG = """
@@ -53,14 +53,9 @@ def main():
 
     # Load volume
     label_img = nib.load(args.in_labels)
-    labels_volume = get_data_as_label(label_img)
+    labels_volume = get_data_as_labels(label_img)
 
-    # Remove given labels from the volume
-    for index in np.unique(args.indices):
-        mask = labels_volume == index
-        labels_volume[mask] = args.background
-        if np.count_nonzero(mask) == 0:
-            logging.warning("Label {} was not in the volume".format(index))
+    labels_volume = remove_labels(labels_volume, args.indices, args.background)
 
     # Save final volume
     nii = nib.Nifti1Image(labels_volume, label_img.affine, label_img.header)

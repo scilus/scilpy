@@ -73,30 +73,3 @@ def get_data_as_mask(in_img, dtype=np.uint8):
                       'with a mask'.format(basename, curr_type))
 
     return data
-
-
-def get_data_as_label(in_img):
-    """
-    Get data as label (force type np.uint16), check data type before casting.
-
-    Parameters
-    ----------
-    in_img: nibabel.nifti1.Nifti1Image
-        Image.
-
-    Return
-    ------
-
-    data: numpy.ndarray
-        Data (dtype: np.uint16).
-    """
-
-    curr_type = in_img.get_data_dtype()
-    basename = os.path.basename(in_img.get_filename())
-    if np.issubdtype(curr_type, np.signedinteger) or \
-       np.issubdtype(curr_type, np.unsignedinteger):
-        return np.asanyarray(in_img.dataobj).astype(np.uint16)
-    else:
-        raise IOError('The image {} cannot be loaded as label because '
-                      'its format {} is not compatible with a label '
-                      'image'.format(basename, curr_type))
