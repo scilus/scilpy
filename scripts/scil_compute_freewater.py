@@ -184,10 +184,6 @@ def main():
         ae.load_kernels()
 
         # Set number of processes
-        solver_params = ae.get_config('solver_params')
-        solver_params['numThreads'] = args.nbr_processes
-        ae.set_config('solver_params', solver_params)
-
         ae.set_config('doNormalizeSignal', True)
         ae.set_config('doKeepb0Intact', False)
         ae.set_config('doComputeNRMSE', True)

@@ -34,7 +34,7 @@ setuptools==65.5.*
 scikit-learn==1.2.*
 scipy==1.9.*
 six==1.16.*
-spams==2.6.5.2
+spams==2.6.*
 statsmodels==0.13.*
 trimeshpy==0.0.2
 vtk==9.2.*

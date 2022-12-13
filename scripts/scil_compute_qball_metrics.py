@@ -157,7 +157,7 @@ def main():
                                 sh_basis_type=args.sh_basis,
                                 npeaks=5,
                                 parallel=parallel,
-                                nbr_processes=nbr_processes)
+                                num_processes=nbr_processes)
 
     if args.gfa:
         nib.save(nib.Nifti1Image(odfpeaks.gfa.astype(np.float32), img.affine),
