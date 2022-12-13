@@ -92,7 +92,7 @@ def remove_labels(labels_volume, label_indices, background_id=0):
         The volume (as labels).
     label_indices: list
         List of labels indices to remove.
-    background: int
+    background_id: int
         Value used for removed labels
     """
     for index in np.unique(label_indices):

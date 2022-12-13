@@ -6,23 +6,13 @@ import os
 
 import nibabel as nib
 import numpy as np
-from numpy.testing import (assert_,
-                           assert_equal,
-                           assert_array_almost_equal,
-                           assert_raises)
+from numpy.testing import assert_equal
 import pytest
 
 from scilpy.image.labels import (combine_labels, dilate_labels,
                                  get_data_as_labels, get_lut_dir,
                                  remove_labels, split_labels)
-
-ref_in_labels = np.zeros((10, 10, 10), dtype=np.uint16)
-for i in range(2, 8):
-    ref_in_labels[2:8, 2:8, i] = i-1
-
-ref_out_labels = deepcopy(ref_in_labels)
-for i in range(1, 8, 2):
-    ref_out_labels[ref_out_labels == i] = 0
+from scilpy.tests.arrays import ref_in_labels, ref_out_labels
 
 
 def test_combine_labels_all_labels():
