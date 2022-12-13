@@ -1,4 +1,4 @@
-From python:3.7
+From python:3.10
 
 RUN apt-get update
 RUN apt-get -y upgrade
@@ -18,4 +18,4 @@ RUN mv scilpy-${SCILPY_VERSION} scilpy
 WORKDIR /scilpy
 RUN pip install -e .
 
-RUN sed -i '41s/.*/backend : Agg/' /usr/local/lib/python3.7/site-packages/matplotlib/mpl-data/matplotlibrc
+RUN sed -i '41s/.*/backend : Agg/' /usr/local/lib/python3.10/site-packages/matplotlib/mpl-data/matplotlibrc
