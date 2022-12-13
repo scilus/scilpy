@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 from scipy.sparse import bsr_matrix
 
 

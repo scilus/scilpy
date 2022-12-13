@@ -3,7 +3,7 @@ import logging
 import multiprocessing
 
 from scilpy.direction.peaks import peak_directions_asym
-from scipy.sparse.linalg.eigen.arpack import ArpackNoConvergence
+from scipy.sparse.linalg import ArpackNoConvergence
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit

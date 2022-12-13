@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import io
 import logging
+import hashlib
 import os
 import pathlib
 
@@ -106,6 +107,12 @@ def fetch_data(files_dict, keys=None):
                 r = requests.get(url, params={'confirm': 't'})
                 z = zipfile.ZipFile(io.BytesIO(r.content))
 
+                with open(full_path, 'rb') as file_to_check:
+                    data = file_to_check.read()    
+                    md5_returned = hashlib.md5(data).hexdigest()
+                if md5_returned != md5:
+                    logging.warning('MD5 mismatch for file {}.'.format(f))
+
                 try:
                     # When we extract in full_path, it creates, ex
                     # home/tracking/tracking/files. We want to skip one level.
@@ -121,7 +128,6 @@ def fetch_data(files_dict, keys=None):
                 except AssertionError:
                     # Not root dir. Extracting directly.
                     z.extractall(full_path)
-
             else:
                 raise NotImplementedError("Data fetcher was expecting to deal "
                                           "with a zip file.")

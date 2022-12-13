@@ -53,7 +53,7 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi

@@ -22,7 +22,7 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,

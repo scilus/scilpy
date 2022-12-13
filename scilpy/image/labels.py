@@ -4,7 +4,7 @@ import logging
 import os
 
 import numpy as np
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 
 
 def get_data_as_labels(in_img):
