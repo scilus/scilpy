@@ -68,7 +68,10 @@ def get_testing_files_dict():
              'bcc21835cf0bf7210bdc99ba5d8df44b'],
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
-             '6f0eff5154ff0973a3dc26db00e383ea']}
+             '6f0eff5154ff0973a3dc26db00e383ea'],
+            'fodf_filtering.zip':
+            ['1iyoX2ltLOoLer-v-49LHOzopHCFZ_Tv6',
+             'e79c4291af584fdb25814aa7b403a6ce']}
 
 
 def fetch_data(files_dict, keys=None):
