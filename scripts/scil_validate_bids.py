@@ -148,12 +148,12 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
     if 'TotalReadoutTime' in curr_dwi.entities:
-        related_files = layout.get_IntendedFor(IntendedFor=IntendedForPath,
-                                               regex_search=True,
-                                               TotalReadoutTime=totalreadout)
+        related_files = layout.get(IntendedFor=IntendedForPath,
+                                   regex_search=True,
+                                   TotalReadoutTime=totalreadout)
     else:
-        related_files = layout.get_IntendedFor(IntendedFor=IntendedForPath,
-                                               regex_search=True)
+        related_files = layout.get(IntendedFor=IntendedForPath,
+                                   regex_search=True)
 
     if len(related_files) == 1 and related_files[0].suffix == 'epi' and len(dwis) == 1:
         # Usual use case - 1 DWI + 1 fmap
