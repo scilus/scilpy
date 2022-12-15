@@ -131,6 +131,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
     totalreadout = default_readout
     PE = ['todo', '']
     topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
+    topup = ['', '']
     nSess = 0
     nRun = 0
 
