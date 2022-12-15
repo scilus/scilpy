@@ -177,14 +177,14 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
         for curr_related in related_files:
             if direction:
-                if dwi_direction == curr_related.entities[direction][::-1]:
+                if dwi_direction == curr_related.entities['direction'][::-1]:
                     topup_suffix[curr_related.suffix][1] = curr_related.path
-                elif dwi_direction == curr_related.entities[direction]:
+                elif dwi_direction == curr_related.entities['direction']:
                     topup_suffix[curr_related.suffix][0] = curr_related.path
             else:
-                if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities[direction]):
+                if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities['PhaseEncodingDirection']):
                     topup_suffix[curr_related.suffix][1] = curr_related.path
-                elif dwi_direction == curr_related.entities[direction]:
+                elif dwi_direction == curr_related.entities['PhaseEncodingDirection']:
                     topup_suffix[curr_related.suffix][0] = curr_related.path
 
         if len(dwis) == 2:
