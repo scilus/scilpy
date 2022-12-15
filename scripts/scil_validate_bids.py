@@ -22,7 +22,16 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_outputs_exist)
 
 
-conversion = {"i": "x", "j": "y", "k": "z", "LR": "x", "AP": "y"}
+conversion = {"i": "x",
+              "i": "x-",
+              "j": "y",
+              "j-": "y-",
+              "k": "z",
+              "k": "z-",
+              "LR": "x",
+              "RL": "x-",
+              "AP": "y",
+              "PA": "y-"}
 
 
 def _build_arg_parser():
