@@ -145,6 +145,9 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             PE[1] = conversion[dwis[1].entities['PhaseEncodingDirection']]
 
     curr_dwi = dwis[0]
+    dwi_path[0] = curr_dwi.path
+    bvec_path[0] = layout.get_bvec(curr_dwi.path)
+    bval_path[0] = layout.get_bval(curr_dwi.path)
     PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
 
     if 'TotalReadoutTime' in curr_dwi.entities:
