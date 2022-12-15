@@ -200,10 +200,10 @@ def get_data(nSub, layout, dwis, t1s, fs, default_readout, clean):
             else:
                 topup = ['', '']
         else:
-            print("""
-                  BIDS structure unkown.Please send an issue:
-                  https://github.com/scilus/scilpy/issues
-                  """)
+            logging.warning("""
+                            BIDS structure unkown.Please send an issue:
+                            https://github.com/scilus/scilpy/issues
+                            """)
 
     # T1 setup
     t1_path = 'todo'
@@ -353,7 +353,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [], args.bidsignore)
+    assert_inputs_exist(parser, [], args.bids_ignore)
     assert_outputs_exist(parser, args, args.out_json)
 
     log_level = logging.INFO if args.verbose else logging.WARNING
@@ -363,7 +363,7 @@ def main():
     data = []
     layout = BIDSLayout(args.in_bids, validate=False,
                         ignore=_load_bidsignore_(args.in_bids,
-                                                 args.bidsignore))
+                                                 args.bids_ignore))
     subjects = layout.get_subjects()
     subjects.sort()
 
