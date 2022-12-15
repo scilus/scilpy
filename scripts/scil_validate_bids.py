@@ -9,6 +9,7 @@ import os
 
 import argparse
 from bids import BIDSLayout
+from bids.layout import Query
 from glob import glob
 import json
 import logging
@@ -17,7 +18,11 @@ import pathlib
 import coloredlogs
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+                             assert_inputs_exist,
                              assert_outputs_exist)
+
+
+conversion = {"i": "x", "j": "y", "k": "z", "LR": "x", "AP": "y"}
 
 
 def _build_arg_parser():
@@ -31,15 +36,13 @@ def _build_arg_parser():
     p.add_argument("out_json",
                    help="Output json file.")
 
+    p.add_argument('--bids_ignore',
+                   help="If you want to ignore some subjects or some files, "
+                        "you can provide an extra bidsignore file.")
+
     p.add_argument("--fs",
                    help='Output freesurfer path. It will add keys wmparc and '
                         'aparc+aseg.')
-
-    p.add_argument('--participants_label', nargs="+",
-                   help='The label(s) of the specific participant(s) you'
-                        ' want to be be analyzed. Participants should not '
-                        'include "sub-". If this parameter is not provided all'
-                        ' subjects should be analyzed.')
 
     p.add_argument('--clean',
                    action='store_true',
@@ -55,15 +58,22 @@ def _build_arg_parser():
     return p
 
 
-def _load_bidsignore_(bids_root):
+def _load_bidsignore_(bids_root, additional_bidsignore=None):
     """Load .bidsignore file from a BIDS dataset, returns list of regexps"""
     bids_root = pathlib.Path(bids_root)
     bids_ignore_path = bids_root / ".bidsignore"
+    bids_ignores = []
     if bids_ignore_path.exists():
+        bids_ignores =  bids_ignores +\
+                bids_ignore_path.read_text().splitlines()
+
+    if additional_bidsignore:
+        bids_ignores = bids_ignores + \
+            additional_bidsignore.read_text().splitlines()
+
+    if bids_ignores:
         import re
         import fnmatch
-
-        bids_ignores = bids_ignore_path.read_text().splitlines()
         return tuple(
             [
                 re.compile(fnmatch.translate(bi))
@@ -74,97 +84,14 @@ def _load_bidsignore_(bids_root):
     return tuple()
 
 
-def get_metadata(bf):
-    """ Return the metadata of a BIDSFile
-
-    Parameters
-    ----------
-    bf : BIDSFile object
-
-    Returns
-    -------
-    Dictionnary containing the metadata
-    """
-    filename = bf.path.replace(
-        bf.entities['extension'], '')
-
-    with open(filename + '.json', 'r') as handle:
-        return json.load(handle)
+def get_opposite_phase_encoding_direction(phase_encoding_direction):
+    if len(phase_encoding_direction) == 2:
+        return phase_encoding_direction[:-1]
+    else:
+        return phase_encoding_direction+'-'
 
 
-def get_dwi_associations(fmaps, bvals, bvecs, sbrefs):
-    """ Return DWI associations
-
-    Parameters
-    ----------
-    fmaps : List of BIDSFile object
-        List of field maps
-
-    bvals : List of BIDSFile object
-        List of b-value files
-
-    bvecs : List of BIDSFile object
-        List of b-vector files
-
-    sbrefs : List of BIDSFile object
-        List of sbref files
-
-    Returns
-    -------
-    Dictionnary containing the files associated to a DWI
-    {dwi_filename: {'bval': bval_filename,
-                    'bvec': bvec_filename,
-                    'fmap': fmap_filename}}
-    """
-    associations = {}
-
-    # Associate b-value files
-    for bval in bvals:
-        dwi_filename = os.path.basename(bval.path).replace('.bval', '.nii.gz')
-        if dwi_filename not in associations.keys():
-            associations[dwi_filename] = {"bval": bval.path}
-        else:
-            associations[dwi_filename]["bval"] = bval.path
-
-    # Associate b-vector files
-    for bvec in bvecs:
-        dwi_filename = os.path.basename(bvec.path).replace('.bvec', '.nii.gz')
-        if dwi_filename not in associations.keys():
-            associations[dwi_filename] = {"bvec": bvec.path}
-        else:
-            associations[dwi_filename]["bvec"] = bvec.path
-
-    # Associate field maps
-    for fmap in fmaps:
-        metadata = get_metadata(fmap)
-        if isinstance(metadata.get('IntendedFor', ''), list):
-            intended = metadata.get('IntendedFor', '')
-        else:
-            intended = [metadata.get('IntendedFor', '')]
-
-        for target in intended:
-            dwi_filename = os.path.basename(target)
-            if dwi_filename not in associations.keys():
-                associations[dwi_filename] = {'fmap': [fmap]}
-            elif 'fmap' in associations[dwi_filename].keys():
-                associations[dwi_filename]['fmap'].append(fmap)
-            else:
-                associations[dwi_filename]['fmap'] = [fmap]
-
-    # Associate sbref
-    for sbref in sbrefs:
-        dwi_filename = os.path.basename(sbref.path).replace('sbref', 'dwi')
-        if dwi_filename not in associations.keys():
-            associations[dwi_filename] = {'sbref': [sbref]}
-        elif 'sbref' in associations[dwi_filename].keys():
-            associations[dwi_filename]['sbref'].append(sbref)
-        else:
-            associations[dwi_filename]['sbref'] = [sbref]
-
-    return associations
-
-
-def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
+def get_data(nSub, dwis, t1s, fs, default_readout):
     """ Return subject data
 
     Parameters
@@ -172,14 +99,14 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
     nSub : String
         Subject name
 
-    dwi : list of BIDSFile object
+    dwis : list of BIDSFile object
         DWI objects
 
     t1s : List of BIDSFile object
         List of T1s associated to the current subject
 
-    associations : Dictionnary
-        Dictionnary containing files associated to the DWI
+    fs : List of fs paths
+        List of freesurfer path
 
     default_readout : Float
         Default readout time
@@ -188,106 +115,101 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
     -------
     Dictionnary containing the metadata
     """
+
     bvec_path = ['todo', '']
     bval_path = ['todo', '']
     dwi_path = ['todo', '']
+    totalreadout = default_readout
     PE = ['todo', '']
-    topup_fmap = ['', '']
-    topup_sbref = ['', '']
+    topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
     fmaps = ['', '']
     sbref = ['', '']
     nSess = 0
-    if 'session' in dwi[0].entities:
-        nSess = dwi[0].entities['session']
-
     nRun = 0
-    if 'run' in dwi[0].entities:
-        nRun = dwi[0].entities['run']
 
-    for index, curr_dwi in enumerate(dwi):
-        dwi_path[index] = curr_dwi.path
+    if len(dwis) == 2:
+        dwi_path[1] = dwis[1].path
+        bvec_path[1] = layout.get_bvec(dwis[1].path)
+        bval_path[1] = layout.get_bval(dwis[1].path)
+        if 'direction' in dwis[1].entities:
+            PE[1] = conversion[dwis[1].entities['direction']]
+        elif 'PhaseEncodingDirection' in dwis[1].entities:
+            PE[1] = conversion[dwis[1].entities['PhaseEncodingDirection']]
 
-        if curr_dwi.filename in associations.keys():
-            if "bval" in associations[curr_dwi.filename].keys():
-                bval_path[index] = associations[curr_dwi.filename]['bval']
-            if "bvec" in associations[curr_dwi.filename].keys():
-                bvec_path[index] = associations[curr_dwi.filename]['bvec']
-            if "fmap" in associations[curr_dwi.filename].keys():
-                fmaps[index] = associations[curr_dwi.filename]['fmap']
-                if len(fmaps[index]) == 1 and isinstance(fmaps[index][0], list):
-                    fmaps[index] = [x for xs in fmaps[index] for x in xs]
-            if "sbref" in associations[curr_dwi.filename].keys():
-                sbref[index] = associations[curr_dwi.filename]['sbref']
-                if len(sbref[index]) == 1 and isinstance(sbref[index][0], list):
-                    sbref[index] = [x for xs in sbref[index] for x in xs]
+    curr_dwi = dwi[0]
+    PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
 
-            conversion = {"i": "x", "j": "y", "k": "z"}
-            dwi_metadata = get_metadata(curr_dwi)
-            if 'PhaseEncodingDirection' in dwi_metadata and index == 0:
-                dwi_PE = dwi_metadata['PhaseEncodingDirection']
-                dwi_PE = dwi_PE.replace(dwi_PE[0], conversion[dwi_PE[0]])
-                if len(dwi_PE) == 1:
-                    PE[index] = dwi_PE
-                    PE[index+1] = dwi_PE + '-'
-                else:
-                    PE[index] = dwi_PE
-                    PE[index+1] = dwi_PE[0]
-            elif clean:
-                return {}
+    if 'TotalReadoutTime' in curr_dwi.entities:
+        totalreadout = curr_dwi.entities['TotalReadoutTime']
 
-        # Find b0 for topup, take the first one
-        # Check fMAP
-        totalreadout = default_readout
-        fmaps = [fmap for fmap in fmaps if fmap != '']
-        if not fmaps:
-            if 'TotalReadoutTime' in dwi_metadata:
-                totalreadout = dwi_metadata['TotalReadoutTime']
-        else:
-            if isinstance(fmaps[0], list):
-                fmaps = [x for xs in fmaps for x in xs]
+    if 'session' in curr_dwi.entities:
+        nSess = curr_dwi.entities['session']
 
-            for nfmap in fmaps:
-                nfmap_metadata = get_metadata(nfmap)
-                if 'PhaseEncodingDirection' in nfmap_metadata:
-                    fmap_PE = nfmap_metadata['PhaseEncodingDirection']
-                    fmap_PE = fmap_PE.replace(fmap_PE[0], conversion[fmap_PE[0]])
+    if 'run' in curr_dwi.entities:
+        nRun = curr_dwi.entities['run']
 
-                    opposite_PE = PE.index(fmap_PE)
-                    if 'TotalReadoutTime' in dwi_metadata:
-                        if 'TotalReadoutTime' in nfmap_metadata:
-                            dwi_RT = dwi_metadata['TotalReadoutTime']
-                            fmap_RT = nfmap_metadata['TotalReadoutTime']
-                            if dwi_RT != fmap_RT and totalreadout == '':
-                                totalreadout = 'error_readout'
-                                topup_fmap[opposite_PE] = 'error_readout'
-                            elif dwi_RT == fmap_RT:
-                                topup_fmap[opposite_PE] = nfmap.path
-                                totalreadout = dwi_RT
-                    else:
-                        topup_fmap[opposite_PE] = nfmap.path
-                        totalreadout = default_readout
-
-        if sbref[index] != '' and len(sbref[index]) == 1:
-            topup_sbref[index] = sbref[index][0].path
-
-    if len(dwi) == 2:
-        if not any(s == '' for s in topup_sbref):
-            topup = topup_sbref
-        elif not any(s == '' for s in topup_fmap):
-            topup = topup_fmap
-        else:
-            topup = ['', '']
-    elif len(dwi) == 1:
-        if topup_fmap[1] != '':
-            topup = topup_fmap
-        else:
-            topup = ['', '']
+    IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
+    if 'TotalReadoutTime' in curr_dwi.entities:
+        related_files = layout.get_IntendedFor(IntendedFor=IntendedForPath,
+                                               regex_search=True,
+                                               TotalReadoutTime=totalreadout)
     else:
-        print("""
-              BIDS structure unkown.Please send an issue:
-              https://github.com/scilus/scilpy/issues
-              """)
+        related_files = layout.get_IntendedFor(IntendedFor=IntendedForPath,
+                                               regex_search=True)
 
+    if len(related_files) == 1 and related_files[0].suffix == 'epi' and len(dwis) == 1:
+        # Usual use case - 1 DWI + 1 fmap
+        if 'direction' in curr_dwi.entities:
+            PE[0] = conversion[curr_dwi.entities['direction']]
+            if curr_dwi.entities['direction'][::-1] == related_files[0].entities['direction']:
+                topup_suffix['epi'][1] = related_files[0].path
+        elif 'PhaseEncodingDirection' in curr_dwi.entities:
+            PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
+            if curr_dwi.entities['PhaseEncodingDirection'] == get_opposite_phase_encoding_direction(related_files[0].entities['PhaseEncodingDirection']):
+                topup_suffix['epi'][1] = related_files[0].path
+            else:
+                topup_suffix['epi'][1] = related_files[0].path
+    elif len(related_files) >= 2:
+        direction = False
+        if 'direction' in curr_dwi.entities:
+            dwi_direction = curr_dwi.entities['direction']
+            direction = True
+        elif 'PhaseEncodingDirection' in curr_dwi.entities:
+            dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
+
+        for curr_related in related_files:
+            check_pe = False
+
+            if direction:
+                if dwi_direction == curr_related.entities[direction][::-1]:
+                    topup_suffix[curr_related.suffix][1] = curr_related.path
+                elif dwi_direction == curr_related.entities[direction]:
+                    topup_suffix[curr_related.suffix][0] = curr_related.path
+            else:
+                if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities[direction]):
+                    topup_suffix[curr_related.suffix][1] = curr_related.path
+                elif dwi_direction == curr_related.entities[direction]:
+                    topup_suffix[curr_related.suffix][0] = curr_related.path
+
+        if len(dwi) == 2:
+            if not any(s == '' for s in topup_suffix['sbref']):
+                topup = topup_suffix['sbref']
+            elif not any(s == '' for s in topup_suffix['epi']):
+                topup = topup_suffix['epi']
+            else:
+                topup = ['', '']
+        elif len(dwi) == 1:
+            if topup_suffix['epi'][1] != '':
+                topup = topup_suffix['epi']
+            else:
+                topup = ['', '']
+        else:
+            print("""
+                  BIDS structure unkown.Please send an issue:
+                  https://github.com/scilus/scilpy/issues
+                  """)
+
+    # T1 setup
     t1_path = 'todo'
     wmparc_path = ''
     aparc_aseg_path = ''
@@ -301,10 +223,10 @@ def get_data(nSub, dwi, t1s, fs, associations, default_readout, clean):
             return {}
 
         for t1 in t1s:
-            if 'session' in t1.get_entities().keys() and\
-                    t1.get_entities()['session'] == nSess:
-                t1_nSess.append(t1)
-            elif 'session' not in t1.get_entities().keys():
+            if 'session' in t1.entities:
+                if t1.entities['session'] == nSess:
+                    t1_nSess.append(t1)
+            else:
                 t1_nSess.append(t1)
 
         if len(t1_nSess) == 1:
@@ -337,69 +259,105 @@ def associate_dwis(layout, nSub):
         BIDS layout
     nSub: String
         Current subject to analyse
+
     Returns
     -------
     all_dwis: list
         List of dwi
     """
     all_dwis = []
-    if layout.get_sessions(subject=nSub):
-        for curr_sess in layout.get_sessions(subject=nSub):
-            dwis = layout.get(subject=nSub,
-                              session=curr_sess,
-                              datatype='dwi', extension='nii.gz',
-                              suffix='dwi')
+    base_dict = {'subject': nSub,
+                 'datatype': 'dwi',
+                  'extension': 'nii.gz',
+                  'suffix': 'dwi'}
 
-            if len(dwis) == 1:
-                all_dwis.append(dwis)
-            elif len(dwis) > 1:
-                all_runs = [curr_dwi.entities['run'] for curr_dwi in dwis if 'run' in curr_dwi.entities]
-                if all_runs:
-                    for curr_run in all_runs:
-                        dwis = layout.get(subject=nSub,
-                                          session=curr_sess,
-                                          run=curr_run,
-                                          datatype='dwi', extension='nii.gz',
-                                          suffix='dwi')
-                        if len(dwis) == 2:
-                            all_dwis.append(dwis)
-                        else:
-                            print("ERROR MORE DWI THAN EXPECTED")
-                elif len(dwis) == 2:
-                    all_dwis.append(dwis)
-                else:
-                    print(dwis)
-                    print("ERROR MORE DWI THAN EXPECTED")
-    else:
-        dwis = layout.get(subject=nSub,
-                          datatype='dwi', extension='nii.gz',
-                          suffix='dwi')
-        if len(dwis) == 1:
-            all_dwis.append(dwis)
-        elif len(dwis) > 1:
-            all_runs = [curr_dwi.entities['run'] for curr_dwi in dwis if 'run' in curr_dwi.entities]
-            if all_runs:
-                for curr_run in all_runs:
-                    dwis = layout.get(subject=nSub,
-                                      run=curr_run,
-                                      datatype='dwi', extension='nii.gz',
-                                      suffix='dwi')
-                    if len(dwis) <= 2:
-                        all_dwis.append(dwis)
-                    else:
-                        print("ERROR MORE DWI THAN EXPECTED")
-            elif len(dwis) == 2:
-                all_dwis.append(dwis)
-            else:
-                print("ERROR MORE DWI THAN EXPECTED")
+    # Get possible directions
+    phaseEncodingDirection = [Query.ANY, Query.ANY]
+    directions = layout.get_direction(**base_dict)
 
-    return all_dwis
+    if not directions and 'PhaseEncodingDirection' in layout.get_entities():
+        logging.warning("Found no directions.")
+        directions = [Query.ANY, Query.ANY]
+        phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
+        if len(phaseEncodingDirection) <= 1:
+            logging.warning("Found one phaseEncodingDirection.")
+            return layout.get(part=Query.NONE, **base_dict) +\
+                layout.get(part='mag', **base_dict)
+    elif len(directions) == 1:
+        logging.warning("Found one direction.")
+        return layout.get(part=Query.NONE, **base_dict) +\
+            layout.get(part='mag', **base_dict)
+    elif not directions:
+        logging.warning("Found no directions or PhaseEncodingDirections.")
+        return layout.get(part=Query.NONE, **base_dict) +\
+                layout.get(part='mag', **base_dict)
+
+    if len(phaseEncodingDirection) > 2 or len(directions) > 2:
+        logging.warning("These acquisitions have too many encoding directions.")
+        return []
+
+    all_dwis = layout.get(part=Query.NONE,
+                          PhaseEncodingDirection=phaseEncodingDirection[0],
+                          direction=directions[0],
+                          **base_dict) +\
+                layout.get(part='mag',
+                          PhaseEncodingDirection=phaseEncodingDirection[0],
+                          direction=directions[0],
+                          **base_dict)
+    all_rev_dwis = layout.get(part=Query.NONE,
+                              PhaseEncodingDirection=phaseEncodingDirection[1],
+                              direction=directions[1],
+                              **base_dict) +\
+                     layout.get(part='mag',
+                                PhaseEncodingDirection=phaseEncodingDirection[1],
+                                direction=directions[1],
+                                **base_dict)
+
+    all_associated_dwis = []
+    logging.warning('Number of dwi: {}'.format(len(all_dwis)))
+    logging.warning('Number of rev_dwi: {}'.format(len(all_rev_dwis)))
+    while len(all_dwis) > 0:
+        curr_dwi = all_dwis[0]
+
+        curr_association = [curr_dwi]
+        rev_curr_entity = curr_dwi.get_entities()
+
+        rev_iter_to_rm = []
+        for iter_rev, rev_dwi in enumerate(all_rev_dwis):
+            # At this stage, we need to check only direction
+            if 'direction' in curr_dwi.entities:
+                rev_curr_entity['direction'] = rev_curr_entity['direction'][::-1]
+                if  rev_curr_entity == rev_dwi.get_entities():
+                    curr_association.append(rev_dwi)
+                    rev_iter_to_rm.append(iter_rev)
+            elif curr_dwi.entities['PhaseEncodingDirection'] == rev_dwi.entities['PhaseEncodingDirection'][:-1] and rev_curr_entity == rev_dwi.get_entities():
+                curr_association.append(rev_dwi)
+                rev_iter_to_rm.append(iter_rev)
+
+        # drop all rev_dwi used
+        logging.warning('Checking dwi {}'.format(all_dwis[0]))
+        del all_dwis[0]
+        for item_to_remove in rev_iter_to_rm[::-1]:
+            logging.warning('Removing item {} from rev_dwi'.format(item_to_remove))
+            del all_rev_dwis[item_to_remove]
+
+        # Add to associated list
+        if len(curr_association) < 3:
+            all_associated_dwis.append(curr_association)
+        else:
+            logging.warning("These acquisitions have too many associated dwis.")
+    if len(all_rev_dwis):
+        for curr_rev_dwi in all_rev_dwis:
+            all_associated_dwis.append([curr_rev_dwi])
+
+    return all_associated_dwis
 
 
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    assert_inputs_exist(parser, [], args.bidsignore)
     assert_outputs_exist(parser, args, args.out_json)
 
     log_level = logging.INFO if args.verbose else logging.WARNING
@@ -408,12 +366,9 @@ def main():
 
     data = []
     layout = BIDSLayout(args.in_bids, validate=False,
-                        ignore=_load_bidsignore_(args.in_bids))
+                        ignore=_load_bidsignore_(args.in_bids,
+                                                 args.bidsignore))
     subjects = layout.get_subjects()
-
-    if args.participants_label:
-        subjects = [nSub for nSub in args.participants_label if nSub in subjects]
-
     subjects.sort()
 
     logging.info("Found {} subject(s)".format(len(subjects)))
@@ -438,30 +393,17 @@ def main():
         else:
             logging.info("# Looking for T1 files")
             t1s = layout.get(subject=nSub,
-                             datatype='anat', extension='nii.gz',
-                             suffix='T1w')
-
-        fmaps = layout.get(subject=nSub,
-                           datatype='fmap', extension='nii.gz',
-                           suffix='epi')
-
-        bvals = layout.get(subject=nSub,
-                           datatype='dwi', extension='bval',
-                           suffix='dwi')
-        bvecs = layout.get(subject=nSub,
-                           datatype='dwi', extension='bvec',
-                           suffix='dwi')
-        sbrefs = layout.get(subject=nSub,
-                            datatype='dwi', extension='nii.gz',
-                            suffix='sbref')
-
-        # Get associations relatives to DWIs
-        associations = get_dwi_associations(fmaps, bvals, bvecs, sbrefs)
+                            datatype='anat', extension='nii.gz',
+                            suffix='T1w')
 
         # Get the data for each run of DWIs
         for dwi in dwis:
-            data.append(get_data(nSub, dwi, t1s, fs_inputs, associations,
-                                 args.readout, args.clean))
+            data.append(get_data(nSub,
+                                 dwi,
+                                 t1s,
+                                 fs_inputs,
+                                 args.readout,
+                                 args.clean))
 
     if args.clean:
         data = [d for d in data if d]
