@@ -64,7 +64,7 @@ def _load_bidsignore_(bids_root, additional_bidsignore=None):
     bids_ignore_path = bids_root / ".bidsignore"
     bids_ignores = []
     if bids_ignore_path.exists():
-        bids_ignores =  bids_ignores +\
+        bids_ignores = bids_ignores +\
                 bids_ignore_path.read_text().splitlines()
 
     if additional_bidsignore:
@@ -91,7 +91,7 @@ def get_opposite_phase_encoding_direction(phase_encoding_direction):
         return phase_encoding_direction+'-'
 
 
-def get_data(nSub, dwis, t1s, fs, default_readout):
+def get_data(nSub, layout, dwis, t1s, fs, default_readout, clean):
     """ Return subject data
 
     Parameters
@@ -122,8 +122,6 @@ def get_data(nSub, dwis, t1s, fs, default_readout):
     totalreadout = default_readout
     PE = ['todo', '']
     topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
-    fmaps = ['', '']
-    sbref = ['', '']
     nSess = 0
     nRun = 0
 
@@ -136,7 +134,7 @@ def get_data(nSub, dwis, t1s, fs, default_readout):
         elif 'PhaseEncodingDirection' in dwis[1].entities:
             PE[1] = conversion[dwis[1].entities['PhaseEncodingDirection']]
 
-    curr_dwi = dwi[0]
+    curr_dwi = dwis[0]
     PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
 
     if 'TotalReadoutTime' in curr_dwi.entities:
@@ -178,8 +176,6 @@ def get_data(nSub, dwis, t1s, fs, default_readout):
             dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
 
         for curr_related in related_files:
-            check_pe = False
-
             if direction:
                 if dwi_direction == curr_related.entities[direction][::-1]:
                     topup_suffix[curr_related.suffix][1] = curr_related.path
@@ -191,14 +187,14 @@ def get_data(nSub, dwis, t1s, fs, default_readout):
                 elif dwi_direction == curr_related.entities[direction]:
                     topup_suffix[curr_related.suffix][0] = curr_related.path
 
-        if len(dwi) == 2:
+        if len(dwis) == 2:
             if not any(s == '' for s in topup_suffix['sbref']):
                 topup = topup_suffix['sbref']
             elif not any(s == '' for s in topup_suffix['epi']):
                 topup = topup_suffix['epi']
             else:
                 topup = ['', '']
-        elif len(dwi) == 1:
+        elif len(dwis) == 1:
             if topup_suffix['epi'][1] != '':
                 topup = topup_suffix['epi']
             else:
@@ -268,8 +264,8 @@ def associate_dwis(layout, nSub):
     all_dwis = []
     base_dict = {'subject': nSub,
                  'datatype': 'dwi',
-                  'extension': 'nii.gz',
-                  'suffix': 'dwi'}
+                 'extension': 'nii.gz',
+                 'suffix': 'dwi'}
 
     # Get possible directions
     phaseEncodingDirection = [Query.ANY, Query.ANY]
@@ -290,7 +286,7 @@ def associate_dwis(layout, nSub):
     elif not directions:
         logging.warning("Found no directions or PhaseEncodingDirections.")
         return layout.get(part=Query.NONE, **base_dict) +\
-                layout.get(part='mag', **base_dict)
+            layout.get(part='mag', **base_dict)
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
         logging.warning("These acquisitions have too many encoding directions.")
@@ -300,18 +296,18 @@ def associate_dwis(layout, nSub):
                           PhaseEncodingDirection=phaseEncodingDirection[0],
                           direction=directions[0],
                           **base_dict) +\
-                layout.get(part='mag',
-                          PhaseEncodingDirection=phaseEncodingDirection[0],
-                          direction=directions[0],
-                          **base_dict)
+        layout.get(part='mag',
+                   PhaseEncodingDirection=phaseEncodingDirection[0],
+                   direction=directions[0],
+                   **base_dict)
     all_rev_dwis = layout.get(part=Query.NONE,
                               PhaseEncodingDirection=phaseEncodingDirection[1],
                               direction=directions[1],
                               **base_dict) +\
-                     layout.get(part='mag',
-                                PhaseEncodingDirection=phaseEncodingDirection[1],
-                                direction=directions[1],
-                                **base_dict)
+        layout.get(part='mag',
+                   PhaseEncodingDirection=phaseEncodingDirection[1],
+                   direction=directions[1],
+                   **base_dict)
 
     all_associated_dwis = []
     logging.warning('Number of dwi: {}'.format(len(all_dwis)))
@@ -327,7 +323,7 @@ def associate_dwis(layout, nSub):
             # At this stage, we need to check only direction
             if 'direction' in curr_dwi.entities:
                 rev_curr_entity['direction'] = rev_curr_entity['direction'][::-1]
-                if  rev_curr_entity == rev_dwi.get_entities():
+                if rev_curr_entity == rev_dwi.get_entities():
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
             elif curr_dwi.entities['PhaseEncodingDirection'] == rev_dwi.entities['PhaseEncodingDirection'][:-1] and rev_curr_entity == rev_dwi.get_entities():
@@ -393,8 +389,8 @@ def main():
         else:
             logging.info("# Looking for T1 files")
             t1s = layout.get(subject=nSub,
-                            datatype='anat', extension='nii.gz',
-                            suffix='T1w')
+                             datatype='anat', extension='nii.gz',
+                             suffix='T1w')
 
         # Get the data for each run of DWIs
         for dwi in dwis:
