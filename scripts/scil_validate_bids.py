@@ -91,7 +91,7 @@ def get_opposite_phase_encoding_direction(phase_encoding_direction):
         return phase_encoding_direction+'-'
 
 
-def get_data(nSub, layout, dwis, t1s, fs, default_readout, clean):
+def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
     """ Return subject data
 
     Parameters
@@ -394,7 +394,8 @@ def main():
 
         # Get the data for each run of DWIs
         for dwi in dwis:
-            data.append(get_data(nSub,
+            data.append(get_data(layout,
+                                 nSub,
                                  dwi,
                                  t1s,
                                  fs_inputs,
