@@ -176,28 +176,26 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                    IntendedFor=IntendedForPath,
                                    regex_search=True)
 
+    direction = False
+    if 'direction' in curr_dwi.entities:
+        dwi_direction = curr_dwi.entities['direction']
+        direction = True
+    elif 'PhaseEncodingDirection' in curr_dwi.entities:
+        dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
+
+    PE[0] = conversion[dwi_direction]
+
     if len(related_files) == 1 and related_files[0].entities['suffix'] == 'epi' and len(dwis) == 1:
         # Usual use case - 1 DWI + 1 fmap
-        if 'direction' in curr_dwi.entities:
-            PE[0] = conversion[curr_dwi.entities['direction']]
-            if curr_dwi.entities['direction'][::-1] == related_files[0].entities['direction']:
+        if direction:
+            if dwi_direction[::-1] == related_files[0].entities['direction']:
                 topup_suffix['epi'][1] = related_files[0].path
         elif 'PhaseEncodingDirection' in curr_dwi.entities:
-            PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
-            if curr_dwi.entities['PhaseEncodingDirection'] == get_opposite_phase_encoding_direction(related_files[0].entities['PhaseEncodingDirection']):
+            if dwi_direction == get_opposite_phase_encoding_direction(related_files[0].entities['PhaseEncodingDirection']):
                 topup_suffix['epi'][1] = related_files[0].path
             else:
                 topup_suffix['epi'][1] = related_files[0].path
     elif len(related_files) >= 2:
-        direction = False
-        if 'direction' in curr_dwi.entities:
-            dwi_direction = curr_dwi.entities['direction']
-            direction = True
-        elif 'PhaseEncodingDirection' in curr_dwi.entities:
-            dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
-
-        PE[0] = conversion[dwi_direction]
-
         for curr_related in related_files:
             if direction:
                 if dwi_direction == curr_related.entities['direction'][::-1]:
