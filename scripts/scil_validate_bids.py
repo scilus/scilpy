@@ -23,11 +23,11 @@ from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
 
 
 conversion = {"i": "x",
-              "i": "x-",
+              "i-": "x-",
               "j": "y",
               "j-": "y-",
               "k": "z",
-              "k": "z-",
+              "k-": "z-",
               "LR": "x",
               "RL": "x-",
               "AP": "y",
@@ -148,7 +148,6 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
     dwi_path[0] = curr_dwi.path
     bvec_path[0] = layout.get_bvec(curr_dwi.path)
     bval_path[0] = layout.get_bval(curr_dwi.path)
-    PE[0] = conversion[curr_dwi.entities['PhaseEncodingDirection']]
 
     if 'TotalReadoutTime' in curr_dwi.entities:
         totalreadout = curr_dwi.entities['TotalReadoutTime']
@@ -161,11 +160,20 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
     if 'TotalReadoutTime' in curr_dwi.entities:
-        related_files = layout.get(IntendedFor=IntendedForPath,
+        related_files = layout.get(part="mag",
+                                   IntendedFor=IntendedForPath,
+                                   regex_search=True,
+                                   TotalReadoutTime=totalreadout) +\
+                        layout.get(part=Query.NONE,
+                                   IntendedFor=IntendedForPath,
                                    regex_search=True,
                                    TotalReadoutTime=totalreadout)
     else:
-        related_files = layout.get(IntendedFor=IntendedForPath,
+        related_files = layout.get(part="mag",
+                                   IntendedFor=IntendedForPath,
+                                   regex_search=True) +\
+                        layout.get(part=Query.NONE,
+                                   IntendedFor=IntendedForPath,
                                    regex_search=True)
 
     if len(related_files) == 1 and related_files[0].suffix == 'epi' and len(dwis) == 1:
