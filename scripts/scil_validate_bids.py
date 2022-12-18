@@ -201,7 +201,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         for curr_related in related_files:
             if direction:
                 if dwi_direction == curr_related.entities['direction'][::-1]:
-                    topup_suffix[curr_related.entities['suffix'][1] = curr_related.path
+                    topup_suffix[curr_related.entities['suffix']][1] = curr_related.path
                 elif dwi_direction == curr_related.entities['direction']:
                     topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
             else:
