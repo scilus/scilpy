@@ -176,7 +176,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                    IntendedFor=IntendedForPath,
                                    regex_search=True)
 
-    if len(related_files) == 1 and related_files[0].suffix == 'epi' and len(dwis) == 1:
+    if len(related_files) == 1 and related_files[0].entities['suffix'] == 'epi' and len(dwis) == 1:
         # Usual use case - 1 DWI + 1 fmap
         if 'direction' in curr_dwi.entities:
             PE[0] = conversion[curr_dwi.entities['direction']]
@@ -196,17 +196,19 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         elif 'PhaseEncodingDirection' in curr_dwi.entities:
             dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
 
+        PE[0] = conversion[dwi_direction]
+
         for curr_related in related_files:
             if direction:
                 if dwi_direction == curr_related.entities['direction'][::-1]:
-                    topup_suffix[curr_related.suffix][1] = curr_related.path
+                    topup_suffix[curr_related.entities['suffix'][1] = curr_related.path
                 elif dwi_direction == curr_related.entities['direction']:
-                    topup_suffix[curr_related.suffix][0] = curr_related.path
+                    topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
             else:
                 if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities['PhaseEncodingDirection']):
-                    topup_suffix[curr_related.suffix][1] = curr_related.path
+                    topup_suffix[curr_related.entities['suffix']][1] = curr_related.path
                 elif dwi_direction == curr_related.entities['PhaseEncodingDirection']:
-                    topup_suffix[curr_related.suffix][0] = curr_related.path
+                    topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
 
         if len(dwis) == 2:
             if not any(s == '' for s in topup_suffix['sbref']):
