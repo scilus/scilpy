@@ -6,8 +6,10 @@ import numpy as np
 import os
 import pytest
 import tempfile
+from shutil import copyfile
 
 from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
+from scilpy.tests.checks import assert_images_close
 from scilpy.tests.checks import assert_images_close
 
 
