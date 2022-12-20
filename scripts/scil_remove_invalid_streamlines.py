@@ -13,6 +13,7 @@ within the bounding box
 import argparse
 import logging
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
@@ -43,6 +44,8 @@ def _build_arg_parser():
     p.add_argument('--threshold', type=float, default=0.001,
                    help='Maximum distance between two points to be considered'
                         ' overlapping [%(default)s mm].')
+    p.add_argument('--no_empty', action='store_true',
+                   help='Do not save empty tractogram.')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -85,10 +88,15 @@ def main():
     if len(indices):
         new_sft = sft[indices]
     else:
-        new_sft = sft
+        new_sft = StatefulTractogram.from_sft([], sft)
+
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(new_sft)))
-    save_tractogram(new_sft, args.out_tractogram)
+
+    if not args.no_empty or len(new_sft) > 0:
+        save_tractogram(new_sft, args.out_tractogram)
+    else:
+        logging.warning('No valid streamline, not saving due to --no_empty.')
 
 
 if __name__ == "__main__":
