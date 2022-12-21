@@ -77,7 +77,6 @@ def _load_bidsignore_(bids_root, additional_bidsignore=None):
                 bids_ignore_path.read_text().splitlines()
 
     if additional_bidsignore:
-        bids_ignores = pathlib.Path(bids_ignores)
         bids_ignores = bids_ignores + \
             pathlib.Path(additional_bidsignore).read_text().splitlines()
 
