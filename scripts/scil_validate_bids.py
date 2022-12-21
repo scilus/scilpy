@@ -47,7 +47,8 @@ def _build_arg_parser():
 
     p.add_argument('--bids_ignore',
                    help="If you want to ignore some subjects or some files, "
-                        "you can provide an extra bidsignore file.")
+                        "you can provide an extra bidsignore file."
+                        "Check: https://github.com/bids-standard/bids-validator#bidsignore")
 
     p.add_argument("--fs",
                    help='Output freesurfer path. It will add keys wmparc and '
