@@ -8,7 +8,7 @@ Create a json file with DWI, T1 and fmap informations from BIDS folder
 import os
 
 import argparse
-from bids import BIDSLayout
+from bids import BIDSLayout, BIDSLayoutIndexer
 from bids.layout import Query
 from glob import glob
 import json
@@ -219,7 +219,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
             logging.info('Too many files pointing to {}.'.format(dwis[0].path))
     else:
-        logging.info('No files found.')
+        logging.info('No file pointing to {}.'.format(dwis[0].path))
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -402,9 +402,11 @@ def main():
     coloredlogs.install(level=log_level)
 
     data = []
-    layout = BIDSLayout(args.in_bids, validate=False,
-                        ignore=_load_bidsignore_(args.in_bids,
-                                                 args.bids_ignore))
+    bids_indexer = BIDSLayoutIndexer(validate=False,
+                                     ignore=_load_bidsignore_(args.in_bids,
+                                                              args.bids_ignore))
+    layout = BIDSLayout(args.in_bids, indexer=bids_indexer)
+
     subjects = layout.get_subjects()
     subjects.sort()
 
