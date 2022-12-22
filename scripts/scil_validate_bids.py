@@ -95,7 +95,7 @@ def _load_bidsignore_(bids_root, additional_bidsignore=None):
 
 
 def get_opposite_phase_encoding_direction(phase_encoding_direction):
-    """ Return opposite direction depending on the
+    """ Return opposite direction (works with direction or PhaseEncodingDirection)
 
     Parameters
     ----------
@@ -136,6 +136,10 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
     default_readout : Float
         Default readout time
+
+    clean: Boolean
+        If set, if some critical files are missing it will
+        remove this specific subject/session/run
 
     Returns
     -------
@@ -192,41 +196,30 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                    IntendedFor=IntendedForPath,
                                    regex_search=True)
 
-    direction = False
+    direction_key = False
     if 'direction' in curr_dwi.entities:
-        dwi_direction = curr_dwi.entities['direction']
-        direction = True
+        direction_key = 'direction'
     elif 'PhaseEncodingDirection' in curr_dwi.entities:
-        dwi_direction = curr_dwi.entities['PhaseEncodingDirection']
+        direction_key = 'PhaseEncodingDirection'
 
+    dwi_direction = curr_dwi.entities[direction_key]
     PE[0] = conversion[dwi_direction]
-    if len(related_files) == 1 and related_files[0].entities['suffix'] == 'epi' and len(dwis) == 1:
-        # Usual use case - 1 DWI + 1 fmap
-        if direction:
-            if dwi_direction[::-1] == related_files[0].entities['direction']:
-                topup_suffix['epi'][1] = related_files[0].path
-                PE[1] = conversion[related_files[0].entities['direction']]
-        elif 'PhaseEncodingDirection' in curr_dwi.entities:
-            PE[1] = conversion[related_files[0].entities['PhaseEncodingDirection']]
-            if dwi_direction == get_opposite_phase_encoding_direction(related_files[0].entities['PhaseEncodingDirection']):
-                topup_suffix['epi'][1] = related_files[0].path
 
-    elif len(related_files) >= 2:
+    if related_files and direction_key:
+        related_files_suffixes = []
         for curr_related in related_files:
-            if direction:
-                if dwi_direction == curr_related.entities['direction'][::-1]:
-                    PE[1] = conversion[curr_related.entities['direction']]
-                    topup_suffix[curr_related.entities['suffix']][1] = curr_related.path
-                elif dwi_direction == curr_related.entities['direction']:
-                    topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
+            related_files_suffixes.append(curr_related.entities['suffix'])
+            if dwi_direction == get_opposite_phase_encoding_direction(related_files[0].entities[direction_key]):
+                PE[1] = conversion[related_files[0].entities[direction_key]]
+                topup_suffix[curr_related.entities['suffix']][1] = related_files[0].path
             else:
-                if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities['PhaseEncodingDirection']):
-                    PE[1] = conversion[curr_related.entities['PhaseEncodingDirection']]
-                    topup_suffix[curr_related.entities['suffix']][1] = curr_related.path
-                elif dwi_direction == curr_related.entities['PhaseEncodingDirection']:
-                    topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
+                topup_suffix[curr_related.entities['suffix']][0] = related_files[0].path
+
+        if related_files_suffixes.count('epi') > 2 or related_files_suffixes.count('sbref') > 2:
+            topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
+            logging.info('Too many files pointing to {}.'.format(dwis[0].path))
     else:
-        logging.info('No related files found.')
+        logging.info('No files found.')
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -242,9 +235,9 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             topup = ['', '']
     else:
         logging.info("""
-                        BIDS structure unkown.Please send an issue:
-                        https://github.com/scilus/scilpy/issues
-                        """)
+                     BIDS structure unkown.Please send an issue:
+                     https://github.com/scilus/scilpy/issues
+                     """)
 
     # T1 setup
     t1_path = 'todo'
@@ -268,6 +261,11 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
         if len(t1_nSess) == 1:
             t1_path = t1_nSess[0].path
+        elif len(t1_nSess) == 0:
+            logging.info('No T1 file found.')
+        else:
+            logging.info('More than one T1 file found.'
+                         ' [{}]'.format(','.join(t1_nSess)))
 
     return {'subject': nSub,
             'session': nSess,
@@ -316,18 +314,18 @@ def associate_dwis(layout, nSub):
         logging.info("Found no directions.")
         directions = [Query.ANY, Query.ANY]
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
-        if len(phaseEncodingDirection) <= 1:
+        if len(phaseEncodingDirection) == 1:
             logging.info("Found one phaseEncodingDirection.")
-            return [layout.get(part=Query.NONE, **base_dict) +\
-                layout.get(part='mag', **base_dict)]
+            return [layout.get(part=Query.NONE, **base_dict) +
+                    layout.get(part='mag', **base_dict)]
     elif len(directions) == 1:
         logging.info("Found one direction.")
-        return [layout.get(part=Query.NONE, **base_dict) +\
-            layout.get(part='mag', **base_dict)]
+        return [layout.get(part=Query.NONE, **base_dict) +
+                layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [layout.get(part=Query.NONE, **base_dict) +\
-            layout.get(part='mag', **base_dict)]
+        return [layout.get(part=Query.NONE, **base_dict) +
+                layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
         logging.info("These acquisitions have too many encoding directions.")
@@ -341,6 +339,7 @@ def associate_dwis(layout, nSub):
                    PhaseEncodingDirection=phaseEncodingDirection[0],
                    direction=directions[0],
                    **base_dict)
+
     all_rev_dwis = layout.get(part=Query.NONE,
                               PhaseEncodingDirection=phaseEncodingDirection[1],
                               direction=directions[1],
@@ -420,10 +419,11 @@ def main():
         t1s = []
 
         if args.fs:
+            abs_fs = os.path.abspath(args.fs)
             logging.warning("# Looking for FS files")
-            t1_fs = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/T1.mgz'))
-            wmparc = glob(os.path.join(args.fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
-            aparc_aseg = glob(os.path.join(args.fs, 'sub-' + nSub,
+            t1_fs = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/T1.mgz'))
+            wmparc = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
+            aparc_aseg = glob(os.path.join(abs_fs, 'sub-' + nSub,
                                            'mri/aparc+aseg.mgz'))
             if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                 fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
