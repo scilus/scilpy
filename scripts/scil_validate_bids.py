@@ -200,7 +200,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                TotalReadoutTime=totalreadout,
                                invalid_filters='drop')
 
-    related_files = [curr_related for curr_related in related_files if related_files.suffix != 'dwi']
+    related_files = [curr_related for curr_related in related_files if curr_related.suffix != 'dwi']
 
     direction_key = False
     if 'direction' in curr_dwi.entities:
