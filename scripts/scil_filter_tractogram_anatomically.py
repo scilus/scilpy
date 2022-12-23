@@ -55,12 +55,13 @@ import nibabel as nib
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree
 
+from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.utils.streamlines import (filter_tractogram_data, difference,
                                       perform_streamlines_operation)
-from scilpy.io.image import get_data_as_label, get_data_as_mask
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -402,7 +403,7 @@ def main():
     if args.csf_bin:
         mask = get_data_as_mask(img_csf)
     else:
-        atlas = get_data_as_label(img_wmparc)
+        atlas = get_data_as_labels(img_wmparc)
         mask = binarize_labels(atlas, wm_labels["csf_labels"])
 
     # Filter tractogram
@@ -464,7 +465,7 @@ def main():
     ctx_fs_labels = wm_labels["ctx_lh_fs_labels"] + \
         wm_labels["ctx_rh_fs_labels"]
     vox_size = np.reshape(img_wmparc.header.get_zooms(), (1, 3))
-    atlas_wm = get_data_as_label(img_wmparc)
+    atlas_wm = get_data_as_labels(img_wmparc)
     atlas_shape = atlas_wm.shape
     wmparc_ctx = binarize_labels(atlas_wm, ctx_fs_labels)
     wmparc_nuclei = binarize_labels(atlas_wm, wm_labels["nuclei_fs_labels"])

@@ -19,8 +19,8 @@ import nibabel as nib
 import numpy as np
 import scipy.ndimage as ndi
 
-
-from scilpy.io.image import get_data_as_mask, get_data_as_label
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -101,7 +101,7 @@ def main():
         bundle_name, _ = split_name_with_nii(os.path.basename(
             args.bundle_labels_map))
         map_img = nib.load(args.bundle_labels_map)
-        map_data = get_data_as_label(map_img)
+        map_data = get_data_as_labels(map_img)
 
     is_single_label = args.bundle_labels_map is None
     voxel_sizes = lesion_img.header.get_zooms()[0:3]

@@ -21,5 +21,5 @@ def test_execution_atlas(script_runner):
     in_atlas = os.path.join(get_home(), 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
     ret = script_runner.run('scil_split_volume_by_ids.py', in_atlas,
-                            '--out_prefix', 'brainstem', '-r', '173-175')
+                            '--out_prefix', 'brainstem', '-r', '173', '175')
     assert ret.success

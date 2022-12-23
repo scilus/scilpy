@@ -48,9 +48,8 @@ import itertools
 import nibabel as nib
 import numpy as np
 
-
+from scilpy.image.labels import get_data_as_labels
 from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
-from scilpy.io.image import get_data_as_label
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
@@ -123,7 +122,7 @@ def main():
         assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
 
         atlas_img = nib.load(atlas_filepath)
-        atlas_data = get_data_as_label(atlas_img)
+        atlas_data = get_data_as_labels(atlas_img)
 
         voxels_size = atlas_img.header.get_zooms()[:3]
         if voxels_size[0] != voxels_size[1] \

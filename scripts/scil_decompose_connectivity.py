@@ -44,7 +44,7 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_bbox_arg,
                              add_overwrite_arg,
@@ -260,7 +260,7 @@ def main():
     set_sft_logger_level('WARNING')
 
     img_labels = nib.load(args.in_labels)
-    data_labels = get_data_as_label(img_labels)
+    data_labels = get_data_as_labels(img_labels)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')
