@@ -8,7 +8,7 @@ Create a json file from a BIDS dataset detailling all info needed for tractoflow
 - fmap/sbref (based on IntendedFor entity)
 - Freesurfer (optional - one per participant)
 
-The BIDS dataset MUST be homogenuous.
+The BIDS dataset MUST be homogeneous.
 The metadata need to be uniform across all participants/sessions/runs
 
 Mandatory entity: IntendedFor
@@ -199,6 +199,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                regex_search=True,
                                TotalReadoutTime=totalreadout,
                                invalid_filters='drop')
+
+    related_files = [curr_related for curr_related in related_files if related_files.suffix != 'dwi']
 
     direction_key = False
     if 'direction' in curr_dwi.entities:
