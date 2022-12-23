@@ -107,7 +107,7 @@ def get_opposite_phase_encoding_direction(phase_encoding_direction):
         Opposite phase direction
     """
     if len(phase_encoding_direction) == 2 and phase_encoding_direction[1] != '-':
-        return phase_encoding_direction[:-1]
+        return phase_encoding_direction[::-1]
     elif len(phase_encoding_direction) == 2:
         return phase_encoding_direction[0]
     else:
