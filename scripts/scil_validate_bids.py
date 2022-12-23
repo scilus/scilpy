@@ -2,7 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Create a json file with DWI, T1 and fmap informations from BIDS folder
+Create a json file from a BIDS dataset detailling all info needed for tractoflow
+- DWI/rev_DWI
+- T1
+- fmap/sbref (based on IntendedFor entity)
+- Freesurfer (optional - one per participant)
+
+The BIDS dataset MUST be homogenuous.
+The metadata need to be uniform across all participants/sessions/runs
+
+Mandatory entity: IntendedFor
+Sensitive entities: PhaseEncodingDirection, TotalReadoutTime, direction
 """
 
 import os
