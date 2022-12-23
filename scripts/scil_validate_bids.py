@@ -79,7 +79,7 @@ def _load_bidsignore_(bids_root, additional_bidsignore=None):
 
     if additional_bidsignore:
         bids_ignores = bids_ignores + \
-            pathlib.Path(additional_bidsignore).read_text().splitlines()
+            pathlib.Path(os.path.abspath(additional_bidsignore)).read_text().splitlines()
 
     if bids_ignores:
         import re
@@ -179,22 +179,16 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         nRun = curr_dwi.entities['run']
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
-    if 'TotalReadoutTime' in curr_dwi.entities:
-        related_files = layout.get(part="mag",
-                                   IntendedFor=IntendedForPath,
-                                   regex_search=True,
-                                   TotalReadoutTime=totalreadout) +\
-                        layout.get(part=Query.NONE,
-                                   IntendedFor=IntendedForPath,
-                                   regex_search=True,
-                                   TotalReadoutTime=totalreadout)
-    else:
-        related_files = layout.get(part="mag",
-                                   IntendedFor=IntendedForPath,
-                                   regex_search=True) +\
-                        layout.get(part=Query.NONE,
-                                   IntendedFor=IntendedForPath,
-                                   regex_search=True)
+    related_files = layout.get(part="mag",
+                               IntendedFor=IntendedForPath,
+                               regex_search=True,
+                               TotalReadoutTime=totalreadout,
+                               invalid_filters='allow') +\
+                    layout.get(part=Query.NONE,
+                               IntendedFor=IntendedForPath,
+                               regex_search=True,
+                               TotalReadoutTime=totalreadout,
+                               invalid_filters='allow')
 
     direction_key = False
     if 'direction' in curr_dwi.entities:
@@ -219,7 +213,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
             logging.info('Too many files pointing to {}.'.format(dwis[0].path))
     else:
-        logging.info('No file pointing to {}.'.format(dwis[0].path))
+        topup = ['', '']
+        logging.info('IntendedFor: No file pointing to {}.'.format(dwis[0].path))
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -234,6 +229,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         else:
             topup = ['', '']
     else:
+        print(dwis)
         logging.info("""
                      BIDS structure unkown.Please send an issue:
                      https://github.com/scilus/scilpy/issues
@@ -344,10 +340,10 @@ def associate_dwis(layout, nSub):
                               PhaseEncodingDirection=phaseEncodingDirection[1],
                               direction=directions[1],
                               **base_dict) +\
-        layout.get(part='mag',
-                   PhaseEncodingDirection=phaseEncodingDirection[1],
-                   direction=directions[1],
-                   **base_dict)
+                    layout.get(part='mag',
+                               PhaseEncodingDirection=phaseEncodingDirection[1],
+                               direction=directions[1],
+                               **base_dict)
 
     all_associated_dwis = []
     logging.info('Number of dwi: {}'.format(len(all_dwis)))
@@ -373,7 +369,7 @@ def associate_dwis(layout, nSub):
         # drop all rev_dwi used
         logging.info('Checking dwi {}'.format(all_dwis[0]))
         for item_to_remove in rev_iter_to_rm[::-1]:
-            logging.info('Removing item {} from rev_dwi'.format(item_to_remove))
+            logging.info('Found rev_dwi {}'.format(all_rev_dwis[item_to_remove]))
             del all_rev_dwis[item_to_remove]
 
         # Add to associated list
@@ -403,9 +399,9 @@ def main():
 
     data = []
     bids_indexer = BIDSLayoutIndexer(validate=False,
-                                     ignore=_load_bidsignore_(args.in_bids,
+                                     ignore=_load_bidsignore_(os.path.abspath(args.in_bids),
                                                               args.bids_ignore))
-    layout = BIDSLayout(args.in_bids, indexer=bids_indexer)
+    layout = BIDSLayout(os.path.abspath(args.in_bids), indexer=bids_indexer)
 
     subjects = layout.get_subjects()
     subjects.sort()
