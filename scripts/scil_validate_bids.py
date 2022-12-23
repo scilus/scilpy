@@ -183,12 +183,12 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                IntendedFor=IntendedForPath,
                                regex_search=True,
                                TotalReadoutTime=totalreadout,
-                               invalid_filters='allow') +\
+                               invalid_filters='drop') +\
                     layout.get(part=Query.NONE,
                                IntendedFor=IntendedForPath,
                                regex_search=True,
                                TotalReadoutTime=totalreadout,
-                               invalid_filters='allow')
+                               invalid_filters='drop')
 
     direction_key = False
     if 'direction' in curr_dwi.entities:
