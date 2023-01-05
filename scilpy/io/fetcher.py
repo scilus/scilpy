@@ -8,7 +8,7 @@ import pathlib
 import requests
 import zipfile
 
-GOOGLE_URL = "https://drive.google.com/uc?id="
+GOOGLE_URL = "https://drive.google.com/uc?authuser=0&id="
 
 
 # Set a user-writeable file-system location to put files:
