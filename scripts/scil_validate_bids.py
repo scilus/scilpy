@@ -272,8 +272,9 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         elif len(t1_nSess) == 0:
             logging.info('No T1 file found.')
         else:
+            t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
             logging.info('More than one T1 file found.'
-                         ' [{}]'.format(','.join(t1_nSess)))
+                         ' [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
             'session': nSess,
