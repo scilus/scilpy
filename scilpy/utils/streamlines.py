@@ -109,8 +109,8 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     density = get_endpoints_density_map(sft.streamlines, sft.dimensions,
                                         point_to_select=3)
     indices = np.argwhere(density > 0)
-    kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True, n_init=20,
-                    workers=1).fit(indices)
+    kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
+                    n_init=20).fit(indices)
 
     labels = np.zeros(density.shape)
     for i in range(len(kmeans.labels_)):
