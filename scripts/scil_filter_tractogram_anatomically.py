@@ -167,7 +167,7 @@ def dilate_mask(mask, mask_shape, vox_size, radius):
     # Compute the nearest labels for each voxel of the background
     dist, indices = ckd_tree.query(
         background_pos, k=1, distance_upper_bound=radius,
-        n_jobs=-1)
+        workers=-1)
 
     # Associate indices to the nearest label (in distance)
     valid_nearest = np.squeeze(np.isfinite(dist))

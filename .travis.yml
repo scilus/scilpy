@@ -1,9 +1,9 @@
 dist: bionic
 language: python
 python:
-  - "3.6"
-  - "3.7"
   - "3.8"
+  - "3.9"
+  - "3.10"
 
 before_install:
   - sudo wget -O- http://neuro.debian.net/lists/bionic.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
