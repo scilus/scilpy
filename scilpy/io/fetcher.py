@@ -30,8 +30,7 @@ def download_file_from_google_drive(id, destination):
 
         with open(destination, "wb") as f:
             for chunk in response.iter_content(CHUNK_SIZE):
-                if chunk:  # filter out keep-alive new chunks
-                    f.write(chunk)
+                f.write(chunk)
 
     session = requests.Session()
     params = {'id': id, 'confirm': True}
@@ -129,7 +128,7 @@ def fetch_data(files_dict, keys=None):
         full_path = os.path.join(scilpy_home, f)
         full_path_no_ext, ext = os.path.splitext(full_path)
 
-        CURR_URL = GOOGLE_URL + url_id
+        CURR_URL = GOOGLE_URL + 'id=' + url_id
         if not os.path.isdir(full_path_no_ext):
             if ext == '.zip' and not os.path.isdir(full_path_no_ext):
                 logging.warning('Downloading and extracting {} from url {} to '
