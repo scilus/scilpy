@@ -215,11 +215,11 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         related_files_suffixes = []
         for curr_related in related_files:
             related_files_suffixes.append(curr_related.entities['suffix'])
-            if dwi_direction == get_opposite_phase_encoding_direction(related_files[0].entities[direction_key]):
-                PE[1] = conversion[related_files[0].entities[direction_key]]
-                topup_suffix[curr_related.entities['suffix']][1] = related_files[0].path
+            if dwi_direction == get_opposite_phase_encoding_direction(curr_related.entities[direction_key]):
+                PE[1] = conversion[curr_related.entities[direction_key]]
+                topup_suffix[curr_related.entities['suffix']][1] = curr_related.path
             else:
-                topup_suffix[curr_related.entities['suffix']][0] = related_files[0].path
+                topup_suffix[curr_related.entities['suffix']][0] = curr_related.path
 
         if related_files_suffixes.count('epi') > 2 or related_files_suffixes.count('sbref') > 2:
             topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
