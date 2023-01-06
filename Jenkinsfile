@@ -6,7 +6,7 @@ pipeline {
             stages {
                 stage('Python3.10') {
                     steps {
-                        withPythonEnv('/usr/bin/python3.10') {
+                        withPythonEnv('CPython-3.10') {
                             sh '''
                                 pip3 install wheel==0.38.*
                                 pip3 install numpy==1.23.*
@@ -21,7 +21,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                withPythonEnv('/usr/bin/python3.10') {
+                withPythonEnv('CPython-3.10') {
                     sh '''
                         pip3 install wheel==0.38.*
                         pip3 install numpy==1.23.*
