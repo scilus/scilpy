@@ -10,6 +10,8 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
+from trx import load, save
+
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
     """
@@ -113,11 +115,22 @@ def load_tractogram_with_reference(parser, args, filepath,
             sft = load_tractogram(filepath, args.reference,
                                   bbox_valid_check=bbox_check)
 
+    elif ext == '.trx':
+        sft = load(filepath).to_sft()
+        if bbox_check:
+            bbox_manual_check = sft.is_bbox_in_vox_valid()
+            if not bbox_manual_check:
+                logging.warning('Streamlines in {} do not have a valid bbox. '
+                                '{}.'.format(filepath))
+
     else:
         parser.error('{} is an unsupported file format'.format(filepath))
 
     return sft
 
+
+def save_tractogram(obj, out_filename):
+    save(obj, out_filename)
 
 def streamlines_to_memmap(input_streamlines):
     """
