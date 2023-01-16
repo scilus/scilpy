@@ -10,7 +10,7 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from trx import load, save
+from trx.io import load, save
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -116,7 +116,7 @@ def load_tractogram_with_reference(parser, args, filepath,
                                   bbox_valid_check=bbox_check)
 
     elif ext == '.trx':
-        sft = load(filepath).to_sft()
+        sft = load(filepath, None).to_sft()
         if bbox_check:
             bbox_manual_check = sft.is_bbox_in_vox_valid()
             if not bbox_manual_check:

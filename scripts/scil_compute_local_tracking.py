@@ -40,6 +40,7 @@ import numpy as np
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.streamlines import save_tractogram
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
@@ -49,7 +50,7 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_tracking_options,
                                    verify_streamline_length_options,
                                    verify_seed_options)
-
+from trx.trx_file_memmap import TrxFile
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -161,9 +162,9 @@ def main():
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not nib.streamlines.is_supported(args.out_tractogram):
-        parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.out_tractogram))
+    # if not nib.streamlines.is_supported(args.out_tractogram):
+    #     parser.error('Invalid output streamline file format (must be trk or ' +
+    #                  'tck): {0}'.format(args.out_tractogram))
 
     verify_streamline_length_options(parser, args)
     verify_compression_th(args.compress)
@@ -243,13 +244,15 @@ def main():
     tractogram = LazyTractogram(lambda: filtered_streamlines,
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
+    trx = TrxFile.from_lazy_tractogram(tractogram, seed_img)
+    save_tractogram(trx, args.out_tractogram)
 
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, *reference)
+    # filetype = nib.streamlines.detect_format(args.out_tractogram)
+    # reference = get_reference_info(seed_img)
+    # header = create_tractogram_header(filetype, *reference)
 
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+    # # Use generator to save the streamlines on-the-fly
+    # nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
 if __name__ == '__main__':
