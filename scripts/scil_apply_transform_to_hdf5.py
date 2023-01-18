@@ -148,7 +148,7 @@ def main():
                                                  data=new_sft.data_per_streamline[dps_key])
                         else:
                             group.create_dataset(dps_key,
-                                                 data=in_hdf5_file[key][dps_key].value)
+                                                 data=in_hdf5_file[key][dps_key])
 
 
 if __name__ == "__main__":
