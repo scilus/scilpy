@@ -265,7 +265,7 @@ def main():
 
     # Voxel size must be isotropic, for speed/performance considerations
     vox_sizes = img_labels.header.get_zooms()
-    if not np.allclose(np.mean(vox_sizes), vox_sizes, atol=1e-03):
+    if not np.allclose(np.mean(vox_sizes), vox_sizes, atol=1e-01):
         parser.error('Labels must be isotropic')
 
     logging.info('*** Loading streamlines ***')
