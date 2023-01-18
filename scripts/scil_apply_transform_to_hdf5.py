@@ -142,7 +142,7 @@ def main():
                                      data=new_sft.streamlines._lengths)
                 for dps_key in in_hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        if in_hdf5_file[key][dps_key].value.shape \
+                        if in_hdf5_file[key][dps_key].shape \
                                 == in_hdf5_file[key]['offsets']:
                             group.create_dataset(dps_key,
                                                  data=new_sft.data_per_streamline[dps_key])
