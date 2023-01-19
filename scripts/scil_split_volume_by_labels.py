@@ -15,6 +15,7 @@ import json
 import os
 
 import nibabel as nib
+import numpy as np
 
 from scilpy.image.labels import get_data_as_labels, get_lut_dir, split_labels
 from scilpy.io.utils import (add_overwrite_arg,
@@ -62,14 +63,12 @@ def main():
     if args.scilpy_lut:
         with open(os.path.join(get_lut_dir(), args.scilpy_lut + '.json')) as f:
             label_dict = json.load(f)
-        (label_indices, label_names) = zip(*label_dict.items())
     else:
         with open(args.custom_lut) as f:
             label_dict = json.load(f)
-        (label_indices, label_names) = zip(*label_dict.items())
 
     output_filenames = []
-    for label, name in zip(label_indices, label_names):
+    for label, name in label_dict.items():
         if int(label) != 0:
             if args.out_prefix:
                 output_filenames.append(os.path.join(
@@ -83,6 +82,9 @@ def main():
     assert_outputs_exist(parser, args, output_filenames)
 
     # Extract the voxels that match the label and save them to a file.
+    label_indices = list(label_dict.keys())
+    indexes = np.unique(label_indices, return_index=True)[1]
+    label_indices = [label_indices[index] for index in sorted(indexes)]
     split_data = split_labels(label_img_data, label_indices)
 
     for i in range(len(label_indices)):
