@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 from scipy.sparse import bsr_matrix
 
 
@@ -175,7 +175,7 @@ def get_dir_to_sphere_id(vectors, sphere_vertices):
         Sphere indices of the closest sphere direction for each vector
     """
     sphere_kdtree = cKDTree(sphere_vertices)
-    _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)
+    _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, workers=-1)
     return dir_sphere_id
 
 

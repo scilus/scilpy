@@ -138,7 +138,7 @@ def main():
     _, indices = reco_obj.recognize(ArraySequence(model_streamlines),
                                     args.model_clustering_thr,
                                     pruning_thr=args.pruning_thr,
-                                    slr_num_threads=args.slr_threads)
+                                    num_threads=args.slr_threads)
     new_streamlines = wb_streamlines[indices]
     new_data_per_streamlines = wb_file.data_per_streamline[indices]
     new_data_per_points = wb_file.data_per_point[indices]

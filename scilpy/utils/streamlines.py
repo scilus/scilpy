@@ -110,8 +110,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                                         point_to_select=3)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
-                    precompute_distances=True, n_init=20,
-                    n_jobs=1).fit(indices)
+                    n_init=20).fit(indices)
 
     labels = np.zeros(density.shape)
     for i in range(len(kmeans.labels_)):
