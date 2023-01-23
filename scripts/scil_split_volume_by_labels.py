@@ -62,14 +62,12 @@ def main():
     if args.scilpy_lut:
         with open(os.path.join(get_lut_dir(), args.scilpy_lut + '.json')) as f:
             label_dict = json.load(f)
-        (label_indices, label_names) = zip(*label_dict.items())
     else:
         with open(args.custom_lut) as f:
             label_dict = json.load(f)
-        (label_indices, label_names) = zip(*label_dict.items())
 
     output_filenames = []
-    for label, name in zip(label_indices, label_names):
+    for label, name in label_dict.items():
         if int(label) != 0:
             if args.out_prefix:
                 output_filenames.append(os.path.join(
@@ -83,6 +81,7 @@ def main():
     assert_outputs_exist(parser, args, output_filenames)
 
     # Extract the voxels that match the label and save them to a file.
+    label_indices = list(label_dict.keys())
     split_data = split_labels(label_img_data, label_indices)
 
     for i in range(len(label_indices)):
