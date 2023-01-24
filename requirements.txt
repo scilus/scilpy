@@ -1,4 +1,4 @@
-bz2file==0.98.*
+bz2file==0.98.1
 coloredlogs==10.0.*
 cycler==0.10.*
 Cython==0.29.*
