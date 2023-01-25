@@ -70,7 +70,7 @@ def split_labels(labels_volume, label_indices):
         One 3D volume per label.
     """
     split_data = []
-    for label in np.unique(label_indices):
+    for label in label_indices:
         label_occurences = np.where(labels_volume == int(label))
         if len(label_occurences) != 0:
             split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
