@@ -332,7 +332,7 @@ def associate_dwis(layout, nSub):
                 layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
