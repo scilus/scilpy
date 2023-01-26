@@ -246,6 +246,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                      BIDS structure unkown.Please send an issue:
                      https://github.com/scilus/scilpy/issues
                      """)
+        return {}
 
     # T1 setup
     t1_path = 'todo'
@@ -325,15 +326,15 @@ def associate_dwis(layout, nSub):
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
         if len(phaseEncodingDirection) == 1:
             logging.info("Found one phaseEncodingDirection.")
-            return [layout.get(part=Query.NONE, **base_dict) +
+            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                     layout.get(part='mag', **base_dict)]
     elif len(directions) == 1:
         logging.info("Found one direction.")
-        return [layout.get(part=Query.NONE, **base_dict) +
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                 layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [layout.get(part=Query.NONE, **base_dict) +
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
