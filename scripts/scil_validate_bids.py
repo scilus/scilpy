@@ -241,10 +241,12 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         else:
             topup = ['', '']
     else:
+        print(dwis)
         logging.info("""
                      BIDS structure unkown.Please send an issue:
                      https://github.com/scilus/scilpy/issues
                      """)
+        return {}
 
     # T1 setup
     t1_path = 'todo'
@@ -425,7 +427,6 @@ def main():
         logging.warning("-" * len(mess))
         logging.warning(mess)
         dwis = associate_dwis(layout, nSub)
-        print(dwis)
         fs_inputs = []
         t1s = []
 
