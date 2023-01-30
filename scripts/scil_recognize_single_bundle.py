@@ -19,13 +19,12 @@ import logging
 import pickle
 
 from dipy.io.stateful_tractogram import Space, StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.segment.bundles import RecoBundles
 from dipy.tracking.streamline import transform_streamlines
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,

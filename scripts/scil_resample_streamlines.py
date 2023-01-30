@@ -7,9 +7,7 @@ streamline or to a fixed step size. WARNING: data_per_point is not carried.
 """
 import argparse
 
-from dipy.io.streamline import save_tractogram
-
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,

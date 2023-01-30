@@ -8,12 +8,10 @@ import numpy as np
 import os
 from scipy.ndimage import binary_dilation
 
-from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.tracking.utils import length as compute_length
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
 from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns

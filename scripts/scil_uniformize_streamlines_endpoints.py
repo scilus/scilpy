@@ -15,9 +15,7 @@ defined axis is smaller than their last point (--swap does the opposite).
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram
-
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,

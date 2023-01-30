@@ -14,10 +14,9 @@ import argparse
 import logging
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.utils.streamlines import cut_invalid_streamlines

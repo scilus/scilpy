@@ -36,7 +36,6 @@ import time
 import coloredlogs
 from dipy.io.stateful_tractogram import (StatefulTractogram,
                                          set_sft_logger_level)
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.tracking.streamlinespeed import length
 import h5py
@@ -45,7 +44,7 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              add_reference_arg,

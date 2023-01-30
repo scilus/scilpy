@@ -27,8 +27,6 @@ from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
                             ProbabilisticDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.streamlinespeed import length, compress_streamlines
@@ -51,6 +49,7 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from trx.trx_file_memmap import TrxFile
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -129,7 +128,8 @@ def _get_direction_getter(args):
             npeaks = 5
             peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
             peak_values = np.zeros((odf_shape_3d + (npeaks, )))
-            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1, dtype='int')
+            peak_indices = np.full(
+                (odf_shape_3d + (npeaks, )), -1, dtype='int')
             b_matrix = get_b_matrix(
                 find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
 
@@ -200,7 +200,7 @@ def main():
     # (See the examples in random_seeds_from_mask).
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_fdata(dtype=np.float32),
-        np.eye(4),
+        seed_img.affine,
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
@@ -210,7 +210,7 @@ def main():
     streamlines_generator = LocalTracking(
         _get_direction_getter(args),
         BinaryStoppingCriterion(mask_data),
-        seeds, np.eye(4),
+        seeds, seed_img.affine,
         step_size=vox_step_size, max_cross=1,
         maxlen=max_steps,
         fixedstep=True, return_all=True,
@@ -244,16 +244,12 @@ def main():
     tractogram = LazyTractogram(lambda: filtered_streamlines,
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
-    trx = TrxFile.from_lazy_tractogram(tractogram, seed_img)
+
+    dtype_dict = {'positions': np.float32, 'offsets': np.uint32,
+                  'dps': {'seeds': np.float16}}
+    trx = TrxFile.from_lazy_tractogram(tractogram, seed_img,
+                                       dtype_dict=dtype_dict)
     save_tractogram(trx, args.out_tractogram)
-
-    # filetype = nib.streamlines.detect_format(args.out_tractogram)
-    # reference = get_reference_info(seed_img)
-    # header = create_tractogram_header(filetype, *reference)
-
-    # # Use generator to save the streamlines on-the-fly
-    # nib.streamlines.save(tractogram, args.out_tractogram, header=header)
-
 
 if __name__ == '__main__':
     main()

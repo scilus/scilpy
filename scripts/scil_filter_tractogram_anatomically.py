@@ -49,7 +49,6 @@ import os
 import pkg_resources
 
 
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
@@ -62,7 +61,7 @@ from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.utils.streamlines import (filter_tractogram_data, difference,
                                       perform_streamlines_operation)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,

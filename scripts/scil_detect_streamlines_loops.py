@@ -23,10 +23,9 @@ import argparse
 import json
 import logging
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,

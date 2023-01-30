@@ -39,7 +39,6 @@ import os
 from copy import deepcopy
 
 from dipy.io.stateful_tractogram import set_sft_logger_level
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
@@ -47,7 +46,7 @@ from scipy import ndimage
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,

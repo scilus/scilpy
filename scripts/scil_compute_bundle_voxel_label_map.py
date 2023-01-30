@@ -13,7 +13,6 @@ import itertools
 import logging
 import os
 
-from dipy.io.streamline import save_tractogram
 from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level
 from dipy.io.utils import is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
@@ -24,7 +23,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,

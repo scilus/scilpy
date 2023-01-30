@@ -29,11 +29,10 @@ import random
 from time import time
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import ArraySequence
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.segment.models import subsample_clusters
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,

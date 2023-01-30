@@ -12,10 +12,9 @@ from operator import itemgetter
 import os
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 from dipy.segment.clustering import qbx_and_merge
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,

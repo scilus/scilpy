@@ -5,12 +5,14 @@ import logging
 import os
 import tempfile
 
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import load_tractogram
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from trx.io import load, save
+from trx.trx_file_memmap import TrxFile
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -46,16 +48,16 @@ def lazy_streamlines_count(in_tractogram_path):
         Number of streamlines present in the tractogram.
     """
     _, ext = os.path.splitext(in_tractogram_path)
-    if ext == '.trk':
-        key = 'nb_streamlines'
-    elif ext == '.tck':
-        key = 'count'
+    if ext in ['.trk', '.tck']:
+        tractogram_file = nib.streamlines.load(in_tractogram_path,
+                                        lazy_load=True)
+        key = 'nb_streamlines' if ext == '.trk' else 'count'
+        return tractogram_file.header[key]
+    elif ext == '.trx':
+        trx = load(in_tractogram_path, None)
+        return len(trx.streamlines)
     else:
         raise IOError('{} is not supported for lazy loading'.format(ext))
-
-    tractogram_file = nib.streamlines.load(in_tractogram_path,
-                                           lazy_load=True)
-    return tractogram_file.header[key]
 
 
 def ichunk(sequence, n):
@@ -129,7 +131,11 @@ def load_tractogram_with_reference(parser, args, filepath,
     return sft
 
 
-def save_tractogram(obj, out_filename):
+def save_tractogram(obj, out_filename, bbox_valid_check=True):
+    if bbox_valid_check and isinstance(obj, TrxFile):
+        obj = obj.to_sft()
+    if bbox_valid_check:
+        obj.remove_invalid_streamlines()
     save(obj, out_filename)
 
 def streamlines_to_memmap(input_streamlines):

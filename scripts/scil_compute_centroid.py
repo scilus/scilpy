@@ -8,9 +8,8 @@ Compute a single bundle centroid, using an 'infinite' QuickBundles threshold.
 import argparse
 
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,

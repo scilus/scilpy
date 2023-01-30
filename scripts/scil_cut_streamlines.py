@@ -19,7 +19,6 @@ Both scenarios will erase data_per_point and data_per_streamline.
 import argparse
 import logging
 
-from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import compress_streamlines
@@ -28,7 +27,7 @@ import numpy as np
 import scipy.ndimage as ndi
 
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.tools import (cut_outside_of_mask_streamlines,

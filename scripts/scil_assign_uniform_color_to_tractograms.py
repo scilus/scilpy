@@ -17,10 +17,9 @@ import json
 import logging
 import os
 
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,

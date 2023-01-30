@@ -31,8 +31,6 @@ import logging
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (ProbabilisticDirectionGetter,
                             DeterministicMaximumDirectionGetter)
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
 from dipy.tracking.local_tracking import ParticleFilteringTracking
 from dipy.tracking.stopping_criterion import (ActStoppingCriterion,
                                               CmcStoppingCriterion)
@@ -43,11 +41,12 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.image import get_data_as_mask
+from scilpy.io.streamlines import save_tractogram
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
-
+from trx.trx_file_memmap import TrxFile
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -69,7 +68,7 @@ def _build_arg_parser():
                    help='The probability map (.nii.gz) of ending the streamline\n'
                         'and excluding it in the output (CMC, PFT [1]).')
     p.add_argument('out_tractogram',
-                   help='Tractogram output file (must be .trk or .tck).')
+                   help='Tractogram output file (must be .trk, .tck, .trx).')
 
     track_g = p.add_argument_group('Tracking options')
     track_g.add_argument('--algo', default='prob', choices=['det', 'prob'],
@@ -151,9 +150,9 @@ def main():
                                  args.map_exclude_file])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if not nib.streamlines.is_supported(args.out_tractogram):
-        parser.error('Invalid output streamline file format (must be trk or ' +
-                     'tck): {0}'.format(args.out_tractogram))
+    # if not nib.streamlines.is_supported(args.out_tractogram):
+    #     parser.error('Invalid output streamline file format (must be trk or ' +
+    #                  'tck): {0}'.format(args.out_tractogram))
 
     if not args.min_length > 0:
         parser.error('minL must be > 0, {}mm was provided.'
@@ -246,7 +245,7 @@ def main():
     seed_img = nib.load(args.in_seed)
     seeds = track_utils.random_seeds_from_mask(
         get_data_as_mask(seed_img, dtype=bool),
-        np.eye(4),
+        seed_img.affine,
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
@@ -259,7 +258,7 @@ def main():
         dg,
         tissue_classifier,
         seeds,
-        np.eye(4),
+        seed_img.affine,
         max_cross=1,
         step_size=vox_step_size,
         maxlen=max_steps,
@@ -293,12 +292,11 @@ def main():
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
 
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, *reference)
-
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+    dtype_dict = {'positions': np.float32, 'offsets': np.uint32,
+                  'dps': {'seeds': np.float16}}
+    trx = TrxFile.from_lazy_tractogram(tractogram, seed_img,
+                                       dtype_dict=dtype_dict)
+    save_tractogram(trx, args.out_tractogram)
 
 
 if __name__ == '__main__':

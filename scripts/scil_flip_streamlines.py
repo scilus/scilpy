@@ -11,11 +11,9 @@ have them fit in the tools.
 
 import argparse
 
-from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, save_tractogram
 from scilpy.io.utils import (add_reference_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
