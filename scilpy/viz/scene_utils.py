@@ -5,7 +5,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import vtk
-from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
 from PIL import Image
@@ -176,6 +176,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
     # SH coefficients to SF coefficients matrix
     B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
                             full_basis, return_inv=False)
+    
+    var_actor = None
 
     if sh_variance is not None:
         fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
@@ -189,15 +191,15 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
             fodf[maximums > 0] /= maximums[maximums > 0][..., None]
             fodf_var[maximums > 0] /= maximums[maximums > 0][..., None]
 
-        odf_actor = odf_slicer(fodf, mask=mask, norm=False,
-                               radial_scale=radial_scale,
-                               sphere=sphere, scale=scale,
-                               colormap=colormap)
+        odf_actor = actor.odf_slicer(fodf, mask=mask, norm=False,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere, scale=scale,
+                                     colormap=colormap)
 
-        var_actor = odf_slicer(fodf_var, mask=mask, norm=False,
-                               radial_scale=radial_scale,
-                               sphere=sphere, scale=scale,
-                               colormap=variance_color)
+        var_actor = actor.odf_slicer(fodf_var, mask=mask, norm=False,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere, scale=scale,
+                                     colormap=variance_color)
         var_actor.GetProperty().SetDiffuse(0.0)
         var_actor.GetProperty().SetAmbient(1.0)
         var_actor.GetProperty().SetFrontfaceCulling(True)
