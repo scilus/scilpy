@@ -146,6 +146,12 @@ def _build_arg_parser():
                                    help='Length of the peaks segments. '
                                         '[%(default)s]')
 
+    # fODF variance options
+    p.add_argument('--variance',
+                   help='FODF variance (mean + k * variance) file.')
+    p.add_argument('--var_color', nargs=3, type=int, default=(255, 255, 255),
+                   help='Color of variance outline. [%(default)s]')
+
     return p
 
 
@@ -222,6 +228,16 @@ def _get_data_from_inputs(args):
             peak_vals =\
                 nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
             data['peaks_values'] = peak_vals
+    if args.variance:
+        variance = nib.load(args.variance).get_fdata(dtype=np.float32)
+        if len(variance.shape) == 3:
+            variance = np.reshape(variance, variance.shape + (1,))
+        if variance.shape != fodf.shape:
+            raise ValueError('Dimensions mismatch between fODF {0} and '
+                             'variance {1}.'
+                             .format(fodf.shape, variance.shape))
+        data['variance'] = _crop_along_axis(variance, args.slice_index,
+                                            args.axis_name)
 
     return data
 
@@ -246,16 +262,23 @@ def main():
     else:
         color_rgb = None
 
+    variance = data['variance'] if args.variance else None
     # Instantiate the ODF slicer actor
-    odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
-                                  args.slice_index, mask, sph,
-                                  args.sph_subdivide, sh_order,
-                                  args.sh_basis, full_basis,
-                                  args.scale,
-                                  not args.radial_scale_off,
-                                  not args.norm_off,
-                                  args.colormap or color_rgb)
+    odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
+                                             args.slice_index, mask, sph,
+                                             args.sph_subdivide, sh_order,
+                                             args.sh_basis, full_basis,
+                                             args.scale,
+                                             not args.radial_scale_off,
+                                             not args.norm_off,
+                                             args.colormap or color_rgb,
+                                             sh_variance=variance,
+                                             variance_color=args.var_color)
     actors.append(odf_actor)
+
+    # Instantiate a variance slicer actor if a variance image is supplied
+    if 'variance' in data:
+        actors.append(var_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:
