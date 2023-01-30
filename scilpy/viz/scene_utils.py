@@ -176,7 +176,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
     # SH coefficients to SF coefficients matrix
     B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
                             full_basis, return_inv=False)
-    
+
     var_actor = None
 
     if sh_variance is not None:
@@ -205,10 +205,10 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
         var_actor.GetProperty().SetFrontfaceCulling(True)
     else:
         odf_actor = actor.odf_slicer(sh_fodf, mask=mask, norm=norm,
-                                    radial_scale=radial_scale,
-                                    sphere=sphere,
-                                    colormap=colormap,
-                                    scale=scale, B_matrix=B_mat)
+                                     radial_scale=radial_scale,
+                                     sphere=sphere,
+                                     colormap=colormap,
+                                     scale=scale, B_matrix=B_mat)
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if var_actor is not None:
         set_display_extent(var_actor, orientation,
