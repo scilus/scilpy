@@ -161,7 +161,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
         Colormap for the ODF slicer. If None, a RGB colormap is used.
     sh_variance : np.ndarray, optional
         Spherical harmonics of the variance fODF data.
-    variance_color : tupple, optional
+    variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
 
     Returns
