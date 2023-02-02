@@ -6,27 +6,25 @@ Script to compute PCA analysis on diffusion metrics. Output returned is all sign
 (e.g. presenting eigenvalues > 1) in a connectivity matrix format. This script can take into account all
 edges from every subject in a population or only non-zero edges across all subjects.
 
-Designed to work best with a Connectoflow output regardless of the atlas used for segmentation. If the data
-isn't a connectoflow output, please create an input structure like this :
-                        ${input}/${subid}/Compute_Connectivity/$metric[1]
-                                                              /$metric[2]
-                                                              /...
-                                /${subid}/Compute_Connectivity/$metric[1]
-                                                              /$metric[2]
-                                                              /...
-                                /...
+The script can take directly as input a connectoflow output folder. Simply use the --connectoflow flag. For
+other type of folder input, the script expect a single folder containing all matrices for all subjects. Example:
+                                                            $input_folder/sub-01_ad.npy
+                                                                         /sub-01_md.npy
+                                                                         /sub-02_ad.npy
+                                                                         /sub-03_md.npy
+                                                                         /...
 
 Output connectivity matrix will be saved next to the other metrics in the input folder. The graphs and tables
 will be outputted in the designed folder in the <output> argument.
 
 EXAMPLE USAGE:
-dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd afd_fixel afd_total nufo
-                       --ids list_ids.txt --common true
+dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
 """
 
 # Import required libraries.
 import argparse
 import logging
+import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -54,19 +52,21 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=EPILOG)
 
-    p.add_argument('in_folder',
-                   help='Path to the Connectoflow output folder.')
+    p.add_argument('input',
+                   help='Path to the input folder.')
     p.add_argument('output',
                    help='Path to the output folder to export graphs and tables. \n'
                         '*** Please note, PC connectivity matrix will be outputted in the original input folder'
                         'next to all other metrics ***')
-    p.add_argument('--metrics', nargs='+',
+    p.add_argument('--metrics', nargs='+', required=True,
                    help='List of all metrics to include in PCA analysis.')
-    p.add_argument('--ids',
-                   help="Txt file containing all subject's id.")
-    p.add_argument('--common', choices=['true', 'false'], default='true', type=str,
+    p.add_argument('--list_ids',
+                      help='List containing all ids to use in PCA computation.')
+    p.add_argument('--common', choices=['true', 'false'], default='true',
                    help='If true, will include only connections found in all subjects of the population (Recommended) '
                         '[True].')
+    p.add_argument('--connectoflow', action='store_true',
+                   help='If true, script will assume the input folder is a Connectoflow output.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -76,7 +76,7 @@ def _build_arg_parser():
 
 def creating_pca_input(d):
     """
-    Script to create PCA input from matrix.
+    Function to create PCA input from matrix.
     :param d:       Dictionary containing all matrix for all metrics.
     :return:        Numpy array.
     """
@@ -94,7 +94,7 @@ def creating_pca_input(d):
 
 def restore_zero_values(orig, new):
     """
-    Script to restore 0 values in a numpy array.
+    Function to restore 0 values in a numpy array.
     :param orig:    Original numpy array containing 0 values to restore.
     :param new:     Array in which 0 values need to be restored.
     :return:        Numpy array with data from the new array but zeros from the original array.
@@ -162,22 +162,43 @@ def apply_binary_mask(d, mask):
     return d
 
 
+def grab_files_by_end(end_pattern, dir):
+    """
+    Function to grab files following an ending pattern.
+    :param end_pattern:     Ending pattern to match.
+    :param dir:             Directory.
+    :return:                List of filenames matching the end pattern.
+    """
+    files = [f for f in os.listdir(dir) if f.endswith(end_pattern)]
+
+    return sorted(files)
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.INFO)
 
-    assert_inputs_exist(parser, args.input)
     assert_output_dirs_exist_and_empty(parser, args, args.output)
 
-    subjects = open(args.ids).read().split()
+    subjects = open(args.list_ids).read().split()
 
-    # Loading all matrix.
-    logging.debug('Loading all matrices...')
-    d = {f'{m}': [load_matrix_in_any_format(f'{args.in_folder}/{a}/Compute_Connectivity/{m}.npy') for a in subjects]
-         for m in args.metrics}
+    if args.connectoflow:
+        # Loading all matrix.
+        logging.info('Loading all matrices from a Connectoflow output...')
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}/Compute_Connectivity/{m}.npy') for a in subjects]
+             for m in args.metrics}
+    else:
+        logging.info('Loading all matrices...')
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}') for a in grab_files_by_end(f'{m}.npy', f'{args.input}')]
+             for m in args.metrics}
+        # Assert that all metrics have the same number of subjects.
+        nb_sub = [len(d[f'{m}']) for m in args.metrics]
+        assert all(x == len(subjects) for x in nb_sub), "Error, the number of matrices for each metric doesn't match" \
+                                                        "the number of subject in the id list." \
+                                                        "Please validate input folder."
 
     # Setting individual matrix shape.
     mat_shape = d[f'{args.metrics[0]}'][0].shape
@@ -193,29 +214,29 @@ def main():
             parser.error("Different binary mask have been generated from 2 different metrics, \n "
                          "please validate input data.")
         else:
-            logging.debug('Data shows {} common connections across the population.', format(len(m1)))
+            logging.info('Data shows {} common connections across the population.'.format(len(m1)))
 
         d = apply_binary_mask(d, m1)
 
     # Creating input structure.
-    logging.debug('Creating PCA input structure...')
+    logging.info('Creating PCA input structure...')
     df = creating_pca_input(d)
     df[df == 0] = 'nan'
 
     # Standardized the data.
-    logging.debug('Standardizing data...')
+    logging.info('Standardizing data...')
     x = StandardScaler().fit_transform(df)
     df_pca = x[~np.isnan(x).any(axis=1)]
     x = np.nan_to_num(x, nan=0.)
 
     # Perform the PCA.
-    logging.debug('Performing PCA...')
+    logging.info('Performing PCA...')
     pca = PCA(n_components=len(args.metrics))
     principalComponents = pca.fit_transform(df_pca)
     principalDf = pd.DataFrame(data=principalComponents, columns=[f'PC{i}' for i in range(1, len(args.metrics) + 1)])
 
     # Plot the eigenvalues.
-    logging.debug('Plotting results...')
+    logging.info('Plotting results...')
     eigenvalues = pca.explained_variance_
     pos = list(range(1, len(args.metrics)+1))
     plt.clf()
@@ -227,7 +248,6 @@ def main():
     ax.set_ylabel('Eigenvalues', fontsize=10)
     ax.set_title('Eigenvalues for each principal components.', fontsize=10)
     autolabel(bar_eig, ax)
-    plt.tight_layout()
     plt.savefig(f'{args.output}/eigenvalues.pdf')
 
     # Plot the explained variance.
@@ -241,7 +261,6 @@ def main():
     ax.set_ylabel('Explained variance', fontsize=10)
     ax.set_title('Amount of explained variance for all principal components.', fontsize=10)
     autolabel(bar_var, ax)
-    plt.tight_layout()
     plt.savefig(f'{args.output}/explained_variance.pdf')
 
     # Plot the contribution of each measures to principal component.
@@ -260,11 +279,10 @@ def main():
         ax.set(xlabel='Diffusion measures', ylabel='Loadings')
     for ax in axs.flat:
         ax.label_outer()
-    plt.tight_layout()
     plt.savefig(f'{args.output}/contribution.pdf')
 
     # Extract the derived newly computed measures from the PCA analysis.
-    logging.debug('Saving matrices for PC with eigenvalues > 1...')
+    logging.info('Saving matrices for PC with eigenvalues > 1...')
     out = pca.transform(x)
     out = restore_zero_values(x, out)
     out = out.swapaxes(0, 1).reshape(len(args.metrics), len(subjects), mat_shape[0], mat_shape[1])
@@ -273,8 +291,12 @@ def main():
     nb_pc = eigenvalues[eigenvalues >= 1]
     for i in range(0, len(nb_pc)):
         for s in range(0, len(subjects)):
-            save_matrix_in_any_format(f'{args.in_folder}/{subjects[s]}/Compute_Connectivity/PC{i+1}.npy',
-                                      out[i, s, :, :])
+            if args.connectoflow:
+                save_matrix_in_any_format(f'{args.input}/{subjects[s]}/Compute_Connectivity/PC{i+1}.npy',
+                                          out[i, s, :, :])
+            else:
+                save_matrix_in_any_format(f'{args.input}/{subjects[s]}_PC{i+1}.npy',
+                                          out[i, s, :, :])
 
 
 if __name__ == "__main__":
