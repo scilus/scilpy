@@ -34,7 +34,6 @@ from scilpy.io.utils import (load_matrix_in_any_format,
                              save_matrix_in_any_format,
                              add_verbose_arg,
                              add_overwrite_arg,
-                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 
 
@@ -61,7 +60,7 @@ def _build_arg_parser():
     p.add_argument('--metrics', nargs='+', required=True,
                    help='List of all metrics to include in PCA analysis.')
     p.add_argument('--list_ids', required=True,
-                      help='List containing all ids to use in PCA computation.')
+                   help='List containing all ids to use in PCA computation.')
     p.add_argument('--common', choices=['true', 'false'], default='true',
                    help='If true, will include only connections found in all subjects of the population (Recommended) '
                         '[True].')
@@ -115,7 +114,7 @@ def autolabel(rects, axs):
     for rect in rects:
         height = rect.get_height()
         axs.text(rect.get_x() + rect.get_width()/2., height*1.05,
-                    '%.3f' % float(height), ha='center', va='bottom')
+                 '%.3f' % float(height), ha='center', va='bottom')
 
 
 def extracting_common_cnx(d, ind):
@@ -162,14 +161,14 @@ def apply_binary_mask(d, mask):
     return d
 
 
-def grab_files_by_end(end_pattern, dir):
+def grab_files_by_end(end_pattern, folder):
     """
     Function to grab files following an ending pattern.
     :param end_pattern:     Ending pattern to match.
-    :param dir:             Directory.
+    :param folder:          Directory.
     :return:                List of filenames matching the end pattern.
     """
-    files = [f for f in os.listdir(dir) if f.endswith(end_pattern)]
+    files = [f for f in os.listdir(folder) if f.endswith(end_pattern)]
 
     return sorted(files)
 
@@ -192,7 +191,8 @@ def main():
              for m in args.metrics}
     else:
         logging.info('Loading all matrices...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}') for a in grab_files_by_end(f'{m}.npy', f'{args.input}')]
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}')
+                      for a in grab_files_by_end(f'{m}.npy', f'{args.input}')]
              for m in args.metrics}
         # Assert that all metrics have the same number of subjects.
         nb_sub = [len(d[f'{m}']) for m in args.metrics]
@@ -232,8 +232,8 @@ def main():
     # Perform the PCA.
     logging.info('Performing PCA...')
     pca = PCA(n_components=len(args.metrics))
-    principalComponents = pca.fit_transform(df_pca)
-    principalDf = pd.DataFrame(data=principalComponents, columns=[f'PC{i}' for i in range(1, len(args.metrics) + 1)])
+    principalcomponents = pca.fit_transform(df_pca)
+    principaldf = pd.DataFrame(data=principalcomponents, columns=[f'PC{i}' for i in range(1, len(args.metrics) + 1)])
 
     # Plot the eigenvalues.
     logging.info('Plotting results...')
@@ -243,7 +243,7 @@ def main():
     plt.cla()
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    bar_eig = ax.bar(pos, eigenvalues, align='center', tick_label=principalDf.columns)
+    bar_eig = ax.bar(pos, eigenvalues, align='center', tick_label=principaldf.columns)
     ax.set_xlabel('Principal Components', fontsize=10)
     ax.set_ylabel('Eigenvalues', fontsize=10)
     ax.set_title('Eigenvalues for each principal components.', fontsize=10)
@@ -256,7 +256,7 @@ def main():
     plt.cla()
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    bar_var = ax.bar(pos, explained_var, align='center', tick_label=principalDf.columns)
+    bar_var = ax.bar(pos, explained_var, align='center', tick_label=principaldf.columns)
     ax.set_xlabel('Principal Components', fontsize=10)
     ax.set_ylabel('Explained variance', fontsize=10)
     ax.set_title('Amount of explained variance for all principal components.', fontsize=10)
@@ -265,7 +265,7 @@ def main():
 
     # Plot the contribution of each measures to principal component.
     component = pca.components_
-    output_component = pd.DataFrame(component, index=principalDf.columns, columns=args.metrics)
+    output_component = pd.DataFrame(component, index=principaldf.columns, columns=args.metrics)
     output_component.to_excel(f'{args.output}/loadings.xlsx', index=True, header=True)
     plt.clf()
     plt.cla()
