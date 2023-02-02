@@ -11,7 +11,7 @@ other type of folder input, the script expect a single folder containing all mat
                                                             $input_folder/sub-01_ad.npy
                                                                          /sub-01_md.npy
                                                                          /sub-02_ad.npy
-                                                                         /sub-03_md.npy
+                                                                         /sub-02_md.npy
                                                                          /...
 
 Output connectivity matrix will be saved next to the other metrics in the input folder. The graphs and tables
