@@ -60,7 +60,7 @@ def _build_arg_parser():
                         'next to all other metrics ***')
     p.add_argument('--metrics', nargs='+', required=True,
                    help='List of all metrics to include in PCA analysis.')
-    p.add_argument('--list_ids',
+    p.add_argument('--list_ids', required=True,
                       help='List containing all ids to use in PCA computation.')
     p.add_argument('--common', choices=['true', 'false'], default='true',
                    help='If true, will include only connections found in all subjects of the population (Recommended) '
