@@ -200,8 +200,15 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                TotalReadoutTime=totalreadout,
                                invalid_filters='drop')
 
-    related_files = [curr_related for curr_related in related_files if curr_related.entities['suffix'] != 'dwi']
+    related_files_filtered = []
+    for curr_related in related_files:
+        if curr_related.entities['suffix'] != 'dwi':
+            related_files_filtered.append(curr_related)
+        if curr_related.entities['extension'] != '.nii.gz':
+            related_files_filtered = []
+            break
 
+    related_files = related_files_filtered
     direction_key = False
     if 'direction' in curr_dwi.entities:
         direction_key = 'direction'
@@ -246,6 +253,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                      BIDS structure unkown.Please send an issue:
                      https://github.com/scilus/scilpy/issues
                      """)
+        return {}
 
     # T1 setup
     t1_path = 'todo'
@@ -325,15 +333,15 @@ def associate_dwis(layout, nSub):
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
         if len(phaseEncodingDirection) == 1:
             logging.info("Found one phaseEncodingDirection.")
-            return [layout.get(part=Query.NONE, **base_dict) +
+            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                     layout.get(part='mag', **base_dict)]
     elif len(directions) == 1:
         logging.info("Found one direction.")
-        return [layout.get(part=Query.NONE, **base_dict) +
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                 layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [layout.get(part=Query.NONE, **base_dict) +
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
@@ -438,12 +446,14 @@ def main():
                                            'mri/aparc+aseg.mgz'))
             if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                 fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
+                logging.warning("# Found FS files")
         else:
             logging.warning("# Looking for T1 files")
             t1s = layout.get(subject=nSub,
                              datatype='anat', extension='nii.gz',
                              suffix='T1w')
-
+            if t1s:
+                logging.warning("# Found {} T1 files".format(len(t1s)))
         # Get the data for each run of DWIs
         for dwi in dwis:
             data.append(get_data(layout,
