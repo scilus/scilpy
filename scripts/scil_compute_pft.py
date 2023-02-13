@@ -27,6 +27,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+import os
 
 from dipy.data import get_sphere, HemiSphere
 from dipy.direction import (ProbabilisticDirectionGetter,
@@ -47,6 +48,7 @@ from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tracking.tools import get_theta
 from trx.trx_file_memmap import TrxFile
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -150,9 +152,9 @@ def main():
                                  args.map_exclude_file])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    # if not nib.streamlines.is_supported(args.out_tractogram):
-    #     parser.error('Invalid output streamline file format (must be trk or ' +
-    #                  'tck): {0}'.format(args.out_tractogram))
+    _, ext = os.path.splitext(args.out_tractogram)
+    if ext not in ['.trk', '.tck', '.trx']:
+        parser.error('Output file must be a trk, tck or trx file.')
 
     if not args.min_length > 0:
         parser.error('minL must be > 0, {}mm was provided.'
@@ -223,7 +225,8 @@ def main():
 
     if not args.act:
         tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
-                                                 map_exclude_img.get_fdata(dtype=np.float32),
+                                                 map_exclude_img.get_fdata(
+                                                     dtype=np.float32),
                                                  step_size=args.step_size,
                                                  average_voxel_size=voxel_size)
     else:

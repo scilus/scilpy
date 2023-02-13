@@ -21,6 +21,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+import os
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
@@ -162,9 +163,9 @@ def main():
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    # if not nib.streamlines.is_supported(args.out_tractogram):
-    #     parser.error('Invalid output streamline file format (must be trk or ' +
-    #                  'tck): {0}'.format(args.out_tractogram))
+    _, ext = os.path.splitext(args.out_tractogram)
+    if ext not in ['.trk', '.tck', '.trx']:
+        parser.error('Output file must be a trk, tck or trx file.')
 
     verify_streamline_length_options(parser, args)
     verify_compression_th(args.compress)
