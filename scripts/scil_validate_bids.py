@@ -243,6 +243,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         else:
             topup = ['', '']
     elif len(dwis) == 1:
+        # If one DWI you cannot have a reverse sbref
+        # since sbref is a derivate of multi-band dwi
         if topup_suffix['epi'][1] != '':
             topup = topup_suffix['epi']
         else:
@@ -373,19 +375,28 @@ def associate_dwis(layout, nSub):
         curr_dwi = all_dwis[0]
 
         curr_association = [curr_dwi]
+
+        # Fake reverse so it can be used to compare with real rev
         rev_curr_entity = curr_dwi.get_entities()
 
         rev_iter_to_rm = []
         for iter_rev, rev_dwi in enumerate(all_rev_dwis):
             # At this stage, we need to check only direction
+            direction = False
             if 'direction' in curr_dwi.entities:
-                rev_curr_entity['direction'] = rev_curr_entity['direction'][::-1]
+                direction = 'direction'
+            elif 'PhaseEncodingDirection' in curr_dwi.entities:
+                direction = 'PhaseEncodingDirection'
+
+            if direction:
+                rev_curr_entity[direction] = get_opposite_phase_encoding_direction(rev_curr_entity.entities[PhaseEncodingDirection])
                 if rev_curr_entity == rev_dwi.get_entities():
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
-            elif curr_dwi.entities['PhaseEncodingDirection'] == rev_dwi.entities['PhaseEncodingDirection'][:-1] and rev_curr_entity == rev_dwi.get_entities():
-                curr_association.append(rev_dwi)
-                rev_iter_to_rm.append(iter_rev)
+                else:
+                    # Print difference between entities
+                    diff_entities = list(set(rev_dwi.get_entities()).symmetric_difference(set(rev_curr_entity)))
+                    logging.info('DWIs {} and {} have different entities: {}.'.format(curr_dwi, rev_dwi, diff_entities))
 
         # drop all rev_dwi used
         logging.info('Checking dwi {}'.format(all_dwis[0]))
