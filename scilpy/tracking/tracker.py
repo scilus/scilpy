@@ -198,10 +198,10 @@ class Tracker(object):
         pool = multiprocessing.Pool(
             self.nbr_processes,
             initializer=self._send_multiprocess_args_to_global,
-            initargs={
+            initargs=({
                 'data_file_name': data_file_name,
                 'mmap_mode': self.mmap_mode
-            })
+            },))
 
         return pool
 
