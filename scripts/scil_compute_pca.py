@@ -15,7 +15,7 @@ other type of folder input, the script expect a single folder containing all mat
                                                                          /...
 
 Output connectivity matrix will be saved next to the other metrics in the input folder. The graphs and tables
-will be outputted in the designed folder in the <output> argument.
+will be outputted in the designated folder in the <output> argument.
 
 EXAMPLE USAGE:
 dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
