@@ -389,7 +389,7 @@ def associate_dwis(layout, nSub):
                 direction = 'PhaseEncodingDirection'
 
             if direction:
-                rev_curr_entity[direction] = get_opposite_phase_encoding_direction(rev_curr_entity.entities[PhaseEncodingDirection])
+                rev_curr_entity[direction] = get_opposite_phase_encoding_direction(rev_curr_entity[direction])
                 if rev_curr_entity == rev_dwi.get_entities():
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
