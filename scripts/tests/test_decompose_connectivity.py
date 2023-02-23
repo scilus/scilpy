@@ -28,5 +28,6 @@ def test_execution_connectivity(script_runner):
                             '--min_length', '20', '--max_length', '200',
                             '--outlier_threshold', '0.5',
                             '--loop_max_angle', '330',
-                            '--curv_qb_distance', '10')
+                            '--curv_qb_distance', '10',
+                            '--processes','1')
     assert ret.success

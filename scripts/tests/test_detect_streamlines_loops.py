@@ -25,5 +25,6 @@ def test_execution_filtering(script_runner):
                             in_bundle, 'bundle_4_filtered_no_loops.trk',
                             '--looping_tractogram',
                             'bundle_4_filtered_loops.trk',
-                            '-a', '270', '--qb', '--threshold', '4')
+                            '-a', '270', '--qb', '--threshold', '4',
+                            '--processes','1')
     assert ret.success
