@@ -21,7 +21,6 @@ from dipy.io.stateful_tractogram import Space, StatefulTractogram
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamline import transform_streamlines
 from fury import actor
-import matplotlib.pyplot as plt
 import nibabel as nib
 from nilearn import plotting
 import numpy as np
@@ -34,6 +33,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.utils.image import register_image
 from scilpy.viz.screenshot import display_slices
+from scilpy.viz.utils import get_colormap
 
 
 def _build_arg_parser():
@@ -217,7 +217,7 @@ def main():
         sft.to_rasmm()
         colors = []
         normalized_data = reference_data / np.max(reference_data)
-        cmap = plt.get_cmap(args.reference_coloring)
+        cmap = get_colormap(args.reference_coloring)
         for points in streamlines_vox:
             values = map_coordinates(normalized_data, points.T,
                                      order=1, mode='nearest')

@@ -27,8 +27,13 @@ Example: Use --from_anatomy with a voxel labels map (values from 1-20) with a
 text file containing 20 p-values to map p-values to the bundle for
 visualisation.
 
+A custom colormap can be provided using --colormap. It should be a string
+containing a colormap name OR multiple Matplotlib named colors separated by -.
 The colormap used for mapping values to colors can be saved to a png/jpg image
 using the --out_colorbar option.
+
+The script can also be used to color streamlines according to their length
+using the --along_profile option. The streamlines must be uniformized.
 """
 
 import argparse
@@ -37,7 +42,6 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -46,6 +50,8 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
                              load_matrix_in_any_format)
+from scilpy.utils.streamlines import get_color_streamlines_along_length
+from scilpy.viz.utils import get_colormap
 
 COLORBAR_NB_VALUES = 255
 
@@ -82,11 +88,15 @@ def _build_arg_parser():
     p1.add_argument('--from_anatomy', metavar='FILE',
                     help='Use the voxel data for coloring,\n'
                          'linear scaling from minmax.')
+    p1.add_argument('--along_profile', action='store_true',
+                    help='Color streamlines according to each point position'
+                         'along its length.\nMust be uniformized head/tail.')
 
     g2 = p.add_argument_group(title='Coloring Options')
     g2.add_argument('--colormap', default='jet',
                     help='Select the colormap for colored trk (dps/dpp) '
-                    '[%(default)s].')
+                    '[%(default)s].\nUse two Matplotlib named color separeted '
+                    'by a - to create your own colormap.')
     g2.add_argument('--min_range', type=float,
                     help='Set the minimum value when using dps/dpp/anatomy.')
     g2.add_argument('--max_range', type=float,
@@ -179,7 +189,7 @@ def main():
                             'of the provided LUT.\nConsider using '
                             'scil_resample_streamlines.py')
 
-    cmap = plt.get_cmap(args.colormap)
+    cmap = get_colormap(args.colormap)
     if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:
         if args.use_dps:
             data = np.squeeze(sft.data_per_streamline[args.use_dps])
@@ -210,6 +220,8 @@ def main():
                                  order=0)
         color = cmap(values)[:, 0:3] * 255
         sft.to_rasmm()
+    elif args.along_profile:
+        color = get_color_streamlines_along_length(sft, args.colormap)
     else:
         parser.error('No coloring method specified.')
 
