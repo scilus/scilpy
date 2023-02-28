@@ -299,7 +299,7 @@ def main():
     out_sft_rootname = in_sft_name + "_filtered"
     _, ext = os.path.splitext(args.in_tractogram)
     out_sft_name = os.path.join(args.out_path,
-                                out_sft_rootname + "_filtered" + ext)
+                                out_sft_rootname + ext)
 
     # STEP 1 - Filter length
     step = step_dict[0]
