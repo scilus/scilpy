@@ -59,7 +59,8 @@ def _build_arg_parser():
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
                    choices=['eddy_openmp', 'eddy_cuda', 'eddy_cuda8.0',
-                            'eddy_cuda9.1', 'eddy_cuda10.2'],
+                            'eddy_cuda9.1', 'eddy_cuda10.2',
+                            'eddy', 'eddy_cpu'],
                    help='Eddy command [%(default)s].')
 
     p.add_argument('--b0_thr', type=float, default=20,

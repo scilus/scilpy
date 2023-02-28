@@ -53,7 +53,7 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
@@ -167,7 +167,7 @@ def dilate_mask(mask, mask_shape, vox_size, radius):
     # Compute the nearest labels for each voxel of the background
     dist, indices = ckd_tree.query(
         background_pos, k=1, distance_upper_bound=radius,
-        n_jobs=-1)
+        workers=-1)
 
     # Associate indices to the nearest label (in distance)
     valid_nearest = np.squeeze(np.isfinite(dist))

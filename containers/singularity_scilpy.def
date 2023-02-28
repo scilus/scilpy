@@ -1,2 +1,0 @@
-BootStrap: docker
-From: scilus/docker-scilpy:latest
