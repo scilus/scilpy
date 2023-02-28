@@ -30,8 +30,10 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
     Parameters
     ----------
-    ms: list of numpy.ndarray
-        bvecs for each bval
+    ms: list of lists of numpy.ndarray
+        bvecs for each bval: one list per shell.
+    centroids: list of ints
+        List of shells to plot.
     plot_sym_vecs: boolean
         Plot symmetrical vectors
     use_sphere: boolean
@@ -93,8 +95,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
     Parameters
     ----------
-    ms: list of numpy.ndarray
-        bvecs for each bvalue
+    ms: list of lists of numpy.ndarray
+        bvecs for each bval: one list per shell.
     use_sym: boolean
         Plot symmetrical vectors
     use_sphere: boolean
