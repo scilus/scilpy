@@ -8,7 +8,7 @@ import traceback
 from time import perf_counter
 from typing import Union
 
-import nibabel as nib
+from nibabel.tmpdirs import InTemporaryDirectory
 import numpy as np
 
 from dipy.data import get_sphere
@@ -133,7 +133,7 @@ class Tracker(object):
         else:
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
-            with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
+            with InTemporaryDirectory() as tmpdir:
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
