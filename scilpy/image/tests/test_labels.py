@@ -152,6 +152,6 @@ def test_split_labels():
     in_labels = deepcopy(ref_in_labels)
     out_labels = split_labels(in_labels, [6, 7, 7])
 
-    assert len(out_labels) == 2
+    assert len(out_labels) == 3
     assert_equal(np.unique(out_labels[0]), [0, 6])
     assert_equal(np.unique(out_labels[1]), [0])

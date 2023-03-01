@@ -4,12 +4,12 @@ pipeline {
     stages {
         stage('Build') {
             stages {
-                stage('Python3.7') {
+                stage('Python3.10') {
                     steps {
-                        withPythonEnv('CPython-3.7') {
+                        withPythonEnv('CPython-3.10') {
                             sh '''
-                                pip3 install wheel==0.37.*
-                                pip3 install numpy==1.21.*
+                                pip3 install wheel==0.38.*
+                                pip3 install numpy==1.23.*
                                 pip3 install Cython==0.29.*
                                 pip3 install -e .
                             '''
@@ -21,10 +21,10 @@ pipeline {
 
         stage('Test') {
             steps {
-                withPythonEnv('CPython-3.7') {
+                withPythonEnv('CPython-3.10') {
                     sh '''
-                        pip3 install wheel==0.37.*
-                        pip3 install numpy==1.21.*
+                        pip3 install wheel==0.38.*
+                        pip3 install numpy==1.23.*
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1

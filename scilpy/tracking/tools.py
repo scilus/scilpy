@@ -6,7 +6,7 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 import numpy as np
 from scipy.interpolate import splev, splprep
-from scipy.ndimage.filters import gaussian_filter1d
+from scipy.ndimage import gaussian_filter1d
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):

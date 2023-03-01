@@ -10,6 +10,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 from scilpy.tractanalysis.features import get_streamlines_centroid
+from scilpy.viz.utils import get_colormap
 
 
 def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
@@ -36,8 +37,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                                         point_to_select=3)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
-                    precompute_distances=True, n_init=20,
-                    n_jobs=1).fit(indices)
+                    n_init=20).fit(indices)
 
     labels = np.zeros(density.shape)
     for i in range(len(kmeans.labels_)):
@@ -78,10 +78,10 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
             if ref_bundle:
                 res_centroid = set_number_of_points(centroid, 20)
                 res_streamlines = set_number_of_points(sft.streamlines[i], 20)
-                norm_direct = np.sum(np.linalg.norm(res_centroid - res_streamlines,
-                                                    axis=0))
-                norm_flip = np.sum(np.linalg.norm(res_centroid - res_streamlines[::-1],
-                                                  axis=0))
+                norm_direct = np.sum(
+                    np.linalg.norm(res_centroid - res_streamlines, axis=0))
+                norm_flip = np.sum(
+                    np.linalg.norm(res_centroid - res_streamlines[::-1], axis=0))
                 if bool(norm_direct > norm_flip) ^ bool(swap):
                     sft.streamlines[i] = sft.streamlines[i][::-1]
                     for key in sft.data_per_point[i]:
@@ -97,6 +97,58 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                             sft.data_per_point[key][i][::-1]
     sft.to_space(old_space)
     sft.to_origin(old_origin)
+
+
+def uniformize_bundle_sft_using_mask_barycenter(sft, mask, swap=False):
+    """Uniformize the streamlines in the given tractogram so head is closer to
+    to the barycenter.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+         The tractogram that contains the list of streamlines to be uniformized
+    mask: np.ndarray
+        Mask to use as a reference for the barycenter.
+    swap: boolean, optional
+        Swap the orientation of streamlines
+    """
+
+    barycenter = np.average(np.argwhere(mask), axis=0)
+
+    for i in range(len(sft.streamlines)):
+        if (np.linalg.norm(sft.streamlines[i][0] - barycenter) >
+                np.linalg.norm(sft.streamlines[i][-1] - barycenter)) ^ bool(swap):
+            sft.streamlines[i] = sft.streamlines[i][::-1]
+            for key in sft.data_per_point[i]:
+                sft.data_per_point[key][i] = \
+                    sft.data_per_point[key][i][::-1]
+
+
+def get_color_streamlines_along_length(sft, colormap='jet'):
+    """Color streamlines according to their length.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that contains the list of streamlines to be colored
+    colormap: str
+        The colormap to use.
+
+    Returns
+    -------
+    color: np.ndarray
+        An array of shape (nb_streamlines, 3) containing the RGB values of
+        streamlines
+
+    """
+    cmap = get_colormap(colormap)
+    color_dpp = copy.deepcopy(sft.streamlines)
+
+    for i in range(len(sft.streamlines)):
+        color_dpp[i] = cmap(np.linspace(0, 1, len(sft.streamlines[i])))[
+            :, 0:3] * 255
+
+    return color_dpp._data
 
 
 def filter_tractogram_data(tractogram, streamline_ids):

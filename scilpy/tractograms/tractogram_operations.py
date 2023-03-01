@@ -432,10 +432,9 @@ def concatenate_sft(sft_list, erase_metadata=False, metadata_fake_init=False):
 def transform_warp_sft(sft, linear_transfo, target, inverse=False,
                        reverse_op=False, deformation_data=None,
                        remove_invalid=True, cut_invalid=False):
-    """
-    Transforms a tractogram using a affine Subsequently apply a warp from
+    """ Transform tractogram using a affine Subsequently apply a warp from
     antsRegistration (optional).
-    Removes/Cuts invalid streamlines to preserve sft validity.
+    Remove/Cut invalid streamlines to preserve sft validity.
 
     Parameters
     ----------
