@@ -12,7 +12,7 @@ on or are wrappers of the [DIPY] library, and most of them will eventually be mi
 The library is now built for Python 3.10 so be sure to create a virtual environnement for Python 3.10. If this version is not installed on your computer:
 ```
 sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get install python3.10 python3.10-dev python3.10-minimal python3.10-tk
+sudo apt-get install python3.10 python3.10-dev python3.10-venv python3.10-minimal python3.10-tk
 ```
 
 Make sure your pip is up-to-date before trying to install:
