@@ -39,7 +39,7 @@ def _build_arg_parser():
              'together or only .b).')
     g.add_argument(
         '--dipy_sphere', choices=sphere_choices,
-        help="Sphere to show, amongst:\n{}".format(sphere_choices))
+        help="Dipy sphere choice.")
 
     p.add_argument(
         '--dis-sym', action='store_false', dest='enable_sym',
