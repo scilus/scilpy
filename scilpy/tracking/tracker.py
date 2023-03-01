@@ -4,13 +4,12 @@ import logging
 import multiprocessing
 import os
 import sys
-import traceback
+from tempfile import TemporaryDirectory
 from time import perf_counter
+import traceback
 from typing import Union
 
-from nibabel.tmpdirs import InTemporaryDirectory
 import numpy as np
-
 from dipy.data import get_sphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
@@ -133,7 +132,7 @@ class Tracker(object):
         else:
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
-            with InTemporaryDirectory() as tmpdir:
+            with TemporaryDirectory() as tmpdir:
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
