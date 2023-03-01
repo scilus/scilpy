@@ -7,15 +7,15 @@ Script to compute PCA analysis on diffusion metrics. Output returned is all sign
 edges from every subject in a population or only non-zero edges across all subjects.
 
 The script can take directly as input a connectoflow output folder. Simply use the --connectoflow flag. For
-other type of folder input, the script expect a single folder containing all matrices for all subjects. Example:
-                                                            $input_folder/sub-01_ad.npy
-                                                                         /sub-01_md.npy
-                                                                         /sub-02_ad.npy
-                                                                         /sub-02_md.npy
-                                                                         /...
+other type of folder input, the script expects a single folder containing all matrices for all subjects. Example:
+                                                            input_folder/sub-01_ad.npy
+                                                                        /sub-01_md.npy
+                                                                        /sub-02_ad.npy
+                                                                        /sub-02_md.npy
+                                                                        /...
 
-Output connectivity matrix will be saved next to the other metrics in the input folder. The graphs and tables
-will be outputted in the designated folder in the <output> argument.
+Output connectivity matrix will be saved next to the other metrics in the input folder. The plots and tables
+will be outputted in the designated folder from the <output> argument.
 
 EXAMPLE USAGE:
 dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
@@ -24,7 +24,6 @@ dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd [...] 
 # Import required libraries.
 import argparse
 import logging
-import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -73,7 +72,7 @@ def _build_arg_parser():
     return p
 
 
-def creating_pca_input(d):
+def generate_pca_input(d):
     """
     Function to create PCA input from matrix.
     :param d:       Dictionary containing all matrix for all metrics.
@@ -161,18 +160,6 @@ def apply_binary_mask(d, mask):
     return d
 
 
-def grab_files_by_end(end_pattern, folder):
-    """
-    Function to grab files following an ending pattern.
-    :param end_pattern:     Ending pattern to match.
-    :param folder:          Directory.
-    :return:                List of filenames matching the end pattern.
-    """
-    files = [f for f in os.listdir(folder) if f.endswith(end_pattern)]
-
-    return sorted(files)
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -180,7 +167,7 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output)
+    assert_output_dirs_exist_and_empty(parser, args, args.output, create_dir=True)
 
     subjects = open(args.list_ids).read().split()
 
@@ -191,8 +178,7 @@ def main():
              for m in args.metrics}
     else:
         logging.info('Loading all matrices...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}')
-                      for a in grab_files_by_end(f'{m}.npy', f'{args.input}')]
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}_{m}.npy') for a in subjects]
              for m in args.metrics}
         # Assert that all metrics have the same number of subjects.
         nb_sub = [len(d[f'{m}']) for m in args.metrics]
@@ -214,13 +200,13 @@ def main():
             parser.error("Different binary mask have been generated from 2 different metrics, \n "
                          "please validate input data.")
         else:
-            logging.info('Data shows {} common connections across the population.'.format(len(m1)))
+            logging.info('Data shows {} common connections across the population.'.format(np.sum(m1)))
 
         d = apply_binary_mask(d, m1)
 
     # Creating input structure.
     logging.info('Creating PCA input structure...')
-    df = creating_pca_input(d)
+    df = generate_pca_input(d)
     df[df == 0] = 'nan'
 
     # Standardized the data.
