@@ -540,9 +540,12 @@ def load_matrix_in_any_format(filepath):
         # antsRegistration that encode a 4x4 transformation matrix.
         transfo_dict = loadmat(filepath)
         lps2ras = np.diag([-1, -1, 1])
+        transfo_key = 'AffineTransform_double_3_3'
+        if transfo_key not in transfo_dict:
+            transfo_key = 'AffineTransform_float_3_3'
 
-        rot = transfo_dict['AffineTransform_double_3_3'][0:9].reshape((3, 3))
-        trans = transfo_dict['AffineTransform_double_3_3'][9:12]
+        rot = transfo_dict[transfo_key][0:9].reshape((3, 3))
+        trans = transfo_dict[transfo_key][9:12]
         offset = transfo_dict['fixed']
         r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
 
