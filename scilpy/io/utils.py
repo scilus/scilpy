@@ -519,7 +519,7 @@ def read_info_from_mb_bdo(filename):
     center = [flip[0]*float(center_tag.attrib['x'].replace(',', '.')),
               flip[1]*float(center_tag.attrib['y'].replace(',', '.')),
               flip[2]*float(center_tag.attrib['z'].replace(',', '.'))]
-    row_list = tree.getiterator('Row')
+    row_list = tree.iter('Row')
     radius = [None, None, None]
     for i, row in enumerate(row_list):
         for j in range(0, 3):

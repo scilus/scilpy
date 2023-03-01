@@ -4,7 +4,7 @@ import logging
 import os
 
 import numpy as np
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 
 
 def get_data_as_labels(in_img):
@@ -70,7 +70,7 @@ def split_labels(labels_volume, label_indices):
         One 3D volume per label.
     """
     split_data = []
-    for label in np.unique(label_indices):
+    for label in label_indices:
         label_occurences = np.where(labels_volume == int(label))
         if len(label_occurences) != 0:
             split_label = np.zeros(labels_volume.shape, dtype=np.uint16)
@@ -282,7 +282,7 @@ def dilate_labels(data, vox_size, distance, nbr_processes,
     # Compute the nearest labels for each voxel of the background
     dist, indices = ckd_tree.query(
         background_pos, k=1, distance_upper_bound=distance,
-        n_jobs=nbr_processes)
+        workers=nbr_processes)
 
     # Associate indices to the nearest label (in distance)
     valid_nearest = np.squeeze(np.isfinite(dist))

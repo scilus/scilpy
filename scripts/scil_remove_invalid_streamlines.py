@@ -94,7 +94,7 @@ def main():
     logging.warning('Removed {} invalid streamlines.'.format(
         ori_len - len(new_sft)))
 
-    if not args.no_empty or len(new_sft) > 0:
+    if len(new_sft) > 0 or (not args.no_empty and len(new_sft) == 0):
         save_tractogram(new_sft, args.out_tractogram)
     else:
         logging.warning('No valid streamline, not saving due to --no_empty.')
