@@ -141,7 +141,7 @@ def fetch_data(files_dict, keys=None):
                     data = file_to_check.read()
                     md5_returned = hashlib.md5(data).hexdigest()
                 if md5_returned != md5:
-                    logging.warning('MD5 mismatch for file {}.'.format(f))
+                    raise ValueError('MD5 mismatch for file {}.'.format(f))
 
                 try:
                     # If there is a root dir, we want to skip one level.
