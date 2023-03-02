@@ -18,7 +18,7 @@ Output connectivity matrix will be saved next to the other metrics in the input 
 will be outputted in the designated folder from the <output> argument.
 
 EXAMPLE USAGE:
-dimension_reduction.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
+scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
 """
 
 # Import required libraries.
@@ -50,9 +50,9 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=EPILOG)
 
-    p.add_argument('input',
+    p.add_argument('in_folder',
                    help='Path to the input folder.')
-    p.add_argument('output',
+    p.add_argument('out_folder',
                    help='Path to the output folder to export graphs and tables. \n'
                         '*** Please note, PC connectivity matrix will be outputted in the original input folder'
                         'next to all other metrics ***')
@@ -167,18 +167,18 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    assert_output_dirs_exist_and_empty(parser, args, args.output, create_dir=True)
+    assert_output_dirs_exist_and_empty(parser, args, args.out_folder, create_dir=True)
 
     subjects = open(args.list_ids).read().split()
 
     if args.connectoflow:
         # Loading all matrix.
         logging.info('Loading all matrices from a Connectoflow output...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}/Compute_Connectivity/{m}.npy') for a in subjects]
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.in_folder}/{a}/Compute_Connectivity/{m}.npy') for a in subjects]
              for m in args.metrics}
     else:
         logging.info('Loading all matrices...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.input}/{a}_{m}.npy') for a in subjects]
+        d = {f'{m}': [load_matrix_in_any_format(f'{args.in_folder}/{a}_{m}.npy') for a in subjects]
              for m in args.metrics}
         # Assert that all metrics have the same number of subjects.
         nb_sub = [len(d[f'{m}']) for m in args.metrics]
@@ -234,7 +234,7 @@ def main():
     ax.set_ylabel('Eigenvalues', fontsize=10)
     ax.set_title('Eigenvalues for each principal components.', fontsize=10)
     autolabel(bar_eig, ax)
-    plt.savefig(f'{args.output}/eigenvalues.pdf')
+    plt.savefig(f'{args.out_folder}/eigenvalues.pdf')
 
     # Plot the explained variance.
     explained_var = pca.explained_variance_ratio_
@@ -247,12 +247,12 @@ def main():
     ax.set_ylabel('Explained variance', fontsize=10)
     ax.set_title('Amount of explained variance for all principal components.', fontsize=10)
     autolabel(bar_var, ax)
-    plt.savefig(f'{args.output}/explained_variance.pdf')
+    plt.savefig(f'{args.out_folder}/explained_variance.pdf')
 
     # Plot the contribution of each measures to principal component.
     component = pca.components_
     output_component = pd.DataFrame(component, index=principaldf.columns, columns=args.metrics)
-    output_component.to_excel(f'{args.output}/loadings.xlsx', index=True, header=True)
+    output_component.to_excel(f'{args.out_folder}/loadings.xlsx', index=True, header=True)
     plt.clf()
     plt.cla()
     fig, axs = plt.subplots(2)
@@ -265,7 +265,7 @@ def main():
         ax.set(xlabel='Diffusion measures', ylabel='Loadings')
     for ax in axs.flat:
         ax.label_outer()
-    plt.savefig(f'{args.output}/contribution.pdf')
+    plt.savefig(f'{args.out_folder}/contribution.pdf')
 
     # Extract the derived newly computed measures from the PCA analysis.
     logging.info('Saving matrices for PC with eigenvalues > 1...')
@@ -278,10 +278,10 @@ def main():
     for i in range(0, len(nb_pc)):
         for s in range(0, len(subjects)):
             if args.connectoflow:
-                save_matrix_in_any_format(f'{args.input}/{subjects[s]}/Compute_Connectivity/PC{i+1}.npy',
+                save_matrix_in_any_format(f'{args.in_folder}/{subjects[s]}/Compute_Connectivity/PC{i+1}.npy',
                                           out[i, s, :, :])
             else:
-                save_matrix_in_any_format(f'{args.input}/{subjects[s]}_PC{i+1}.npy',
+                save_matrix_in_any_format(f'{args.in_folder}/{subjects[s]}_PC{i+1}.npy',
                                           out[i, s, :, :])
 
 
