@@ -86,13 +86,16 @@ def main():
     for seed in seeds:
         # Set value at mask, either binary or increment
         seed_voxel = np.round(seed).astype(int)
+        dtype_to_use = np.int32
         if args.binary is not None:
+            if args.binary == 1:
+                dtype_to_use = np.uint8
             seed_density[tuple(seed_voxel)] = args.binary
         else:
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
-    dm_img = Nifti1Image(seed_density.astype(np.int32), affine)
+    dm_img = Nifti1Image(seed_density.astype(dtype_to_use), affine)
     dm_img.to_filename(args.seed_density_filename)
 
 

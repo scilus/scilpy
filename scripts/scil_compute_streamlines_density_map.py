@@ -60,10 +60,13 @@ def main():
 
     streamline_count = compute_tract_counts_map(streamlines, dimensions)
 
+    dtype_to_use = np.int32
     if args.binary is not None:
+        if args.binary == 1:
+            dtype_to_use = np.uint8
         streamline_count[streamline_count > 0] = args.binary
 
-    nib.save(nib.Nifti1Image(streamline_count.astype(np.int16), transformation),
+    nib.save(nib.Nifti1Image(streamline_count.astype(dtype_to_use), transformation),
              args.out_img)
 
 
