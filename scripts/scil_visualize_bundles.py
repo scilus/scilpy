@@ -49,7 +49,7 @@ def _build_arg_parser():
     coloring_group.add_argument('--random_coloring', metavar='SEED', type=int,
                                 help='Assign a random color to bundles.')
     coloring_group.add_argument('--uniform_coloring', metavar=('R', 'G', 'B'),
-                                nargs=3,
+                                nargs=3, type=int,
                                 help='Assign a uniform color to streamlines.')
     coloring_group.add_argument('--local_coloring', action='store_true',
                                 help='Assign coloring to streamlines '
@@ -177,7 +177,7 @@ def main():
             color = subsample(
                 tractogram_gen.data_per_point[args.color_from_points])
         elif args.uniform_coloring:  # Assign uniform coloring to streamlines
-            color = tuple(map(int, args.uniform_coloring))
+            color = tuple(np.asarray(args.uniform_coloring) / 255)
         elif args.local_coloring:  # Compute coloring from local orientations
             # Compute segment orientation
             diff = [np.diff(list(s), axis=0) for s in streamlines]
