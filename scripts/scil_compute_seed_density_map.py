@@ -29,10 +29,10 @@ def _build_arg_parser():
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
                    metavar='FIXED_VALUE', type=int, nargs='?', const=1,
-                   help='If set, will store the same value for all '
-                        'intersected voxels, creating a binary map.\nWhen set '
-                        'without a value, 1 is used.\n If a value is given, '
-                        'will be used as the stored value.')
+                   help='If set, will store the same value for all intersected'
+                        ' voxels, creating a binary map.\n'
+                        'When set without a value, 1 is used (and dtype uint8).\n'
+                        'If a value is given, will be used as the stored value.')
     add_overwrite_arg(p)
 
     return p
