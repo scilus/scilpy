@@ -29,10 +29,12 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
+                             add_processes_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             check_tracts_same_format)
+                             check_tracts_same_format,
+                             validate_nbr_processes)
 from scilpy.utils.streamlines import filter_tractogram_data
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 
@@ -61,11 +63,9 @@ def _build_arg_parser():
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
 
-
+    add_processes_arg(p)
     add_overwrite_arg(p)
-
     add_reference_arg(p)
-
     add_json_args(p)
     return p
 
@@ -79,6 +79,7 @@ def main():
                          optional=args.looping_tractogram)
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.looping_tractogram])
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     if args.threshold <= 0:
         parser.error('Threshold "{}" '.format(args.threshold) +
@@ -100,7 +101,8 @@ def main():
     if len(streamlines) > 1:
         ids_c = remove_loops_and_sharp_turns(
             streamlines, args.angle, use_qb=args.qb,
-            qb_threshold=args.threshold)
+            qb_threshold=args.threshold,
+            num_processes=nbr_cpu)
         ids_l = np.setdiff1d(np.arange(len(streamlines)), ids_c)
     else:
         parser.error(

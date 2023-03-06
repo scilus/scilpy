@@ -3,7 +3,6 @@
 from enum import Enum
 import numpy as np
 
-import matplotlib.pyplot as plt
 import vtk
 from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
@@ -12,6 +11,7 @@ from PIL import Image
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import bingham_to_sf
+from scilpy.viz.utils import get_colormap
 
 
 class CamParams(Enum):
@@ -658,7 +658,7 @@ def create_image_from_scene(scene, size, mode=None, cmap_name=None):
     _arr = scene
     if cmap_name:
         # Apply the colormap
-        cmap = plt.get_cmap(cmap_name)
+        cmap = get_colormap(cmap_name)
         # data returned by cmap is normalized to the [0,1] range: scale to the
         # [0, 255] range and convert to uint8 for Pillow
         _arr = (cmap(_arr) * 255).astype("uint8")
