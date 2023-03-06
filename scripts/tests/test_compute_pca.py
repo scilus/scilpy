@@ -26,5 +26,5 @@ def test_execution_pca(script_runner):
                        'list_id.txt')
     ret = script_runner.run('scil_compute_pca.py', input_folder, output_folder, '--metrics', 'ad',
                             'fa', 'md', 'rd', 'nufo', 'afd_total', 'afd_fixel', '--list_ids',
-                            ids, '--common', 'true')
+                            ids, '--common', 'true', '-f')
     assert ret.success
