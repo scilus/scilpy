@@ -55,7 +55,10 @@ def get_home():
 
 def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
-    return {'plot.zip':
+    return {'bids_json.zip':
+            ['1bMl5YtEufoKh-gjen940QTO5BpT5Y9TF',
+             'cb58cdc4a74c25b2b562284d62e6d929'],
+            'plot.zip':
             ['1Ab-oVWI1Fu7fHTEz1H3-s1TfR_oW-GOE',
              'cca8f1e19da357f44365a7e27b9029ca'],
             'ihMT.zip':

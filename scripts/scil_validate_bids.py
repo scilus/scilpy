@@ -189,6 +189,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         nRun = curr_dwi.entities['run']
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
+
     related_files = layout.get(part="mag",
                                IntendedFor=IntendedForPath,
                                regex_search=True,
@@ -202,11 +203,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
     related_files_filtered = []
     for curr_related in related_files:
-        if curr_related.entities['suffix'] != 'dwi':
-            related_files_filtered.append(curr_related)
-        if curr_related.entities['extension'] != '.nii.gz':
-            related_files_filtered = []
-            break
+        if curr_related.entities['suffix'] != 'dwi' and curr_related.entities['extension'] == '.nii.gz':
+            related_files_filtered.append(curr_related)          
 
     related_files = related_files_filtered
     direction_key = False
@@ -233,7 +231,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             logging.info('Too many files pointing to {}.'.format(dwis[0].path))
     else:
         topup = ['', '']
-        logging.info('IntendedFor: No file pointing to {}.'.format(dwis[0].path))
+        logging.info('IntendedFor: No file pointing to {}'.format(dwis[0].path))
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -328,6 +326,8 @@ def associate_dwis(layout, nSub):
     # Get possible directions
     phaseEncodingDirection = [Query.ANY, Query.ANY]
     directions = layout.get_direction(**base_dict)
+
+    directions.sort()
 
     if not directions and 'PhaseEncodingDirection' in layout.get_entities():
         logging.info("Found no directions.")
