@@ -92,7 +92,7 @@ def extract_affine(input_files):
     for input_file in input_files:
         if input_file:
             vol = nib.load(input_file)
-            return vol.get_affine()
+            return vol.affine
 
 
 def check_slice_indices(vol_img, axis_name, slice_ids):
