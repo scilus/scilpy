@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Create a json file from a BIDS dataset detailling all info needed for tractoflow
+Create a json file from a BIDS dataset detailling all info 
+needed for tractoflow
 - DWI/rev_DWI
 - T1
 - fmap/sbref (based on IntendedFor entity)
@@ -195,16 +196,17 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                                regex_search=True,
                                TotalReadoutTime=totalreadout,
                                invalid_filters='drop') +\
-                    layout.get(part=Query.NONE,
-                               IntendedFor=IntendedForPath,
-                               regex_search=True,
-                               TotalReadoutTime=totalreadout,
-                               invalid_filters='drop')
+        layout.get(part=Query.NONE,
+                   IntendedFor=IntendedForPath,
+                   regex_search=True,
+                   TotalReadoutTime=totalreadout,
+                   invalid_filters='drop')
 
     related_files_filtered = []
     for curr_related in related_files:
-        if curr_related.entities['suffix'] != 'dwi' and curr_related.entities['extension'] == '.nii.gz':
-            related_files_filtered.append(curr_related)          
+        if curr_related.entities['suffix'] != 'dwi' and\
+           curr_related.entities['extension'] == '.nii.gz':
+            related_files_filtered.append(curr_related)
 
     related_files = related_files_filtered
     direction_key = False
@@ -335,15 +337,15 @@ def associate_dwis(layout, nSub):
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
         if len(phaseEncodingDirection) == 1:
             logging.info("Found one phaseEncodingDirection.")
-            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                     layout.get(part='mag', **base_dict)]
     elif len(directions) == 1:
         logging.info("Found one direction.")
-        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
@@ -363,10 +365,10 @@ def associate_dwis(layout, nSub):
                               PhaseEncodingDirection=phaseEncodingDirection[1],
                               direction=directions[1],
                               **base_dict) +\
-                    layout.get(part='mag',
-                               PhaseEncodingDirection=phaseEncodingDirection[1],
-                               direction=directions[1],
-                               **base_dict)
+        layout.get(part='mag',
+                   PhaseEncodingDirection=phaseEncodingDirection[1],
+                   direction=directions[1],
+                   **base_dict)
 
     all_associated_dwis = []
     logging.info('Number of dwi: {}'.format(len(all_dwis)))
