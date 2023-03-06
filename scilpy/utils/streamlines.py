@@ -188,6 +188,11 @@ def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
     """
 
     # barycenter = np.average(np.argwhere(mask), axis=0)
+    old_space = sft.space
+    old_origin = sft.origin
+    sft.to_vox()
+    sft.to_corner()
+
     tree = cKDTree(np.argwhere(mask))
     for i in range(len(sft.streamlines)):
         head_dist = tree.query(sft.streamlines[i][0])[0]
@@ -198,6 +203,8 @@ def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
                 sft.data_per_point[key][i] = \
                     sft.data_per_point[key][i][::-1]
 
+    sft.to_space(old_space)
+    sft.to_origin(old_origin)
 
 def get_color_streamlines_along_length(sft, colormap='jet'):
     """Color streamlines according to their length.
