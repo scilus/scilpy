@@ -32,7 +32,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist)
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.utils.streamlines import (uniformize_bundle_sft,
-                                      uniformize_bundle_sft_using_mask_barycenter)
+                                      uniformize_bundle_sft_using_mask)
 
 
 def _build_arg_parser():
@@ -96,10 +96,10 @@ def main():
             mask = atlas > 0
         else:
             mask = merge_labels_into_mask(atlas, " ".join(args.target_roi[1:]))
-        
+
         # Uncomment if the user wants to filter the streamlines
         # sft, _ = filter_grid_roi(sft, mask, 'either_end', False)
-        uniformize_bundle_sft_using_mask_barycenter(sft, mask, swap=args.swap)
+        uniformize_bundle_sft_using_mask(sft, mask, swap=args.swap)
 
     if args.axis:
         uniformize_bundle_sft(sft, args.axis, swap=args.swap)
