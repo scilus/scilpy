@@ -45,8 +45,9 @@ import nibabel as nib
 import numpy as np
 from scipy import ndimage
 
+from scilpy.io.image import (get_data_as_mask,
+                             merge_labels_into_mask)
 from scilpy.image.labels import get_data_as_labels
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -154,7 +155,8 @@ def prepare_filtering_list(parser, args):
         for roi_opt in content:
             if "\"" in roi_opt:
                 tmp_opt = [i.strip() for i in roi_opt.strip().split("\"")]
-                roi_opt_list.append(tmp_opt[0].split() + [tmp_opt[1]] + tmp_opt[2].split())
+                roi_opt_list.append(
+                    tmp_opt[0].split() + [tmp_opt[1]] + tmp_opt[2].split())
             else:
                 roi_opt_list.append(roi_opt.strip().split())
 
@@ -227,21 +229,7 @@ def main():
                 mask = get_data_as_mask(img)
             else:
                 atlas = get_data_as_labels(img)
-                mask = np.zeros(atlas.shape, dtype=np.uint16)
-
-                if ' ' in filter_arg_2:
-                    values = filter_arg_2.split(' ')
-                    for filter_opt in values:
-                        if ':' in filter_opt:
-                            values = [int(x) for x in filter_opt.split(':')]
-                            mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
-                        else:
-                            mask[atlas == int(filter_opt)] = 1
-                elif ':' in filter_arg_2:
-                    values = [int(x) for x in filter_arg_2.split(':')]
-                    mask[(atlas >= int(min(values))) & (atlas <= int(max(values)))] = 1
-                else:
-                    mask[atlas == int(filter_arg_2)] = 1
+                mask = merge_labels_into_mask(atlas, filter_arg_2)
 
                 if args.extract_masks_atlas_roi:
                     atlas_roi_item = atlas_roi_item + 1

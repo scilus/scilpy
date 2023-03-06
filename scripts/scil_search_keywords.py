@@ -62,6 +62,8 @@ def main():
 
     for script in sorted(script_dir.glob('*.py')):
         filename = script.name
+        if filename == '__init__.py':
+            continue
 
         # Skip this script
         if filename == pathlib.Path(__file__).name:

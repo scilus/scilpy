@@ -18,6 +18,7 @@ from sklearn.cluster import KMeans
 from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
 from scilpy.tractanalysis.features import get_streamlines_centroid
 
+from scilpy.viz.utils import get_colormap
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
 
@@ -110,8 +111,7 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                                         point_to_select=3)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
-                    precompute_distances=True, n_init=20,
-                    n_jobs=1).fit(indices)
+                    n_init=20).fit(indices)
 
     labels = np.zeros(density.shape)
     for i in range(len(kmeans.labels_)):
@@ -171,6 +171,58 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                             sft.data_per_point[key][i][::-1]
     sft.to_space(old_space)
     sft.to_origin(old_origin)
+
+
+def uniformize_bundle_sft_using_mask_barycenter(sft, mask, swap=False):
+    """Uniformize the streamlines in the given tractogram so head is closer to
+    to the barycenter.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+         The tractogram that contains the list of streamlines to be uniformized
+    mask: np.ndarray
+        Mask to use as a reference for the barycenter.
+    swap: boolean, optional
+        Swap the orientation of streamlines
+    """
+
+    barycenter = np.average(np.argwhere(mask), axis=0)
+
+    for i in range(len(sft.streamlines)):
+        if (np.linalg.norm(sft.streamlines[i][0] - barycenter) >
+                np.linalg.norm(sft.streamlines[i][-1] - barycenter)) ^ bool(swap):
+            sft.streamlines[i] = sft.streamlines[i][::-1]
+            for key in sft.data_per_point[i]:
+                sft.data_per_point[key][i] = \
+                    sft.data_per_point[key][i][::-1]
+
+
+def get_color_streamlines_along_length(sft, colormap='jet'):
+    """Color streamlines according to their length.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that contains the list of streamlines to be colored
+    colormap: str
+        The colormap to use.
+
+    Returns
+    -------
+    color: np.ndarray
+        An array of shape (nb_streamlines, 3) containing the RGB values of
+        streamlines
+
+    """
+    cmap = get_colormap(colormap)
+    color_dpp = copy.deepcopy(sft.streamlines)
+
+    for i in range(len(sft.streamlines)):
+        color_dpp[i] = cmap(np.linspace(0, 1, len(sft.streamlines[i])))[
+            :, 0:3] * 255
+
+    return color_dpp._data
 
 
 def perform_streamlines_operation(operation, streamlines, precision=None):

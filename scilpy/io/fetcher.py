@@ -1,17 +1,51 @@
 # -*- coding: utf-8 -*-
-import io
 import logging
+import hashlib
 import os
 import pathlib
-
 import requests
 import zipfile
 
-GOOGLE_URL = "https://drive.google.com/uc?id="
+GOOGLE_URL = "https://drive.google.com/uc?"
+
+def download_file_from_google_drive(id, destination):
+    """
+    Download large file from Google Drive.
+    Parameters
+    ----------
+    id: str
+        id of file to be downloaded
+    destination: str
+        path to destination file with its name and extension
+    """
+    def get_confirm_token(response):
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                return value
+
+        return None
+
+    def save_response_content(response, destination):
+        CHUNK_SIZE = 32768
+
+        with open(destination, "wb") as f:
+            for chunk in response.iter_content(CHUNK_SIZE):
+                f.write(chunk)
+
+    session = requests.Session()
+    params = {'id': id, 'confirm': True}
+    response = session.get(GOOGLE_URL, params=params, stream=True)
+    token = get_confirm_token(response)
+
+    if token:
+        params['confirm'] = token
+        response = session.get(GOOGLE_URL, params=params, stream=True)
+
+    save_response_content(response, destination)
 
 
-# Set a user-writeable file-system location to put files:
 def get_home():
+    """ Set a user-writeable file-system location to put files. """
     if 'SCILPY_HOME' in os.environ:
         scilpy_home = os.environ['SCILPY_HOME']
     else:
@@ -90,28 +124,31 @@ def fetch_data(files_dict, keys=None):
     elif isinstance(keys, str):
         keys = [keys]
     for f in keys:
-        url, md5 = files_dict[f]
+        url_id, md5 = files_dict[f]
         full_path = os.path.join(scilpy_home, f)
         full_path_no_ext, ext = os.path.splitext(full_path)
 
+        CURR_URL = GOOGLE_URL + 'id=' + url_id
         if not os.path.isdir(full_path_no_ext):
-            url = GOOGLE_URL + url
             if ext == '.zip' and not os.path.isdir(full_path_no_ext):
                 logging.warning('Downloading and extracting {} from url {} to '
-                                '{}'.format(f, url, scilpy_home))
+                                '{}'.format(f, CURR_URL, scilpy_home))
 
-                # Adding param confirm. Most of our files have warning: too
-                # big to be analysed by antivirus, do you still want to
-                # download. Confirming that we do.
-                r = requests.get(url, params={'confirm': 't'})
-                z = zipfile.ZipFile(io.BytesIO(r.content))
+                # Robust method to Virus/Size check from GDrive
+                download_file_from_google_drive(url_id, full_path)
+
+                with open(full_path, 'rb') as file_to_check:
+                    data = file_to_check.read()
+                    md5_returned = hashlib.md5(data).hexdigest()
+                if md5_returned != md5:
+                    logging.warning('MD5 mismatch for file {}.'.format(f))
 
                 try:
-                    # When we extract in full_path, it creates, ex
-                    # home/tracking/tracking/files. We want to skip one level.
-                    # Looping on all files.
+                    # If there is a root dir, we want to skip one level.
+                    z = zipfile.ZipFile(full_path)
                     zipinfos = z.infolist()
-                    root_dir = pathlib.Path(zipinfos[0].filename).parts[0] + '/'
+                    root_dir = pathlib.Path(
+                        zipinfos[0].filename).parts[0] + '/'
                     assert all([s.startswith(root_dir) for s in z.namelist()])
                     nb_root = len(root_dir)
                     for zipinfo in zipinfos:
@@ -121,7 +158,6 @@ def fetch_data(files_dict, keys=None):
                 except AssertionError:
                     # Not root dir. Extracting directly.
                     z.extractall(full_path)
-
             else:
                 raise NotImplementedError("Data fetcher was expecting to deal "
                                           "with a zip file.")
