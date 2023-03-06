@@ -32,7 +32,6 @@ import json
 import math
 import logging
 
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
@@ -41,6 +40,7 @@ from scilpy.image.operations import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy
+from scilpy.viz.utils import get_colormap
 
 
 def _build_arg_parser():
@@ -163,10 +163,11 @@ def main():
         min_value = args.legend_min_max[0]
         max_value = args.legend_min_max[1]
 
+    cmap = get_colormap(args.colormap)
     fig, ax = plt.subplots()
     im = ax.imshow(matrix.T,
                    interpolation='nearest',
-                   cmap=args.colormap, vmin=min_value, vmax=max_value)
+                   cmap=cmap, vmin=min_value, vmax=max_value)
 
     if args.write_values:
         if np.prod(matrix.shape) > 1000:
@@ -251,7 +252,7 @@ def main():
 
         _, _, patches = ax.hist(matrix_hist, bins=args.nb_bins)
         nbr_bins = len(patches)
-        color = plt.cm.get_cmap(args.colormap)(np.linspace(0, 1, nbr_bins))
+        color = get_colormap(args.colormap)(np.linspace(0, 1, nbr_bins))
         for i in range(0, nbr_bins):
             patches[i].set_facecolor(color[i])
 
@@ -300,7 +301,6 @@ def main():
         new_matrix = np.delete(new_matrix, empty_to_del, axis=0)
         new_matrix = np.delete(new_matrix, empty_to_del, axis=1)
 
-        cmap = matplotlib.cm.get_cmap(args.colormap)
         colors = [cmap(i)[0:3] for i in np.linspace(0, 1, len(new_matrix))]
         nodePos = chordDiagram(new_matrix, ax, colors=colors,
                                angle_threshold=args.angle_threshold,

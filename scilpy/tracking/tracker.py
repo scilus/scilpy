@@ -4,14 +4,14 @@ import logging
 import multiprocessing
 import os
 import sys
-import traceback
+from tempfile import TemporaryDirectory
 from time import perf_counter
+import traceback
+from typing import Union
 
-import nibabel as nib
 import numpy as np
-
 from dipy.data import get_sphere
-from dipy.io.stateful_tractogram import Space, StatefulTractogram
+from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
@@ -31,7 +31,8 @@ class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
-                 nbr_processes=1, save_seeds=False, mmap_mode=None,
+                 nbr_processes=1, save_seeds=False,
+                 mmap_mode: Union[str, None] = None,
                  rng_seed=1234, track_forward_only=False, skip=0):
         """
         Parameters
@@ -131,7 +132,7 @@ class Tracker(object):
         else:
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
-            with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
+            with TemporaryDirectory() as tmpdir:
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
@@ -198,10 +199,10 @@ class Tracker(object):
         pool = multiprocessing.Pool(
             self.nbr_processes,
             initializer=self._send_multiprocess_args_to_global,
-            initargs={
+            initargs=({
                 'data_file_name': data_file_name,
                 'mmap_mode': self.mmap_mode
-            })
+            },))
 
         return pool
 

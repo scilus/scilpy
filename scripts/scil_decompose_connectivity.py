@@ -44,14 +44,16 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              add_verbose_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             validate_nbr_processes)
 from scilpy.tractanalysis.features import (remove_outliers,
                                            remove_loops_and_sharp_turns)
 from scilpy.tractanalysis.tools import (compute_connectivity,
@@ -223,6 +225,7 @@ def _build_arg_parser():
                         'Needed for scil_compute_connectivity.py and others.')
 
     add_reference_arg(p)
+    add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -236,6 +239,7 @@ def main():
     assert_inputs_exist(parser, [args.in_tractogram, args.in_labels],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_hdf5)
+    nbr_cpu = validate_nbr_processes(parser, args)
 
     # HDF5 will not overwrite the file
     if os.path.isfile(args.out_hdf5):
@@ -258,14 +262,14 @@ def main():
     set_sft_logger_level('WARNING')
 
     img_labels = nib.load(args.in_labels)
-    data_labels = get_data_as_label(img_labels)
+    data_labels = get_data_as_labels(img_labels)
     real_labels = np.unique(data_labels)[1:]
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')
 
     # Voxel size must be isotropic, for speed/performance considerations
     vox_sizes = img_labels.header.get_zooms()
-    if not np.allclose(np.mean(vox_sizes), vox_sizes, atol=1e-03):
+    if not np.allclose(np.mean(vox_sizes), vox_sizes, atol=1e-01):
         parser.error('Labels must be isotropic')
 
     logging.info('*** Loading streamlines ***')
@@ -397,7 +401,8 @@ def main():
 
             if not args.no_remove_loops:
                 no_loop_ids = remove_loops_and_sharp_turns(valid_length,
-                                                           args.loop_max_angle)
+                                                           args.loop_max_angle,
+                                                           num_processes=nbr_cpu)
                 loop_ids = np.setdiff1d(np.arange(len(valid_length)),
                                         no_loop_ids)
 
@@ -441,7 +446,8 @@ def main():
                     inliers,
                     args.loop_max_angle,
                     use_qb=True,
-                    qb_threshold=args.curv_qb_distance)
+                    qb_threshold=args.curv_qb_distance,
+                    num_processes=nbr_cpu)
                 qb_curv_ids = np.setdiff1d(np.arange(len(inliers)),
                                            no_qb_curv_ids)
 

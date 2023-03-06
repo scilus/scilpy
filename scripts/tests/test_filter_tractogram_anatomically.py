@@ -27,5 +27,6 @@ def test_execution_filtering(script_runner):
     ret = script_runner.run('scil_filter_tractogram_anatomically.py',
                             in_tractogram, in_wmparc,
                             os.path.expanduser(tmp_dir.name),
-                            '--minL', '40', '--maxL', '200', '-a', '300')
+                            '--minL', '40', '--maxL', '200', '-a', '300',
+                            '--processes', '1')
     assert ret.success

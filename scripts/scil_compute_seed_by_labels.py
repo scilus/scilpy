@@ -13,7 +13,7 @@ import json
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_label
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
 
 
@@ -43,7 +43,7 @@ def main():
 
     # Load atlas image
     label_img = nib.load(args.in_labels)
-    label_img_data = get_data_as_label(label_img)
+    label_img_data = get_data_as_labels(label_img)
 
     # Load atlas lut
     with open(args.in_labels_lut) as f:

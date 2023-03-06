@@ -15,7 +15,8 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import assert_same_resolution, get_data_as_label
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args, add_reference_arg,
                              add_overwrite_arg,
@@ -78,7 +79,7 @@ def main():
     metrics = [nib.load(metric) for metric in args.in_metrics]
 
     labels_img = nib.load(args.in_labels)
-    labels = get_data_as_label(labels_img)
+    labels = get_data_as_labels(labels_img)
 
     if args.distance_weighting:
         distance_file = nib.load(args.distance_weighting)
