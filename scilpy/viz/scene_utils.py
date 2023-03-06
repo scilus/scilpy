@@ -123,7 +123,7 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
 def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
                       nb_subdivide, sh_order, sh_basis, full_basis,
                       scale, radial_scale, norm, colormap, sh_variance=None,
-                      variance_color=(255, 255, 255)):
+                      variance_k=1, variance_color=(255, 255, 255)):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF for each
@@ -161,6 +161,8 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
         Colormap for the ODF slicer. If None, a RGB colormap is used.
     sh_variance : np.ndarray, optional
         Spherical harmonics of the variance fODF data.
+    variance_k : float, optional
+        Factor that multiplies sqrt(variance).
     variance_color : tuple, optional
         Color of the variance fODF data, in RGB.
 
@@ -184,19 +186,21 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
                         full_basis=full_basis)
         fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
                             full_basis=full_basis)
+        fodf_uncertainty = fodf + variance_k * np.sqrt(np.clip(fodf_var, 0,
+                                                               None))
         # normalise fodf and variance
         if norm:
-            maximums = np.abs(np.append(fodf, fodf_var, axis=-1))\
+            maximums = np.abs(np.append(fodf, fodf_uncertainty, axis=-1))\
                 .max(axis=-1)
             fodf[maximums > 0] /= maximums[maximums > 0][..., None]
-            fodf_var[maximums > 0] /= maximums[maximums > 0][..., None]
+            fodf_uncertainty[maximums > 0] /= maximums[maximums > 0][..., None]
 
         odf_actor = actor.odf_slicer(fodf, mask=mask, norm=False,
                                      radial_scale=radial_scale,
                                      sphere=sphere, scale=scale,
                                      colormap=colormap)
 
-        var_actor = actor.odf_slicer(fodf_var, mask=mask, norm=False,
+        var_actor = actor.odf_slicer(fodf_uncertainty, mask=mask, norm=False,
                                      radial_scale=radial_scale,
                                      sphere=sphere, scale=scale,
                                      colormap=variance_color)
@@ -212,7 +216,7 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
     if var_actor is not None:
         set_display_extent(var_actor, orientation,
-                           fodf_var.shape[:3], slice_index)
+                           fodf_uncertainty.shape[:3], slice_index)
 
     return odf_actor, var_actor
 

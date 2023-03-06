@@ -148,10 +148,14 @@ def _build_arg_parser():
 
     # fODF variance options
     p.add_argument('--variance',
-                   help='FODF variance file. In order to get visualized '
-                        'properly, this input must correspond to the input '
-                        'fODF (in_fodf) plus a certain factor (k, for example '
-                        '2) of the variance (mean + k * variance).')
+                   help='FODF variance file. For the visualization of fodf '
+                        'uncertainty, this variance will be used as follow: '
+                        'mean + k * sqrt(variance), where mean is the input '
+                        'fodf (in_fodf) and k is the scaling factor '
+                        '(variance_k).')
+    p.add_argument('--variance_k', default=1, type=float,
+                   help='Scaling factor (k) for the computation of the fodf '
+                        'uncertainty. [%(default)s]')
     p.add_argument('--var_color', nargs=3, type=float, default=(1, 1, 1),
                    help='Color of variance outline. Must be RGB values scaled '
                         'between 0 and 1. [%(default)s]')
@@ -278,6 +282,7 @@ def main():
                                              not args.norm_off,
                                              args.colormap or color_rgb,
                                              sh_variance=variance,
+                                             variance_k=args.variance_k,
                                              variance_color=var_color)
     actors.append(odf_actor)
 
