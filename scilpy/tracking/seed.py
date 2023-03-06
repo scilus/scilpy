@@ -110,7 +110,7 @@ class SeedGenerator(object):
 
         Return
         ------
-        seed_pos: List[tuple]
+        seed_pos: List[List]
             Positions of next seeds expressed seed_generator's space and
             origin.
         """

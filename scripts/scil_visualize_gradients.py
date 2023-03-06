@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Vizualisation for gradient sampling.
-Only supports .bvec/.bval and .b (MRtrix).
+Vizualisation for directions on a sphere, either from a gradient sampling (i.e.
+a list of b-vectors) or from a Dipy sphere.
 """
 
 import argparse
 import logging
 import numpy as np
 import os
+
+from dipy.data import get_sphere
 
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
@@ -21,16 +23,23 @@ from scilpy.viz.gradient_sampling import (build_ms_from_shell_idx,
                                           plot_each_shell,
                                           plot_proj_shell)
 
+sphere_choices = ['symmetric362', 'symmetric642', 'symmetric724',
+                  'repulsion724','repulsion100', 'repulsion200']
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__)
 
-    p.add_argument(
-        'in_gradient_scheme', nargs='+',
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument(
+        '--in_gradient_scheme', nargs='+',
         help='Gradient sampling filename. (only accepts .bvec and .bval '
              'together or only .b).')
+    g.add_argument(
+        '--dipy_sphere', choices=sphere_choices,
+        help="Dipy sphere choice.")
 
     p.add_argument(
         '--dis-sym', action='store_false', dest='enable_sym',
@@ -70,26 +79,28 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    assert_inputs_exist(parser, args.in_gradient_scheme)
-
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    if len(args.in_gradient_scheme) == 2:
-        assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
-                                         'fsl')
-    elif len(args.in_gradient_scheme) == 1:
-        basename, ext = os.path.splitext(args.in_gradient_scheme[0])
-        if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
-            parser.error('You should input two files for fsl format (.bvec '
-                         'and .bval).')
+    # -- Perform checks
+    if args.in_gradient_scheme is not None:
+        assert_inputs_exist(parser, args.in_gradient_scheme)
+
+        if len(args.in_gradient_scheme) == 2:
+            assert_gradients_filenames_valid(parser, args.in_gradient_scheme,
+                                             'fsl')
+        elif len(args.in_gradient_scheme) == 1:
+            basename, ext = os.path.splitext(args.in_gradient_scheme[0])
+            if ext in ['.bvec', '.bvecs', '.bvals', '.bval']:
+                parser.error('You should input two files for fsl format '
+                             '(.bvec and .bval).')
+            else:
+                assert_gradients_filenames_valid(parser,
+                                                 args.in_gradient_scheme,
+                                                 'mrtrix')
         else:
-            assert_gradients_filenames_valid(parser,
-                                             args.in_gradient_scheme,
-                                             'mrtrix')
-    else:
-        parser.error('Depending on the gradient format you should have '
-                     'two files for FSL format and one file for MRtrix')
+            parser.error('Depending on the gradient format you should have '
+                         'two files for FSL format and one file for MRtrix')
 
     out_basename = None
 
@@ -97,57 +108,69 @@ def main():
     each = args.plot_shells
 
     if not (proj or each):
-        parser.error('Select at least one type of rendering (proj or each).')
+        parser.error('Select at least one type of rendering '
+                     '(dis-proj or plot_shells).')
+    if args.dipy_sphere is not None:
+        # Only one sphere. Ignoring proj option.
+        proj = True
+        each = False
 
-    if len(args.in_gradient_scheme) == 2:
-        in_gradient_schemes = args.in_gradient_scheme
-        in_gradient_schemes.sort()  # [bval, bvec]
-        # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
-        points = np.genfromtxt(in_gradient_schemes[1])
-        if points.shape[0] == 3:
-            points = points.T
-        bvals = np.genfromtxt(in_gradient_schemes[0])
-        centroids, shell_idx = identify_shells(bvals)
-    else:
-        # MRtrix format X, Y, Z, b
-        in_gradient_scheme = args.in_gradient_scheme[0]
-        tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
-        points = tmp[:, :3]
-        bvals = tmp[:, 3]
-        centroids, shell_idx = identify_shells(bvals)
+    # -- Ok. Now prepare vertices to show
+    if args.in_gradient_scheme is not None:
+        if len(args.in_gradient_scheme) == 2:
+            in_gradient_schemes = args.in_gradient_scheme
+            in_gradient_schemes.sort()  # [bval, bvec]
+            # bvecs/bvals (FSL) format, X Y Z AND b (or transpose)
+            points = np.genfromtxt(in_gradient_schemes[1])
+            if points.shape[0] == 3:
+                points = points.T
+            bvals = np.genfromtxt(in_gradient_schemes[0])
+            centroids, shell_idx = identify_shells(bvals)
+        else:
+            # MRtrix format X, Y, Z, b
+            in_gradient_scheme = args.in_gradient_scheme[0]
+            tmp = np.genfromtxt(in_gradient_scheme, delimiter=' ')
+            points = tmp[:, :3]
+            bvals = tmp[:, 3]
+            centroids, shell_idx = identify_shells(bvals)
 
-    if args.verbose:
-        logging.info("Found {} centroids: {}".format(
-            len(centroids), centroids))
-
-    if args.out_basename:
-        out_basename, ext = os.path.splitext(args.out_basename)
-        possible_output_paths = [out_basename + '_shell_' + str(i) +
-                                 '.png' for i in centroids]
-        possible_output_paths.append(out_basename + '.png')
-        assert_outputs_exist(parser, args, possible_output_paths)
-
-    indexes = []
-    for idx in np.where(centroids < 40)[0]:
         if args.verbose:
-            logging.info("Removing bval = {} "
-                         "from display".format(centroids[idx]))
+            logging.info("Found {} centroids: {}".format(
+                len(centroids), centroids))
 
-        indexes.append(idx)
-        shell_idx[shell_idx == idx] = -1
-        centroids = np.delete(centroids, np.where(centroids == centroids[idx]))
+        if args.out_basename:
+            out_basename, ext = os.path.splitext(args.out_basename)
+            possible_output_paths = [out_basename + '_shell_' + str(i) +
+                                     '.png' for i in centroids]
+            possible_output_paths.append(out_basename + '.png')
+            assert_outputs_exist(parser, args, possible_output_paths)
 
-    indexes = np.asarray(indexes)
-    if len(shell_idx[shell_idx == -1]) > 0:
-        for idx, val in enumerate(shell_idx):
-            if val != 0 and val != -1:
-                shell_idx[idx] -= len(np.where(indexes < val)[0])
+        indexes = []
+        for idx in np.where(centroids < 40)[0]:
+            if args.verbose:
+                logging.info("Removing bval = {} "
+                             "from display".format(centroids[idx]))
+
+            indexes.append(idx)
+            shell_idx[shell_idx == idx] = -1
+            centroids = np.delete(centroids,
+                                  np.where(centroids == centroids[idx]))
+
+        indexes = np.asarray(indexes)
+        if len(shell_idx[shell_idx == -1]) > 0:
+            for idx, val in enumerate(shell_idx):
+                if val != 0 and val != -1:
+                    shell_idx[idx] -= len(np.where(indexes < val)[0])
+        ms = build_ms_from_shell_idx(points, shell_idx)
+
+    else:
+        ms = [get_sphere(args.dipy_sphere).vertices]
+        centroids = None  # plot_each_shell not used.
 
     sym = args.enable_sym
     sph = args.enable_sph
     same = args.same_color
 
-    ms = build_ms_from_shell_idx(points, shell_idx)
     if proj:
         plot_proj_shell(ms, use_sym=sym, use_sphere=sph, same_color=same,
                         rad=0.025, opacity=args.opacity,

@@ -7,10 +7,11 @@ max/min values, alpha for visualisation, etc.
 """
 
 import math
-import matplotlib
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
+
+from scilpy.viz.utils import get_colormap
 
 
 def polar2xy(r, theta):
@@ -183,7 +184,8 @@ def selfChordArc(start=0, end=60, radius=1.0, chordwidth=0.7, ax=None,
 
 
 def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
-                 angle_threshold=1, alpha=0.1, text_dist=1.1):
+                 angle_threshold=1, alpha=0.1, text_dist=1.1,
+                 colormap='plasma'):
     """Plot a chord diagram
     Parameters
     ----------
@@ -208,7 +210,7 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
     ax.set_ylim(-text_dist, text_dist)
 
     if colors is None:
-        cmap = matplotlib.cm.get_cmap('plasma')
+        cmap = get_colormap(colormap)
         colors = [cmap(i)[0:3] for i in np.linspace(0, 1, len(x))]
 
     # find position for each start and end
