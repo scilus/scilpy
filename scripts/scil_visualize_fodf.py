@@ -148,7 +148,10 @@ def _build_arg_parser():
 
     # fODF variance options
     p.add_argument('--variance',
-                   help='FODF variance (mean + k * variance) file.')
+                   help='FODF variance file. In order to get visualized '
+                        'properly, this input must correspond to the input '
+                        'fODF (in_fodf) plus a certain factor (k, for example '
+                        '2) of the variance (mean + k * variance).')
     p.add_argument('--var_color', nargs=3, type=float, default=(1, 1, 1),
                    help='Color of variance outline. Must be RGB values scaled '
                         'between 0 and 1. [%(default)s]')
