@@ -29,10 +29,10 @@ def _build_arg_parser():
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
                    metavar='FIXED_VALUE', type=int, nargs='?', const=1,
-                   help='If set, will store the same value for all '
-                        'intersected voxels, creating a binary map.\nWhen set '
-                        'without a value, 1 is used.\n If a value is given, '
-                        'will be used as the stored value.')
+                   help='If set, will store the same value for all intersected'
+                        ' voxels, creating a binary map.\n'
+                        'When set without a value, 1 is used (and dtype uint8).\n'
+                        'If a value is given, will be used as the stored value.')
     add_overwrite_arg(p)
 
     return p
@@ -86,13 +86,16 @@ def main():
     for seed in seeds:
         # Set value at mask, either binary or increment
         seed_voxel = np.round(seed).astype(int)
+        dtype_to_use = np.int32
         if args.binary is not None:
+            if args.binary == 1:
+                dtype_to_use = np.uint8
             seed_density[tuple(seed_voxel)] = args.binary
         else:
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
-    dm_img = Nifti1Image(seed_density.astype(np.int32), affine)
+    dm_img = Nifti1Image(seed_density.astype(dtype_to_use), affine)
     dm_img.to_filename(args.seed_density_filename)
 
 
