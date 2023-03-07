@@ -72,10 +72,11 @@ def _build_arg_parser():
     p.add_argument('out_folder',
                    help='Path to the output folder to export graphs, tables and principal components matrices.')
     p.add_argument('--metrics', nargs='+', required=True,
-                   help='List of all metrics to include in PCA analysis.')
-    p.add_argument('--list_ids', required=True,
-                   help='List containing all ids to use in PCA computation.')
-    p.add_argument('--common', choices=['true', 'false'], default='true',
+                   help='Suffixes of all metrics to include in PCA analysis (ex: ad md fa rd). They must be '
+                        'immediately followed by the .npy extension.')
+    p.add_argument('--list_ids', required=True, metavar='FILE',
+                   help='Path to a .txt file containing a list of all ids.')
+    p.add_argument('--only_common', action='store_true',
                    help='If true, will include only connections found in all subjects of the population (Recommended) '
                         '[True].')
     p.add_argument('--connectoflow', action='store_true',
