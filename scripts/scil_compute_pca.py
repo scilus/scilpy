@@ -6,8 +6,8 @@ Script to compute PCA analysis on diffusion metrics. Output returned is all sign
 (e.g. presenting eigenvalues > 1) in a connectivity matrix format. This script can take into account all
 edges from every subject in a population or only non-zero edges across all subjects.
 
-The script can take directly as input a connectoflow output folder. Simply use the --connectoflow flag. For
-other type of folder input, the script expects a single folder containing all matrices for all subjects.
+The script can take directly as input a connectoflow output folder. Simply use the --input_connectoflow flag.
+For other type of folder input, the script expects a single folder containing all matrices for all subjects.
 Example:
         [in_folder]
         |--- sub-01_ad.npy
@@ -29,7 +29,7 @@ other metrics can be interpreted as axonal density (see Gagnon et al. 2022 for t
 ref [3] for an introduction to PCA).
 
 EXAMPLE USAGE:
-scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
+scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt
 """
 
 # Import required libraries.
@@ -78,7 +78,7 @@ def _build_arg_parser():
                    help='Path to a .txt file containing a list of all ids.')
     p.add_argument('--not_only_common', action='store_true',
                    help='If true, will include all edges from all subjects and not only common edges (Not recommended)')
-    p.add_argument('--connectoflow', action='store_true',
+    p.add_argument('--input_connectoflow', action='store_true',
                    help='If true, script will assume the input folder is a Connectoflow output.')
 
     add_verbose_arg(p)
@@ -188,7 +188,7 @@ def main():
 
     subjects = open(args.list_ids).read().split()
 
-    if args.connectoflow:
+    if args.input_connectoflow:
         # Loading all matrix.
         logging.info('Loading all matrices from a Connectoflow output...')
         dictionary = {m: [load_matrix_in_any_format(f'{args.in_folder}/{a}/Compute_Connectivity/{m}.npy')
