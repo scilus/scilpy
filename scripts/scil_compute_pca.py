@@ -19,6 +19,12 @@ Example:
 Output connectivity matrix will be saved next to the other metrics in the input folder. The plots and tables
 will be outputted in the designated folder from the <output> argument.
 
+Interpretation of resulting principal components can be done by evaluating the loadings values for each metrics.
+A value near 0 means that this metric doesn't contribute to this specific component whereas high positive or
+negative values mean a larger contribution. Components can then be labeled based on which metric contributes
+the highest. For example, a principal component showing a high loading for afd_fixel and near 0 loading for all
+other metrics can be interpreted as axonal density (see Gagnon et al. 2022 for this specific example).
+
 EXAMPLE USAGE:
 scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
 """
@@ -42,6 +48,9 @@ EPILOG = """
 [1] Chamberland M, Raven EP, Genc S, Duffy K, Descoteaux M, Parker GD, Tax CMW, Jones DK. Dimensionality 
     reduction of diffusion MRI measures for improved tractometry of the human brain. Neuroimage. 2019 Oct 
     15;200:89-100. doi: 10.1016/j.neuroimage.2019.06.020. Epub 2019 Jun 20. PMID: 31228638; PMCID: PMC6711466.
+[2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A., Posner J., Descoteaux M., 
+    & Takser L. (2022). White matter microstructural variability linked to differential attentional skills 
+    and impulsive behavior in a pediatric population. Cerebral Cortex. https://doi.org/10.1093/cercor/bhac180
     """
 
 
