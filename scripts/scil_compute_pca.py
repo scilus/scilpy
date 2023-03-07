@@ -9,12 +9,12 @@ edges from every subject in a population or only non-zero edges across all subje
 The script can take directly as input a connectoflow output folder. Simply use the --connectoflow flag. For
 other type of folder input, the script expects a single folder containing all matrices for all subjects.
 Example:
-        |--- in_folder
-        |       |--- sub-01_ad.npy
-        |       |--- sub-01_md.npy
-        |       |--- sub-02_ad.npy
-        |       |--- sub-02_md.npy
-        |       |--- ...
+        [in_folder]
+        |--- sub-01_ad.npy
+        |--- sub-01_md.npy
+        |--- sub-02_ad.npy
+        |--- sub-02_md.npy
+        |--- ...
 
 Output connectivity matrix will be saved next to the other metrics in the input folder. The plots and tables
 will be outputted in the designated folder from the <output> argument.
