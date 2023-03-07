@@ -173,30 +173,38 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     sft.to_origin(old_origin)
 
 
-def uniformize_bundle_sft_using_mask_barycenter(sft, mask, swap=False):
+def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
     """Uniformize the streamlines in the given tractogram so head is closer to
-    to the barycenter.
+    to a region of interest.
 
     Parameters
     ----------
     sft: StatefulTractogram
          The tractogram that contains the list of streamlines to be uniformized
     mask: np.ndarray
-        Mask to use as a reference for the barycenter.
+        Mask to use as a reference for the ROI.
     swap: boolean, optional
         Swap the orientation of streamlines
     """
 
-    barycenter = np.average(np.argwhere(mask), axis=0)
+    # barycenter = np.average(np.argwhere(mask), axis=0)
+    old_space = sft.space
+    old_origin = sft.origin
+    sft.to_vox()
+    sft.to_corner()
 
+    tree = cKDTree(np.argwhere(mask))
     for i in range(len(sft.streamlines)):
-        if (np.linalg.norm(sft.streamlines[i][0] - barycenter) >
-                np.linalg.norm(sft.streamlines[i][-1] - barycenter)) ^ bool(swap):
+        head_dist = tree.query(sft.streamlines[i][0])[0]
+        tail_dist = tree.query(sft.streamlines[i][-1])[0]
+        if bool(head_dist > tail_dist) ^ bool(swap):
             sft.streamlines[i] = sft.streamlines[i][::-1]
             for key in sft.data_per_point[i]:
                 sft.data_per_point[key][i] = \
                     sft.data_per_point[key][i][::-1]
 
+    sft.to_space(old_space)
+    sft.to_origin(old_origin)
 
 def get_color_streamlines_along_length(sft, colormap='jet'):
     """Color streamlines according to their length.
@@ -817,10 +825,9 @@ def cut_invalid_streamlines(sft):
     return new_sft, cutting_counter
 
 
-def upsample_tractogram(
-    sft, nb, point_wise_std=None,
-    streamline_wise_std=None, gaussian=None, spline=None, seed=None
-):
+def upsample_tractogram(sft, nb, point_wise_std=None,
+                        streamline_wise_std=None, gaussian=None, spline=None,
+                        seed=None):
     """
     Generate new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
@@ -870,8 +877,7 @@ def upsample_tractogram(
         if point_wise_std:
             noise = rng.normal(scale=point_wise_std, size=s.shape)
         elif streamline_wise_std:
-            noise = rng.normal(
-                scale=streamline_wise_std, size=s.shape[-1])
+            noise = rng.normal(scale=streamline_wise_std, size=s.shape[-1])
         new_s = s + noise
         if gaussian:
             new_s = smooth_line_gaussian(new_s, gaussian)
