@@ -16,14 +16,17 @@ Example:
         |--- sub-02_md.npy
         |--- ...
 
-Output connectivity matrix will be saved next to the other metrics in the input folder. The plots and tables
-will be outputted in the designated folder from the <output> argument.
+The plots, tables and principal components matrices will be outputted in the designated folder from the
+<out_folder> argument. If you want to move back your principal components matrices in your connectoflow
+output, you can use a similar bash command for all principal components:
+for sub in `cat list_id.txt`; do cp out_folder/${sub}_PC1.npy connectoflow_output/$sub/Compute_Connectivity/; done
 
 Interpretation of resulting principal components can be done by evaluating the loadings values for each metrics.
 A value near 0 means that this metric doesn't contribute to this specific component whereas high positive or
 negative values mean a larger contribution. Components can then be labeled based on which metric contributes
 the highest. For example, a principal component showing a high loading for afd_fixel and near 0 loading for all
-other metrics can be interpreted as axonal density (see Gagnon et al. 2022 for this specific example).
+other metrics can be interpreted as axonal density (see Gagnon et al. 2022 for this specific example or
+ref [3] for an introduction to PCA).
 
 EXAMPLE USAGE:
 scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --list_ids list_ids.txt --common true
@@ -53,6 +56,7 @@ EPILOG = """
 [2] Gagnon A., Grenier G., Bocti C., Gillet V., Lepage J.-F., Baccarelli A. A., Posner J., Descoteaux M., 
     & Takser L. (2022). White matter microstructural variability linked to differential attentional skills 
     and impulsive behavior in a pediatric population. Cerebral Cortex. https://doi.org/10.1093/cercor/bhac180
+[3] https://towardsdatascience.com/what-are-pca-loadings-and-biplots-9a7897f2e559
     """
 
 
@@ -66,9 +70,7 @@ def _build_arg_parser():
     p.add_argument('in_folder',
                    help='Path to the input folder.')
     p.add_argument('out_folder',
-                   help='Path to the output folder to export graphs and tables. \n'
-                        '*** Please note, PC connectivity matrix will be outputted in the original input folder'
-                        'next to all other metrics ***')
+                   help='Path to the output folder to export graphs, tables and principal components matrices.')
     p.add_argument('--metrics', nargs='+', required=True,
                    help='List of all metrics to include in PCA analysis.')
     p.add_argument('--list_ids', required=True,
@@ -290,12 +292,8 @@ def main():
     nb_pc = eigenvalues[eigenvalues >= 1]
     for i in range(0, len(nb_pc)):
         for s in range(0, len(subjects)):
-            if args.connectoflow:
-                save_matrix_in_any_format(f'{args.in_folder}/{subjects[s]}/Compute_Connectivity/PC{i+1}.npy',
-                                          out[i, s, :, :])
-            else:
-                save_matrix_in_any_format(f'{args.in_folder}/{subjects[s]}_PC{i+1}.npy',
-                                          out[i, s, :, :])
+            save_matrix_in_any_format(f'{args.out_folder}/{subjects[s]}_PC{i+1}.npy',
+                                      out[i, s, :, :])
 
 
 if __name__ == "__main__":
