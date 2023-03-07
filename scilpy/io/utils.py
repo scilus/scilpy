@@ -198,6 +198,15 @@ def add_verbose_arg(parser):
                         help='If set, produces verbose output.')
 
 
+def add_bbox_arg(parser):
+    parser.add_argument('--no_bbox_check', dest='bbox_check',
+                        action='store_false',
+                        help='Activate to ignore validity of the bounding '
+                             'box during loading / saving of \n'
+                             'tractograms (ignores the presence of invalid '
+                             'streamlines).')
+
+
 def add_sh_basis_args(parser, mandatory=False):
     """Add spherical harmonics (SH) bases argument.
 
@@ -440,7 +449,8 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
     parser: argument parser
         Will raise an error if a file is not compatible.
     args: Namespace
-        Should contain a args.reference if any file is a .tck.
+        Should contain a args.reference if any file is a .tck, and possibly a
+        args.bbox_check (set to True by default).
     """
     save_ref = args.reference
 
@@ -455,8 +465,7 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
                     args.reference = None
                 else:
                     args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file,
-                                                      bbox_check=False)
+                mask = load_tractogram_with_reference(parser, args, file)
             else:  # should be a nifti file.
                 mask = file
             compatible = is_header_compatible(ref_sft, mask)

@@ -41,7 +41,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -55,7 +56,9 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_moving_tractogram',
-                   help='Path of the tractogram to be transformed.')
+                   help='Path of the tractogram to be transformed.\n'
+                        'Bounding box validity will not be checked (could '
+                        'contain invalid streamlines).')
     p.add_argument('in_target_file',
                    help='Path of the reference target file (trk or nii).')
     p.add_argument('in_transfo',
@@ -105,9 +108,9 @@ def main():
                                  args.in_transfo], args.in_deformation)
     assert_outputs_exist(parser, args, args.out_tractogram)
 
+    args.bbox_check = False  # Adding manually bbox_check argument.
     moving_sft = load_tractogram_with_reference(parser, args,
-                                                args.in_moving_tractogram,
-                                                bbox_check=False)
+                                                args.in_moving_tractogram)
 
     transfo = load_matrix_in_any_format(args.in_transfo)
     deformation_data = None

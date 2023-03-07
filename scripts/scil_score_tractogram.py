@@ -79,10 +79,12 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              add_json_args,
                              add_reference_arg,
-                             add_verbose_arg, assert_inputs_exist,
+                             add_verbose_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              verify_compatibility_with_reference_sft,
                              assert_outputs_exist)
@@ -155,6 +157,7 @@ def _build_arg_parser():
     add_overwrite_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -198,8 +201,7 @@ def load_and_verify_everything(parser, args):
                         list_masks_files_o)
 
     logging.info("Loading tractogram.")
-    sft = load_tractogram_with_reference(
-        parser, args, args.in_tractogram, bbox_check=False)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     _, dimensions, _, _ = sft.space_attributes
 
     if args.remove_invalid:
@@ -428,18 +430,18 @@ def main():
             filename = "segmented_VB/{}_VS.trk".format(bundle_names[i])
             save_tractogram(vb_sft_list[i],
                             os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
+                            bbox_valid_check=args.bbox_check)
         if (args.save_wpc_separately and wpc_sft_list[i] is not None
                 and (len(wpc_sft_list[i]) > 0 or not args.no_empty)):
             filename = "segmented_WPC/{}_wpc.trk".format(bundle_names[i])
             save_tractogram(wpc_sft_list[i],
                             os.path.join(args.out_dir, filename),
-                            bbox_valid_check=False)
+                            bbox_valid_check=args.bbox_check)
     for i in range(len(ib_sft_list)):
         if len(ib_sft_list[i]) > 0 or not args.no_empty:
             file = "segmented_IB/{}_IC.trk".format(ib_names[i])
             save_tractogram(ib_sft_list[i], os.path.join(args.out_dir, file),
-                            bbox_valid_check=False)
+                            bbox_valid_check=args.bbox_check)
 
     # Tractometry on bundles
     final_results = compute_tractometry(
