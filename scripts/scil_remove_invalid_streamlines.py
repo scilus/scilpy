@@ -50,7 +50,6 @@ def _build_arg_parser():
 
     add_reference_arg(p)
     add_overwrite_arg(p)
-    add_bbox_arg(p)
 
     return p
 
@@ -58,6 +57,10 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    # Equivalent of add_bbox_arg(p): always ignoring invalid streamlines for
+    # this script.
+    args.bbox_check = False
 
     assert_inputs_exist(parser, args.in_tractogram, args.reference)
     assert_outputs_exist(parser, args, args.out_tractogram)
