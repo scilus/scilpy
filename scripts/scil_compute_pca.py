@@ -87,22 +87,20 @@ def _build_arg_parser():
     return p
 
 
-def generate_pca_input(d):
+def generate_pca_input(dictionary):
     """
     Function to create PCA input from matrix.
-    :param d:       Dictionary containing all matrix for all metrics.
-    :return:        Numpy array.
+    :param dictionary:       Dictionary with metrics as keys containing list of matrices sorted by ids.
+    :return:                 Numpy array.
     """
-    for a in d.keys():
-        mat = np.rollaxis(np.array(d[f'{a}']), axis=1, start=3)
+    for metric in dictionary.keys():
+        mat = np.rollaxis(np.array(dictionary[metric]), axis=1, start=3)
         matrix_shape = mat.shape[1:3]
         n_group = mat.shape[0]
         mat = mat.reshape((np.prod(matrix_shape) * n_group, 1))
-        d[f'{a}'] = mat
+        dictionary[metric] = mat
 
-    out = np.hstack([d[f'{i}'] for i in d.keys()])
-
-    return out
+    return np.hstack([dictionary[i] for i in dictionary.keys()])
 
 
 def restore_zero_values(orig, new):
@@ -131,16 +129,16 @@ def autolabel(rects, axs):
                  '%.3f' % float(height), ha='center', va='bottom')
 
 
-def extracting_common_cnx(d, ind):
+def extracting_common_cnx(dictionary, ind):
     """
     Function to create a binary mask representing common connections across the population
     containing non-zero values.
-    :param d:       Dictionary containing all matrices for all metrics.
-    :param ind:     Indice of the key to use to generate the binary mask from the dictionary.
-    :return:        Binary mask.
+    :param dictionary:       Dictionary with metrics as keys containing list of matrices sorted by ids.
+    :param ind:              Indice of the key to use to generate the binary mask from the dictionary.
+    :return:                 Binary mask.
     """
-    keys = list(d.keys())
-    met = np.copy(d[keys[ind]])
+    keys = list(dictionary.keys())
+    met = np.copy(dictionary[keys[ind]])
 
     # Replacing all non-zero values by 1.
     for i in range(0, len(met)):
@@ -161,18 +159,18 @@ def extracting_common_cnx(d, ind):
     return mask_f
 
 
-def apply_binary_mask(d, mask):
+def apply_binary_mask(dictionary, mask):
     """
     Function to apply a binary mask to all matrices contained in a dictionary.
-    :param d:       Dictionary of all matrices from all metrics.
-    :param mask:    Binary mask.
-    :return:        Dictionary with the same shape as input.
+    :param dictionary:       Dictionary with metrics as keys containing list of matrices sorted by ids.
+    :param mask:             Binary mask.
+    :return:                 Dictionary with the same shape as input.
     """
-    for a in d.keys():
-        for i in range(0, len(d[f'{a}'])):
-            d[f'{a}'][i] = np.multiply(d[f'{a}'][i], mask)
+    for a in dictionary.keys():
+        for i in range(0, len(dictionary[a])):
+            dictionary[a][i] = np.multiply(dictionary[a][i], mask)
 
-    return d
+    return dictionary
 
 
 def main():
@@ -189,28 +187,29 @@ def main():
     if args.connectoflow:
         # Loading all matrix.
         logging.info('Loading all matrices from a Connectoflow output...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.in_folder}/{a}/Compute_Connectivity/{m}.npy') for a in subjects]
-             for m in args.metrics}
+        dictionary = {m: [load_matrix_in_any_format(f'{args.in_folder}/{a}/Compute_Connectivity/{m}.npy')
+                          for a in subjects]
+                      for m in args.metrics}
     else:
         logging.info('Loading all matrices...')
-        d = {f'{m}': [load_matrix_in_any_format(f'{args.in_folder}/{a}_{m}.npy') for a in subjects]
-             for m in args.metrics}
+        dictionary = {m: [load_matrix_in_any_format(f'{args.in_folder}/{a}_{m}.npy') for a in subjects]
+                      for m in args.metrics}
         # Assert that all metrics have the same number of subjects.
-        nb_sub = [len(d[f'{m}']) for m in args.metrics]
+        nb_sub = [len(dictionary[m]) for m in args.metrics]
         assert all(x == len(subjects) for x in nb_sub), "Error, the number of matrices for each metric doesn't match" \
                                                         "the number of subject in the id list." \
                                                         "Please validate input folder."
 
     # Setting individual matrix shape.
-    mat_shape = d[f'{args.metrics[0]}'][0].shape
+    mat_shape = dictionary[args.metrics[0]][0].shape
 
     if args.not_only_common:
         # Creating input structure using all edges from all subjects.
         logging.info('Creating PCA input structure with all edges...')
-        df = generate_pca_input(d)
+        df = generate_pca_input(dictionary)
     else:
-        m1 = extracting_common_cnx(d, 0)
-        m2 = extracting_common_cnx(d, 1)
+        m1 = extracting_common_cnx(dictionary, 0)
+        m2 = extracting_common_cnx(dictionary, 1)
 
         if m1.shape != mat_shape:
             parser.error("Extracted binary mask doesn't match the shape of individual input matrix.")
@@ -221,11 +220,11 @@ def main():
         else:
             logging.info('Data shows {} common connections across the population.'.format(np.sum(m1)))
 
-        d = apply_binary_mask(d, m1)
+        dictionary = apply_binary_mask(dictionary, m1)
 
         # Creating input structure.
         logging.info('Creating PCA input structure with common edges...')
-        df = generate_pca_input(d)
+        df = generate_pca_input(dictionary)
 
     # Setting 0 values to nan.
     df[df == 0] = 'nan'
