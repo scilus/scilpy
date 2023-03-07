@@ -32,11 +32,13 @@ scil_compute_pca.py input_folder/ output_folder/ --metrics ad fa md rd [...] --l
 # Import required libraries.
 import argparse
 import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
+
 from scilpy.io.utils import (load_matrix_in_any_format,
                              save_matrix_in_any_format,
                              add_verbose_arg,
