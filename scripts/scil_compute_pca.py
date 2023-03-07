@@ -125,8 +125,12 @@ def autolabel(rects, axs):
     """
     for rect in rects:
         height = rect.get_height()
-        axs.text(rect.get_x() + rect.get_width()/2., height*1.05,
-                 '%.3f' % float(height), ha='center', va='bottom')
+        if height > 0:
+            axs.text(rect.get_x() + rect.get_width() / 2., (height * 1.05),
+                     '%.3f' % float(height), ha='center', va='bottom')
+        else:
+            axs.text(rect.get_x() + rect.get_width()/2., (height*1.05) - 0.15,
+                     '%.3f' % float(height), ha='center', va='bottom')
 
 
 def extracting_common_cnx(dictionary, ind):
@@ -253,6 +257,7 @@ def main():
     ax.set_xlabel('Principal Components', fontsize=10)
     ax.set_ylabel('Eigenvalues', fontsize=10)
     ax.set_title('Eigenvalues for each principal components.', fontsize=10)
+    ax.margins(0.1)
     autolabel(bar_eig, ax)
     plt.savefig(f'{args.out_folder}/eigenvalues.pdf')
 
@@ -266,6 +271,7 @@ def main():
     ax.set_xlabel('Principal Components', fontsize=10)
     ax.set_ylabel('Explained variance', fontsize=10)
     ax.set_title('Amount of explained variance for all principal components.', fontsize=10)
+    ax.margins(0.1)
     autolabel(bar_var, ax)
     plt.savefig(f'{args.out_folder}/explained_variance.pdf')
 
@@ -279,6 +285,8 @@ def main():
     fig.suptitle('Graph of the contribution of each measures to the first and second principal component.', fontsize=10)
     bar_pc1 = axs[0].bar(pos, component[0], align='center', tick_label=args.metrics)
     bar_pc2 = axs[1].bar(pos, component[1], align='center', tick_label=args.metrics)
+    axs[0].margins(0.2)
+    axs[1].margins(0.2)
     autolabel(bar_pc1, axs[0])
     autolabel(bar_pc2, axs[1])
     for ax in axs.flat:
