@@ -76,9 +76,8 @@ def _build_arg_parser():
                         'immediately followed by the .npy extension.')
     p.add_argument('--list_ids', required=True, metavar='FILE',
                    help='Path to a .txt file containing a list of all ids.')
-    p.add_argument('--only_common', action='store_true',
-                   help='If true, will include only connections found in all subjects of the population (Recommended) '
-                        '[True].')
+    p.add_argument('--not_only_common', action='store_true',
+                   help='If true, will include all edges from all subjects and not only common edges (Not recommended)')
     p.add_argument('--connectoflow', action='store_true',
                    help='If true, script will assume the input folder is a Connectoflow output.')
 
@@ -205,7 +204,11 @@ def main():
     # Setting individual matrix shape.
     mat_shape = d[f'{args.metrics[0]}'][0].shape
 
-    if args.common == 'true':
+    if args.not_only_common:
+        # Creating input structure using all edges from all subjects.
+        logging.info('Creating PCA input structure with all edges...')
+        df = generate_pca_input(d)
+    else:
         m1 = extracting_common_cnx(d, 0)
         m2 = extracting_common_cnx(d, 1)
 
@@ -220,9 +223,11 @@ def main():
 
         d = apply_binary_mask(d, m1)
 
-    # Creating input structure.
-    logging.info('Creating PCA input structure...')
-    df = generate_pca_input(d)
+        # Creating input structure.
+        logging.info('Creating PCA input structure with common edges...')
+        df = generate_pca_input(d)
+
+    # Setting 0 values to nan.
     df[df == 0] = 'nan'
 
     # Standardized the data.
