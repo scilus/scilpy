@@ -6,7 +6,7 @@ cvxpy==1.3.*
 cycler==0.11.*
 Cython==0.29.*
 # dipy==1.6.*
-# -e git+https://github.com/scilus/hot_dipy@releases/tag/v1.6.1#egg=dipy
+-e git+https://github.com/scilus/hot_dipy@releases/tag/v1.6.1#egg=dipy
 dmri-amico==1.5.*
 dmri-commit==1.6.*
 docopt==0.6.*
