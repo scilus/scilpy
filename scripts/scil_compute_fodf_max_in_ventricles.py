@@ -55,6 +55,10 @@ def _build_arg_parser():
     p.add_argument('--mask_output',  metavar='file',
                    help='Output path for the ventricule mask. If not set, '
                         'the mask will not be saved.')
+    p.add_argument('--small_dims',  action='store_true',
+                   help='If set, takes the full range of data to search the '
+                        'max fodf amplitude in ventricles. Useful when the '
+                        'data is 2D or has small dimensions.')
 
     add_sh_basis_args(p)
     add_verbose_arg(p)
@@ -88,9 +92,14 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
     else:
         max_number_of_voxels = 1000
 
-    all_i = list(range(int(data.shape[0]/2) - step, int(data.shape[0]/2) + step))
-    all_j = list(range(int(data.shape[1]/2) - step, int(data.shape[1]/2) + step))
-    all_k = list(range(int(data.shape[2]/2) - step, int(data.shape[2]/2) + step))
+    if args.small_dims:
+        all_i = list(range(0, data.shape[0]))
+        all_j = list(range(0, data.shape[1]))
+        all_k = list(range(0, data.shape[2]))
+    else:
+        all_i = list(range(int(data.shape[0]/2) - step, int(data.shape[0]/2) + step))
+        all_j = list(range(int(data.shape[1]/2) - step, int(data.shape[1]/2) + step))
+        all_k = list(range(int(data.shape[2]/2) - step, int(data.shape[2]/2) + step))
     for i in all_i:
         for j in all_j:
             for k in all_k:
