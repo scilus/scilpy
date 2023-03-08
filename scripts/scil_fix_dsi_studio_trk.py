@@ -41,7 +41,8 @@ from dipy.reconst.utils import _roi_in_volume, _mask_from_roi
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractograms.tractogram_operations import (flip_sft,
@@ -82,10 +83,9 @@ def _build_arg_parser():
     invalid.add_argument('--remove_invalid', action='store_true',
                          help='Remove the streamlines landing out of the '
                               'bounding box.')
-    invalid.add_argument('--keep_invalid', action='store_true',
-                         help='Keep the streamlines landing out of the '
-                              'bounding box.')
+
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -122,7 +122,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     sft = load_tractogram(args.in_dsi_tractogram, 'same',
-                          bbox_valid_check=False)
+                          bbox_valid_check=args.bbox_check)
 
     # LPS -> RAS convention in voxel space
     sft.to_vox()
@@ -143,7 +143,7 @@ def main():
         elif args.remove_invalid:
             sft_flip.remove_invalid_streamlines()
         save_tractogram(sft_flip, args.out_tractogram,
-                        bbox_valid_check=not args.keep_invalid)
+                        bbox_valid_check=args.bbox_check)
     else:
         static_img = nib.load(args.in_native_fa)
         static_data = static_img.get_fdata()
@@ -206,7 +206,7 @@ def main():
         elif args.remove_invalid:
             new_sft.remove_invalid_streamlines()
         save_tractogram(new_sft, args.out_tractogram,
-                        bbox_valid_check=not args.keep_invalid)
+                        bbox_valid_check=args.bbox_check)
 
 
 if __name__ == "__main__":

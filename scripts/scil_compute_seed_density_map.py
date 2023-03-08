@@ -11,10 +11,11 @@ from dipy.io.streamline import load_tractogram
 from nibabel import Nifti1Image
 from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
-from scilpy.io.utils import (
-    add_overwrite_arg,
-    assert_inputs_exist,
-    assert_outputs_exist)
+
+from scilpy.io.utils import (add_bbox_arg,
+                             add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -29,11 +30,12 @@ def _build_arg_parser():
                    help='Output seed density filename. Format must be Nifti.')
     p.add_argument('--binary',
                    metavar='FIXED_VALUE', type=int, nargs='?', const=1,
-                   help='If set, will store the same value for all '
-                        'intersected voxels, creating a binary map.\nWhen set '
-                        'without a value, 1 is used.\n If a value is given, '
-                        'will be used as the stored value.')
+                   help='If set, will store the same value for all intersected'
+                        ' voxels, creating a binary map.\n'
+                        'When set without a value, 1 is used (and dtype uint8).\n'
+                        'If a value is given, will be used as the stored value.')
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -57,9 +59,9 @@ def main():
                      .format(args.binary, max_))
 
     # Load files and data. TRKs can have 'same' as reference
-    # Can handle streamlines outside of bbox
+    # Can handle streamlines outside of bbox, if asked by user.
     sft = load_tractogram(args.tractogram_filename, 'same',
-                          bbox_valid_check=False)
+                          bbox_valid_check=args.bbox_check)
 
     # IMPORTANT
     # Origin should be center when creating the seeds (see below, we
@@ -86,13 +88,16 @@ def main():
     for seed in seeds:
         # Set value at mask, either binary or increment
         seed_voxel = np.round(seed).astype(int)
+        dtype_to_use = np.int32
         if args.binary is not None:
+            if args.binary == 1:
+                dtype_to_use = np.uint8
             seed_density[tuple(seed_voxel)] = args.binary
         else:
             seed_density[tuple(seed_voxel)] += 1
 
     # Save seed density map
-    dm_img = Nifti1Image(seed_density.astype(np.int32), affine)
+    dm_img = Nifti1Image(seed_density.astype(dtype_to_use), affine)
     dm_img.to_filename(args.seed_density_filename)
 
 

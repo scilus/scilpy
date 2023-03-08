@@ -100,51 +100,71 @@ def _build_arg_parser():
                    help='Disable normalization of ODF slicer.')
 
     # Background image options
-    p.add_argument('--background',
+    bg = p.add_argument_group('Background arguments')
+    bg.add_argument('--background',
                    help='Background image file. If RGB, values must '
                         'be between 0 and 255.')
 
-    p.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
+    bg.add_argument('--bg_range', nargs=2, metavar=('MIN', 'MAX'), type=float,
                    help='The range of values mapped to range [0, 1] '
                         'for background image. [(bg.min(), bg.max())]')
 
-    p.add_argument('--bg_opacity', type=float, default=1.0,
+    bg.add_argument('--bg_opacity', type=float, default=1.0,
                    help='The opacity of the background image. Opacity of 0.0 '
                         'means transparent and 1.0 is completely visible. '
                         '[%(default)s]')
 
-    p.add_argument('--bg_offset', type=float, default=0.5,
+    bg.add_argument('--bg_offset', type=float, default=0.5,
                    help='The offset of the background image. [%(default)s]')
 
-    p.add_argument('--bg_interpolation',
+    bg.add_argument('--bg_interpolation',
                    default='nearest', choices={'linear', 'nearest'},
                    help='Interpolation mode for the background image. '
                         '[%(default)s]')
 
-    p.add_argument('--bg_color', nargs=3, type=float, default=(0, 0, 0),
+    bg.add_argument('--bg_color', nargs=3, type=float, default=(0, 0, 0),
                    help='The color of the overall background, behind '
                         'everything. Must be RGB values scaled between 0 and '
                         '1. [%(default)s]')
 
     # Peaks input file options
-    p.add_argument('--peaks',
+    peaks = p.add_argument_group('Peaks arguments')
+    peaks.add_argument('--peaks',
                    help='Peaks image file.')
 
-    p.add_argument('--peaks_color', nargs=3, type=float,
+    peaks.add_argument('--peaks_color', nargs=3, type=float,
                    help='Color used for peaks, as RGB values scaled between 0 '
                         'and 1. If None, then a RGB colormap is used. '
                         '[%(default)s]')
 
-    p.add_argument('--peaks_width', default=1.0, type=float,
+    peaks.add_argument('--peaks_width', default=1.0, type=float,
                    help='Width of peaks segments. [%(default)s]')
 
-    peaks_scale_group = p.add_mutually_exclusive_group()
+    peaks_scale = p.add_argument_group('Peaks scaling arguments', 'Choose '
+                                       'between peaks values and arbitrary '
+                                       'length.')
+    peaks_scale_group = peaks_scale.add_mutually_exclusive_group()
     peaks_scale_group.add_argument('--peaks_values',
                                    help='Peaks values file.')
 
     peaks_scale_group.add_argument('--peaks_length', default=0.65, type=float,
                                    help='Length of the peaks segments. '
                                         '[%(default)s]')
+
+    # fODF variance options
+    var = p.add_argument_group('Variance arguments', 'For the visualization '
+                               'of fodf uncertainty, the variance is used '
+                               'as follow: mean + k * sqrt(variance), where '
+                               'mean is the input fodf (in_fodf) and k is the '
+                               'scaling factor (variance_k).')
+    var.add_argument('--variance',
+                   help='FODF variance file.')
+    var.add_argument('--variance_k', default=1, type=float,
+                   help='Scaling factor (k) for the computation of the fodf '
+                        'uncertainty. [%(default)s]')
+    var.add_argument('--var_color', nargs=3, type=float, default=(1, 1, 1),
+                   help='Color of variance outline. Must be RGB values scaled '
+                        'between 0 and 1. [%(default)s]')
 
     return p
 
@@ -222,6 +242,16 @@ def _get_data_from_inputs(args):
             peak_vals =\
                 nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
             data['peaks_values'] = peak_vals
+    if args.variance:
+        assert_same_resolution([args.variance, args.in_fodf])
+        variance = nib.nifti1.load(args.variance).get_fdata(dtype=np.float32)
+        if len(variance.shape) == 3:
+            variance = np.reshape(variance, variance.shape + (1,))
+        if variance.shape != fodf.shape:
+            raise ValueError('Dimensions mismatch between fODF {0} and '
+                             'variance {1}.'
+                             .format(fodf.shape, variance.shape))
+        data['variance'] = variance
 
     return data
 
@@ -246,16 +276,25 @@ def main():
     else:
         color_rgb = None
 
+    variance = data['variance'] if args.variance else None
+    var_color = np.asarray(args.var_color) * 255
     # Instantiate the ODF slicer actor
-    odf_actor = create_odf_slicer(data['fodf'], args.axis_name,
-                                  args.slice_index, mask, sph,
-                                  args.sph_subdivide, sh_order,
-                                  args.sh_basis, full_basis,
-                                  args.scale,
-                                  not args.radial_scale_off,
-                                  not args.norm_off,
-                                  args.colormap or color_rgb)
+    odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
+                                             args.slice_index, mask, sph,
+                                             args.sph_subdivide, sh_order,
+                                             args.sh_basis, full_basis,
+                                             args.scale,
+                                             not args.radial_scale_off,
+                                             not args.norm_off,
+                                             args.colormap or color_rgb,
+                                             sh_variance=variance,
+                                             variance_k=args.variance_k,
+                                             variance_color=var_color)
     actors.append(odf_actor)
+
+    # Instantiate a variance slicer actor if a variance image is supplied
+    if 'variance' in data:
+        actors.append(var_actor)
 
     # Instantiate a texture slicer actor if a background image is supplied
     if 'bg' in data:

@@ -55,7 +55,10 @@ def get_home():
 
 def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
-    return {'plot.zip':
+    return {'bids_json.zip':
+            ['1bMl5YtEufoKh-gjen940QTO5BpT5Y9TF',
+             'cb58cdc4a74c25b2b562284d62e6d929'],
+            'plot.zip':
             ['1Ab-oVWI1Fu7fHTEz1H3-s1TfR_oW-GOE',
              'cca8f1e19da357f44365a7e27b9029ca'],
             'ihMT.zip':
@@ -99,7 +102,7 @@ def get_testing_files_dict():
              '3e27625a1e7f2484b7fa5028c95324cc'],
             'stats.zip':
             ['1vsM7xuU0jF5fL5PIgN6stAH7oO683tw0',
-             'bcc21835cf0bf7210bdc99ba5d8df44b'],
+             'fdad170bcc9d19a2e53b0f29fd793ad4'],
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
              '6f0eff5154ff0973a3dc26db00e383ea'],
@@ -141,7 +144,7 @@ def fetch_data(files_dict, keys=None):
                     data = file_to_check.read()
                     md5_returned = hashlib.md5(data).hexdigest()
                 if md5_returned != md5:
-                    logging.warning('MD5 mismatch for file {}.'.format(f))
+                    raise ValueError('MD5 mismatch for file {}.'.format(f))
 
                 try:
                     # If there is a root dir, we want to skip one level.

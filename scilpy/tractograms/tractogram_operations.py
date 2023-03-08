@@ -140,7 +140,7 @@ def union(left, right):
     return {**left, **right}
 
 
-def perform_streamlines_operation(operation, streamlines, precision=None):
+def perform_tractogram_operation(operation, streamlines, precision=None):
     """Peforms an operation on a list of list of streamlines
 
     Given a list of list of streamlines, this function applies the operation
@@ -604,6 +604,7 @@ def upsample_tractogram(sft, nb, point_wise_std=None, streamline_wise_std=None,
 
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
     return new_sft
+
 
 def split_sft_sequentially(orig_sft, chunk_sizes):
     """

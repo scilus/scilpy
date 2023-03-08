@@ -47,7 +47,8 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_json_args,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -56,7 +57,7 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
     difference_robust, difference, union_robust, union,
-    intersection_robust, intersection, perform_streamlines_operation,
+    intersection_robust, intersection, perform_tractogram_operation,
     concatenate_sft)
 
 
@@ -103,14 +104,11 @@ def _build_arg_parser():
                    help='Save the streamline indices to the supplied '
                         'json file.')
 
-    p.add_argument('--ignore_invalid', action='store_true',
-                   help='If set, does not crash because of invalid '
-                        'streamlines.')
-
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -148,8 +146,7 @@ def main():
     sft_list = []
     for f in args.in_tractograms:
         logging.info("Loading file {}".format(f))
-        sft_list.append(load_tractogram_with_reference(
-            parser, args, f, bbox_check=not args.ignore_invalid))
+        sft_list.append(load_tractogram_with_reference(parser, args, f))
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
@@ -164,7 +161,7 @@ def main():
             _, indices = OPERATIONS[op_name](streamlines_list,
                                              precision=args.precision)
         else:
-            _, indices = perform_streamlines_operation(
+            _, indices = perform_tractogram_operation(
                 OPERATIONS[op_name], streamlines_list,
                 precision=args.precision)
 
@@ -189,8 +186,4 @@ def main():
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
                                                        args.out_tractogram))
     save_tractogram(new_sft[indices], args.out_tractogram,
-                    bbox_valid_check=not args.ignore_invalid)
-
-
-if __name__ == "__main__":
-    main()
+                    bbox_valid_check=args.bbox_check)
