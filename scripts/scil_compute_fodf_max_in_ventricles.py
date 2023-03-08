@@ -92,10 +92,14 @@ def get_ventricles_max_fodf(data, fa, md, zoom, args):
     else:
         max_number_of_voxels = 1000
 
+    # In the case of 2D-like data (3D data with one dimension size of 1), or
+    # a small 3D dataset, the full range of data is scanned.
     if args.small_dims:
         all_i = list(range(0, data.shape[0]))
         all_j = list(range(0, data.shape[1]))
         all_k = list(range(0, data.shape[2]))
+    # In the case of a normal 3D dataset, a window is created in the middle of
+    # the image to capture the ventricules. No need to scan the whole image.
     else:
         all_i = list(range(int(data.shape[0]/2) - step, int(data.shape[0]/2) + step))
         all_j = list(range(int(data.shape[1]/2) - step, int(data.shape[1]/2) + step))
