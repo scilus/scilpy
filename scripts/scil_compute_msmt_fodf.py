@@ -176,10 +176,8 @@ def main():
                                        sh_order=sh_order)
 
     # Computing msmt-CSD fit
-    # msmt_fit = fit_from_model(msmt_model, data,
-    #                           mask=mask, nbr_processes=args.nbr_processes)
-
-    msmt_fit = msmt_model.fit(data)
+    msmt_fit = fit_from_model(msmt_model, data,
+                              mask=mask, nbr_processes=args.nbr_processes)
 
     shm_coeff = msmt_fit.all_shm_coeff
 
