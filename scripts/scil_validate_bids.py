@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Create a json file from a BIDS dataset detailling all info needed for tractoflow
+Create a json file from a BIDS dataset detailling all info 
+needed for tractoflow
 - DWI/rev_DWI
 - T1
 - fmap/sbref (based on IntendedFor entity)
@@ -189,19 +190,25 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         nRun = curr_dwi.entities['run']
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
+
     related_files = layout.get(part="mag",
                                IntendedFor=IntendedForPath,
                                regex_search=True,
                                TotalReadoutTime=totalreadout,
                                invalid_filters='drop') +\
-                    layout.get(part=Query.NONE,
-                               IntendedFor=IntendedForPath,
-                               regex_search=True,
-                               TotalReadoutTime=totalreadout,
-                               invalid_filters='drop')
+        layout.get(part=Query.NONE,
+                   IntendedFor=IntendedForPath,
+                   regex_search=True,
+                   TotalReadoutTime=totalreadout,
+                   invalid_filters='drop')
 
-    related_files = [curr_related for curr_related in related_files if curr_related.entities['suffix'] != 'dwi']
+    related_files_filtered = []
+    for curr_related in related_files:
+        if curr_related.entities['suffix'] != 'dwi' and\
+           curr_related.entities['extension'] == '.nii.gz':
+            related_files_filtered.append(curr_related)
 
+    related_files = related_files_filtered
     direction_key = False
     if 'direction' in curr_dwi.entities:
         direction_key = 'direction'
@@ -226,7 +233,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
             logging.info('Too many files pointing to {}.'.format(dwis[0].path))
     else:
         topup = ['', '']
-        logging.info('IntendedFor: No file pointing to {}.'.format(dwis[0].path))
+        logging.info('IntendedFor: No file pointing to {}'.format(dwis[0].path))
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -236,6 +243,8 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         else:
             topup = ['', '']
     elif len(dwis) == 1:
+        # If one DWI you cannot have a reverse sbref
+        # since sbref is a derivate of multi-band dwi
         if topup_suffix['epi'][1] != '':
             topup = topup_suffix['epi']
         else:
@@ -320,21 +329,23 @@ def associate_dwis(layout, nSub):
     phaseEncodingDirection = [Query.ANY, Query.ANY]
     directions = layout.get_direction(**base_dict)
 
+    directions.sort()
+
     if not directions and 'PhaseEncodingDirection' in layout.get_entities():
         logging.info("Found no directions.")
         directions = [Query.ANY, Query.ANY]
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
         if len(phaseEncodingDirection) == 1:
             logging.info("Found one phaseEncodingDirection.")
-            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+            return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                     layout.get(part='mag', **base_dict)]
     elif len(directions) == 1:
         logging.info("Found one direction.")
-        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
     elif not directions:
         logging.info("Found no directions or PhaseEncodingDirections.")
-        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +\
+        return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
@@ -354,10 +365,10 @@ def associate_dwis(layout, nSub):
                               PhaseEncodingDirection=phaseEncodingDirection[1],
                               direction=directions[1],
                               **base_dict) +\
-                    layout.get(part='mag',
-                               PhaseEncodingDirection=phaseEncodingDirection[1],
-                               direction=directions[1],
-                               **base_dict)
+        layout.get(part='mag',
+                   PhaseEncodingDirection=phaseEncodingDirection[1],
+                   direction=directions[1],
+                   **base_dict)
 
     all_associated_dwis = []
     logging.info('Number of dwi: {}'.format(len(all_dwis)))
@@ -366,19 +377,29 @@ def associate_dwis(layout, nSub):
         curr_dwi = all_dwis[0]
 
         curr_association = [curr_dwi]
+
+        # Fake reverse so it can be used to compare with real rev
         rev_curr_entity = curr_dwi.get_entities()
 
         rev_iter_to_rm = []
         for iter_rev, rev_dwi in enumerate(all_rev_dwis):
             # At this stage, we need to check only direction
+            direction = False
             if 'direction' in curr_dwi.entities:
-                rev_curr_entity['direction'] = rev_curr_entity['direction'][::-1]
+                direction = 'direction'
+            elif 'PhaseEncodingDirection' in curr_dwi.entities:
+                direction = 'PhaseEncodingDirection'
+
+            if direction:
+                rev_curr_entity[direction] = get_opposite_phase_encoding_direction(rev_curr_entity[direction])
                 if rev_curr_entity == rev_dwi.get_entities():
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
-            elif curr_dwi.entities['PhaseEncodingDirection'] == rev_dwi.entities['PhaseEncodingDirection'][:-1] and rev_curr_entity == rev_dwi.get_entities():
-                curr_association.append(rev_dwi)
-                rev_iter_to_rm.append(iter_rev)
+                else:
+                    if rev_curr_entity[direction] == rev_dwi[direction]:
+                        # Print difference between entities
+                        logging.info('DWIs {} and {} have opposite phase encoding directions but different entities.'
+                                     'Please check their respective json files.'.format(curr_dwi, rev_dwi))
 
         # drop all rev_dwi used
         logging.info('Checking dwi {}'.format(all_dwis[0]))
@@ -439,12 +460,14 @@ def main():
                                            'mri/aparc+aseg.mgz'))
             if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                 fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
+                logging.warning("# Found FS files")
         else:
             logging.warning("# Looking for T1 files")
             t1s = layout.get(subject=nSub,
                              datatype='anat', extension='nii.gz',
                              suffix='T1w')
-
+            if t1s:
+                logging.warning("# Found {} T1 files".format(len(t1s)))
         # Get the data for each run of DWIs
         for dwi in dwis:
             data.append(get_data(layout,

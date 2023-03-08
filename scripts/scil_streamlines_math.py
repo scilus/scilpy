@@ -49,7 +49,8 @@ from nibabel.streamlines import LazyTractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_json_args,
+from scilpy.io.utils import (add_bbox_arg,
+                             add_json_args,
                              add_overwrite_arg,
                              add_reference_arg,
                              add_verbose_arg,
@@ -105,14 +106,11 @@ def _build_arg_parser():
                    help='Save the streamline indices to the supplied '
                         'json file.')
 
-    p.add_argument('--ignore_invalid', action='store_true',
-                   help='If set, does not crash because of invalid '
-                        'streamlines.')
-
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
+    add_bbox_arg(p)
 
     return p
 
@@ -176,8 +174,7 @@ def main():
     sft_list = []
     for f in args.in_tractograms:
         logging.info("Loading file {}".format(f))
-        sft_list.append(load_tractogram_with_reference(
-            parser, args, f, bbox_check=not args.ignore_invalid))
+        sft_list.append(load_tractogram_with_reference(parser, args, f))
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
@@ -217,7 +214,7 @@ def main():
     logging.info('Saving {} streamlines to {}.'.format(len(indices),
                                                        args.out_tractogram))
     save_tractogram(new_sft[indices], args.out_tractogram,
-                    bbox_valid_check=not args.ignore_invalid)
+                    bbox_valid_check=args.bbox_check)
 
 
 if __name__ == "__main__":

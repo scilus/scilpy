@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 
 import vtk
-from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
 from PIL import Image
@@ -122,7 +122,8 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
 
 def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
                       nb_subdivide, sh_order, sh_basis, full_basis,
-                      scale, radial_scale, norm, colormap):
+                      scale, radial_scale, norm, colormap, sh_variance=None,
+                      variance_k=1, variance_color=(255, 255, 255)):
     """
     Create a ODF slicer actor displaying a fODF slice. The input volume is a
     3-dimensional grid containing the SH coefficients of the fODF for each
@@ -158,6 +159,12 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
         If True, enables normalization of ODF slicer.
     colormap : str
         Colormap for the ODF slicer. If None, a RGB colormap is used.
+    sh_variance : np.ndarray, optional
+        Spherical harmonics of the variance fODF data.
+    variance_k : float, optional
+        Factor that multiplies sqrt(variance).
+    variance_color : tuple, optional
+        Color of the variance fODF data, in RGB.
 
     Returns
     -------
@@ -172,14 +179,46 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, mask, sphere,
     B_mat = sh_to_sf_matrix(sphere, sh_order, sh_basis,
                             full_basis, return_inv=False)
 
-    odf_actor = actor.odf_slicer(sh_fodf, mask=mask, norm=norm,
-                                 radial_scale=radial_scale,
-                                 sphere=sphere,
-                                 colormap=colormap,
-                                 scale=scale, B_matrix=B_mat)
-    set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
+    var_actor = None
 
-    return odf_actor
+    if sh_variance is not None:
+        fodf = sh_to_sf(sh_fodf, sphere, sh_order, sh_basis,
+                        full_basis=full_basis)
+        fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
+                            full_basis=full_basis)
+        fodf_uncertainty = fodf + variance_k * np.sqrt(np.clip(fodf_var, 0,
+                                                               None))
+        # normalise fodf and variance
+        if norm:
+            maximums = np.abs(np.append(fodf, fodf_uncertainty, axis=-1))\
+                .max(axis=-1)
+            fodf[maximums > 0] /= maximums[maximums > 0][..., None]
+            fodf_uncertainty[maximums > 0] /= maximums[maximums > 0][..., None]
+
+        odf_actor = actor.odf_slicer(fodf, mask=mask, norm=False,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere, scale=scale,
+                                     colormap=colormap)
+
+        var_actor = actor.odf_slicer(fodf_uncertainty, mask=mask, norm=False,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere, scale=scale,
+                                     colormap=variance_color)
+        var_actor.GetProperty().SetDiffuse(0.0)
+        var_actor.GetProperty().SetAmbient(1.0)
+        var_actor.GetProperty().SetFrontfaceCulling(True)
+    else:
+        odf_actor = actor.odf_slicer(sh_fodf, mask=mask, norm=norm,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere,
+                                     colormap=colormap,
+                                     scale=scale, B_matrix=B_mat)
+    set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
+    if var_actor is not None:
+        set_display_extent(var_actor, orientation,
+                           fodf_uncertainty.shape[:3], slice_index)
+
+    return odf_actor, var_actor
 
 
 def _get_affine_for_texture(orientation, offset):

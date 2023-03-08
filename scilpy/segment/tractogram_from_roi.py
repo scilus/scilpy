@@ -41,9 +41,11 @@ def compute_masks_from_bundles(gt_files, parser, args, inverse_mask=False):
     gt_files: list
         List of either StatefulTractograms or niftis.
     parser: ArgumentParser
-        Argument parser which handles the script's arguments.
+        Argument parser which handles the script's arguments. Used to print
+        parser errors, if any.
     args: Namespace
-        List of arguments passed to the script.
+        List of arguments passed to the script. Used for its 'ref' and
+        'bbox_check' arguments.
     inverse_mask: bool
         If true, returns the list of inversed masks instead.
 
@@ -74,7 +76,7 @@ def compute_masks_from_bundles(gt_files, parser, args, inverse_mask=False):
                 else:
                     args.reference = save_ref
                 gt_sft = load_tractogram_with_reference(
-                    parser, args, gt_bundle, bbox_check=False)
+                    parser, args, gt_bundle)
                 gt_sft.to_vox()
                 gt_sft.to_corner()
                 _, dimensions, _, _ = gt_sft.space_attributes
@@ -653,7 +655,7 @@ def segment_tractogram_from_roi(
     nc_sft = sft[all_nc_ids]
     if len(nc_sft) > 0 or not args.no_empty:
         save_tractogram(nc_sft, os.path.join(
-            args.out_dir, filename), bbox_valid_check=False)
+            args.out_dir, filename), bbox_valid_check=args.bbox_check)
 
     return (vb_sft_list, wpc_sft_list, ib_sft_list, nc_sft, ib_names,
             bundle_stats)
