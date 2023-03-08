@@ -10,9 +10,9 @@ from scipy.spatial import cKDTree
 from sklearn.metrics import cohen_kappa_score
 from sklearn.neighbors import KDTree
 
-from scilpy.utils.streamlines import (difference_robust,
-                                      intersection_robust,
-                                      union_robust)
+from scilpy.tractograms.tractogram_operations import (difference_robust,
+                                                      intersection_robust,
+                                                      union_robust)
 
 
 def binary_classification(segmentation_indices,

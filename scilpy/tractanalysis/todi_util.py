@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial import cKDTree

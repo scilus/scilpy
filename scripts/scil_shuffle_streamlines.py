@@ -16,13 +16,13 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tractograms.tractogram_operations import shuffle_streamlines
 
 
 def _build_arg_parser():
 
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description=__doc__)
 
     p.add_argument('in_tractogram',
                    help='Input tractography file.')
@@ -44,16 +44,7 @@ def main():
     assert_outputs_exist(parser, args, args.out_tractogram)
 
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    indices = np.arange(len(sft.streamlines))
-    random.shuffle(indices, random=args.seed)
-
-    streamlines = sft.streamlines[indices]
-    data_per_streamline = sft.data_per_streamline[indices]
-    data_per_point = sft.data_per_point[indices]
-
-    shuffled_sft = StatefulTractogram.from_sft(streamlines, sft,
-                                               data_per_streamline=data_per_streamline,
-                                               data_per_point=data_per_point)
+    shuffled_sft = shuffle_streamlines(sft, rng_seed=args.seed)
     save_tractogram(shuffled_sft, args.out_tractogram)
 
 
