@@ -128,7 +128,8 @@ def _get_direction_getter(args):
             npeaks = 5
             peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
             peak_values = np.zeros((odf_shape_3d + (npeaks, )))
-            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1, dtype='int')
+            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1,
+                                   dtype='int')
             b_matrix = get_b_matrix(
                 find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
 
@@ -194,6 +195,11 @@ def main():
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
+
+    if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
+        raise IOError('The image {} is empty. '
+                      'It can\'t be loaded as '
+                      'seeding mask.'.format(args.in_seed))
 
     # Note. Seeds are in voxel world, center origin.
     # (See the examples in random_seeds_from_mask).
