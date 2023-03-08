@@ -15,4 +15,4 @@ Then, you should compute the fODFs and volume fractions. The following command w
 If you want to do DIVIDE with b-tensor data, you should use the following command. It will save files for the MD, uFA, OP, MK_I, MK_A and MK_T. This script should run in about 1-2 hours for a full brain.
 ::
 
-    scil_compute_divide.py wm_frf.txt gm_frf.txt csf_frf.txt --in_dwis dwi_linear.nii.gz dwi_planar.nii.gz dwi_spherical.nii.gz --in_bvals dwi_linear.bval dwi_planar.bval dwi_spherical.bval --in_bvecs dwi_linear.bvec dwi_planar.bvec dwi_spherical.bvec --in_bdeltas 1 -0.5 0 --mask mask.nii.gz --fa fa.nii.gz --processes 8 -f
+    scil_compute_divide.py --in_dwis dwi_linear.nii.gz dwi_planar.nii.gz dwi_spherical.nii.gz --in_bvals dwi_linear.bval dwi_planar.bval dwi_spherical.bval --in_bvecs dwi_linear.bvec dwi_planar.bvec dwi_spherical.bvec --in_bdeltas 1 -0.5 0 --mask mask.nii.gz --fa fa.nii.gz --processes 8 -f
