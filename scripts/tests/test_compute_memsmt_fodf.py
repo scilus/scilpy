@@ -17,23 +17,23 @@ def test_help_option(script_runner):
 
 def test_inputs_check(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi_lin = os.path.join(get_home(), 'btensor',
+    in_dwi_lin = os.path.join(get_home(), 'btensor_testdata',
                               'dwi_linear.nii.gz')
-    in_bval_lin = os.path.join(get_home(), 'btensor',
+    in_bval_lin = os.path.join(get_home(), 'btensor_testdata',
                                'linear.bvals')
-    in_bvec_lin = os.path.join(get_home(), 'btensor',
+    in_bvec_lin = os.path.join(get_home(), 'btensor_testdata',
                                'linear.bvecs')
-    in_dwi_plan = os.path.join(get_home(), 'btensor',
+    in_dwi_plan = os.path.join(get_home(), 'btensor_testdata',
                                'dwi_planar.nii.gz')
-    in_bval_plan = os.path.join(get_home(), 'btensor',
+    in_bval_plan = os.path.join(get_home(), 'btensor_testdata',
                                 'planar.bvals')
-    in_bvec_plan = os.path.join(get_home(), 'btensor',
+    in_bvec_plan = os.path.join(get_home(), 'btensor_testdata',
                                 'planar.bvecs')
-    in_wm_frf = os.path.join(get_home(), 'btensor',
+    in_wm_frf = os.path.join(get_home(), 'btensor_testdata',
                              'wm_frf.txt')
-    in_gm_frf = os.path.join(get_home(), 'btensor',
+    in_gm_frf = os.path.join(get_home(), 'btensor_testdata',
                              'gm_frf.txt')
-    in_csf_frf = os.path.join(get_home(), 'btensor',
+    in_csf_frf = os.path.join(get_home(), 'btensor_testdata',
                               'csf_frf.txt')
 
     ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
@@ -64,23 +64,23 @@ def test_inputs_check(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_dwi_lin = os.path.join(get_home(), 'btensor',
+    in_dwi_lin = os.path.join(get_home(), 'btensor_testdata',
                               'dwi_linear.nii.gz')
-    in_bval_lin = os.path.join(get_home(), 'btensor',
+    in_bval_lin = os.path.join(get_home(), 'btensor_testdata',
                                'linear.bvals')
-    in_bvec_lin = os.path.join(get_home(), 'btensor',
+    in_bvec_lin = os.path.join(get_home(), 'btensor_testdata',
                                'linear.bvecs')
-    in_dwi_sph = os.path.join(get_home(), 'btensor',
+    in_dwi_sph = os.path.join(get_home(), 'btensor_testdata',
                               'dwi_spherical.nii.gz')
-    in_bval_sph = os.path.join(get_home(), 'btensor',
+    in_bval_sph = os.path.join(get_home(), 'btensor_testdata',
                                'spherical.bvals')
-    in_bvec_sph = os.path.join(get_home(), 'btensor',
+    in_bvec_sph = os.path.join(get_home(), 'btensor_testdata',
                                'spherical.bvecs')
-    in_wm_frf = os.path.join(get_home(), 'btensor',
+    in_wm_frf = os.path.join(get_home(), 'btensor_testdata',
                              'wm_frf.txt')
-    in_gm_frf = os.path.join(get_home(), 'btensor',
+    in_gm_frf = os.path.join(get_home(), 'btensor_testdata',
                              'gm_frf.txt')
-    in_csf_frf = os.path.join(get_home(), 'btensor',
+    in_csf_frf = os.path.join(get_home(), 'btensor_testdata',
                               'csf_frf.txt')
 
     ret = script_runner.run('scil_compute_memsmt_fodf.py', in_wm_frf,
