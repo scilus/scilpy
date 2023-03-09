@@ -25,4 +25,4 @@ def get_colormap(name):
                                                         colors_list)
         return cmap
 
-    return plt.cm.get_cmap(name)
+    return plt.colormaps.get_cmap(name)

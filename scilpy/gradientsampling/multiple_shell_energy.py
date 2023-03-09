@@ -44,7 +44,7 @@ def grad_equality_constraints(bvecs, *args):
     Returns
     -------
     array shape (N, N * 3). grad[i, j] contains
-    $\partial f_i / \partial x_j$
+    $\\partial f_i / \\partial x_j$
     """
     N = bvecs.shape[0] / 3
     bvecs = bvecs.reshape((N, 3))
