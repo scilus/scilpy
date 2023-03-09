@@ -4,11 +4,13 @@
 """
 Script to compute microstructure metrics using the DIVIDE method. In order to
 operate, the script needs at leats two different types of b-tensor encodings.
-Note that custom encodings are not yet supported, except for the cigar shape
-(b_delta = 0.5). Moreover, all of `--in_dwis`, `--in_bvals`, `--in_bvecs` and
-`--in_bdeltas` must have the same number of arguments. Be sure to keep the same
-order of encodings throughout all these inputs and to set `--in_bdeltas`
-accordingly (IMPORTANT).
+Note that custom encodings are not yet supported, so that only the linear
+tensor encoding (LTE, b_delta = 1), the planar tensor encoding
+(PTE, b_delta = -0.5), the spherical tensor encoding (STE, b_delta = 0) and
+the cigar shape tensor encoding (b_delta = 0.5) are available. Moreover, all
+of `--in_dwis`, `--in_bvals`, `--in_bvecs` and `--in_bdeltas` must have the
+same number of arguments. Be sure to keep the same order of encodings
+throughout all these inputs and to set `--in_bdeltas` accordingly (IMPORTANT).
 
 By default, will output all possible files, using default names.
 Specific names can be specified using the file flags specified in the
