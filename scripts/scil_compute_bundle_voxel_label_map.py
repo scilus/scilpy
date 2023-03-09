@@ -331,7 +331,7 @@ def main():
             tmp_corr = ndi.map_coordinates(corr_map,
                                            sft.streamlines._data.T-0.5,
                                            order=0)
-            cmap = plt.get_cmap(args.colormap)
+            cmap = plt.colormaps[args.colormap]
             new_sft.data_per_point['color'] = ArraySequence(
                 new_sft.streamlines)
 
