@@ -52,7 +52,7 @@ import dipy.reconst.msdki as msdki
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.core.gradients import gradient_table
 
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,

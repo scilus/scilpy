@@ -33,8 +33,7 @@ from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
-from scipy.ndimage import map_coordinates
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter, map_coordinates
 from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
