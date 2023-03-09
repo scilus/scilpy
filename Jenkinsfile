@@ -51,7 +51,7 @@ pipeline {
                         pullRequest.createReviewRequests(['arnaudbore'])
                     }
                     else{
-                        pullRequest.createReviewRequests(['GuillaumeTh'])
+                        pullRequest.createReviewRequests(['frheault'])
                     }
                 }
             }
