@@ -177,7 +177,8 @@ def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
 
     parser.add_argument('--sphere', choices=spheres,
                         default=default,
-                        help='Dipy sphere; set of possible directions.')
+                        help='Dipy sphere; set of possible directions.\n'
+                             'Default: [%(default)s]')
 
 
 def add_overwrite_arg(parser):
