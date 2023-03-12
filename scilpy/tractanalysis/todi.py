@@ -6,7 +6,7 @@ import logging
 from dipy.data import get_sphere
 from dipy.reconst.shm import sf_to_sh
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 import scilpy.tractanalysis.todi_util as todi_u
 

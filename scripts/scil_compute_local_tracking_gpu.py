@@ -126,8 +126,15 @@ def main():
 
     odf_sh_img = nib.load(args.in_odf)
     mask = get_data_as_mask(nib.load(args.in_mask))
-    seed_mask = get_data_as_mask(nib.load(args.in_seed))
     odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
+
+    seed_img = nib.load(args.in_seed)
+    if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
+        raise IOError('The image {} is empty. '
+                      'It can\'t be loaded as '
+                      'seeding mask.'.format(args.in_seed))
+    else:
+        seed_mask = seed_img.get_fdata(dtype=np.float32)
 
     t0 = perf_counter()
     if args.npv:

@@ -14,11 +14,10 @@ Input tractograms must have identical header.
 
 import argparse
 
-from dipy.io.stateful_tractogram import Origin, Space, StatefulTractogram
+from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible, get_reference_info
 import nibabel as nib
-from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.sparse import dok_matrix
 
@@ -28,7 +27,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.utils.streamlines import intersection_robust, union_robust
+from scilpy.tractograms.tractogram_operations import (
+    intersection_robust, union_robust)
 
 
 def _build_arg_parser():

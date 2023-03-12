@@ -30,8 +30,7 @@ from fury import window, actor
 import nibabel as nib
 import numpy as np
 from scipy.linalg import svd
-from scipy.ndimage import map_coordinates
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import map_coordinates, gaussian_filter
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,

@@ -45,9 +45,9 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.streamlines import (transform_warp_sft,
-                                      cut_invalid_streamlines)
-from scilpy.utils.transformation import flip_sft
+from scilpy.tractograms.tractogram_operations import (flip_sft,
+                                                      transform_warp_sft)
+from scilpy.utils.streamlines import cut_invalid_streamlines
 
 
 def _build_arg_parser():

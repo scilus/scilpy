@@ -11,16 +11,14 @@ have them fit in the tools.
 
 import argparse
 
-from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.io.streamline import save_tractogram
-import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_reference_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.transformation import flip_sft
+from scilpy.tractograms.tractogram_operations import flip_sft
 
 
 def _build_arg_parser():

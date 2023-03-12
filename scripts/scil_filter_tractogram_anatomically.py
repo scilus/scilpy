@@ -54,14 +54,8 @@ import nibabel as nib
 import numpy as np
 from scipy.spatial import cKDTree
 
-from scilpy.image.labels import get_data_as_labels
-from scilpy.segment.streamlines import filter_grid_roi
-from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-from scilpy.tracking.tools import filter_streamlines_by_length
-from scilpy.utils.streamlines import (filter_tractogram_data, difference,
-                                      perform_streamlines_operation)
-from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
@@ -70,6 +64,14 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              validate_nbr_processes)
+from scilpy.image.labels import get_data_as_labels
+from scilpy.segment.streamlines import filter_grid_roi
+from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractograms.tractogram_operations import (
+    difference, perform_tractogram_operation)
+from scilpy.tracking.tools import filter_streamlines_by_length
+from scilpy.utils.streamlines import filter_tractogram_data
+
 
 EPILOG = """
     References:
@@ -225,7 +227,7 @@ def compute_outliers(sft, new_sft):
     two input stateful tractograms
     """
     streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_streamlines_operation(
+    _, indices = perform_tractogram_operation(
         difference, streamlines_list, precision=0)
     outliers_sft = sft[indices]
     return outliers_sft
