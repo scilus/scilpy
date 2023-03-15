@@ -87,6 +87,11 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
                             '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
+        
+        # Force dtype to int64 instead of float64
+        if len(sft.streamlines) == 0:
+            sft.streamlines._offsets.dtype = np.dtype(np.int64)
+
     elif ext in ['.tck', '.fib', '.vtk', '.dpy']:
         if arg_name:
             arg_ref = arg_name + '_ref'
