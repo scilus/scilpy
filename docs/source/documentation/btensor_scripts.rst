@@ -2,6 +2,8 @@ Instructions for tensor-valued dMRI scripts (b-tensor)
 ======================================================
 
 
+The scripts for multi-encoding multi-shell multi-tissue CSD (memsmt-CSD) are based on P. Karan et al., Bridging the gap between constrained spherical deconvolution and diffusional variance decomposition via tensor-valued diffusion MRI. Medical Image Analysis (2022). We recommend reading it to understand the scope of the memsmt-CSD problem.
+
 If you want to do CSD with b-tensor data, you should start by computing the fiber response functions. This script should run fast (less than 5 minutes on a full brain).
 ::
 
