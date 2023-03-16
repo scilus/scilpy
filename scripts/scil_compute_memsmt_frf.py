@@ -29,8 +29,8 @@ In the gm (or csf), we compute the response function in each voxels where
 the FA is below at threshold_fa_gm (or threshold_fa_csf) and where
 the MD is below threshold_md_gm (or threshold_md_csf).
 
-Based on P. Karan et al., Bridging the gap between constrained spherical 
-deconvolution and diffusional variance decomposition via tensor-valued 
+Based on P. Karan et al., Bridging the gap between constrained spherical
+deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
 """
 
@@ -74,7 +74,7 @@ def buildArgsParser():
     p.add_argument('--in_bdeltas', nargs='+', type=float,
                    choices=[0, 1, -0.5, 0.5], required=True,
                    help='Value of b_delta for each b-tensor encoding type, '
-                        'in the same order as dwi, bval and bvec inputs.')
+                        'in the same order as \ndwi, bval and bvec inputs.')
 
     p.add_argument('--mask',
                    help='Path to a binary mask. Only the data inside the mask '
@@ -93,38 +93,38 @@ def buildArgsParser():
     p.add_argument('--fa_thr_wm',
                    default=0.7, type=float,
                    help='If supplied, use this threshold to select single WM '
-                        'fiber voxels from the FA inside the WM mask defined '
-                        ' by mask_wm. Each voxel above this threshold will '
-                        'be selected. [%(default)s]')
+                        'fiber voxels from \nthe FA inside the WM mask '
+                        'defined by mask_wm. \nEach voxel above this '
+                        'threshold will be selected. [%(default)s]')
     p.add_argument('--fa_thr_gm',
                    default=0.2, type=float,
                    help='If supplied, use this threshold to select GM voxels '
-                        'from the FA inside the GM mask defined by mask_gm. '
-                        'Each voxel below this threshold will be selected.'
-                        ' [%(default)s]')
+                        'from the FA inside \nthe GM mask defined by mask_gm. '
+                        '\nEach voxel below this threshold will be selected. '
+                        '[%(default)s]')
     p.add_argument('--fa_thr_csf',
                    default=0.1, type=float,
                    help='If supplied, use this threshold to select CSF voxels '
-                        'from the FA inside the CSF mask defined by mask_csf. '
-                        'Each voxel below this threshold will be selected. '
-                        '[%(default)s]')
+                        'from the FA inside \nthe CSF mask defined by '
+                        'mask_csf. \nEach voxel below this threshold will be '
+                        'selected. [%(default)s]')
     p.add_argument('--md_thr_gm',
                    default=0.0007, type=float,
                    help='If supplied, use this threshold to select GM voxels '
-                        'from the MD inside the GM mask defined by mask_gm. '
-                        'Each voxel below this threshold will be selected. '
+                        'from the MD inside \nthe GM mask defined by mask_gm. '
+                        '\nEach voxel below this threshold will be selected. '
                         '[%(default)s]')
     p.add_argument('--md_thr_csf',
                    default=0.003, type=float,
                    help='If supplied, use this threshold to select CSF '
-                        'voxels from the MD inside the CSF mask defined by '
-                        'mask_csf. Each voxel below this threshold will be'
-                        ' selected. [%(default)s]')
+                        'voxels from the MD inside \nthe CSF mask defined by '
+                        'mask_csf. \nEach voxel below this threshold will be '
+                        'selected. [%(default)s]')
 
     p.add_argument('--min_nvox',
                    default=100, type=int,
                    help='Minimal number of voxels needed for each tissue masks'
-                        ' in order to proceed to frf estimation. '
+                        ' in order to \nproceed to frf estimation. '
                         '[%(default)s]')
     p.add_argument('--tolerance',
                    type=int, default=20,
@@ -137,15 +137,16 @@ def buildArgsParser():
     p.add_argument('--roi_radii',
                    default=[20], nargs='+', type=int,
                    help='If supplied, use those radii to select a cuboid roi '
-                        'to estimate the response functions. The roi will be '
-                        'a cuboid spanning from the middle of the volume in '
-                        'each direction with the different radii. The type is '
-                        'either an int (e.g. --roi_radii 10) or an array-like '
-                        '(3,) (e.g. --roi_radii 20 30 10). [%(default)s]')
+                        'to estimate the \nresponse functions. The roi will '
+                        'be a cuboid spanning from the middle of \nthe volume '
+                        'in each direction with the different radii. The type '
+                        'is either \nan int (e.g. --roi_radii 10) or an '
+                        'array-like (3,) (e.g. --roi_radii 20 30 10). '
+                        '[%(default)s]')
     p.add_argument('--roi_center',
                    metavar='tuple(3)', nargs=3, type=int,
                    help='If supplied, use this center to span the cuboid roi '
-                        'using roi_radii. [center of the 3D volume] '
+                        'using roi_radii. \n[center of the 3D volume] '
                         '(e.g. --roi_center 66 79 79)')
 
     p.add_argument('--wm_frf_mask',
