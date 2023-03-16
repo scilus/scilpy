@@ -725,7 +725,7 @@ def compress_sft(sft, tol_error=0.01):
     # Compress streamlines
     compressed_streamlines = compress_streamlines(sft.streamlines,
                                                   tol_error=tol_error)
-    if sft.data_per_point is not None and len(sft.data_per_point.keys()) != 0:
+    if sft.data_per_point is not None and sft.data_per_point.keys():
         logging.warning("Initial StatefulTractogram contained data_per_point. "
                         "This information will not be carried in the final "
                         "tractogram.")
