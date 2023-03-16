@@ -223,9 +223,9 @@ def _warn_and_save(new_streamlines, sft):
     """Last step of the two resample functions:
     Warn that we loose data_per_point, then create resampled SFT."""
 
-    if sft.data_per_point is not None:
-        logging.debug("Initial stateful tractogram contained data_per_point. "
-                      "This information will not be carried in the final"
+    if sft.data_per_point is not None and sft.data_per_point.keys():
+        logging.debug("Initial StatefulTractogram contained data_per_point. "
+                      "This information will not be carried in the final "
                       "tractogram.")
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=sft.data_per_streamline)

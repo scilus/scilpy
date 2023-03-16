@@ -20,9 +20,9 @@ def test_help_option(script_runner):
 
 def test_execution_pca(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    input_folder = os.path.join(get_home(), 'pca')
-    output_folder = os.path.join(get_home(), 'pca_out')
-    ids = os.path.join(get_home(), 'pca',
+    input_folder = os.path.join(get_home(), 'stats/pca')
+    output_folder = os.path.join(get_home(), 'stats/pca_out')
+    ids = os.path.join(get_home(), 'stats/pca',
                        'list_id.txt')
     ret = script_runner.run('scil_compute_pca.py', input_folder, output_folder, '--metrics', 'ad',
                             'fa', 'md', 'rd', 'nufo', 'afd_total', 'afd_fixel', '--list_ids',

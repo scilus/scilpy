@@ -57,7 +57,7 @@ def get_testing_files_dict():
     """ Get dictionary linking zip file to their GDrive ID & MD5SUM """
     return {'bids_json.zip':
             ['1bMl5YtEufoKh-gjen940QTO5BpT5Y9TF',
-             'cb58cdc4a74c25b2b562284d62e6d929'],
+             '521eed4911c456cc10cc3cb1f6a5dc83'],
             'plot.zip':
             ['1Ab-oVWI1Fu7fHTEz1H3-s1TfR_oW-GOE',
              'cca8f1e19da357f44365a7e27b9029ca'],
@@ -102,7 +102,7 @@ def get_testing_files_dict():
              '3e27625a1e7f2484b7fa5028c95324cc'],
             'stats.zip':
             ['1vsM7xuU0jF5fL5PIgN6stAH7oO683tw0',
-             'fdad170bcc9d19a2e53b0f29fd793ad4'],
+             '03aed629dea754bbc2041e7ab5f94112'],
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
              '6f0eff5154ff0973a3dc26db00e383ea'],

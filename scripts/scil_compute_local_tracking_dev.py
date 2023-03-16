@@ -81,7 +81,7 @@ def _build_arg_parser():
     track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob'],
-                         help='Algorithm to use [%(default)s]')
+                         help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sfthres_init', metavar='sf_th', type=float,
                          default=0.5, dest='sf_threshold_init',
