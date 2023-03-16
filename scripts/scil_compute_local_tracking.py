@@ -61,7 +61,7 @@ def _build_arg_parser():
     track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'eudx'],
-                         help='Algorithm to use [%(default)s]')
+                         help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
 
     add_seeding_options(p)
