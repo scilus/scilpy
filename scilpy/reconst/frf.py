@@ -94,8 +94,8 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
             "estimation of the fiber response function to ensure no invalid "
             "voxel was used.")
 
-    # Iteratively trying to fit at least min_nvox voxels. Lower the FA threshold
-    # when it doesn't work. Fail if the fa threshold is smaller than
+    # Iteratively trying to fit at least min_nvox voxels. Lower the FA
+    # threshold when it doesn't work. Fail if the fa threshold is smaller than
     # the min_threshold.
     # We use an epsilon since the -= 0.05 might incur numerical imprecision.
     nvox = 0
@@ -132,16 +132,17 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     return full_response
 
 
-def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
-                     bvecs_dti=None, mask=None, mask_wm=None, mask_gm=None,
-                     mask_csf=None, fa_thr_wm=0.7, fa_thr_gm=0.2,
-                     fa_thr_csf=0.1, md_thr_gm=0.0007, md_thr_csf=0.003,
-                     min_nvox=300, roi_radii=10, roi_center=None,
-                     tol=20, force_b0_threshold=False):
-    """Compute a single-shell (under b=1500), single-tissue single Fiber
+def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
+                     bvals_dti=None, bvecs_dti=None, btens_dti=None,
+                     mask=None, mask_wm=None, mask_gm=None, mask_csf=None,
+                     fa_thr_wm=0.7, fa_thr_gm=0.2, fa_thr_csf=0.1,
+                     md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
+                     roi_radii=10, roi_center=None, tol=20,
+                     force_b0_threshold=False):
+    """Compute a multi-shell, multi-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
-    found using a threshold on the FA.
+    found using a threshold on the FA and MD.
 
     Parameters
     ----------
@@ -222,7 +223,7 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
 
     b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
 
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=b0_thr)
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -237,14 +238,14 @@ def compute_msmt_frf(data, bvals, bvecs, data_dti=None, bvals_dti=None,
                                      csf_fa_thr=fa_thr_csf,
                                      gm_md_thr=md_thr_gm,
                                      csf_md_thr=md_thr_csf)
-    elif data_dti is not None and bvals_dti is not None and bvecs_dti is not None:
+    elif (data_dti is not None and bvals_dti is not None
+          and bvecs_dti is not None):
         if not is_normalized_bvecs(bvecs_dti):
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        b0_thr = check_b0_threshold(
-            force_b0_threshold, bvals_dti.min(), bvals_dti.min())
-        gtab_dti = gradient_table(bvals_dti, bvecs_dti, b0_threshold=b0_thr)
+        check_b0_threshold(force_b0_threshold, bvals_dti.min())
+        gtab_dti = gradient_table(bvals_dti, bvecs_dti, btens=btens_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
             = mask_for_response_msmt(gtab_dti, data_dti,

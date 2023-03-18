@@ -106,6 +106,9 @@ def get_testing_files_dict():
             'anatomical_filtering.zip':
             ['1Li8DdySnMnO9Gich4pilhXisjkjz1-Dy',
              '6f0eff5154ff0973a3dc26db00e383ea'],
+            'btensor_testdata.zip':
+            ['1AMsKlbOZyPnT9TAbxcFzHS1b29aJWKDg',
+             '7c68524fca01268203dc8bfee340f037'],
             'fodf_filtering.zip':
             ['1iyoX2ltLOoLer-v-49LHOzopHCFZ_Tv6',
              'e79c4291af584fdb25814aa7b403a6ce']}

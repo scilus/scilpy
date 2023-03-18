@@ -76,6 +76,25 @@ def volume_iterator(img, blocksize=1, start=0, end=0):
             yield list(range(stop, end)), img.dataobj[..., stop:end]
 
 
+def extract_affine(input_files):
+    """Extract the affine from a list of nifti files.
+
+    Parameters
+    ----------
+    input_files : list of strings (file paths)
+        Diffusion data files.
+
+    Returns
+    -------
+    affine : np.ndarray
+        Affine of the nifti volume.
+    """
+    for input_file in input_files:
+        if input_file:
+            vol = nib.load(input_file)
+            return vol.affine
+
+
 def check_slice_indices(vol_img, axis_name, slice_ids):
     """Check that the given volume can be sliced at the given slice indices
     along the requested axis.

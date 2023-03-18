@@ -5,13 +5,15 @@ import multiprocessing
 from scilpy.direction.peaks import peak_directions_asym
 from scipy.sparse.linalg import ArpackNoConvergence
 from dipy.direction.peaks import peak_directions
-from dipy.reconst.mcsd import MSDeconvFit
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa
-from dipy.reconst.shm import order_from_ncoef, sh_to_sf_matrix
-from dipy.utils.optpkg import optional_package
+from dipy.reconst.shm import sh_to_sf_matrix, order_from_ncoef
+from dipy.reconst.mcsd import MSDeconvFit
 import numpy as np
 
+from scilpy.reconst.divide_fit import gamma_data2fit
+
+from dipy.utils.optpkg import optional_package
 cvx, have_cvxpy, _ = optional_package("cvxpy")
 
 
@@ -26,9 +28,6 @@ def fit_from_model_parallel(args):
             try:
                 sub_fit_array[i] = model.fit(data[i])
             except cvx.error.SolverError:
-                coeff = np.full((len(model.n)), np.NaN)
-                sub_fit_array[i] = MSDeconvFit(model, coeff, None)
-            except ArpackNoConvergence:
                 coeff = np.full((len(model.n)), np.NaN)
                 sub_fit_array[i] = MSDeconvFit(model, coeff, None)
 
@@ -85,7 +84,7 @@ def fit_from_model(model, data, mask=None, nbr_processes=None):
     fit_array = np.zeros(data_shape[0:3], dtype='object')
     tmp_fit_array = np.zeros((np.count_nonzero(mask)), dtype='object')
     for i, fit in results:
-        tmp_fit_array[chunk_len[i]:chunk_len[i + 1]] = fit
+        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
 
     fit_array[mask] = tmp_fit_array
     fit_array = MultiVoxelFit(model, fit_array, mask)
@@ -232,9 +231,9 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     tmp_peak_values_array = np.zeros((np.count_nonzero(mask), npeaks))
     tmp_peak_indices_array = np.zeros((np.count_nonzero(mask), npeaks))
     for i, peak_dirs, peak_values, peak_indices in results:
-        tmp_peak_dirs_array[chunk_len[i]:chunk_len[i + 1], :, :] = peak_dirs
-        tmp_peak_values_array[chunk_len[i]:chunk_len[i + 1], :] = peak_values
-        tmp_peak_indices_array[chunk_len[i]:chunk_len[i + 1], :] = peak_indices
+        tmp_peak_dirs_array[chunk_len[i]:chunk_len[i+1], :, :] = peak_dirs
+        tmp_peak_values_array[chunk_len[i]:chunk_len[i+1], :] = peak_values
+        tmp_peak_indices_array[chunk_len[i]:chunk_len[i+1], :] = peak_indices
 
     peak_dirs_array[mask] = tmp_peak_dirs_array
     peak_values_array[mask] = tmp_peak_values_array
@@ -386,12 +385,12 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
         all_time_max_odf = max(all_time_global_max, max_odf)
         all_time_global_max = max(all_time_global_max, global_max)
 
-        tmp_nufo_map_array[chunk_len[i]:chunk_len[i + 1]] = nufo_map
-        tmp_afd_max_array[chunk_len[i]:chunk_len[i + 1]] = afd_max
-        tmp_afd_sum_array[chunk_len[i]:chunk_len[i + 1]] = afd_sum
-        tmp_rgb_map_array[chunk_len[i]:chunk_len[i + 1], :] = rgb_map
-        tmp_gfa_map_array[chunk_len[i]:chunk_len[i + 1]] = gfa_map
-        tmp_qa_map_array[chunk_len[i]:chunk_len[i + 1], :] = qa_map
+        tmp_nufo_map_array[chunk_len[i]:chunk_len[i+1]] = nufo_map
+        tmp_afd_max_array[chunk_len[i]:chunk_len[i+1]] = afd_max
+        tmp_afd_sum_array[chunk_len[i]:chunk_len[i+1]] = afd_sum
+        tmp_rgb_map_array[chunk_len[i]:chunk_len[i+1], :] = rgb_map
+        tmp_gfa_map_array[chunk_len[i]:chunk_len[i+1]] = gfa_map
+        tmp_qa_map_array[chunk_len[i]:chunk_len[i+1], :] = qa_map
 
     nufo_map_array[mask] = tmp_nufo_map_array
     afd_max_array[mask] = tmp_afd_max_array
@@ -409,8 +408,8 @@ def maps_from_sh(shm_coeff, peak_dirs, peak_values, peak_indices, sphere,
             or np.array_equal(np.array([1]), afd_unique):
         logging.warning('All AFD_max values are 1. The peaks seem normalized.')
 
-    return (nufo_map_array, afd_max_array, afd_sum_array,
-            rgb_map_array, gfa_map_array, qa_map_array)
+    return(nufo_map_array, afd_max_array, afd_sum_array,
+           rgb_map_array, gfa_map_array, qa_map_array)
 
 
 def convert_sh_basis_parallel(args):
@@ -489,7 +488,7 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     shm_coeff_array = np.zeros(data_shape)
     tmp_shm_coeff_array = np.zeros((np.count_nonzero(mask), data_shape[3]))
     for i, new_shm_coeff in results:
-        tmp_shm_coeff_array[chunk_len[i]:chunk_len[i + 1], :] = new_shm_coeff
+        tmp_shm_coeff_array[chunk_len[i]:chunk_len[i+1], :] = new_shm_coeff
 
     shm_coeff_array[mask] = tmp_shm_coeff_array
 
@@ -583,3 +582,98 @@ def convert_sh_to_sf(shm_coeff, sphere, mask=None, dtype="float32",
     sf_array[mask] = tmp_sf_array
 
     return sf_array
+
+
+def fit_gamma_parallel(args):
+    data = args[0]
+    gtab_infos = args[1]
+    fit_iters = args[2]
+    random_iters = args[3]
+    do_weight_bvals = args[4]
+    do_weight_pa = args[5]
+    do_multiple_s0 = args[6]
+    chunk_id = args[7]
+
+    sub_fit_array = np.zeros((data.shape[0], 4))
+    for i in range(data.shape[0]):
+        if data[i].any():
+            sub_fit_array[i] = gamma_data2fit(data[i], gtab_infos, fit_iters,
+                                              random_iters, do_weight_bvals,
+                                              do_weight_pa, do_multiple_s0)
+
+    return chunk_id, sub_fit_array
+
+
+def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
+              do_weight_bvals=False, do_weight_pa=False, do_multiple_s0=False,
+              nbr_processes=None):
+    """Fit the gamma model to data
+
+    Parameters
+    ----------
+    data : np.ndarray (4d)
+        Diffusion data, powder averaged. Obtained as output of the function
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    fit_iters : int, optional
+        Number of iterations in the gamma fit. Defaults to 1.
+    random_iters : int, optional
+        Number of random sets of parameters tested to find the initial
+        parameters. Defaults to 50.
+    do_weight_bvals : bool , optional
+        If set, does a weighting on the bvalues in the gamma fit.
+    do_weight_pa : bool, optional
+        If set, does a powder averaging weighting in the gamma fit.
+    do_multiple_s0 : bool, optional
+        If set, takes into account multiple baseline signals.
+    nbr_processes : int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    fit_array : np.ndarray
+        Array containing the fit
+    """
+    data_shape = data.shape
+    if mask is None:
+        mask = np.sum(data, axis=3).astype(bool)
+
+    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
+        or nbr_processes <= 0 else nbr_processes
+
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
+    chunks = np.array_split(data, nbr_processes)
+
+    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+    pool = multiprocessing.Pool(nbr_processes)
+    results = pool.map(fit_gamma_parallel,
+                       zip(chunks,
+                           itertools.repeat(gtab_infos),
+                           itertools.repeat(fit_iters),
+                           itertools.repeat(random_iters),
+                           itertools.repeat(do_weight_bvals),
+                           itertools.repeat(do_weight_pa),
+                           itertools.repeat(do_multiple_s0),
+                           np.arange(len(chunks))))
+    pool.close()
+    pool.join()
+
+    # Re-assemble the chunk together in the original shape.
+    fit_array = np.zeros((data_shape[0:3])+(4,))
+    tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
+    for i, fit in results:
+        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+
+    fit_array[mask] = tmp_fit_array
+
+    return fit_array
