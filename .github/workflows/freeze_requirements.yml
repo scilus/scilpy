@@ -1,0 +1,32 @@
+name : Freeze release requirements
+
+on: 
+  push:
+    tags:
+      - '*'
+
+jobs:
+  freeze_requirements:
+    runs-on: ubuntu-latest
+    steps:
+      - 
+        name: Checkout scilpy
+        uses: actions/checkout@v3
+      -
+        name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version-file: '.python-version'
+          cache: 'pip'
+      -
+        name: Freeze requirements
+        id: requirements-freezer
+        run: |
+          pip install pip-tools
+          pip-compile --no-upgrade --allow-unsafe -o requirements.${{ github.ref_name }}.frozen
+          echo "requirements=$PWD/requirements.${{ github.ref_name }}.frozen" >> $GITHUB_OUTPUT
+      -
+        name: Upload frozen requirements to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files : ${{ steps.requirements-freezer.outputs.requirements }}

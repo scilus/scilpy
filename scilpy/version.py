@@ -25,6 +25,22 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Programming Language :: Python",
                "Topic :: Scientific/Engineering"]
 
+PYTHON_VERSION = ""
+with open('.python-version') as f:
+    py_version = f.readline().strip("\n").split(".")
+    py_major = py_version[0]
+    py_minor = py_version[1]
+    py_micro = "*"
+    py_extra = None
+    if len(py_version) > 2:
+        py_micro = py_version[2]
+    if len(py_version) > 3:
+        py_extra = py_version[3]
+
+    PYTHON_VERSION = ".".join([py_major, py_minor, py_micro])
+    if py_extra:
+        PYTHON_VERSION = ".".join([PYTHON_VERSION, py_extra])
+
 # Description should be a one-liner:
 description = "Scilpy: diffusion MRI tools and utilities"
 # Long description will go up on the pypi page
