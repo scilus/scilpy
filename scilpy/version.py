@@ -41,6 +41,8 @@ with open('.python-version') as f:
     if py_extra:
         PYTHON_VERSION = ".".join([PYTHON_VERSION, py_extra])
 
+    PYTHON_VERSION = "".join(["==", PYTHON_VERSION])
+
 # Description should be a one-liner:
 description = "Scilpy: diffusion MRI tools and utilities"
 # Long description will go up on the pypi page
