@@ -44,7 +44,8 @@ def main():
     assert_inputs_exist(parser, [args.in_bvecs, args.in_transfo])
     assert_outputs_exist(parser, args, args.out_bvecs)
 
-    transfo = load_matrix_in_any_format(args.in_transfo)
+    transfo = load_matrix_in_any_format(args.in_transfo)[:3, :3]
+
     if args.inverse:
         transfo = np.linalg.inv(transfo)
 
