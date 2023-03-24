@@ -42,7 +42,6 @@ References: [1] Girard, G., Whittingstall K., Deriche, R., and
 """
 import argparse
 import logging
-import math
 import time
 
 import dipy.core.geometry as gm
@@ -71,6 +70,11 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 
+# A decision should be made as if we should keep the last point (out of the
+# tracking mask). Currently keeping this as in Dipy, i.e. True. Could be
+# an option for the user.
+APPEND_LAST_POINT = True
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -94,10 +98,13 @@ def _build_arg_parser():
                               "for the step function.\n"
                               "For more information, refer to the note in the"
                               " script description. [%(default)s]")
-    track_g.add_argument('--max_invalid_length', metavar='MAX', type=float,
-                         default=1,
-                         help="Maximum length without valid direction, in mm. "
-                              "[%(default)s]")
+    track_g.add_argument('--max_invalid_nb_points', metavar='MAX', type=float,
+                         default=0,
+                         help="Maximum number of steps without valid "
+                              "direction, \nex: if threshold on ODF or max "
+                              "angles are reached.\n"
+                              "Default: 0, i.e. do not add points following "
+                              "an invalid direction.")
     track_g.add_argument('--forward_only', action='store_true',
                          help="If set, tracks in one direction only (forward) "
                               "given the \ninitial seed. The direction is "
@@ -164,8 +171,7 @@ def main():
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = int(args.min_length / args.step_size) + 1
-    max_invalid_dirs = int(math.ceil(args.max_invalid_length / args.step_size))
+    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
 
     assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
@@ -228,13 +234,14 @@ def main():
 
     logging.debug("Instantiating tracker.")
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, max_invalid_dirs,
+                      max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=args.compress,
                       nbr_processes=args.nbr_processes,
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip, verbose=args.verbose)
+                      skip=args.skip, append_last_point=APPEND_LAST_POINT,
+                      verbose=args.verbose)
 
     start = time.time()
     logging.debug("Tracking...")
