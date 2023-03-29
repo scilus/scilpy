@@ -368,7 +368,8 @@ int track(float3 seed_pos,
                                sh_to_sf_mat, out_streamlines);
 
     // reverse streamline for backward tracking
-    if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
+#if !FORWARD_ONLY
+    if(current_length > 1 && current_length < MAX_LENGTH)
     {
         reverse_streamline(current_length, n_seeds,
                            seed_indice, out_streamlines,
@@ -380,19 +381,20 @@ int track(float3 seed_pos,
                                    tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
                                    sh_to_sf_mat, out_streamlines);
     }
+#endif
     return current_length;
 }
 
-__kernel void main(__global const float* sh_coeffs,
-                   __global const float* vertices,
-                   __global const float* sh_to_sf_mat,
-                   __global const float* sf_max,
-                   __global const float* tracking_mask,
-                   __global const float* max_cos_theta,
-                   __global const float* seed_positions,
-                   __global const float* rand_f,
-                   __global float* out_streamlines,
-                   __global float* out_nb_points)
+__kernel void tracker(__global const float* sh_coeffs,
+                      __global const float* vertices,
+                      __global const float* sh_to_sf_mat,
+                      __global const float* sf_max,
+                      __global const float* tracking_mask,
+                      __global const float* max_cos_theta,
+                      __global const float* seed_positions,
+                      __global const float* rand_f,
+                      __global float* out_streamlines,
+                      __global float* out_nb_points)
 {
     // 1. Get seed position from global_id.
     const size_t seed_indice = get_global_id(0);
