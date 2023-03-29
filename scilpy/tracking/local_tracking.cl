@@ -368,18 +368,15 @@ int track(float3 seed_pos,
                                sh_to_sf_mat, out_streamlines);
 
     // reverse streamline for backward tracking
-    if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
-    {
-        reverse_streamline(current_length, n_seeds,
-                           seed_indice, out_streamlines,
-                           &last_pos, &last_dir);
+    reverse_streamline(current_length, n_seeds,
+                       seed_indice, out_streamlines,
+                       &last_pos, &last_dir);
 
-        // track backward
-        current_length = propagate(last_pos, last_dir, current_length, false,
-                                   seed_indice, n_seeds, max_cos_theta_local,
-                                   tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
-                                   sh_to_sf_mat, out_streamlines);
-    }
+    // track backward
+    current_length = propagate(last_pos, last_dir, current_length, false,
+                               seed_indice, n_seeds, max_cos_theta_local,
+                               tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
+                               sh_to_sf_mat, out_streamlines);
     return current_length;
 }
 

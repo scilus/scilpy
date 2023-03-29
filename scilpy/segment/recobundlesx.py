@@ -5,6 +5,7 @@ import logging
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
+from dipy.segment.fss import FastStreamlineSearch
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import (select_random_set_of_streamlines,
@@ -63,6 +64,7 @@ class RecobundlesX(object):
         self.neighb_centroids = None
         self.neighb_streamlines = None
         self.neighb_indices = None
+        self.models_streamlines = None
         self.model_centroids = None
         self.final_pruned_indices = None
 
@@ -120,6 +122,8 @@ class RecobundlesX(object):
                                           nb_pts=self.nb_points,
                                           rng=self.rng,
                                           verbose=False)
+
+        self.model_streamlines = model
         self.model_centroids = model_cluster_map.centroids
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
@@ -243,11 +247,7 @@ class RecobundlesX(object):
         Wrapper function to prune clusters from the tractogram too far from
         the model.
         :param neighbors_to_prune, list or arraySequence, streamlines to prune.
-        :param bundle_pruning_thr, float, distance in mm for pruning.
-        :param neighbors_cluster_thr, float, distance in mm for clustering.
-        """
-        # Neighbors can be refined since the search space is smaller
-        thresholds = [32, 16, 24, neighbors_cluster_thr]
+        :param bundle_pruning_thr, float, distance in         thresholds = [32, 16, 24, neighbors_cluster_thr]
 
         neighb_cluster_map = qbx_and_merge(self.neighb_streamlines, thresholds,
                                            nb_pts=self.nb_points,
@@ -263,6 +263,37 @@ class RecobundlesX(object):
             *[neighb_cluster_map[i].indices
               for i in np.where(mins != np.inf)[0]]),
             dtype=np.int32)
+
+        # Since the neighbors were clustered, a mapping of indices is neccesary
+        self.final_pruned_indices = self.neighb_indices[pruned_indices]
+
+        return self.final_pruned_indicesm for clustering.
+        """
+        # Neighbors can be refined since the search space is smaller
+
+        # thresholds = [32, 16, 24, neighbors_cluster_thr]
+        from time import time
+        t0 = time()
+        fss = FastStreamlineSearch(self.neighb_streamlines,
+                                   bundle_pruning_thr+2, resampling=12)
+        dist_mat = fss.radius_search(self.model_streamlines,
+                                     bundle_pruning_thr)
+        print("Fast search took: ", time() - t0)
+
+        # dist_matrix = bundles_distances_mdf(self.model_centroids,
+        #                                     neighb_cluster_map.centroids)
+        # dist_matrix[np.isnan(dist_matrix)] = np.inf
+        # dist_matrix[dist_matrix > bundle_pruning_thr] = np.inf
+        # mins = np.min(dist_matrix, axis=0)
+
+        # pruned_indices = np.fromiter(chain(
+        #     *[neighb_cluster_map[i].indices
+        #       for i in np.where(mins != np.inf)[0]]),
+        #     dtype=np.int32)
+
+        sparse_dist_mat = np.abs(dist_mat.tocsr())
+        sparse_dist_vec = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
+        pruned_indices = np.where(sparse_dist_vec > 1e-6)[0]
 
         # Since the neighbors were clustered, a mapping of indices is neccesary
         self.final_pruned_indices = self.neighb_indices[pruned_indices]
