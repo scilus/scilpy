@@ -126,7 +126,7 @@ def main():
                                     ' Ignoring voxels with NaN.')
                 metrics_files.append(metric_img)
             else:
-                parser.error('Metric {} is not compatible ({}D image).'.format(os.path.join(args.metrics_dir, f),
+                parser.error('Metric {} is not compatible ({}D image).'.format(f,
                                                                                len(metric_img.shape)))
     # Compute the mean values and standard deviations
     stats = get_roi_metrics_mean_std(mask_data, metrics_files)
