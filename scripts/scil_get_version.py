@@ -2,29 +2,19 @@
 # -*- coding: utf-8 -*-
 
 """
-Search through all of SCILPY scripts and their docstrings. The output of the
-search will be the intersection of all provided keywords, found either in the
-script name or in its docstring.
-By default, print the matching filenames and the first sentence of the
-docstring. If --verbose if provided, print the full docstring.
+Give you information about your current scilpy installation.
+This is useful for non-developers to give you the information
+needed to reproduce your results, or to help debugging.
 
-Examples:
-    scil_search_keywords.py tractogram filtering
-    scil_search_keywords.py --search_parser tractogram filtering -v
+If you are experiencing a bug, please run this script and
+send the output to the scilpy developers.
 """
 
 import argparse
-import ast
-import logging
-import pathlib
-import re
-import subprocess
-import pkg_resources
 import datetime
-
 import git
-import numpy as np
-import pip
+import pathlib
+import pkg_resources
 import os
 import time
 
@@ -42,7 +32,6 @@ def _bold(string):
 
 def main():
     parser = _build_arg_parser()
-    args = parser.parse_args()
 
     dists = [d for d in pkg_resources.working_set]
     for dist in dists:
@@ -70,8 +59,16 @@ def main():
           _bold(last_commit.author)))
     print('The last commit message is: {}'.format(_bold(last_commit.message)))
 
-    if 'upstream' in repo.git.remote().split():
-        upstream = repo.remotes.upstream.url
+    upstream_url = ['git@github.com:scilus/scilpy.git',
+                    'https://github.com/scilus/scilpy.git']
+    if 'upstream' in repo.git.remote().split() or \
+            origin in upstream_url:
+
+        if origin in upstream_url:
+            upstream = origin
+        else:
+            upstream = repo.remotes.upstream.url
+
         last_commit = git.cmd.Git().ls_remote(upstream, heads=True).split()[0]
         count = repo.git.rev_list('--count', 'upstream/master..HEAD',
                                   '--left-right').split()
