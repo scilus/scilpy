@@ -53,7 +53,6 @@ def main():
 
     last_commit = repo.head.commit
     print('The last commit hash is: {}'.format(_bold(last_commit.hexsha)))
-    print('The last commit author is: {}'.format(_bold(last_commit.author)))
     date = str(last_commit.committed_datetime).split()[0]
     print('The last commit date is: {}, by {}'.format(_bold(date),
           _bold(last_commit.author)))
@@ -69,16 +68,11 @@ def main():
         else:
             upstream = repo.remotes.upstream.url
 
-        last_commit = git.cmd.Git().ls_remote(upstream, heads=True).split()[0]
         count = repo.git.rev_list('--count', 'upstream/master..HEAD',
                                   '--left-right').split()
 
         print('Your upstream is set to: {}'.format(_bold(upstream)))
-        print('The last commit hash on upstream is: {}'.format(
-            _bold(last_commit)))
-
         print('You are {} commits behind upstream/master'.format(
-
             _bold(count[0])))
         print('You are {} commits ahead of upstream/master'.format(
             _bold(count[1])))
