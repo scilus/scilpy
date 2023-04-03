@@ -427,7 +427,8 @@ def convert_sh_basis_parallel(args):
 
 
 def convert_sh_basis(shm_coeff, sphere, mask=None,
-                     input_basis='descoteaux07', nbr_processes=None):
+                     input_basis='descoteaux07', nbr_processes=None,
+                     is_input_legacy=True, is_output_legacy=True):
     """Converts spherical harmonic coefficients between two bases
 
     Parameters
@@ -446,6 +447,16 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
     nbr_processes: int, optional
         The number of subprocesses to use.
         Default: multiprocessing.cpu_count()
+    is_input_legacy: bool, optional
+        If true, this means that the input SH used a legacy basis definition
+        for backward compatibility with previous ``tournier07`` and
+        ``descoteaux07`` implementations.
+        Default: True
+    is_output_legacy: bool, optional
+        If true, this means that the output SH will use a legacy basis
+        definition for backward compatibility with previous ``tournier07`` and
+        ``descoteaux07`` implementations.
+        Default: True
 
     Returns
     -------
@@ -457,8 +468,10 @@ def convert_sh_basis(shm_coeff, sphere, mask=None,
         else 'tournier07'
 
     sh_order = order_from_ncoef(shm_coeff.shape[-1])
-    B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis)
-    _, invB_out = sh_to_sf_matrix(sphere, sh_order, output_basis)
+    B_in, _ = sh_to_sf_matrix(sphere, sh_order, input_basis,
+                              legacy=is_input_legacy)
+    _, invB_out = sh_to_sf_matrix(sphere, sh_order, output_basis,
+                                  legacy=is_output_legacy)
 
     data_shape = shm_coeff.shape
     if mask is None:

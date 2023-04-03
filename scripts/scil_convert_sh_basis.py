@@ -4,7 +4,8 @@
 """
     Convert a SH file between the two commonly used bases
     ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
-    input data basis.
+    input data basis. Note that by default, both legacy 'descoteaux07' and
+    legacy 'tournier07' bases will be assumed.
 """
 
 import argparse
@@ -25,9 +26,15 @@ def _build_arg_parser():
 
     p.add_argument('in_sh',
                    help='Input SH filename. (nii or nii.gz)')
-
     p.add_argument('out_sh',
                    help='Output SH filename. (nii or nii.gz)')
+    
+    p.add_argument('--is_input_not_legacy', action='store_true',
+                   help='If set, this means that the input SH are not encoded '
+                        'with the legacy version of their SH basis.')
+    p.add_argument('--is_output_not_legacy', action='store_true',
+                   help='If set, this means that the output SH will not be '
+                        'encoded with the legacy version of their SH basis.')
 
     add_sh_basis_args(p, mandatory=True)
     add_processes_arg(p)
@@ -42,13 +49,18 @@ def main():
     assert_inputs_exist(parser, args.in_sh)
     assert_outputs_exist(parser, args, args.out_sh)
 
+    print(args.is_input_not_legacy)
+    print(args.is_output_not_legacy)
+
     sphere = get_sphere('repulsion724').subdivide(1)
     img = nib.load(args.in_sh)
     data = img.get_fdata(dtype=np.float32)
 
     new_data = convert_sh_basis(data, sphere,
                                 input_basis=args.sh_basis,
-                                nbr_processes=args.nbr_processes)
+                                nbr_processes=args.nbr_processes,
+                                is_input_legacy=not args.is_input_not_legacy,
+                                is_output_legacy=not args.is_output_not_legacy)
 
     nib.save(nib.Nifti1Image(new_data, img.affine, header=img.header),
              args.out_sh)
