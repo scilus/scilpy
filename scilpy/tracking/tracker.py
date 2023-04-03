@@ -535,7 +535,7 @@ class GPUTacker():
         # Convert theta to cos(theta)
         max_cos_theta = np.cos(np.deg2rad(self.theta))
 
-        cl_kernel = CLKernel('main', 'tracking', 'local_tracking.cl')
+        cl_kernel = CLKernel('tracker', 'tracking', 'local_tracking.cl')
 
         # Set tracking parameters
         cl_kernel.set_define('IM_X_DIM', self.sh.shape[0])
