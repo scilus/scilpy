@@ -7,6 +7,7 @@ import vtk
 from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
+from fury.utils import get_actor_from_polydata, numpy_to_vtk_image_data
 from PIL import Image
 
 from scilpy.io.utils import snapshot
@@ -452,6 +453,79 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
     return actor
 
 
+def contour_actor_from_image(
+    img, axis, slice_index,
+    contour_value=0.01,
+    color=[255, 0, 0],
+    opacity=1.,
+    linewidth=3.,
+    smoothing_radius=0.4
+):
+    """
+    Get an isocontour actor from an image slice, at a defined value.
+
+    Parameters
+    ----------
+    img : Nifti1Image
+        Nifti volume (mask, binary image, labels, floating points image).
+    slice_index : int
+        Index of the slice to visualize along the chosen orientation.
+    axis : int
+        Slicing axis
+    contour_value : float
+        Value of the isocontour.
+    color : tuple, list of int
+        Color of the contour in RGB [0, 255].
+    opacity: float
+        Opacity of the contour.
+    linewidth : float
+        Thickness of the contour line.
+    smoothing_radius : float
+        Pre-smoothing to apply to the image before 
+        computing the contour (in pixels).
+
+
+    Returns
+    -------
+    actor : vtkActor
+        Actor for the contour polydata.
+    """
+
+    mask_data = numpy_to_vtk_image_data(
+        np.rot90(img.get_fdata().take([slice_index], axis).squeeze()))
+    mask_data.SetOrigin(0, 0, 0)
+
+    if smoothing_radius > 0:
+        smoother = vtk.vtkImageGaussianSmooth()
+        smoother.SetRadiusFactor(smoothing_radius)
+        smoother.SetDimensionality(2)
+        smoother.SetInputData(mask_data)
+        smoother.Update()
+        mask_data = smoother.GetOutput()
+
+    marching_squares = vtk.vtkMarchingSquares()
+    marching_squares.SetInputData(mask_data)
+    marching_squares.SetValue(0, contour_value)
+    marching_squares.Update()
+
+    actor = get_actor_from_polydata(marching_squares.GetOutput())
+    actor.GetProperty().SetLineWidth(linewidth)
+    actor.GetProperty().SetColor(color)
+    actor.GetProperty().SetOpacity(opacity)
+
+    position =[0, 0, 0]
+    position[axis] = slice_index
+
+    if axis == 0:
+        actor.SetOrientation(90, 0, 90)
+    elif axis == 1:
+        actor.SetOrientation(90, 0, 0)
+
+    actor.SetPosition(*position)
+
+    return actor
+
+
 def create_scene(actors, orientation, slice_index,
                  volume_shape, bg_color=(0, 0, 0)):
     """
@@ -577,6 +651,49 @@ def screenshot_slice(img, axis_name, slice_ids, size):
             img.get_fdata(), axis_name, idx, offset=0.0,
         )
         scene = create_scene([slice_actor], axis_name, idx, img.shape)
+        scene_arr = window.snapshot(scene, size=size)
+        scene_container.append(scene_arr)
+
+    return scene_container
+
+
+def screenshot_contour(bin_img, axis_name, slice_ids, size):
+    """Take a screenshot of the given binary image  countour with the 
+    appropriate slice data at the provided slice indices.
+
+    Parameters
+    ----------
+    bin_img : nib.Nifti1Image
+        Binary volume image.
+    axis_name : str
+        Slicing axis name.
+    slice_ids : array-like
+        Slice indices.
+    size : array-like
+        Size of the screenshot image (pixels).
+
+    Returns
+    -------
+    scene_container : list
+        Scene screenshot data container.
+    """
+    scene_container = []
+    image_size_2d = list(bin_img.shape)
+
+    if axis_name == "axial":
+        ax_idx = 2
+    elif axis_name == "coronal":
+        ax_idx = 1
+    elif axis_name == "sagittal":
+        ax_idx = 0
+
+    image_size_2d = list(bin_img.shape)
+    image_size_2d[ax_idx] = 1
+
+    for idx in slice_ids:
+        actor = contour_actor_from_image(bin_img, ax_idx, idx)
+
+        scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)
         scene_container.append(scene_arr)
 
@@ -852,7 +969,7 @@ def compose_mosaic(
     cell_size,
     rows,
     cols,
-    overlap_factor,
+    overlap_factor=None,
     labelmap_scene_container=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
@@ -888,8 +1005,10 @@ def compose_mosaic(
     cell_width = cell_size[0]
     cell_height = cell_size[1]
 
-    overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
-    overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
+    overlap_h = overlap_v = 0
+    if overlap_factor is not None:
+        overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
+        overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
 
     mosaic = create_canvas(*cell_size, overlap_h, overlap_v, rows, cols)
 
