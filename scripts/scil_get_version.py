@@ -24,7 +24,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('--show_dependencies', action='store_true',
-                   help='Show the dependencies of scilpy.')
+                   help='Show the important dependencies of Scilpy.')
     return p
 
 
