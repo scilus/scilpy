@@ -15,6 +15,7 @@ import datetime
 import git
 import pathlib
 import pkg_resources
+import platform
 import os
 import time
 
@@ -22,6 +23,8 @@ import time
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument('--show_dependencies', action='store_true',
+                   help='Show the dependencies of scilpy.')
     return p
 
 
@@ -32,18 +35,34 @@ def _bold(string):
 
 def main():
     parser = _build_arg_parser()
+    args = parser.parse_args()
+
+    print('Your {} version is: {}'.format(_bold('Python'),
+                                          _bold(platform.python_version())))
 
     dists = [d for d in pkg_resources.working_set]
+    important_deps = ['dipy', 'numpy', 'nibabel', 'dmri-commit', 'dmri-amico']
+
     for dist in dists:
         if dist.project_name == 'scilpy':
             date = time.ctime(os.path.getctime(dist.location))
             date = datetime.datetime.strptime(date, "%a %b %d %H:%M:%S %Y")
             date = date.strftime('%Y-%m-%d')
-            print('You installed Scilpy with pip on {}'.format(_bold(date)))
+            print('You installed {} with pip on {}'.format(_bold('Scilpy'),
+                                                           _bold(date)))
             print('The closest release is {}\n'.format(_bold(dist.version)))
+        if args.show_dependencies and dist.project_name in important_deps:
+            print('     {}: {}'.format(_bold(dist.project_name),
+                  _bold(dist.version)))
 
     repo_dir = pathlib.Path(__file__).parent.parent
-    repo = git.Repo(repo_dir)
+    try:
+        repo = git.Repo(repo_dir)
+    except git.InvalidGitRepositoryError:
+        print('Your Scilpy directory is: {}'.format(_bold(repo_dir)))
+        print('It is not a git repository, so we cannot give you more '
+              'information.')
+        return
     branch = repo.active_branch.name
     origin = repo.remotes.origin.url
     branch = repo.active_branch.name
