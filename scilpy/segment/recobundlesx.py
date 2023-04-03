@@ -252,26 +252,8 @@ class RecobundlesX(object):
         neighb_cluster_map = qbx_and_merge(self.neighb_streamlines, thresholds,
                                            nb_pts=self.nb_points,
                                            rng=self.rng, verbose=False)
-
-        dist_matrix = bundles_distances_mdf(self.model_centroids,
-                                            neighb_cluster_map.centroids)
-        dist_matrix[np.isnan(dist_matrix)] = np.inf
-        dist_matrix[dist_matrix > bundle_pruning_thr] = np.inf
-        mins = np.min(dist_matrix, axis=0)
-
-        pruned_indices = np.fromiter(chain(
-            *[neighb_cluster_map[i].indices
-              for i in np.where(mins != np.inf)[0]]),
-            dtype=np.int32)
-
-        # Since the neighbors were clustered, a mapping of indices is neccesary
-        self.final_pruned_indices = self.neighb_indices[pruned_indices]
-
-        return self.final_pruned_indicesm for clustering.
         """
         # Neighbors can be refined since the search space is smaller
-
-        # thresholds = [32, 16, 24, neighbors_cluster_thr]
         from time import time
         t0 = time()
         fss = FastStreamlineSearch(self.neighb_streamlines,
@@ -279,17 +261,6 @@ class RecobundlesX(object):
         dist_mat = fss.radius_search(self.model_streamlines,
                                      bundle_pruning_thr)
         print("Fast search took: ", time() - t0)
-
-        # dist_matrix = bundles_distances_mdf(self.model_centroids,
-        #                                     neighb_cluster_map.centroids)
-        # dist_matrix[np.isnan(dist_matrix)] = np.inf
-        # dist_matrix[dist_matrix > bundle_pruning_thr] = np.inf
-        # mins = np.min(dist_matrix, axis=0)
-
-        # pruned_indices = np.fromiter(chain(
-        #     *[neighb_cluster_map[i].indices
-        #       for i in np.where(mins != np.inf)[0]]),
-        #     dtype=np.int32)
 
         sparse_dist_mat = np.abs(dist_mat.tocsr())
         sparse_dist_vec = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
