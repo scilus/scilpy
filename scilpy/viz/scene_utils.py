@@ -686,7 +686,6 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
         Scene screenshot data container.
     """
     scene_container = []
-    image_size_2d = list(bin_img.shape)
 
     if axis_name == "axial":
         ax_idx = 2
