@@ -455,7 +455,7 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
 
 def contour_actor_from_image(
     img, axis, slice_index,
-    contour_value=0.01,
+    contour_value=0.2,
     color=[255, 0, 0],
     opacity=1.,
     linewidth=3.,
@@ -509,6 +509,7 @@ def contour_actor_from_image(
     marching_squares.Update()
 
     actor = get_actor_from_polydata(marching_squares.GetOutput())
+    actor.GetMapper().ScalarVisibilityOff()
     actor.GetProperty().SetLineWidth(linewidth)
     actor.GetProperty().SetColor(color)
     actor.GetProperty().SetOpacity(opacity)
@@ -648,7 +649,7 @@ def screenshot_slice(img, axis_name, slice_ids, size):
     for idx in slice_ids:
 
         slice_actor = create_texture_slicer(
-            img.get_fdata(), axis_name, idx, offset=0.0,
+            img.get_fdata(), axis_name, idx, offset=0.0
         )
         scene = create_scene([slice_actor], axis_name, idx, img.shape)
         scene_arr = window.snapshot(scene, size=size)
@@ -822,6 +823,7 @@ def draw_scene_at_pos(
     top_pos,
     mask=None,
     labelmap_overlay=None,
+    mask_contour_overlay=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -868,6 +870,13 @@ def draw_scene_at_pos(
         label_mask = create_mask_from_scene(labelmap_overlay, size)
 
         canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
+
+    if mask_contour_overlay is not None:
+        contour_img = create_image_from_scene(mask_contour_overlay, size)
+        contour_mask = create_mask_from_scene(
+            np.sum(mask_contour_overlay, axis=-1) > 0, size)
+
+        canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
 
 
 def compute_canvas_size(
@@ -971,6 +980,7 @@ def compose_mosaic(
     cols,
     overlap_factor=None,
     labelmap_scene_container=None,
+    mask_contour_scene_container=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -1015,11 +1025,12 @@ def compose_mosaic(
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, mask_arr, labelmap_arr) in enumerate(
+    for idx, (img_arr, mask_arr, labelmap_arr, mask_contour_arr) in enumerate(
             list(zip_longest(
                 img_scene_container,
                 mask_scene_container,
                 labelmap_scene_container,
+                mask_contour_scene_container,
                 fillvalue=tuple()))
     ):
 
@@ -1037,6 +1048,10 @@ def compose_mosaic(
         if len(labelmap_arr):
             _labelmap_arr = rgb2gray4pil(labelmap_arr)
 
+        _mask_contour_arr = None
+        if len(mask_contour_arr):
+            _mask_contour_arr = mask_contour_arr
+
         # Draw the image (and labelmap overlay, if any) in the cell
         draw_scene_at_pos(
             mosaic,
@@ -1046,6 +1061,7 @@ def compose_mosaic(
             top_pos,
             mask=_mask_arr,
             labelmap_overlay=_labelmap_arr,
+            mask_contour_overlay=_mask_contour_arr,
             vol_cmap_name=vol_cmap_name,
             labelmap_cmap_name=labelmap_cmap_name,
         )

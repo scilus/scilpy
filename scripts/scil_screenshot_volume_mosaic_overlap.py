@@ -66,7 +66,7 @@ from scilpy.io.utils import (
 )
 from scilpy.image.utils import check_slice_indices
 from scilpy.viz.scene_utils import (
-    check_mosaic_layout, compose_mosaic, screenshot_slice,
+    check_mosaic_layout, compose_mosaic, screenshot_contour, screenshot_slice
 )
 
 
@@ -119,6 +119,11 @@ def _build_arg_parser():
         default=(768, 768),
         type=int,
         help="The dimensions for the vtk window. [%(default)s]"
+    )
+    p.add_argument(
+        '--mask_outline',
+        action='store_true',
+        help='If supplied, the generate the data mask outline. [%(default)s].'
     )
     p.add_argument(
         "--vol_cmap_name",
@@ -222,6 +227,15 @@ def main():
             args.win_dims,
         )
 
+    mask_contour_scene_container = []
+    if args.mask_outline:
+        mask_contour_scene_container = screenshot_contour(
+            mask_img,
+            args.axis_name,
+            args.slice_ids,
+            args.win_dims
+        )
+
     # Compose the mosaic
     img = compose_mosaic(
         vol_scene_container,
@@ -231,6 +245,7 @@ def main():
         cols,
         args.overlap_factor,
         labelmap_scene_container=labelmap_scene_container,
+        mask_contour_scene_container=mask_contour_scene_container,
         vol_cmap_name=args.vol_cmap_name,
         labelmap_cmap_name=args.labelmap_cmap_name,
         )
