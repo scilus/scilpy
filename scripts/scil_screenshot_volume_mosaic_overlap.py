@@ -54,7 +54,8 @@ python scil_screenshot_volume_mosaic_overlap.py \
 import argparse
 
 import nibabel as nib
-from dipy.io.utils import is_header_compatible
+import numpy as np
+from fury.colormap import distinguishable_colormap
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (
@@ -98,8 +99,9 @@ def _build_arg_parser():
     # Optional arguments
     p.add_argument("--in_labelmap",  help="Labelmap image.")
     p.add_argument(
-        "--in_contour_mask",
-        help="Additional mask to compute contours."
+        "--in_contour_masks",
+        nargs="+",
+        help="Additional masks to compute contours."
     )
     p.add_argument(
         "--axis_name",
@@ -152,8 +154,8 @@ def _parse_args(parser):
 
     if args.in_labelmap:
         inputs.append(args.in_labelmap)
-    if args.in_contour_mask:
-        inputs.append(args.in_contour_mask)
+    if args.in_contour_masks:
+        inputs.extend(args.in_contour_masks)
 
     output.append(args.out_fname)
 
@@ -174,11 +176,11 @@ def _get_data_from_inputs(args):
     if args.in_labelmap:
         labelmap_img = nib.load(args.in_labelmap)
 
-    contour_mask_img = None
-    if args.in_contour_mask:
-        contour_mask_img = nib.load(args.in_contour_mask)
+    contour_mask_imgs = None
+    if args.in_contour_masks:
+        contour_mask_imgs = [nib.load(f) for f in args.in_contour_masks]
 
-    return vol_img, mask_img, labelmap_img, contour_mask_img
+    return vol_img, mask_img, labelmap_img, contour_mask_imgs
 
 
 def main():
@@ -186,7 +188,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
 
-    vol_img, mask_img, labelmap_img, contour_img = _get_data_from_inputs(args)
+    vol_img, mask_img, labelmap_img, contour_imgs = _get_data_from_inputs(args)
 
     rows = args.mosaic_rows_cols[0]
     cols = args.mosaic_rows_cols[1]
@@ -219,13 +221,23 @@ def main():
         )
 
     mask_contour_scene_container = []
-    if contour_img:
-        mask_contour_scene_container = screenshot_contour(
-            contour_img,
-            args.axis_name,
-            args.slice_ids,
-            args.win_dims
-        )
+    if contour_imgs:
+        colors = [(255, 0, 0)]
+        if len(contour_imgs) > 1:
+            colors.extend(distinguishable_colormap(
+                exclude=[(255, 0, 0)], nb_colors=len(contour_imgs) - 1))
+
+        for img, color in zip(contour_imgs, colors):
+            mask_contour_scene_container.append(np.array(screenshot_contour(
+                img,
+                args.axis_name,
+                args.slice_ids,
+                args.win_dims,
+                color
+            )))
+
+        mask_contour_scene_container = [i for i in np.swapaxes(
+            mask_contour_scene_container, 0, 1)]
 
     # Compose the mosaic
     img = compose_mosaic(
