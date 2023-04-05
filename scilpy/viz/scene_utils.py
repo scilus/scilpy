@@ -44,8 +44,6 @@ def initialize_camera(orientation, slice_index, volume_shape):
         Dictionnary containing camera information.
     """
     camera = {}
-    # Tighten the view around the data
-    camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape)
     # heuristic for setting the camera position at a distance
     # proportional to the scale of the scene
     eye_distance = max(volume_shape)
@@ -59,6 +57,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   (volume_shape[1] - 1) / 2.0,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[1:])
     elif orientation == 'coronal':
         if slice_index is None:
             slice_index = volume_shape[1] // 2
@@ -69,6 +69,9 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   slice_index,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(
+            [volume_shape[0], volume_shape[2]])
     elif orientation == 'axial':
         if slice_index is None:
             slice_index = volume_shape[2] // 2
@@ -79,6 +82,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   (volume_shape[1] - 1) / 2.0,
                                                   slice_index])
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[:2])
     else:
         raise ValueError('Invalid axis name: {0}'.format(orientation))
     return camera
@@ -455,11 +460,11 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
 
 def contour_actor_from_image(
     img, axis, slice_index,
-    contour_value=0.2,
+    contour_value=1.,
     color=[255, 0, 0],
     opacity=1.,
     linewidth=3.,
-    smoothing_radius=0.4
+    smoothing_radius=0.
 ):
     """
     Get an isocontour actor from an image slice, at a defined value.
@@ -658,7 +663,7 @@ def screenshot_slice(img, axis_name, slice_ids, size):
     return scene_container
 
 
-def screenshot_contour(bin_img, axis_name, slice_ids, size):
+def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
     """Take a screenshot of the given binary image  countour with the 
     appropriate slice data at the provided slice indices.
 
@@ -672,6 +677,8 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
+    color : tuple, list of int
+        Color of the contour in RGB [0, 255].
 
     Returns
     -------
@@ -692,7 +699,7 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
     image_size_2d[ax_idx] = 1
 
     for idx in slice_ids:
-        actor = contour_actor_from_image(bin_img, ax_idx, idx)
+        actor = contour_actor_from_image(bin_img, ax_idx, idx, color=color)
 
         scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)
@@ -872,11 +879,12 @@ def draw_scene_at_pos(
         canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
 
     if mask_contour_overlay is not None:
-        contour_img = create_image_from_scene(mask_contour_overlay, size)
-        contour_mask = create_mask_from_scene(
-            np.sum(mask_contour_overlay, axis=-1) > 0, size)
+        for img in mask_contour_overlay:
+            contour_img = create_image_from_scene(img, size)
+            contour_mask = create_mask_from_scene(
+                np.sum(img, axis=-1) > 0, size)
 
-        canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
+            canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
 
 
 def compute_canvas_size(
