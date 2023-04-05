@@ -98,6 +98,10 @@ def _build_arg_parser():
     # Optional arguments
     p.add_argument("--in_labelmap",  help="Labelmap image.")
     p.add_argument(
+        "--in_contour_mask",
+        help="Additional mask to compute contours."
+    )
+    p.add_argument(
         "--axis_name",
         default="axial",
         type=str,
@@ -119,11 +123,6 @@ def _build_arg_parser():
         default=(768, 768),
         type=int,
         help="The dimensions for the vtk window. [%(default)s]"
-    )
-    p.add_argument(
-        '--mask_outline',
-        action='store_true',
-        help='If supplied, the generate the data mask outline. [%(default)s].'
     )
     p.add_argument(
         "--vol_cmap_name",
@@ -153,6 +152,8 @@ def _parse_args(parser):
 
     if args.in_labelmap:
         inputs.append(args.in_labelmap)
+    if args.in_contour_mask:
+        inputs.append(args.in_contour_mask)
 
     output.append(args.out_fname)
 
@@ -169,25 +170,15 @@ def _get_data_from_inputs(args):
     vol_img = nib.load(args.in_vol)
     mask_img = nib.load(args.in_transparency_mask)
 
-    # Check header compatibility
-    if not is_header_compatible(vol_img, mask_img):
-        raise ValueError(
-            f"{args.in_vol} and {args.in_mask} do not have a compatible "
-            f"header."
-        )
-
     labelmap_img = None
     if args.in_labelmap:
         labelmap_img = nib.load(args.in_labelmap)
 
-        # Check header compatibility
-        if not is_header_compatible(vol_img, labelmap_img):
-            raise ValueError(
-                f"{args.in_vol} and {args.in_labelmap} do not have a "
-                f"compatible header."
-            )
+    contour_mask_img = None
+    if args.in_contour_mask:
+        contour_mask_img = nib.load(args.in_contour_mask)
 
-    return vol_img, mask_img, labelmap_img
+    return vol_img, mask_img, labelmap_img, contour_mask_img
 
 
 def main():
@@ -195,7 +186,7 @@ def main():
     parser = _build_arg_parser()
     args = _parse_args(parser)
 
-    vol_img, mask_img, labelmap_img = _get_data_from_inputs(args)
+    vol_img, mask_img, labelmap_img, contour_img = _get_data_from_inputs(args)
 
     rows = args.mosaic_rows_cols[0]
     cols = args.mosaic_rows_cols[1]
@@ -228,9 +219,9 @@ def main():
         )
 
     mask_contour_scene_container = []
-    if args.mask_outline:
+    if contour_img:
         mask_contour_scene_container = screenshot_contour(
-            mask_img,
+            contour_img,
             args.axis_name,
             args.slice_ids,
             args.win_dims
