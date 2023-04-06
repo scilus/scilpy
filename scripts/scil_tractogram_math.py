@@ -27,8 +27,9 @@ threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
 default value of 3 (or 0.001mm distance) should work.
 
-If there is a 0.5mm shift, use a precision of 0 (or 1mm distance), the --robust
-option should make it work, but slightly slower.
+If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) and the
+--robust option. Should make it work, but slightly slower. Will merge all
+streamlines similar when rounded to that precision level.
 
 The metadata (data per point, data per streamline) of the streamlines that
 are kept in the output will be preserved. This requires that all input files
@@ -148,7 +149,9 @@ def main():
     sft_list = []
     for f in args.in_tractograms:
         logging.info("Loading file {}".format(f))
-        sft_list.append(load_tractogram_with_reference(parser, args, f))
+        # Using in a millimeter space so that the precision level is in mm.
+        sft_list.append(
+            load_tractogram_with_reference(parser, args, f).to_voxmm)
 
     # Apply the requested operation to each input file.
     logging.info('Performing operation \'{}\'.'.format(args.operation))
@@ -160,12 +163,9 @@ def main():
         op_name = args.operation
         if args.robust:
             op_name += '_robust'
-            _, indices = OPERATIONS[op_name](streamlines_list,
-                                             precision=args.precision)
-        else:
-            _, indices = perform_tractogram_operation(
-                OPERATIONS[op_name], streamlines_list,
-                precision=args.precision)
+
+        _, indices = perform_tractogram_operation(
+            OPERATIONS[op_name], streamlines_list, precision=args.precision)
 
     # Save the indices to a file if requested.
     if args.save_indices:
