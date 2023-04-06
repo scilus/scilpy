@@ -4,7 +4,7 @@
 This module regroups small operations and util functions for tractogram.
 Meaning that these operations are applied on the streamlines as wholes (ex,
 registration, suffling, etc), not on each point of the streamlines separately /
-individually. See scilpy.tractograms.streamline_operations.py for the later.
+individually. See scilpy.tractograms.streamline_operations.py for the latter.
 """
 
 import itertools
@@ -158,8 +158,60 @@ def union(left, right):
     return {**left, **right}
 
 
-def perform_tractogram_operation(operation, streamlines, precision=None):
-    """Peforms an operation on a list of list of streamlines
+def perform_tractogram_operation(op_name, sft_list, precision,
+                                 no_metadata, fake_metadata):
+    """Peforms an operation on a list of tractograms.
+
+    Parameters
+    ----------
+    op_name: str
+        A callable that takes two streamlines dicts as inputs and preduces a
+        new streamline dict.
+    sft_list: list[StatefulTractogram]
+        The streamlines used in the operation.
+    precision: int, optional
+        The number of decimals to keep when hashing the points of the
+        streamlines. Allows a soft comparison of streamlines. If None, no
+        rounding is performed.
+    no_metadata: bool
+        If true, remove all metadata.
+    fake_metadata: bool
+        If true, fake metadata for SFTs that do not contain the keys available
+        in other SFTs.
+
+    Returns
+    -------
+    sft: StatefulTractogram
+        The final SFT
+    """
+    # Performing operation
+    streamlines_list = [sft.streamlines if sft is not None else []
+                        for sft in sft_list]
+    _, indices = _perform_tractogram_operation(
+        OPERATIONS[op_name], streamlines_list, precision=precision)
+
+    # Concatenating only the necessary streamlines, with the metadata
+    sft_list = [sft for sft in sft_list if len(sft) > 0]
+    cum_nb_str = np.cumsum([len(sft.streamlines) for sft in sft_list])
+    cum_nb_str_0 = np.insert(cum_nb_str, 0, 0)
+
+    indices_per_sft = []
+    streamlines_len_cumsum = [len(sft) for sft in sft_list]
+    start = 0
+    for nb in streamlines_len_cumsum:
+        end = start + nb
+        # Switch to int32 for json
+        indices_per_sft.append([int(i - start)
+                                for i in indices if start <= i < end])
+        start = end
+
+    sft_list = [sft[indices_per_sft[i]] for i, sft in enumerate(sft_list)]
+    new_sft = concatenate_sft(sft_list, no_metadata, fake_metadata)
+    return new_sft, indices
+
+
+def _perform_tractogram_operation(operation, streamlines, precision=None):
+    """Peforms an operation on a list of list of streamlines.
 
     Given a list of list of streamlines, this function applies the operation
     to the first two lists of streamlines. The result in then used recursively
@@ -267,8 +319,6 @@ def _find_identical_streamlines(streamlines_list, epsilon=0.001,
     all_tree = {}
     all_tree_mapping = {}
     first_points = np.array(streamlines.get_data()[streamlines._offsets])
-
-    logging.warning("First points: {}".format(first_points))
 
     # Uses the number of point to speed up the search in the ckdtree
     for point_count in np.unique(streamlines._lengths):
@@ -760,3 +810,15 @@ def split_sft_randomly_per_cluster(orig_sft, chunk_sizes, seed, thresholds):
     final_sfts = [orig_sft[inds] for inds in total_indices]
 
     return final_sfts
+
+
+OPERATIONS = {
+    'difference_robust': difference_robust,
+    'intersection_robust': intersection_robust,
+    'union_robust': union_robust,
+    'difference': difference,
+    'intersection': intersection,
+    'union': union,
+    'concatenate': 'concatenate',
+    'lazy_concatenate': 'lazy_concatenate'
+}
