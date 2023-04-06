@@ -259,7 +259,7 @@ def main():
         cols,
         args.overlap_factor,
         labelmap_scene_container=labelmap_scene_container,
-        mask_contour_scene_container=mask_contour_scene_container,
+        mask_overlay_scene_container=mask_contour_scene_container,
         vol_cmap_name=args.vol_cmap_name,
         labelmap_cmap_name=args.labelmap_cmap_name
         )

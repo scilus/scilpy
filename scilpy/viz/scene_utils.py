@@ -664,7 +664,7 @@ def screenshot_slice(img, axis_name, slice_ids, size):
 
 
 def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
-    """Take a screenshot of the given binary image  countour with the 
+    """Take a screenshot of the given binary image countour with the 
     appropriate slice data at the provided slice indices.
 
     Parameters
@@ -829,7 +829,8 @@ def draw_scene_at_pos(
     top_pos,
     mask=None,
     labelmap_overlay=None,
-    mask_contour_overlay=None,
+    mask_overlay=None,
+    mask_overlay_alpha=1.,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -851,6 +852,10 @@ def draw_scene_at_pos(
         Transparency mask.
     labelmap_overlay : ndarray
         Labelmap overlay scene data to be drawn.
+    mask_overlay : ndarray
+        Mask overlay scene data to be drawn.
+    mask_overlay_alpha : float
+        Alpha value for mask overlay in range [0, 1].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -877,11 +882,12 @@ def draw_scene_at_pos(
 
         canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
 
-    if mask_contour_overlay is not None:
-        for img in mask_contour_overlay:
+    # Draw the mask overlay image if any
+    if mask_overlay is not None:
+        for img in mask_overlay:
             contour_img = create_image_from_scene(img, size)
             contour_mask = create_mask_from_scene(
-                np.sum(img, axis=-1) > 0, size)
+                (np.sum(img, axis=-1) > 0) * mask_overlay_alpha, size)
 
             canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
 
@@ -987,7 +993,8 @@ def compose_mosaic(
     cols,
     overlap_factor=None,
     labelmap_scene_container=None,
-    mask_contour_scene_container=None,
+    mask_overlay_scene_container=None,
+    mask_overlay_alpha = 1.,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -1010,6 +1017,10 @@ def compose_mosaic(
         Overlap factor (horizontal, vertical).
     labelmap_scene_container : list, optional
         Labelmap scene data container.
+    mask_overlay_scene_container : list, optional
+        Mask overlay scene data container.
+    mask_overlay_alpha : float
+        Alpha value for mask overlay in range [0, 1].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -1032,12 +1043,12 @@ def compose_mosaic(
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, mask_arr, labelmap_arr, mask_contour_arr) in enumerate(
+    for idx, (img_arr, mask_arr, labelmap_arr, mask_overlay_arr) in enumerate(
             list(zip_longest(
                 img_scene_container,
                 mask_scene_container,
                 labelmap_scene_container,
-                mask_contour_scene_container,
+                mask_overlay_scene_container,
                 fillvalue=tuple()))
     ):
 
@@ -1055,9 +1066,9 @@ def compose_mosaic(
         if len(labelmap_arr):
             _labelmap_arr = rgb2gray4pil(labelmap_arr)
 
-        _mask_contour_arr = None
-        if len(mask_contour_arr):
-            _mask_contour_arr = mask_contour_arr
+        _mask_overlay_arr = None
+        if len(mask_overlay_arr):
+            _mask_overlay_arr = mask_overlay_arr
 
         # Draw the image (and labelmap overlay, if any) in the cell
         draw_scene_at_pos(
@@ -1068,7 +1079,8 @@ def compose_mosaic(
             top_pos,
             mask=_mask_arr,
             labelmap_overlay=_labelmap_arr,
-            mask_contour_overlay=_mask_contour_arr,
+            mask_overlay=_mask_overlay_arr,
+            mask_overlay_alpha=mask_overlay_alpha,
             vol_cmap_name=vol_cmap_name,
             labelmap_cmap_name=labelmap_cmap_name,
         )

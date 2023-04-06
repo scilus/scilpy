@@ -202,6 +202,7 @@ def main():
     )
 
     mask_scene_container = []
+    mask_overlay_alpha = 1.
     if mask_img is not None:
         if args.mask_as_contour:
             mask_scene_container = screenshot_contour(
@@ -211,6 +212,7 @@ def main():
                 args.win_dims
             )
         else:
+            mask_overlay_alpha = 0.7
             mask_scene_container = screenshot_slice(
                 mask_img,
                 args.axis_name,
@@ -245,8 +247,9 @@ def main():
             1,
             1,
             vol_cmap_name=args.vol_cmap_name,
+            mask_overlay_alpha=mask_overlay_alpha,
             labelmap_scene_container=[label],
-            mask_contour_scene_container=[[contour]]
+            mask_overlay_scene_container=[[contour]]
         )
 
         # Save the snapshot
