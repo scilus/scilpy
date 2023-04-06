@@ -1,17 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Take screenshot(s) of one or more slices in a given image volume along the
+requested axis. If slice indices are not provided, all slices in the volume 
+are used. The name of the outputed images are suffixed with _slice_{id}, with 
+id being the slice number in the volume. If a labelmap image is provided (e.g. 
+a tissue segmentation map), it is overlaid on the volume slices. Same goes if 
+a mask is provided, with the difference that it can be rendered as a 
+transparency overlay as well as a contour. 
+
+A labelmap image can be provided as the image volume, without requiring it as
+the optional argument if only the former needs to be plot.
+
+Example:
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial.png
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial.png \
+  30 40 50 60 70 80 90 100
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_sagittal.png \
+  --axis_name sagittal
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial_plasma_cmap.png \
+  30 40 50 60 70 80 90 100 \
+  --vol_cmap_name plasma
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_mask_overlay.png \
+  30 40 50 60 70 80 90 100
+  --in_mask brain_mask.nii.gz
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_mask_contour.png \
+  30 40 50 60 70 80 90 100
+  --in_mask brain_mask.nii.gz
+  --mask_as_contour
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial_tissue_map.png \
+  30 40 50 60 70 80 90 100 \
+  --in_labelmap tissue_map.nii.gz
+
+python scil_screenshot_volume.py \
+  t1.nii.gz \
+  t1_axial_tissue_viridis_cmap.png \
+  30 40 50 60 70 80 90 100 \
+  --in_labelmap tissue_map.nii.gz \
+  --labelmap_cmap_name viridis
+"""
+
 import argparse
 
 from itertools import zip_longest
 import nibabel as nib
 import numpy as np
 from os.path import splitext
-from dipy.io.utils import is_header_compatible
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (
     axis_name_choices,
     add_overwrite_arg,
-    assert_inputs_exist,
-    assert_outputs_exist
+    assert_inputs_exist
 )
 from scilpy.image.utils import check_slice_indices
 from scilpy.viz.scene_utils import (
@@ -37,7 +98,7 @@ def _build_arg_parser():
     )
 
     # Optional arguments
-    p.add_argument("--mask", help="Input mask image file for overlay.")
+    p.add_argument("--in_mask", help="Input mask image file for overlay.")
     p.add_argument("--in_labelmap",  help="Labelmap image.")
 
     p.add_argument('--mask_as_contour', action='store_true',
@@ -85,8 +146,8 @@ def _parse_args(parser):
 
     inputs.append(args.in_vol)
 
-    if args.mask:
-        inputs.append(args.mask)
+    if args.in_mask:
+        inputs.append(args.in_mask)
     if args.in_labelmap:
         inputs.append(args.in_labelmap)
 
@@ -103,7 +164,7 @@ def _get_data_from_inputs(args):
 
     mask_img = None
     if args.mask:
-        mask_img = nib.load(args.mask)
+        mask_img = nib.load(args.in_mask)
 
     labelmap_img = None
     if args.in_labelmap:
@@ -132,7 +193,7 @@ def main():
             idx = 0
         slice_ids = np.arange(vol_img.shape[idx])
 
-        # Generate the images
+    # Generate the image slices
     vol_scene_container = screenshot_slice(
         vol_img,
         args.axis_name,
@@ -163,13 +224,13 @@ def main():
             labelmap_img,
             args.axis_name,
             slice_ids,
-            args.win_dims,
+            args.win_dims
         )
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
 
-    # Compose the mosaic
+    # Compose and save each slice
     for (volume, label, contour, name) in list(
         zip_longest(vol_scene_container,
                     labelmap_scene_container,
