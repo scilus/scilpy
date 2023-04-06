@@ -191,10 +191,6 @@ def perform_tractogram_operation(op_name, sft_list, precision,
         OPERATIONS[op_name], streamlines_list, precision=precision)
 
     # Concatenating only the necessary streamlines, with the metadata
-    sft_list = [sft for sft in sft_list if len(sft) > 0]
-    cum_nb_str = np.cumsum([len(sft.streamlines) for sft in sft_list])
-    cum_nb_str_0 = np.insert(cum_nb_str, 0, 0)
-
     indices_per_sft = []
     streamlines_len_cumsum = [len(sft) for sft in sft_list]
     start = 0
