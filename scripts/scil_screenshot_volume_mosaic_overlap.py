@@ -6,7 +6,9 @@ Compose a mosaic of screenshots of the given image volume slices along the
 requested axis. The provided transparency mask (e.g. a brain mask volume) is
 used to set the screenshot values outside the mask non-zero values to full
 transparency. Additionally, if a labelmap image is provided (e.g. a tissue
-segmentation map), it is overlaid on the volume slices.
+segmentation map), it is overlaid on the volume slices. Also, a series of 
+masks can be provided and will be used to generate contours overlaid on each 
+volume slice.
 
 A labelmap image can be provided as the image volume, without requiring it as
 the optional argument if only the former needs to be plot.
@@ -19,14 +21,14 @@ Example:
 python scil_screenshot_volume_mosaic_overlap.py \
   t1.nii.gz \
   brain_mask.nii.gz \
-  mosaic_overlap_t1.png \
+  mosaic_overlap_t1_axial.png \
   30 40 50 60 70 80 90 100 \
   1 8
 
 python scil_screenshot_volume_mosaic_overlap.py \
   t1.nii.gz \
   brain_mask.nii.gz \
-  mosaic_overlap_t1_matrix_cmap.png \
+  mosaic_overlap_t1_axial_plasma_cmap.png \
   30 40 50 60 70 80 90 100 \
   2 4 \
   --overlap_factor 0.6 0.5 \
@@ -35,7 +37,7 @@ python scil_screenshot_volume_mosaic_overlap.py \
 python scil_screenshot_volume_mosaic_overlap.py \
   tissue_map.nii.gz \
   brain_mask.nii.gz \
-  mosaic_overlap_tissue_map.png \
+  mosaic_overlap_tissue_axial_plasma_cmap.png \
   30 40 50 60 70 80 90 100 \
   2 4 \
   --vol_cmap_name plasma
@@ -43,12 +45,21 @@ python scil_screenshot_volume_mosaic_overlap.py \
 python scil_screenshot_volume_mosaic_overlap.py \
   t1.nii.gz \
   brain_mask.nii.gz \
-  mosaic_overlap_t1_tisue_map.png \
+  mosaic_overlap_t1_sagittal_tissue_viridis_cmap.png \
   30 40 50 60 70 80 90 100 \
   2 4 \
-  --in_labelmap tissue_map.nii.gz \
   --axis_name sagittal \
+  --in_labelmap tissue_map.nii.gz \
   --labelmap_cmap_name viridis
+
+python scil_screenshot_volume_mosaic_overlap.py \
+  t1.nii.gz \
+  brain_mask.nii.gz \
+  mosaic_overlap_t1_sagittal_tissue_contours.png \
+  30 40 50 60 70 80 90 100 \
+  2 4 \
+  --axis_name sagittal \
+  --in_contour_masks wm_mask.nii.gz gm_mask.nii.gz csf_mask.nii.gz
 """
 
 import argparse
@@ -63,7 +74,7 @@ from scilpy.io.utils import (
     add_overwrite_arg,
     assert_inputs_exist,
     assert_outputs_exist,
-    ranged_type,
+    ranged_type
 )
 from scilpy.image.utils import check_slice_indices
 from scilpy.viz.scene_utils import (
@@ -202,13 +213,13 @@ def main():
         vol_img,
         args.axis_name,
         args.slice_ids,
-        args.win_dims,
+        args.win_dims
     )
     mask_scene_container = screenshot_slice(
         mask_img,
         args.axis_name,
         args.slice_ids,
-        args.win_dims,
+        args.win_dims
     )
 
     labelmap_scene_container = []
@@ -217,7 +228,7 @@ def main():
             labelmap_img,
             args.axis_name,
             args.slice_ids,
-            args.win_dims,
+            args.win_dims
         )
 
     mask_contour_scene_container = []
@@ -250,7 +261,7 @@ def main():
         labelmap_scene_container=labelmap_scene_container,
         mask_contour_scene_container=mask_contour_scene_container,
         vol_cmap_name=args.vol_cmap_name,
-        labelmap_cmap_name=args.labelmap_cmap_name,
+        labelmap_cmap_name=args.labelmap_cmap_name
         )
 
     # Save the mosaic
