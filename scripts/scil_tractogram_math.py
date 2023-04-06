@@ -27,11 +27,11 @@ threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
 default value of 3 (or 0.001mm distance) should work.
 
-If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) the --robust
+If there is a 0.5mm shift, use a precision of 0 (or 1mm distance), the --robust
 option should make it work, but slightly slower.
 
 The metadata (data per point, data per streamline) of the streamlines that
-are kept in the output will preserved. This requires that all input files
+are kept in the output will be preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
 --no_metadata to strip the metadata from the output. Or --fake_metadata to
 initialize dummy metadata in the file missing them.
@@ -78,7 +78,9 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
-    p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
+    p.add_argument('operation', metavar='OPERATION',
+                   choices=['difference', 'intersection', 'union',
+                            'concatenate', 'lazy_concatenate'],
                    help='The type of operation to be performed on the '
                         'streamlines. Must\nbe one of the following: '
                         '%(choices)s.')
