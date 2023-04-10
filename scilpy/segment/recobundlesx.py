@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from itertools import chain
 import logging
+from time import time
+import warnings
 
 from dipy.align.streamlinear import (BundleMinDistanceMetric,
                                      StreamlineLinearRegistration)
@@ -10,6 +11,7 @@ from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
 from dipy.tracking.streamline import (select_random_set_of_streamlines,
                                       transform_streamlines)
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 
 from scilpy.io.streamlines import reconstruct_streamlines_from_memmap
@@ -31,45 +33,36 @@ class RecobundlesX(object):
         clustering, Neuroimage, 2017.
     """
 
-    def __init__(self, memmap_filenames, wb_clusters_indices, wb_centroids,
-                 nb_points=20, slr_num_thread=1, rng=None):
+    def __init__(self, memmap_filenames, clusters_indices, wb_centroids,
+                 rng=None):
         """
         Parameters
         ----------
         memmap_filenames : tuple
             tuple of filenames for the data, offsets and lengths.
-        wb_clusters_indices : list
-            List of lists containing the indices of streamlines per cluster.
+        clusters_indices: ArraySequence
+            ArraySequence containing the indices of the streamlines per
+            cluster.
         wb_centroids : list of numpy.ndarray
             List contaning the average streamline per cluster as obtained
             from qbx.
-        nb_points : int
-            Number of points used for all resampling of streamlines.
-        slr_num_thread : int
-            Number of threads for SLR.
-            Should remain 1 for nearly all use-case.
         rng : RandomState
             If None then RandomState is initialized internally.
         """
         self.memmap_filenames = memmap_filenames
-        self.wb_clusters_indices = wb_clusters_indices
+        self.wb_clusters_indices = clusters_indices
         self.centroids = wb_centroids
         self.rng = rng
 
-        # Parameters
-        self.nb_points = nb_points
-        self.slr_num_thread = slr_num_thread
-
         # For declaration outside of init
         self.neighb_centroids = None
-        self.neighb_streamlines = None
         self.neighb_indices = None
         self.models_streamlines = None
         self.model_centroids = None
         self.final_pruned_indices = None
 
     def recognize(self, model_bundle,
-                  model_clust_thr=8, bundle_pruning_thr=8,
+                  model_clust_thr=8, pruning_thr=8,
                   slr_transform_type='similarity', identifier=None):
         """
         Parameters
@@ -78,7 +71,7 @@ class RecobundlesX(object):
             Model bundle as loaded by the nibabel API.
         model_clust_thr : obj
             Distance threshold (mm) for model clustering (QBx)
-        bundle_pruning_thr : int
+        pruning_thr : int
             Distance threshold (mm) for the final pruning.
         slr_transform_type : str
             Define the transformation for the local SLR.
@@ -92,39 +85,45 @@ class RecobundlesX(object):
             Streamlines that were recognized by Recobundles and these
             parameters.
         """
-        self._cluster_model_bundle(model_bundle, model_clust_thr,
+
+        self.model_streamlines = model_bundle
+        self._cluster_model_bundle(model_clust_thr,
                                    identifier=identifier)
-        if not self._reduce_search_space():
+
+        if not self._reduce_search_space(neighbors_reduction_thr=16):
             if identifier:
                 logging.error('{0} did not find any neighbors in '
                               'the tractogram'.format(identifier))
-            return []
+            return np.array([], dtype=np.uint32)
 
-        if self.slr_num_thread > 0:
-            self._register_model_to_neighb(
-                slr_num_thread=self.slr_num_thread,
-                slr_transform_type=slr_transform_type)
+        self._register_model_to_neighb(slr_transform_type=slr_transform_type)
 
-        self.pruned_indices = self.prune_far_from_model(
-            bundle_pruning_thr=bundle_pruning_thr)
+        # self._reduce_search_space(neighbors_reduction_thr=12)
+        if not self._reduce_search_space(neighbors_reduction_thr=12):
+            if identifier:
+                logging.error('{0} did not find any neighbors in '
+                              'the tractogram'.format(identifier))
+            return np.array([], dtype=np.uint32)
 
-        return self.pruned_indices
+        self.prune_far_from_model(pruning_thr=pruning_thr)
 
-    def _cluster_model_bundle(self, model, model_clust_thr, identifier=None):
+        self.cleanup()
+        return self.get_final_pruned_indices()
+
+    def _cluster_model_bundle(self, model_clust_thr, identifier):
         """
         Wrapper function to compute QBx for the model and logging informations.
-        :param model, list or arraySequence, streamlines to be used as model.
+        :param model, list or ArraySequence, streamlines to be used as model.
         :param model_clust_thr, float, distance in mm for clustering.
         :param identifier, str, name of the bundle for logging.
         """
         thresholds = [30, 20, 15, model_clust_thr]
-        model_cluster_map = qbx_and_merge(model, thresholds,
-                                          nb_pts=self.nb_points,
+        model_cluster_map = qbx_and_merge(self.model_streamlines, thresholds,
+                                          nb_pts=12,
                                           rng=self.rng,
                                           verbose=False)
 
-        self.model_streamlines = model
-        self.model_centroids = model_cluster_map.centroids
+        self.model_centroids = ArraySequence(model_cluster_map.centroids)
         len_centroids = len(self.model_centroids)
         if len_centroids > 1000:
             logging.warning('Model {0} simplified at threshold '
@@ -140,35 +139,29 @@ class RecobundlesX(object):
             to discard distant streamlines.
         """
         centroid_matrix = bundles_distances_mdf(self.model_centroids,
-                                                self.centroids)
+                                                self.centroids).astype(np.float16)
         centroid_matrix[centroid_matrix >
                         neighbors_reduction_thr] = np.inf
 
         mins = np.min(centroid_matrix, axis=0)
         close_clusters_indices = np.array(np.where(mins != np.inf)[0],
-                                          dtype=np.int32)
+                                          dtype=np.uint32)
 
         self.neighb_indices = []
         for i in close_clusters_indices:
             self.neighb_indices.extend(self.wb_clusters_indices[i])
-        self.neighb_indices = np.array(self.neighb_indices, dtype=np.int32)
-        self.neighb_streamlines = reconstruct_streamlines_from_memmap(
-            self.memmap_filenames, self.neighb_indices)
+        self.neighb_indices = np.array(self.neighb_indices, dtype=np.uint32)
 
         self.neighb_centroids = [self.centroids[i]
                                  for i in close_clusters_indices]
 
-        return len(close_clusters_indices) > 0
+        return self.neighb_indices.size
 
-    def _register_model_to_neighb(self, slr_num_thread=1,
-                                  select_model=1000, select_target=1000,
-                                  slr_transform_type='scaling'):
+    def _register_model_to_neighb(self, select_model=1000, select_target=1000,
+                                  slr_transform_type='similarity'):
         """
         Parameters
         ----------
-        slr_num_thread : int
-            Number of threads for SLR.
-            Should remain 1 for nearly all use-case.
         select_model : int
             Maximum number of clusters to select from the model.
         select_target : int
@@ -196,14 +189,14 @@ class RecobundlesX(object):
         bounds_dof = [(-20, 20), (-20, 20), (-20, 20),
                       (-10, 10), (-10, 10), (-10, 10),
                       (0.8, 1.2), (0.8, 1.2), (0.8, 1.2)]
-        metric = BundleMinDistanceMetric(num_threads=slr_num_thread)
+        metric = BundleMinDistanceMetric(num_threads=1)
         slr_transform_type_id = possible_slr_transform_type[slr_transform_type]
         if slr_transform_type_id >= 0:
             init_transfo_dof = np.zeros(3)
             slr = StreamlineLinearRegistration(metric=metric, method="L-BFGS-B",
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:3],
-                                               num_threads=slr_num_thread)
+                                               num_threads=1)
             slm = slr.optimize(static, moving)
 
         if slr_transform_type_id >= 1:
@@ -213,7 +206,7 @@ class RecobundlesX(object):
             slr = StreamlineLinearRegistration(metric=metric,
                                                x0=init_transfo_dof,
                                                bounds=bounds_dof[:6],
-                                               num_threads=slr_num_thread)
+                                               num_threads=1)
             slm = slr.optimize(static, moving)
 
         if slr_transform_type_id >= 2:
@@ -225,7 +218,7 @@ class RecobundlesX(object):
                 slr = StreamlineLinearRegistration(metric=metric,
                                                    x0=init_transfo_dof,
                                                    bounds=bounds_dof[:7],
-                                                   num_threads=slr_num_thread)
+                                                   num_threads=1)
                 slm = slr.optimize(static, moving)
 
             else:
@@ -236,38 +229,40 @@ class RecobundlesX(object):
                 slr = StreamlineLinearRegistration(metric=metric,
                                                    x0=init_transfo_dof,
                                                    bounds=bounds_dof[:9],
-                                                   num_threads=slr_num_thread)
+                                                   num_threads=1)
                 slm = slr.optimize(static, moving)
         self.model_centroids = transform_streamlines(self.model_centroids,
                                                      np.linalg.inv(slm.matrix))
 
-    def prune_far_from_model(self, bundle_pruning_thr=10,
-                             neighbors_cluster_thr=8):
+    def prune_far_from_model(self, pruning_thr=10):
         """
         Wrapper function to prune clusters from the tractogram too far from
         the model.
-        :param neighbors_to_prune, list or arraySequence, streamlines to prune.
-        :param bundle_pruning_thr, float, distance in         thresholds = [32, 16, 24, neighbors_cluster_thr]
-
-        neighb_cluster_map = qbx_and_merge(self.neighb_streamlines, thresholds,
-                                           nb_pts=self.nb_points,
-                                           rng=self.rng, verbose=False)
+        :param pruning_thr, float, distance in
+            thresholds = [32, 16, 24, neighbors_cluster_thr]
         """
         # Neighbors can be refined since the search space is smaller
-        from time import time
         t0 = time()
-        fss = FastStreamlineSearch(self.neighb_streamlines,
-                                   bundle_pruning_thr+2, resampling=12)
-        dist_mat = fss.radius_search(self.model_streamlines,
-                                     bundle_pruning_thr)
-        print("Fast search took: ", time() - t0)
+
+        neighb_streamlines = reconstruct_streamlines_from_memmap(
+            self.memmap_filenames, self.neighb_indices, strs_dtype=np.float16)
+
+        with warnings.catch_warnings(record=True) as _:
+            fss = FastStreamlineSearch(neighb_streamlines,
+                                       pruning_thr+1, resampling=12)
+            dist_mat = fss.radius_search(self.model_streamlines,
+                                         pruning_thr)
+
+        logging.debug("Fast search took of dimensions {0}: {1} sec.".format(
+            dist_mat.shape, np.round(time() - t0, 2)))
 
         sparse_dist_mat = np.abs(dist_mat.tocsr())
         sparse_dist_vec = np.squeeze(np.max(sparse_dist_mat, axis=0).toarray())
         pruned_indices = np.where(sparse_dist_vec > 1e-6)[0]
 
         # Since the neighbors were clustered, a mapping of indices is neccesary
-        self.final_pruned_indices = self.neighb_indices[pruned_indices]
+        self.final_pruned_indices = self.neighb_indices[pruned_indices].astype(
+            np.uint32)
 
         return self.final_pruned_indices
 
@@ -276,3 +271,9 @@ class RecobundlesX(object):
         Public getter for the final indices recognize by the algorithm.
         """
         return self.final_pruned_indices
+
+    def cleanup(self):
+        del self.neighb_centroids
+        del self.neighb_indices
+        del self.model_streamlines
+        del self.model_centroids

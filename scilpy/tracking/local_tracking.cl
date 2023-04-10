@@ -368,28 +368,33 @@ int track(float3 seed_pos,
                                sh_to_sf_mat, out_streamlines);
 
     // reverse streamline for backward tracking
-    reverse_streamline(current_length, n_seeds,
-                       seed_indice, out_streamlines,
-                       &last_pos, &last_dir);
+#if !FORWARD_ONLY
+    if(current_length > 1 && current_length < MAX_LENGTH)
+    {
+        reverse_streamline(current_length, n_seeds,
+                           seed_indice, out_streamlines,
+                           &last_pos, &last_dir);
 
-    // track backward
-    current_length = propagate(last_pos, last_dir, current_length, false,
-                               seed_indice, n_seeds, max_cos_theta_local,
-                               tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
-                               sh_to_sf_mat, out_streamlines);
+        // track backward
+        current_length = propagate(last_pos, last_dir, current_length, false,
+                                   seed_indice, n_seeds, max_cos_theta_local,
+                                   tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
+                                   sh_to_sf_mat, out_streamlines);
+    }
+#endif
     return current_length;
 }
 
-__kernel void main(__global const float* sh_coeffs,
-                   __global const float* vertices,
-                   __global const float* sh_to_sf_mat,
-                   __global const float* sf_max,
-                   __global const float* tracking_mask,
-                   __global const float* max_cos_theta,
-                   __global const float* seed_positions,
-                   __global const float* rand_f,
-                   __global float* out_streamlines,
-                   __global float* out_nb_points)
+__kernel void tracker(__global const float* sh_coeffs,
+                      __global const float* vertices,
+                      __global const float* sh_to_sf_mat,
+                      __global const float* sf_max,
+                      __global const float* tracking_mask,
+                      __global const float* max_cos_theta,
+                      __global const float* seed_positions,
+                      __global const float* rand_f,
+                      __global float* out_streamlines,
+                      __global float* out_nb_points)
 {
     // 1. Get seed position from global_id.
     const size_t seed_indice = get_global_id(0);
