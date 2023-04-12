@@ -85,22 +85,25 @@ def main():
 
     upstream_url = ['git@github.com:scilus/scilpy.git',
                     'https://github.com/scilus/scilpy.git']
+    origin = repo.remotes.origin.url
     if 'upstream' in repo.git.remote().split() or \
             origin in upstream_url:
 
         if origin in upstream_url:
             upstream = origin
+            count = repo.git.rev_list('--count', 'origin/master..HEAD',
+                                      '--left-right').split()
         else:
             upstream = repo.remotes.upstream.url
+            count = repo.git.rev_list('--count', 'upstream/master..HEAD',
+                                      '--left-right').split()
 
-        count = repo.git.rev_list('--count', 'upstream/master..HEAD',
-                                  '--left-right').split()
-
+        remote_name = 'origin' if origin in upstream_url else 'upstream'
         print('Your upstream is set to: {}'.format(_bold(upstream)))
-        print('You are {} commits behind upstream/master'.format(
-            _bold(count[0])))
-        print('You are {} commits ahead of upstream/master'.format(
-            _bold(count[1])))
+        print('You are {} commits behind {}/master'.format(
+            _bold(count[0]), remote_name))
+        print('You are {} commits ahead of {}/master'.format(
+            _bold(count[1]), remote_name))
 
 
 if __name__ == '__main__':
