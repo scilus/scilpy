@@ -24,7 +24,7 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('--show_dependencies', action='store_true',
-                   help='Show the important dependencies of Scilpy.')
+                   help='Show the dependencies of scilpy.')
     return p
 
 
@@ -63,9 +63,15 @@ def main():
         print('It is not a git repository, so we cannot give you more '
               'information.')
         return
-    branch = repo.active_branch.name
-    origin = repo.remotes.origin.url
-    branch = repo.active_branch.name
+    if not repo.head.is_detached:
+        branch = repo.active_branch
+        origin = repo.remotes.origin.url
+    else:
+        with open(os.path.join(repo_dir, '.git', 'FETCH_HEAD')) as f:
+            git_text = f.read().split()
+            branch = git_text[2].replace("'","")
+            origin = git_text[4]
+    
     print('Your Scilpy directory is: {}'.format(_bold(repo_dir)))
     print('Your current Origin is: {}'.format(_bold(origin)))
     print('Your repository is on branch: {}\n'.format(_bold(branch)))
