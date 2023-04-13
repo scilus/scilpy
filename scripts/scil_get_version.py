@@ -69,9 +69,9 @@ def main():
     else:
         with open(os.path.join(repo_dir, '.git', 'FETCH_HEAD')) as f:
             git_text = f.read().split()
-            branch = git_text[2].replace("'","")
+            branch = git_text[2].replace("'", "")
             origin = git_text[4]
-    
+
     print('Your Scilpy directory is: {}'.format(_bold(repo_dir)))
     print('Your current Origin is: {}'.format(_bold(origin)))
     print('Your repository is on branch: {}\n'.format(_bold(branch)))
