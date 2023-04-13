@@ -12,6 +12,7 @@ docopt==0.6.*
 formulaic==0.3.*
 fury==0.8.*
 future==0.18.*
+GitPython==3.1.*
 h5py==3.7.*
 joblib==1.2.*
 kiwisolver==1.4.*
