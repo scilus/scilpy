@@ -59,7 +59,7 @@ def _build_arg_parser():
                    help='Input tractogram filename (.trk or .tck).')
     p.add_argument('in_config_file',
                    help='Path of the config file (.json)')
-    p.add_argument('in_models_directories', nargs='+',
+    p.add_argument('in_directory',
                    help='Path for the directories containing model.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
@@ -89,6 +89,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    args.in_models_directories = [os.path.join(args.in_directory, x) \
+                                  for x in os.listdir(args.in_directory) \
+                                    if os.path.isdir(os.path.join(args.in_directory, x))]
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file,

@@ -70,45 +70,31 @@ class VotingScheme(object):
                         for tag, bundle in all_atlas_models]
             bundles_filepath.append(tmp_list)
 
-        to_keep = []
-        # All models must exist, if not the bundle will be skipped
-        for i in range(len(bundles_filepath)):
-            missing_count = 0
-            missing_files = []
-            for j in range(len(bundles_filepath[i])):
-                if not os.path.isfile(bundles_filepath[i][j]):
-                    missing_count += 1
-                    missing_files.append(bundles_filepath[i][j])
-
-            if missing_count == len(bundles_filepath[i]):
-                logging.warning('None of the {0} exist, this bundle'
-                                ' will be skipped'.format(bundle_names[i]))
-            elif missing_count < len(bundles_filepath[i]) and missing_count > 0:
-                logging.error('{0} do not exist, this bundle '
-                              'will be skipped'.format(missing_files))
-            else:
-                to_keep.append(i)
-
-        # Only keep the group of models where all files exist
-        bundle_names_exist = [bundle_names[i] for i in to_keep]
-        bundles_filepath_exist = [bundles_filepath[i] for i in to_keep]
         logging.info('{0} sub-model directory were found each '
                      'with {1} model bundles'.format(
                          len(self.atlas_dir),
-                         len(bundle_names_exist)))
-        if len(bundle_names_exist) == 0:
-            raise IOError("No model bundles found, check input directory.")
+                         len(bundle_names)))
 
         model_bundles_dict = {}
-        for i, basename in enumerate(bundle_names_exist):
-            for j, filename in enumerate(bundles_filepath_exist[i]):
+        bundle_counts = []
+        for i, basename in enumerate(bundle_names):
+            count = 0
+            for j, filename in enumerate(bundles_filepath[i]):
+                if not os.path.isfile(filename):
+                    continue
+                count += 1
                 streamlines = nib.streamlines.load(filename).streamlines
                 bundle = transform_streamlines(streamlines,
                                                self.transformation)
+
                 model_bundles_dict[filename] = (self.config[basename],
                                                 bundle)
+            bundle_counts.append(count)
 
-        return model_bundles_dict, bundle_names_exist
+        if sum(bundle_counts) == 0:
+            raise IOError("No model bundles found, check input directory.")
+
+        return model_bundles_dict, bundle_names, bundle_counts
 
     def _find_max_in_sparse_matrix(self, bundle_id, min_vote, bundles_wise_vote):
         """
@@ -120,13 +106,18 @@ class VotingScheme(object):
         :param bundles_wise_vote, lil_matrix, bundles-wise sparse matrix
             use for voting.
         """
+        if min_vote == 0:
+            streamlines_ids = np.asarray([], dtype=np.uint32)
+            # vote_score = np.asarray([], dtype=np.uint32)
+            return streamlines_ids  # , vote_score
+
         streamlines_ids = np.argwhere(bundles_wise_vote[bundle_id] >= min_vote)
         streamlines_ids = np.asarray(streamlines_ids[:, 1], dtype=np.uint32)
 
-        vote_score = bundles_wise_vote.T[streamlines_ids].tocsr()[:, bundle_id]
-        vote_score = np.squeeze(vote_score.toarray().astype(np.uint32).T)
+        # vote_score = bundles_wise_vote.T[streamlines_ids].tocsr()[:, bundle_id]
+        # vote_score = np.squeeze(vote_score.toarray().astype(np.uint32).T)
 
-        return streamlines_ids, vote_score
+        return streamlines_ids  # , vote_score
 
     def _save_recognized_bundles(self, sft, bundle_names,
                                  bundles_wise_vote,
@@ -142,7 +133,7 @@ class VotingScheme(object):
             Will save the bundle using that filename and the extension.
         bundles_wise_vote : lil_matrix
             Array of zeros of shape (nbr_bundles x nbr_streamlines).
-        minimum_vote : float
+        minimum_vote : np.ndarray
             Value for the vote ratio for a streamline to be considered.
             (0 < minimal_vote < 1)
         extension : str
@@ -150,9 +141,9 @@ class VotingScheme(object):
         """
         results_dict = {}
         for bundle_id in range(len(bundle_names)):
-            streamlines_id, vote_score = self._find_max_in_sparse_matrix(
+            streamlines_id = self._find_max_in_sparse_matrix(
                 bundle_id,
-                minimum_vote,
+                minimum_vote[bundle_id],
                 bundles_wise_vote)
 
             if not streamlines_id.size:
@@ -172,7 +163,7 @@ class VotingScheme(object):
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
-            curr_results_dict['votes'] = vote_score.tolist()
+            # curr_results_dict['votes'] = vote_score.tolist()
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
@@ -218,7 +209,8 @@ class VotingScheme(object):
                                                               load_timer, 2)))
         total_timer = time()
         # Each type of bundle is processed separately
-        model_bundles_dict, bundle_names = self._load_bundles_dictionary()
+        model_bundles_dict, bundle_names, bundle_count = \
+            self._load_bundles_dictionary()
 
         thresholds = [45, 35, 25, 12]
         rng = np.random.RandomState(seed)
@@ -277,8 +269,9 @@ class VotingScheme(object):
         bundles_wise_vote = bundles_wise_vote.tocsr()
 
         # Once everything was run, save the results using a voting system
-        minimum_vote = np.ceil(len(self.atlas_dir) * self.minimal_vote_ratio)
-        minimum_vote = max(minimum_vote, 1)
+        minimum_vote = np.array(bundle_count) * self.minimal_vote_ratio
+        minimum_vote[np.logical_and(minimum_vote > 0, minimum_vote < 1)] = 1
+        minimum_vote = minimum_vote.astype(np.uint8)
 
         _, ext = os.path.splitext(input_tractograms_path[0])
         self._save_recognized_bundles(concat_sft, bundle_names,
