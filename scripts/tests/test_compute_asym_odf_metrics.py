@@ -44,6 +44,6 @@ def test_execution_not_all(script_runner):
                            'fodf_descoteaux07_sub_full.nii.gz')
 
     ret = script_runner.run('scil_compute_asym_odf_metrics.py', in_fodf,
-                            '--not_all', '--cos_asym_map',
-                            'cos_asym_map.nii.gz', '-f')
+                            '--not_all', '--asi_map',
+                            'asi_map.nii.gz', '-f')
     assert ret.success
