@@ -396,7 +396,7 @@ def associate_dwis(layout, nSub):
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
                 else:
-                    if rev_curr_entity[direction] == rev_dwi[direction]:
+                    if rev_curr_entity[direction] == rev_dwi.entities[direction]:
                         # Print difference between entities
                         logging.info('DWIs {} and {} have opposite phase encoding directions but different entities.'
                                      'Please check their respective json files.'.format(curr_dwi, rev_dwi))
