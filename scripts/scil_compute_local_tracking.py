@@ -34,8 +34,10 @@ from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
+from nibabel.streamlines import detect_format, TrkFile
 from nibabel.streamlines.tractogram import LazyTractogram
 import numpy as np
+from tqdm import tqdm
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
@@ -169,6 +171,14 @@ def main():
     verify_streamline_length_options(parser, args)
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
+
+    tracts_format = detect_format(args.out_tractogram)
+    if tracts_format is not TrkFile:
+        logging.warning("You have selected option --save_seeds but you are "
+                        "not saving your tractogram as a .trk file. \n"
+                        "Data_per_point information CANNOT be saved.\n"
+                        "Ignoring.")
+        args.save_seeds = False
 
     logging.debug("Loading masks and finding seeds.")
     mask_img = nib.load(args.in_mask)
