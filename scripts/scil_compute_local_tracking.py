@@ -170,6 +170,7 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
+    logging.debug("Loading masks and finding seeds.")
     mask_img = nib.load(args.in_mask)
     mask_data = get_data_as_mask(mask_img, dtype=bool)
 
@@ -211,6 +212,7 @@ def main():
         random_seed=args.seed)
 
     # Tracking is performed in voxel space
+    logging.debug("Starting tracking.")
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines_generator = LocalTracking(
         _get_direction_getter(args),
@@ -255,6 +257,7 @@ def main():
     header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
+    logging.debug("Results will be saved in {}".format(args.out_tractogram))
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
