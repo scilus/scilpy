@@ -220,9 +220,12 @@ def main():
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
+    total_nb_seeds = len(seeds)
 
     # Tracking is performed in voxel space
     logging.debug("Starting tracking.")
+    logging.debug("Results will be saved in {}".format(args.out_tractogram))
+
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines_generator = LocalTracking(
         _get_direction_getter(args),
@@ -238,14 +241,27 @@ def main():
     scaled_max_length = args.max_length / voxel_size
 
     if args.save_seeds:
-        filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines_generator
-                  if scaled_min_length <= length(s) <= scaled_max_length))
+        if args.verbose:
+            filtered_streamlines, seeds = \
+                zip(*((s, p) for s, p in tqdm(
+                    streamlines_generator, total=total_nb_seeds,
+                    ncols=100, miniters=int(total_nb_seeds / 100))
+                      if scaled_min_length <= length(s) <= scaled_max_length))
+        else:
+            filtered_streamlines, seeds = \
+                zip(*((s, p) for s, p in streamlines_generator
+                      if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
-        filtered_streamlines = \
-            (s for s in streamlines_generator
-             if scaled_min_length <= length(s) <= scaled_max_length)
+        if args.verbose:
+            filtered_streamlines = \
+                (s for s in tqdm(streamlines_generator, total=total_nb_seeds,
+                                 ncols=100, miniters=int(total_nb_seeds / 100))
+                 if scaled_min_length <= length(s) <= scaled_max_length)
+        else:
+            filtered_streamlines = \
+                (s for s in streamlines_generator
+                 if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
     if args.compress:
@@ -267,7 +283,6 @@ def main():
     header = create_tractogram_header(filetype, *reference)
 
     # Use generator to save the streamlines on-the-fly
-    logging.debug("Results will be saved in {}".format(args.out_tractogram))
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
