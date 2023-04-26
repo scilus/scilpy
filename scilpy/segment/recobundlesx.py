@@ -249,7 +249,7 @@ class RecobundlesX(object):
 
         with warnings.catch_warnings(record=True) as _:
             fss = FastStreamlineSearch(neighb_streamlines,
-                                       pruning_thr+1, resampling=12)
+                                       pruning_thr, resampling=12)
             dist_mat = fss.radius_search(self.model_streamlines,
                                          pruning_thr)
 

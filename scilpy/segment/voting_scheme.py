@@ -163,7 +163,6 @@ class VotingScheme(object):
 
             curr_results_dict = {}
             curr_results_dict['indices'] = streamlines_id.tolist()
-            # curr_results_dict['votes'] = vote_score.tolist()
             results_dict[basename] = curr_results_dict
 
         out_logfile = os.path.join(self.output_directory, 'results.json')
