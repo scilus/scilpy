@@ -64,6 +64,11 @@ def _build_arg_parser():
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
                    help='Relative threshold on fODF amplitude in percentage  '
                         '[%(default)s].')
+    p.add_argument('--absolute_peak_values', action='store_true',
+                   help='If set, the peak_values are not normalized for each '
+                        'voxel, \nbut rather they keep the actual fODF '
+                        'amplitude of the peaks. \nAs a result, the peaks are '
+                        'also all normalized to 1. [%(default)s]')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -171,13 +176,14 @@ def main():
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
 
     if args.peaks or args.peak_values:
-        peak_values = np.divide(peak_values, peak_values[..., 0, None],
-                                out=np.zeros_like(peak_values),
-                                where=peak_values[..., 0, None] != 0)
-        peak_dirs[...] *= peak_values[..., :, None]
+        if not args.absolute_peak_values:
+            peak_values = np.divide(peak_values, peak_values[..., 0, None],
+                                    out=np.zeros_like(peak_values),
+                                    where=peak_values[..., 0, None] != 0)
+            peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
             nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
-                                     affine), args.peaks)
+                                    affine), args.peaks)
         if args.peak_values:
             nib.save(nib.Nifti1Image(peak_values, vol.affine), args.peak_values)
 
