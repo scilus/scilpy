@@ -21,6 +21,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+from typing import Iterable
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
@@ -154,6 +155,12 @@ def _get_direction_getter(args):
         return dg
 
 
+def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
+    if verbose:
+        return tqdm(generator, *args, **kwargs)
+    return generator
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -176,7 +183,7 @@ def main():
     if tracts_format is not TrkFile:
         logging.warning("You have selected option --save_seeds but you are "
                         "not saving your tractogram as a .trk file. \n"
-                        "Data_per_point information CANNOT be saved.\n"
+                        "   Data_per_point information CANNOT be saved. "
                         "Ignoring.")
         args.save_seeds = False
 
@@ -241,27 +248,20 @@ def main():
     scaled_max_length = args.max_length / voxel_size
 
     if args.save_seeds:
-        if args.verbose:
-            filtered_streamlines, seeds = \
-                zip(*((s, p) for s, p in tqdm(
-                    streamlines_generator, total=total_nb_seeds,
-                    ncols=100, miniters=int(total_nb_seeds / 100))
-                      if scaled_min_length <= length(s) <= scaled_max_length))
-        else:
-            filtered_streamlines, seeds = \
-                zip(*((s, p) for s, p in streamlines_generator
-                      if scaled_min_length <= length(s) <= scaled_max_length))
+        filtered_streamlines, seeds = \
+            zip(*((s, p) for s, p in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, ncols=100,
+                miniters=int(total_nb_seeds / 100))
+                  if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
-        if args.verbose:
-            filtered_streamlines = \
-                (s for s in tqdm(streamlines_generator, total=total_nb_seeds,
-                                 ncols=100, miniters=int(total_nb_seeds / 100))
-                 if scaled_min_length <= length(s) <= scaled_max_length)
-        else:
-            filtered_streamlines = \
-                (s for s in streamlines_generator
-                 if scaled_min_length <= length(s) <= scaled_max_length)
+        filtered_streamlines = \
+            (s for s in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, ncols=100,
+                miniters=int(total_nb_seeds / 100))
+             if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
     if args.compress:
