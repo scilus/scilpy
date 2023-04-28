@@ -234,7 +234,7 @@ def main():
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip)
+                      skip=args.skip, verbose=args.verbose)
 
     start = time.time()
     logging.debug("Tracking...")

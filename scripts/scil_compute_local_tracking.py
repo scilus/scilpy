@@ -251,16 +251,14 @@ def main():
         filtered_streamlines, seeds = \
             zip(*((s, p) for s, p in tqdm_if_verbose(
                 streamlines_generator, verbose=args.verbose,
-                total=total_nb_seeds, ncols=100,
-                miniters=int(total_nb_seeds / 100))
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
                   if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
         filtered_streamlines = \
             (s for s in tqdm_if_verbose(
                 streamlines_generator, verbose=args.verbose,
-                total=total_nb_seeds, ncols=100,
-                miniters=int(total_nb_seeds / 100))
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
              if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
