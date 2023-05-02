@@ -102,6 +102,10 @@ def _build_arg_parser():
                     help='Set the minimum value when using dps/dpp/anatomy.')
     g2.add_argument('--max_range', type=float,
                     help='Set the maximum value when using dps/dpp/anatomy.')
+    g2.add_argument('--min_cmap', type=float,
+                    help='Set the minimum value of the colormap.')
+    g2.add_argument('--max_cmap', type=float,
+                    help='Set the maximum value of the colormap.')
     g2.add_argument('--log', action='store_true',
                     help='Apply a base 10 logarithm for colored trk (dps/dpp).')
     g2.add_argument('--LUT', metavar='FILE',
@@ -126,8 +130,14 @@ def transform_data(args, data):
         data = np.clip(data, args.min_range, args.max_range)
 
     # get data values range
-    lbound = np.min(data)
-    ubound = np.max(data)
+    if args.min_cmap is not None:
+        lbound = args.min_cmap
+    else:
+        lbound = np.min(data)
+    if args.max_cmap is not None:
+        ubound = args.max_cmap
+    else:
+        ubound = np.max(data)
 
     if args.log:
         data[data > 0] = np.log10(data[data > 0])
