@@ -133,8 +133,8 @@ def transform_data(args, data):
         data[data > 0] = np.log10(data[data > 0])
 
     # normalize data between 0 and 1
-    data -= np.min(data)
-    data = data / np.max(data) if np.max(data) > 0 else data
+    data -= lbound
+    data = data / ubound if ubound > 0 else data
     return data, lbound, ubound
 
 
