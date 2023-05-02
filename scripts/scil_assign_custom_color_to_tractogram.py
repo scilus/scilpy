@@ -42,6 +42,7 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
