@@ -47,3 +47,26 @@ def test_execution_not_all(script_runner):
                             '--not_all', '--asi_map',
                             'asi_map.nii.gz', '-f')
     assert ret.success
+
+
+def test_assert_symmetric_input(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'processing',
+                           'fodf_descoteaux07.nii.gz')
+
+    # Using a low resolution sphere for peak extraction reduces process time
+    ret = script_runner.run('scil_compute_asym_odf_metrics.py', in_fodf,
+                            '--sphere', 'repulsion100')
+    assert not ret.success
+
+
+def test_execution_symmetric_input(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'processing',
+                           'fodf_descoteaux07.nii.gz')
+
+    # Using a low resolution sphere for peak extraction reduces process time
+    ret = script_runner.run('scil_compute_asym_odf_metrics.py', in_fodf,
+                            '--sphere', 'repulsion100', '--not_all',
+                            '--nufid', 'nufid.nii.gz')
+    assert not ret.success
