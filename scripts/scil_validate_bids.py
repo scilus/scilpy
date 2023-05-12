@@ -253,10 +253,19 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
     else:
         print(dwis)
         logging.warning("""
-                     BIDS structure unkown.Please send an issue:
-                     https://github.com/scilus/scilpy/issues
-                     """)
+                        BIDS structure unkown.Please send an issue:
+                        https://github.com/scilus/scilpy/issues
+                        """)
         return {}
+
+    if not any(s == '' for s in topup):
+        logging.info("Found rev b0 and b0 images to correct for geometrical distorsion")
+    elif not topup[1]:
+        logging.warning("No rev image found to correct for geometrical distorsion")
+    elif topup[1]:
+        logging.info("Found rev b0 to correct for geometrical distorsion")
+    else:
+        logging.warning("Only found one b0 with same PhaseEncodedDirection won't be enough to correct for geometrical distorsion")
 
     # T1 setup
     t1_path = 'todo'
@@ -281,10 +290,10 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         if len(t1_nSess) == 1:
             t1_path = t1_nSess[0].path
         elif len(t1_nSess) == 0:
-            logging.info('No T1 file found.')
+            logging.warning('No T1 file found.')
         else:
             t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
-            logging.info('More than one T1 file found.'
+            logging.warning('More than one T1 file found.'
                          ' [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
