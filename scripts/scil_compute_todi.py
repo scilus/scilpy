@@ -84,7 +84,7 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_tractogram,
                         [args.mask, args.reference])

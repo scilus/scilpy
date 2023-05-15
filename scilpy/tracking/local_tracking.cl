@@ -133,17 +133,15 @@ void get_value_trilinear(__global const float* image, const int n_channels,
                           const float3 pos, float* values)
 {
     /*
-              Z = 0                     Z = 1
-    2.0 +-------+-------+     2.0 +-------+-------+
-        |       |       |         |       |       |
-        |   C   |   D   |         |   G   |   H   |
-        |       |       |         |       |       |
-    1.0 +-------+-------+     1.0 +-------+-------+
-        |       |       |         |       |       |
-        |   A   |   B   |         |   E   |   F   |
-        |       |       |         |       |       |
-        +-------+-------+         +-------+-------+
-    0.0        1.0     2.0    0.0        1.0     2.0
+    A note on trilinear interpolation
+    ---------------------------------
+            Z = 0               Z = 1
+    2.0 +-----+-----+   2.0 +-----+-----+
+        |  C  |  D  |       |  G  |  H  |
+    1.0 +-----+-----+   1.0 +-----+-----+
+        |  A  |  B  |       |  E  |  F  |
+        +-----+-----+       +-----+-----+
+    0.0      1.0   2.0     0.0   1.0   2.0
     Because origin is corner, but the ODF at voxel v is centered, i.e.
     we are 100% A at p=(0.5, 0.5), we need to translate p by -0.5
     */
@@ -275,9 +273,10 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
 {
     bool is_valid = is_valid_pos(tracking_mask, last_pos);
 
-    // fix to force streamlines to be of MAX_LENGTH/2 per direction at most.
-    // to be closer to TODI method.
-    const int max_length = is_forward ?
+    // If standard tracking, the forward and backward pass are both
+    // allowed to track for a distance of MAX_LENGTH / 2.
+    // If forward only, then we can 
+    const int max_length = is_forward && !FORWARD_ONLY ?
                            MAX_LENGTH / 2 :
                            current_length + MAX_LENGTH / 2;
 
@@ -369,7 +368,8 @@ int track(float3 seed_pos,
                                sh_to_sf_mat, out_streamlines);
 
     // reverse streamline for backward tracking
-    if(current_length > 1 && current_length < MAX_LENGTH && !FORWARD_ONLY)
+#if !FORWARD_ONLY
+    if(current_length > 1 && current_length < MAX_LENGTH)
     {
         reverse_streamline(current_length, n_seeds,
                            seed_indice, out_streamlines,
@@ -381,6 +381,7 @@ int track(float3 seed_pos,
                                    tracking_mask, sh_coeffs, sf_max, rand_f, vertices,
                                    sh_to_sf_mat, out_streamlines);
     }
+#endif
     return current_length;
 }
 

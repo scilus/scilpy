@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import itertools
 import logging
 import os
 import multiprocessing
@@ -18,6 +19,7 @@ import six
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.utils.filenames import split_name_with_nii
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -29,6 +31,8 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
+
+axis_name_choices = ["axial", "coronal", "sagittal"]
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -173,7 +177,8 @@ def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
 
     parser.add_argument('--sphere', choices=spheres,
                         default=default,
-                        help='Dipy sphere; set of possible directions.')
+                        help='Dipy sphere; set of possible directions.\n'
+                             'Default: [%(default)s]')
 
 
 def add_overwrite_arg(parser):
@@ -192,6 +197,15 @@ def add_force_b0_arg(parser):
 def add_verbose_arg(parser):
     parser.add_argument('-v', action='store_true', dest='verbose',
                         help='If set, produces verbose output.')
+
+
+def add_bbox_arg(parser):
+    parser.add_argument('--no_bbox_check', dest='bbox_check',
+                        action='store_false',
+                        help='Activate to ignore validity of the bounding '
+                             'box during loading / saving of \n'
+                             'tractograms (ignores the presence of invalid '
+                             'streamlines).')
 
 
 def add_sh_basis_args(parser, mandatory=False):
@@ -436,7 +450,8 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
     parser: argument parser
         Will raise an error if a file is not compatible.
     args: Namespace
-        Should contain a args.reference if any file is a .tck.
+        Should contain a args.reference if any file is a .tck, and possibly a
+        args.bbox_check (set to True by default).
     """
     save_ref = args.reference
 
@@ -451,14 +466,49 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
                     args.reference = None
                 else:
                     args.reference = save_ref
-                mask = load_tractogram_with_reference(parser, args, file,
-                                                      bbox_check=False)
+                mask = load_tractogram_with_reference(parser, args, file)
             else:  # should be a nifti file.
                 mask = file
             compatible = is_header_compatible(ref_sft, mask)
             if not compatible:
                 parser.error("Reference tractogram incompatible with {}"
                              .format(file))
+
+
+def is_header_compatible_multiple_files(parser, list_files,
+                                        verbose_all_compatible=False):
+    """
+    Verifies the compatibility between the first item in list_files
+    and the remaining files in list.
+
+    parser: argument parser
+        Will raise an error if a file is not compatible.
+
+    list_files: List
+        List of files to test
+
+    verbose_all_compatible: bool
+        If true will print a message when everything is okay
+    """
+    all_valid = True
+
+    for filepath in list_files:
+        _, in_extension = split_name_with_nii(filepath)
+        if in_extension not in ['.trk', '.nii', '.nii.gz']:
+            parser.error('{} does not have a supported extension'.format(
+                filepath))
+
+    all_pairs = list(itertools.combinations(list_files, 2))
+    for curr_pair in all_pairs:
+        if not is_header_compatible(curr_pair[0], curr_pair[1]):
+            print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
+                curr_pair[0], curr_pair[1]))
+            all_valid = False
+
+    if all_valid and verbose_all_compatible:
+        print('All input files have compatible headers.')
+    elif not all_valid:
+        parser.error('All input files have not compatible header.')
 
 
 def read_info_from_mb_bdo(filename):
@@ -470,7 +520,7 @@ def read_info_from_mb_bdo(filename):
     center = [flip[0]*float(center_tag.attrib['x'].replace(',', '.')),
               flip[1]*float(center_tag.attrib['y'].replace(',', '.')),
               flip[2]*float(center_tag.attrib['z'].replace(',', '.'))]
-    row_list = tree.getiterator('Row')
+    row_list = tree.iter('Row')
     radius = [None, None, None]
     for i, row in enumerate(row_list):
         for j in range(0, 3):
@@ -500,9 +550,12 @@ def load_matrix_in_any_format(filepath):
         # antsRegistration that encode a 4x4 transformation matrix.
         transfo_dict = loadmat(filepath)
         lps2ras = np.diag([-1, -1, 1])
+        transfo_key = 'AffineTransform_double_3_3'
+        if transfo_key not in transfo_dict:
+            transfo_key = 'AffineTransform_float_3_3'
 
-        rot = transfo_dict['AffineTransform_double_3_3'][0:9].reshape((3, 3))
-        trans = transfo_dict['AffineTransform_double_3_3'][9:12]
+        rot = transfo_dict[transfo_key][0:9].reshape((3, 3))
+        trans = transfo_dict[transfo_key][9:12]
         offset = transfo_dict['fixed']
         r_trans = (np.dot(rot, offset) - offset - trans).T * [1, 1, -1]
 
@@ -586,3 +639,39 @@ def snapshot(scene, filename, **kwargs):
     out = window.snapshot(scene, **kwargs)
     image = Image.fromarray(out[::-1])
     image.save(filename)
+
+
+def ranged_type(value_type, min_value, max_value):
+    """Return a function handle of an argument type function for ArgumentParser
+    checking a range: `min_value` <= arg <= `max_value`.
+
+    Parameters
+    ----------
+    value_type : Type
+        Value-type to convert the argument.
+    min_value : scalar
+        Minimum acceptable argument value.
+    max_value : scalar
+       Maximum acceptable argument value.
+
+    Returns
+    -------
+    Function handle of an argument type function for ArgumentParser.
+
+    Usage
+    -----
+        ranged_type(float, 0.0, 1.0)
+    """
+
+    def range_checker(arg: str):
+        try:
+            f = value_type(arg)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"must be a valid {value_type}")
+        if f < min_value or f > max_value:
+            raise argparse.ArgumentTypeError(
+                f"must be within [{min_value}, {max_value}]")
+        return f
+
+    # Return handle to checking function
+    return range_checker

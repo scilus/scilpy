@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import numpy as np
 from numpy.linalg import norm
-from scipy.spatial.ckdtree import cKDTree
+from scipy.spatial import cKDTree
 from scipy.sparse import bsr_matrix
 
 
@@ -85,7 +87,13 @@ def streamlines_to_pts_dir_norm(streamlines, n_steps=1, asymmetric=False):
     seg_dir, seg_norm = get_segments_dir_and_norm(segments,
                                                   seg_mid,
                                                   asymmetric)
-    return seg_mid, seg_dir, seg_norm
+
+    mask = seg_norm > 1.0e-20
+    if ~mask.any():
+        logging.warning("WARNING : There is at least one streamline with "
+                        "overlapping points in the tractogram.")
+
+    return seg_mid[mask], seg_dir[mask], seg_norm[mask]
 
 
 def get_segments_mid_pts_positions(segments):
@@ -169,7 +177,7 @@ def get_dir_to_sphere_id(vectors, sphere_vertices):
         Sphere indices of the closest sphere direction for each vector
     """
     sphere_kdtree = cKDTree(sphere_vertices)
-    _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, n_jobs=-1)
+    _, dir_sphere_id = sphere_kdtree.query(vectors, k=1, workers=-1)
     return dir_sphere_id
 
 

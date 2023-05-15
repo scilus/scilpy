@@ -12,9 +12,9 @@ import logging
 
 import nibabel as nib
 import numpy as np
-from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.morphology import (binary_closing, binary_dilation,
-                                      binary_erosion, binary_opening)
+from scipy.ndimage import (binary_closing, binary_dilation,
+                           binary_erosion, binary_opening,
+                           gaussian_filter)
 
 from scilpy.utils.util import is_float
 

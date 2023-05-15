@@ -64,7 +64,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, [args.in_tractogram, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
@@ -95,9 +95,11 @@ def main():
         new_sft = cut_between_masks_streamlines(sft, binary_mask)
 
     else:
-        logging.error('The provided mask has more than 2 entities. Cannot cut '
-                      'between >2.')
-        return
+        logging.warning('The provided mask has MORE THAN 2 entity '
+                        'cut_between_masks_streamlines function selected. '
+                        'This may cause problems with the outputed '
+                        'streamlines. Please inspect the output carefully.')
+        new_sft = cut_between_masks_streamlines(sft, binary_mask)
 
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '

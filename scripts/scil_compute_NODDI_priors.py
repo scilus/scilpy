@@ -98,10 +98,8 @@ def main():
 
     assert_same_resolution([args.in_AD, args.in_FA, args.in_MD])
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
 
     fa_img = nib.load(args.in_FA)
     fa_data = fa_img.get_fdata(dtype=np.float32)

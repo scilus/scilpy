@@ -16,6 +16,11 @@ The --at argument should be set to a value which is 1.5 times the maximal
 value of the fODF in the ventricules. This can be obtained with the
 compute_fodf_max_in_ventricules.py script.
 
+If the --abs_peaks_and_values argument is set, the peaks are all normalized
+and the peak_values are equal to the actual fODF amplitude of the peaks. By
+default, the script max-normalizes the peak_values for each voxel and
+multiplies the peaks by peak_values.
+
 By default, will output all possible files, using default names. Specific names
 can be specified using the file flags specified in the "File flags" section.
 
@@ -64,6 +69,12 @@ def _build_arg_parser():
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
                    help='Relative threshold on fODF amplitude in percentage  '
                         '[%(default)s].')
+    p.add_argument('--abs_peaks_and_values', action='store_true',
+                   help='If set, the peak_values are not max-normalized for '
+                        'each voxel, \nbut rather they keep the actual fODF '
+                        'amplitude of the peaks. \nAlso, the peaks are '
+                        'given as unit directions instead of being '
+                        'proportional to peak_values. [%(default)s]')
     add_sh_basis_args(p)
     add_overwrite_arg(p)
     add_processes_arg(p)
@@ -171,13 +182,14 @@ def main():
         nib.save(nib.Nifti1Image(rgb_map.astype('uint8'), affine), args.rgb)
 
     if args.peaks or args.peak_values:
-        peak_values = np.divide(peak_values, peak_values[..., 0, None],
-                                out=np.zeros_like(peak_values),
-                                where=peak_values[..., 0, None] != 0)
-        peak_dirs[...] *= peak_values[..., :, None]
+        if not args.abs_peaks_and_values:
+            peak_values = np.divide(peak_values, peak_values[..., 0, None],
+                                    out=np.zeros_like(peak_values),
+                                    where=peak_values[..., 0, None] != 0)
+            peak_dirs[...] *= peak_values[..., :, None]
         if args.peaks:
             nib.save(nib.Nifti1Image(reshape_peaks_for_visualization(peak_dirs),
-                                     affine), args.peaks)
+                                    affine), args.peaks)
         if args.peak_values:
             nib.save(nib.Nifti1Image(peak_values, vol.affine), args.peak_values)
 

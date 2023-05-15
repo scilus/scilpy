@@ -45,8 +45,8 @@ from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 def buildArgsParser():
 
     p = argparse.ArgumentParser(
-            description=__doc__,
-            formatter_class=argparse.RawDescriptionHelpFormatter)
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
 
     p.add_argument('in_dwi',
                    help='Path to the input diffusion volume.')
@@ -163,10 +163,8 @@ def main():
     parser = buildArgsParser()
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,

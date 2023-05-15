@@ -17,7 +17,20 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_connectivity(script_runner):
+def test_execution_compute_OLO(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_sc = os.path.join(get_home(), 'connectivity',
+                         'sc_norm.npy')
+    in_labels_list = os.path.join(get_home(), 'connectivity',
+                                  'labels_list.txt')
+    ret = script_runner.run('scil_reorder_connectivity.py', in_sc,
+                            '--optimal_leaf_ordering', 'OLO.txt',
+                            '--out_dir', os.path.expanduser(tmp_dir.name),
+                            '--labels_list', in_labels_list, '-f')
+    assert ret.success
+
+
+def test_execution_apply_ordering(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_sc = os.path.join(get_home(), 'connectivity',
                          'sc_norm.npy')
@@ -25,7 +38,9 @@ def test_execution_connectivity(script_runner):
                           'reorder.txt')
     in_labels_list = os.path.join(get_home(), 'connectivity',
                                   'labels_list.txt')
-    ret = script_runner.run('scil_reorder_connectivity.py', in_sc, in_txt,
+    ret = script_runner.run('scil_reorder_connectivity.py', in_sc,
+                            '--in_ordering', in_txt,
                             '--out_suffix', '_sc_reo',
-                            '--labels_list', in_labels_list)
+                            '--out_dir', os.path.expanduser(tmp_dir.name),
+                            '--labels_list', in_labels_list, '-f')
     assert ret.success

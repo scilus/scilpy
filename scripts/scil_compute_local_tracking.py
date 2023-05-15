@@ -61,7 +61,7 @@ def _build_arg_parser():
     track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'eudx'],
-                         help='Algorithm to use [%(default)s]')
+                         help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
 
     add_seeding_options(p)
@@ -128,7 +128,8 @@ def _get_direction_getter(args):
             npeaks = 5
             peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
             peak_values = np.zeros((odf_shape_3d + (npeaks, )))
-            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1, dtype='int')
+            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1,
+                                   dtype='int')
             b_matrix = get_b_matrix(
                 find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
 
@@ -156,7 +157,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
@@ -194,6 +195,14 @@ def main():
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
+
+    if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
+        raise IOError('The image {} is empty. '
+                      'It can\'t be loaded as '
+                      'seeding mask.'.format(args.in_seed))
+
+    # Note. Seeds are in voxel world, center origin.
+    # (See the examples in random_seeds_from_mask).
     seeds = track_utils.random_seeds_from_mask(
         seed_img.get_fdata(dtype=np.float32),
         np.eye(4),
@@ -228,8 +237,13 @@ def main():
         data_per_streamlines = {}
 
     if args.compress:
+        # Compressing. Threshold is in mm, but we are working in voxel space.
+        # Equivalent of sft.to_voxmm:  streamline *= voxres
+        # Equivalent of sft.to_vox: streamline /= voxres
+        voxres = np.asarray(odf_sh_img.header.get_zooms()[0:3])
         filtered_streamlines = (
-            compress_streamlines(s, args.compress)
+            compress_streamlines(s * voxres,
+                                 args.compress) / voxres
             for s in filtered_streamlines)
 
     tractogram = LazyTractogram(lambda: filtered_streamlines,

@@ -83,6 +83,7 @@ def main():
         curr_size = curr_dwi.shape[-1]
         all_dwi[..., last_count:last_count+curr_size] = \
             curr_dwi.get_fdata()
+        last_count += curr_size
 
     np.savetxt(args.out_bval, all_bvals, '%d')
     np.savetxt(args.out_bvec, all_bvecs.T, '%0.15f')

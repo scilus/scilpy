@@ -6,7 +6,7 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 import numpy as np
 from scipy.interpolate import splev, splprep
-from scipy.ndimage.filters import gaussian_filter1d
+from scipy.ndimage import gaussian_filter1d
 
 
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
@@ -135,42 +135,6 @@ def filter_streamlines_by_total_length_per_dim(
     return filtered_sft, np.nonzero(mask_good_ids), rejected_sft
 
 
-def get_subset_streamlines(sft, max_streamlines, rng_seed=None):
-    """
-    Extract a specific number of streamlines.
-
-    Parameters
-    ----------
-    sft: StatefulTractogram
-        SFT containing the streamlines to subsample.
-    max_streamlines: int
-        Maximum number of streamlines to output.
-    rng_seed: int
-        Random number to use for shuffling the data.
-
-    Return
-    ------
-    subset_sft: StatefulTractogram
-        The filtered streamlines as a sft.
-    """
-
-    rng = np.random.RandomState(rng_seed)
-    ind = np.arange(len(sft.streamlines))
-    rng.shuffle(ind)
-
-    subset_streamlines = list(np.asarray(sft.streamlines, dtype=object)[
-                              ind[:max_streamlines]])
-    subset_data_per_point = sft.data_per_point[ind[:max_streamlines]]
-    subset_data_per_streamline = sft.data_per_streamline[ind[:max_streamlines]]
-
-    subset_sft = StatefulTractogram.from_sft(
-        subset_streamlines, sft,
-        data_per_point=subset_data_per_point,
-        data_per_streamline=subset_data_per_streamline)
-
-    return subset_sft
-
-
 def resample_streamlines_num_points(sft, num_points):
     """
     Resample streamlines using number of points per streamline
@@ -259,9 +223,9 @@ def _warn_and_save(new_streamlines, sft):
     """Last step of the two resample functions:
     Warn that we loose data_per_point, then create resampled SFT."""
 
-    if sft.data_per_point is not None:
-        logging.debug("Initial stateful tractogram contained data_per_point. "
-                      "This information will not be carried in the final"
+    if sft.data_per_point is not None and sft.data_per_point.keys():
+        logging.debug("Initial StatefulTractogram contained data_per_point. "
+                      "This information will not be carried in the final "
                       "tractogram.")
     new_sft = StatefulTractogram.from_sft(
         new_streamlines, sft, data_per_streamline=sft.data_per_streamline)

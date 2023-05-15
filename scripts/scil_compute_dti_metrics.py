@@ -38,9 +38,12 @@ from dipy.reconst.dti import (TensorModel, color_fa, fractional_anisotropy,
                               radial_diffusivity, lower_triangular)
 # Aliased to avoid clashes with images called mode.
 from dipy.reconst.dti import mode as dipy_mode
+
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
+from scilpy.reconst.dti import convert_tensor_from_dipy_format, \
+    supported_tensor_formats, tensor_format_description
 from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
                                           check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
@@ -75,7 +78,8 @@ def _build_arg_parser():
         help='Tensor fit method.\nWLS for weighted least squares' +
              '\nLS for ordinary least squares' +
              '\nNLLS for non-linear least-squares' +
-             '\nrestore for RESTORE robust tensor fitting. (Default: %(default)s)')
+             '\nrestore for RESTORE robust tensor fitting. '
+             '(Default: %(default)s)')
     p.add_argument(
         '--not_all', action='store_true', dest='not_all',
         help='If set, will only save the metrics explicitly specified using '
@@ -114,6 +118,11 @@ def _build_arg_parser():
     g.add_argument(
         '--tensor', dest='tensor', metavar='file', default='',
         help='Output filename for the tensor coefficients.')
+    g.add_argument('--tensor_format', choices=supported_tensor_formats,
+                   default='fsl',
+                   help=("Format used for the tensors saved in --tensor file."
+                         "(default: %(default)s)\n"
+                         + tensor_format_description))
 
     g = p.add_argument_group(title='Quality control files flags')
     g.add_argument(
@@ -203,11 +212,12 @@ def main():
     FA = np.clip(FA, 0, 1)
 
     if args.tensor:
-        # Get the Tensor values and format them for visualisation
-        # in the Fibernavigator.
+        # Get the Tensor values
+        # Format them for visualization in various software.
         tensor_vals = lower_triangular(tenfit.quadratic_form)
-        correct_order = [0, 1, 3, 2, 4, 5]
-        tensor_vals_reordered = tensor_vals[..., correct_order]
+        tensor_vals_reordered = convert_tensor_from_dipy_format(
+            tensor_vals, final_format=args.tensor_format)
+
         fiber_tensors = nib.Nifti1Image(
             tensor_vals_reordered.astype(np.float32), affine)
         nib.save(fiber_tensors, args.tensor)

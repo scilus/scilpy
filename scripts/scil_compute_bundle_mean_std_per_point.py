@@ -15,6 +15,7 @@ import os
 import nibabel as nib
 import numpy as np
 
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args, add_reference_arg,
@@ -29,11 +30,8 @@ def _build_arg_parser():
 
     p.add_argument('in_bundle',
                    help='Fiber bundle file to compute statistics on.')
-    p.add_argument('in_label_map',
-                   help='Label map (.npz) of the corresponding fiber bundle.')
-    p.add_argument('in_distance_map',
-                   help='Distance map (.npz) of the corresponding bundle/'
-                        'centroid streamline.')
+    p.add_argument('in_labels',
+                   help='Label map (.nii.gz) of the corresponding fiber bundle.')
     p.add_argument('in_metrics', nargs='+',
                    help='Nifti file to compute statistics on. Probably some '
                         'tractometry measure(s) such as FA, MD, RD, ...')
@@ -41,9 +39,12 @@ def _build_arg_parser():
     p.add_argument('--density_weighting', action='store_true',
                    help='If set, weight statistics by the number of '
                         'streamlines passing through each voxel.')
-    p.add_argument('--distance_weighting', action='store_true',
+    p.add_argument('--distance_weighting', metavar='DISTANCE_NII',
                    help='If set, weight statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
+    p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
+                   help='If set, weight statistics by the correlation strength '
+                        'between longitudinal data.')
     p.add_argument('--out_json',
                    help='Path of the output json file. If not given, json '
                         'formatted stats are simply printed.')
@@ -58,8 +59,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_bundle, args.in_label_map,
-                                 args.in_distance_map] + args.in_metrics)
+    assert_inputs_exist(parser, [args.in_bundle,
+                                 args.in_labels] + args.in_metrics,
+                        [args.distance_weighting, args.correlation_weighting])
     assert_outputs_exist(parser, args, '', args.out_json)
 
     # Load everything
@@ -76,24 +78,27 @@ def main():
     assert_same_resolution(args.in_metrics)
     metrics = [nib.load(metric) for metric in args.in_metrics]
 
-    label_file = np.load(args.in_label_map)
-    labels = label_file['arr_0']
+    labels_img = nib.load(args.in_labels)
+    labels = get_data_as_labels(labels_img)
 
-    distance_file = np.load(args.in_distance_map)
-    distances_to_centroid_streamline = distance_file['arr_0']
+    if args.distance_weighting:
+        distance_file = nib.load(args.distance_weighting)
+        distances_values = distance_file.get_fdata(dtype=float)
+    else:
+        distances_values = None
 
-    if len(labels) != len(distances_to_centroid_streamline):
-        raise Exception(
-            "Label map doesn't contain the same number of entries as the "
-            "distance map. {} != {}".format(len(labels),
-                                            len(distances_to_centroid_streamline)))
+    if args.correlation_weighting:
+        correlation_file = nib.load(args.correlation_weighting)
+        correlation_values = correlation_file.get_fdata(dtype=float)
+    else:
+        correlation_values = None
 
     # Compute stats
     stats = get_bundle_metrics_mean_std_per_point(sft.streamlines, bundle_name,
-                                                  distances_to_centroid_streamline,
                                                   metrics, labels,
-                                                  args.density_weighting,
-                                                  args.distance_weighting)
+                                                  distances_values,
+                                                  correlation_values,
+                                                  args.density_weighting)
 
     if args.out_json:
         with open(args.out_json, 'w') as outfile:

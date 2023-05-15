@@ -498,7 +498,7 @@ def swap_fsl_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
     """
 
     bvecs = np.loadtxt(bvecs_filename)
-    new_bvecs = np.zeros(bvecs.shape)
+    new_bvecs = np.copy(bvecs)
     new_bvecs[axes[0], :] = bvecs[axes[1], :]
     new_bvecs[axes[1], :] = bvecs[axes[0], :]
 
@@ -520,7 +520,7 @@ def swap_mrtrix_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
     """
 
     bvecs = np.loadtxt(bvecs_filename)
-    new_bvecs = np.zeros(bvecs.shape)
+    new_bvecs = np.copy(bvecs)
 
     new_bvecs[:, axes[0]] = bvecs[:, axes[1]]
     new_bvecs[:, axes[1]] = bvecs[:, axes[0]]

@@ -21,8 +21,8 @@ def test_help_option(script_runner):
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_json = os.path.join(get_home(), 'stats', 'participants.tsv')
-    in_participants = os.path.join(get_home(), 'stats', 'meanstd_all.json')
+    in_json = os.path.join(get_home(), 'stats/group', 'participants.tsv')
+    in_participants = os.path.join(get_home(), 'stats/group', 'meanstd_all.json')
 
     ret = script_runner.run('scil_group_comparison.py',
                             in_participants, in_json, 'Group',

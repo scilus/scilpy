@@ -2,12 +2,12 @@
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 import numpy as np
+from sklearn.cluster import KMeans
 
 from scilpy.tracking.tools import filter_streamlines_by_length
 from scilpy.tractanalysis.quick_tools import (get_next_real_point,
                                               get_previous_real_point)
 from scilpy.tractanalysis.reproducibility_measures import get_endpoints_density_map
-from scilpy.tractanalysis.scoring import split_heads_tails_kmeans
 from scilpy.tractanalysis.uncompress import uncompress
 
 
@@ -320,3 +320,31 @@ def intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
                     exit_roi_data = roi_data_1
 
     return in_strl_idx, out_strl_idx
+
+
+def split_heads_tails_kmeans(data):
+    """
+    Split a mask between head and tail with k means.
+
+    Parameters
+    ----------
+    data: numpy.ndarray
+        Mask to be split.
+
+    Returns
+    -------
+    mask_1: numpy.ndarray
+        "Head" of the mask.
+    mask_2: numpy.ndarray
+        "Tail" of the mask.
+    """
+
+    X = np.argwhere(data)
+    k_means = KMeans(n_clusters=2).fit(X)
+    mask_1 = np.zeros(data.shape)
+    mask_2 = np.zeros(data.shape)
+
+    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
+    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
+
+    return mask_1, mask_2

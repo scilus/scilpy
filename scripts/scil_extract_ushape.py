@@ -70,8 +70,7 @@ def main():
         parser.error('Min-Max ufactor "{},{}" '.format(args.minU, args.maxU) +
                      'must be between -1 and 1.')
 
-    sft = load_tractogram_with_reference(
-        parser, args, args.in_tractogram)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     ids_c = detect_ushape(sft, args.minU, args.maxU)
     ids_l = np.setdiff1d(np.arange(len(sft.streamlines)), ids_c)

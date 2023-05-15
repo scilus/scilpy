@@ -117,7 +117,7 @@ def main():
     # COMMIT has some c-level stdout and non-logging print that cannot
     # be easily stopped. Manual redirection of all printed output
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
         redirected_stdout = redirect_stdout(sys.stdout)
     else:
         f = io.StringIO()
@@ -184,10 +184,6 @@ def main():
         ae.load_kernels()
 
         # Set number of processes
-        solver_params = ae.get_config('solver_params')
-        solver_params['numThreads'] = args.nbr_processes
-        ae.set_config('solver_params', solver_params)
-
         ae.set_config('doNormalizeSignal', True)
         ae.set_config('doKeepb0Intact', False)
         ae.set_config('doComputeNRMSE', True)

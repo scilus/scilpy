@@ -5,7 +5,10 @@
 Now supports sequential filtering condition and mixed filtering object.
 For example, --atlas_roi ROI_NAME ID MODE CRITERIA
 - ROI_NAME is the filename of a Nifti
-- ID is the integer value in the atlas
+- ID is one or multiple integer values in the atlas. If multiple values,
+    ID needs to be between quotes.
+    Example: "1:6 9 10:15" will use values between 1 and 6 and values
+                           between 10 and 15 included as well as value 9.
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
 
@@ -42,7 +45,9 @@ import nibabel as nib
 import numpy as np
 from scipy import ndimage
 
-from scilpy.io.image import get_data_as_label, get_data_as_mask
+from scilpy.io.image import (get_data_as_mask,
+                             merge_labels_into_mask)
+from scilpy.image.labels import get_data_as_labels
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -92,6 +97,8 @@ def _build_arg_parser():
                         'The value is in voxel (NOT mm).\n'
                         'Anisotropic data will affect each direction '
                         'differently')
+    p.add_argument('--extract_masks_atlas_roi', action='store_true',
+                   help='Extract atlas roi masks.')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamline.')
     p.add_argument('--display_counts', action='store_true',
@@ -146,7 +153,12 @@ def prepare_filtering_list(parser, args):
         with open(args.filtering_list) as txt:
             content = txt.readlines()
         for roi_opt in content:
-            roi_opt_list.append(roi_opt.strip().split())
+            if "\"" in roi_opt:
+                tmp_opt = [i.strip() for i in roi_opt.strip().split("\"")]
+                roi_opt_list.append(
+                    tmp_opt[0].split() + [tmp_opt[1]] + tmp_opt[2].split())
+            else:
+                roi_opt_list.append(roi_opt.strip().split())
 
     for roi_opt in roi_opt_list:
         if roi_opt[0] == 'atlas_roi':
@@ -173,7 +185,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
         set_sft_logger_level('WARNING')
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
@@ -187,6 +199,8 @@ def main():
 
     # Streamline count before filtering
     o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
+
+    atlas_roi_item = 0
 
     total_kept_ids = np.arange(len(sft.streamlines))
     for i, roi_opt in enumerate(roi_opt_list):
@@ -214,9 +228,13 @@ def main():
             if filter_type == 'drawn_roi':
                 mask = get_data_as_mask(img)
             else:
-                atlas = get_data_as_label(img)
-                mask = np.zeros(atlas.shape, dtype=np.uint16)
-                mask[atlas == int(filter_arg_2)] = 1
+                atlas = get_data_as_labels(img)
+                mask = merge_labels_into_mask(atlas, filter_arg_2)
+
+                if args.extract_masks_atlas_roi:
+                    atlas_roi_item = atlas_roi_item + 1
+                    nib.Nifti1Image(mask.astype(np.uint16),
+                                    img.affine).to_filename('mask_atlas_roi_{}.nii.gz'.format(str(atlas_roi_item)))
 
             if args.soft_distance is not None:
                 mask = ndimage.binary_dilation(mask, bin_struct,

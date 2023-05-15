@@ -157,7 +157,7 @@ def main():
                                  args.in_conn_matrix])
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     if not args.append_json:
         assert_outputs_exist(parser, args, args.out_json)

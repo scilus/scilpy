@@ -46,7 +46,7 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.reproducibility_measures import binary_classification
-from scilpy.utils.streamlines import intersection_robust
+from scilpy.tractograms.tractogram_operations import intersection_robust
 
 
 def _build_arg_parser():
@@ -148,7 +148,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, args.in_bundles)
     assert_outputs_exist(parser, args, args.out_json)

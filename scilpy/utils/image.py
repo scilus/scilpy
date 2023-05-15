@@ -14,7 +14,7 @@ from dipy.segment.mask import median_otsu
 import nibabel as nib
 import numpy as np
 
-from scipy.ndimage.morphology import binary_dilation
+from scipy.ndimage import binary_dilation
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 
@@ -178,7 +178,7 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         Set to use logging
     """
     if verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     img = nib.load(dwi)
     data = img.get_fdata(dtype=np.float32)

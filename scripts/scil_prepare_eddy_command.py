@@ -58,7 +58,9 @@ def _build_arg_parser():
                         'used to run topup.')
 
     p.add_argument('--eddy_cmd', default='eddy_openmp',
-                   choices=['eddy_openmp', 'eddy_cuda'],
+                   choices=['eddy_openmp', 'eddy_cuda', 'eddy_cuda8.0',
+                            'eddy_cuda9.1', 'eddy_cuda10.2',
+                            'eddy', 'eddy_cpu'],
                    help='Eddy command [%(default)s].')
 
     p.add_argument('--b0_thr', type=float, default=20,
@@ -125,7 +127,7 @@ def main():
             "available in your path.".format(args.eddy_cmd))
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.getLogger().setLevel(logging.INFO)
 
     required_args = [args.in_dwi, args.in_bvals, args.in_bvecs, args.in_mask]
 

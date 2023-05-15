@@ -47,7 +47,8 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.image import get_data_as_mask, get_data_as_label
+from scilpy.image.labels import get_data_as_labels
+from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
 
 
@@ -188,7 +189,7 @@ def main():
 
     if args.in_atlas:
         label_image = nib.load(args.in_atlas)
-        label_data = get_data_as_label(label_image)
+        label_data = get_data_as_labels(label_image)
 
         with open(args.atlas_lut) as f:
             label_dict = json.load(f)

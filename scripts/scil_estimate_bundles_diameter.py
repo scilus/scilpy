@@ -27,12 +27,10 @@ import os
 
 from dipy.io.utils import is_header_compatible
 from fury import window, actor
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from scipy.linalg import svd
-from scipy.ndimage import map_coordinates
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import map_coordinates, gaussian_filter
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -43,6 +41,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              parser_color_type,
                              snapshot)
 from scilpy.viz.scene_utils import create_tube_with_radii
+from scilpy.viz.utils import get_colormap
 
 
 def _build_arg_parser():
@@ -283,7 +282,7 @@ def main():
                                                 wireframe=args.wireframe,
                                                 error_coloring=args.error_coloring)
             scene.add(tube_actor)
-            cmap = plt.get_cmap('jet')
+            cmap = get_colormap('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
             streamlines_actor = actor.streamtube(sft.streamlines,
                                                  linewidth=args.width,

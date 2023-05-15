@@ -39,7 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import transform_warp_sft
+from scilpy.tractograms.tractogram_operations import transform_warp_sft
 
 
 def _build_arg_parser():
@@ -61,7 +61,7 @@ def _build_arg_parser():
     p.add_argument('--in_deformation',
                    help='Path to the file containing a deformation field.')
     p.add_argument('--reverse_operation', action='store_true',
-                   help='Apply the transformation in reverse (see doc),'
+                   help='Apply the transformation in reverse (see doc), '
                         'warp first, then linear.')
 
     p.add_argument('--cut_invalid', action='store_true',
@@ -112,7 +112,7 @@ def main():
                                                 origin=Origin.TRACKVIS)
                 for dps_key in in_hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        if in_hdf5_file[key][dps_key].value.shape \
+                        if in_hdf5_file[key][dps_key].shape \
                                 == in_hdf5_file[key]['offsets']:
                             moving_sft.data_per_streamline[dps_key] \
                                 = in_hdf5_file[key][dps_key]
@@ -135,20 +135,20 @@ def main():
 
                 group = out_hdf5_file[key]
                 group.create_dataset('data',
-                                     data=new_sft.streamlines._data.astype(float))
+                                     data=new_sft.streamlines._data.astype(np.float32))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
                 group.create_dataset('lengths',
                                      data=new_sft.streamlines._lengths)
                 for dps_key in in_hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        if in_hdf5_file[key][dps_key].value.shape \
+                        if in_hdf5_file[key][dps_key].shape \
                                 == in_hdf5_file[key]['offsets']:
                             group.create_dataset(dps_key,
                                                  data=new_sft.data_per_streamline[dps_key])
                         else:
                             group.create_dataset(dps_key,
-                                                 data=in_hdf5_file[key][dps_key].value)
+                                                 data=in_hdf5_file[key][dps_key])
 
 
 if __name__ == "__main__":

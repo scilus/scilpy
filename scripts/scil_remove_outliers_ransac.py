@@ -63,7 +63,7 @@ def main():
                      .format(args.fit_thr))
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     in_img = nib.load(args.in_image)
     in_data = in_img.get_fdata(dtype=np.float32)

@@ -4,15 +4,16 @@ import logging
 import multiprocessing
 import os
 import sys
-import traceback
+from tempfile import TemporaryDirectory
 from time import perf_counter
+import traceback
+from typing import Union
 
-import nibabel as nib
 import numpy as np
-
-from dipy.tracking.streamlinespeed import compress_streamlines
 from dipy.data import get_sphere
+from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
+from dipy.tracking.streamlinespeed import compress_streamlines
 
 from scilpy.image.datasets import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
@@ -30,13 +31,16 @@ class Tracker(object):
     def __init__(self, propagator: AbstractPropagator, mask: DataVolume,
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
-                 nbr_processes=1, save_seeds=False, mmap_mode=None,
+                 nbr_processes=1, save_seeds=False,
+                 mmap_mode: Union[str, None] = None,
                  rng_seed=1234, track_forward_only=False, skip=0):
         """
         Parameters
         ----------
         propagator : AbstractPropagator
             Tracking object.
+            This tracker will use space and origin defined in the
+            propagator.
         mask : DataVolume
             Tracking volume(s).
         seed_generator : SeedGenerator
@@ -85,9 +89,16 @@ class Tracker(object):
         self.track_forward_only = track_forward_only
         self.skip = skip
 
-        # Everything scilpy.tracking is in 'corner', 'voxmm'
-        self.origin = 'corner'
-        self.space = 'voxmm'
+        self.origin = self.propagator.origin
+        self.space = self.propagator.space
+        if self.space == Space.RASMM:
+            raise NotImplementedError(
+                "This version of the Tracker is not ready to work in RASMM "
+                "space.")
+        if (seed_generator.origin != propagator.origin or
+                seed_generator.space != propagator.space):
+            raise ValueError("Seed generator and propagator must work with "
+                             "the same space and origin!")
 
         if self.min_nbr_pts <= 0:
             logging.warning("Minimum number of points cannot be 0. Changed to "
@@ -105,8 +116,7 @@ class Tracker(object):
 
     def track(self):
         """
-        Generate a set of streamline from seed, mask and odf files. Results
-        are in voxmm space (i.e. in mm coordinates, starting at 0,0,0).
+        Generate a set of streamline from seed, mask and odf files.
 
         Return
         ------
@@ -122,7 +132,7 @@ class Tracker(object):
         else:
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
-            with nib.tmpdirs.InTemporaryDirectory() as tmpdir:
+            with TemporaryDirectory() as tmpdir:
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
@@ -189,10 +199,10 @@ class Tracker(object):
         pool = multiprocessing.Pool(
             self.nbr_processes,
             initializer=self._send_multiprocess_args_to_global,
-            initargs={
+            initargs=({
                 'data_file_name': data_file_name,
                 'mmap_mode': self.mmap_mode
-            })
+            },))
 
         return pool
 
@@ -291,15 +301,24 @@ class Tracker(object):
             line = self._get_line_both_directions(seed)
 
             if line is not None:
+                streamline = np.array(line, dtype='float32')
+
                 if self.compression_th and self.compression_th > 0:
-                    streamlines.append(
-                        compress_streamlines(np.array(line, dtype='float32'),
-                                             self.compression_th))
-                else:
-                    streamlines.append((np.array(line, dtype='float32')))
+                    # Compressing. Threshold is in mm. Verifying space.
+                    if self.space == Space.VOX:
+                        # Equivalent of sft.to_voxmm:
+                        streamline *= self.seed_generator.voxres
+                        compress_streamlines(streamline, self.compression_th)
+                        # Equivalent of sft.to_vox:
+                        streamline /= self.seed_generator.voxres
+                    else:
+                        compress_streamlines(streamline, self.compression_th)
+
+                streamlines.append(streamline)
 
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
+
         return streamlines, seeds
 
     def _get_line_both_directions(self, seeding_pos):
@@ -396,21 +415,25 @@ class Tracker(object):
                                                         tracking_info)
         if (final_pos is not None and
                 not np.array_equal(final_pos, line[-1]) and
-                self.mask.is_voxmm_in_bound(*final_pos, origin=self.origin)):
+                self.mask.is_coordinate_in_bound(
+                    *final_pos, space=self.space, origin=self.origin)):
             line.append(final_pos)
         return line
 
     def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
+
         # Checking number of consecutive invalid directions
         if invalid_direction_count > self.max_invalid_dirs:
             return False
 
         # Checking if out of bound
-        if not self.mask.is_voxmm_in_bound(*last_pos, origin=self.origin):
+        if not self.mask.is_coordinate_in_bound(
+                *last_pos, space=self.space, origin=self.origin):
             return False
 
         # Checking if out of mask
-        if self.mask.voxmm_to_value(*last_pos, origin=self.origin) <= 0:
+        if self.mask.get_value_at_coordinate(
+                *last_pos, space=self.space, origin=self.origin) <= 0:
             return False
 
         return True

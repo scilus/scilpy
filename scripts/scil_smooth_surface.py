@@ -69,7 +69,7 @@ def main():
         parser.error("Step size should be strictly positive")
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     # Step size (zero for masked vertices)
     if args.vts_mask:

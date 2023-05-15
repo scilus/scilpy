@@ -66,9 +66,14 @@ opts = dict(name=NAME,
             packages=find_packages(),
             cmdclass={'build_ext': CustomBuildExtCommand},
             ext_modules=get_extensions(),
+            python_requires=PYTHON_VERSION,
             setup_requires=['cython', 'numpy'],
             install_requires=external_dependencies,
-            scripts=SCRIPTS,
+            entry_points={
+                'console_scripts': ["{}=scripts.{}:main".format(
+                    os.path.basename(s),
+                    os.path.basename(s).split(".")[0]) for s in SCRIPTS]
+            },
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",
                           "data/LUT/freesurfer_subcortical.json",

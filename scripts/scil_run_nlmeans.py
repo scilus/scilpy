@@ -54,17 +54,17 @@ def _build_arg_parser():
     return p
 
 
-def _get_basic_sigma(data, log):
+def _get_basic_sigma(data):
     # We force to zero as the 3T is either oversmoothed or still noisy, but
     # we prefer the second option
-    log.info("In basic noise estimation, number_coils=0 is enforced!")
+    logging.info("In basic noise estimation, number_coils=0 is enforced!")
     sigma = estimate_sigma(data, N=0)
 
     # Use a single value for all of the volumes.
     # This is the same value for a given bval with this estimator
     sigma = np.median(sigma)
-    log.info('The noise standard deviation from the basic estimation '
-             'is {}'.format(sigma))
+    logging.info('The noise standard deviation from the basic estimation '
+                 'is {}'.format(sigma))
 
     # Broadcast the single value to a whole 3D volume for nlmeans
     return np.ones(data.shape[:3]) * sigma
@@ -77,15 +77,12 @@ def main():
     assert_inputs_exist(parser, args.in_image)
     assert_outputs_exist(parser, args, args.out_image, args.logfile)
 
-    logging.basicConfig()
-    log = logging.getLogger(__name__)
-    if args.verbose:
-        log.setLevel(level=logging.INFO)
-    else:
-        log.setLevel(level=logging.WARNING)
+    log_level = logging.INFO if args.verbose else logging.WARNING
+    logging.getLogger().setLevel(log_level)
 
     if args.logfile is not None:
-        log.addHandler(logging.FileHandler(args.logfile, mode='w'))
+        logging.getLogger().addHandler(logging.FileHandler(args.logfile,
+                                                           mode='w'))
 
     vol = nib.load(args.in_image)
     data = vol.get_fdata(dtype=np.float32)
@@ -101,12 +98,13 @@ def main():
     sigma = args.sigma
 
     if sigma is not None:
-        log.info('User supplied noise standard deviation is {}'.format(sigma))
+        logging.info('User supplied noise standard deviation is '
+                     '{}'.format(sigma))
         # Broadcast the single value to a whole 3D volume for nlmeans
         sigma = np.ones(data.shape[:3]) * sigma
     else:
-        log.info('Estimating noise')
-        sigma = _get_basic_sigma(vol.get_fdata(dtype=np.float32), log)
+        logging.info('Estimating noise')
+        sigma = _get_basic_sigma(vol.get_fdata(dtype=np.float32))
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=DeprecationWarning)
