@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Perform probabilistic tractography on a ODF field inside a binary mask.
-The tracking is executed on the GPU using the OpenCL API.
+Perform probabilistic tractography on a ODF field. The script supports
+both the binary and continuous maps (CMC) stopping criterions. The tracking
+is executed on the GPU using the OpenCL API.
 
 Streamlines are filtered by minimum length, but not by maximum length. This
 means that streamlines are stopped and returned as soon as they reach the
