@@ -96,9 +96,7 @@ def _build_arg_parser():
                          help='SH interpolation mode. [%(default)s]')
     track_g.add_argument('--mask_interp', default='nearest',
                          choices=['nearest', 'trilinear'],
-                         help='Mask interpolation. Only nearest-neighbour '
-                              'interpolation \nis available for now. '
-                              '[%(default)s]')
+                         help='Mask interpolation. [%(default)s]')
     track_g.add_argument('--forward_only', action='store_true',
                          help='Only perform forward tracking.')
     add_sh_basis_args(track_g)
@@ -146,7 +144,6 @@ def main():
                      ' is not available yet. Please set to \'nearest\'.')
 
     odf_sh_img = nib.load(args.in_odf)
-    mask = get_data_as_mask(nib.load(args.in_mask))
     odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
     seed_img = nib.load(args.in_seed)

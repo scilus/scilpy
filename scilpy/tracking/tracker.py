@@ -641,7 +641,7 @@ class GPUTrackerLocal(GPUTacker):
         cl_manager.add_input_buffer(7, self.mask.astype(np.float32))
 
     def _get_kernel(self):
-        return CLKernel('main', 'tracking', 'local_tracking.cl')
+        return CLKernel('tracker', 'tracking', 'local_tracking.cl')
 
     def _get_manager(self, kernel):
         return CLManager(kernel, 8, 2)
@@ -659,7 +659,7 @@ class GPUTrackerCMC(GPUTacker):
         self.map_exclude = map_exclude
 
     def _get_kernel(self):
-        return CLKernel('main', 'tracking', 'cmc_tracking.cl')
+        return CLKernel('tracker', 'tracking', 'cmc_tracking.cl')
 
     def _get_manager(self, kernel):
         return CLManager(kernel, 11, 2)
