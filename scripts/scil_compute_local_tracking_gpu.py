@@ -14,8 +14,8 @@ However, for this reason, there may be streamlines ending in the deep white
 matter. In order to use the resulting tractogram for analysis, it should be
 cleaned with scil_filter_tractogram_anatomically.py.
 
-The white matter mask is interpolated using nearest-neighbor interpolation and
-the SH interpolation defaults to trilinear.
+The white matter mask/CMC maps is/are interpolated using nearest-neighbor
+interpolation and the SH interpolation defaults to trilinear.
 
 The script also incorporates ideas from Ensemble Tractography [1] (ET). Given
 a list of maximum angles, a different angle drawn at random from the set will
