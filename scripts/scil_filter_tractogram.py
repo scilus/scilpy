@@ -84,15 +84,15 @@ def _build_arg_parser():
                         "Filename of a bounding box (bdo) file from MI-Brain.")
 
     p.add_argument('--x_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                   help="PLANE MODE CRITERIA DISTANCE "
                         "(distance in voxel is optional)\n"
                         "Slice number in X, in voxel space.")
     p.add_argument('--y_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                   help="PLANE MODE CRITERIA DISTANCE "
                         "(distance in voxel is optional)\n"
                         "Slice number in Y, in voxel space.")
     p.add_argument('--z_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                   help="PLANE MODE CRITERIA DISTANCE "
                         "(distance in voxel is optional)\n"
                         "Slice number in Z, in voxel space.")
     p.add_argument('--filtering_list',
