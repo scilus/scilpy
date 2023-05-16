@@ -155,10 +155,10 @@ def prepare_filtering_list(parser, args):
             else:
                 roi_opt_list.append(roi_opt.strip().split())
 
-    if len(roi_opt_list[-1]) != 3 or len(roi_opt_list) != 4 and roi_opt_list[-1][0] != 'atlas_roi':
+    if (len(roi_opt_list[-1]) < 4 or len(roi_opt_list) > 5) and roi_opt_list[-1][0] != 'atlas_roi':
         logging.error("Please specify 3 or 4 values "
                       "for {} filtering.".format(roi_opt_list[-1][0]))
-    elif len(roi_opt_list[-1]) != 4 and len(roi_opt_list) != 5 and roi_opt_list[-1][0] == 'atlas_roi':
+    elif (len(roi_opt_list[-1]) < 5 or len(roi_opt_list) > 6) and roi_opt_list[-1][0] == 'atlas_roi':
         logging.error("Please specify 4 or 5 values"
                       " for {} filtering.".format(roi_opt_list[-1][0]))
 
@@ -186,9 +186,7 @@ def prepare_filtering_list(parser, args):
             parser.error('{} is not a valid option for filter_criteria'.format(
                 filter_criteria))
 
-        if not isinstance(filter_distance, int):
-            parser.error("{} should be a int.".format(filter_distance))
-        if filter_distance < 0:
+        if int(filter_distance) < 0:
             parser.error("Distance should be positive. "
                          "{} is not a valid option.".format(filter_distance))
 
@@ -235,6 +233,8 @@ def main():
         curr_dict['mode'] = filter_mode
         curr_dict['criteria'] = filter_criteria
         curr_dict['distance'] = filter_distance
+
+        filter_distance = int(filter_distance)
 
         is_exclude = False if filter_criteria == 'include' else True
 
