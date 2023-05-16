@@ -3,7 +3,7 @@
 
 """
 Now supports sequential filtering condition and mixed filtering object.
-For example, --atlas_roi ROI_NAME ID MODE CRITERIA DISTANCE (DISTANCE is optional)
+For example, --atlas_roi ROI_NAME ID MODE CRITERIA DISTANCE
 - ROI_NAME is the filename of a Nifti
 - ID is one or multiple integer values in the atlas. If multiple values,
     ID needs to be between quotes.
@@ -11,6 +11,7 @@ For example, --atlas_roi ROI_NAME ID MODE CRITERIA DISTANCE (DISTANCE is optiona
                            between 10 and 15 included as well as value 9.
 - MODE must be one of these values: ['any', 'all', 'either_end', 'both_ends']
 - CRITERIA must be one of these values: ['include', 'exclude']
+- DISTANCE must be a int and is optional
 
 If any meant any part of the streamline must be in the mask, all means that
 all part of the streamline must be in the mask.
@@ -28,9 +29,9 @@ Multiple filtering tuples can be used and options mixed.
 A logical AND is the only behavior available. All theses filtering
 conditions will be sequentially applied.
 
-WARNING: DISTANCE is optional and it should be used carefully with large voxel size
-(e.g > 2.5mm). The value is in voxel (NOT mm). 
-Anisotropic data will affect each direction differently
+WARNING: DISTANCE is optional and it should be used carefully with large
+voxel size (e.g > 2.5mm). The value is in voxel for ROIs and in mm for
+bounding box. Anisotropic data will affect each direction differently
 """
 
 import argparse
@@ -44,7 +45,6 @@ from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
-from scipy import ndimage
 
 from scilpy.io.image import (get_data_as_mask,
                              merge_labels_into_mask)
@@ -71,18 +71,30 @@ def _build_arg_parser():
                    help='Path of the output tractogram file.')
 
     p.add_argument('--drawn_roi', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE (distance is optional)\nFilename of a hand drawn ROI (.nii or .nii.gz).")
+                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                        "(distance in voxel is optional)\n"
+                        "Filename of a hand drawn ROI (.nii or .nii.gz).")
     p.add_argument('--atlas_roi', nargs='+', action='append',
-                   help="ROI_NAME ID MODE CRITERIA DISTANCE (distance is optional)\nFilename of an atlas (.nii or .nii.gz).")
+                   help="ROI_NAME ID MODE CRITERIA DISTANCE "
+                        "(distance in voxel is optional)\n"
+                        "Filename of an atlas (.nii or .nii.gz).")
     p.add_argument('--bdo', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE (distance is optional)\nFilename of a bounding box (bdo) file from MI-Brain.")
+                   help="BDO_NAME MODE CRITERIA DISTANCE "
+                        "(distance in mm is optional)\n"
+                        "Filename of a bounding box (bdo) file from MI-Brain.")
 
     p.add_argument('--x_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE (distance is optional)\nSlice number in X, in voxel space.")
+                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                        "(distance in voxel is optional)\n"
+                        "Slice number in X, in voxel space.")
     p.add_argument('--y_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE (distance is optional)\nSlice number in Y, in voxel space.")
+                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                        "(distance in voxel is optional)\n"
+                        "Slice number in Y, in voxel space.")
     p.add_argument('--z_plane', nargs='+', action='append',
-                   help="ROI_NAME MODE CRITERIA DISTANCE (distance is optional)\nSlice number in Z, in voxel space.")
+                   help="ROI_NAME MODE CRITERIA DISTANCE "
+                        "(distance in voxel is optional)\n"
+                        "Slice number in Z, in voxel space.")
     p.add_argument('--filtering_list',
                    help='Text file containing one rule per line\n'
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
@@ -144,9 +156,11 @@ def prepare_filtering_list(parser, args):
                 roi_opt_list.append(roi_opt.strip().split())
 
     if len(roi_opt_list[-1]) != 3 or len(roi_opt_list) != 4 and roi_opt_list[-1][0] != 'atlas_roi':
-        logging.error("Please specify 3 or 4 values for {} filtering.".format(roi_opt_list[-1][0]))
+        logging.error("Please specify 3 or 4 values "
+                      "for {} filtering.".format(roi_opt_list[-1][0]))
     elif len(roi_opt_list[-1]) != 4 and len(roi_opt_list) != 5 and roi_opt_list[-1][0] == 'atlas_roi':
-        logging.error("Please specify 4 or 5 values for {} filtering.".format(roi_opt_list[-1][0]))
+        logging.error("Please specify 4 or 5 values"
+                      " for {} filtering.".format(roi_opt_list[-1][0]))
 
     filter_distance = 0
     for index, roi_opt in enumerate(roi_opt_list):
@@ -171,8 +185,12 @@ def prepare_filtering_list(parser, args):
         if filter_criteria not in ['include', 'exclude']:
             parser.error('{} is not a valid option for filter_criteria'.format(
                 filter_criteria))
+
+        if not isinstance(filter_distance, int):
+            parser.error("{} should be a int.".format(filter_distance))
         if filter_distance < 0:
-            parser.error('Distance should be positive. {} is not a valid option.'.format(filter_distance))
+            parser.error("Distance should be positive. "
+                         "{} is not a valid option.".format(filter_distance))
 
     return roi_opt_list, only_filtering_list
 
@@ -195,7 +213,6 @@ def main():
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
     if args.save_rejected:
         initial_sft = deepcopy(sft)
-    bin_struct = ndimage.generate_binary_structure(3, 2)
 
     # Streamline count before filtering
     o_dict['streamline_count_before_filtering'] = len(sft.streamlines)
@@ -237,12 +254,9 @@ def main():
                     nib.Nifti1Image(mask.astype(np.uint16),
                                     img.affine).to_filename('mask_atlas_roi_{}.nii.gz'.format(str(atlas_roi_item)))
 
-            if filter_distance != 0:
-                mask = ndimage.binary_dilation(mask, bin_struct,
-                                               iterations=filter_distance)
-
             filtered_sft, kept_ids = filter_grid_roi(sft, mask,
-                                                     filter_mode, is_exclude)
+                                                     filter_mode, is_exclude,
+                                                     filter_distance)
 
         # For every case, the input number must be greater or equal to 0 and
         # below the dimension, since this is a voxel space operation
@@ -273,16 +287,16 @@ def main():
                 parser.error('{} is not valid according to the '
                              'tractogram header.'.format(error_msg))
 
-            if filter_distance != 0:
-                mask = ndimage.binary_dilation(mask, bin_struct,
-                                               iterations=filter_distance)
             filtered_sft, kept_ids = filter_grid_roi(sft, mask,
-                                                     filter_mode, is_exclude)
+                                                     filter_mode, is_exclude,
+                                                     filter_distance)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
+
             if filter_distance != 0:
                 radius += filter_distance * sft.space_attributes[2]
+
             if geometry == 'Ellipsoid':
                 filtered_sft, kept_ids = filter_ellipsoid(
                     sft, radius, center, filter_mode, is_exclude)
