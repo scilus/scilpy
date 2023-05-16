@@ -267,6 +267,8 @@ def compute_tractometry(
                     "OL": 0, "OR_pct_gt": 0, "OR_pct_vs": 0, "f1": 0,
                     "endpoints_OL": 0, "endpoints_OR": 0
                 })
+                nb_bundles_in_stats += 1
+                bundle_wise_dict.update({bundles_names[i]: bundle_results})
                 continue
 
             # Getting the recovered mask
