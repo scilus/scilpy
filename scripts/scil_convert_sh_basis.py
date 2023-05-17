@@ -5,7 +5,8 @@
     Convert a SH file between the two commonly used bases
     ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
     input data basis. Note that by default, both legacy 'descoteaux07' and
-    legacy 'tournier07' bases will be assumed.
+    legacy 'tournier07' bases will be assumed. For more information, see
+    https://dipy.org/documentation/1.4.0./theory/sh_basis/.
 """
 
 import argparse
@@ -48,9 +49,6 @@ def main():
 
     assert_inputs_exist(parser, args.in_sh)
     assert_outputs_exist(parser, args, args.out_sh)
-
-    print(args.is_input_not_legacy)
-    print(args.is_output_not_legacy)
 
     sphere = get_sphere('repulsion724').subdivide(1)
     img = nib.load(args.in_sh)
