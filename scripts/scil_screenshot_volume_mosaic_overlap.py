@@ -66,7 +66,6 @@ import argparse
 
 import nibabel as nib
 import numpy as np
-from fury.colormap import distinguishable_colormap
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (
@@ -233,18 +232,12 @@ def main():
 
     mask_contour_scene_container = []
     if contour_imgs:
-        colors = [(255, 0, 0)]
-        if len(contour_imgs) > 1:
-            colors.extend(distinguishable_colormap(
-                exclude=[(255, 0, 0)], nb_colors=len(contour_imgs) - 1))
-
-        for img, color in zip(contour_imgs, colors):
+        for img in contour_imgs:
             mask_contour_scene_container.append(np.array(screenshot_contour(
                 img,
                 args.axis_name,
                 args.slice_ids,
-                args.win_dims,
-                color
+                args.win_dims
             )))
 
         mask_contour_scene_container = [i for i in np.swapaxes(
