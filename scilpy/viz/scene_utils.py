@@ -830,7 +830,7 @@ def draw_scene_at_pos(
     labelmap_overlay=None,
     mask_overlay=None,
     mask_overlay_alpha=0.7,
-    mask_overlay_color=(255, 0, 0),
+    mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -886,13 +886,16 @@ def draw_scene_at_pos(
 
     # Draw the mask overlay image if any
     if mask_overlay is not None:
-        for img in mask_overlay:
-            contour_img = create_image_from_scene(
-                ((img > 0) * mask_overlay_color).astype(np.uint8), size, "RGB")
+        if mask_overlay_color is None:
+            mask_overlay_color = distinguishable_colormap(
+                nb_colors=len(mask_overlay))
 
-            mask_image = (np.sum(img, axis=-1) > 0) * mask_overlay_alpha * 255
+        for img, color in zip(mask_overlay, mask_overlay_color):
+            contour_img = create_image_from_scene(
+                (img * color).astype(np.uint8), size, "RGB")
+
             contour_mask = create_image_from_scene(
-                mask_image.astype(np.uint8), size, "L")
+                (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
 
             canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
 
@@ -1000,7 +1003,7 @@ def compose_mosaic(
     labelmap_scene_container=None,
     mask_overlay_scene_container=None,
     mask_overlay_alpha = 0.7,
-    mask_overlay_color=(255, 0, 0),
+    mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
