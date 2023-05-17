@@ -257,9 +257,9 @@ def main():
             vol_cmap_name=args.vol_cmap_name,
             labelmap_cmap_name=args.labelmap_cmap_name,
             mask_overlay_alpha=mask_overlay_alpha,
-            mask_overlay_color=args.mask_color,
+            mask_overlay_color=[list(c // 255 for c in args.mask_color)],
             labelmap_scene_container=[label],
-            mask_overlay_scene_container=[[contour]] if contour else []
+            mask_overlay_scene_container=[[contour]] if len(contour) else []
         )
 
         # Save the snapshot
