@@ -2,7 +2,6 @@ import itertools
 import logging
 import multiprocessing
 
-from scilpy.direction.peaks import peak_directions_asym
 from scipy.sparse.linalg import ArpackNoConvergence
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
@@ -110,16 +109,15 @@ def peaks_from_sh_parallel(args):
     peak_indices = np.zeros((data_shape, npeaks), dtype='int')
     peak_indices.fill(-1)
 
-    peak_dir_func = peak_directions if is_symmetric else peak_directions_asym
-
     for idx in range(len(shm_coeff)):
         if shm_coeff[idx].any():
             odf = np.dot(shm_coeff[idx], B)
             odf[odf < absolute_threshold] = 0.
 
-            dirs, peaks, ind = peak_dir_func(odf, sphere,
-                                             relative_peak_threshold,
-                                             min_separation_angle)
+            dirs, peaks, ind = peak_directions(odf, sphere,
+                                               relative_peak_threshold,
+                                               min_separation_angle,
+                                               is_symmetric)
 
             if peaks.shape[0] != 0:
                 n = min(npeaks, peaks.shape[0])
