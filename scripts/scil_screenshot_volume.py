@@ -72,7 +72,8 @@ from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (
     axis_name_choices,
     add_overwrite_arg,
-    assert_inputs_exist
+    assert_inputs_exist,
+    ranged_type
 )
 from scilpy.image.utils import check_slice_indices
 from scilpy.viz.scene_utils import (
@@ -121,6 +122,13 @@ def _build_arg_parser():
         default=(768, 768),
         type=int,
         help="The dimensions for the vtk window. [%(default)s]"
+    )
+    p.add_argument(
+        "--mask_color",
+        nargs=3,
+        type=ranged_type(int, 0, 255),
+        default=(255, 0, 0),
+        help="Color for the mask overlay or contour"
     )
     p.add_argument(
         "--vol_cmap_name",
@@ -247,9 +255,11 @@ def main():
             1,
             1,
             vol_cmap_name=args.vol_cmap_name,
+            labelmap_cmap_name=args.labelmap_cmap_name,
             mask_overlay_alpha=mask_overlay_alpha,
+            mask_overlay_color=args.mask_color,
             labelmap_scene_container=[label],
-            mask_overlay_scene_container=[[contour]]
+            mask_overlay_scene_container=[[contour]] if contour else []
         )
 
         # Save the snapshot
