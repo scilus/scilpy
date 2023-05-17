@@ -163,7 +163,7 @@ def _get_data_from_inputs(args):
     vol_img = nib.load(args.in_vol)
 
     mask_img = None
-    if args.mask:
+    if args.in_mask:
         mask_img = nib.load(args.in_mask)
 
     labelmap_img = None
