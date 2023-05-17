@@ -663,7 +663,7 @@ def screenshot_slice(img, axis_name, slice_ids, size):
     return scene_container
 
 
-def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
+def screenshot_contour(bin_img, axis_name, slice_ids, size):
     """Take a screenshot of the given binary image countour with the 
     appropriate slice data at the provided slice indices.
 
@@ -677,8 +677,6 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
-    color : tuple, list of int
-        Color of the contour in RGB [0, 255].
 
     Returns
     -------
@@ -698,7 +696,8 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size, color=[255, 0, 0]):
     image_size_2d[ax_idx] = 1
 
     for idx in slice_ids:
-        actor = contour_actor_from_image(bin_img, ax_idx, idx, color=color)
+        actor = contour_actor_from_image(
+            bin_img, ax_idx, idx, color=[255, 255, 255])
 
         scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)
@@ -830,7 +829,8 @@ def draw_scene_at_pos(
     mask=None,
     labelmap_overlay=None,
     mask_overlay=None,
-    mask_overlay_alpha=1.,
+    mask_overlay_alpha=0.7,
+    mask_overlay_color=(255, 0, 0),
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -856,6 +856,8 @@ def draw_scene_at_pos(
         Mask overlay scene data to be drawn.
     mask_overlay_alpha : float
         Alpha value for mask overlay in range [0, 1].
+    mask_overlay_color : list, optional
+        Color for the mask overlay as a list of 3 integers in range [0, 255].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -885,9 +887,12 @@ def draw_scene_at_pos(
     # Draw the mask overlay image if any
     if mask_overlay is not None:
         for img in mask_overlay:
-            contour_img = create_image_from_scene(img, size)
-            contour_mask = create_mask_from_scene(
-                (np.sum(img, axis=-1) > 0) * mask_overlay_alpha, size)
+            contour_img = create_image_from_scene(
+                ((img > 0) * mask_overlay_color).astype(np.uint8), size, "RGB")
+
+            mask_image = (np.sum(img, axis=-1) > 0) * mask_overlay_alpha * 255
+            contour_mask = create_image_from_scene(
+                mask_image.astype(np.uint8), size, "L")
 
             canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
 
@@ -994,7 +999,8 @@ def compose_mosaic(
     overlap_factor=None,
     labelmap_scene_container=None,
     mask_overlay_scene_container=None,
-    mask_overlay_alpha = 1.,
+    mask_overlay_alpha = 0.7,
+    mask_overlay_color=(255, 0, 0),
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -1019,8 +1025,10 @@ def compose_mosaic(
         Labelmap scene data container.
     mask_overlay_scene_container : list, optional
         Mask overlay scene data container.
-    mask_overlay_alpha : float
+    mask_overlay_alpha : float, optional
         Alpha value for mask overlay in range [0, 1].
+    mask_overlay_color : list, optional
+        Color for the mask overlay as a list of 3 integers in range [0, 255].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -1081,6 +1089,7 @@ def compose_mosaic(
             labelmap_overlay=_labelmap_arr,
             mask_overlay=_mask_overlay_arr,
             mask_overlay_alpha=mask_overlay_alpha,
+            mask_overlay_color=mask_overlay_color,
             vol_cmap_name=vol_cmap_name,
             labelmap_cmap_name=labelmap_cmap_name,
         )
