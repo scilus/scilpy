@@ -30,10 +30,10 @@ def _build_arg_parser():
     p.add_argument('out_sh',
                    help='Output SH filename. (nii or nii.gz)')
     
-    p.add_argument('--is_input_not_legacy', action='store_true',
+    p.add_argument('--in_sh_is_not_legacy', action='store_true',
                    help='If set, this means that the input SH are not encoded '
                         'with the legacy version of their SH basis.')
-    p.add_argument('--is_output_not_legacy', action='store_true',
+    p.add_argument('--out_sh_is_not_legacy', action='store_true',
                    help='If set, this means that the output SH will not be '
                         'encoded with the legacy version of their SH basis.')
 
@@ -57,8 +57,8 @@ def main():
     new_data = convert_sh_basis(data, sphere,
                                 input_basis=args.sh_basis,
                                 nbr_processes=args.nbr_processes,
-                                is_input_legacy=not args.is_input_not_legacy,
-                                is_output_legacy=not args.is_output_not_legacy)
+                                is_input_legacy=not args.in_sh_is_not_legacy,
+                                is_output_legacy=not args.out_sh_is_not_legacy)
 
     nib.save(nib.Nifti1Image(new_data, img.affine, header=img.header),
              args.out_sh)
