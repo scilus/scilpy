@@ -9,6 +9,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 from sklearn.cluster import KMeans
 
+from scilpy.io.utils import load_matrix_in_any_format
 from scilpy.tractanalysis.features import get_streamlines_centroid
 
 from scilpy.viz.utils import get_colormap
@@ -133,31 +134,95 @@ def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
     sft.to_space(old_space)
     sft.to_origin(old_origin)
 
-def get_color_streamlines_along_length(sft, colormap='jet'):
+
+def clip_and_normalize_data_for_cmap(args, data):
+    if args.LUT:
+        LUT = load_matrix_in_any_format(args.LUT)
+        for i, val in enumerate(LUT):
+            data[data == i+1] = val
+
+    if args.min_range is not None or args.max_range is not None:
+        data = np.clip(data, args.min_range, args.max_range)
+
+    # get data values range
+    if args.min_cmap is not None:
+        lbound = args.min_cmap
+    else:
+        lbound = np.min(data)
+    if args.max_cmap is not None:
+        ubound = args.max_cmap
+    else:
+        ubound = np.max(data)
+
+    if args.log:
+        data[data > 0] = np.log10(data[data > 0])
+
+    # normalize data between 0 and 1
+    data -= lbound
+    data = data / ubound if ubound > 0 else data
+    return data, lbound, ubound
+
+
+def get_color_streamlines_from_angle(sft, args):
     """Color streamlines according to their length.
 
     Parameters
     ----------
     sft: StatefulTractogram
         The tractogram that contains the list of streamlines to be colored
-    colormap: str
-        The colormap to use.
+    args: NameSpace
+        The colormap options.
 
     Returns
     -------
     color: np.ndarray
         An array of shape (nb_streamlines, 3) containing the RGB values of
         streamlines
-
+    lbound: float
+        Minimal value
+    ubound: float
+        Maximal value
     """
-    cmap = get_colormap(colormap)
-    color_dpp = copy.deepcopy(sft.streamlines)
-
+    angles = []
     for i in range(len(sft.streamlines)):
-        color_dpp[i] = cmap(np.linspace(0, 1, len(sft.streamlines[i])))[
-            :, 0:3] * 255
+        dirs = np.diff(sft.streamlines[i], axis=0)
+        dirs /= np.linalg.norm(dirs, axis=-1, keepdims=True)
+        cos_angles = np.sum(dirs[:-1, :] * dirs[1:, :], axis=1)
+        # Resolve numerical instability
+        cos_angles = np.minimum(np.maximum(-1.0, cos_angles), 1.0)
+        line_angles = [0.0] + list(np.arccos(cos_angles)) + [0.0]
+        angles.extend(line_angles)
 
-    return color_dpp._data
+    angles = np.rad2deg(angles)
+
+    return clip_and_normalize_data_for_cmap(args, angles)
+
+
+def get_color_streamlines_along_length(sft, args):
+    """Color streamlines according to their length.
+
+    Parameters
+    ----------
+    sft: StatefulTractogram
+        The tractogram that contains the list of streamlines to be colored
+    args: NameSpace
+        The colormap options.
+
+    Returns
+    -------
+    color: np.ndarray
+        An array of shape (nb_streamlines, 3) containing the RGB values of
+        streamlines
+    lbound: int
+        Minimal value
+    ubound: int
+        Maximal value
+    """
+    positions = []
+    for i in range(len(sft.streamlines)):
+        positions.extend(list(np.linspace(0, 1, len(sft.streamlines[i]))))
+
+    return clip_and_normalize_data_for_cmap(args, positions)
 
 
 def filter_tractogram_data(tractogram, streamline_ids):

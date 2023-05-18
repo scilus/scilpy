@@ -2,25 +2,26 @@
 """
 Script to compute various metrics derivated from asymmetric ODF.
 
-These metrics include an asymmetric peak directions image, a number of peaks
-(nupeaks) map [2], a cosine-similarity-based asymmetry map [1] and an
-odd-power map [2].
+These metrics include the asymmetric peak directions image, a number of fiber
+directions (nufid) map [1], the asymmetry index (ASI) map [2] and an odd-power
+map [3].
 
 The asymmetric peak directions image contains peaks per hemisphere, considering
 antipodal sphere directions as distinct. On a symmetric signal, the number of
 asymmetric peaks extracted is then twice the number of symmetric peaks.
 
-The nupeaks map is the asymmetric alternative to NuFO maps. It counts the
+The nufid map is the asymmetric alternative to NuFO maps. It counts the
 number of asymmetric peaks extracted and ranges in [0..N] with N the maximum
 number of peaks.
 
-The cosine-based asymmetry map is in the range [0..1], with 0 corresponding
-to a perfectly symmetric signal and 1 to a perfectly asymmetric signal.
+The asymmetric index is a cosine-based metric in the range [0..1], with 0
+corresponding to a perfectly symmetric signal and 1 to a perfectly asymmetric
+signal.
 
-The odd-power map is also in the range [0..1], with 0 corresponding
-to a perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It
-is given by the ratio of the L2-norm of odd SH coefficients on the L2-norm of
-all SH coefficients.
+The odd-power map is also in the range [0..1], with 0 corresponding to a
+perfectly symmetric signal and 1 to a perfectly anti-symmetric signal. It is
+given as the ratio of the L2-norm of odd SH coefficients on the L2-norm of all
+SH coefficients.
 """
 
 
@@ -44,12 +45,16 @@ from scilpy.io.image import get_data_as_mask
 
 EPILOG = """
 References:
-[1] S. Cetin Karayumak, E. Özarslan, and G. Unal,
-“Asymmetric Orientation Distribution Functions (AODFs) revealing
-intravoxel geometry in diffusion MRI,” Magnetic Resonance Imaging,
-vol. 49, pp. 145–158, Jun. 2018, doi: 10.1016/j.mri.2018.03.006.
+[1] C. Poirier and M. Descoteaux, "Filtering Methods for Asymmetric ODFs:
+Where and How Asymmetry Occurs in the White Matter." bioRxiv. 2022 Jan 1;
+2022.12.18.520881. doi: https://doi.org/10.1101/2022.12.18.520881
 
-[2] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
+[2] S. Cetin Karayumak, E. Özarslan, and G. Unal,
+"Asymmetric Orientation Distribution Functions (AODFs) revealing intravoxel
+geometry in diffusion MRI," Magnetic Resonance Imaging, vol. 49, pp. 145-158,
+Jun. 2018, doi: https://doi.org/10.1016/j.mri.2018.03.006.
+
+[3] C. Poirier, E. St-Onge, and M. Descoteaux, "Investigating the Occurence of
 Asymmetric Patterns in White Matter Fiber Orientation Distribution Functions"
 [Abstract], In: Proc. Intl. Soc. Mag. Reson. Med. 29 (2021), 2021 May 15-20,
 Vancouver, BC, Abstract number 0865.
@@ -65,8 +70,8 @@ def _build_arg_parser():
                    help='Optional mask.')
 
     # outputs
-    p.add_argument('--cos_asym_map', default='',
-                   help='Output asymmetry map using cos similarity.')
+    p.add_argument('--asi_map', default='',
+                   help='Output asymmetry index (ASI) map.')
     p.add_argument('--odd_power_map', default='',
                    help='Output odd power map.')
     p.add_argument('--peaks', default='',
@@ -76,8 +81,8 @@ def _build_arg_parser():
     p.add_argument('--peak_indices', default='',
                    help='Output filename for the generated peaks indices on '
                         'the sphere.')
-    p.add_argument('--nupeaks', default='',
-                   help='Output filename for the nupeaks file.')
+    p.add_argument('--nufid', default='',
+                   help='Output filename for the nufid file.')
     p.add_argument('--not_all', action='store_true',
                    help='If set, only saves the files specified using the '
                         'file flags [%(default)s].')
@@ -104,7 +109,7 @@ def _build_arg_parser():
     return p
 
 
-def compute_cos_asym_map(sh_coeffs, order, mask):
+def compute_asymmetry_index(sh_coeffs, order, mask):
     _, l_list = sph_harm_ind_list(order, full_basis=True)
 
     sign = np.power(-1.0, l_list)
@@ -112,13 +117,15 @@ def compute_cos_asym_map(sh_coeffs, order, mask):
     sh_squared = sh_coeffs**2
     mask = np.logical_and(sh_squared.sum(axis=-1) > 0., mask)
 
-    cos_asym_map = np.zeros(sh_coeffs.shape[:-1])
-    cos_asym_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
+    asi_map = np.zeros(sh_coeffs.shape[:-1])
+    asi_map[mask] = np.sum(sh_squared * sign, axis=-1)[mask] / \
         np.sum(sh_squared, axis=-1)[mask]
 
-    cos_asym_map = np.sqrt(1 - cos_asym_map**2) * mask
+    # Negatives should not happen (amplitudes always positive)
+    asi_map = np.clip(asi_map, 0.0, 1.0)
+    asi_map = np.sqrt(1 - asi_map**2) * mask
 
-    return cos_asym_map
+    return asi_map
 
 
 def compute_odd_power_map(sh_coeffs, order, mask):
@@ -142,15 +149,15 @@ def main():
     args = parser.parse_args()
 
     if not args.not_all:
-        args.cos_asym_map = args.cos_asym_map or 'cos_asym_map.nii.gz'
+        args.asi_map = args.asi_map or 'asi_map.nii.gz'
         args.odd_power_map = args.odd_power_map or 'odd_power_map.nii.gz'
         args.peaks = args.peaks or 'asym_peaks.nii.gz'
         args.peak_values = args.peak_values or 'asym_peak_values.nii.gz'
         args.peak_indices = args.peak_indices or 'asym_peak_indices.nii.gz'
-        args.nupeaks = args.nupeaks or 'nupeaks.nii.gz'
+        args.nufid = args.nufid or 'nufid.nii.gz'
 
-    arglist = [args.cos_asym_map, args.odd_power_map, args.peaks,
-               args.peak_values, args.peak_indices, args.nupeaks]
+    arglist = [args.asi_map, args.odd_power_map, args.peaks,
+               args.peak_values, args.peak_indices, args.nufid]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least '
                      'one file to output.')
@@ -168,7 +175,7 @@ def main():
     sphere = get_sphere(args.sphere)
 
     sh_order, full_basis = get_sh_order_and_fullness(sh.shape[-1])
-    if not full_basis:
+    if not full_basis and (args.asi_map or args.odd_power_map):
         parser.error('Invalid SH image. A full SH basis is expected.')
 
     if args.mask:
@@ -176,17 +183,17 @@ def main():
     else:
         mask = np.sum(np.abs(sh), axis=-1) > 0
 
-    if args.cos_asym_map:
-        cos_asym_map = compute_cos_asym_map(sh, sh_order, mask)
-        nib.save(nib.Nifti1Image(cos_asym_map, sh_img.affine),
-                 args.cos_asym_map)
+    if args.asi_map:
+        asi_map = compute_asymmetry_index(sh, sh_order, mask)
+        nib.save(nib.Nifti1Image(asi_map, sh_img.affine),
+                 args.asi_map)
 
     if args.odd_power_map:
         odd_power_map = compute_odd_power_map(sh, sh_order, mask)
         nib.save(nib.Nifti1Image(odd_power_map, sh_img.affine),
                  args.odd_power_map)
 
-    if args.peaks or args.peak_values or args.peak_indices or args.nupeaks:
+    if args.peaks or args.peak_values or args.peak_indices or args.nufid:
         peaks, values, indices =\
             peaks_from_sh(sh, sphere, mask=mask,
                           relative_peak_threshold=args.r_threshold,
@@ -198,7 +205,7 @@ def main():
                           npeaks=10,
                           sh_basis_type=args.sh_basis,
                           nbr_processes=args.nbr_processes,
-                          full_basis=True,
+                          full_basis=full_basis,
                           is_symmetric=False)
 
         if args.peaks:
@@ -213,9 +220,9 @@ def main():
             nib.save(nib.Nifti1Image(indices.astype(np.uint8), sh_img.affine),
                      args.peak_indices)
 
-        if args.nupeaks:
-            nupeaks = np.count_nonzero(values, axis=-1).astype(np.uint8)
-            nib.save(nib.Nifti1Image(nupeaks, sh_img.affine), args.nupeaks)
+        if args.nufid:
+            nufid = np.count_nonzero(values, axis=-1).astype(np.uint8)
+            nib.save(nib.Nifti1Image(nufid, sh_img.affine), args.nufid)
 
 
 if __name__ == '__main__':
