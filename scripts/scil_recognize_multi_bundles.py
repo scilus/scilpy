@@ -19,7 +19,7 @@ recognition will be.
 --minimal_vote_ratio is a value between 0 and 1. If you have 5 input model
 directories and a minimal_vote_ratio of 0.5, you will need at least 3 votes
 
-Example data and usage available at: https://zenodo.org/record/3928503
+Example data and usage available at: https://zenodo.org/record/7950602
 
 For RAM usage, it is recommanded to use this heuristic:
     (size of inputs tractogram (GB) * number of processes) < RAM (GB)
