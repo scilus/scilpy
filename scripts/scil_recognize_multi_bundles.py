@@ -9,10 +9,12 @@ AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
 
 If you are not sure about the transformation 'direction' you can try
 scil_recognize_single_bundle.py (with the -v option), a warning will popup if
-the provided transformation is not use correctly.
+the provided transformation is not used correctly.
 
-The number of folders provided by 'models_directories' will multiply
-the total number of runs.
+The number of folders inside 'models_directories' will increase the number of
+runs. Each folder is considered like an atlas and bundles inside will initiate
+more Recobundle executions. The more atlases you have, the more robust the
+recognition will be.
 
 --minimal_vote_ratio is a value between 0 and 1. If you have 5 input model
 directories and a minimal_vote_ratio of 0.5, you will need at least 3 votes
@@ -60,7 +62,9 @@ def _build_arg_parser():
     p.add_argument('in_config_file',
                    help='Path of the config file (.json)')
     p.add_argument('in_directory',
-                   help='Path for the directories containing model.')
+                   help='Path of parent folder of models directories.\n'
+                        'Each folder inside will be considered as a'
+                        'different atlas.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
@@ -89,9 +93,9 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
-    args.in_models_directories = [os.path.join(args.in_directory, x) \
-                                  for x in os.listdir(args.in_directory) \
-                                    if os.path.isdir(os.path.join(args.in_directory, x))]
+    args.in_models_directories = [os.path.join(args.in_directory, x)
+                                  for x in os.listdir(args.in_directory)
+                                  if os.path.isdir(os.path.join(args.in_directory, x))]
 
     assert_inputs_exist(parser, args.in_tractograms +
                         [args.in_config_file,
