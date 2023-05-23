@@ -7,7 +7,8 @@ from dipy.tracking.metrics import length
 from dipy.tracking.streamline import set_number_of_points
 from dipy.tracking.vox2track import _streamlines_in_mask
 from nibabel.affines import apply_affine
-from scipy.ndimage import map_coordinates
+from scipy.ndimage import (map_coordinates, generate_binary_structure,
+                           binary_dilation)
 
 import numpy as np
 
@@ -104,7 +105,7 @@ def filter_grid_roi_both(sft, mask_1, mask_2):
     return new_sft, line_based_indices
 
 
-def filter_grid_roi(sft, mask, filter_type, is_exclude):
+def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0):
     """
     Parameters
     ----------
@@ -123,6 +124,12 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude):
     ids: list
         Ids of the streamlines passing through the mask.
     """
+
+    if filter_distance != 0:
+        bin_struct = generate_binary_structure(3, 2)
+        mask = binary_dilation(mask, bin_struct,
+                               iterations=filter_distance)
+
     line_based_indices = []
     if filter_type in ['any', 'all']:
         line_based_indices = streamlines_in_mask(sft, mask,

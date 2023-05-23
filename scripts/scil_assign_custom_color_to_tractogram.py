@@ -42,6 +42,7 @@ import logging
 from dipy.io.streamline import save_tractogram
 import nibabel as nib
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -50,10 +51,12 @@ from scilpy.io.utils import (assert_inputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
                              load_matrix_in_any_format)
-from scilpy.utils.streamlines import get_color_streamlines_along_length
+from scilpy.utils.streamlines import get_color_streamlines_along_length, \
+    get_color_streamlines_from_angle, clip_and_normalize_data_for_cmap
 from scilpy.viz.utils import get_colormap
 
 COLORBAR_NB_VALUES = 255
+NB_TICKS = 10
 
 
 def _build_arg_parser():
@@ -70,6 +73,9 @@ def _build_arg_parser():
     cbar_g.add_argument('--out_colorbar',
                         help='Optional output colorbar (.png, .jpg or any '
                              'format supported by matplotlib).')
+    cbar_g.add_argument('--show_colorbar', action='store_true',
+                        help="Will show the colorbar. Must be used with "
+                             "--out_colorbar to be effective.")
     cbar_g.add_argument('--horizontal_cbar', action='store_true',
                         help='Draw horizontal colorbar (vertical by default).')
 
@@ -91,6 +97,10 @@ def _build_arg_parser():
     p1.add_argument('--along_profile', action='store_true',
                     help='Color streamlines according to each point position'
                          'along its length.\nMust be uniformized head/tail.')
+    p1.add_argument('--local_angle', action='store_true',
+                    help="Color streamlines according to the angle between "
+                         "each segment (in degree). \nAngles at first and "
+                         "last points are set to 0.")
 
     g2 = p.add_argument_group(title='Coloring Options')
     g2.add_argument('--colormap', default='jet',
@@ -101,6 +111,10 @@ def _build_arg_parser():
                     help='Set the minimum value when using dps/dpp/anatomy.')
     g2.add_argument('--max_range', type=float,
                     help='Set the maximum value when using dps/dpp/anatomy.')
+    g2.add_argument('--min_cmap', type=float,
+                    help='Set the minimum value of the colormap.')
+    g2.add_argument('--max_cmap', type=float,
+                    help='Set the maximum value of the colormap.')
     g2.add_argument('--log', action='store_true',
                     help='Apply a base 10 logarithm for colored trk (dps/dpp).')
     g2.add_argument('--LUT', metavar='FILE',
@@ -115,28 +129,6 @@ def _build_arg_parser():
     return p
 
 
-def transform_data(args, data):
-    if args.LUT:
-        LUT = load_matrix_in_any_format(args.LUT)
-        for i, val in enumerate(LUT):
-            data[data == i+1] = val
-
-    if args.min_range is not None or args.max_range is not None:
-        data = np.clip(data, args.min_range, args.max_range)
-
-    # get data values range
-    lbound = np.min(data)
-    ubound = np.max(data)
-
-    if args.log:
-        data[data > 0] = np.log10(data[data > 0])
-
-    # normalize data between 0 and 1
-    data -= np.min(data)
-    data = data / np.max(data) if np.max(data) > 0 else data
-    return data, lbound, ubound
-
-
 def save_colorbar(cmap, lbound, ubound, args):
     gradient = cmap(np.linspace(0, 1, COLORBAR_NB_VALUES))[:, 0:3]
 
@@ -149,22 +141,25 @@ def save_colorbar(cmap, lbound, ubound, args):
     _, ax = plt.subplots(1, 1)
     ax.imshow(gradient, origin='lower')
 
-    ticks_labels = ['{0:.3f}'.format(lbound), '{0:.3f}'.format(ubound)]
+    ticks_labels = ['{0:.3f}'.format(i) for i in
+                    np.linspace(lbound, ubound, NB_TICKS)]
 
     if args.log:
-        ticks_labels[0] = 'log(' + ticks_labels[0] + ')'
-        ticks_labels[1] = 'log(' + ticks_labels[1] + ')'
+        ticks_labels = ['log(' + t + ')' for t in ticks_labels]
 
+    ticks = np.linspace(0, COLORBAR_NB_VALUES - 1, NB_TICKS)
     if not args.horizontal_cbar:
-        ax.set_yticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_yticks(ticks)
         ax.set_yticklabels(ticks_labels)
         ax.set_xticks([])
     else:
-        ax.set_xticks([0, COLORBAR_NB_VALUES - 1])
+        ax.set_xticks(ticks)
         ax.set_xticklabels(ticks_labels)
         ax.set_yticks([])
 
     plt.savefig(args.out_colorbar, bbox_inches='tight')
+    if args.show_colorbar:
+        plt.show()
 
 
 def main():
@@ -205,26 +200,28 @@ def main():
             data = np.squeeze(load_matrix_in_any_format(args.load_dps))
             if len(data) != len(sft):
                 parser.error('Wrong dps size!')
-        elif args.load_dpp:
+        else:  # args.load_dpp
             data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
             if len(data) != len(sft.streamlines._data):
                 parser.error('Wrong dpp size!')
-        data, lbound, ubound = transform_data(args, data)
-        color = cmap(data)[:, 0:3] * 255
+        values, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
     elif args.from_anatomy:
         data = nib.load(args.from_anatomy).get_fdata()
-        data, lbound, ubound = transform_data(args, data)
+        data, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
 
         sft.to_vox()
-        values = map_coordinates(data, sft.streamlines._data.T,
-                                 order=0)
-        color = cmap(values)[:, 0:3] * 255
+        values = map_coordinates(data, sft.streamlines._data.T, order=0)
         sft.to_rasmm()
     elif args.along_profile:
-        color = get_color_streamlines_along_length(sft, args.colormap)
+        values, lbound, ubound = get_color_streamlines_along_length(
+            sft, args)
+    elif args.local_angle:
+        values, lbound, ubound = get_color_streamlines_from_angle(
+            sft, args)
     else:
         parser.error('No coloring method specified.')
 
+    color = cmap(values)[:, 0:3] * 255
     if len(color) == len(sft):
         tmp = [np.tile([color[i][0], color[i][1], color[i][2]],
                        (len(sft.streamlines[i]), 1))
@@ -233,6 +230,12 @@ def main():
     elif len(color) == len(sft.streamlines._data):
         sft.data_per_point['color'] = sft.streamlines
         sft.data_per_point['color']._data = color
+    else:
+        raise ValueError("Error in the code... Colors do not have the right "
+                         "shape. (this is our fault). Expecting either one"
+                         "color per streamline ({}) or one per point ({}) but "
+                         "got {}.".format(len(sft), len(sft.streamlines._data),
+                                          len(color)))
     save_tractogram(sft, args.out_tractogram)
 
     # output colormap
