@@ -7,11 +7,14 @@ They basically act as wrappers around numpy to avoid installing MRtrix/FSL
 to apply simple operations on nibabel images or numpy arrays.
 """
 
+
+from itertools import combinations
 from collections import OrderedDict
 import logging
 
 import nibabel as nib
 import numpy as np
+from numpy.lib import stride_tricks
 from scipy.ndimage import (binary_closing, binary_dilation,
                            binary_erosion, binary_opening,
                            gaussian_filter)
@@ -47,6 +50,7 @@ def get_array_ops():
         ('division', division),
         ('mean', mean),
         ('std', std),
+        ('correlation', correlation),
         ('union', union),
         ('intersection', intersection),
         ('difference', difference),
@@ -121,6 +125,29 @@ def _validate_float(x):
     if not is_float(x):
         logging.error('The input must be float/int for this operation.')
         raise ValueError
+
+
+def cut_up_cube(data, blck):
+    """
+    cut_up_cube: DATA BLOCK STRIDE
+        Cut up a cube of data into patches.
+        - blck is the size of the patches.
+        - strd is the stride between patches.
+        The last cube will be padded with zeros to ensure identical dimensions.
+    """
+    strd = 1
+    pad_size = (blck[0] - 1) // 2
+    data = np.pad(data, (pad_size, pad_size),
+                  'constant', constant_values=(0, 0))
+    sh = np.array(data.shape)
+    blck = np.asanyarray(blck)
+    strd = np.asanyarray(strd)
+    nbl = (sh - blck) // strd + 1
+    strides = np.r_[data.strides * strd, data.strides]
+    dims = np.r_[nbl, blck]
+    data = stride_tricks.as_strided(data, strides=strides, shape=dims)
+
+    return data
 
 
 def lower_threshold_eq(input_list, ref_img):
@@ -571,6 +598,69 @@ def concatenate(input_list, ref_img):
         img.uncache()
 
     return np.rollaxis(np.stack(input_data), axis=0, start=4)
+
+
+def correlation(input_list, ref_img, patch_radius=1):
+    """
+    correlation: IMGs
+        Compute the correlation average of multiple images.
+    """
+    _validate_length(input_list, 2, at_least=True)
+
+    if isinstance(input_list[0], nib.Nifti1Image):
+        _validate_imgs(*input_list, ref_img)
+        data_shape = input_list[0].header.get_data_shape()
+    else:
+        data_shape = input_list[0].shape
+
+    sizes = (patch_radius * 2 + 1, patch_radius * 2 + 1, patch_radius * 2 + 1)
+    combs = list(combinations(range(len(input_list)), r=2))
+    all_corr = np.zeros(data_shape + (len(combs),), dtype=np.float32)
+
+    np.random.seed(0)
+    for i, comb in enumerate(combs):
+        img_1 = input_list[comb[0]]
+        img_2 = input_list[comb[1]]
+
+        if isinstance(img_1, nib.Nifti1Image):
+            data_1 = img_1.get_fdata(dtype=np.float32)
+        else:
+            data_1 = img_1
+        if isinstance(img_2, nib.Nifti1Image):
+            data_2 = img_2.get_fdata(dtype=np.float32)
+        else:
+            data_2 = img_2
+
+        patches_1 = cut_up_cube(data_1, sizes)
+        patches_2 = cut_up_cube(data_2, sizes)
+
+        patches_shape = patches_1.shape
+        nb_patches = np.prod(patches_shape[0:3])
+
+        patches_1 = patches_1.reshape((nb_patches, np.prod(sizes)))
+        patches_2 = patches_2.reshape((nb_patches, np.prod(sizes)))
+        patches = np.concatenate((patches_1, patches_2), axis=-1)
+
+        non_zeros_patches = np.sum(patches, axis=-1)
+        non_zeros_ids = np.where(np.abs(non_zeros_patches) > 0.001)[0]
+
+        def correlate(data):
+            data += np.random.rand(data.shape[0]) * 0.001
+            a, b = np.split(data, 2)
+
+            if np.allclose(a, b):
+                return 1
+
+            corr = np.corrcoef(a, b, dtype=np.float32)[0, 1]
+            return corr
+
+        results = np.zeros((len(patches)), dtype=np.float32)
+        results[non_zeros_ids] = np.apply_along_axis(correlate, 1,
+                                                     patches[non_zeros_ids, :])
+
+        all_corr[..., i] = results.reshape(patches_shape[0:3])
+
+    return np.mean(all_corr, axis=-1)
 
 
 def dilation(input_list, ref_img):
