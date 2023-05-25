@@ -9,7 +9,6 @@ The number of labels will be the same as the centroid's number of points.
 """
 
 import argparse
-import itertools
 import logging
 import os
 
@@ -24,6 +23,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
+from scilpy.image.operations import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
@@ -33,7 +33,6 @@ from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
-from scipy.ndimage import gaussian_filter, map_coordinates
 from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
@@ -69,51 +68,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def cube_correlation(density_list, binary_list, size=5):
-    """
-    Compute a local correlation coefficient within a sliding window between
-    all the provided density maps. Computation time grows quickly as the length
-    of density_list increases, since np.corrcoef is pairwise (combinatorial).
-
-    Parameters
-    ----------
-    density_list: list of np.ndarray
-        List of density map from the same bundle across multiple acquisitions.
-    binary_list: list of np.ndarray
-        List of binary map from the same bundle across multiple acquisitions.
-    size: int
-        Total size of the sliding window for the correlation.
-    Returns
-    -------
-    corr_map: np.ndarray
-        Array with local corralation between density maps, same shape as inputs.
-        Between -1 and 1, as floating point values.
-    """
-    elem = np.arange(-(size//2), size//2 + 1).tolist()
-    cube_ind = np.array(list(itertools.product(elem, elem, elem)))
-    union = np.sum(binary_list, axis=0)
-    corr_map = np.zeros(density_list[0].shape)
-    indices = np.array(np.where(union)).T
-    if len(density_list) > 1:
-        for i, ind in enumerate(indices):
-            ind = tuple(ind)
-
-            cube_list = []
-            for density in density_list:
-                cube = map_coordinates(density, (cube_ind+ind).T, order=0)
-
-                if np.count_nonzero(cube) > 1:
-                    cube_list.append(cube.ravel())
-
-            cube_list = np.array(cube_list).T
-            cov_matrix = np.triu(np.corrcoef(cube_list), k=1)
-            corr_map[ind] = np.average(cov_matrix[cov_matrix > 0])
-    else:
-        corr_map = binary_list[0]
-
-    return corr_map
 
 
 def main():
@@ -159,16 +113,21 @@ def main():
         binary[density > 0] = 1
         binary_list.append(binary)
 
-        density = gaussian_filter(density, 1) * binary
-        density[binary < 1] += np.random.normal(0.0, 1.0,
-                                                binary[binary < 1].shape)
+        # density = ndi.gaussian_filter(density, 1) * binary
+        # density[binary < 1] += np.random.normal(0.0, 1.0,
+        #                                         binary[binary < 1].shape)
         density_list.append(density)
 
     if not is_header_compatible(sft_centroid, sft_list[0]):
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_centroid, args.in_bundle))
 
-    corr_map = cube_correlation(density_list, binary_list)
+    if len(density_list) > 1:
+        corr_map = correlation(density_list, None)
+    else:
+        corr_map = density_list[0].astype(float)
+        corr_map[corr_map > 0] = 1
+
     # Slightly cut the bundle at the edgge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
     binary_bundle = np.zeros(corr_map.shape, dtype=bool)
@@ -276,11 +235,9 @@ def main():
     kd_tree = cKDTree(final_streamlines._data)
     labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
     distance_map = np.zeros(binary_bundle.shape, dtype=float)
-    indices = np.nonzero(binary_bundle)
+    indices = np.array(np.nonzero(binary_bundle), dtype=int).T
 
-    for i in range(len(indices[0])):
-        ind = np.array([indices[0][i], indices[1][i], indices[2][i]],
-                       dtype=int)
+    for ind in indices:
         neighbor_ids = kd_tree.query_ball_point(ind, 2.0)
         if not neighbor_ids:
             continue
@@ -288,8 +245,7 @@ def main():
         dist_centro = dist_array._data[neighbor_ids]
         dist_vox = np.linalg.norm(final_streamlines._data[neighbor_ids] - ind,
                                   axis=1)
-
-        if np.sum(dist_centro) > 0:
+        if np.sum(dist_centro, dtype=np.int64) > 0:
             labels_map[tuple(ind)] = np.round(
                 np.average(labels_val, weights=dist_centro*dist_vox))
             distance_map[tuple(ind)] = np.average(dist_centro*dist_vox)
