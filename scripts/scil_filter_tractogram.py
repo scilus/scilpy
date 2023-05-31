@@ -99,6 +99,12 @@ def _build_arg_parser():
                    help='Text file containing one rule per line\n'
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
 
+    p.add_argument('--filter_distance_end', type=int, default=0,
+                   help='The value is in voxel for ROIs and in mm for bounding box.\n'
+                        'This parameter will apply a distance to every single filtering\n'
+                        'where MODE is both_end or either_end.'
+                        ' [%(default)s]')
+
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
     p.add_argument('--no_empty', action='store_true',
@@ -204,6 +210,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         set_sft_logger_level('WARNING')
 
+    if args.filter_distance_end:
+        logging.warning("Filter distance for modes both_end and either_end has been set to {}.".format(args.filter_distance_end))
+
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
 
@@ -232,10 +241,14 @@ def main():
         curr_dict['type'] = filter_type
         curr_dict['mode'] = filter_mode
         curr_dict['criteria'] = filter_criteria
-        curr_dict['distance'] = filter_distance
 
-        filter_distance = int(filter_distance)
+        if 'end' in filter_mode and args.filter_distance_end != 0:
+            curr_dict['distance'] = args.filter_distance_end
+        else:
+            curr_dict['distance'] = filter_distance
 
+        filter_distance = int(curr_dict['distance'])
+        
         is_exclude = False if filter_criteria == 'include' else True
 
         if filter_type == 'drawn_roi' or filter_type == 'atlas_roi':
@@ -289,12 +302,16 @@ def main():
 
             filtered_sft, kept_ids = filter_grid_roi(sft, mask,
                                                      filter_mode, is_exclude,
-                                                     filter_distance)
+                                                     filter_distance,
+                                                     args.filter_distance_end)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
 
-            if filter_distance != 0:
+            if 'end' in filter_mode:
+                if args.filter_distance_end != 0:
+                    radius += args.filter_distance_end * sft.space_attributes[2]
+            elif filter_distance != 0:
                 radius += filter_distance * sft.space_attributes[2]
 
             if geometry == 'Ellipsoid':
