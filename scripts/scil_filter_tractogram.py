@@ -101,7 +101,7 @@ def _build_arg_parser():
 
     p.add_argument('--filter_distance_end', type=int, default=0,
                    help='The value is in voxel for ROIs and in mm for bounding box.\n'
-                        'This parameter will apply a distance to every single filtering\n'
+                        'This parameter will apply a distance to every single filter\n'
                         'where MODE is both_end or either_end.'
                         ' [%(default)s]')
 
