@@ -61,6 +61,9 @@ from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
                                         filter_grid_roi)
 
 
+MODES = ['any', 'all', 'either_end', 'both_ends']
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
@@ -99,11 +102,8 @@ def _build_arg_parser():
                    help='Text file containing one rule per line\n'
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
 
-    p.add_argument('--filter_distance_end', type=int, default=0,
-                   help='The value is in voxel for ROIs and in mm for bounding box.\n'
-                        'This parameter will apply a distance to every single filter\n'
-                        'where MODE is both_end or either_end.'
-                        ' [%(default)s]')
+    p.add_argument('--overwrite_distance', nargs='+', action='append',
+                   help='MODE DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n')
 
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
@@ -199,9 +199,32 @@ def prepare_filtering_list(parser, args):
     return roi_opt_list, only_filtering_list
 
 
+def check_overwrite_distance(parser, args):
+    dict_distance = {}
+    if args.overwrite_distance:
+        for distance in args.overwrite_distance:
+            if len(distance) != 2:
+                parser.error('overwrite_distance is not well formated.\n'
+                             'It should be MODE DISTANCE.')
+            elif distance[0] in dict_distance:
+                parser.error('Overwrite distance dictionnary MODE '
+                             '"{}" has been set multiple times.'.format(distance[0]))
+            elif distance[0] in MODES:
+                dict_distance[distance[0]] = distance[1]
+            else:
+                parser.error('Overwrite distance dictionnary MODE '
+                             '"{}" does not exist.'.format(distance[0]))
+    else:
+        return dict_distance
+
+    return dict_distance
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    overwrite_distance = check_overwrite_distance(parser, args)
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
@@ -210,8 +233,8 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         set_sft_logger_level('WARNING')
 
-    if args.filter_distance_end:
-        logging.warning("Filter distance for modes both_end and either_end has been set to {}.".format(args.filter_distance_end))
+    if overwrite_distance:
+        logging.debug('Overwrite distance dictionnary {}'.format(overwrite_distance))
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
@@ -242,13 +265,16 @@ def main():
         curr_dict['mode'] = filter_mode
         curr_dict['criteria'] = filter_criteria
 
-        if 'end' in filter_mode and args.filter_distance_end != 0:
-            curr_dict['distance'] = args.filter_distance_end
+        if filter_mode in overwrite_distance:
+            curr_dict['distance'] = overwrite_distance[filter_mode]
         else:
             curr_dict['distance'] = filter_distance
 
-        filter_distance = int(curr_dict['distance'])
-        
+        try:
+            filter_distance = int(curr_dict['distance'])
+        except ValueError:
+            parser.error('Distance filter {} should is not an integer.'.format(curr_dict['distance']))
+
         is_exclude = False if filter_criteria == 'include' else True
 
         if filter_type == 'drawn_roi' or filter_type == 'atlas_roi':
@@ -302,16 +328,12 @@ def main():
 
             filtered_sft, kept_ids = filter_grid_roi(sft, mask,
                                                      filter_mode, is_exclude,
-                                                     filter_distance,
-                                                     args.filter_distance_end)
+                                                     filter_distance)
 
         elif filter_type == 'bdo':
             geometry, radius, center = read_info_from_mb_bdo(filter_arg)
 
-            if 'end' in filter_mode:
-                if args.filter_distance_end != 0:
-                    radius += args.filter_distance_end * sft.space_attributes[2]
-            elif filter_distance != 0:
+            if filter_distance != 0:
                 radius += filter_distance * sft.space_attributes[2]
 
             if geometry == 'Ellipsoid':
