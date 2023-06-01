@@ -103,7 +103,8 @@ def _build_arg_parser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
 
     p.add_argument('--overwrite_distance', nargs='+', action='append',
-                   help='MODE DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n')
+                   help='MODE DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n'
+                        'If set, it will overwrite the distance associated to a mode.')
 
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
