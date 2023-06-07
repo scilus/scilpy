@@ -44,10 +44,14 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.segment.voting_scheme import VotingScheme
 
 EPILOG = """
-Garyfallidis, E., Cote, M. A., Rheault, F., ... &
-Descoteaux, M. (2018). Recognition of white matter
-bundles using local and global streamline-based registration and
-clustering. NeuroImage, 170, 283-295.
+[1] Garyfallidis, Eleftherios, et al. "Recognition of white matter bundles using
+    local and global streamline-based registration and clustering."
+    NeuroImage (2018)
+[2] St-Onge, Etienne, Eleftherios Garyfallidis, and D. Louis Collins.
+    "Fast Streamline Search: An Exact Technique for Diffusion MRI Tractography."
+    Neuroinformatics (2022)
+[3] Rheault, François. "Analyse et reconstruction de faisceaux de la matière
+    blanche." Computer Science. Université de Sherbrooke (2020).
 """
 
 
