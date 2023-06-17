@@ -44,6 +44,6 @@ def test_execution_filtering_distance(script_runner):
                             'bundle_5.trk', '--display_counts',
                             '--drawn_roi', in_roi, 'any', 'include', '2',
                             '--bdo', in_bdo, 'any', 'include', '3',
-                            '--overwrite_distance', 'any', '2',
+                            '--overwrite_distance', 'any', 'include', '2',
                             '--save_rejected', 'bundle_5_rejected.trk')
     assert ret.success
