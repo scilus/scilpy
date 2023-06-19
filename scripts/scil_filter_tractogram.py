@@ -62,6 +62,7 @@ from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
 
 
 MODES = ['any', 'all', 'either_end', 'both_ends']
+CRITERIA = ['include', 'exclude']
 
 
 def _build_arg_parser():
@@ -103,8 +104,8 @@ def _build_arg_parser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
 
     p.add_argument('--overwrite_distance', nargs='+', action='append',
-                   help='MODE DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n'
-                        'If set, it will overwrite the distance associated to a mode.')
+                   help='MODE CRITERIA DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n'
+                        'If set, it will overwrite the distance associated to a specific mode/criteria.')
 
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
@@ -204,17 +205,19 @@ def check_overwrite_distance(parser, args):
     dict_distance = {}
     if args.overwrite_distance:
         for distance in args.overwrite_distance:
-            if len(distance) != 2:
+            if len(distance) != 3:
                 parser.error('overwrite_distance is not well formated.\n'
-                             'It should be MODE DISTANCE.')
-            elif distance[0] in dict_distance:
+                             'It should be MODE CRITERIA DISTANCE.')
+            elif '-'.join([distance[0], distance[1]]) in dict_distance:
                 parser.error('Overwrite distance dictionnary MODE '
                              '"{}" has been set multiple times.'.format(distance[0]))
-            elif distance[0] in MODES:
-                dict_distance[distance[0]] = distance[1]
+            elif distance[0] in MODES and distance[1] in CRITERIA:
+                curr_key = '-'.join([distance[0], distance[1]])
+                dict_distance[curr_key] = distance[2]
             else:
-                parser.error('Overwrite distance dictionnary MODE '
-                             '"{}" does not exist.'.format(distance[0]))
+                curr_key = '-'.join([distance[0], distance[1]])
+                parser.error('Overwrite distance dictionnary MODE-CRITERIA '
+                             '"{}" does not exist.'.format(curr_key))
     else:
         return dict_distance
 
@@ -266,8 +269,9 @@ def main():
         curr_dict['mode'] = filter_mode
         curr_dict['criteria'] = filter_criteria
 
-        if filter_mode in overwrite_distance:
-            curr_dict['distance'] = overwrite_distance[filter_mode]
+        key_distance = '-'.join([curr_dict['mode'], curr_dict['criteria']])
+        if key_distance in overwrite_distance:
+            curr_dict['distance'] = overwrite_distance[key_distance]
         else:
             curr_dict['distance'] = filter_distance
 
