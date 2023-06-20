@@ -9,35 +9,28 @@ AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
 
 If you are not sure about the transformation 'direction' you can try
 scil_recognize_single_bundle.py (with the -v option), a warning will popup if
-the provided transformation is not use correctly.
+the provided transformation is not used correctly.
 
-The next two arguments are multi-parameters related:
---multi_parameters must be lower than len(model_clustering_thr) *
-len(bundle_pruning_thr) * len(tractogram_clustering_thr)
+The number of folders inside 'models_directories' will increase the number of
+runs. Each folder is considered like an atlas and bundles inside will initiate
+more Recobundle executions. The more atlases you have, the more robust the
+recognition will be.
 
---seeds can be more than one value. Multiple values will result in
-a overall multiplicative factor of len(seeds) * '--multi_parameters'
+--minimal_vote_ratio is a value between 0 and 1. If you have 5 input model
+directories and a minimal_vote_ratio of 0.5, you will need at least 3 votes
 
-The number of folders provided by 'models_directories' will further multiply
-the total number of runs. Meaning that the total number of Recobundles
-execution will be len(seeds) * '--multi_parameters' * len(models_directories)
+Example data and usage available at: https://zenodo.org/record/7950602
 
---minimal_vote_ratio is a value between 0 and 1. The actual number of votes
-required will be '--minimal_vote_ratio' * len(seeds) * '--multi_parameters'
-* len(models_directories).
-
-Example: 5 atlas, 9 multi-parameters, 2 seeds with a minimal vote_ratio
-of 0.50 will results in 90 executions (for each bundle in the config file)
-and a minimal vote of 45 / 90.
-
-Example data and usage available at: https://zenodo.org/record/3928503
+For RAM usage, it is recommanded to use this heuristic:
+    (size of inputs tractogram (GB) * number of processes) < RAM (GB)
+This is important because many instances of data structures are initialized
+in parallel and can lead to a RAM overflow.
 """
 
 import argparse
 import logging
 import json
 import os
-import random
 
 import coloredlogs
 import numpy as np
@@ -46,14 +39,19 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             load_matrix_in_any_format)
+                             load_matrix_in_any_format,
+                             add_reference_arg)
 from scilpy.segment.voting_scheme import VotingScheme
 
 EPILOG = """
-Garyfallidis, E., Cote, M. A., Rheault, F., ... &
-Descoteaux, M. (2018). Recognition of white matter
-bundles using local and global streamline-based registration and
-clustering. NeuroImage, 170, 283-295.
+[1] Garyfallidis, Eleftherios, et al. "Recognition of white matter bundles using
+    local and global streamline-based registration and clustering."
+    NeuroImage (2018)
+[2] St-Onge, Etienne, Eleftherios Garyfallidis, and D. Louis Collins.
+    "Fast Streamline Search: An Exact Technique for Diffusion MRI Tractography."
+    Neuroinformatics (2022)
+[3] Rheault, François. "Analyse et reconstruction de faisceaux de la matière
+    blanche." Computer Science. Université de Sherbrooke (2020).
 """
 
 
@@ -63,12 +61,14 @@ def _build_arg_parser():
         description=__doc__,
         epilog=EPILOG)
 
-    p.add_argument('in_tractogram',
+    p.add_argument('in_tractograms', nargs='+',
                    help='Input tractogram filename (.trk or .tck).')
     p.add_argument('in_config_file',
                    help='Path of the config file (.json)')
-    p.add_argument('in_models_directories', nargs='+',
-                   help='Path for the directories containing model.')
+    p.add_argument('in_directory',
+                   help='Path of parent folder of models directories.\n'
+                        'Each folder inside will be considered as a'
+                        'different atlas.')
     p.add_argument('in_transfo',
                    help='Path for the transformation to model space '
                         '(.txt, .npy or .mat).')
@@ -78,27 +78,18 @@ def _build_arg_parser():
     p.add_argument('--log_level', default='INFO',
                    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
                    help='Log level of the logging class.')
-
-    p.add_argument('--multi_parameters', type=int, default=1,
-                   help='Pick parameters from the potential combinations\n'
-                        'Will multiply the number of times Recobundles is ran.\n'
-                        'See the documentation [%(default)s].')
     p.add_argument('--minimal_vote_ratio', type=float, default=0.5,
                    help='Streamlines will only be considered for saving if\n'
                         'recognized often enough [%(default)s].')
 
-    p.add_argument('--tractogram_clustering_thr',
-                   type=int, default=[12], nargs='+',
-                   help='Input tractogram clustering thresholds %(default)smm.')
-
-    p.add_argument('--seeds', type=int, default=[0], nargs='+',
-                   help='Random number generator seed %(default)s\n'
-                        'Will multiply the number of times Recobundles is ran.')
+    p.add_argument('--seed', type=int, default=0,
+                   help='Random number generator seed %(default)s.')
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 
     add_processes_arg(p)
     add_overwrite_arg(p)
+    add_reference_arg(p)
 
     return p
 
@@ -106,10 +97,18 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+    args.in_models_directories = [os.path.join(args.in_directory, x)
+                                  for x in os.listdir(args.in_directory)
+                                  if os.path.isdir(os.path.join(args.in_directory, x))]
 
-    assert_inputs_exist(parser, [args.in_tractogram,
-                                 args.in_config_file,
-                                 args.in_transfo])
+    assert_inputs_exist(parser, args.in_tractograms +
+                        [args.in_config_file,
+                         args.in_transfo])
+
+    for in_tractogram in args.in_tractograms:
+        ext = os.path.splitext(in_tractogram)[1]
+        if ext not in ['.trk', '.trx'] and args.reference is None:
+            parser.error('A reference is needed for {} file'.format(ext))
 
     for directory in args.in_models_directories:
         if not os.path.isdir(directory):
@@ -135,16 +134,10 @@ def main():
 
     voting = VotingScheme(config, args.in_models_directories,
                           transfo, args.out_dir,
-                          tractogram_clustering_thr=args.tractogram_clustering_thr,
-                          minimal_vote_ratio=args.minimal_vote_ratio,
-                          multi_parameters=args.multi_parameters)
+                          minimal_vote_ratio=args.minimal_vote_ratio)
 
-    if args.seeds is None:
-        seeds = [random.randint(1, 1000)]
-    else:
-        seeds = args.seeds
-
-    voting(args.in_tractogram, nbr_processes=args.nbr_processes, seeds=seeds)
+    voting(args.in_tractograms, nbr_processes=args.nbr_processes,
+           seed=args.seed, reference=args.reference)
 
 
 if __name__ == '__main__':
