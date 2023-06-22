@@ -55,6 +55,8 @@ def _build_arg_parser():
     p.add_argument('--colormap', default='jet',
                    help='Select the colormap for colored trk (data_per_point) '
                         '[%(default)s].')
+    p.add_argument('--new_labelling', action='store_true',
+                   help='Use the new labelling method (multi-centroids).')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -135,6 +137,10 @@ def main():
 
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
+
+    if not args.new_labelling:
+        sft_centroid = sft_centroid[0]
+
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
     tmp_sft = resample_streamlines_num_points(concat_sft, args.nb_pts)
 
