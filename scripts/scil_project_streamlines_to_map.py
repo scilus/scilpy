@@ -74,8 +74,13 @@ def _compute_streamline_mean(cur_ind, cur_min, cur_max, data):
     # From the precomputed indices, compute the binary map
     # and use it to weight the metric data for this specific streamline.
     cur_range = tuple(cur_max - cur_min)
-    streamline_density = compute_tract_counts_map(ArraySequence([cur_ind]),
-                                                  cur_range)
+
+    if len(cur_ind) == 2:
+        streamline_density = np.zeros(cur_range, dtype=int)
+        streamline_density[cur_ind[:, 0], cur_ind[:, 1]] = 1
+    else:
+        streamline_density = compute_tract_counts_map(ArraySequence([cur_ind]),
+                                                      cur_range)
     streamline_data = data[cur_min[0]:cur_max[0],
                            cur_min[1]:cur_max[1],
                            cur_min[2]:cur_max[2]]
@@ -102,7 +107,14 @@ def _process_streamlines(streamlines, just_endpoints):
         offset_streamlines.append((s - mins[-1]).astype(np.float32))
 
     offset_streamlines = ArraySequence(offset_streamlines)
-    indices = uncompress(offset_streamlines)
+
+    if not just_endpoints:
+        indices = uncompress(offset_streamlines)
+    else:
+        indices = ArraySequence()
+        indices._offsets = offset_streamlines._offsets
+        indices._lengths = offset_streamlines._lengths
+        indices._data = np.floor(offset_streamlines._data).astype(int)
 
     return mins, maxs, indices
 
@@ -182,11 +194,11 @@ def main():
             count = np.zeros(metric.shape)
             for cur_min, cur_max, cur_ind, orig_s in zip(mins, maxs, indices,
                                                          sft.streamlines):
-
                 streamline_mean = _compute_streamline_mean(cur_ind,
                                                            cur_min,
                                                            cur_max,
                                                            data)
+
                 _project_metrics(curr_metric_map, count, orig_s,
                                  streamline_mean, not args.to_wm)
             curr_metric_map[count != 0] /= count[count != 0]
