@@ -138,31 +138,36 @@ def main():
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
 
-    if not args.new_labelling:
-        sft_centroid = sft_centroid[0]
-
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
     tmp_sft = resample_streamlines_num_points(concat_sft, args.nb_pts)
 
-    srr = StreamlineLinearRegistration()
-    srm = srr.optimize(static=tmp_sft.streamlines,
-                       moving=sft_centroid.streamlines)
-    sft_centroid.streamlines = srm.transform(sft_centroid.streamlines)
+
+    if not args.new_labelling:
+        new_streamlines = sft_centroid.streamlines.copy()
+        sft_centroid = StatefulTractogram.from_sft([new_streamlines[0]],
+                                                   sft_centroid)
+    else:
+        srr = StreamlineLinearRegistration()
+        srm = srr.optimize(static=tmp_sft.streamlines,
+                        moving=sft_centroid.streamlines)
+        sft_centroid.streamlines = srm.transform(sft_centroid.streamlines)
 
     uniformize_bundle_sft(concat_sft, ref_bundle=sft_centroid[0])
-    labels, _ = min_dist_to_centroid(concat_sft.streamlines._data,
-                                     sft_centroid.streamlines._data,
-                                     args.nb_pts)
+    labels, dists = min_dist_to_centroid(concat_sft.streamlines._data,
+                                         sft_centroid.streamlines._data,
+                                         args.nb_pts)
     labels += 1  # 0 means no labels
 
     # It is not allowed that labels jumps labels for consistency
     # Streamlines should have continous labels
     final_streamlines = []
     final_label = []
+    final_dists = []
     curr_ind = 0
     for i, streamline in enumerate(concat_sft.streamlines):
         next_ind = curr_ind + len(streamline)
         curr_labels = labels[curr_ind:next_ind]
+        curr_dists = dists[curr_ind:next_ind]
         curr_ind = next_ind
 
         # Flip streamlines so the labels increase (facilitate if/else)
@@ -171,14 +176,16 @@ def main():
         if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
             streamline = streamline[::-1]
             curr_labels = curr_labels[::-1]
+            curr_dists = curr_dists[::-1]
 
-        # Find jumps, cut them and find the longest
+        # # Find jumps, cut them and find the longest
         gradient = np.ediff1d(curr_labels)
         max_jump = max(args.nb_pts // 5, 1)
         if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
             pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
             split_chunk = np.split(curr_labels,
                                    pos_jump)
+
             max_len = 0
             max_pos = 0
             for j, chunk in enumerate(split_chunk):
@@ -192,12 +199,16 @@ def main():
                 continue
             streamline = np.split(streamline,
                                   pos_jump)[max_pos]
+            curr_dists = np.split(curr_dists,
+                                  pos_jump)[max_pos]
 
         final_streamlines.append(streamline)
         final_label.append(curr_labels)
+        final_dists.append(curr_dists)
 
     final_streamlines = ArraySequence(final_streamlines)
     final_labels = ArraySequence(final_label)
+    final_dists = ArraySequence(final_dists)
 
     kd_tree = cKDTree(final_streamlines._data)
     labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
@@ -205,20 +216,21 @@ def main():
     indices = np.array(np.nonzero(binary_bundle), dtype=int).T
 
     for ind in indices:
-        dists_vox, neighbor_ids = kd_tree.query(ind, k=5)
+        _, neighbor_ids = kd_tree.query(ind, k=5)
 
         if not len(neighbor_ids):
             continue
 
         labels_val = final_labels._data[neighbor_ids]
-        sum_dists_vox = np.sum(dists_vox)
-        weights_vox = np.exp(-dists_vox / sum_dists_vox)
+        dists_val = final_dists._data[neighbor_ids]
+        sum_dists_vox = np.sum(dists_val)
+        weights_vox = np.exp(-dists_val / sum_dists_vox)
 
         vote = np.bincount(labels_val, weights=weights_vox)
         total = np.arange(np.amax(labels_val+1))
         winner = total[np.argmax(vote)]
         labels_map[ind[0], ind[1], ind[2]] = winner
-        distance_map[ind[0], ind[1], ind[2]] = np.average(dists_vox)
+        distance_map[ind[0], ind[1], ind[2]] = np.average(dists_val)
 
         cmap = get_colormap(args.colormap)
 

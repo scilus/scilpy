@@ -5,8 +5,11 @@ from scipy.spatial import KDTree
 
 
 def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
-    tree = KDTree(centroid_pts)
-    dists, labels = tree.query(bundle_pts, k=20, distance_upper_bound=np.inf)
+    tree = KDTree(centroid_pts, copy_data=True)
+    dists, labels = tree.query(bundle_pts, k=1)
+    dists, labels = np.expand_dims(
+        dists, axis=1), np.expand_dims(labels, axis=1)
+
     labels = np.mod(labels, nb_pts)
 
     sum_dist = np.expand_dims(np.sum(dists, axis=1), axis=1)
