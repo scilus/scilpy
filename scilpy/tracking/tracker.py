@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
@@ -265,7 +266,7 @@ class Tracker(object):
         self.propagator.reset_data(np.load(
             init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
-    def _get_streamlines(self, chunk_id, lock):
+    def _get_streamlines(self, chunk_id, lock=None):
         """
         Tracks the n streamlines associates with current process (identified by
         chunk_id). The number n is the total number of seeds / the number of
@@ -277,7 +278,8 @@ class Tracker(object):
         chunk_id: int
             This process ID.
         lock: Lock
-            The multiprocessing lock
+            The multiprocessing lock for verbose printing (optional with
+            single processing).
 
         Returns
         -------
@@ -303,6 +305,8 @@ class Tracker(object):
         tqdm_text = "#" + "{}".format(chunk_id).zfill(3)
 
         if self.verbose:
+            if lock is None:
+                lock = nullcontext()
             with lock:
                 # Note. Option miniters does not work with manual pbar update.
                 # Will verify manually, lower.
