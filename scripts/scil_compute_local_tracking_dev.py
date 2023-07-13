@@ -70,11 +70,6 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 
-# A decision should be made as if we should keep the last point (out of the
-# tracking mask). Currently keeping this as in Dipy, i.e. True. Could be
-# an option for the user.
-APPEND_LAST_POINT = True
-
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -117,6 +112,14 @@ def _build_arg_parser():
                          choices=['nearest', 'trilinear'],
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
+    track_g.add_argument(
+        '--do_not_append_last_point', dest='append_last_point',
+        action='store_false',
+        help="Do not add the last point (once out of the tracking mask) to \n"
+             "the streamline. Default: append them. This is the default in \n"
+             "Dipy too. Note that points obtained after an invalid direction \n"
+             "(based on the propagator's definition of invalid; ex when \n"
+             "angle is too sharp of sh_threshold not reached) are never added.")
 
     add_seeding_options(p)
 
@@ -240,7 +243,7 @@ def main():
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip, append_last_point=APPEND_LAST_POINT,
+                      skip=args.skip, append_last_point=args.append_last_point,
                       verbose=args.verbose)
 
     start = time.time()
