@@ -472,13 +472,13 @@ def contour_actor_from_image(
     Parameters
     ----------
     img : Nifti1Image
-        Nifti volume (mask, binary image, labels, floating points image).
+        Nifti volume (mask, binary image, labels).
     slice_index : int
         Index of the slice to visualize along the chosen orientation.
     axis : int
         Slicing axis
-    contour_value : float
-        Value of the isocontour.
+    contour_values : float
+        Values at which to extract isocontours.
     color : tuple, list of int
         Color of the contour in RGB [0, 255].
     opacity: float
@@ -488,7 +488,6 @@ def contour_actor_from_image(
     smoothing_radius : float
         Pre-smoothing to apply to the image before 
         computing the contour (in pixels).
-
 
     Returns
     -------
@@ -826,8 +825,9 @@ def draw_scene_at_pos(
     size,
     left_pos,
     top_pos,
-    mask=None,
+    transparency=None,
     labelmap_overlay=None,
+    labelmap_overlay_alpha=0.7,
     mask_overlay=None,
     mask_overlay_alpha=0.7,
     mask_overlay_color=None,
@@ -848,7 +848,7 @@ def draw_scene_at_pos(
         Left position (pixels).
     top_pos : int
         Top position (pixels).
-    mask : ndarray, optional
+    transparency : ndarray, optional
         Transparency mask.
     labelmap_overlay : ndarray
         Labelmap overlay scene data to be drawn.
@@ -866,38 +866,42 @@ def draw_scene_at_pos(
 
     image = create_image_from_scene(scene, size, cmap_name=vol_cmap_name)
 
-    mask_img = None
-    if mask is not None:
-        mask_img = create_image_from_scene(mask, size, mode="L")
+    trans_img = None
+    if transparency is not None:
+        trans_img = create_image_from_scene(transparency, size, mode="L")
 
-    canvas.paste(image, (left_pos, top_pos), mask=mask_img)
+    canvas.paste(image, (left_pos, top_pos), mask=trans_img)
 
     # Draw the labelmap overlay image if any
     if labelmap_overlay is not None:
-
         labelmap_img = create_image_from_scene(
             labelmap_overlay, size, cmap_name=labelmap_cmap_name
         )
 
-        # Create a mask over the labelmap overlay image
-        label_mask = create_mask_from_scene(labelmap_overlay, size)
+        # Create transparency mask over the labelmap overlay image
+        label_mask = labelmap_overlay > 0
+        label_transparency = create_image_from_scene(
+            (label_mask * labelmap_overlay_alpha * 255.).astype(np.uint8),
+            size).convert("L")
 
-        canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
+        canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_transparency)
 
     # Draw the mask overlay image if any
     if mask_overlay is not None:
         if mask_overlay_color is None:
+            # Get a list of distinguishable colors if None are supplied
             mask_overlay_color = distinguishable_colormap(
                 nb_colors=len(mask_overlay))
 
         for img, color in zip(mask_overlay, mask_overlay_color):
-            contour_img = create_image_from_scene(
+            overlay_img = create_image_from_scene(
                 (img * color).astype(np.uint8), size, "RGB")
 
-            contour_mask = create_image_from_scene(
+            # Create transparency mask over the mask overlay image
+            overlay_trans = create_image_from_scene(
                 (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
 
-            canvas.paste(contour_img, (left_pos, top_pos), mask=contour_mask)
+            canvas.paste(overlay_img, (left_pos, top_pos), mask=overlay_trans)
 
 
 def compute_canvas_size(
@@ -995,14 +999,15 @@ def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
 
 def compose_mosaic(
     img_scene_container,
-    mask_scene_container,
     cell_size,
     rows,
     cols,
     overlap_factor=None,
+    transparency_scene_container=None,
     labelmap_scene_container=None,
+    labelmap_overlay_alpha=0.7,
     mask_overlay_scene_container=None,
-    mask_overlay_alpha = 0.7,
+    mask_overlay_alpha=0.7,
     mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
@@ -1014,8 +1019,6 @@ def compose_mosaic(
     ----------
     img_scene_container : list
         Image scene data container.
-    mask_scene_container : list
-        Mask scene data container.
     cell_size : array-like
         Cell size (pixels) (width, height).
     rows : int
@@ -1024,6 +1027,8 @@ def compose_mosaic(
         Column count.
     overlap_factor : array-like
         Overlap factor (horizontal, vertical).
+    transparency_scene_container : list, optional
+        Transaprency scene data container.
     labelmap_scene_container : list, optional
         Labelmap scene data container.
     mask_overlay_scene_container : list, optional
@@ -1054,10 +1059,10 @@ def compose_mosaic(
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, mask_arr, labelmap_arr, mask_overlay_arr) in enumerate(
+    for idx, (img_arr, trans_arr, labelmap_arr, mask_overlay_arr) in enumerate(
             list(zip_longest(
                 img_scene_container,
-                mask_scene_container,
+                transparency_scene_container,
                 labelmap_scene_container,
                 mask_overlay_scene_container,
                 fillvalue=tuple()))
@@ -1071,7 +1076,10 @@ def compose_mosaic(
         # Convert the scene data to grayscale and adjust for handling with
         # Pillow
         _img_arr = rgb2gray4pil(img_arr)
-        _mask_arr = rgb2gray4pil(mask_arr)
+
+        _trans_arr = None
+        if len(trans_arr):
+            _trans_arr = rgb2gray4pil(trans_arr)
 
         _labelmap_arr = None
         if len(labelmap_arr):
@@ -1088,8 +1096,9 @@ def compose_mosaic(
             (cell_width, cell_height),
             left_pos,
             top_pos,
-            mask=_mask_arr,
+            transparency=_trans_arr,
             labelmap_overlay=_labelmap_arr,
+            labelmap_overlay_alpha=labelmap_overlay_alpha,
             mask_overlay=_mask_overlay_arr,
             mask_overlay_alpha=mask_overlay_alpha,
             mask_overlay_color=mask_overlay_color,
