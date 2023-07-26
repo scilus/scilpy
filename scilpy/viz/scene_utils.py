@@ -8,7 +8,7 @@ from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
 from fury.utils import get_actor_from_polydata, numpy_to_vtk_image_data
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import bingham_to_sf
@@ -997,11 +997,37 @@ def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
     return top_pos, left_pos
 
 
+def annotate_scene(mosaic, slice_number, display_slice_number, display_lr):
+    font_size = min(mosaic.width // 10, 100)
+    font = ImageFont.truetype(
+        '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
+
+    img = ImageDraw.Draw(mosaic)
+
+    if display_slice_number:
+        img.text((0, 0), "{}".format(slice_number), (255,255,255), font=font)
+
+    if display_lr:
+        l_text, r_text = "L", "R"
+        if display_lr < 0:
+            l_text, r_text = r_text, l_text
+
+        img.text(
+            (0, mosaic.height // 2), l_text, (255,255,255),
+            font=font, anchor="lm"
+        )
+        img.text(
+            (mosaic.width, mosaic.height // 2), r_text, (255,255,255),
+            font=font, anchor="rm"
+        )
+
+
 def compose_mosaic(
     img_scene_container,
     cell_size,
     rows,
     cols,
+    slice_numbers,
     overlap_factor=None,
     transparency_scene_container=None,
     labelmap_scene_container=None,
@@ -1011,6 +1037,8 @@ def compose_mosaic(
     mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
+    display_slice_number=False,
+    display_lr=False
 ):
     """Create the mosaic canvas for given number of rows and columns, and the
     requested cell size and overlap values.
@@ -1041,6 +1069,11 @@ def compose_mosaic(
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
         Colormap name for the labelmap scene data.
+    display_slice_number : bool, optional
+        If true, displays the slice number in the upper left corner.
+    display_lr : bool or int, optional
+        If 1 or -1, identifies the left and right sides on the image. -1 flips 
+        left and right positions.
     """
 
     def _compute_overlap_length(length, _overlap):
@@ -1059,12 +1092,13 @@ def compose_mosaic(
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, trans_arr, labelmap_arr, mask_overlay_arr) in enumerate(
+    for idx, (img_arr, trans_arr, labelmap_arr, mask_overlay_arr, slice_number) in enumerate(
             list(zip_longest(
                 img_scene_container,
                 transparency_scene_container,
                 labelmap_scene_container,
                 mask_overlay_scene_container,
+                slice_numbers,
                 fillvalue=tuple()))
     ):
 
@@ -1105,5 +1139,7 @@ def compose_mosaic(
             vol_cmap_name=vol_cmap_name,
             labelmap_cmap_name=labelmap_cmap_name,
         )
+
+        annotate_scene(mosaic, slice_number, display_slice_number, display_lr)
 
     return mosaic

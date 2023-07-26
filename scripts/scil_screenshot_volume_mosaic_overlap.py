@@ -183,8 +183,8 @@ def main():
 
     # Compose the mosaic
     img = compose_mosaic(
-        vol_scene_container, args.win_dims,
-        rows, cols, args.overlap_factor,
+        vol_scene_container, args.win_dims, rows, cols, args.slice_ids,
+        overlap_factor=args.overlap_factor,
         vol_cmap_name=args.volume_cmap_name,
         transparency_scene_container=transparency_scene_container,
         labelmap_scene_container=labelmap_scene_container,

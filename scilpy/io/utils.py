@@ -277,7 +277,14 @@ def add_nifti_screenshot_default_args(
     parser.add_argument(
         "--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"), default=(768, 768),
         type=int, help="The dimensions for the vtk window. [%(default)s]")
-
+    parser.add_argument(
+        "--display_slice_number", action="store_true",
+        help="If true, displays the slice number in the upper left corner."
+    )
+    parser.add_argument(
+        "--display_lr", action="store_true",
+        help="If true, add left and right annotations to the images."
+    )
 
 def add_nifti_screenshot_overlays_args(
     parser, labelmap_overlay=True, mask_overlay=True,

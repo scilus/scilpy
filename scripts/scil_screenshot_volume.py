@@ -170,16 +170,17 @@ def main():
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
 
     # Compose and save each slice
-    for (volume, trans, label, contour, name) in list(
+    for (volume, trans, label, contour, name, slice_id) in list(
         zip_longest(vol_scene_container,
                     transparency_scene_container,
                     labelmap_scene_container,
                     mask_overlay_scene_container,
                     names,
+                    slice_ids,
                     fillvalue=tuple())):
 
         img = compose_mosaic(
-            [volume], args.win_dims, 1, 1,
+            [volume], args.win_dims, 1, 1, [slice_id],
             vol_cmap_name=args.volume_cmap_name,
             transparency_scene_container=[trans],
             mask_overlay_scene_container=[contour],
@@ -187,7 +188,9 @@ def main():
             mask_overlay_alpha=args.masks_alpha,
             labelmap_scene_container=[label],
             labelmap_cmap_name=args.labelmap_cmap_name,
-            labelmap_overlay_alpha=args.labelmap_alpha)
+            labelmap_overlay_alpha=args.labelmap_alpha,
+            display_slice_number=args.display_slice_number,
+            display_lr=args.display_lr)
 
         # Save the snapshot
         img.save(name)
