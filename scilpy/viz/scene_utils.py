@@ -998,14 +998,18 @@ def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
 
 
 def annotate_scene(mosaic, slice_number, display_slice_number, display_lr):
-    font_size = min(mosaic.width // 10, 100)
+    font_size = mosaic.width // 10
     font = ImageFont.truetype(
         '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
 
+    stroke, padding = max(mosaic.width // 200, 1), mosaic.width // 100
     img = ImageDraw.Draw(mosaic)
 
     if display_slice_number:
-        img.text((0, 0), "{}".format(slice_number), (255,255,255), font=font)
+        img.text(
+            (padding, padding), "{}".format(slice_number), (255,255,255),
+            font=font, stroke_width=stroke, stroke_fill=(0, 0, 0)
+        )
 
     if display_lr:
         l_text, r_text = "L", "R"
@@ -1013,12 +1017,12 @@ def annotate_scene(mosaic, slice_number, display_slice_number, display_lr):
             l_text, r_text = r_text, l_text
 
         img.text(
-            (0, mosaic.height // 2), l_text, (255,255,255),
-            font=font, anchor="lm"
+            (padding, mosaic.height // 2), l_text, (255,255,255),
+            font=font, anchor="lm", stroke_width=stroke, stroke_fill=(0, 0, 0)
         )
         img.text(
-            (mosaic.width, mosaic.height // 2), r_text, (255,255,255),
-            font=font, anchor="rm"
+            (mosaic.width - padding, mosaic.height // 2), r_text, (255,255,255),
+            font=font, anchor="rm", stroke_width=stroke, stroke_fill=(0, 0, 0)
         )
 
 
