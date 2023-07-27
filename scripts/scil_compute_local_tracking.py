@@ -64,7 +64,7 @@ def _build_arg_parser():
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
     track_g.add_argument('--sub_sphere', metavar='SPHERE_DIVISION',
-                        type=int, default=1,
+                         type=int, default=0,
                          help='Multiply the number of directions in the sphere. '
                               '[%(default)s]')
     add_seeding_options(p)
