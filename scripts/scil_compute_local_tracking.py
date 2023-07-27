@@ -63,7 +63,10 @@ def _build_arg_parser():
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
-
+    track_g.add_argument('--sub_sphere', metavar='SPHERE_DIVISION',
+                        type=int, default=1,
+                         help='Multiply the number of directions in the sphere. '
+                              '[%(default)s]')
     add_seeding_options(p)
     out_g = add_out_options(p)
 
@@ -78,7 +81,7 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
+    sphere = HemiSphere.from_sphere(get_sphere(args.sphere)).subdivide(args.sub_sphere)
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
