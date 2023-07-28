@@ -65,7 +65,7 @@ def _build_arg_parser():
     add_sphere_arg(track_g, symmetric_only=True)
     track_g.add_argument('--sub_sphere', metavar='s',
                          type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new faces.'
+                         help='Subdivides each face of the sphere into 4^s new faces. '
                               '[%(default)s]')
     add_seeding_options(p)
     out_g = add_out_options(p)
