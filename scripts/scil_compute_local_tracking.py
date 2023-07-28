@@ -63,9 +63,9 @@ def _build_arg_parser():
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
-    track_g.add_argument('--sub_sphere', metavar='SPHERE_DIVISION',
+    track_g.add_argument('--sub_sphere', metavar='s',
                          type=int, default=0,
-                         help='Multiply the number of directions in the sphere. '
+                         help='Subdivides each face of the sphere into 4^s new faces.'
                               '[%(default)s]')
     add_seeding_options(p)
     out_g = add_out_options(p)
