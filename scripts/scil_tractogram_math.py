@@ -187,3 +187,7 @@ def main():
                                                        args.out_tractogram))
     save_tractogram(new_sft[indices], args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
+
+
+if __name__ == "__main__":
+    main()
