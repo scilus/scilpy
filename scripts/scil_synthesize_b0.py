@@ -2,9 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-tensorflow-addons
-TensorRT
-tensorflow
+Wrapper for SyNb0 available in Dipy, to run it on a single subject.
+Requires Skull-Strip b0 and t1w images as input, the script will normalize the
+t1w's WM to 110, co-register both images, then register it to the appropriate
+template, run SyNb0 and then transform the result back to the original space.
+
+This script must be used carefully, as it is not meant to be used in an
+environment with the following dependencies already installed (not default
+in Scilpy):
+- tensorflow-addons
+- tensorrt
+- tensorflow
 """
 
 
@@ -38,11 +46,11 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_b0',
-                   help='')
+                   help='Input skull-stripped b0 image.')
     p.add_argument('in_t1',
-                   help='')
+                   help='Input skull-stripped t1w image.')
     p.add_argument('out_b0',
-                   help='')
+                   help='Output skull-stripped b0 image without distortion.')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -66,7 +74,6 @@ def main():
 
     b0_img = nib.load(args.in_b0)
     b0_data = b0_img.get_fdata()
-
     t1_img = nib.load(args.in_t1)
     t1_data = gaussian_filter(t1_img.get_fdata(), sigma=1)
 
@@ -98,7 +105,7 @@ def main():
     rev_b0 = affine_map.transform_inverse(rev_b0.astype(np.float64))
 
     dtype = b0_img.get_data_dtype()
-    nib.save(nib.Nifti1Image(rev_b0.astype(dtype), template_img.affine),
+    nib.save(nib.Nifti1Image(rev_b0.astype(dtype), b0_img.affine),
              args.out_b0)
 
 
