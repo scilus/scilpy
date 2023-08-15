@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 import logging
+import os
 
 from dipy.align.imaffine import (AffineMap,
                                  AffineRegistration,
@@ -243,3 +245,22 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         val[idx]['snr'] = val[idx]['mean'] / val[idx]['std']
 
     return val
+
+
+def get_synb0_template_path():
+    """
+    Return MNI 2.5mm template in scilpy repository
+
+    Returns
+    -------
+    path: str
+        Template path
+    """
+    # Get the valid LUT choices.
+    import scilpy  # ToDo. Is this the only way?
+    module_path = inspect.getfile(scilpy)
+    module_path = os.path.dirname(os.path.dirname(module_path))
+
+    path = os.path.join(module_path, 'data/',
+                        'mni_icbm152_t1_tal_nlin_asym_09c_masked_2_5.nii.gz')
+    return path
