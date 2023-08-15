@@ -1,0 +1,4 @@
+# Set the default behavior to checkout and commit LF,  
+# otherwise devcontainers commit invalid EOL symbols
+
+* text eol=lf
