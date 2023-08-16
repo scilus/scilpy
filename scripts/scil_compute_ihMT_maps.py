@@ -111,7 +111,8 @@ def _build_arg_parser():
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
     p.add_argument('--legacy_sat', action='store_true',
-                   help='Use this option to choose the ihMTdR1sat contrast.')
+                   help='Use this option to choose the ihMTdR1sat contrast. '
+                        'This is not recommended.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
