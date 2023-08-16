@@ -35,7 +35,8 @@ class Tracker(object):
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False,
                  mmap_mode: Union[str, None] = None, rng_seed=1234,
-                 track_forward_only=False, skip=0, verbose=False):
+                 track_forward_only=False, skip=0, verbose=False,
+                 append_last_point=True):
         """
         Parameters
         ----------
@@ -78,6 +79,12 @@ class Tracker(object):
             skip 1,000,000.
         verbose: bool
             Display tracking progression.
+        append_last_point: bool
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
+            direction (based on the propagator's definition of invalid; ex
+            when angle is too sharp of sh_threshold not reached) are never
+            added.
         """
         self.propagator = propagator
         self.mask = mask
@@ -91,6 +98,7 @@ class Tracker(object):
         self.mmap_mode = mmap_mode
         self.rng_seed = rng_seed
         self.track_forward_only = track_forward_only
+        self.append_last_point = append_last_point
         self.skip = skip
 
         self.origin = self.propagator.origin
@@ -428,33 +436,24 @@ class Tracker(object):
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line, tracking_info)
 
-            # Verifying and appending
+            # Verifying if direction is valid
+            # If invalid: break. Else, verify tracking mask.
             if is_direction_valid:
                 invalid_direction_count = 0
             else:
                 invalid_direction_count += 1
-            propagation_can_continue = self._verify_stopping_criteria(
-                invalid_direction_count, new_pos)
-            if propagation_can_continue:
+                if invalid_direction_count > self.max_invalid_dirs:
+                    break
+
+            propagation_can_continue = self._verify_stopping_criteria(new_pos)
+            if propagation_can_continue or self.append_last_point:
                 line.append(new_pos)
 
             tracking_info = new_tracking_info
 
-        # Possible last step.
-        final_pos = self.propagator.finalize_streamline(line[-1],
-                                                        tracking_info)
-        if (final_pos is not None and
-                not np.array_equal(final_pos, line[-1]) and
-                self.mask.is_coordinate_in_bound(
-                    *final_pos, space=self.space, origin=self.origin)):
-            line.append(final_pos)
         return line
 
-    def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
-
-        # Checking number of consecutive invalid directions
-        if invalid_direction_count > self.max_invalid_dirs:
-            return False
+    def _verify_stopping_criteria(self, last_pos):
 
         # Checking if out of bound
         if not self.mask.is_coordinate_in_bound(
