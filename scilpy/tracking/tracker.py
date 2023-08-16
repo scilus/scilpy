@@ -80,8 +80,8 @@ class Tracker(object):
         verbose: bool
             Display tracking progression.
         append_last_point: bool
-            Wheter to add the last point (once out of the tracking mask) to the
-            streamline or not. Note that points obtained after an invalid
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
             direction (based on the propagator's definition of invalid; ex
             when angle is too sharp of sh_threshold not reached) are never
             added.
