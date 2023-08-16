@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
@@ -8,6 +9,7 @@ from tempfile import TemporaryDirectory
 from time import perf_counter
 import traceback
 from typing import Union
+from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
@@ -32,8 +34,8 @@ class Tracker(object):
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False,
-                 mmap_mode: Union[str, None] = None,
-                 rng_seed=1234, track_forward_only=False, skip=0):
+                 mmap_mode: Union[str, None] = None, rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False):
         """
         Parameters
         ----------
@@ -74,6 +76,8 @@ class Tracker(object):
             tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
             with nbr_seeds=1,000,000, you can create tractogram_2 with
             skip 1,000,000.
+        verbose: bool
+            Display tracking progression.
         """
         self.propagator = propagator
         self.mask = mask
@@ -113,6 +117,7 @@ class Tracker(object):
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 
         self.printing_frequency = 1000
+        self.verbose = verbose
 
     def track(self):
         """
@@ -133,11 +138,14 @@ class Tracker(object):
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
             with TemporaryDirectory() as tmpdir:
+                # Lock for logging
+                lock = multiprocessing.Manager().Lock()
+                zipped_chunks = zip(chunk_ids, [lock] * self.nbr_processes)
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
                 lines_per_process, seeds_per_process = zip(*pool.map(
-                    self._get_streamlines_sub, chunk_ids))
+                    self._get_streamlines_sub, zipped_chunks))
                 pool.close()
                 # Make sure all worker processes have exited before leaving
                 # context manager.
@@ -216,7 +224,7 @@ class Tracker(object):
         multiprocess_init_args = init_args
         return
 
-    def _get_streamlines_sub(self, chunk_id):
+    def _get_streamlines_sub(self, params):
         """
         multiprocessing.pool.map input function. Calls the main tracking
         method (_get_streamlines) with correct initialization arguments
@@ -224,19 +232,21 @@ class Tracker(object):
 
         Parameters
         ----------
-        chunk_id: int
-            This processes's id.
+        params: Tuple[chunk_id, Lock]
+            chunk_id: int, this processes's id.
+            Lock: the multiprocessing lock.
 
         Return
         -------
         lines: list
             List of list of 3D positions (streamlines).
         """
+        chunk_id, lock = params
         global multiprocess_init_args
 
         self._reload_data_for_new_process(multiprocess_init_args)
         try:
-            streamlines, seeds = self._get_streamlines(chunk_id)
+            streamlines, seeds = self._get_streamlines(chunk_id, lock)
             return streamlines, seeds
         except Exception as e:
             logging.error("Operation _get_streamlines_sub() failed.")
@@ -256,7 +266,7 @@ class Tracker(object):
         self.propagator.reset_data(np.load(
             init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
-    def _get_streamlines(self, chunk_id):
+    def _get_streamlines(self, chunk_id, lock=None):
         """
         Tracks the n streamlines associates with current process (identified by
         chunk_id). The number n is the total number of seeds / the number of
@@ -267,6 +277,9 @@ class Tracker(object):
         ----------
         chunk_id: int
             This process ID.
+        lock: Lock
+            The multiprocessing lock for verbose printing (optional with
+            single processing).
 
         Returns
         -------
@@ -289,11 +302,21 @@ class Tracker(object):
             chunk_size += self.nbr_seeds % self.nbr_processes
 
         # Getting streamlines
-        for s in range(chunk_size):
-            if s % self.printing_frequency == 0:
-                logging.info("Process {} (id {}): {} / {}"
-                             .format(chunk_id, os.getpid(), s, chunk_size))
+        tqdm_text = "#" + "{}".format(chunk_id).zfill(3)
 
+        if self.verbose:
+            if lock is None:
+                lock = nullcontext()
+            with lock:
+                # Note. Option miniters does not work with manual pbar update.
+                # Will verify manually, lower.
+                # Fixed choice of value rather than a percentage of the chunk
+                # size because our tracker is quite slow.
+                miniters = 100
+                p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
+                         leave=False)
+
+        for s in range(chunk_size):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
 
@@ -319,6 +342,13 @@ class Tracker(object):
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
 
+            if self.verbose and (s + 1) % miniters == 0:
+                with lock:
+                    p.update(miniters)
+
+        if self.verbose:
+            with lock:
+                p.close()
         return streamlines, seeds
 
     def _get_line_both_directions(self, seeding_pos):

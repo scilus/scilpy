@@ -9,6 +9,7 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 
+import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
 from dipy.io.utils import is_header_compatible
@@ -237,6 +238,87 @@ def add_sh_basis_args(parser, mandatory=False):
                         help=help_msg)
 
 
+def add_nifti_screenshot_default_args(
+    parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
+):
+    _mask_prefix = "" if transparency_mask_mandatory else "--"
+    
+    _slice_ids_prefix, _slice_ids_help = "", "Slice indices to screenshot."
+    _output_help = "Name of the output image (e.g. img.jpg, img.png)."
+    if not slice_ids_mandatory:
+        _slice_ids_prefix = "--"
+        _slice_ids_help += " If None are supplied, all slices inside " \
+                           "the transparency mask are selected."
+        _output_help = "Name of the output image(s). If multiple slices are " \
+                       "provided (or none), their index will be append to " \
+                        "the name (e.g. volume.jpg, volume.png becomes " \
+                        "volume_slice_0.jpg, volume_slice_0.png)."
+
+    # Positional arguments
+    parser.add_argument(
+        "in_volume", help="Input 3D Nifti file (.nii/.nii.gz).")
+    parser.add_argument("out_fname", help=_output_help)
+
+    # Variable arguments
+    parser.add_argument(
+        f"{_mask_prefix}in_transparency_mask",
+        help="Transparency mask 3D Nifti image (.nii/.nii.gz).")
+    parser.add_argument(
+        f"{_slice_ids_prefix}slice_ids", nargs="+", type=int,
+        help=_slice_ids_help)
+
+    # Optional arguments
+    parser.add_argument(
+        "--volume_cmap_name", default=None,
+        help="Colormap name for the volume image data. [%(default)s]")
+    parser.add_argument(
+        "--axis_name", default="axial", type=str, choices=axis_name_choices,
+        help="Name of the axis to visualize. [%(default)s]")
+    parser.add_argument(
+        "--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"), default=(768, 768),
+        type=int, help="The dimensions for the vtk window. [%(default)s]")
+    parser.add_argument(
+        "--display_slice_number", action="store_true",
+        help="If true, displays the slice number in the upper left corner."
+    )
+    parser.add_argument(
+        "--display_lr", action="store_true",
+        help="If true, add left and right annotations to the images."
+    )
+
+def add_nifti_screenshot_overlays_args(
+    parser, labelmap_overlay=True, mask_overlay=True,
+    transparency_is_overlay=False
+):
+    if labelmap_overlay:
+        parser.add_argument(
+            "--in_labelmap",  help="Labelmap 3D Nifti image (.nii/.nii.gz).")
+        parser.add_argument(
+            "--labelmap_cmap_name", default="viridis",
+            help="Colormap name for the labelmap image data. [%(default)s]")
+        parser.add_argument(
+            "--labelmap_alpha", type=ranged_type(float, 0., 1.), default=0.7,
+            help="Opacity value for the labelmap overlay. [%(default)s].")
+
+    if mask_overlay:
+        if not transparency_is_overlay:
+            parser.add_argument(
+                "--in_masks", nargs="+",
+                help="Mask 3D Nifti image (.nii/.nii.gz).")
+
+        parser.add_argument(
+            "--masks_colors", nargs="+", metavar="R G B",
+            type=ranged_type(int, 0, 255), default=None,
+            help="Colors for the mask overlay or contour")
+        parser.add_argument(
+            "--masks_as_contours", action='store_true',
+            help="Create contours from masks instead "
+                 "of overlays. [%(default)s].")
+        parser.add_argument(
+            "--masks_alpha", type=ranged_type(float, 0., 1.), default=0.7,
+            help="Opacity value for the masks overlays. [%(default)s].")
+
+
 def validate_nbr_processes(parser, args):
     """ Check if the passed number of processes arg is valid.
     Valid values are considered to be in the [0, CPU count] range:
@@ -433,6 +515,20 @@ def assert_output_dirs_exist_and_empty(parser, args, required,
     for opt_dir in optional or []:
         if opt_dir:
             check(opt_dir)
+
+
+def assert_overlay_colors(colors, overlays, parser):
+    if colors is None:
+        return
+
+    if len(colors) % 3 != 0:
+        parser.error(
+            "Masks colors must be tuples of 3 ints in the range [0, 255]")
+
+    if len(colors) > 3 and len(colors) // 3 != len(overlays):
+        parser.error(f"Bad number of colors supplied for overlays "
+                     f"({len(overlays)}). Either provide no color, a "
+                     f"single mask color or as many colors as there is masks")
 
 
 def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
@@ -675,3 +771,35 @@ def ranged_type(value_type, min_value, max_value):
 
     # Return handle to checking function
     return range_checker
+
+
+def get_default_screenshotting_data(args):
+
+    volume_img = nib.load(args.in_volume)
+
+    transparency_mask_img = None
+    if args.in_transparency_mask:
+        transparency_mask_img = nib.load(args.in_transparency_mask)
+
+    labelmap_img = None
+    if args.in_labelmap:
+        labelmap_img = nib.load(args.in_labelmap)
+
+    mask_imgs, masks_colors = None, None
+    if args.in_masks:
+        mask_imgs = [nib.load(f) for f in args.in_masks]
+
+        if args.masks_colors is not None:
+            if len(args.masks_colors) == 3:
+                masks_colors = np.repeat(
+                    [args.masks_colors], len(args.in_masks), axis=0)
+            elif len(args.masks_colors) // 3 == len(args.in_masks):
+                masks_colors = np.array(args.masks_colors).reshape((-1, 3))
+
+            masks_colors = masks_colors / 255.
+
+    return volume_img, \
+        transparency_mask_img, \
+        labelmap_img, \
+        mask_imgs, \
+        masks_colors

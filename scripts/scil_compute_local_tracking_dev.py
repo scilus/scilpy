@@ -53,6 +53,7 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
                                         set_sft_logger_level
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
+from nibabel.streamlines import detect_format, TrkFile
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
@@ -152,6 +153,14 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
+    tracts_format = detect_format(args.out_tractogram)
+    if tracts_format is not TrkFile:
+        logging.warning("You have selected option --save_seeds but you are "
+                        "not saving your tractogram as a .trk file. \n"
+                        "Data_per_point information CANNOT be saved.\n"
+                        "Ignoring.")
+        args.save_seeds = False
+
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     max_nbr_pts = int(args.max_length / args.step_size)
@@ -225,7 +234,7 @@ def main():
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip)
+                      skip=args.skip, verbose=args.verbose)
 
     start = time.time()
     logging.debug("Tracking...")

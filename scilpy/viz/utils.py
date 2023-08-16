@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 
 
+RAS_AXES = {
+    "sagittal": 0,
+    "coronal": 1,
+    "axial": 2
+}
+
+
 def get_colormap(name):
     """Get a matplotlib colormap from a name or a list of named colors.
 
