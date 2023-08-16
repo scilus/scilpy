@@ -93,6 +93,9 @@ def _build_arg_parser():
     p.add_argument('--save_indices', '-s', metavar='OUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
                         'json file.')
+    p.add_argument('--save_empty', action='store_true',
+                   help="If set, we will save all results, even if tractogram "
+                        "if empty.")
 
     add_json_args(p)
     add_reference_arg(p)
@@ -144,9 +147,8 @@ def main():
 
         sft_list.append(tmp_sft)
 
-        if np.all([len(sft) == 0 for sft in sft_list]):
-            print("All SFT are empty. Stopping now.")
-            return
+    if np.all([len(sft) == 0 for sft in sft_list]):
+        return
 
     # Apply the requested operation to each input file.
     if args.operation == 'concatenate':
@@ -165,6 +167,10 @@ def main():
             op_name, sft_list, precision=args.precision,
             no_metadata=args.no_metadata, fake_metadata=args.fake_metadata)
 
+        if len(new_sft) == 0 and not args.save_empty:
+            logging.info("Empty resulting tractogram. Not saving results.")
+            return
+
     # Save the indices to a file if requested.
     if args.save_indices:
         out_dict = {}
@@ -173,8 +179,7 @@ def main():
             out_dict[name] = ind
 
         with open(args.save_indices, 'wt') as f:
-            json.dump(out_dict, f,
-                      indent=args.indent,
+            json.dump(out_dict, f, indent=args.indent,
                       sort_keys=args.sort_keys)
 
     # Save the new streamlines (and metadata)

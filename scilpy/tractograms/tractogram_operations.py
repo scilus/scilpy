@@ -190,6 +190,14 @@ def perform_tractogram_operation(op_name, sft_list, precision,
     _, indices = _perform_tractogram_operation(
         OPERATIONS[op_name], streamlines_list, precision=precision)
 
+    # Current error in dipy prevents concatenation with empty SFT
+    # (see PR here to fix: https://github.com/dipy/dipy/pull/2864)
+    # Returning empty sft now if that is the case.
+    if len(indices) == 0:
+        empty_sft = sft_list[0]
+        empty_sft.streamlines = []
+        return empty_sft, indices
+
     # Concatenating only the necessary streamlines, with the metadata
     indices_per_sft = []
     streamlines_len_cumsum = [len(sft) for sft in sft_list]
@@ -201,7 +209,9 @@ def perform_tractogram_operation(op_name, sft_list, precision,
                                 for i in indices if start <= i < end])
         start = end
 
-    sft_list = [sft[indices_per_sft[i]] for i, sft in enumerate(sft_list)]
+    sft_list = [sft[indices_per_sft[i]] for i, sft in enumerate(sft_list)
+                if len(indices_per_sft[i]) > 0]
+
     new_sft = concatenate_sft(sft_list, no_metadata, fake_metadata)
     return new_sft, indices
 
