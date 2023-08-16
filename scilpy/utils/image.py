@@ -106,17 +106,17 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
 
 
 def register_image(static, static_grid2world, moving, moving_grid2world,
-                   transformation_type='affine', dwi=None):
+                   transformation_type='affine', dwi=None, fine=False):
     if transformation_type not in ['rigid', 'affine']:
         raise ValueError('Transformation type not available in Dipy')
 
     # Set all parameters for registration
-    nbins = 32
+    nbins = 64 if fine else 32
     params0 = None
     sampling_prop = None
-    level_iters = [50, 25, 5]
-    sigmas = [8.0, 4.0, 2.0]
-    factors = [8, 4, 2]
+    level_iters = [250, 100, 50, 25] if fine else [50, 25, 5]
+    sigmas = [8.0, 4.0, 2.0, 1.0] if fine else [8.0, 4.0, 2.0]
+    factors = [8, 4, 2, 1.0] if fine else [8, 4, 2]
     metric = MutualInformationMetric(nbins, sampling_prop)
     reg_obj = AffineRegistration(metric=metric, level_iters=level_iters,
                                  sigmas=sigmas, factors=factors, verbosity=0)

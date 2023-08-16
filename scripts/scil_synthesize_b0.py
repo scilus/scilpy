@@ -107,15 +107,19 @@ def main():
     t1_bet_to_b0, t1_bet_to_b0_transform = register_image(b0_bet_data,
                                                           b0_img.affine,
                                                           t1_bet_data,
-                                                          t1_img.affine)
+                                                          t1_img.affine,
+                                                          fine=True)
     affine_map = AffineMap(t1_bet_to_b0_transform,
                            b0_skull_data.shape, b0_img.affine,
                            t1_skull_data.shape, t1_img.affine)
     t1_skull_to_b0 = affine_map.transform(t1_skull_data.astype(np.float64))
 
     # Then register to MNI (using the BET again)
-    t1_bet_to_b0_to_mni, t1_bet_to_b0_to_mni_transform = register_image(
-        template_data, template_img.affine, t1_bet_to_b0, b0_img.affine)
+    _, t1_bet_to_b0_to_mni_transform = register_image(template_data,
+                                                      template_img.affine,
+                                                      t1_bet_to_b0,
+                                                      b0_img.affine,
+                                                      fine=True)
     affine_map = AffineMap(t1_bet_to_b0_to_mni_transform,
                            template_data.shape, template_img.affine,
                            b0_skull_data.shape, b0_img.affine)
