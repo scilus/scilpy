@@ -4,6 +4,9 @@
 import os
 import tempfile
 
+import nibabel as nib
+import numpy as np
+
 from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
 
 # If they already exist, this only takes 5 seconds (check md5sum)
@@ -22,6 +25,20 @@ def test_synthesis(script_runner):
                          't1.nii.gz')
     in_b0 = os.path.join(get_home(), 'processing',
                          'b0_mean.nii.gz')
+
+    t1_img = nib.load(in_t1)
+    b0_img = nib.load(in_b0)
+    t1_data = t1_img.get_fdata()
+    b0_data = b0_img.get_fdata()
+    t1_data[t1_data > 0] = 1
+    b0_data[b0_data > 0] = 1
+    nib.save(nib.Nifti1Image(t1_data.astype(np.uint8), t1_img.affine),
+             't1_mask.nii.gz')
+    nib.save(nib.Nifti1Image(b0_data.astype(np.uint8), b0_img.affine),
+             'b0_mask.nii.gz')
+
     ret = script_runner.run('scil_synthesize_b0.py',
-                            in_t1, in_b0, 'b0_synthesized.nii.gz', '-v')
+                            in_t1, 't1_mask.nii.gz',
+                            in_b0, 'b0_mask.nii.gz',
+                            'b0_synthesized.nii.gz', '-v')
     assert ret.success
