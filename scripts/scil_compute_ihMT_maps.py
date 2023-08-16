@@ -110,6 +110,9 @@ def _build_arg_parser():
                         'Not recommended.')
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
+    p.add_argument('--legacy_sat', action='store_true',
+                   help='Use this option to choose the ihMTdR1sat contrast. '
+                        'This is not recommended.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -247,7 +250,49 @@ def compute_contrasts_maps(echoes_image, single_echo=False, filtering=False):
     return contrast_map
 
 
-def compute_ihMT_maps(contrasts_maps, acq_parameters):
+def compute_saturation(cPD1, cPD2, cT1, acq_parameters):
+    """
+    Compute saturation of given contrast.
+    Saturation is computed from apparent longitudinal relaxation rate
+    (R1app) and apparent signal amplitude (Aapp). The estimation of the
+    saturation includes correction for the effects of excitation flip angle
+    and longitudinal relaxation rate, and remove the effect of T1-weighted
+    image.
+
+    see Helms et al., 2008
+    https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21732
+
+    Parameters
+    ----------
+    cPD1:               Reference proton density (MT-off)
+    cPD2:               Contrast of choice (can be a single contrast or the
+                        mean of positive and negative for example)
+    cT1:                Contrast T1-weighted
+    acq_parameters:     List of TR and Flipangle for MT contrast and T1w images
+                        [TR, Flipangle]
+    Returns
+    -------
+    MT ratio and MT saturation matrice in 3D-array.
+    """
+    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
+                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
+    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
+                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
+    Aapp = Aapp_num / Aapp_den
+
+    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
+                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
+    R1app = R1app_num / R1app_den
+
+    sat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app)
+                 / cPD2) - (acq_parameters[0][0] / R1app)
+                 - (acq_parameters[0][1]**2) / 2)
+    
+    return sat
+
+
+def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
     """
     Compute Inhomogenous Magnetization transfer ratio and saturation maps.
     - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
@@ -271,10 +316,11 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters):
 
     Parameters
     ----------
-    contrasts_maps:      List of matrices : list of all contrast maps computed
-                                            with compute_contrasts_maps
+    contrasts_maps:     List of matrices : list of all contrast maps computed
+                                           with compute_contrasts_maps
     acq_parameters:     List of TR and Flipangle values for ihMT and T1w images
                         [TR, Flipangle]
+    legacy_sat:         If set, returns the ihMTdR1sat contrast instead
     Returns
     -------
     ihMT ratio (ihMTR) and ihMT saturation (ihMTsat) matrices in 3D-array.
@@ -283,24 +329,33 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters):
     # Compute ihMT ratio map
     ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
                  contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
-
-    # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
+    
+    # Compute MT saturation maps
+    cPD1 = contrasts_maps[2]
     cPDa = (contrasts_maps[4] + contrasts_maps[3]) / 2
     cPDb = (contrasts_maps[1] + contrasts_maps[0]) / 2
     cT1 = contrasts_maps[5]
 
-    R1appa_num = ((cPDa / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1appa_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0] / 1000)
-                  - (cPDa*acq_parameters[0][1]) / (2*acq_parameters[0][0]
-                                                   / 1000))
-    freewater_sat = R1appa_num / R1appa_den
+    if legacy_sat:
+        # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
+        R1appa_num = ((cPDa / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+        R1appa_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0] / 1000)
+                    - (cPDa*acq_parameters[0][1]) / (2*acq_parameters[0][0]
+                                                    / 1000))
+        freewater_sat = R1appa_num / R1appa_den
 
-    R1appb_num = ((cPDb / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1appb_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]/1000) -
-                  (cPDb*acq_parameters[0][1]) / (2*acq_parameters[0][0]/1000))
-    bound_sat = R1appb_num / R1appb_den
+        R1appb_num = ((cPDb / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+        R1appb_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]/1000) -
+                    (cPDb*acq_parameters[0][1]) / (2*acq_parameters[0][0]/1000))
+        bound_sat = R1appb_num / R1appb_den
 
-    ihMTsat = (1 / bound_sat) - (1 / freewater_sat)
+        ihMTdR1sat = (1 / bound_sat) - (1 / freewater_sat)
+
+        return ihMTR, ihMTdR1sat
+
+    MT_sat_single = compute_saturation(cPD1, cPDa, cT1, acq_parameters)
+    MT_sat_dual = compute_saturation(cPD1, cPDb, cT1, acq_parameters)
+    ihMTsat = MT_sat_dual - MT_sat_single
 
     return ihMTR, ihMTsat
 
@@ -345,20 +400,7 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     cPD2 = (contrasts_maps[4] + contrasts_maps[3]) / 2
     cT1 = contrasts_maps[5]
 
-    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
-    Aapp = Aapp_num / Aapp_den
-
-    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
-    R1app = R1app_num / R1app_den
-
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app)
-                 / cPD2) - (acq_parameters[0][0] / R1app)
-                 - (acq_parameters[0][1]**2) / 2)
+    MTsat = compute_saturation(cPD1, cPD2, cT1, acq_parameters)
 
     return MTR, MTsat
 
@@ -503,7 +545,8 @@ def main():
                               contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
-    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
+    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters,
+                                       args.legacy_sat)
     ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask,
                                 0, 100, [4, 3, 1, 0, 2])
     ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
