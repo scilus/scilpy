@@ -22,7 +22,7 @@ autodoc_mock_imports = ['numpy', 'dipy', 'fury', 'nibabel', "scipy", "h5py",
                         "scilpy.tractanalysis.grid_intersections",
                         "scilpy.tractanalysis.quick_tools",
                         "sklearn", "scilpy.tractanalysis.streamlines_metrics",
-                        "scilpy.tractanalysis.uncompress", "matplotlib"]
+                        "scilpy.tractograms.uncompress", "matplotlib"]
 
 # -- Project information -----------------------------------------------------
 

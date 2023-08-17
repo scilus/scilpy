@@ -97,18 +97,18 @@ scilpy.tractanalysis.tools module
    :undoc-members:
    :show-inheritance:
 
-scilpy.tractanalysis.uncompress module
+scilpy.tractograms.uncompress module
 --------------------------------------
 
-.. automodule:: scilpy.tractanalysis.uncompress
+.. automodule:: scilpy.tractograms.uncompress
    :members:
    :undoc-members:
    :show-inheritance:
 
-scilpy.tractanalysis.uncompress module
+scilpy.tractograms.uncompress module
 --------------------------------------
 
-.. automodule:: scilpy.tractanalysis.uncompress
+.. automodule:: scilpy.tractograms.uncompress
    :members:
    :undoc-members:
    :show-inheritance:

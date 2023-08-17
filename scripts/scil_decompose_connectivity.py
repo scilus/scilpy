@@ -59,7 +59,7 @@ from scilpy.tractanalysis.features import (remove_outliers,
                                            remove_loops_and_sharp_turns)
 from scilpy.tractanalysis.tools import (compute_connectivity,
                                         extract_longest_segments_from_profile)
-from scilpy.tractanalysis.uncompress import uncompress
+from scilpy.tractograms.uncompress import uncompress
 
 from scilpy.tractograms.streamline_operations import compute_streamline_segment
 
