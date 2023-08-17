@@ -5,6 +5,7 @@ import logging
 import nibabel as nib
 import numpy as np
 import six
+from sklearn.cluster import KMeans
 
 
 def count_non_zero_voxels(image):
@@ -126,3 +127,31 @@ def check_slice_indices(vol_img, axis_name, slice_ids):
         raise ValueError(
             "Slice indices exceed the volume shape along the given axis:\n"
             f"Slices {_slice_ids} exceed shape {shape} along dimension {idx}.")
+
+
+def split_heads_tails_kmeans(data):
+    """
+    Split a mask between head and tail with k means.
+
+    Parameters
+    ----------
+    data: numpy.ndarray
+        Mask to be split.
+
+    Returns
+    -------
+    mask_1: numpy.ndarray
+        "Head" of the mask.
+    mask_2: numpy.ndarray
+        "Tail" of the mask.
+    """
+
+    X = np.argwhere(data)
+    k_means = KMeans(n_clusters=2).fit(X)
+    mask_1 = np.zeros(data.shape)
+    mask_2 = np.zeros(data.shape)
+
+    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
+    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
+
+    return mask_1, mask_2
