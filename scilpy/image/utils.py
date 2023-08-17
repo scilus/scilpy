@@ -129,7 +129,7 @@ def check_slice_indices(vol_img, axis_name, slice_ids):
             f"Slices {_slice_ids} exceed shape {shape} along dimension {idx}.")
 
 
-def split_heads_tails_kmeans(data):
+def split_mask_blobs_kmeans(data, nb_clusters):
     """
     Split a mask between head and tail with k means.
 
@@ -137,6 +137,8 @@ def split_heads_tails_kmeans(data):
     ----------
     data: numpy.ndarray
         Mask to be split.
+    nb_clusters: int
+        Number of clusters to split.
 
     Returns
     -------
@@ -147,7 +149,7 @@ def split_heads_tails_kmeans(data):
     """
 
     X = np.argwhere(data)
-    k_means = KMeans(n_clusters=2).fit(X)
+    k_means = KMeans(n_clusters=nb_clusters).fit(X)
     mask_1 = np.zeros(data.shape)
     mask_2 = np.zeros(data.shape)
 

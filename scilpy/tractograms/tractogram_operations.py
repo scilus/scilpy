@@ -22,7 +22,8 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
-from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
+from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
+    smooth_line_spline
 from scilpy.utils.streamlines import cut_invalid_streamlines
 
 MIN_NB_POINTS = 10

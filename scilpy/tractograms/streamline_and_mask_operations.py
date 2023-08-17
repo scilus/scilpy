@@ -5,6 +5,8 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import set_number_of_points, length
 
 from scilpy.tractograms.uncompress import uncompress
+
+from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, compute_streamline_segment
 
@@ -155,7 +157,8 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
     density[density > 0] = 1
     density[binary_mask == 0] = 0
 
-    roi_data_1, roi_data_2 = split_heads_tails_kmeans(binary_mask)
+    # Split head and tail from mask
+    roi_data_1, roi_data_2 = split_mask_blobs_kmeans(binary_mask, nb_clusters=2)
 
     new_streamlines = []
     (indices, points_to_idx) = uncompress(streamlines, return_mapping=True)
