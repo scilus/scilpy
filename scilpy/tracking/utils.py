@@ -22,7 +22,9 @@ def add_mandatory_options_tracking(p):
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_mask',
                    help='Tracking mask (.nii.gz).\n'
-                        'Tracking will stop outside this mask.')
+                        'Tracking will stop outside this mask. The last point '
+                        'of each \nstreamline (triggering the stopping '
+                        'criteria) IS added to the streamline.')
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
@@ -40,7 +42,9 @@ def add_tracking_options(p):
                          help='Maximum length of a streamline in mm. '
                               '[%(default)s]')
     track_g.add_argument('--theta', type=float,
-                         help='Maximum angle between 2 steps.\n'
+                         help='Maximum angle between 2 steps. If the angle is '
+                              'too big, streamline is \nstopped and the '
+                              'following point is NOT included.\n'
                               '["eudx"=60, "det"=45, "prob"=20]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,

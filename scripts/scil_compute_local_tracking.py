@@ -21,6 +21,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+from typing import Iterable
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
@@ -34,8 +35,10 @@ from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
+from nibabel.streamlines import detect_format, TrkFile
 from nibabel.streamlines.tractogram import LazyTractogram
 import numpy as np
+from tqdm import tqdm
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
@@ -63,7 +66,10 @@ def _build_arg_parser():
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
-
+    track_g.add_argument('--sub_sphere',
+                         type=int, default=0,
+                         help='Subdivides each face of the sphere into 4^s new faces. '
+                              '[%(default)s]')
     add_seeding_options(p)
     out_g = add_out_options(p)
 
@@ -78,7 +84,7 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
+    sphere = HemiSphere.from_sphere(get_sphere(args.sphere)).subdivide(args.sub_sphere)
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
@@ -152,6 +158,12 @@ def _get_direction_getter(args):
         return dg
 
 
+def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
+    if verbose:
+        return tqdm(generator, *args, **kwargs)
+    return generator
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -170,6 +182,15 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
+    tracts_format = detect_format(args.out_tractogram)
+    if tracts_format is not TrkFile:
+        logging.warning("You have selected option --save_seeds but you are "
+                        "not saving your tractogram as a .trk file. \n"
+                        "   Data_per_point information CANNOT be saved. "
+                        "Ignoring.")
+        args.save_seeds = False
+
+    logging.debug("Loading masks and finding seeds.")
     mask_img = nib.load(args.in_mask)
     mask_data = get_data_as_mask(mask_img, dtype=bool)
 
@@ -209,8 +230,12 @@ def main():
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
+    total_nb_seeds = len(seeds)
 
     # Tracking is performed in voxel space
+    logging.debug("Starting tracking.")
+    logging.debug("Results will be saved in {}".format(args.out_tractogram))
+
     max_steps = int(args.max_length / args.step_size) + 1
     streamlines_generator = LocalTracking(
         _get_direction_getter(args),
@@ -227,12 +252,16 @@ def main():
 
     if args.save_seeds:
         filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines_generator
+            zip(*((s, p) for s, p in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
                   if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
         filtered_streamlines = \
-            (s for s in streamlines_generator
+            (s for s in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
              if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
