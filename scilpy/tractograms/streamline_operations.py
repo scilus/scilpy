@@ -49,6 +49,7 @@ def get_point_on_line(first_point, second_point, vox_lower_corner):
 
     return first_point + ray * (t0 + t1) / 2.
 
+
 def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
     """
     Filter streamlines using minimum and max length.
@@ -271,8 +272,6 @@ def _warn_and_save(new_streamlines, sft):
         new_streamlines, sft, data_per_streamline=sft.data_per_streamline)
 
     return new_sft
-
-
 
 
 def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
