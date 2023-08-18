@@ -150,10 +150,11 @@ def split_mask_blobs_kmeans(data, nb_clusters):
 
     X = np.argwhere(data)
     k_means = KMeans(n_clusters=nb_clusters).fit(X)
-    mask_1 = np.zeros(data.shape)
-    mask_2 = np.zeros(data.shape)
 
-    mask_1[tuple(X[np.where(k_means.labels_ == 0)].T)] = 1
-    mask_2[tuple(X[np.where(k_means.labels_ == 1)].T)] = 1
+    masks = []
+    for i in range(nb_clusters):
+        mask_i = np.zeros(data.shape)
+        mask_i[tuple(X[np.where(k_means.labels_ == i)].T)] = 1
+        masks.append(mask_i)
 
-    return mask_1, mask_2
+    return masks
