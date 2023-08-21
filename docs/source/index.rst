@@ -13,3 +13,4 @@ Welcome to the scilpy documentation!
     :caption: Documentation
 
     documentation/tractogram_registration
+    documentation/devcontainer

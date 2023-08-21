@@ -169,4 +169,5 @@ def fetch_data(files_dict, keys=None):
                                           "with a zip file.")
 
         else:
+            # toDo. Verify that data on disk is the right one.
             logging.warning("Not fetching data; already on disk.")
