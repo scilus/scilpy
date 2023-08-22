@@ -12,5 +12,6 @@ Modules
    scilpy.segment
    scilpy.tracking
    scilpy.tractanalysis
+   scilpy.tractograms
    scilpy.utils
    scilpy.viz
