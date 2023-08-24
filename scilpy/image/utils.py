@@ -142,10 +142,8 @@ def split_mask_blobs_kmeans(data, nb_clusters):
 
     Returns
     -------
-    mask_1: numpy.ndarray
-        "Head" of the mask.
-    mask_2: numpy.ndarray
-        "Tail" of the mask.
+    masks: List[np.ndarray]
+        The masks for each cluster.
     """
 
     X = np.argwhere(data)
