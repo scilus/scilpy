@@ -35,7 +35,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.tractanalysis.streamlines_metrics import \
     compute_tract_counts_map
-from scilpy.tractanalysis.uncompress import uncompress
+from scilpy.tractograms.uncompress import uncompress
 
 
 def _build_arg_parser():

@@ -24,7 +24,6 @@ from dipy.io.stateful_tractogram import set_sft_logger_level
 from dipy.io.streamline import save_tractogram
 import numpy as np
 
-from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
@@ -32,6 +31,8 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_total_length_per_dim
 
 
 def _build_arg_parser():
