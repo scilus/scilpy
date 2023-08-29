@@ -159,8 +159,8 @@ def union(left, right):
     return {**left, **right}
 
 
-def perform_tractogram_operation(op_name, sft_list, precision,
-                                 no_metadata, fake_metadata):
+def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
+                                        no_metadata, fake_metadata):
     """Peforms an operation on a list of tractograms.
 
     Parameters
@@ -188,7 +188,7 @@ def perform_tractogram_operation(op_name, sft_list, precision,
     # Performing operation
     streamlines_list = [sft.streamlines if sft is not None else []
                         for sft in sft_list]
-    _, indices = _perform_tractogram_operation(
+    _, indices = perform_tractogram_operation_on_lines(
         OPERATIONS[op_name], streamlines_list, precision=precision)
 
     # Current error in dipy prevents concatenation with empty SFT
@@ -217,7 +217,7 @@ def perform_tractogram_operation(op_name, sft_list, precision,
     return new_sft, indices
 
 
-def _perform_tractogram_operation(operation, streamlines, precision=None):
+def perform_tractogram_operation_on_lines(operation, streamlines, precision=None):
     """Peforms an operation on a list of list of streamlines.
 
     Given a list of list of streamlines, this function applies the operation
