@@ -71,7 +71,7 @@ from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length
 from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation_on_lines, perform_tractogram_operation_on_sft)
+    difference, perform_tractogram_operation_on_lines)
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
