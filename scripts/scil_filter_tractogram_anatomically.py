@@ -366,7 +366,9 @@ def main():
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
-        save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
+
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
 
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
@@ -425,7 +427,9 @@ def main():
                       out_sft_name) + step + ' filtering')
 
         save_tractogram(new_sft, out_sft_name)
-        save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
+
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
 
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
@@ -497,7 +501,9 @@ def main():
                       out_sft_name) + step + ' filtering')
 
         save_tractogram(new_sft, out_sft_name)
-        save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
+    
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
 
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
