@@ -343,12 +343,12 @@ def main():
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_intermediate_tractograms:
-        outlier_sft = compute_outliers(sft, new_sft)
+        outliers_sft = compute_outliers(sft, new_sft)
         new_path = create_dir(args.out_path, '01-' + step)
-        save_intermediate_sft(new_sft, outlier_sft, new_path, in_sft_name,
+        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
         o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
-            dict({'streamline_count': len(outlier_sft.streamlines)})
+            dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
@@ -360,7 +360,7 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-            save_tractogram(outlier_sft, rejected_sft_name)
+            save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -401,12 +401,12 @@ def main():
                      os.path.join(new_path, 'csf_bin' + '.nii.gz'))
 
     if args.save_intermediate_tractograms:
-        outlier_sft = compute_outliers(sft, new_sft)
+        outliers_sft = compute_outliers(sft, new_sft)
         new_path = create_dir(args.out_path, '02-' + step)
-        save_intermediate_sft(new_sft, outlier_sft, new_path, in_sft_name,
+        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
         o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
-            dict({'streamline_count': len(outlier_sft.streamlines)})
+            dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
@@ -418,7 +418,7 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-            save_tractogram(outlier_sft, rejected_sft_name)
+            save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -472,12 +472,12 @@ def main():
                  os.path.join(new_path, 'atlas_bin' + '.nii.gz'))
 
     if args.save_intermediate_tractograms:
-        outlier_sft = compute_outliers(sft, new_sft)
+        outliers_sft = compute_outliers(sft, new_sft)
         new_path = create_dir(args.out_path, '03-' + step)
-        save_intermediate_sft(new_sft, outlier_sft, new_path, in_sft_name,
+        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
         o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
-            dict({'streamline_count': len(outlier_sft.streamlines)})
+            dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
@@ -490,7 +490,7 @@ def main():
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
 
-            save_tractogram(outlier_sft, rejected_sft_name)
+            save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -523,12 +523,12 @@ def main():
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_intermediate_tractograms:
-        outlier_sft = compute_outliers(sft, new_sft)
+        outliers_sft = compute_outliers(sft, new_sft)
         new_path = create_dir(args.out_path, '04-' + step)
-        save_intermediate_sft(new_sft, outlier_sft, new_path, in_sft_name,
+        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
         o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
-            dict({'streamline_count': len(outlier_sft.streamlines)})
+            dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
