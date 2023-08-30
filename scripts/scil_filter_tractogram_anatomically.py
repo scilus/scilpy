@@ -230,7 +230,6 @@ def compute_outliers(sft, new_sft):
     Return a stateful tractogram whose streamlines are the difference of the
     two input stateful tractograms
     """
-
     streamlines_list = [sft.streamlines, new_sft.streamlines]
     _, indices = perform_tractogram_operation_on_lines(
         difference, streamlines_list, precision=0)
@@ -360,7 +359,8 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-            save_tractogram(outliers_sft, rejected_sft_name)
+            if args.save_rejected:
+                save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -369,7 +369,6 @@ def main():
 
         if args.save_rejected:
             save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
-
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
         if args.save_counts:
@@ -420,17 +419,16 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-            save_tractogram(outliers_sft, rejected_sft_name)
+            if args.save_rejected:
+                save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
 
         if args.save_rejected:
             save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
-
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
         if args.save_counts:
@@ -493,18 +491,16 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
-            save_tractogram(outliers_sft, rejected_sft_name)
+            if args.save_rejected:
+                save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
     
         if args.save_rejected:
             save_rejected(initial_sft, new_sft, rejected_sft_name, args.no_empty)
-
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
         if args.save_counts:
@@ -546,6 +542,8 @@ def main():
                 display_count(o_dict, args.indent, args.sort_keys)
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+            if args.save_rejected:
+                save_tractogram(outliers_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
