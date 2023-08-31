@@ -360,7 +360,7 @@ def main():
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
             if args.save_rejected:
-                save_tractogram(outliers_sft, rejected_sft_name)
+                save_tractogram(initial_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -421,7 +421,7 @@ def main():
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
             if args.save_rejected:
-                save_tractogram(outliers_sft, rejected_sft_name)
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -494,7 +494,7 @@ def main():
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
             if args.save_rejected:
-                save_tractogram(outliers_sft, rejected_sft_name)
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -546,7 +546,7 @@ def main():
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
             if args.save_rejected:
-                save_tractogram(outliers_sft, rejected_sft_name)
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
