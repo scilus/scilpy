@@ -21,6 +21,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+from time import perf_counter
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
@@ -34,7 +35,7 @@ from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
 from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
-from nibabel.streamlines.tractogram import LazyTractogram
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 import numpy as np
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
@@ -49,6 +50,7 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_tracking_options,
                                    verify_streamline_length_options,
                                    verify_seed_options)
+from scilpy.tracking.tracker import GPUTacker
 
 
 def _build_arg_parser():
@@ -65,6 +67,20 @@ def _build_arg_parser():
     add_sphere_arg(track_g, symmetric_only=True)
 
     add_seeding_options(p)
+
+    gpu_g = p.add_argument_group('GPU options')
+    gpu_g.add_argument('--use_gpu', action='store_true',
+                       help='Enable GPU tracking (experimental).')
+    gpu_g.add_argument('--sh_interp', default=None,
+                       choices=['trilinear', 'nearest'],
+                       help='SH image interpolation method. [%(default)s]')
+    gpu_g.add_argument('--forward_only', action='store_true', default=None,
+                       help='Perform forward tracking only.')
+    gpu_g.add_argument('--batch_size', default=None, type=int,
+                       help='Approximate size of GPU batches (number\n'
+                            'of streamlines to track in parallel).'
+                            ' [%(default)s]')
+
     out_g = add_out_options(p)
 
     out_g.add_argument('--seed', type=int,
@@ -72,7 +88,6 @@ def _build_arg_parser():
 
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
-
     return p
 
 
@@ -152,12 +167,97 @@ def _get_direction_getter(args):
         return dg
 
 
+def save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args):
+    voxel_size = odf_sh_img.header.get_zooms()[0]
+    scaled_min_length = args.min_length / voxel_size
+    scaled_max_length = args.max_length / voxel_size
+
+    if args.save_seeds:
+        filtered_streamlines, seeds = \
+            zip(*((s, p) for s, p in streamlines_generator
+                  if scaled_min_length <= length(s) <= scaled_max_length))
+        data_per_streamlines = {'seeds': lambda: seeds}
+    else:
+        filtered_streamlines = \
+            (s for s in streamlines_generator
+             if scaled_min_length <= length(s) <= scaled_max_length)
+        data_per_streamlines = {}
+
+    if args.compress:
+        # Compressing. Threshold is in mm, but we are working in voxel space.
+        # Equivalent of sft.to_voxmm:  streamline *= voxres
+        # Equivalent of sft.to_vox: streamline /= voxres
+        filtered_streamlines = (
+            compress_streamlines(s * voxel_size, args.compress) / voxel_size
+            for s in filtered_streamlines)
+
+    tractogram = LazyTractogram(lambda: filtered_streamlines,
+                                data_per_streamlines,
+                                affine_to_rasmm=seed_img.affine)
+
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
+    reference = get_reference_info(seed_img)
+    header = create_tractogram_header(filetype, *reference)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+
+
+def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
+    voxel_size = odf_sh_img.header.get_zooms()[0]
+    if args.compress:
+        compress_th_vox = args.compress / voxel_size
+    # wrapper for tracker.track() yielding one TractogramItem per
+    # streamline for use with the LazyTractogram.
+    def tracks_generator_wrapper():
+        for strl, seed in streamlines_generator:
+            # seeds are returned with origin `center`
+            dps = {}
+            if args.save_seeds:
+                dps['seeds'] = seed
+
+            # TODO: Investigate why the streamline must NOT be shifted to
+            # origin `center` for LazyTractogram.
+            strl *= voxel_size  # in mm.
+            if args.compress:
+                strl = compress_streamlines(strl, compress_th_vox)
+            yield TractogramItem(strl, dps, {})
+
+    # instantiate tractogram
+    tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
+    tractogram.affine_to_rasmm = odf_sh_img.affine
+
+    filetype = nib.streamlines.detect_format(args.out_tractogram)
+    reference = get_reference_info(odf_sh_img)
+    header = create_tractogram_header(filetype, *reference)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+
+
 def main():
+    t_init = perf_counter()
     parser = _build_arg_parser()
     args = parser.parse_args()
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    if args.use_gpu:
+        batch_size = args.batch_size or 10000
+        sh_interp = args.sh_interp or 'trilinear'
+        forward_only = args.forward_only or False
+        print(batch_size, sh_interp, forward_only)
+    else:
+        if args.batch_size is not None:
+            parser.error('Invalid argument --batch_size. '
+                         'Set --use_gpu to enable.')
+        if args.sh_interp is not None:
+            parser.error('Invalid argument --sh_interp. '
+                         'Set --use_gpu to enable.')
+        if args.forward_only is not None:
+            parser.error('Invalid argument --forward_only. '
+                         'Set --use_gpu to enable.')
 
     assert_inputs_exist(parser, [args.in_odf, args.in_seed, args.in_mask])
     assert_outputs_exist(parser, args, args.out_tractogram)
@@ -210,52 +310,42 @@ def main():
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
 
-    # Tracking is performed in voxel space
-    max_steps = int(args.max_length / args.step_size) + 1
-    streamlines_generator = LocalTracking(
-        _get_direction_getter(args),
-        BinaryStoppingCriterion(mask_data),
-        seeds, np.eye(4),
-        step_size=vox_step_size, max_cross=1,
-        maxlen=max_steps,
-        fixedstep=True, return_all=True,
-        random_seed=args.seed,
-        save_seeds=args.save_seeds)
+    # NOTE: tracking is performed in voxel space in both cases
+    if not args.use_gpu:
+        max_steps = int(args.max_length / args.step_size) + 1
 
-    scaled_min_length = args.min_length / voxel_size
-    scaled_max_length = args.max_length / voxel_size
+        streamlines_generator = LocalTracking(
+            _get_direction_getter(args),
+            BinaryStoppingCriterion(mask_data),
+            seeds, np.eye(4),
+            step_size=vox_step_size, max_cross=1,
+            maxlen=max_steps,
+            fixedstep=True, return_all=True,
+            random_seed=args.seed,
+            save_seeds=args.save_seeds)
+        save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args)
+    else:  # GPU tracking
+        vox_max_length = args.max_length / voxel_size
+        vox_min_length = args.min_length / voxel_size
+        min_strl_len = int(vox_min_length / vox_step_size) + 1
+        max_strl_len = int(vox_max_length / vox_step_size) + 1
+        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
+        theta = get_theta(args.theta, args.algo)
 
-    if args.save_seeds:
-        filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines_generator
-                  if scaled_min_length <= length(s) <= scaled_max_length))
-        data_per_streamlines = {'seeds': lambda: seeds}
-    else:
-        filtered_streamlines = \
-            (s for s in streamlines_generator
-             if scaled_min_length <= length(s) <= scaled_max_length)
-        data_per_streamlines = {}
+        streamlines_generator = GPUTacker(odf_sh, mask_data, seeds, vox_step_size,
+                                          min_strl_len, max_strl_len, theta=theta,
+                                          sf_threshold=args.sf_threshold,
+                                          sh_interp=sh_interp,
+                                          sh_basis=args.sh_basis,
+                                          batch_size=batch_size,
+                                          forward_only=forward_only,
+                                          rng_seed=args.seed).track()
+        save_tractogram_gpu(streamlines_generator, odf_sh_img, args)
 
-    if args.compress:
-        # Compressing. Threshold is in mm, but we are working in voxel space.
-        # Equivalent of sft.to_voxmm:  streamline *= voxres
-        # Equivalent of sft.to_vox: streamline /= voxres
-        voxres = np.asarray(odf_sh_img.header.get_zooms()[0:3])
-        filtered_streamlines = (
-            compress_streamlines(s * voxres,
-                                 args.compress) / voxres
-            for s in filtered_streamlines)
-
-    tractogram = LazyTractogram(lambda: filtered_streamlines,
-                                data_per_streamlines,
-                                affine_to_rasmm=seed_img.affine)
-
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, *reference)
-
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
+    # Final logging
+    logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
+    # Total runtime
+    logging.info('Total runtime of {0:.2f}s.'.format(perf_counter() - t_init))
 
 
 if __name__ == '__main__':

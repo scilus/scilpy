@@ -457,7 +457,7 @@ class GPUTacker():
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
     seeds : ndarray (n_seeds, 3)
-        Seed positions in voxel space with origin `corner`.
+        Seed positions in voxel space with origin ` center`.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int
@@ -490,12 +490,11 @@ class GPUTacker():
         self.sh_interp_nn = sh_interp == 'nearest'
         self.mask = mask
 
-        if (seeds < 0).any():
-            raise ValueError('Invalid seed positions.\nGPUTracker works with'
-                             ' origin \'corner\'.')
         self.n_seeds = len(seeds)
+
+        seeds_to_corner = seeds + 0.5
         self.seed_batches =\
-            np.array_split(seeds, np.ceil(len(seeds)/batch_size))
+            np.array_split(seeds_to_corner, np.ceil(len(seeds)/batch_size))
 
         # tracking step_size and number of points
         self.step_size = step_size
@@ -504,7 +503,7 @@ class GPUTacker():
         self.max_strl_points = max_nbr_pts
 
         # convert theta to array
-        if isinstance(theta, float):
+        if not isinstance(theta, np.ndarray):
             theta = np.array([theta])
         self.theta = theta
 
@@ -604,12 +603,15 @@ class GPUTacker():
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
-                if n_pts >= self.min_strl_points:
+                # TODO: Always return so that we can filter like we do in dipy local_tracking
+                # TODO: Add option to return streamlines reaching max length
+                if self.min_strl_points <= n_pts <= self.max_strl_points:
+                    n_pts = min(n_pts, self.max_strl_points)
                     strl = strl[:n_pts]
                     nb_valid_streamlines += 1
 
                     # output is yielded so that we can use lazy tractogram.
-                    yield strl, seed
+                    yield strl, seed - 0.5  # seeds with origin center
 
             # per-batch logging information
             nb_processed_streamlines += len(seed_batch)
