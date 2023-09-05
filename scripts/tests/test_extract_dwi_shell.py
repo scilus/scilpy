@@ -31,6 +31,22 @@ def test_execution_processing_1000(script_runner):
     assert ret.success
 
 
+def test_execution_out_indices(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_dwi = os.path.join(get_home(), 'processing',
+                          'dwi_crop.nii.gz')
+    in_bval = os.path.join(get_home(), 'processing',
+                           'dwi.bval')
+    in_bvec = os.path.join(get_home(), 'processing',
+                           'dwi.bvec')
+    ret = script_runner.run('scil_extract_dwi_shell.py', in_dwi,
+                            in_bval, in_bvec, '0', '1000',
+                            'dwi_crop_1000__1.nii.gz', '1000__1.bval',
+                            '1000__1.bvec', '-t', '30', '--out_indices',
+                            'out_indices.txt')
+    assert ret.success
+
+
 def test_execution_processing_3000(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',

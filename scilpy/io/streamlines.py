@@ -87,7 +87,7 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
                             '{}.'.format(filepath))
         sft = load_tractogram(filepath, 'same',
                               bbox_valid_check=bbox_check)
-        
+
         # Force dtype to int64 instead of float64
         if len(sft.streamlines) == 0:
             sft.streamlines._offsets.dtype = np.dtype(np.int64)
@@ -115,7 +115,8 @@ def load_tractogram_with_reference(parser, args, filepath, arg_name=None):
     return sft
 
 
-def streamlines_to_memmap(input_streamlines):
+def streamlines_to_memmap(input_streamlines,
+                          strs_dtype='float32'):
     """
     Function to decompose on disk the array_sequence into its components.
     Parameters
@@ -130,7 +131,7 @@ def streamlines_to_memmap(input_streamlines):
     """
     tmp_dir = tempfile.TemporaryDirectory()
     data_filename = os.path.join(tmp_dir.name, 'data.dat')
-    data = np.memmap(data_filename, dtype='float32', mode='w+',
+    data = np.memmap(data_filename, dtype=strs_dtype, mode='w+',
                      shape=input_streamlines._data.shape)
     data[:] = input_streamlines._data[:]
 
@@ -147,7 +148,8 @@ def streamlines_to_memmap(input_streamlines):
     return tmp_dir, (data_filename, offsets_filename, lengths_filename)
 
 
-def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None):
+def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None,
+                                        strs_dtype='float32'):
     """
     Function to reconstruct streamlines from memmaps, mainly to facilitate
     multiprocessing and decrease RAM usage.
@@ -164,7 +166,7 @@ def reconstruct_streamlines_from_memmap(memmap_filenames, indices=None):
         List of streamlines.
     """
 
-    data = np.memmap(memmap_filenames[0],  dtype='float32', mode='r')
+    data = np.memmap(memmap_filenames[0],  dtype=strs_dtype, mode='r')
     offsets = np.memmap(memmap_filenames[1],  dtype='int64', mode='r')
     lengths = np.memmap(memmap_filenames[2],  dtype='int32', mode='r')
 

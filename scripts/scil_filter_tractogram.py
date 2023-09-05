@@ -61,6 +61,10 @@ from scilpy.segment.streamlines import (filter_cuboid, filter_ellipsoid,
                                         filter_grid_roi)
 
 
+MODES = ['any', 'all', 'either_end', 'both_ends']
+CRITERIA = ['include', 'exclude']
+
+
 def _build_arg_parser():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
                                 description=__doc__)
@@ -98,6 +102,10 @@ def _build_arg_parser():
     p.add_argument('--filtering_list',
                    help='Text file containing one rule per line\n'
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
+
+    p.add_argument('--overwrite_distance', nargs='+', action='append',
+                   help='MODE CRITERIA DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n'
+                        'If set, it will overwrite the distance associated to a specific mode/criteria.')
 
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
@@ -193,9 +201,34 @@ def prepare_filtering_list(parser, args):
     return roi_opt_list, only_filtering_list
 
 
+def check_overwrite_distance(parser, args):
+    dict_distance = {}
+    if args.overwrite_distance:
+        for distance in args.overwrite_distance:
+            if len(distance) != 3:
+                parser.error('overwrite_distance is not well formated.\n'
+                             'It should be MODE CRITERIA DISTANCE.')
+            elif '-'.join([distance[0], distance[1]]) in dict_distance:
+                parser.error('Overwrite distance dictionnary MODE '
+                             '"{}" has been set multiple times.'.format(distance[0]))
+            elif distance[0] in MODES and distance[1] in CRITERIA:
+                curr_key = '-'.join([distance[0], distance[1]])
+                dict_distance[curr_key] = distance[2]
+            else:
+                curr_key = '-'.join([distance[0], distance[1]])
+                parser.error('Overwrite distance dictionnary MODE-CRITERIA '
+                             '"{}" does not exist.'.format(curr_key))
+    else:
+        return dict_distance
+
+    return dict_distance
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    overwrite_distance = check_overwrite_distance(parser, args)
 
     assert_inputs_exist(parser, args.in_tractogram)
     assert_outputs_exist(parser, args, args.out_tractogram, args.save_rejected)
@@ -203,6 +236,9 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         set_sft_logger_level('WARNING')
+
+    if overwrite_distance:
+        logging.debug('Overwrite distance dictionnary {}'.format(overwrite_distance))
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
@@ -232,9 +268,17 @@ def main():
         curr_dict['type'] = filter_type
         curr_dict['mode'] = filter_mode
         curr_dict['criteria'] = filter_criteria
-        curr_dict['distance'] = filter_distance
 
-        filter_distance = int(filter_distance)
+        key_distance = '-'.join([curr_dict['mode'], curr_dict['criteria']])
+        if key_distance in overwrite_distance:
+            curr_dict['distance'] = overwrite_distance[key_distance]
+        else:
+            curr_dict['distance'] = filter_distance
+
+        try:
+            filter_distance = int(curr_dict['distance'])
+        except ValueError:
+            parser.error('Distance filter {} should is not an integer.'.format(curr_dict['distance']))
 
         is_exclude = False if filter_criteria == 'include' else True
 

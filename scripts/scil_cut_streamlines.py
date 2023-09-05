@@ -31,9 +31,10 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.tractanalysis.tools import (cut_outside_of_mask_streamlines,
-                                        cut_between_masks_streamlines)
-from scilpy.tracking.tools import resample_streamlines_step_size
+from scilpy.tractograms.streamline_and_mask_operations import \
+    cut_outside_of_mask_streamlines, cut_between_masks_streamlines
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_step_size
 
 
 def _build_arg_parser():

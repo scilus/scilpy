@@ -7,7 +7,8 @@ import vtk
 from dipy.reconst.shm import sh_to_sf_matrix, sh_to_sf
 from fury import window, actor
 from fury.colormap import distinguishable_colormap
-from PIL import Image
+from fury.utils import get_actor_from_polydata, numpy_to_vtk_image_data
+from PIL import Image, ImageFont, ImageDraw
 
 from scilpy.io.utils import snapshot
 from scilpy.reconst.bingham import bingham_to_sf
@@ -43,8 +44,6 @@ def initialize_camera(orientation, slice_index, volume_shape):
         Dictionnary containing camera information.
     """
     camera = {}
-    # Tighten the view around the data
-    camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape)
     # heuristic for setting the camera position at a distance
     # proportional to the scale of the scene
     eye_distance = max(volume_shape)
@@ -58,6 +57,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   (volume_shape[1] - 1) / 2.0,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[1:])
     elif orientation == 'coronal':
         if slice_index is None:
             slice_index = volume_shape[1] // 2
@@ -68,6 +69,9 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   slice_index,
                                                   (volume_shape[2] - 1) / 2.0])
         camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(
+            [volume_shape[0], volume_shape[2]])
     elif orientation == 'axial':
         if slice_index is None:
             slice_index = volume_shape[2] // 2
@@ -78,6 +82,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
                                                   (volume_shape[1] - 1) / 2.0,
                                                   slice_index])
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
+        # Tighten the view around the data
+        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[:2])
     else:
         raise ValueError('Invalid axis name: {0}'.format(orientation))
     return camera
@@ -452,6 +458,79 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
     return actor
 
 
+def contour_actor_from_image(
+    img, axis, slice_index,
+    contour_value=1.,
+    color=[255, 0, 0],
+    opacity=1.,
+    linewidth=3.,
+    smoothing_radius=0.
+):
+    """
+    Get an isocontour actor from an image slice, at a defined value.
+
+    Parameters
+    ----------
+    img : Nifti1Image
+        Nifti volume (mask, binary image, labels).
+    slice_index : int
+        Index of the slice to visualize along the chosen orientation.
+    axis : int
+        Slicing axis
+    contour_values : float
+        Values at which to extract isocontours.
+    color : tuple, list of int
+        Color of the contour in RGB [0, 255].
+    opacity: float
+        Opacity of the contour.
+    linewidth : float
+        Thickness of the contour line.
+    smoothing_radius : float
+        Pre-smoothing to apply to the image before 
+        computing the contour (in pixels).
+
+    Returns
+    -------
+    actor : vtkActor
+        Actor for the contour polydata.
+    """
+
+    mask_data = numpy_to_vtk_image_data(
+        np.rot90(img.get_fdata().take([slice_index], axis).squeeze()))
+    mask_data.SetOrigin(0, 0, 0)
+
+    if smoothing_radius > 0:
+        smoother = vtk.vtkImageGaussianSmooth()
+        smoother.SetRadiusFactor(smoothing_radius)
+        smoother.SetDimensionality(2)
+        smoother.SetInputData(mask_data)
+        smoother.Update()
+        mask_data = smoother.GetOutput()
+
+    marching_squares = vtk.vtkMarchingSquares()
+    marching_squares.SetInputData(mask_data)
+    marching_squares.SetValue(0, contour_value)
+    marching_squares.Update()
+
+    actor = get_actor_from_polydata(marching_squares.GetOutput())
+    actor.GetMapper().ScalarVisibilityOff()
+    actor.GetProperty().SetLineWidth(linewidth)
+    actor.GetProperty().SetColor(color)
+    actor.GetProperty().SetOpacity(opacity)
+
+    position =[0, 0, 0]
+    position[axis] = slice_index
+
+    if axis == 0:
+        actor.SetOrientation(90, 0, 90)
+    elif axis == 1:
+        actor.SetOrientation(90, 0, 0)
+
+    actor.SetPosition(*position)
+
+    return actor
+
+
 def create_scene(actors, orientation, slice_index,
                  volume_shape, bg_color=(0, 0, 0)):
     """
@@ -574,9 +653,52 @@ def screenshot_slice(img, axis_name, slice_ids, size):
     for idx in slice_ids:
 
         slice_actor = create_texture_slicer(
-            img.get_fdata(), axis_name, idx, offset=0.0,
+            img.get_fdata(), axis_name, idx, offset=0.0
         )
         scene = create_scene([slice_actor], axis_name, idx, img.shape)
+        scene_arr = window.snapshot(scene, size=size)
+        scene_container.append(scene_arr)
+
+    return scene_container
+
+
+def screenshot_contour(bin_img, axis_name, slice_ids, size):
+    """Take a screenshot of the given binary image countour with the 
+    appropriate slice data at the provided slice indices.
+
+    Parameters
+    ----------
+    bin_img : nib.Nifti1Image
+        Binary volume image.
+    axis_name : str
+        Slicing axis name.
+    slice_ids : array-like
+        Slice indices.
+    size : array-like
+        Size of the screenshot image (pixels).
+
+    Returns
+    -------
+    scene_container : list
+        Scene screenshot data container.
+    """
+    scene_container = []
+
+    if axis_name == "axial":
+        ax_idx = 2
+    elif axis_name == "coronal":
+        ax_idx = 1
+    elif axis_name == "sagittal":
+        ax_idx = 0
+
+    image_size_2d = list(bin_img.shape)
+    image_size_2d[ax_idx] = 1
+
+    for idx in slice_ids:
+        actor = contour_actor_from_image(
+            bin_img, ax_idx, idx, color=[255, 255, 255])
+
+        scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)
         scene_container.append(scene_arr)
 
@@ -703,8 +825,12 @@ def draw_scene_at_pos(
     size,
     left_pos,
     top_pos,
-    mask=None,
+    transparency=None,
     labelmap_overlay=None,
+    labelmap_overlay_alpha=0.7,
+    mask_overlay=None,
+    mask_overlay_alpha=0.7,
+    mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
 ):
@@ -722,10 +848,16 @@ def draw_scene_at_pos(
         Left position (pixels).
     top_pos : int
         Top position (pixels).
-    mask : ndarray, optional
+    transparency : ndarray, optional
         Transparency mask.
     labelmap_overlay : ndarray
         Labelmap overlay scene data to be drawn.
+    mask_overlay : ndarray
+        Mask overlay scene data to be drawn.
+    mask_overlay_alpha : float
+        Alpha value for mask overlay in range [0, 1].
+    mask_overlay_color : list, optional
+        Color for the mask overlay as a list of 3 integers in range [0, 255].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -734,23 +866,42 @@ def draw_scene_at_pos(
 
     image = create_image_from_scene(scene, size, cmap_name=vol_cmap_name)
 
-    mask_img = None
-    if mask is not None:
-        mask_img = create_image_from_scene(mask, size, mode="L")
+    trans_img = None
+    if transparency is not None:
+        trans_img = create_image_from_scene(transparency, size, mode="L")
 
-    canvas.paste(image, (left_pos, top_pos), mask=mask_img)
+    canvas.paste(image, (left_pos, top_pos), mask=trans_img)
 
     # Draw the labelmap overlay image if any
     if labelmap_overlay is not None:
-
         labelmap_img = create_image_from_scene(
             labelmap_overlay, size, cmap_name=labelmap_cmap_name
         )
 
-        # Create a mask over the labelmap overlay image
-        label_mask = create_mask_from_scene(labelmap_overlay, size)
+        # Create transparency mask over the labelmap overlay image
+        label_mask = labelmap_overlay > 0
+        label_transparency = create_image_from_scene(
+            (label_mask * labelmap_overlay_alpha * 255.).astype(np.uint8),
+            size).convert("L")
 
-        canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_mask)
+        canvas.paste(labelmap_img, (left_pos, top_pos), mask=label_transparency)
+
+    # Draw the mask overlay image if any
+    if mask_overlay is not None:
+        if mask_overlay_color is None:
+            # Get a list of distinguishable colors if None are supplied
+            mask_overlay_color = distinguishable_colormap(
+                nb_colors=len(mask_overlay))
+
+        for img, color in zip(mask_overlay, mask_overlay_color):
+            overlay_img = create_image_from_scene(
+                (img * color).astype(np.uint8), size, "RGB")
+
+            # Create transparency mask over the mask overlay image
+            overlay_trans = create_image_from_scene(
+                (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
+
+            canvas.paste(overlay_img, (left_pos, top_pos), mask=overlay_trans)
 
 
 def compute_canvas_size(
@@ -846,16 +997,52 @@ def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
     return top_pos, left_pos
 
 
+def annotate_scene(mosaic, slice_number, display_slice_number, display_lr):
+    font_size = mosaic.width // 10
+    font = ImageFont.truetype(
+        '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
+
+    stroke, padding = max(mosaic.width // 200, 1), mosaic.width // 100
+    img = ImageDraw.Draw(mosaic)
+
+    if display_slice_number:
+        img.text(
+            (padding, padding), "{}".format(slice_number), (255,255,255),
+            font=font, stroke_width=stroke, stroke_fill=(0, 0, 0)
+        )
+
+    if display_lr:
+        l_text, r_text = "L", "R"
+        if display_lr < 0:
+            l_text, r_text = r_text, l_text
+
+        img.text(
+            (padding, mosaic.height // 2), l_text, (255,255,255),
+            font=font, anchor="lm", stroke_width=stroke, stroke_fill=(0, 0, 0)
+        )
+        img.text(
+            (mosaic.width - padding, mosaic.height // 2), r_text, (255,255,255),
+            font=font, anchor="rm", stroke_width=stroke, stroke_fill=(0, 0, 0)
+        )
+
+
 def compose_mosaic(
     img_scene_container,
-    mask_scene_container,
     cell_size,
     rows,
     cols,
-    overlap_factor,
+    slice_numbers,
+    overlap_factor=None,
+    transparency_scene_container=None,
     labelmap_scene_container=None,
+    labelmap_overlay_alpha=0.7,
+    mask_overlay_scene_container=None,
+    mask_overlay_alpha=0.7,
+    mask_overlay_color=None,
     vol_cmap_name=None,
     labelmap_cmap_name=None,
+    display_slice_number=False,
+    display_lr=False
 ):
     """Create the mosaic canvas for given number of rows and columns, and the
     requested cell size and overlap values.
@@ -864,8 +1051,6 @@ def compose_mosaic(
     ----------
     img_scene_container : list
         Image scene data container.
-    mask_scene_container : list
-        Mask scene data container.
     cell_size : array-like
         Cell size (pixels) (width, height).
     rows : int
@@ -874,12 +1059,25 @@ def compose_mosaic(
         Column count.
     overlap_factor : array-like
         Overlap factor (horizontal, vertical).
+    transparency_scene_container : list, optional
+        Transaprency scene data container.
     labelmap_scene_container : list, optional
         Labelmap scene data container.
+    mask_overlay_scene_container : list, optional
+        Mask overlay scene data container.
+    mask_overlay_alpha : float, optional
+        Alpha value for mask overlay in range [0, 1].
+    mask_overlay_color : list, optional
+        Color for the mask overlay as a list of 3 integers in range [0, 255].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
         Colormap name for the labelmap scene data.
+    display_slice_number : bool, optional
+        If true, displays the slice number in the upper left corner.
+    display_lr : bool or int, optional
+        If 1 or -1, identifies the left and right sides on the image. -1 flips 
+        left and right positions.
     """
 
     def _compute_overlap_length(length, _overlap):
@@ -888,19 +1086,23 @@ def compose_mosaic(
     cell_width = cell_size[0]
     cell_height = cell_size[1]
 
-    overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
-    overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
+    overlap_h = overlap_v = 0
+    if overlap_factor is not None:
+        overlap_h = _compute_overlap_length(cell_width, overlap_factor[0])
+        overlap_v = _compute_overlap_length(cell_width, overlap_factor[1])
 
     mosaic = create_canvas(*cell_size, overlap_h, overlap_v, rows, cols)
 
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, mask_arr, labelmap_arr) in enumerate(
+    for idx, (img_arr, trans_arr, labelmap_arr, mask_overlay_arr, slice_number) in enumerate(
             list(zip_longest(
                 img_scene_container,
-                mask_scene_container,
+                transparency_scene_container,
                 labelmap_scene_container,
+                mask_overlay_scene_container,
+                slice_numbers,
                 fillvalue=tuple()))
     ):
 
@@ -912,11 +1114,18 @@ def compose_mosaic(
         # Convert the scene data to grayscale and adjust for handling with
         # Pillow
         _img_arr = rgb2gray4pil(img_arr)
-        _mask_arr = rgb2gray4pil(mask_arr)
+
+        _trans_arr = None
+        if len(trans_arr):
+            _trans_arr = rgb2gray4pil(trans_arr)
 
         _labelmap_arr = None
         if len(labelmap_arr):
             _labelmap_arr = rgb2gray4pil(labelmap_arr)
+
+        _mask_overlay_arr = None
+        if len(mask_overlay_arr):
+            _mask_overlay_arr = mask_overlay_arr
 
         # Draw the image (and labelmap overlay, if any) in the cell
         draw_scene_at_pos(
@@ -925,10 +1134,16 @@ def compose_mosaic(
             (cell_width, cell_height),
             left_pos,
             top_pos,
-            mask=_mask_arr,
+            transparency=_trans_arr,
             labelmap_overlay=_labelmap_arr,
+            labelmap_overlay_alpha=labelmap_overlay_alpha,
+            mask_overlay=_mask_overlay_arr,
+            mask_overlay_alpha=mask_overlay_alpha,
+            mask_overlay_color=mask_overlay_color,
             vol_cmap_name=vol_cmap_name,
             labelmap_cmap_name=labelmap_cmap_name,
         )
+
+        annotate_scene(mosaic, slice_number, display_slice_number, display_lr)
 
     return mosaic

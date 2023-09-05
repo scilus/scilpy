@@ -56,6 +56,10 @@ def _build_arg_parser():
     p.add_argument('out_bvec',
                    help='The name of the output b-vector file (.bvec).')
 
+    p.add_argument('--out_indices',
+                   help='Optional filename for valid indices in\
+                         input dwi volume')
+
     p.add_argument('--block-size', '-s',
                    metavar='INT', type=int,
                    help='Loads the data using this block size. '
@@ -82,7 +86,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, [args.out_dwi, args.out_bval,
-                                        args.out_bvec])
+                                        args.out_bvec], args.out_indices)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
 
@@ -102,6 +106,10 @@ def main():
     np.savetxt(args.out_bvec, new_bvecs.T, '%0.15f')
     nib.save(nib.Nifti1Image(shell_data, img.affine, header=img.header),
              args.out_dwi)
+
+    # output indices file
+    if args.out_indices:
+        np.savetxt(args.out_indices, indices, '%u')
 
 
 if __name__ == "__main__":

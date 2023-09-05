@@ -43,6 +43,7 @@ All the input nifti files must be in isotropic resolution.
 import argparse
 import logging
 from time import perf_counter
+from typing import Iterable
 
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
@@ -57,7 +58,9 @@ from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
 from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
+from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
+from tqdm import tqdm
 
 from scilpy.reconst.utils import (find_order_from_nb_coeff,
                                   get_b_matrix, get_maximas)
@@ -91,7 +94,10 @@ def _build_arg_parser():
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
-
+    track_g.add_argument('--sub_sphere',
+                         type=int, default=0,
+                         help='Subdivides each face of the sphere into 4^s new faces. '
+                              '[%(default)s]')
     add_seeding_options(p)
 
     gpu_g = p.add_argument_group('GPU options')
@@ -119,7 +125,7 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere))
+    sphere = HemiSphere.from_sphere(get_sphere(args.sphere)).subdivide(args.sub_sphere)
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
@@ -262,6 +268,12 @@ def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
+def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
+    if verbose:
+        return tqdm(generator, *args, **kwargs)
+    return generator
+
+
 def main():
     t_init = perf_counter()
     parser = _build_arg_parser()
@@ -300,6 +312,15 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
+    tracts_format = detect_format(args.out_tractogram)
+    if tracts_format is not TrkFile:
+        logging.warning("You have selected option --save_seeds but you are "
+                        "not saving your tractogram as a .trk file. \n"
+                        "   Data_per_point information CANNOT be saved. "
+                        "Ignoring.")
+        args.save_seeds = False
+
+    logging.debug("Loading masks and finding seeds.")
     mask_img = nib.load(args.in_mask)
     mask_data = get_data_as_mask(mask_img, dtype=bool)
 
@@ -339,6 +360,7 @@ def main():
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
+    total_nb_seeds = len(seeds)
 
     # NOTE: tracking is performed in voxel space in both cases
     if not args.use_gpu:

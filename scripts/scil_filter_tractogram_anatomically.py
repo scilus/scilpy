@@ -67,9 +67,9 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractograms.streamline_operations import filter_streamlines_by_length
 from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation)
-from scilpy.tracking.tools import filter_streamlines_by_length
+    difference, perform_tractogram_operation_on_lines)
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
@@ -202,7 +202,7 @@ def save_intermediate_sft(sft, outliers_sft, new_path, in_sft_name,
     """
     sft_name = os.path.join(new_path, in_sft_name + "_" + steps_combined + ext)
     outliers_sft_name = os.path.join(
-        new_path, in_sft_name + "_" + step_name + "_outliers" + ext)
+        new_path, in_sft_name + "_" + steps_combined + "_outliers" + ext)
 
     if len(sft.streamlines) == 0:
         if no_empty:
@@ -227,7 +227,7 @@ def compute_outliers(sft, new_sft):
     two input stateful tractograms
     """
     streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_tractogram_operation(
+    _, indices = perform_tractogram_operation_on_lines(
         difference, streamlines_list, precision=0)
     outliers_sft = sft[indices]
     return outliers_sft
@@ -316,10 +316,10 @@ def main():
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '01-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -368,7 +368,7 @@ def main():
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_volumes:
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '02-' + step)
         if not args.csf_bin:
             nib.save(nib.Nifti1Image(mask, img_wmparc.affine,
                                      img_wmparc.header),
@@ -376,10 +376,10 @@ def main():
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '02-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -438,21 +438,21 @@ def main():
     new_sft, _ = filter_grid_roi(sft, freesurfer_mask, 'both_ends', False)
 
     # Streamline count after final filtering
-    o_dict[out_sft_rootname + ext] =\
+    o_dict[in_sft_name + '_' + steps_combined + ext] =\
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_volumes:
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '03-' + step)
         nib.save(nib.Nifti1Image(freesurfer_mask, img_wmparc.affine,
                                  img_wmparc.header),
                  os.path.join(new_path, 'atlas_bin' + '.nii.gz'))
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '03-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     # Finish filtering
@@ -471,6 +471,8 @@ def main():
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
 
+    sft = new_sft
+
     # STEP 4 - Filter loops
     step = step_dict[3]
     steps_combined += "_" + step
@@ -488,10 +490,10 @@ def main():
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '04-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -510,14 +512,13 @@ def main():
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                           out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
 
-        if args.verbose:
-            display_count(o_dict, args.indent, args.sort_keys)
+    if args.verbose:
+        display_count(o_dict, args.indent, args.sort_keys)
 
-        if args.save_counts:
-            save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+    if args.save_counts:
+        save_count(o_dict, args.out_path, args.indent, args.sort_keys)
 
         return
 

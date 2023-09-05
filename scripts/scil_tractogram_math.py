@@ -27,11 +27,12 @@ threshold for similarity. A precision of 1 represents 10**(-1), so a
 maximum distance of 0.1mm is allowed. If the streamlines are identical, the
 default value of 3 (or 0.001mm distance) should work.
 
-If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) the --robust
-option should make it work, but slightly slower.
+If there is a 0.5mm shift, use a precision of 0 (or 1mm distance) and the
+--robust option. Should make it work, but slightly slower. Will merge all
+streamlines similar when rounded to that precision level.
 
 The metadata (data per point, data per streamline) of the streamlines that
-are kept in the output will preserved. This requires that all input files
+are kept in the output will be preserved. This requires that all input files
 share the same type of metadata. If this is not the case, use the option
 --no_metadata to strip the metadata from the output. Or --fake_metadata to
 initialize dummy metadata in the file missing them.
@@ -53,24 +54,11 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             is_header_compatible_multiple_files)
 from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
-    difference_robust, difference, union_robust, union,
-    intersection_robust, intersection, perform_tractogram_operation,
-    concatenate_sft)
-
-
-OPERATIONS = {
-    'difference_robust': difference_robust,
-    'intersection_robust': intersection_robust,
-    'union_robust': union_robust,
-    'difference': difference,
-    'intersection': intersection,
-    'union': union,
-    'concatenate': 'concatenate',
-    'lazy_concatenate': 'lazy_concatenate'
-}
+    perform_tractogram_operation_on_sft, concatenate_sft)
 
 
 def _build_arg_parser():
@@ -78,7 +66,9 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
 
-    p.add_argument('operation', choices=OPERATIONS.keys(), metavar='OPERATION',
+    p.add_argument('operation', metavar='OPERATION',
+                   choices=['difference', 'intersection', 'union',
+                            'concatenate', 'lazy_concatenate'],
                    help='The type of operation to be performed on the '
                         'streamlines. Must\nbe one of the following: '
                         '%(choices)s.')
@@ -103,6 +93,9 @@ def _build_arg_parser():
     p.add_argument('--save_indices', '-s', metavar='OUT_INDEX_FILE',
                    help='Save the streamline indices to the supplied '
                         'json file.')
+    p.add_argument('--save_empty', action='store_true',
+                   help="If set, we will save all results, even if tractogram "
+                        "if empty.")
 
     add_json_args(p)
     add_reference_arg(p)
@@ -123,6 +116,7 @@ def main():
     assert_inputs_exist(parser, args.in_tractograms)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
+    is_header_compatible_multiple_files(parser, args.in_tractograms)
 
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '
@@ -146,44 +140,54 @@ def main():
     sft_list = []
     for f in args.in_tractograms:
         logging.info("Loading file {}".format(f))
-        sft_list.append(load_tractogram_with_reference(parser, args, f))
+        # Using in a millimeter space so that the precision level is in mm.
+        # Note. Sending to_voxmm() returns None with no streamlines.
+        tmp_sft = load_tractogram_with_reference(parser, args, f)
+        tmp_sft.to_voxmm()
+
+        sft_list.append(tmp_sft)
+
+    if np.all([len(sft) == 0 for sft in sft_list]):
+        return
 
     # Apply the requested operation to each input file.
-    logging.info('Performing operation \'{}\'.'.format(args.operation))
-    new_sft = concatenate_sft(sft_list, args.no_metadata, args.fake_metadata)
     if args.operation == 'concatenate':
-        indices = np.arange(len(new_sft), dtype=np.uint32)
+        logging.info('Performing operation "concatenate"')
+        sft_list = [s for s in sft_list if s is not None]
+        new_sft = concatenate_sft(sft_list, args.no_metadata,
+                                  args.fake_metadata)
+        indices_per_sft = [np.arange(len(new_sft), dtype=np.uint32)]
     else:
-        streamlines_list = [sft.streamlines for sft in sft_list]
         op_name = args.operation
         if args.robust:
             op_name += '_robust'
-            _, indices = OPERATIONS[op_name](streamlines_list,
-                                             precision=args.precision)
-        else:
-            _, indices = perform_tractogram_operation(
-                OPERATIONS[op_name], streamlines_list,
-                precision=args.precision)
+
+        logging.info('Performing operation \'{}\'.'.format(op_name))
+        new_sft, indices_per_sft = perform_tractogram_operation_on_sft(
+            op_name, sft_list, precision=args.precision,
+            no_metadata=args.no_metadata, fake_metadata=args.fake_metadata)
+
+        if len(new_sft) == 0 and not args.save_empty:
+            logging.info("Empty resulting tractogram. Not saving results.")
+            return
 
     # Save the indices to a file if requested.
     if args.save_indices:
-        start = 0
         out_dict = {}
-        streamlines_len_cumsum = [len(sft) for sft in sft_list]
-        for name, nb in zip(args.in_tractograms, streamlines_len_cumsum):
-            end = start + nb
+        for name, ind in zip(args.in_tractograms, indices_per_sft):
             # Switch to int32 for json
-            out_dict[name] = [int(i - start)
-                              for i in indices if start <= i < end]
-            start = end
+            out_dict[name] = ind
 
         with open(args.save_indices, 'wt') as f:
-            json.dump(out_dict, f,
-                      indent=args.indent,
+            json.dump(out_dict, f, indent=args.indent,
                       sort_keys=args.sort_keys)
 
     # Save the new streamlines (and metadata)
-    logging.info('Saving {} streamlines to {}.'.format(len(indices),
+    logging.info('Saving {} streamlines to {}.'.format(len(new_sft),
                                                        args.out_tractogram))
-    save_tractogram(new_sft[indices], args.out_tractogram,
+    save_tractogram(new_sft, args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
+
+
+if __name__ == "__main__":
+    main()
