@@ -80,6 +80,7 @@ from scilpy.tracking.tracker import GPUTacker
 DEFAULT_BATCH_SIZE = 10000
 DEFAULT_SH_INTERP = 'trilinear'
 DEFAULT_FWD_ONLY = False
+DEFAULT_GPU_SPHERE = 'symmetric724'
 
 
 def _build_arg_parser():
@@ -96,8 +97,8 @@ def _build_arg_parser():
     add_sphere_arg(track_g, symmetric_only=True)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new faces. '
-                              '[%(default)s]')
+                         help='Subdivides each face of the sphere into 4^s new'
+                              ' faces. [%(default)s]')
     add_seeding_options(p)
 
     gpu_g = p.add_argument_group('GPU options')
@@ -125,7 +126,8 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere)).subdivide(args.sub_sphere)
+    sphere = HemiSphere.from_sphere(get_sphere(args.sphere))\
+        .subdivide(args.sub_sphere)
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
@@ -199,19 +201,30 @@ def _get_direction_getter(args):
         return dg
 
 
-def save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args):
+def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
+    if verbose:
+        return tqdm(generator, *args, **kwargs)
+    return generator
+
+
+def save_tractogram_cpu(streamlines_generator, odf_sh_img,
+                        seed_img, total_nb_seeds, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
     scaled_min_length = args.min_length / voxel_size
     scaled_max_length = args.max_length / voxel_size
 
     if args.save_seeds:
         filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in streamlines_generator
+            zip(*((s, p) for s, p in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
                   if scaled_min_length <= length(s) <= scaled_max_length))
         data_per_streamlines = {'seeds': lambda: seeds}
     else:
         filtered_streamlines = \
-            (s for s in streamlines_generator
+            (s for s in tqdm_if_verbose(
+                streamlines_generator, verbose=args.verbose,
+                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
              if scaled_min_length <= length(s) <= scaled_max_length)
         data_per_streamlines = {}
 
@@ -268,17 +281,12 @@ def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
     nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
-def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
-    if verbose:
-        return tqdm(generator, *args, **kwargs)
-    return generator
-
-
 def main():
     t_init = perf_counter()
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    # TODO: Disable logging from pyopencl library.
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -290,6 +298,12 @@ def main():
             parser.error('Algo `{}` not supported for GPU tracking. '
                          'Set --algo to `prob` for GPU tracking.'
                          .format(args.algo))
+        if args.sphere != DEFAULT_GPU_SPHERE:
+            parser.error('Cannot use sphere `{}`. Only symmetric724 is '
+                         'available for GPU tracking.'.format(args.sphere))
+        if args.sub_sphere:
+            parser.error('Invalid argument --sub_sphere. Not implemented '
+                         'for GPU.')
     else:
         if args.batch_size is not None:
             parser.error('Invalid argument --batch_size. '
@@ -360,7 +374,6 @@ def main():
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
-    total_nb_seeds = len(seeds)
 
     # NOTE: tracking is performed in voxel space in both cases
     if not args.use_gpu:
@@ -368,6 +381,7 @@ def main():
         # so we need to divide by 2.0 to limit the streamline to the right
         # length
         max_steps = int(args.max_length / 2.0 / args.step_size)
+        total_nb_seeds = len(seeds)
 
         streamlines_generator = LocalTracking(
             _get_direction_getter(args),
@@ -378,7 +392,8 @@ def main():
             fixedstep=True, return_all=True,
             random_seed=args.seed,
             save_seeds=args.save_seeds)
-        save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args)
+        save_tractogram_cpu(streamlines_generator, odf_sh_img,
+                            seed_img, total_nb_seeds, args)
     else:  # GPU tracking
         vox_max_length = args.max_length / voxel_size
         vox_min_length = args.min_length / voxel_size
