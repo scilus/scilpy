@@ -13,6 +13,27 @@ to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
+The local tracking algorithm can also run on the GPU using the --use_gpu
+option (experimental). Below is a list of known divergences between the
+CPU and GPU implementations:
+    * Backend: The CPU implementation uses DIPY's LocalTracking and the
+        GPU implementation uses an in-house OpenCL implementation.
+    * Algo: For the GPU implementation, the only available algorithm is
+        Algo 'prob'.
+    * GPU options: Nearest neighbour interpolation is implemented for
+        GPU tracking and can be enabled with '--sh_interp nearest'.
+        Backward tracking can be disabled using '--forward_only.
+
+Streamlines are filtered by minimum length, but not by maximum length. This
+means that streamlines are stopped and returned as soon as they reach the
+maximum length instead of being discarded if they go above the maximum allowed
+length. This allows for short-tracks tractography, where streamlines are
+prematurely stopped once they reach some target length.
+
+However, for this reason, there may be streamlines ending in the deep white
+matter. In order to use the resulting tractogram for analysis, it should be
+cleaned with scil_filter_tractogram_anatomically.py.
+
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
@@ -51,6 +72,11 @@ from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.tracking.tracker import GPUTacker
+
+# GPU tracking arguments default values
+DEFAULT_BATCH_SIZE = 10000
+DEFAULT_SH_INTERP = 'trilinear'
+DEFAULT_FWD_ONLY = False
 
 
 def _build_arg_parser():
@@ -191,6 +217,7 @@ def save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args):
             compress_streamlines(s * voxel_size, args.compress) / voxel_size
             for s in filtered_streamlines)
 
+    # IMPORTANT: streamlines are dumped in voxel space
     tractogram = LazyTractogram(lambda: filtered_streamlines,
                                 data_per_streamlines,
                                 affine_to_rasmm=seed_img.affine)
@@ -205,8 +232,7 @@ def save_tractogram_cpu(streamlines_generator, odf_sh_img, seed_img, args):
 
 def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
-    if args.compress:
-        compress_th_vox = args.compress / voxel_size
+
     # wrapper for tracker.track() yielding one TractogramItem per
     # streamline for use with the LazyTractogram.
     def tracks_generator_wrapper():
@@ -216,11 +242,12 @@ def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
             if args.save_seeds:
                 dps['seeds'] = seed
 
+            # IMPORTANT: Streamlines are dumped in world space (mm).
             # TODO: Investigate why the streamline must NOT be shifted to
             # origin `center` for LazyTractogram.
             strl *= voxel_size  # in mm.
             if args.compress:
-                strl = compress_streamlines(strl, compress_th_vox)
+                strl = compress_streamlines(strl, args.compress)
             yield TractogramItem(strl, dps, {})
 
     # instantiate tractogram
@@ -244,10 +271,13 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     if args.use_gpu:
-        batch_size = args.batch_size or 10000
-        sh_interp = args.sh_interp or 'trilinear'
-        forward_only = args.forward_only or False
-        print(batch_size, sh_interp, forward_only)
+        batch_size = args.batch_size or DEFAULT_BATCH_SIZE
+        sh_interp = args.sh_interp or DEFAULT_SH_INTERP
+        forward_only = args.forward_only or DEFAULT_FWD_ONLY
+        if args.algo != 'prob':
+            parser.error('Algo `{}` not supported for GPU tracking. '
+                         'Set --algo to `prob` for GPU tracking.'
+                         .format(args.algo))
     else:
         if args.batch_size is not None:
             parser.error('Invalid argument --batch_size. '
@@ -312,7 +342,10 @@ def main():
 
     # NOTE: tracking is performed in voxel space in both cases
     if not args.use_gpu:
-        max_steps = int(args.max_length / args.step_size) + 1
+        # LocalTracking.maxlen is actually the maximum length per direction
+        # so we need to divide by 2.0 to limit the streamline to the right
+        # length
+        max_steps = int(args.max_length / 2.0 / args.step_size)
 
         streamlines_generator = LocalTracking(
             _get_direction_getter(args),
@@ -332,8 +365,9 @@ def main():
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
         theta = get_theta(args.theta, args.algo)
 
-        streamlines_generator = GPUTacker(odf_sh, mask_data, seeds, vox_step_size,
-                                          min_strl_len, max_strl_len, theta=theta,
+        streamlines_generator = GPUTacker(odf_sh, mask_data, seeds,
+                                          vox_step_size, min_strl_len,
+                                          max_strl_len, theta=theta,
                                           sf_threshold=args.sf_threshold,
                                           sh_interp=sh_interp,
                                           sh_basis=args.sh_basis,

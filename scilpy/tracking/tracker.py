@@ -603,10 +603,7 @@ class GPUTacker():
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
-                # TODO: Always return so that we can filter like we do in dipy local_tracking
-                # TODO: Add option to return streamlines reaching max length
-                if self.min_strl_points <= n_pts <= self.max_strl_points:
-                    n_pts = min(n_pts, self.max_strl_points)
+                if self.min_strl_points <= n_pts:
                     strl = strl[:n_pts]
                     nb_valid_streamlines += 1
 

@@ -147,14 +147,11 @@ def main():
         nb_seeds = 1
         seed_per_vox = True
 
-    # Seeds are returned with origin `center`.
-    # However, GPUTracker expects origin to be `corner`.
-    # Therefore, we need to shift the seed positions by half voxel.
     seeds = random_seeds_from_mask(
         seed_mask, np.eye(4),
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
-        random_seed=args.rng_seed) + 0.5
+        random_seed=args.rng_seed)
     logging.info('Generated {0} seed positions in {1:.2f}s.'
                  .format(len(seeds), perf_counter() - t0))
 
@@ -184,7 +181,7 @@ def main():
             # seed must be saved in voxel space, with origin `center`.
             dps = {}
             if args.save_seeds:
-                dps['seeds'] = seed - 0.5
+                dps['seeds'] = seed
 
             # TODO: Investigate why the streamline must NOT be shifted to
             # origin `center` for LazyTractogram.
