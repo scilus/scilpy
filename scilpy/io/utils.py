@@ -594,11 +594,10 @@ def is_header_compatible_multiple_files(parser, list_files,
             parser.error('{} does not have a supported extension'.format(
                 filepath))
 
-    all_pairs = list(itertools.combinations(list_files, 2))
-    for curr_pair in all_pairs:
-        if not is_header_compatible(curr_pair[0], curr_pair[1]):
+    for curr in list_files[1:]:
+        if not is_header_compatible(list_files[0], curr):
             print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
-                curr_pair[0], curr_pair[1]))
+                list_files[0], curr))
             all_valid = False
 
     if all_valid and verbose_all_compatible:
