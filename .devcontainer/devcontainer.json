@@ -1,6 +1,6 @@
 {
     "name": "Scilpy development container",
-    "image": "scilus/scilus:latest",
+    "build": { "dockerfile": "Dockerfile" },
     "forwardPorts": [3000],
     "workspaceMount": "source=${localWorkspaceFolder},target=/scilpy,type=bind,consistency=cached",
     "workspaceFolder": "/scilpy",

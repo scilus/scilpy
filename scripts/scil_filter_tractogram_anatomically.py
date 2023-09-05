@@ -67,9 +67,9 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
+from scilpy.tractograms.streamline_operations import filter_streamlines_by_length
 from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation)
-from scilpy.tracking.tools import filter_streamlines_by_length
+    difference, perform_tractogram_operation_on_lines)
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
@@ -227,7 +227,7 @@ def compute_outliers(sft, new_sft):
     two input stateful tractograms
     """
     streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_tractogram_operation(
+    _, indices = perform_tractogram_operation_on_lines(
         difference, streamlines_list, precision=0)
     outliers_sft = sft[indices]
     return outliers_sft

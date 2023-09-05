@@ -8,13 +8,15 @@ from dipy.segment.clustering import QuickBundles, qbx_and_merge
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
-from scilpy.tracking.tools import resample_streamlines_num_points
 import numpy as np
+
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points
 
 
 def detect_ushape(sft, minU, maxU):
     """
-    Extract streamlines depending of their "u-shapeness".
+    Extract streamlines depending on their "u-shapeness".
     Parameters
     ----------
     sft: Statefull tractogram

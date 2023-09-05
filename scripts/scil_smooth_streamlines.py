@@ -35,7 +35,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tracking.tools import smooth_line_gaussian, smooth_line_spline
+from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
+    smooth_line_spline
 
 
 def _build_arg_parser():

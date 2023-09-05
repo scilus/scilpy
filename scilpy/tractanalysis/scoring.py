@@ -42,9 +42,10 @@ import numpy as np
 
 from dipy.io.stateful_tractogram import StatefulTractogram
 
-from scilpy.tractanalysis.reproducibility_measures import \
-    get_endpoints_density_map
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
 
 
 def compute_f1_score(overlap, overreach):
