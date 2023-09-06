@@ -14,15 +14,21 @@ Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 
 The local tracking algorithm can also run on the GPU using the --use_gpu
-option (experimental). Below is a list of known divergences between the
-CPU and GPU implementations:
+option (experimental). By default, GPU tracking behaves the same as
+DIPY. Below is a list of known divergences between the CPU and GPU
+implementations:
     * Backend: The CPU implementation uses DIPY's LocalTracking and the
         GPU implementation uses an in-house OpenCL implementation.
     * Algo: For the GPU implementation, the only available algorithm is
         Algo 'prob'.
-    * GPU options: Nearest neighbour interpolation is implemented for
-        GPU tracking and can be enabled with '--sh_interp nearest'.
-        Backward tracking can be disabled using '--forward_only.
+    * Tracking sphere: The only sphere available for GPU tracking is
+        `symmetric724` and `--sub_sphere` is not available for GPU tracking.
+    * SH interpolation: For GPU tracking, SH interpolation can be set to either
+        nearest neighbour or trilinear (default). With DIPY, the only available
+        method is trilinear.
+    * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
+        to disable backward tracking. This option isn't available for CPU
+        tracking.
 
 Streamlines are filtered by minimum length, but not by maximum length. This
 means that streamlines are stopped and returned as soon as they reach the

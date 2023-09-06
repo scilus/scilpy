@@ -486,7 +486,7 @@ class GPUTacker():
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
     seeds : ndarray (n_seeds, 3)
-        Seed positions in voxel space with origin ` center`.
+        Seed positions in voxel space with origin `center`.
     step_size : float
         Step size in voxel space.
     min_nbr_pts : int
