@@ -489,8 +489,6 @@ class GPUTacker():
         Seed positions in voxel space with origin `center`.
     step_size : float
         Step size in voxel space.
-    min_nbr_pts : int
-        Minimum length of a streamline in voxel space.
     max_nbr_pts : int
         Maximum length of a streamline in voxel space.
     theta : float or list of float, optional
@@ -505,7 +503,7 @@ class GPUTacker():
     rng_seed : int, optional
         Seed for random number generator.
     """
-    def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
+    def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', batch_size=100000,
                  forward_only=False, rng_seed=None):
@@ -528,7 +526,6 @@ class GPUTacker():
         # tracking step_size and number of points
         self.step_size = step_size
         self.sf_threshold = sf_threshold
-        self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
         # convert theta to array
@@ -557,7 +554,7 @@ class GPUTacker():
         """
         t0 = perf_counter()
 
-        # Load the sphere
+        # TODO: Take as class parameter
         sphere = get_sphere('symmetric724')
 
         # Convert theta to cos(theta)
@@ -603,13 +600,7 @@ class GPUTacker():
 
         cl_manager.add_input_buffer(5, max_cos_theta)
 
-        logging.debug('Initialized OpenCL program in {:.2f}s.'
-                      .format(perf_counter() - t0))
-
         # Generate streamlines in batches
-        t0 = perf_counter()
-        nb_processed_streamlines = 0
-        nb_valid_streamlines = 0
         for seed_batch in self.seed_batches:
             # Generate random values for sf sampling
             # TODO: Implement random number generator directly
@@ -632,17 +623,8 @@ class GPUTacker():
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
             n_points = n_points.squeeze().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
-                if self.min_strl_points <= n_pts:
-                    strl = strl[:n_pts]
-                    nb_valid_streamlines += 1
+                strl = strl[:n_pts]
 
-                    # output is yielded so that we can use lazy tractogram.
-                    yield strl, seed - 0.5  # seeds with origin center
-
-            # per-batch logging information
-            nb_processed_streamlines += len(seed_batch)
-            logging.info('{0:>8}/{1} streamlines generated'
-                         .format(nb_processed_streamlines, self.n_seeds))
-
-        logging.info('Tracked {0} streamlines in {1:.2f}s.'
-                     .format(nb_valid_streamlines, perf_counter() - t0))
+                # output is yielded so that we can use LazyTractogram.
+                # seed and strl with origin center (same as DIPY)
+                yield strl - 0.5, seed - 0.5

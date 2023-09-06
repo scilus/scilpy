@@ -30,16 +30,6 @@ implementations:
         to disable backward tracking. This option isn't available for CPU
         tracking.
 
-Streamlines are filtered by minimum length, but not by maximum length. This
-means that streamlines are stopped and returned as soon as they reach the
-maximum length instead of being discarded if they go above the maximum allowed
-length. This allows for short-tracks tractography, where streamlines are
-prematurely stopped once they reach some target length.
-
-However, for this reason, there may be streamlines ending in the deep white
-matter. In order to use the resulting tractogram for analysis, it should be
-cleaned with scil_filter_tractogram_anatomically.py.
-
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
@@ -112,13 +102,14 @@ def _build_arg_parser():
                        help='Enable GPU tracking (experimental).')
     gpu_g.add_argument('--sh_interp', default=None,
                        choices=['trilinear', 'nearest'],
-                       help='SH image interpolation method. [%(default)s]')
+                       help='SH image interpolation method. '
+                            '[{}]'.format(DEFAULT_SH_INTERP))
     gpu_g.add_argument('--forward_only', action='store_true', default=None,
                        help='Perform forward tracking only.')
     gpu_g.add_argument('--batch_size', default=None, type=int,
                        help='Approximate size of GPU batches (number\n'
                             'of streamlines to track in parallel).'
-                            ' [%(default)s]')
+                            ' [{}]'.format(DEFAULT_BATCH_SIZE))
 
     out_g = add_out_options(p)
 
@@ -213,69 +204,32 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
     return generator
 
 
-def save_tractogram_cpu(streamlines_generator, odf_sh_img,
-                        seed_img, total_nb_seeds, args):
-    voxel_size = odf_sh_img.header.get_zooms()[0]
-    scaled_min_length = args.min_length / voxel_size
-    scaled_max_length = args.max_length / voxel_size
-
-    if args.save_seeds:
-        filtered_streamlines, seeds = \
-            zip(*((s, p) for s, p in tqdm_if_verbose(
-                streamlines_generator, verbose=args.verbose,
-                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
-                  if scaled_min_length <= length(s) <= scaled_max_length))
-        data_per_streamlines = {'seeds': lambda: seeds}
-    else:
-        filtered_streamlines = \
-            (s for s in tqdm_if_verbose(
-                streamlines_generator, verbose=args.verbose,
-                total=total_nb_seeds, miniters=int(total_nb_seeds / 100))
-             if scaled_min_length <= length(s) <= scaled_max_length)
-        data_per_streamlines = {}
-
-    if args.compress:
-        # Compressing. Threshold is in mm, but we are working in voxel space.
-        # Equivalent of sft.to_voxmm:  streamline *= voxres
-        # Equivalent of sft.to_vox: streamline /= voxres
-        filtered_streamlines = (
-            compress_streamlines(s * voxel_size, args.compress) / voxel_size
-            for s in filtered_streamlines)
-
-    # IMPORTANT: streamlines are dumped in voxel space
-    tractogram = LazyTractogram(lambda: filtered_streamlines,
-                                data_per_streamlines,
-                                affine_to_rasmm=seed_img.affine)
-
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(seed_img)
-    header = create_tractogram_header(filetype, *reference)
-
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
-
-
-def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
+def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
 
     # wrapper for tracker.track() yielding one TractogramItem per
-    # streamline for use with the LazyTractogram.
+    # streamline for use with LazyTractogram.
     def tracks_generator_wrapper():
-        for strl, seed in streamlines_generator:
+        for strl, seed in tqdm_if_verbose(streamlines_generator,
+                                          verbose=args.verbose,
+                                          total=total_nb_seeds,
+                                          miniters=int(total_nb_seeds / 100)):
             # seeds are returned with origin `center`
             dps = {}
             if args.save_seeds:
                 dps['seeds'] = seed
 
-            # IMPORTANT: Streamlines are dumped in world space (mm).
-            # TODO: Investigate why the streamline must NOT be shifted to
-            # origin `center` for LazyTractogram.
+            # IMPORTANT: Streamlines are dumped in world space (mm) with
+            # origin `corner`.
+            strl += 0.5
             strl *= voxel_size  # in mm.
             if args.compress:
                 strl = compress_streamlines(strl, args.compress)
             yield TractogramItem(strl, dps, {})
 
-    # instantiate tractogram
+    # TODO: LazyTractogram.from_data_func seems to expect streamlines in
+    # world coordinates (mm) with origin `corner` although this is not
+    # specified anywhere
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
     tractogram.affine_to_rasmm = odf_sh_img.affine
 
@@ -288,6 +242,7 @@ def save_tractogram_gpu(streamlines_generator, odf_sh_img, args):
 
 
 def main():
+    # report time for logging/benchmarking
     t_init = perf_counter()
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -347,6 +302,8 @@ def main():
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results.
+    # NOTE: Tracking is performed in voxel space
+    # in both the GPU and CPU cases.
     odf_sh_img = nib.load(args.in_odf)
     if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
@@ -380,47 +337,67 @@ def main():
         seeds_count=nb_seeds,
         seed_count_per_voxel=seed_per_vox,
         random_seed=args.seed)
+    total_nb_seeds = len(seeds)
 
-    # NOTE: tracking is performed in voxel space in both cases
     if not args.use_gpu:
-        # LocalTracking.maxlen is actually the maximum length per direction
-        # so we need to divide by 2.0 to limit the streamline to the right
-        # length
-        max_steps = int(args.max_length / 2.0 / args.step_size)
-        total_nb_seeds = len(seeds)
+        # LocalTracking.maxlen is actually the maximum length
+        # per direction, so we need to divide by 2.0 to limit
+        # the streamline to the right length
+        max_steps_per_direction = int(args.max_length / 2.0 / args.step_size)
+        # make streamline slightly longer to filter out streamlines
+        # exceeding max_length
+        max_steps_per_direction += 1
 
         streamlines_generator = LocalTracking(
             _get_direction_getter(args),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,
-            maxlen=max_steps,
+            maxlen=max_steps_per_direction,
             fixedstep=True, return_all=True,
             random_seed=args.seed,
-            save_seeds=args.save_seeds)
-        save_tractogram_cpu(streamlines_generator, odf_sh_img,
-                            seed_img, total_nb_seeds, args)
-    else:  # GPU tracking
-        vox_max_length = args.max_length / voxel_size
-        vox_min_length = args.min_length / voxel_size
-        min_strl_len = int(vox_min_length / vox_step_size) + 1
-        max_strl_len = int(vox_max_length / vox_step_size) + 1
-        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
-        theta = get_theta(args.theta, args.algo)
+            save_seeds=True)
 
-        streamlines_generator = GPUTacker(odf_sh, mask_data, seeds,
-                                          vox_step_size, min_strl_len,
-                                          max_strl_len, theta=theta,
-                                          sf_threshold=args.sf_threshold,
-                                          sh_interp=sh_interp,
-                                          sh_basis=args.sh_basis,
-                                          batch_size=batch_size,
-                                          forward_only=forward_only,
-                                          rng_seed=args.seed).track()
-        save_tractogram_gpu(streamlines_generator, odf_sh_img, args)
+    else:  # GPU tracking
+        max_strl_len = int(args.max_length / args.step_size) + 1
+        # make streamline slightly longer to filter out streamlines
+        # exceeding max_length
+        max_strl_len += 1
+
+        # data volume
+        odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
+
+        streamlines_generator = GPUTacker(
+            odf_sh, mask_data, seeds,
+            vox_step_size, max_strl_len,
+            theta=get_theta(args.theta, args.algo),
+            sf_threshold=args.sf_threshold,
+            sh_interp=sh_interp,
+            sh_basis=args.sh_basis,
+            batch_size=batch_size,
+            forward_only=forward_only,
+            rng_seed=args.seed).track()
+
+    # filter streamlines by length on-the-fly
+    def filtered_strl_generator():
+        voxel_size = odf_sh_img.header.get_zooms()[0]
+        # this is the true max length, for filtering
+        # streamlines exceeding the max_length instead
+        # of cutting them
+        scaled_min_length = args.min_length / voxel_size
+        scaled_max_length = args.max_length / voxel_size
+        for strl, seed in streamlines_generator:
+            # filter by length
+            if scaled_min_length <= length(strl) <= scaled_max_length:
+                yield strl, seed
+
+    # use the filtered streamline generator to dump streamlines to file
+    _save_tractogram(filtered_strl_generator(),
+                     odf_sh_img, total_nb_seeds, args)
 
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))
+
     # Total runtime
     logging.info('Total runtime of {0:.2f}s.'.format(perf_counter() - t_init))
 
