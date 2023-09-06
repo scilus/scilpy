@@ -70,8 +70,8 @@ from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
 from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length
-from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation_on_lines)
+from scilpy.tractograms.tractogram_operations import \
+    perform_tractogram_operation_on_sft
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
@@ -230,10 +230,11 @@ def compute_outliers(sft, new_sft):
     Return a stateful tractogram whose streamlines are the difference of the
     two input stateful tractograms
     """
-    streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_tractogram_operation_on_lines(
-        difference, streamlines_list, precision=0)
-    outliers_sft = sft[indices]
+    outliers_sft, _ = perform_tractogram_operation_on_sft('difference_robust',
+                                                          [sft, new_sft],
+                                                          precision=3,
+                                                          no_metadata=True,
+                                                          fake_metadata=False)
     return outliers_sft
 
 
@@ -291,6 +292,8 @@ def main():
         parser.error('Cortex dilation radius "{}" '.format(
                      args.ctx_dilation_radius) + 'must be greater than 0')
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft.to_vox()
+    sft.to_corner()
 
     img_wmparc = nib.load(args.in_wmparc)
     if not is_header_compatible(img_wmparc, sft):
@@ -324,8 +327,6 @@ def main():
 
     if args.save_rejected:
         initial_sft = deepcopy(sft)
-        initial_sft.to_vox()
-        initial_sft.to_corner()
         rejected_sft_name = os.path.join(args.out_path,
                                          in_sft_name +
                                          "_rejected" + ext)
@@ -521,7 +522,7 @@ def main():
                                              num_processes=nbr_cpu)
         new_sft = filter_tractogram_data(sft, ids_c)
     else:
-        new_sft = sft
+        new_sft = deepcopy(sft)
 
     # Streamline count after filtering loops
     o_dict[in_sft_name + '_' + steps_combined + ext] =\

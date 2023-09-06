@@ -214,7 +214,7 @@ def perform_tractogram_operation_on_sft(op_name, sft_list, precision,
                 if len(indices_per_sft[i]) > 0]
 
     new_sft = concatenate_sft(sft_list, no_metadata, fake_metadata)
-    return new_sft, indices
+    return new_sft, indices_per_sft
 
 
 def perform_tractogram_operation_on_lines(operation, streamlines, precision=None):
