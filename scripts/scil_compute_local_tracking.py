@@ -38,6 +38,7 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
+import os
 from time import perf_counter
 from typing import Iterable
 
@@ -206,6 +207,7 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
 
 def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
+    _, ext = os.path.splitext(args.out_tractogram)
 
     # wrapper for tracker.track() yielding one TractogramItem per
     # streamline for use with LazyTractogram.
@@ -219,17 +221,20 @@ def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
             if args.save_seeds:
                 dps['seeds'] = seed
 
-            # IMPORTANT: Streamlines are dumped in world space (mm) with
-            # origin `corner`.
-            strl += 0.5
-            strl *= voxel_size  # in mm.
+            # TODO: Use nibabel utilities for dealing with spaces
+            if ext == '.trk':
+                # Streamlines are dumped in mm space with
+                # origin `corner`.
+                strl += 0.5
+                strl *= voxel_size  # in mm.
+            else:
+                # True world space with origin center
+                strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
+                    odf_sh_img.affine[:3, 3]
             if args.compress:
                 strl = compress_streamlines(strl, args.compress)
             yield TractogramItem(strl, dps, {})
 
-    # TODO: LazyTractogram.from_data_func seems to expect streamlines in
-    # world coordinates (mm) with origin `corner` although this is not
-    # specified anywhere
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
     tractogram.affine_to_rasmm = odf_sh_img.affine
 
@@ -288,7 +293,7 @@ def main():
     verify_seed_options(parser, args)
 
     tracts_format = detect_format(args.out_tractogram)
-    if tracts_format is not TrkFile:
+    if tracts_format is not TrkFile and args.save_seeds:
         logging.warning("You have selected option --save_seeds but you are "
                         "not saving your tractogram as a .trk file. \n"
                         "   Data_per_point information CANNOT be saved. "
@@ -341,12 +346,8 @@ def main():
 
     if not args.use_gpu:
         # LocalTracking.maxlen is actually the maximum length
-        # per direction, so we need to divide by 2.0 to limit
-        # the streamline to the right length
-        max_steps_per_direction = int(args.max_length / 2.0 / args.step_size)
-        # make streamline slightly longer to filter out streamlines
-        # exceeding max_length
-        max_steps_per_direction += 1
+        # per direction, we need to filter post-tracking.
+        max_steps_per_direction = int(args.max_length / args.step_size)
 
         streamlines_generator = LocalTracking(
             _get_direction_getter(args),
@@ -359,7 +360,9 @@ def main():
             save_seeds=True)
 
     else:  # GPU tracking
-        max_strl_len = int(args.max_length / args.step_size) + 1
+        # we'll make our streamlines twice as long, to agree with
+        # DIPY's implementation
+        max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
         # make streamline slightly longer to filter out streamlines
         # exceeding max_length
         max_strl_len += 1
