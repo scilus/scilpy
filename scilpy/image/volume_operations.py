@@ -10,14 +10,17 @@ from dipy.align.transforms import (AffineTransform3D,
                                    RigidTransform3D)
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
-from dipy.segment.mask import median_otsu
+from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scipy.ndimage import binary_dilation
+
+from scilpy.image.volume_space_management import WorldBoundingBox
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
+from scilpy.utils.util import voxel_to_world, world_to_voxel
 
 
 def count_non_zero_voxels(image):
@@ -55,6 +58,31 @@ def flip_volume(data, axes):
         data = data[:, :, ::-1, ...]
 
     return data
+
+
+def crop_volume(img: nib.Nifti1Image, wbbox: WorldBoundingBox):
+    """Applies cropping from a world space defined bounding box and fixes the
+    affine to keep data aligned.
+    """
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = img.affine
+
+    voxel_bb_mins = world_to_voxel(wbbox.minimums, affine)
+    voxel_bb_maxs = world_to_voxel(wbbox.maximums, affine)
+
+    # Prevent from trying to crop outside data boundaries by clipping bbox
+    extent = list(data.shape[:3])
+    for i in range(3):
+        voxel_bb_mins[i] = max(0, voxel_bb_mins[i])
+        voxel_bb_maxs[i] = min(extent[i], voxel_bb_maxs[i])
+    translation = voxel_to_world(voxel_bb_mins, affine)
+
+    data_crop = np.copy(crop(data, voxel_bb_mins, voxel_bb_maxs))
+
+    new_affine = np.copy(affine)
+    new_affine[0:3, 3] = translation[0:3]
+
+    return nib.Nifti1Image(data_crop, new_affine)
 
 
 def apply_transform(transfo, reference, moving, filename_to_save,
