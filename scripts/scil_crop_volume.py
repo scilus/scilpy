@@ -14,7 +14,7 @@ other types of images that haven't been masked.
 import argparse
 import pickle
 
-from dipy.segment.mask import crop, bounding_box
+from dipy.segment.mask import crop
 import nibabel as nib
 import numpy as np
 
@@ -22,31 +22,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.util import voxel_to_world, world_to_voxel
-
-# TODO move that elsewhere
-
-
-class WorldBoundingBox(object):
-    def __init__(self, minimums, maximums, voxel_size):
-        self.minimums = minimums
-        self.maximums = maximums
-        self.voxel_size = voxel_size
-
-
-def compute_nifti_bounding_box(img):
-    """Finds bounding box from data and transforms it in world space for use
-    on data with different attributes like voxel size."""
-    data = img.get_fdata(dtype=np.float32, caching='unchanged')
-    affine = img.affine
-    voxel_size = img.header.get_zooms()[0:3]
-
-    voxel_bb_mins, voxel_bb_maxs = bounding_box(data)
-
-    world_bb_mins = voxel_to_world(voxel_bb_mins, affine)
-    world_bb_maxs = voxel_to_world(voxel_bb_maxs, affine)
-    wbbox = WorldBoundingBox(world_bb_mins, world_bb_maxs, voxel_size)
-
-    return wbbox
 
 
 def crop_nifti(img, wbbox):

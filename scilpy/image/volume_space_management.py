@@ -4,6 +4,41 @@ import numpy as np
 from dipy.core.interpolation import trilinear_interpolate4d, \
     nearestneighbor_interpolate
 from dipy.io.stateful_tractogram import Origin, Space
+from dipy.segment.mask import bounding_box
+
+
+from scilpy.utils.util import voxel_to_world
+
+
+class WorldBoundingBox(object):
+    """
+    Used in scil_crop_volume.
+    toDo. See if can be merged with class Dataset below
+    """
+    def __init__(self, minimums, maximums, voxel_size):
+        self.minimums = minimums
+        self.maximums = maximums
+        self.voxel_size = voxel_size
+
+
+def compute_nifti_bounding_box(img):
+    """Finds bounding box from data and transforms it in world space for use
+    on data with different attributes like voxel size.
+
+    Used in scil_crop_volume.
+    toDo. See if can be merged with class Dataset below
+    """
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = img.affine
+    voxel_size = img.header.get_zooms()[0:3]
+
+    voxel_bb_mins, voxel_bb_maxs = bounding_box(data)
+
+    world_bb_mins = voxel_to_world(voxel_bb_mins, affine)
+    world_bb_maxs = voxel_to_world(voxel_bb_maxs, affine)
+    wbbox = WorldBoundingBox(world_bb_mins, world_bb_maxs, voxel_size)
+
+    return wbbox
 
 
 class DataVolume(object):

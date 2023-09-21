@@ -33,7 +33,7 @@ class AbstractPropagator(object):
         """
         Parameters
         ----------
-        dataset: scilpy.image.datasets.DataVolume
+        dataset: scilpy.image.volume_space_management.DataVolume
             Trackable Dataset object.
         step_size: float
             The step size for tracking. Important: step size should be in the
@@ -255,7 +255,7 @@ class PropagatorOnSphere(AbstractPropagator):
         """
         Parameters
         ----------
-        dataset: scilpy.image.datasets.DataVolume
+        dataset: scilpy.image.volume_space_management.DataVolume
             Trackable Dataset object.
         step_size: float
             The step size for tracking.
@@ -321,7 +321,7 @@ class ODFPropagator(PropagatorOnSphere):
 
         Parameters
         ----------
-        dataset: scilpy.image.datasets.DataVolume
+        dataset: scilpy.image.volume_space_management.DataVolume
             Trackable Dataset object.
         step_size: float
             The step size for tracking.
