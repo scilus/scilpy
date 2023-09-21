@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import itertools
 import logging
 import os
 import multiprocessing

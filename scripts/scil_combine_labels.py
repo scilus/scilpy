@@ -16,7 +16,6 @@
 
 
 import argparse
-import logging
 
 from dipy.io.utils import is_header_compatible
 import nibabel as nib

@@ -3,7 +3,6 @@
 
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.distances import bundles_distances_mdf
-from dipy.tracking.streamline import length, set_number_of_points
 import numpy as np
 from numpy.random import RandomState
 from scipy.spatial import cKDTree
