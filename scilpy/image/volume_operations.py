@@ -40,6 +40,23 @@ def count_non_zero_voxels(image):
     return nb_voxels
 
 
+def flip_volume(data, axes):
+    """
+    data: np.ndarray
+    axes: a list containing any number of values amongst ['x', 'y', 'z'].
+    """
+    if 'x' in axes:
+        data = data[::-1, ...]
+
+    if 'y' in axes:
+        data = data[:, ::-1, ...]
+
+    if 'z' in axes:
+        data = data[:, :, ::-1, ...]
+
+    return data
+
+
 def apply_transform(transfo, reference, moving, filename_to_save,
                     interp='linear', keep_dtype=False):
     """
