@@ -19,8 +19,28 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 
 
-def transform_anatomy(transfo, reference, moving, filename_to_save,
-                      interp='linear', keep_dtype=False):
+def count_non_zero_voxels(image):
+    """
+    Count number of non-zero voxels
+
+    Parameters:
+    -----------
+    image: string
+        Path to the image
+    """
+    # Count the number of non-zero voxels.
+    if len(image.shape) >= 4:
+        axes_to_sum = np.arange(3, len(image.shape))
+        nb_voxels = np.count_nonzero(np.sum(np.absolute(image),
+                                            axis=tuple(axes_to_sum)))
+    else:
+        nb_voxels = np.count_nonzero(image)
+
+    return nb_voxels
+
+
+def apply_transform(transfo, reference, moving, filename_to_save,
+                    interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
 

@@ -4,28 +4,7 @@ import logging
 
 import nibabel as nib
 import numpy as np
-import six
 from sklearn.cluster import KMeans
-
-
-def count_non_zero_voxels(image):
-    """
-    Count number of non-zero voxels
-
-    Parameters:
-    -----------
-    image: string
-        Path to the image
-    """
-    # Count the number of non-zero voxels.
-    if len(image.shape) >= 4:
-        axes_to_sum = np.arange(3, len(image.shape))
-        nb_voxels = np.count_nonzero(np.sum(np.absolute(image),
-                                            axis=tuple(axes_to_sum)))
-    else:
-        nb_voxels = np.count_nonzero(image)
-
-    return nb_voxels
 
 
 def volume_iterator(img, blocksize=1, start=0, end=0):

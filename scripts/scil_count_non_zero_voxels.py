@@ -16,7 +16,7 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.utils import count_non_zero_voxels
+from scilpy.image.volume_operations import count_non_zero_voxels
 from scilpy.io.utils import assert_inputs_exist
 
 

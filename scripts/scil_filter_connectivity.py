@@ -36,7 +36,7 @@ import logging
 
 import numpy as np
 
-from scilpy.image.operations import invert
+from scilpy.image.volume_math import invert
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
