@@ -13,6 +13,9 @@ this voxel of the 3D volume will be considered as non-zero.
 import argparse
 import os
 
+import nibabel as nib
+import numpy as np
+
 from scilpy.image.utils import count_non_zero_voxels
 from scilpy.io.utils import assert_inputs_exist
 
@@ -48,7 +51,9 @@ def main():
     # out_filename can exist or not
 
     # Load image file
-    nb_voxels = count_non_zero_voxels(args.in_image)
+    im = nib.load(args.in_image).get_fdata(dtype=np.float32)
+
+    nb_voxels = count_non_zero_voxels(im)
 
     if args.out_filename is not None:
         open_mode = 'w'
