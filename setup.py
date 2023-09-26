@@ -67,7 +67,7 @@ opts = dict(name=NAME,
             cmdclass={'build_ext': CustomBuildExtCommand},
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
-            setup_requires=['cython', 'numpy'],
+            setup_requires=['cython', 'numpy', 'packaging'],
             install_requires=external_dependencies,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
