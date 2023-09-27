@@ -26,7 +26,8 @@ from typing import Iterable
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
-                            ProbabilisticDirectionGetter)
+                            ProbabilisticDirectionGetter,
+                            PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import (get_reference_info,
                            create_tractogram_header)
@@ -63,13 +64,13 @@ def _build_arg_parser():
 
     track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
-                         choices=['det', 'prob', 'eudx'],
+                         choices=['det', 'prob', 'ptt', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
     add_sphere_arg(track_g, symmetric_only=True)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
-                         help='Subdivides each face of the sphere into 4^s new faces. '
-                              '[%(default)s]')
+                         help='Subdivides each face of the sphere into 4^s new'
+                              ' faces. [%(default)s]')
     add_seeding_options(p)
     out_g = add_out_options(p)
 
@@ -84,17 +85,20 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere)).subdivide(args.sub_sphere)
+    sphere = HemiSphere.from_sphere(
+        get_sphere(args.sphere)).subdivide(args.sub_sphere)
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
     non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
 
-    if args.algo in ['det', 'prob']:
+    if args.algo in ['det', 'prob', 'ptt']:
         if non_first_val_count / non_zeros_count > 0.5:
             logging.warning('Input detected as peaks. Input should be'
                             'fodf for det/prob, verify input just in case.')
-        if args.algo == 'det':
+        if args.algo == 'ptt':
+            dg_class = PTTDirectionGetter
+        elif args.algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
             dg_class = ProbabilisticDirectionGetter
