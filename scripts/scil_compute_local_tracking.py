@@ -215,7 +215,8 @@ def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
         for strl, seed in tqdm_if_verbose(streamlines_generator,
                                           verbose=args.verbose,
                                           total=total_nb_seeds,
-                                          miniters=int(total_nb_seeds / 100)):
+                                          miniters=int(total_nb_seeds / 100),
+                                          leave=False):
             # seeds are returned with origin `center`
             dps = {}
             if args.save_seeds:
@@ -307,8 +308,7 @@ def main():
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
     # will not yield correct results.
-    # NOTE: Tracking is performed in voxel space
-    # in both the GPU and CPU cases.
+    # NOTE: Tracking is performed in voxel space in both the GPU and CPU cases.
     odf_sh_img = nib.load(args.in_odf)
     if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
@@ -360,12 +360,9 @@ def main():
             save_seeds=True)
 
     else:  # GPU tracking
-        # we'll make our streamlines twice as long, to agree with
-        # DIPY's implementation
+        # we'll make our streamlines twice as long,
+        # to agree with DIPY's implementation
         max_strl_len = int(2.0 * args.max_length / args.step_size) + 1
-        # make streamline slightly longer to filter out streamlines
-        # exceeding max_length
-        max_strl_len += 1
 
         # data volume
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
