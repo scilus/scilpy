@@ -209,15 +209,15 @@ def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
     _, ext = os.path.splitext(args.out_tractogram)
 
-    # wrapper for tracker.track() yielding one TractogramItem per
-    # streamline for use with LazyTractogram.
+    # NOTE: Tracking is returned in voxel space, origin `center`.
     def tracks_generator_wrapper():
         for strl, seed in tqdm_if_verbose(streamlines_generator,
                                           verbose=args.verbose,
                                           total=total_nb_seeds,
                                           miniters=int(total_nb_seeds / 100),
                                           leave=False):
-            # seeds are returned with origin `center`
+            # Seeds are saved with origin `center` from our own convention. Our
+            # other scripts such as scil_compute_seed_density_map expect so.
             dps = {}
             if args.save_seeds:
                 dps['seeds'] = seed
@@ -225,11 +225,14 @@ def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
             # TODO: Use nibabel utilities for dealing with spaces
             if ext == '.trk':
                 # Streamlines are dumped in mm space with
-                # origin `corner`.
+                # origin `corner`. This is what is expected by LazyTractogram
+                # for .trk files (although this is not specified anywhere
+                # in the doc)
                 strl += 0.5
                 strl *= voxel_size  # in mm.
             else:
-                # True world space with origin center
+                # Streamlines are dumped in true world space with origin center
+                # as expected by .tck files.
                 strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
                     odf_sh_img.affine[:3, 3]
             if args.compress:
