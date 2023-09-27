@@ -25,8 +25,6 @@ def local_asym_filtering(in_sh, sh_order=8, sh_basis='descoteaux07',
         SH basis of the input signal.
     in_full_basis: bool, optional
         True if the input is in full SH basis.
-    out_full_basis: bool, optional
-        If True, save output SH using full SH basis.
     dot_sharpness: float, optional
         Exponent of the dot product. When set to 0.0, directions
         are not weighted by the dot product.
