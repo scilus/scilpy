@@ -32,6 +32,21 @@ def test_execution_tracking_fodf(script_runner):
     assert ret.success
 
 
+def test_execution_tracking_ptt(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_fodf = os.path.join(get_home(), 'tracking',
+                           'fodf.nii.gz')
+    in_mask = os.path.join(get_home(), 'tracking',
+                           'seeding_mask.nii.gz')
+
+    ret = script_runner.run('scil_compute_local_tracking.py', in_fodf,
+                            in_mask, in_mask, 'local_ptt.trk', '--nt', '1000',
+                            '--compress', '0.1', '--sh_basis', 'descoteaux07',
+                            '--min_length', '20', '--max_length', '200',
+                            '--algo', 'ptt')
+    assert ret.success
+
+
 def test_execution_sphere_subdivide(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(get_home(), 'tracking',
@@ -42,7 +57,7 @@ def test_execution_sphere_subdivide(script_runner):
     ret = script_runner.run('scil_compute_local_tracking.py', in_fodf,
                             in_mask, in_mask, 'local_sphere.trk', '--nt', '1000',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
-                            '--min_length', '20', '--max_length', '200', 
+                            '--min_length', '20', '--max_length', '200',
                             '--sub_sphere', '2')
     assert ret.success
 
