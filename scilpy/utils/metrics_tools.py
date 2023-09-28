@@ -234,9 +234,6 @@ def get_bundle_metrics_mean_std_per_point(streamlines, bundle_name,
     density_weighting: bool
         If true, weight statistics by the number of streamlines passing through
         each voxel. [False]
-    distance_weighting: bool
-        If true, weight statistics by the inverse of the distance between a
-        streamline and the centroid.
 
     Returns
     -------
@@ -314,9 +311,9 @@ def plot_metrics_stats(means, stds, title=None, xlabel=None,
 
     Parameters
     ----------
-    mean: Numpy 1D (or 2D) array of size n
+    means: Numpy 1D (or 2D) array of size n
         Mean of the metric along n points.
-    std: Numpy 1D (or 2D) array of size n
+    stds: Numpy 1D (or 2D) array of size n
         Standard deviation of the metric along n points.
     title: string
         Title of the figure.

@@ -255,12 +255,18 @@ def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
                     fast_approx=False):
     """
     Wrapper to classify inliers and outliers from a list of streamlines.
+
     Parameters
     ----------
     streamlines: list of ndarray
         The list of streamlines from which inliers and outliers are separated.
     threshold: float
         Quickbundles distance threshold for the last threshold.
+    nb_points: int
+    nb_samplings: int
+    fast_approx: bool
+
+    Returns
     -------
     A tuple containing
         list: streamlines considered inliers

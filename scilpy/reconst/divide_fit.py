@@ -32,25 +32,25 @@ def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
 
     Parameters
     ----------
-    signal : np.array
+    signal : np.ndarray
         Diffusion data of a single voxel.
     gtab_infos : np.ndarray
         Contains information about the gtab, such as the unique bvals, the
         encoding types, the number of directions and the acquisition index.
         Obtained as output of the function
         `reconst.b_tensor_utils.generate_btensor_input`.
-    lb : list of floats
+    lb : np.ndarray of floats
         Lower boundaries of the fitting parameters.
-    ub : list of floats
+    ub : np.ndarray of floats
         Upper boundaries of the fitting parameters.
-    weight : np.array
+    weight : np.ndarray
         Gives a different weight to each element of `signal`.
     n_iter : int
         Number of random sets of parameters tested.
 
     Returns
     -------
-    guess : np.array
+    guess : np.ndarray
         Array containing the guessed initial parameters.
     """
     guess = []
