@@ -42,3 +42,4 @@ h5py>=2.8.0
 packaging>=19.0
 tqdm>=4.30.0
 -e git+https://github.com/scilus/hot_dipy@1.6.1rc1#egg=dipy
+# Dummy comment, I need a commit to trigger tests
