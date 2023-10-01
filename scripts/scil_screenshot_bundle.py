@@ -11,8 +11,13 @@ If the bundle is already in MNI152 space, do not use --target_template.
 
 Axial, coronal and sagittal slices are captured.
 Sagittal can be capture from the left (default) or the right.
+
+For the --roi argument: If 1 value is provided, the ROI will be white,
+if 4 values are provided, the ROI will be colored with the RGB values
+provided, if 5 values are provided, it is RGBA (values from 0-255).
 """
 
+from dipy.align.imaffine import AffineMap
 import argparse
 import logging
 import os
@@ -59,7 +64,8 @@ def _build_arg_parser():
                            metavar='COLORBAR',
                            help='Color streamlines with reference coloring '
                                 '(0-255).')
-
+    p.add_argument('--roi', nargs='+', action='append',
+                   help='Path to a ROI file (.nii or nii.gz).')
     p.add_argument('--right', action='store_true',
                    help='Take screenshot from the right instead of the left \n'
                         'for the sagittal plane.')
@@ -78,7 +84,7 @@ def _build_arg_parser():
 
 
 def prepare_data_for_actors(bundle_filename, reference_filename,
-                            target_template_filename):
+                            target_template_filename, rois=None):
     sft = load_tractogram(bundle_filename, reference_filename)
     streamlines = sft.streamlines
 
@@ -105,17 +111,29 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
         new_sft = StatefulTractogram(streamlines, target_template_filename,
                                      Space.RASMM)
+        affine_map = AffineMap(transformation,
+                               target_template_data.shape, target_template_affine,
+                               reference_data.shape, reference_affine)
+        for i, roi in enumerate(rois):
+            roi_data = nib.load(roi[0]).get_fdata()
+            resampled = affine_map.transform(roi_data.astype(np.float64),
+                                             interpolation='NearestNeighbor')
+            rois[i][0] = resampled
 
-        return new_sft, transformed_reference
+        return new_sft, transformed_reference, rois
 
-    return sft, reference_data
+    for i, roi in enumerate(rois):
+        roi_data = nib.load(roi[0]).get_fdata()
+        rois[i][0] = roi_data
+
+    return sft, reference_data, rois
 
 
 def plot_glass_brain(args, sft, img, output_filenames):
     sft.to_vox()
     sft.to_corner()
     _, dimensions, _, _ = sft.space_attributes
-    data = compute_tract_counts_map(sft.streamlines, dimensions)
+    data = compute_tract_counts_map(sft.streamlines, dimensions).astype(float)
     data[data > 100] = 100
     img = nib.Nifti1Image(data, img.affine)
 
@@ -165,6 +183,22 @@ def main():
     assert_outputs_exist(parser, args,
                          output_filenames_3d+output_filenames_glass)
 
+    roi_list_uniform = []
+    for roi in args.roi:
+        if len(roi) not in [1, 4, 5]:
+            parser.error('--roi must be used either with PATH or with '
+                         'PATH R G B  or PATH R G B A')
+        if len(roi) == 1:
+            roi_list_uniform.append([roi[0], 1.0, 1.0, 1.0, 1.0])
+        elif len(roi) == 4:
+            roi_list_uniform.append([roi[0], float(roi[1]) / 255,
+                                     float(roi[2]) / 255,
+                                     float(roi[3]) / 255, 1.0])
+        else:
+            for i in range(4):
+                roi[i+1] = float(roi[i+1]) / 255
+            roi_list_uniform.append(roi)
+
     if args.out_dir and not os.path.isdir(args.out_dir):
         os.mkdir(args.out_dir)
 
@@ -190,16 +224,21 @@ def main():
     slices_choice = (x_slice, y_slice, z_slice)
 
     subject_data = prepare_data_for_actors(args.in_bundle, args.in_anat,
-                                           args.target_template)
+                                           args.target_template,
+                                           roi_list_uniform)
 
     # Create actors from each dataset for Dipy
-    sft, reference_data = subject_data
+    sft, reference_data, rois = subject_data
     streamlines = sft.streamlines
 
     volume_actor = actor.slicer(reference_data,
                                 affine=affine,
                                 opacity=args.anat_opacity,
                                 interpolation='nearest')
+    roi_actors = []
+    for roi in rois:
+        roi_actors.append(actor.contour_from_roi(roi[0], affine, roi[1:4],
+                                                 roi[4]))
     if args.local_coloring:
         colors = []
         for i in streamlines:
@@ -236,17 +275,20 @@ def main():
                    output_filenames_3d[0], 'sagittal',
                    view_position=tuple([x for x in side_pos]),
                    focal_point=tuple([x for x in (0, -10, 10)]),
-                   streamlines_actor=streamlines_actor)
+                   streamlines_actor=streamlines_actor,
+                   roi_actors=roi_actors)
     display_slices(volume_actor, slices_choice,
                    output_filenames_3d[1], 'coronal',
                    view_position=tuple([x for x in (0, -300, 15)]),
                    focal_point=tuple([x for x in (0, 0, 15)]),
-                   streamlines_actor=streamlines_actor)
+                   streamlines_actor=streamlines_actor,
+                   roi_actors=roi_actors)
     display_slices(volume_actor, slices_choice,
                    output_filenames_3d[2], 'axial',
                    view_position=tuple([x for x in (0, -15, 350)]),
                    focal_point=tuple([x for x in (0, -15, 0)]),
-                   streamlines_actor=streamlines_actor)
+                   streamlines_actor=streamlines_actor,
+                   roi_actors=roi_actors)
 
     plot_glass_brain(args, sft, mni_space_img, output_filenames_glass)
 
