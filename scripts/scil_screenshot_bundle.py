@@ -105,6 +105,19 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
         new_sft = StatefulTractogram(streamlines, target_template_filename,
                                      Space.RASMM)
+<<<<<<< Updated upstream
+=======
+        affine_map = AffineMap(transformation,
+                               target_template_data.shape, target_template_affine,
+                               reference_data.shape, reference_affine)
+        for i, roi in enumerate(rois):
+            roi_data = nib.load(roi[0]).get_fdata()
+            resampled = affine_map.transform(roi_data.astype(np.float64),
+                                             interpolation='nearest')
+            rois[i][0] = resampled
+
+        return new_sft, transformed_reference, rois
+>>>>>>> Stashed changes
 
         return new_sft, transformed_reference
 
