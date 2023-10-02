@@ -578,44 +578,47 @@ def is_header_compatible_multiple_files(parser, list_files,
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
 
+    Arguments
+    ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-
-    list_files: List
+    list_files: List[str]
         List of files to test
-
     verbose_all_compatible: bool
         If true will print a message when everything is okay
+    reference: str
+        Reference for any .tck passed in `list_files`
     """
     all_valid = True
 
+    # Gather "headers" for all files to compare against
+    # eachother later
+    headers = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
-        if in_extension not in ['.tck', '.trk', '.nii', '.nii.gz']:
-            parser.error('{} does not have a supported extension'.format(
+        if in_extension in ['.trk', '.nii', '.nii.gz']:
+            headers.append(filepath)
+        elif in_extension == '.tck':
+            if reference:
+                headers.append(reference)
+            else:
+                parser.error(
+                    '{} must be provided with a reference.'.format(
+                        filepath))
+        else:
+            parser.error('{} does not have a supported extension.'.format(
                 filepath))
 
-    for curr in list_files[1:]:
-        compatible = True
-        if in_extension == '.tck':
-            # TCKs do not have a header, so compare with the reference's
-            # header.
-            _, curr_extension = split_name_with_nii(curr)
-            # If comparing two TCKs, the same reference will be used by
-            # both so they will be compatible.
-            if curr_extension != '.tck':
-                compatible = is_header_compatible(reference, curr)
-        else:
-            compatible = is_header_compatible(list_files[0], curr)
-        if not compatible:
-            print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
-                list_files[0], curr))
+    for curr in headers[1:]:
+        if not is_header_compatible(headers[0], curr):
+            print('ERROR:\"{}\" and \"{}\" do not have compatible '
+                  'headers.'.format(headers[0], curr))
             all_valid = False
 
     if all_valid and verbose_all_compatible:
         print('All input files have compatible headers.')
     elif not all_valid:
-        parser.error('All input files have not compatible header.')
+        parser.error('Not all input files have compatible headers.')
 
 
 def read_info_from_mb_bdo(filename):
