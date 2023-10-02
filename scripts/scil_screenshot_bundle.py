@@ -117,7 +117,7 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
         for i, roi in enumerate(rois):
             roi_data = nib.load(roi[0]).get_fdata()
             resampled = affine_map.transform(roi_data.astype(np.float64),
-                                             interpolation='NearestNeighbor')
+                                             interpolation='nearest')
             rois[i][0] = resampled
 
         return new_sft, transformed_reference, rois
