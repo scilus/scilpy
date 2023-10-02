@@ -30,7 +30,6 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist,
                              assert_inputs_exist)
-from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.utils.streamlines import (uniformize_bundle_sft,
                                       uniformize_bundle_sft_using_mask)
 

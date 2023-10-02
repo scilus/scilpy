@@ -13,7 +13,6 @@ import json
 import os
 
 import nibabel as nib
-import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import assert_same_resolution

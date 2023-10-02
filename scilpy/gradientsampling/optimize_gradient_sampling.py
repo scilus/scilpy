@@ -398,13 +398,11 @@ def add_bvalue_b0(bvals, b0_value=0.0):
         bvals of the non-b0 shells.
     b0_value: float
         bvals of the b0s
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
     bvals: list
         bvals of the shells and b0s.
     """
-
     bvals.append(b0_value)
     return bvals

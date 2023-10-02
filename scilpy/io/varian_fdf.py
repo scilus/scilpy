@@ -86,7 +86,7 @@ def read_file(file_path):
 
     Parameters
     ----------
-    path: Path to the fdf file
+    file_path: Path to the fdf file
 
     Return
     ------
@@ -297,12 +297,16 @@ def save_babel(dwi_data, dwi_header, b0_data, b0_header,
 
     Parameters
     ----------
-    out_path: Path of the nifti file to be saved
-    data: Raw data to be saved
-    raw_header: Raw header from fdf files
+    dwi_data: Raw data to be saved
+    dwi_header: Raw header from fdf files
+    b0_data: Raw b0
+    b0_header: Raw header for b0
     bval_path: Path to the bval file to be saved
     bvec_path: Path to the bvec file to be saved
+    out_path: Path of the nifti file to be saved
     affine: Affine transformation to save with the data
+    flip:
+    swap:
 
     Return
     ------
@@ -352,9 +356,12 @@ def write_gradient_information(dwi_header, b0_header,
 
     Parameters
     ----------
-    header: The header with gradient info.
+    dwi_header: The header with gradient info.
+    b0_header: The header of b0
     bval_path: Path to the bval file to be saved.
     bvec_path: Path to the bvec path to be saved.
+    flip:
+    swap:
 
     Return
     ------
