@@ -96,8 +96,11 @@ def _get_direction_getter(args):
         if non_first_val_count / non_zeros_count > 0.5:
             logging.warning('Input detected as peaks. Input should be'
                             'fodf for det/prob, verify input just in case.')
+
+        kwargs = {}
         if args.algo == 'ptt':
             dg_class = PTTDirectionGetter
+            kwargs = {'probe_length': args.step_size}
         elif args.algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
@@ -105,7 +108,7 @@ def _get_direction_getter(args):
         return dg_class.from_shcoeff(
             shcoeff=odf_data, max_angle=theta, sphere=sphere,
             basis_type=args.sh_basis,
-            relative_peak_threshold=args.sf_threshold)
+            relative_peak_threshold=args.sf_threshold, **kwargs)
     elif args.algo == 'eudx':
         # Code for type EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
