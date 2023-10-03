@@ -621,7 +621,7 @@ class GPUTacker():
 
             # Run the kernel
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
-            n_points = n_points.squeeze().astype(np.int16)
+            n_points = n_points.reshape((-1,)).astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
                 strl = strl[:n_pts]
 

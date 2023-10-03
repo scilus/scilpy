@@ -384,11 +384,13 @@ def main():
     # filter streamlines by length on-the-fly
     def filtered_strl_generator():
         voxel_size = odf_sh_img.header.get_zooms()[0]
-        # this is the true max length, for filtering
-        # streamlines exceeding the max_length instead
-        # of cutting them
+        # this is the true max length, for filtering streamlines exceeding
+        # the max_length instead of cutting them
         scaled_min_length = args.min_length / voxel_size
         scaled_max_length = args.max_length / voxel_size
+
+        # NOTE: Yield fake first streamline to initialize LazyTractogram.
+        yield np.zeros((1, 3)), np.zeros((1, 3))
         for strl, seed in streamlines_generator:
             # filter by length
             if scaled_min_length <= length(strl) <= scaled_max_length:
