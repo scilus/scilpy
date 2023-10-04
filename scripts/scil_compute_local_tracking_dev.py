@@ -120,6 +120,11 @@ def _build_arg_parser():
              "direction \n(based on the propagator's definition of invalid; "
              "ex when \nangle is too sharp of sh_threshold not reached) are "
              "never added.")
+    track_g.add_argument(
+        "--do_not_randomize_seed_positions", action="store_true",
+        help="By default, seed position is moved randomly inside the voxel. "
+             "Use this option to have all seeds centered at the middle of the "
+             "voxel.")
 
     add_seeding_options(p)
 
@@ -194,8 +199,10 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_img.header.get_zooms()[:3]
+    randomize_positions = not args.do_not_randomize_seed_positions
     seed_generator = SeedGenerator(seed_data, seed_res,
-                                   space=our_space, origin=our_origin)
+                                   space=our_space, origin=our_origin,
+                                   randomize_positions=randomize_positions)
     if args.npv:
         # toDo. This will not really produce n seeds per voxel, only true
         #  in average.

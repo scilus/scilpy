@@ -6,7 +6,7 @@ import numpy as np
 from dipy.io.stateful_tractogram import Space, Origin
 
 
-class SeedGenerator(object):
+class SeedGenerator:
     """
     Class to get seeding positions.
 
@@ -19,7 +19,8 @@ class SeedGenerator(object):
     in the range x = [0, 3], y = [3, 6], z = [6, 9].
     """
     def __init__(self, data, voxres,
-                 space=Space('vox'), origin=Origin('center')):
+                 space=Space('vox'), origin=Origin('center'),
+                 randomize_positions=True):
         """
         Parameters
         ----------
@@ -28,8 +29,12 @@ class SeedGenerator(object):
             to find all voxels with values > 0, but will not be kept in memory.
         voxres: np.array(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
+        randomize_positions: bool
+            By default, seed position is moved randomly inside the voxel. Set to
+            False to have all seeds centered at the middle of the voxel.
         """
         self.voxres = voxres
+        self.randomize_positions = randomize_positions
 
         self.origin = origin
         self.space = space
@@ -71,16 +76,17 @@ class SeedGenerator(object):
         ind = which_seed % len_seeds
         x, y, z = self.seeds_vox[indices[ind]]
 
-        # Subvoxel initial positioning. Right now x, y, z are in vox space,
-        # origin=corner, so between 0 and 1.
-        r_x = random_generator.uniform(0, 1)
-        r_y = random_generator.uniform(0, 1)
-        r_z = random_generator.uniform(0, 1)
+        if self.randomize_positions:
+            # Subvoxel initial positioning. Right now x, y, z are in vox space,
+            # origin=corner, so between 0 and 1.
+            r_x = random_generator.uniform(0, 1)
+            r_y = random_generator.uniform(0, 1)
+            r_z = random_generator.uniform(0, 1)
 
-        # Moving inside the voxel
-        x += r_x
-        y += r_y
-        z += r_z
+            # Moving inside the voxel
+            x += r_x
+            y += r_y
+            z += r_z
 
         if self.origin == Origin('center'):
             # Bound [0, 0, 0] is now [-0.5, -0.5, -0.5]
