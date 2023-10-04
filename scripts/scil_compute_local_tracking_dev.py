@@ -113,13 +113,15 @@ def _build_arg_parser():
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
     track_g.add_argument(
-        '--discard_last_out_point', action='store_true',
-        help="If set, discard the last point (once out of the tracking mask) "
-             "of \nthe streamline. Default: append them. This is the default "
+        '--keep_last_out_point', action='store_true',
+        help="If set, keep the last point (once out of the tracking mask) "
+             "of \nthe streamline. Default: discard them. This is the default "
              " in \nDipy too. Note that points obtained after an invalid "
              "direction \n(based on the propagator's definition of invalid; "
              "ex when \nangle is too sharp of sh_threshold not reached) are "
-             "never added.")
+             "never added.\n"
+             "REMARK: Our results (our endpoints) seem to differ from dipy's. "
+             "This should be investigated.")
     track_g.add_argument(
         "--do_not_randomize_seed_positions", action="store_true",
         help="By default, seed position is moved randomly inside the voxel. "
@@ -243,7 +245,6 @@ def main():
         space=our_space, origin=our_origin)
 
     logging.debug("Instantiating tracker.")
-    append_last_point = not args.discard_last_out_point
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=args.compress,
@@ -251,7 +252,8 @@ def main():
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip, append_last_point=append_last_point,
+                      skip=args.skip,
+                      append_last_point=args.keep_last_out_point,
                       verbose=args.verbose)
 
     start = time.time()
