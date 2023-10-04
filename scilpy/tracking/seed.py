@@ -24,10 +24,10 @@ class SeedGenerator:
         """
         Parameters
         ----------
-        data: np.array
+        data: np.ndarray
             The data, ex, loaded from nibabel img.get_fdata(). It will be used
             to find all voxels with values > 0, but will not be kept in memory.
-        voxres: np.array(3,)
+        voxres: np.ndarray(3,)
             The pixel resolution, ex, using img.header.get_zooms()[:3].
         randomize_positions: bool
             By default, seed position is moved randomly inside the voxel. Set to
@@ -79,9 +79,7 @@ class SeedGenerator:
         if self.randomize_positions:
             # Subvoxel initial positioning. Right now x, y, z are in vox space,
             # origin=corner, so between 0 and 1.
-            r_x = random_generator.uniform(0, 1)
-            r_y = random_generator.uniform(0, 1)
-            r_z = random_generator.uniform(0, 1)
+            r_x, r_y, r_z = random_generator.uniform(0, 1, size=3)
 
             # Moving inside the voxel
             x += r_x
