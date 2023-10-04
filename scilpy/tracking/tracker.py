@@ -207,7 +207,7 @@ class Tracker(object):
 
         # Saving data. We will reload it in each process.
         data_file_name = os.path.join(tmpdir, 'data.npy')
-        np.save(data_file_name, self.propagator.dataset.data)
+        np.save(data_file_name, self.propagator.datavolume.data)
 
         # Clear data from memory
         self.propagator.reset_data(new_data=None)

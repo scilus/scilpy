@@ -29,11 +29,11 @@ class AbstractPropagator(object):
     Propagation depends on the type of data (ex, DTI, fODF) and the way to get
     a direction from it (ex, det, prob).
     """
-    def __init__(self, dataset, step_size, rk_order,  space, origin):
+    def __init__(self, datavolume, step_size, rk_order, space, origin):
         """
         Parameters
         ----------
-        dataset: scilpy.image.volume_space_management.DataVolume
+        datavolume: scilpy.image.volume_space_management.DataVolume
             Trackable Dataset object.
         step_size: float
             The step size for tracking. Important: step size should be in the
@@ -52,7 +52,7 @@ class AbstractPropagator(object):
         Tracker will verify that the propagator has the same internal values as
         itself.
         """
-        self.dataset = dataset
+        self.datavolume = datavolume
 
         self.origin = origin
         self.space = space
@@ -76,10 +76,10 @@ class AbstractPropagator(object):
         Params
         ------
         new_data: Any
-            Will replace self.dataset.data.
+            Will replace self.datavolume.data.
 
         """
-        self.dataset.data = new_data
+        self.datavolume.data = new_data
 
     def prepare_forward(self, seeding_pos):
         """
@@ -250,13 +250,13 @@ class AbstractPropagator(object):
 
 
 class PropagatorOnSphere(AbstractPropagator):
-    def __init__(self, dataset, step_size, rk_order, dipy_sphere,
+    def __init__(self, datavolume, step_size, rk_order, dipy_sphere,
                  space, origin):
         """
         Parameters
         ----------
-        dataset: scilpy.image.volume_space_management.DataVolume
-            Trackable Dataset object.
+        datavolume: scilpy.image.volume_space_management.DataVolume
+            Trackable DataVolume object.
         step_size: float
             The step size for tracking.
         rk_order: int
@@ -269,7 +269,7 @@ class PropagatorOnSphere(AbstractPropagator):
         origin: dipy Origin
             Origin of the streamlines during tracking.
         """
-        super().__init__(dataset, step_size, rk_order, space, origin)
+        super().__init__(datavolume, step_size, rk_order, space, origin)
 
         self.sphere = dipy.data.get_sphere(dipy_sphere)
         self.dirs = np.zeros(len(self.sphere.vertices), dtype=np.ndarray)
@@ -312,7 +312,7 @@ class ODFPropagator(PropagatorOnSphere):
     """
     Propagator on ODFs/fODFs. Algo can be det or prob.
     """
-    def __init__(self, dataset, step_size,
+    def __init__(self, datavolume, step_size,
                  rk_order, algo, basis, sf_threshold, sf_threshold_init,
                  theta, dipy_sphere='symmetric724',
                  min_separation_angle=np.pi / 16.,
@@ -321,8 +321,8 @@ class ODFPropagator(PropagatorOnSphere):
 
         Parameters
         ----------
-        dataset: scilpy.image.volume_space_management.DataVolume
-            Trackable Dataset object.
+        datavolume: scilpy.image.volume_space_management.DataVolume
+            Trackable DataVolume object.
         step_size: float
             The step size for tracking.
         rk_order: int
@@ -360,7 +360,7 @@ class ODFPropagator(PropagatorOnSphere):
             dipy. Interpolation of the ODF is done in center origin so this
             choice implies the less data modification.
         """
-        super().__init__(dataset, step_size, rk_order, dipy_sphere,
+        super().__init__(datavolume, step_size, rk_order, dipy_sphere,
                          space, origin)
 
         if self.space == Space.RASMM:
@@ -389,7 +389,7 @@ class ODFPropagator(PropagatorOnSphere):
         self.sf_threshold = sf_threshold
         self.sf_threshold_init = sf_threshold_init
         sh_order, full_basis =\
-            get_sh_order_and_fullness(self.dataset.data.shape[-1])
+            get_sh_order_and_fullness(self.datavolume.data.shape[-1])
         self.basis = basis
         self.B = sh_to_sf_matrix(self.sphere, sh_order, self.basis,
                                  smooth=0.006, return_inv=False,
@@ -412,7 +412,7 @@ class ODFPropagator(PropagatorOnSphere):
             its maximum amplitude.
         """
         # Interpolation:
-        sh = self.dataset.get_value_at_coordinate(
+        sh = self.datavolume.get_value_at_coordinate(
             *pos, space=self.space, origin=self.origin)
         sf = np.dot(self.B.T, sh).reshape((-1, 1))
 
