@@ -22,7 +22,7 @@ nibabel==4.0.*
 nilearn==0.9.*
 numpy==1.23.*
 openpyxl==3.0.*
-Pillow==9.3.*
+Pillow==10.0.*
 pybids==0.15.*
 pyparsing==3.0.*
 PySocks==1.7.*
