@@ -22,7 +22,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_files', nargs='+',
-                   help='List of file to compare (trk and nii).')
+                   help='List of file to compare (trk, tck and nii/nii.gz).')
     add_reference_arg(p)
     return p
 
