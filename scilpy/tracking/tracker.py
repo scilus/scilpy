@@ -335,11 +335,15 @@ class Tracker(object):
             # like to have exactly the same seed more than once, this will lead
             # to exactly the same line, even in probabilistic tracking.
             # Changing to seed position + seed number.
+            # Then in the case of multiprocessing, adding also a fraction based
+            # on current process ID.
             # toDo See numpy's doc: np.random.seed:
             #  This is a convenience, legacy function.
             #  The best practice is to not reseed a BitGenerator, rather to
             #  recreate a new one. This method is here for legacy reasons.
-            np.random.seed(np.uint32(hash((seed + (s, s, s), self.rng_seed))))
+            eps = s + chunk_id / (self.nbr_processes + 1)
+            np.random.seed(np.uint32(hash((seed + (eps, eps, eps),
+                                           self.rng_seed))))
 
             # Forward and backward tracking
             line = self._get_line_both_directions(seed)
