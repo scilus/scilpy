@@ -38,7 +38,6 @@ All the input nifti files must be in isotropic resolution.
 
 import argparse
 import logging
-import os
 from time import perf_counter
 from typing import Iterable
 
@@ -205,39 +204,48 @@ def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
     return generator
 
 
-def _save_tractogram(streamlines_generator, odf_sh_img, total_nb_seeds, args):
+def _save_tractogram(streamlines_generator, tracts_format, odf_sh_img,
+                     total_nb_seeds, args):
     voxel_size = odf_sh_img.header.get_zooms()[0]
-    _, ext = os.path.splitext(args.out_tractogram)
 
-    # NOTE: Tracking is returned in voxel space, origin `center`.
+    scaled_min_length = args.min_length / voxel_size
+    scaled_max_length = args.max_length / voxel_size
+
+    # Tracking is expected to be returned in voxel space, origin `center`.
     def tracks_generator_wrapper():
         for strl, seed in tqdm_if_verbose(streamlines_generator,
                                           verbose=args.verbose,
                                           total=total_nb_seeds,
                                           miniters=int(total_nb_seeds / 100),
                                           leave=False):
-            # Seeds are saved with origin `center` from our own convention. Our
-            # other scripts such as scil_compute_seed_density_map expect so.
-            dps = {}
-            if args.save_seeds:
-                dps['seeds'] = seed
+            if (scaled_min_length <= length(strl) <= scaled_max_length):
+                # Seeds are saved with origin `center` by our own convention.
+                # Other scripts (e.g. scil_compute_seed_density_map) expect so.
+                dps = {}
+                if args.save_seeds:
+                    dps['seeds'] = seed
 
-            # TODO: Use nibabel utilities for dealing with spaces
-            if ext == '.trk':
-                # Streamlines are dumped in mm space with
-                # origin `corner`. This is what is expected by LazyTractogram
-                # for .trk files (although this is not specified anywhere
-                # in the doc)
-                strl += 0.5
-                strl *= voxel_size  # in mm.
-            else:
-                # Streamlines are dumped in true world space with origin center
-                # as expected by .tck files.
-                strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
-                    odf_sh_img.affine[:3, 3]
-            if args.compress:
-                strl = compress_streamlines(strl, args.compress)
-            yield TractogramItem(strl, dps, {})
+                if args.compress:
+                    # compression threshold is given in mm, but we
+                    # are in voxel space
+                    strl = compress_streamlines(
+                        strl, args.compress / voxel_size)
+
+                # TODO: Use nibabel utilities for dealing with spaces
+                if tracts_format is TrkFile:
+                    # Streamlines are dumped in mm space with
+                    # origin `corner`. This is what is expected by
+                    # LazyTractogram for .trk files (although this is not
+                    # specified anywhere in the doc)
+                    strl += 0.5
+                    strl *= voxel_size  # in mm.
+                else:
+                    # Streamlines are dumped in true world space with
+                    # origin center as expected by .tck files.
+                    strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
+                        odf_sh_img.affine[:3, 3]
+
+                yield TractogramItem(strl, dps, {})
 
     tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
     tractogram.affine_to_rasmm = odf_sh_img.affine
@@ -256,7 +264,6 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    # TODO: Disable logging from pyopencl library.
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -310,8 +317,8 @@ def main():
 
     # Make sure the data is isotropic. Else, the strategy used
     # when providing information to dipy (i.e. working as if in voxel space)
-    # will not yield correct results.
-    # NOTE: Tracking is performed in voxel space in both the GPU and CPU cases.
+    # will not yield correct results. Tracking is performed in voxel space
+    # in both the GPU and CPU cases.
     odf_sh_img = nib.load(args.in_odf)
     if not np.allclose(np.mean(odf_sh_img.header.get_zooms()[:3]),
                        odf_sh_img.header.get_zooms()[0], atol=1e-03):
@@ -379,25 +386,10 @@ def main():
             sh_basis=args.sh_basis,
             batch_size=batch_size,
             forward_only=forward_only,
-            rng_seed=args.seed).track()
+            rng_seed=args.seed)
 
-    # filter streamlines by length on-the-fly
-    def filtered_strl_generator():
-        voxel_size = odf_sh_img.header.get_zooms()[0]
-        # this is the true max length, for filtering streamlines exceeding
-        # the max_length instead of cutting them
-        scaled_min_length = args.min_length / voxel_size
-        scaled_max_length = args.max_length / voxel_size
-
-        # NOTE: Yield fake first streamline to initialize LazyTractogram.
-        yield np.zeros((1, 3)), np.zeros((1, 3))
-        for strl, seed in streamlines_generator:
-            # filter by length
-            if scaled_min_length <= length(strl) <= scaled_max_length:
-                yield strl, seed
-
-    # use the filtered streamline generator to dump streamlines to file
-    _save_tractogram(filtered_strl_generator(),
+    # dump streamlines on-the-fly to file
+    _save_tractogram(streamlines_generator, tracts_format,
                      odf_sh_img, total_nb_seeds, args)
 
     # Final logging

@@ -547,7 +547,10 @@ class GPUTacker():
 
         return fodf_max
 
-    def track(self):
+    def __iter__(self):
+        return self._track()
+
+    def _track(self):
         """
         GPU streamlines generator yielding streamlines with corresponding
         seed positions one by one.
