@@ -519,9 +519,8 @@ class GPUTacker():
 
         self.n_seeds = len(seeds)
 
-        seeds_to_corner = seeds + 0.5
         self.seed_batches =\
-            np.array_split(seeds_to_corner, np.ceil(len(seeds)/batch_size))
+            np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         # tracking step_size and number of points
         self.step_size = step_size
@@ -529,9 +528,7 @@ class GPUTacker():
         self.max_strl_points = max_nbr_pts
 
         # convert theta to array
-        if not isinstance(theta, np.ndarray):
-            theta = np.array([theta])
-        self.theta = theta
+        self.theta = np.atleast_1d(theta)
 
         self.sh_basis = sh_basis
         self.forward_only = forward_only
@@ -624,7 +621,7 @@ class GPUTacker():
 
             # Run the kernel
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
-            n_points = n_points.reshape((-1,)).astype(np.int16)
+            n_points = n_points.flatten().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
                 strl = strl[:n_pts]
 
