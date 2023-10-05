@@ -17,7 +17,6 @@ import numpy as np
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scipy.ndimage import binary_dilation
 
-from scilpy.image.volume_space_management import WorldBoundingBox
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
@@ -60,9 +59,11 @@ def flip_volume(data, axes):
     return data
 
 
-def crop_volume(img: nib.Nifti1Image, wbbox: WorldBoundingBox):
+def crop_volume(img: nib.Nifti1Image, wbbox):
     """Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
+
+    wbbox: WorldBoundingBox from the scrip scil_crop_volume. ToDo. Update this.
     """
     data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
