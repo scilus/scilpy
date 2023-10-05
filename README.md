@@ -3,6 +3,9 @@
 [![Build Status](https://travis-ci.com/scilus/scilpy.svg?branch=master)](https://travis-ci.com/scilus/scilpy)
 [![Documentation Status](https://readthedocs.org/projects/scilpy/badge/?version=latest)](https://scilpy.readthedocs.io/en/latest/?badge=latest)
 
+[![PyPI version badge](https://img.shields.io/pypi/v/scilpy?logo=pypi&logoColor=white)](https://pypi.org/project/scilpy)
+[![PyPI - Downloads](https://static.pepy.tech/badge/scilpy)](https://pypi.org/project/scilpy)
+
 **Scilpy** is the main library supporting research and development at the Sherbrooke Connectivity Imaging Lab
 ([SCIL]).
 
