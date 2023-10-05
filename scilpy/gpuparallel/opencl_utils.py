@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import logging
 import inspect
 import os
 import scilpy
@@ -28,6 +29,10 @@ class CLManager(object):
         if not have_opencl:
             raise RuntimeError('pyopencl is not installed. '
                                'Cannot create CLManager instance.')
+
+        # Reduce verbose level for pyopencl
+        logging.getLogger('pytools.persistent_dict').setLevel(logging.CRITICAL)
+        logging.getLogger('pyopencl').setLevel(logging.CRITICAL)
 
         self.input_buffers = [0] * n_inputs
         self.output_buffers = [0] * n_outputs
