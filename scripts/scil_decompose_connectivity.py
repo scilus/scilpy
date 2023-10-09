@@ -164,8 +164,8 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__)
-    p.add_argument('in_tractogram',
-                   help='Tractogram filename. Format must be one of \n'
+    p.add_argument('in_tractograms', nargs='+',
+                   help='Tractogram filenames. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy.')
     p.add_argument('in_labels',
                    help='Labels file name (nifti). Labels must have 0 as '
@@ -239,7 +239,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, [args.in_tractogram, args.in_labels],
+    assert_inputs_exist(parser, args.in_tractograms+[args.in_labels],
                         args.reference)
     assert_outputs_exist(parser, args, args.out_hdf5)
     nbr_cpu = validate_nbr_processes(parser, args)
@@ -277,20 +277,24 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft_merged = None
+    for in_tractogram in args.in_tractograms:
+        if sft_merged is None:
+            sft = load_tractogram_with_reference(parser, args, in_tractogram)
+            if not is_header_compatible(sft, img_labels):
+                raise IOError('{} and {}do not have a compatible header'.format(
+                    in_tractogram, args.in_labels))
+        else:
+            sft += load_tractogram_with_reference(parser, args, in_tractogram)
 
     # If loaded with invalid (bbox_check False), remove invalid streamlines
     # before continuing.
     if not args.bbox_check:
         sft.remove_invalid_streamlines()
-        
+
     time2 = time.time()
     logging.info('    Loading {} streamlines took {} sec.'.format(
         len(sft), round(time2 - time1, 2)))
-
-    if not is_header_compatible(sft, img_labels):
-        raise IOError('{} and {}do not have a compatible header'.format(
-            args.in_tractogram, args.in_labels))
 
     sft.to_vox()
     sft.to_corner()
