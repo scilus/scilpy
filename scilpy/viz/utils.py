@@ -12,30 +12,89 @@ RAS_AXES = {
 }
 
 
-def get_colormap(name):
-    """Get a matplotlib colormap from a name or a list of named colors.
-    For a list of possible names, see
-    https://matplotlib.org/stable/gallery/color/colormap_reference.html
+def affine_from_offset(orientation, offset):
+    """
+    Create affine matrix from scalar offset in given orientation, 
+    in RPS coordinates for imaging.
 
     Parameters
     ----------
-    name : str
-        Name of the colormap or a list of named colors (separated by a -).
+    orientation : str
+        Name of the axis to visualize. Choices are axial, coronal and sagittal.
+    offset : float
+        The offset of the texture image.
 
     Returns
     -------
-    matplotlib.colors.Colormap
-        The colormap
+    affine : np.ndarray
+        The affine transformation.
+    """
+    if orientation == 'sagittal':
+        v = np.array([offset, 0.0, 0.0])
+    elif orientation == 'coronal':
+        v = np.array([0.0, -offset, 0.0])
+    elif orientation == 'axial':
+        v = np.array([0.0, 0.0, offset])
+    else:
+        raise ValueError('Invalid axis name : {0}'.format(orientation))
+
+    affine = np.identity(4)
+    affine[0:3, 3] = v
+    return affine
+
+
+def check_mosaic_layout(img_count, rows, cols):
+    """Check whether a mosaic can be built given the image count and the
+    requested number of rows and columns. Raise a `ValueError` if it cannot be
+    built.
+
+    Parameters
+    ----------
+    img_count : int
+        Image count to be arranged in the mosaic.
+    rows : int
+        Row count.
+    cols : int
+        Column count.
     """
 
-    if '-' in name:
-        name_list = name.split('-')
-        colors_list = [colors.to_rgba(color)[0:3] for color in name_list]
-        cmap = colors.LinearSegmentedColormap.from_list('CustomCmap',
-                                                        colors_list)
-        return cmap
+    cell_count = rows * cols
 
-    return plt.colormaps.get_cmap(name)
+    if img_count < cell_count:
+        raise ValueError(
+            f"Less slices than cells requested.\nImage count: {img_count}; "
+            f"Cell count: {cell_count} (rows: {rows}; cols: {cols}).\n"
+            "Please provide an appropriate value for the rows, cols for the "
+            "slice count.")
+    elif img_count > cell_count:
+        raise ValueError(
+            f"More slices than cells requested.\nImage count: {img_count}; "
+            f"Cell count: {cell_count} (rows: {rows}; cols: {cols}).\n"
+            "Please provide an appropriate value for the rows, cols for the "
+            "slice count.")
+
+
+def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
+    """Compute the top-left position of a cell to be drawn in a mosaic.
+
+    Parameters
+    ----------
+    idx : int
+       Cell index in the mosaic.
+    cols : int
+        Column count.
+    offset_h :
+        Horizontal offset (pixels).
+    offset_v :
+        Vertical offset (pixels).
+    """
+
+    row_idx = int(np.floor(idx / cols))
+    top_pos = row_idx * offset_v
+    col_idx = idx % cols
+    left_pos = col_idx * offset_h
+
+    return top_pos, left_pos
 
 
 def prepare_colorbar_figure(cmap, lbound, ubound, nb_values=255, nb_ticks=10,

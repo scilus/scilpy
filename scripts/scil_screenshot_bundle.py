@@ -37,8 +37,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
-from scilpy.viz.screenshot import display_slices
-from scilpy.viz.utils import get_colormap
+from scilpy.viz.legacy import display_slices
+from scilpy.viz.backends.pil import get_colormap
 
 
 def _build_arg_parser():

@@ -26,7 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
-from scilpy.viz.screenshot import display_slices
+from scilpy.viz.legacy import display_slices
 
 
 def _build_arg_parser():

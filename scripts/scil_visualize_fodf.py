@@ -22,14 +22,18 @@ import numpy as np
 from dipy.data import get_sphere
 
 from scilpy.reconst.utils import get_sh_order_and_fullness
-from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
-                             assert_inputs_exist, add_verbose_arg,
-                             assert_outputs_exist, parse_sh_basis_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_sh_basis_args,
+                             assert_inputs_exist,
+                             add_verbose_arg,
+                             assert_outputs_exist,
+                             parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
-from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
-                                    create_peaks_slicer, create_scene,
-                                    render_scene)
+from scilpy.viz.backends.fury import create_scene, render_scene
+from scilpy.viz.volume_slicing import (create_odf_slicer,
+                                       create_peaks_slicer,
+                                       create_texture_slicer)
 
 
 def _build_arg_parser():

@@ -68,21 +68,20 @@ import logging
 import numpy as np
 
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (
-    assert_overlay_colors,
-    get_default_screenshotting_data,
-    add_nifti_screenshot_default_args,
-    add_nifti_screenshot_overlays_args,
-    add_overwrite_arg,
-    add_verbose_arg,
-    assert_inputs_exist,
-    assert_outputs_exist,
-    ranged_type
-)
+from scilpy.io.utils import (add_nifti_screenshot_default_args,
+                             add_nifti_screenshot_overlays_args,
+                             add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             assert_overlay_colors,
+                             get_default_screenshotting_data,
+                             ranged_type)
 from scilpy.image.utils import check_slice_indices
-from scilpy.viz.scene_utils import (
-    check_mosaic_layout, compose_mosaic, screenshot_contour, screenshot_slice
-)
+from scilpy.viz.screenshot import (compose_mosaic,
+                                   screenshot_contour,
+                                   screenshot_volume)
+from scilpy.viz.utils import check_mosaic_layout
 
 
 def _build_arg_parser():
@@ -161,18 +160,18 @@ def main():
     check_mosaic_layout(len(args.slice_ids), rows, cols)
 
     # Generate the images
-    vol_scene_container = screenshot_slice(
+    vol_scene_container = screenshot_volume(
         vol_img, args.axis_name, args.slice_ids, args.win_dims)
 
-    transparency_scene_container = screenshot_slice(
+    transparency_scene_container = screenshot_volume(
         t_mask_img, args.axis_name, args.slice_ids, args.win_dims)
 
     labelmap_scene_container = []
     if labelmap_img:
-        labelmap_scene_container = screenshot_slice(
+        labelmap_scene_container = screenshot_volume(
             labelmap_img, args.axis_name, args.slice_ids, args.win_dims)
 
-    mask_screenshotter = screenshot_slice
+    mask_screenshotter = screenshot_volume
     if args.masks_as_contours:
         mask_screenshotter = screenshot_contour
 
