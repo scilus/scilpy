@@ -15,3 +15,7 @@ def test_parse_ordering():
 
 def test_apply_reordering():
     pass
+
+
+def test_evaluate_graph_measures():
+    pass
