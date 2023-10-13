@@ -19,3 +19,11 @@ def test_apply_reordering():
 
 def test_evaluate_graph_measures():
     pass
+
+
+def test_normalize_matrix_from_values():
+    pass
+
+
+def test_normalize_matrix_from_parcel():
+    pass
