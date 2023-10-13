@@ -83,60 +83,6 @@ def _build_arg_parser():
     return p
 
 
-def omega_sigma(matrix):
-    """Returns the small-world coefficients (omega & sigma) of a graph.
-    Omega ranges between -1 and 1. Values close to 0 mean the matrix
-    features small-world characteristics.
-    Values close to -1 mean the network has a lattice structure and values
-    close to 1 mean G is a random network.
-
-    A network is commonly classified as small-world if sigma > 1.
-
-    Parameters
-    ----------
-    matrix : numpy.ndarray
-        A weighted undirected graph.
-    Returns
-    -------
-    smallworld : tuple of float
-        The small-work coefficients (omega & sigma).
-    Notes
-    -----
-    The implementation is adapted from the algorithm by Telesford et al. [1]_.
-    References
-    ----------
-    .. [1] Telesford, Joyce, Hayasaka, Burdette, and Laurienti (2011).
-           "The Ubiquity of Small-World Networks".
-           Brain Connectivity. 1 (0038): 367-75.  PMC 3604768. PMID 22432451.
-           doi:10.1089/brain.2011.0038.
-    """
-    transitivity_rand_list = []
-    transitivity_latt_list = []
-    path_length_rand_list = []
-    for i in range(10):
-        logging.debug('Generating random and lattice matrices, '
-                      'iteration #{}.'.format(i))
-        random = bct.randmio_und(matrix, 10)[0]
-        lattice = bct.latmio_und(matrix, 10)[1]
-
-        transitivity_rand_list.append(bct.transitivity_wu(random))
-        transitivity_latt_list.append(bct.transitivity_wu(lattice))
-        path_length_rand_list.append(avg_cast(bct.distance_wei(random)[0]))
-
-    transitivity = bct.transitivity_wu(matrix)
-    path_length = avg_cast(bct.distance_wei(matrix)[0])
-    transitivity_rand = np.mean(transitivity_rand_list)
-    transitivity_latt = np.mean(transitivity_latt_list)
-    path_length_rand = np.mean(path_length_rand_list)
-
-    omega = (path_length_rand / path_length) - \
-        (transitivity / transitivity_latt)
-    sigma = (transitivity / transitivity_rand) / \
-        (path_length / path_length_rand)
-
-    return float(omega), float(sigma)
-
-
 def avg_cast(input):
     return float(np.average(input))
 
