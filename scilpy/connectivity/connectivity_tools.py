@@ -9,7 +9,7 @@ from scipy.cluster import hierarchy
 simplefilter("ignore", hierarchy.ClusterWarning)
 
 
-def compute_OLO(array, is_symmetric=True):
+def compute_olo(array):
     """
     Optimal Leaf Ordering permutes a weighted matrix that has a
     symmetric sparsity pattern using hierarchical clustering.
@@ -18,8 +18,6 @@ def compute_OLO(array, is_symmetric=True):
     ----------
     array: ndarray (NxN)
         Connectivity matrix.
-    is_symmetric: bool, optional
-        Is the matrice symmetric. (if from scil_compute_connectivity.py, True)
 
     Returns
     -------
@@ -36,7 +34,7 @@ def compute_OLO(array, is_symmetric=True):
     return perm
 
 
-def apply_OLO(array, perm):
+def apply_olo(array, perm):
     """
     Apply the permutation from compute_RCM.
 

@@ -7,8 +7,8 @@ The first row are the (x) and the second row the (y), must be space separated.
 The resulting matrix does not have to be square (support unequal number of
 x and y).
 
-The values refers to the coordinates (starting at 0) in the matrix, but if the
---labels_list parameter is used, the values will refers to the label which will
+The values refer to the coordinates (starting at 0) in the matrix, but if the
+--labels_list parameter is used, the values will refer to the label which will
 be converted to the appropriate coordinates. This file must be the same as the
 one provided to the scil_decompose_connectivity.py
 
@@ -26,9 +26,9 @@ import os
 
 import numpy as np
 
-from scilpy.connectivity.utils import (compute_OLO,
-                                       parse_ordering,
-                                       apply_reordering)
+from scilpy.connectivity.connectivity_tools import (compute_olo,
+                                                    parse_ordering,
+                                                    apply_reordering)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              load_matrix_in_any_format,
@@ -85,7 +85,7 @@ def main():
         assert_outputs_exist(parser, args, args.optimal_leaf_ordering)
 
         matrix = load_matrix_in_any_format(args.in_matrices[0])
-        perm = compute_OLO(matrix).astype(np.uint16)
+        perm = compute_olo(matrix).astype(np.uint16)
         np.savetxt(args.optimal_leaf_ordering, [perm.tolist(), perm.tolist()],
                    fmt='%i')
     else:
