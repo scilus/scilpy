@@ -56,10 +56,10 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (assert_inputs_exist,
-                             assert_outputs_exist,
-                             add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
                              add_verbose_arg,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
