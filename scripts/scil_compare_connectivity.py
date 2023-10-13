@@ -21,8 +21,6 @@ import argparse
 import logging
 
 import numpy as np
-from scipy.stats import t
-from statsmodels.stats.multitest import multipletests
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
@@ -30,7 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
-from scilpy.stats.stats import ttest_paired_stat_only, ttest_stat_only
+from scilpy.stats.matrix_stats import ttest_two_matrices
 
 EPILOG = """
 [1] Rubinov, Mikail, and Olaf Sporns. "Complex network measures of brain
@@ -119,70 +117,8 @@ def main():
         parser.error('For paired statistic both groups must have the same '
                      'number of observations.')
 
-    matrix_shape = matrices_g1.shape[0:2]
-    nb_group_g1 = matrices_g1.shape[2]
-    nb_group_g2 = matrices_g2.shape[2]
-
-    # To do better reshape, more simple
-    sum_both_groups = np.sum(matrices_g1, axis=2) + np.sum(matrices_g2, axis=2)
-    nbr_non_zeros = np.count_nonzero(np.triu(sum_both_groups))
-
-    logging.debug('The provided matrices contain {} non zeros elements.'.format(
-        nbr_non_zeros))
-
-    matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
-    matrices_g2 = matrices_g2.reshape((np.prod(matrix_shape), nb_group_g2))
-    # Negative epsilon, to differenciate from null p-values
-    matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
-
-    text = ' paired' if args.paired else ''
-    logging.debug('Performing{} t-test with "{}" hypothesis.'.format(text,
-                                                                     args.tail))
-    logging.debug('Data has dimensions {}x{} with {} and {} observations.'.format(
-        matrix_shape[0], matrix_shape[1],
-        nb_group_g1, nb_group_g2))
-
-    # For conversion to p-values
-    if args.paired:
-        dof = nb_group_g1 - 1
-    else:
-        dof = nb_group_g1 + nb_group_g2 - 2
-
-    for ind in range(np.prod(matrix_shape)):
-        # Skip edges with no data, leaves a negative epsilon instead
-        if not matrices_g1[ind].any() and not matrices_g2[ind].any():
-            continue
-
-        if args.paired:
-            t_stat = ttest_paired_stat_only(matrices_g1[ind], matrices_g2[ind],
-                                            args.tail)
-        else:
-            t_stat = ttest_stat_only(matrices_g1[ind], matrices_g2[ind],
-                                     args.tail)
-
-        pval = t.sf(t_stat, dof)
-        matrix_pval[ind] = pval if args.tail == 'both' else pval / 2.0
-
-    corr_matrix_pval = matrix_pval.reshape(matrix_shape)
-    if args.fdr:
-        logging.debug('Using FDR, the results will be q-values.')
-        corr_matrix_pval = np.triu(corr_matrix_pval)
-        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
-            corr_matrix_pval[corr_matrix_pval > 0], 0, method='fdr_bh')[1]
-
-        # Symmetrize  the matrix
-        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
-            np.diag(corr_matrix_pval.diagonal())
-    elif args.bonferroni:
-        corr_matrix_pval = np.triu(corr_matrix_pval)
-        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
-            corr_matrix_pval[corr_matrix_pval > 0], 0, method='bonferroni')[1]
-
-        # Symmetrize  the matrix
-        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
-            np.diag(corr_matrix_pval.diagonal())
-    else:
-        matrix_pval = matrix_pval.reshape(matrix_shape)
+    matrix_pval = ttest_two_matrices(matrices_g1, matrices_g2, args.paired,
+                                     args.tail, args.fdr, args.bonferroni)
 
     save_matrix_in_any_format(args.out_pval_matrix, matrix_pval)
 
@@ -190,6 +126,7 @@ def main():
     # 0 where it is not significant and 1 where it is significant
     if args.p_threshold:
         p_thresh = float(args.p_threshold[0])
+        matrix_shape = matrices_g1.shape[0:2]
         masked_pval_matrix = np.zeros(matrix_shape)
         logging.debug('Threshold the p-values at {}'.format(p_thresh))
         masked_pval_matrix[matrix_pval < p_thresh] = 1

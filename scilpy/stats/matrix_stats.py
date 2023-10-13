@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import numpy as np
+from scipy.stats import t as stats_t
+from statsmodels.stats.multitest import multipletests
 
 
-def ttest_stat_only(x, y, tail):
+def _ttest_stat_only(x, y, tail):
     t = np.mean(x) - np.mean(y)
     n1, n2 = len(x), len(y)
     s = np.sqrt(((n1 - 1) * np.var(x, ddof=1) + (n2 - 1)
@@ -18,7 +22,7 @@ def ttest_stat_only(x, y, tail):
         return t / denom
 
 
-def ttest_paired_stat_only(x, y, tail):
+def _ttest_paired_stat_only(x, y, tail):
     n = len(x - y)
     sample_ss = np.sum((x - y)**2) - np.sum(x - y)**2 / n
     unbiased_std = np.sqrt(sample_ss / (n - 1))
@@ -31,3 +35,91 @@ def ttest_paired_stat_only(x, y, tail):
         return -t
     else:
         return t
+
+
+def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
+                       bonferroni):
+    """
+    Parameters
+    ----------
+    matrices_g1: np.ndarray of shape ?  (toDO)
+    matrices_g2: np.ndarray of shape ?
+    paired: bool
+        Use paired sample t-test instead of population t-test. The two matrices
+        must be ordered the same way.
+    tail: str.
+        One of ['left', 'right', 'both'].
+    fdr: bool
+        Perform a false discovery rate (FDR) correction for the p-values. Uses
+        the number of non-zero edges as number of tests (value between 0.01 and
+        0.1).
+    bonferroni: bool
+        Perform a Bonferroni correction for the p-values. Uses the number of
+        non-zero edges as number of tests.
+    """
+    matrix_shape = matrices_g1.shape[0:2]
+    nb_group_g1 = matrices_g1.shape[2]
+    nb_group_g2 = matrices_g2.shape[2]
+
+    # Todo better reshape, more simple
+    sum_both_groups = np.sum(matrices_g1, axis=2) + np.sum(matrices_g2, axis=2)
+    nbr_non_zeros = np.count_nonzero(np.triu(sum_both_groups))
+
+    logging.debug('The provided matrices contain {} non zeros elements.'
+                  .format(nbr_non_zeros))
+
+    matrices_g1 = matrices_g1.reshape((np.prod(matrix_shape), nb_group_g1))
+    matrices_g2 = matrices_g2.reshape((np.prod(matrix_shape), nb_group_g2))
+    # Negative epsilon, to differentiate from null p-values
+    matrix_pval = np.ones(np.prod(matrix_shape)) * -0.000001
+
+    text = ' paired' if paired else ''
+    logging.debug('Performing{} t-test with "{}" hypothesis.'
+                  .format(text, tail))
+    logging.debug('Data has dimensions {}x{} with {} and {} observations.'.format(
+        matrix_shape[0], matrix_shape[1],
+        nb_group_g1, nb_group_g2))
+
+    # For conversion to p-values
+    if paired:
+        dof = nb_group_g1 - 1
+    else:
+        dof = nb_group_g1 + nb_group_g2 - 2
+
+    for ind in range(np.prod(matrix_shape)):
+        # Skip edges with no data, leaves a negative epsilon instead
+        if not matrices_g1[ind].any() and not matrices_g2[ind].any():
+            continue
+
+        if paired:
+            t_stat = _ttest_paired_stat_only(matrices_g1[ind], matrices_g2[ind],
+                                             tail)
+        else:
+            t_stat = _ttest_stat_only(matrices_g1[ind], matrices_g2[ind],
+                                      tail)
+
+        pval = stats_t.sf(t_stat, dof)
+        matrix_pval[ind] = pval if tail == 'both' else pval / 2.0
+
+    corr_matrix_pval = matrix_pval.reshape(matrix_shape)
+    if fdr:
+        logging.debug('Using FDR, the results will be q-values.')
+        corr_matrix_pval = np.triu(corr_matrix_pval)
+        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
+            corr_matrix_pval[corr_matrix_pval > 0], 0, method='fdr_bh')[1]
+
+        # Symmetrize  the matrix
+        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
+            np.diag(corr_matrix_pval.diagonal())
+    elif bonferroni:
+        corr_matrix_pval = np.triu(corr_matrix_pval)
+        corr_matrix_pval[corr_matrix_pval > 0] = multipletests(
+            corr_matrix_pval[corr_matrix_pval > 0], 0, method='bonferroni')[1]
+
+        # Symmetrize  the matrix
+        matrix_pval = corr_matrix_pval + corr_matrix_pval.T - \
+            np.diag(corr_matrix_pval.diagonal())
+    else:
+        matrix_pval = matrix_pval.reshape(matrix_shape)
+
+    return matrix_pval
