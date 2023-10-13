@@ -79,9 +79,9 @@ from scilpy.io.utils import (
     assert_inputs_exist
 )
 from scilpy.image.utils import check_slice_indices
-from scilpy.viz.scene_utils import (
-    compose_mosaic, screenshot_slice, screenshot_contour
-)
+from scilpy.viz.screenshot import (compose_mosaic,
+                                   screenshot_volume,
+                                   screenshot_contour)
 from scilpy.viz.utils import RAS_AXES
 
 
@@ -138,7 +138,7 @@ def main():
         slice_ids = np.arange(vol_img.shape[RAS_AXES[args.axis_name]])
 
     # Generate the image slices
-    vol_scene_container = screenshot_slice(
+    vol_scene_container = screenshot_volume(
         vol_img,
         args.axis_name,
         slice_ids,
@@ -147,15 +147,15 @@ def main():
 
     transparency_scene_container = []
     if t_mask_img is not None:
-        transparency_scene_container = screenshot_slice(
+        transparency_scene_container = screenshot_volume(
             t_mask_img, args.axis_name, slice_ids, args.win_dims)
 
     labelmap_scene_container = []
     if labelmap_img:
-        labelmap_scene_container = screenshot_slice(
+        labelmap_scene_container = screenshot_volume(
             labelmap_img, args.axis_name, slice_ids, args.win_dims)
 
-    mask_screenshotter = screenshot_slice
+    mask_screenshotter = screenshot_volume
     if args.masks_as_contours:
         mask_screenshotter = screenshot_contour
 

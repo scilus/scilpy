@@ -20,8 +20,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.viz.scene_utils import (create_bingham_slicer,
-                                    create_scene, render_scene)
+from scilpy.viz.backends.fury import create_scene, render_scene
+from scilpy.viz.volume_slicing import create_bingham_slicer
 
 
 def _build_arg_parser():

@@ -39,11 +39,13 @@ from matplotlib.font_manager import FontProperties
 import numpy as np
 
 from scilpy.image.volume_math import EPSILON
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
+                             add_verbose_arg,
                              load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy
-from scilpy.viz.utils import get_colormap
+from scilpy.viz.backends.pil import get_colormap
 
 
 def _build_arg_parser():
