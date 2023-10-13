@@ -4,6 +4,7 @@ import warnings
 from warnings import simplefilter
 
 import bct
+from dipy.utils.optpkg import optional_package
 import numpy as np
 from scipy.cluster import hierarchy
 
@@ -12,6 +13,8 @@ from scilpy.stats.matrix_stats import omega_sigma
 from scilpy.tractanalysis.reproducibility_measures import approximate_surface_node
 
 simplefilter("ignore", hierarchy.ClusterWarning)
+
+cl, have_bct, _ = optional_package('bct')
 
 
 def compute_olo(array):
@@ -126,6 +129,9 @@ def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
         If true, compute measure related to small worldness (omega and sigma).
         This option is much slower.
     """
+    if not have_bct:
+        raise RuntimeError("bct ist not installed. Please install to use "
+                           "this connectivity script.")
     N = len_matrix.shape[0]
 
     def avg_cast(_input):
