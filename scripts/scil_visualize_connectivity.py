@@ -44,7 +44,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist,
                              add_verbose_arg,
                              load_matrix_in_any_format)
-from scilpy.viz.chord_chart import chordDiagram, polar2xy
+from scilpy.viz.legacy import chordDiagram, polar2xy
 from scilpy.viz.backends.pil import get_colormap
 
 

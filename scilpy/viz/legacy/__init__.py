@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 
-from fury import window
-
-from scilpy.io.utils import snapshot
+from scilpy.viz.legacy.chord_chart import *
 
 
 def display_slices(volume_actor, slices,
@@ -10,6 +7,10 @@ def display_slices(volume_actor, slices,
                    view_position, focal_point,
                    peaks_actor=None, streamlines_actor=None,
                    roi_actors=None):
+
+    from scilpy.io.utils import snapshot
+    from fury import window
+
     # Setting for the slice of interest
     if axis_name == 'sagittal':
         volume_actor.display(slices[0], None, None)
