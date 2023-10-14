@@ -31,9 +31,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.backends.fury import create_scene, render_scene
-from scilpy.viz.volume_slicing import (create_odf_slicer,
-                                       create_peaks_slicer,
-                                       create_texture_slicer)
+from scilpy.viz.slice import (create_odf_slicer,
+                              create_peaks_slicer,
+                              create_texture_slicer)
 
 
 def _build_arg_parser():
