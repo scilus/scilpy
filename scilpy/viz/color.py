@@ -66,18 +66,21 @@ def generate_n_colors(n, generator=distinguishable_colormap,
     return numpy_to_vtk_colors(_colors)
 
 
-def get_colormap(name):
-    """Get a matplotlib colormap from a name or a list of named colors.
+def get_lookup_table(name):
+    """
+    Get a matplotlib lookup table (colormap) from a name or create 
+    a lookup table (colormap) from a list of named colors.
 
     Parameters
     ----------
     name : str
-        Name of the colormap or a list of named colors (separated by a -).
+        Name of the lookup table (colormap) or a list of named colors 
+        (separated by a -) to form a lookup table (colormap) from.
 
     Returns
     -------
     matplotlib.colors.Colormap
-        The colormap
+        The lookup table (colormap)
     """
 
     if '-' in name:
@@ -88,5 +91,3 @@ def get_colormap(name):
         return cmap
 
     return plt.colormaps.get_cmap(name)
-
-

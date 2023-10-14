@@ -5,11 +5,12 @@ from fury import window
 from scilpy.utils.util import get_axis_index
 
 from scilpy.viz.backends.fury import create_scene
-from scilpy.viz.backends.pil import (annotate_scene,
+from scilpy.viz.backends.pil import (annotate_image,
                                      create_canvas,
-                                     draw_scene_at_pos,
-                                     rgb2gray4pil)
+                                     draw_2d_array_at_position,
+                                     any2grayscale)
 from scilpy.viz.backends.vtk import contour_actor_from_image
+from scilpy.viz.color import get_lookup_table
 from scilpy.viz.utils import compute_cell_topleft_pos
 from scilpy.viz.slice import create_texture_slicer
 
@@ -150,7 +151,10 @@ def compose_image(
     if canvas is None:
         canvas = create_canvas(*img_size, 0, 0, 1, 1)
 
-    draw_scene_at_pos(
+    vol_lut = get_lookup_table(vol_cmap_name)
+    labelmap_lut = get_lookup_table(labelmap_cmap_name)
+
+    draw_2d_array_at_position(
         canvas,
         img_scene,
         img_size,
@@ -162,11 +166,11 @@ def compose_image(
         mask_overlay=mask_overlay_scene,
         mask_overlay_alpha=mask_overlay_alpha,
         mask_overlay_color=mask_overlay_color,
-        vol_cmap_name=vol_cmap_name,
-        labelmap_cmap_name=labelmap_cmap_name,
+        vol_lut=vol_lut,
+        labelmap_lut=labelmap_lut,
     )
 
-    annotate_scene(canvas, slice_number, display_slice_number, display_lr)
+    annotate_image(canvas, slice_number, display_slice_number, display_lr)
 
     return canvas
 
@@ -258,15 +262,15 @@ def compose_mosaic(
 
         # Convert the scene data to grayscale and adjust for handling with
         # Pillow
-        _img_arr = rgb2gray4pil(img_arr)
+        _img_arr = any2grayscale(img_arr)
 
         _trans_arr = None
         if len(trans_arr):
-            _trans_arr = rgb2gray4pil(trans_arr)
+            _trans_arr = any2grayscale(trans_arr)
 
         _labelmap_arr = None
         if len(labelmap_arr):
-            _labelmap_arr = rgb2gray4pil(labelmap_arr)
+            _labelmap_arr = any2grayscale(labelmap_arr)
 
         _mask_overlay_arr = None
         if len(mask_overlay_arr):
