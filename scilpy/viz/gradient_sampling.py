@@ -6,20 +6,9 @@ from tempfile import mkstemp
 
 from dipy.data import get_sphere
 from fury import actor, window
-import fury
 
 from scilpy.io.utils import snapshot
-
-vtkcolors = [window.colors.blue,
-             window.colors.red,
-             window.colors.yellow,
-             window.colors.purple,
-             window.colors.cyan,
-             window.colors.green,
-             window.colors.orange,
-             window.colors.white,
-             window.colors.brown,
-             window.colors.grey]
+from scilpy.viz.color import generate_n_colors
 
 
 def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
@@ -52,11 +41,10 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     Return
     ------
     """
-    global vtkcolors
-    if len(ms) > 10:
-        vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
+    _colors = generate_n_colors(len(ms))
 
     if use_sphere:
+        # TODO : move memmap ODF to more global package, a class or something
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
         fid, fname = mkstemp(suffix='_odf_slicer.mmap')
@@ -66,6 +54,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         affine = np.eye(4)
 
     for i, shell in enumerate(ms):
+        # TODO : use content of viz module to do the work
         logging.info('Showing shell {}'.format(int(centroids[i])))
         if same_color:
             i = 0
@@ -76,10 +65,10 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
                                             colormap='winter', scale=1.0,
                                             opacity=opacity)
             scene.add(sphere_actor)
-        pts_actor = actor.point(shell, vtkcolors[i], point_radius=rad)
+        pts_actor = actor.point(shell, _colors[i], point_radius=rad)
         scene.add(pts_actor)
         if plot_sym_vecs:
-            pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
+            pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
         window.show(scene)
 
@@ -115,9 +104,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     Return
     ------
     """
-    global vtkcolors
-    if len(ms) > 10:
-        vtkcolors = fury.colormap.distinguishable_colormap(nb_colors=len(ms))
+    _colors = generate_n_colors(len(ms))
 
     scene = window.Scene()
     scene.SetBackground(1, 1, 1)
@@ -135,13 +122,14 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
 
         scene.add(sphere_actor)
 
+    # TODO : use content of viz module to do the work
     for i, shell in enumerate(ms):
         if same_color:
             i = 0
-        pts_actor = actor.point(shell, vtkcolors[i], point_radius=rad)
+        pts_actor = actor.point(shell, _colors[i], point_radius=rad)
         scene.add(pts_actor)
         if use_sym:
-            pts_actor = actor.point(-shell, vtkcolors[i], point_radius=rad)
+            pts_actor = actor.point(-shell, _colors[i], point_radius=rad)
             scene.add(pts_actor)
     window.show(scene)
     if ofile:

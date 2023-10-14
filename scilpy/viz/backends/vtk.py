@@ -1,6 +1,16 @@
 import numpy as np
+# TODO : Using fury in the VTK backend. Maybe a code split to make here
 from fury.utils import get_actor_from_polydata, numpy_to_vtk_image_data
 import vtk
+
+
+
+def get_color_by_name(color_name):
+    try:
+        color_wheel = vtk.vtkNamedColors()
+        return color_wheel.GetColor3d(color_name)
+    except Exception as e:
+        raise ValueError("Invalid VTK color name : {}".format(color_name))
 
 
 def create_tube_with_radii(positions, radii, error, error_coloring=False,

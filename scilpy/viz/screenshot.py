@@ -85,6 +85,92 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
     return scene_container
 
 
+def compose_image(
+    img_scene,
+    img_size,
+    slice_number,
+    corner_position=(0, 0),
+    transparency_scene=None,
+    labelmap_scene=None,
+    labelmap_overlay_alpha=0.7,
+    mask_overlay_scene=None,
+    mask_overlay_alpha=0.7,
+    mask_overlay_color=None,
+    vol_cmap_name=None,
+    labelmap_cmap_name=None,
+    display_slice_number=False,
+    display_lr=False,
+    canvas=None
+):
+    """
+    Compose an image with the given scenes, with transparency, overlays, 
+    labelmap and annotations. If no canvas for the image is given, it will 
+    be automatically create with sizings to fit.
+
+    Parameters
+    ----------
+    img_scene : np.ndarray
+        Image scene data.
+    img_size : array-like
+        Image size (pixels) (width, height).
+    slice_number : int
+        Number of the current slice.
+    corner_position : array-like, optional
+        Image corner (pixels) (left, top).
+    transparency_scene : np.ndarray, optional
+        Transaprency scene data.
+    labelmap_scene : np.ndarray, optional
+        Labelmap scene data.
+    labelmap_alpha : float, optional
+        Alpha value for labelmap overlay in range [0, 1].
+    mask_overlay_scene : np.ndarray, optional
+        Mask overlay scene data.
+    mask_overlay_alpha : float, optional
+        Alpha value for mask overlay in range [0, 1].
+    mask_overlay_color : list, optional
+        Color for the mask overlay as a list of 3 integers in range [0, 255].
+    vol_cmap_name : str, optional
+        Colormap name for the image scene data.
+    labelmap_cmap_name : str, optional
+        Colormap name for the labelmap scene data.
+    display_slice_number : bool, optional
+        If true, displays the slice number in the upper left corner.
+    display_lr : bool or int, optional
+        If 1 or -1, identifies the left and right sides on the image. -1 flips 
+        left and right positions.
+    canvas : PIL.Image, optional
+        Base canvas into which to paste the scene.
+
+    Returns
+    -------
+    canvas : PIL.Image
+        Canvas containing the pasted scene.
+    """
+
+    if canvas is None:
+        canvas = create_canvas(*img_size, 0, 0, 1, 1)
+
+    draw_scene_at_pos(
+        canvas,
+        img_scene,
+        img_size,
+        corner_position[0],
+        corner_position[1],
+        transparency=transparency_scene,
+        labelmap_overlay=labelmap_scene,
+        labelmap_overlay_alpha=labelmap_overlay_alpha,
+        mask_overlay=mask_overlay_scene,
+        mask_overlay_alpha=mask_overlay_alpha,
+        mask_overlay_color=mask_overlay_color,
+        vol_cmap_name=vol_cmap_name,
+        labelmap_cmap_name=labelmap_cmap_name,
+    )
+
+    annotate_scene(canvas, slice_number, display_slice_number, display_lr)
+
+    return canvas
+
+
 def compose_mosaic(
     img_scene_container,
     cell_size,
@@ -155,15 +241,15 @@ def compose_mosaic(
     offset_h = cell_width - overlap_h
     offset_v = cell_height - overlap_v
     from itertools import zip_longest
-    for idx, (img_arr, trans_arr, labelmap_arr, mask_overlay_arr, slice_number) in enumerate(
-            list(zip_longest(
-                img_scene_container,
-                transparency_scene_container,
-                labelmap_scene_container,
-                mask_overlay_scene_container,
-                slice_numbers,
-                fillvalue=tuple()))
-    ):
+    for idx, (img_arr, trans_arr, labelmap_arr,
+              mask_overlay_arr, slice_number) in enumerate(
+                                            list(zip_longest(
+                                                img_scene_container,
+                                                transparency_scene_container,
+                                                labelmap_scene_container,
+                                                mask_overlay_scene_container,
+                                                slice_numbers,
+                                                fillvalue=tuple()))):
 
         # Compute the mosaic cell position
         top_pos, left_pos = compute_cell_topleft_pos(
@@ -187,22 +273,18 @@ def compose_mosaic(
             _mask_overlay_arr = mask_overlay_arr
 
         # Draw the image (and labelmap overlay, if any) in the cell
-        draw_scene_at_pos(
-            mosaic,
-            _img_arr,
-            (cell_width, cell_height),
-            left_pos,
-            top_pos,
-            transparency=_trans_arr,
-            labelmap_overlay=_labelmap_arr,
-            labelmap_overlay_alpha=labelmap_overlay_alpha,
-            mask_overlay=_mask_overlay_arr,
-            mask_overlay_alpha=mask_overlay_alpha,
-            mask_overlay_color=mask_overlay_color,
-            vol_cmap_name=vol_cmap_name,
-            labelmap_cmap_name=labelmap_cmap_name,
-        )
-
-        annotate_scene(mosaic, slice_number, display_slice_number, display_lr)
+        compose_image(_img_arr, (cell_width, cell_height), slice_number,
+                      corner_position=(left_pos, top_pos),
+                      transparency_scene=_trans_arr,
+                      labelmap_scene=_labelmap_arr,
+                      labelmap_overlay_alpha=labelmap_overlay_alpha,
+                      mask_overlay_scene=_mask_overlay_arr,
+                      mask_overlay_alpha=mask_overlay_alpha,
+                      mask_overlay_color=mask_overlay_color,
+                      vol_cmap_name=vol_cmap_name,
+                      labelmap_cmap_name=labelmap_cmap_name,
+                      display_slice_number=display_slice_number,
+                      display_lr=display_lr,
+                      canvas=mosaic)
 
     return mosaic

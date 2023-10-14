@@ -48,8 +48,9 @@ from scilpy.io.utils import (add_json_args,
                              assert_output_dirs_exist_and_empty,
                              parser_color_type,
                              snapshot)
+from scilpy.viz.backends.fury import create_interactive_window, create_scene
 from scilpy.viz.backends.vtk import create_tube_with_radii
-from scilpy.viz.backends.pil import get_colormap
+from scilpy.viz.color import get_colormap
 
 
 def _build_arg_parser():
@@ -224,6 +225,8 @@ def main():
 
     stats = {}
     num_digits_labels = 3
+    actor_list = []
+    spatial_shape = nib.load(args.in_labels[0]).shape[:3]
     scene = window.Scene()
     scene.background(tuple(map(int, args.background)))
     for i, filename in enumerate(args.in_bundles):
@@ -288,29 +291,32 @@ def main():
         stats[bundle_name] = {'diameter': tmp_dict}
 
         if args.show_rendering or args.save_rendering:
-            tube_actor = create_tube_with_radii(
-                            centroid_smooth, radius, error,
-                            wireframe=args.wireframe,
-                            error_coloring=args.error_coloring)
-            scene.add(tube_actor)
+            tube_actor = create_tube_with_radii(centroid_smooth, radius, error,
+                                                wireframe=args.wireframe,
+                                                error_coloring=args.error_coloring)
+            actor_list.append(tube_actor)
+            # TODO : move streamline actor to fury backend
             cmap = get_colormap('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
             streamlines_actor = actor.streamtube(sft.streamlines,
                                                  linewidth=args.width,
                                                  opacity=args.opacity,
                                                  colors=coloring)
-            scene.add(streamlines_actor)
+            actor_list.append(streamlines_actor)
 
             slice_actor = actor.slicer(data_labels, np.eye(4))
             slice_actor.opacity(0.0)
-            scene.add(slice_actor)
+            actor_list.append(slice_actor)
+
+    scene = create_scene(actor_list, "axial",
+                         spatial_shape[2] //2, spatial_shape,
+                         bg_color=tuple(map(int, args.background)))
 
     # If there's actually streamlines to display
     if args.show_rendering:
-        showm = window.ShowManager(scene, reset_camera=True)
-        showm.initialize()
-        showm.start()
+        create_interactive_window(scene, (1920, 1080), "image")
     elif args.save_rendering:
+        # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'superior.png'),
                  size=(1920, 1080), offscreen=True)
@@ -341,6 +347,7 @@ def main():
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'left.png'),
                  size=(1920, 1080), offscreen=True)
+
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
 

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from fury.colormap import distinguishable_colormap
-import matplotlib.pyplot as plt
-from matplotlib import colors
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+from scilpy.viz.color import generate_n_colors, get_colormap
 
 
 
@@ -31,30 +30,6 @@ def rgb2gray4pil(rgb_arr):
 
     # Relocate overflow values to the dynamic range
     return (gray_arr * 255).astype("uint8")
-
-
-def get_colormap(name):
-    """Get a matplotlib colormap from a name or a list of named colors.
-
-    Parameters
-    ----------
-    name : str
-        Name of the colormap or a list of named colors (separated by a -).
-
-    Returns
-    -------
-    matplotlib.colors.Colormap
-        The colormap
-    """
-
-    if '-' in name:
-        name_list = name.split('-')
-        colors_list = [colors.to_rgba(color)[0:3] for color in name_list]
-        cmap = colors.LinearSegmentedColormap.from_list('CustomCmap',
-                                                        colors_list)
-        return cmap
-
-    return plt.colormaps.get_cmap(name)
 
 
 def create_image_from_2d_scene(scene_2d, size, mode=None, cmap_name=None):
@@ -285,8 +260,7 @@ def draw_scene_at_pos(
     if mask_overlay is not None:
         if mask_overlay_color is None:
             # Get a list of distinguishable colors if None are supplied
-            mask_overlay_color = distinguishable_colormap(
-                nb_colors=len(mask_overlay))
+            mask_overlay_color = generate_n_colors(len(mask_overlay))
 
         for img, color in zip(mask_overlay, mask_overlay_color):
             overlay_img = create_image_from_2d_scene(

@@ -45,7 +45,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              load_matrix_in_any_format)
 from scilpy.viz.legacy import chordDiagram, polar2xy
-from scilpy.viz.backends.pil import get_colormap
+from scilpy.viz.color import get_colormap
 
 
 def _build_arg_parser():
