@@ -21,6 +21,7 @@ import six
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.utils.util import RAS_AXES_NAMES
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -32,8 +33,6 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'config', 'miter', 'lambda', 'ssqlambda', 'regmod', 'estmov',
                  "minmet", 'splineorder', 'numprec', 'interp', 'scale',
                  'regrid']
-
-axis_name_choices = ["axial", "coronal", "sagittal"]
 
 
 def get_acq_parameters(json_path, args_list):
@@ -415,7 +414,7 @@ def add_nifti_screenshot_default_args(
         "--volume_cmap_name", default=None,
         help="Colormap name for the volume image data. [%(default)s]")
     parser.add_argument(
-        "--axis_name", default="axial", type=str, choices=axis_name_choices,
+        "--axis_name", default="axial", type=str, choices=RAS_AXES_NAMES,
         help="Name of the axis to visualize. [%(default)s]")
     parser.add_argument(
         "--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"), default=(768, 768),

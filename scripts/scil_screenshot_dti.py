@@ -26,6 +26,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
+from scilpy.utils.util import RAS_AXES_NAMES, get_axis_name
 from scilpy.viz.legacy import display_slices
 
 
@@ -150,7 +151,7 @@ def main():
     assert_inputs_exist(parser, required)
 
     output_filenames = []
-    for axis_name in ['sagittal', 'coronal', 'axial']:
+    for axis_name in RAS_AXES_NAMES:
         if args.out_suffix:
             output_filenames.append(os.path.join(args.out_dir,
                                                  '{0}_{1}.png'.format(
@@ -194,17 +195,17 @@ def main():
     # Take a snapshot of each dataset, camera setting are fixed for the
     # known template, won't work with another.
     display_slices(volume_actor, slices_choice,
-                   output_filenames[0], 'sagittal',
+                   output_filenames[0], get_axis_name(0),
                    view_position=tuple([x for x in (-125, 10, 10)]),
                    focal_point=tuple([x for x in (0, -10, 10)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[1], 'coronal',
+                   output_filenames[1], get_axis_name(1),
                    view_position=tuple([x for x in (0, 150, 30)]),
                    focal_point=tuple([x for x in (0, 0, 30)]),
                    peaks_actor=peaks_actor)
     display_slices(volume_actor, slices_choice,
-                   output_filenames[2], 'axial',
+                   output_filenames[2], get_axis_name(2),
                    view_position=tuple([x for x in (0, 25, 150)]),
                    focal_point=tuple([x for x in (0, 25, 0)]),
                    peaks_actor=peaks_actor)

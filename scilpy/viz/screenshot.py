@@ -2,6 +2,7 @@
 
 
 from fury import window
+from scilpy.utils.util import get_axis_index
 
 from scilpy.viz.backends.fury import create_scene
 from scilpy.viz.backends.pil import (annotate_scene,
@@ -67,15 +68,9 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
     scene_container : list
         Scene screenshot data container.
     """
+
     scene_container = []
-
-    if axis_name == "axial":
-        ax_idx = 2
-    elif axis_name == "coronal":
-        ax_idx = 1
-    elif axis_name == "sagittal":
-        ax_idx = 0
-
+    ax_idx = get_axis_index(axis_name)
     image_size_2d = list(bin_img.shape)
     image_size_2d[ax_idx] = 1
 
