@@ -168,27 +168,24 @@ def annotate_image(image, slice_number, display_slice_number, display_lr):
         '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
 
     stroke, padding = max(image.width // 200, 1), image.width // 100
-    img = ImageDraw.Draw(image)
+    image = ImageDraw.Draw(image)
 
     if display_slice_number:
-        img.text(
-            (padding, padding), "{}".format(slice_number), (255,255,255),
-            font=font, stroke_width=stroke, stroke_fill=(0, 0, 0)
-        )
+        image.text((padding, padding), "{}".format(slice_number), (255,255,255),
+                   font=font, stroke_width=stroke, stroke_fill=(0, 0, 0))
 
     if display_lr:
         l_text, r_text = "L", "R"
         if display_lr < 0:
             l_text, r_text = r_text, l_text
 
-        img.text(
-            (padding, image.height // 2), l_text, (255,255,255),
-            font=font, anchor="lm", stroke_width=stroke, stroke_fill=(0, 0, 0)
-        )
-        img.text(
-            (image.width - padding, image.height // 2), r_text, (255,255,255),
-            font=font, anchor="rm", stroke_width=stroke, stroke_fill=(0, 0, 0)
-        )
+        image.text((padding, image.height // 2), l_text, (255,255,255),
+                   font=font, anchor="lm",
+                   stroke_width=stroke, stroke_fill=(0, 0, 0))
+        image.text((image.width - padding, image.height // 2),
+                   r_text, (255,255,255),
+                   font=font, anchor="rm",
+                   stroke_width=stroke, stroke_fill=(0, 0, 0))
 
 
 def draw_2d_array_at_position(canvas, array_2d, size,
@@ -234,38 +231,39 @@ def draw_2d_array_at_position(canvas, array_2d, size,
 
     image = create_image_from_2d_array(array_2d, size, lut=vol_lut)
 
-    trans_img = None
+    _transparency = None
     if transparency is not None:
-        trans_img = create_image_from_2d_array(transparency, size, mode="L")
+        _transparency = create_image_from_2d_array(transparency, size, mode="L")
 
-    canvas.paste(image, (left_position, top_position), mask=trans_img)
+    canvas.paste(image, (left_position, top_position), mask=_transparency)
 
     # Draw the labelmap overlay image if any
     if labelmap_overlay is not None:
-        labelmap_img = create_image_from_2d_array(
-            labelmap_overlay, size, lut=labelmap_lut
-        )
+        labelmap = create_image_from_2d_array(labelmap_overlay, size,
+                                              lut=labelmap_lut)
 
         # Create transparency mask over the labelmap overlay image
-        label_mask = labelmap_overlay > 0
+        label_mask = (labelmap_overlay > 0) * labelmap_overlay_alpha
         label_transparency = create_image_from_2d_array(
-            (label_mask * labelmap_overlay_alpha * 255.).astype(np.uint8),
-            size).convert("L")
+            (label_mask * 255.).astype(np.uint8), size).convert("L")
 
-        canvas.paste(labelmap_img, (left_position, top_position), mask=label_transparency)
+        canvas.paste(labelmap, (left_position, top_position),
+                     mask=label_transparency)
 
     # Draw the mask overlay image if any
     if mask_overlay is not None:
         if mask_overlay_color is None:
             # Get a list of distinguishable colors if None are supplied
+            # TODO : Muddles PIL with fury. Maybe another way to get colors
             mask_overlay_color = generate_n_colors(len(mask_overlay))
 
         for img, color in zip(mask_overlay, mask_overlay_color):
-            overlay_img = create_image_from_2d_array(
+            overlay = create_image_from_2d_array(
                 (img * color).astype(np.uint8), size, "RGB")
 
             # Create transparency mask over the mask overlay image
-            overlay_trans = create_image_from_2d_array(
+            overlay_transparency = create_image_from_2d_array(
                 (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
 
-            canvas.paste(overlay_img, (left_position, top_position), mask=overlay_trans)
+            canvas.paste(overlay, (left_position, top_position),
+                         mask=overlay_transparency)
