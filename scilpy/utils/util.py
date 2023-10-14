@@ -4,8 +4,96 @@ import collections.abc
 
 from dipy.io.utils import get_reference_info
 from dipy.segment.mask import bounding_box
+import nibabel.orientations as ornt
 import numpy as np
 from numpy.lib.index_tricks import r_ as row
+
+
+RAS_AXES_NAMES = ["sagittal", "coronal", "axial"]
+RAS_AXES_COORDINATES = ["x", "y", "z"]
+RAS_AXES_BASIS_VECTORS = ["i", "j", "k"]
+
+
+def get_axis_name(axis_index, affine=np.eye(4)):
+    """
+    Get the axis name related to a given index (see RAS_AXES_NAMES)
+
+    Parameters
+    ----------
+    axis_index : int
+        Index of the axis.
+    affine : np.array, optional
+        An affine used to compute axis reordering from RAS.
+    """
+    _ornt = ornt.io_orientation(affine)
+    return RAS_AXES_NAMES[_ornt[axis_index, 0]]
+
+
+def get_coordinate_name(axis_index, affine=np.eye(4)):
+    """
+    Get the axis name related to a given index (see RAS_AXES_NAMES)
+
+    Parameters
+    ----------
+    axis_index : int
+        Index of the axis.
+    affine : np.array, optional
+        An affine used to compute axis reordering from RAS.
+    """
+    _ornt = ornt.io_orientation(affine)
+    _sign = "" if _ornt[axis_index, 1] > 0 else "-"
+    return RAS_AXES_COORDINATES[_ornt[axis_index, 0]] + _sign
+
+
+def get_basis_vector_name(axis_index, affine=np.eye(4)):
+    """
+    Get the axis name related to a given index (see RAS_AXES_NAMES)
+
+    Parameters
+    ----------
+    axis_index : int
+        Index of the axis.
+    affine : np.array, optional
+        An affine used to compute axis reordering from RAS.
+    """
+    _ornt = ornt.io_orientation(affine)
+    _sign = "" if _ornt[axis_index, 1] > 0 else "-"
+    return RAS_AXES_BASIS_VECTORS[_ornt[axis_index, 0]] + _sign
+
+
+def get_axis_index(axis, affine=np.eye(4)):
+    """
+    Get the axis index (or position) in the image from the axis, coordinate or 
+    basis vector name.
+
+    Parameters
+    ----------
+    axis : str
+        Either an axis name (see RAS_AXES_NAMES), a coordinate name 
+        (see RAS_AXES_COORDINATES) or a basis vector name 
+        (see RAS_AXES_BASIS_VECTORS).
+    affine : np.array, optional
+        An affine used to compute axis reordering from RAS.
+    Returns
+    -------
+    axis_index : int
+        Index of the axis.
+    """
+    _cmp, _ax = None, axis.lower()
+    if _ax in RAS_AXES_NAMES:
+        _cmp = RAS_AXES_NAMES
+    elif _ax in RAS_AXES_COORDINATES:
+        _cmp = RAS_AXES_COORDINATES
+        _ax = _ax if len(_ax) == 1 else _ax[0]
+    elif _ax in RAS_AXES_BASIS_VECTORS:
+        _cmp = RAS_AXES_BASIS_VECTORS
+        _ax = _ax if len(_ax) == 1 else _ax[0]
+    else:
+        raise ValueError("Name does not correspond to any axis, coordinate "
+                         "or basis vector name : {}".format(axis))
+
+    _ornt = ornt.io_orientation(affine)
+    return _cmp[_ornt[:, 0]].index(_ax)
 
 
 def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):

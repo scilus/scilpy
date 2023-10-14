@@ -5,6 +5,7 @@ import numpy as np
 from fury import window
 
 from scilpy.io.utils import snapshot
+from scilpy.utils.util import get_axis_index
 from scilpy.viz.backends.pil import (create_canvas,
                                      draw_scene_at_pos,
                                      rgb2gray4pil)
@@ -42,45 +43,25 @@ def initialize_camera(orientation, slice_index, volume_shape):
     # heuristic for setting the camera position at a distance
     # proportional to the scale of the scene
     eye_distance = max(volume_shape)
-    if orientation == 'sagittal':
-        if slice_index is None:
-            slice_index = volume_shape[0] // 2
-        camera[CamParams.VIEW_POS] = np.array([-eye_distance,
-                                               (volume_shape[1] - 1) / 2.0,
-                                               (volume_shape[2] - 1) / 2.0])
-        camera[CamParams.VIEW_CENTER] = np.array([slice_index,
-                                                  (volume_shape[1] - 1) / 2.0,
-                                                  (volume_shape[2] - 1) / 2.0])
-        camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
-        # Tighten the view around the data
-        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[1:])
-    elif orientation == 'coronal':
-        if slice_index is None:
-            slice_index = volume_shape[1] // 2
-        camera[CamParams.VIEW_POS] = np.array([(volume_shape[0] - 1) / 2.0,
-                                               eye_distance,
-                                               (volume_shape[2] - 1) / 2.0])
-        camera[CamParams.VIEW_CENTER] = np.array([(volume_shape[0] - 1) / 2.0,
-                                                  slice_index,
-                                                  (volume_shape[2] - 1) / 2.0])
-        camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
-        # Tighten the view around the data
-        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(
-            [volume_shape[0], volume_shape[2]])
-    elif orientation == 'axial':
-        if slice_index is None:
-            slice_index = volume_shape[2] // 2
-        camera[CamParams.VIEW_POS] = np.array([(volume_shape[0] - 1) / 2.0,
-                                               (volume_shape[1] - 1) / 2.0,
-                                               -eye_distance])
-        camera[CamParams.VIEW_CENTER] = np.array([(volume_shape[0] - 1) / 2.0,
-                                                  (volume_shape[1] - 1) / 2.0,
-                                                  slice_index])
+    ax_idx = get_axis_index(orientation)
+
+    if slice_index is None:
+        slice_index = volume_shape[ax_idx] // 2
+
+    view_pos_sign = [-1.0, 1.0, -1.0]
+    camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
+    camera[CamParams.VIEW_POS][ax_idx] = view_pos_sign[ax_idx] * eye_distance
+
+    camera[CamParams.VIEW_CENTER] = 0.5 * (np.array(volume_shape) - 1.0)
+    camera[CamParams.VIEW_CENTER][ax_idx] = slice_index
+
+    camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
+    if ax_idx == 2:
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
-        # Tighten the view around the data
-        camera[CamParams.ZOOM_FACTOR] = 2.0 / max(volume_shape[:2])
-    else:
-        raise ValueError('Invalid axis name: {0}'.format(orientation))
+
+    camera[CamParams.ZOOM_FACTOR] = 2.0 / \
+        min(np.delete(volume_shape, ax_idx, 0))
+
     return camera
 
 
@@ -99,26 +80,15 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     slice_index : int
         Index of the slice to visualize along the chosen orientation.
     """
-    if orientation == 'sagittal':
-        if slice_index is None:
-            slice_index = volume_shape[0] // 2
-        slicer_actor.display_extent(slice_index, slice_index,
-                                    0, volume_shape[1],
-                                    0, volume_shape[2])
-    elif orientation == 'coronal':
-        if slice_index is None:
-            slice_index = volume_shape[1] // 2
-        slicer_actor.display_extent(0, volume_shape[0],
-                                    slice_index, slice_index,
-                                    0, volume_shape[2])
-    elif orientation == 'axial':
-        if slice_index is None:
-            slice_index = volume_shape[2] // 2
-        slicer_actor.display_extent(0, volume_shape[0],
-                                    0, volume_shape[1],
-                                    slice_index, slice_index)
-    else:
-        raise ValueError('Invalid axis name : {0}'.format(orientation))
+
+    ax_idx = get_axis_index(orientation)
+    extents = np.vstack(([0., 0., 0.], volume_shape)).T.flatten()
+
+    if slice_index is None:
+        slice_index = volume_shape[ax_idx] // 2
+
+    extents[2 * ax_idx:2 * ax_idx + 2] = slice_index
+    slicer_actor.display_extent(*extents)
 
 
 def create_scene(actors, orientation, slice_index,

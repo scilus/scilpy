@@ -37,6 +37,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.image.volume_operations import register_image
+from scilpy.utils.util import RAS_AXES_NAMES, get_axis_name
 from scilpy.viz.legacy import display_slices
 from scilpy.viz.backends.pil import get_colormap
 
@@ -161,7 +162,7 @@ def main():
 
     output_filenames_3d = []
     output_filenames_glass = []
-    for axis_name in ['sagittal', 'coronal', 'axial']:
+    for axis_name in RAS_AXES_NAMES:
         if args.output_suffix:
             output_filenames_3d.append(os.path.join(args.out_dir,
                                                     '{0}_{1}_3d.png'.format(
@@ -271,19 +272,19 @@ def main():
     else:
         side_pos = (-300, 10, 10)
     display_slices(volume_actor, slices_choice,
-                   output_filenames_3d[0], 'sagittal',
+                   output_filenames_3d[0], get_axis_name(0),
                    view_position=tuple([x for x in side_pos]),
                    focal_point=tuple([x for x in (0, -10, 10)]),
                    streamlines_actor=streamlines_actor,
                    roi_actors=roi_actors)
     display_slices(volume_actor, slices_choice,
-                   output_filenames_3d[1], 'coronal',
+                   output_filenames_3d[1], get_axis_name(1),
                    view_position=tuple([x for x in (0, -300, 15)]),
                    focal_point=tuple([x for x in (0, 0, 15)]),
                    streamlines_actor=streamlines_actor,
                    roi_actors=roi_actors)
     display_slices(volume_actor, slices_choice,
-                   output_filenames_3d[2], 'axial',
+                   output_filenames_3d[2], get_axis_name(2),
                    view_position=tuple([x for x in (0, -15, 350)]),
                    focal_point=tuple([x for x in (0, -15, 0)]),
                    streamlines_actor=streamlines_actor,

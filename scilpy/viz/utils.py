@@ -4,12 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 
-
-RAS_AXES = {
-    "sagittal": 0,
-    "coronal": 1,
-    "axial": 2
-}
+from scilpy.utils.util import get_axis_index
 
 
 def affine_from_offset(orientation, offset):
@@ -29,17 +24,10 @@ def affine_from_offset(orientation, offset):
     affine : np.ndarray
         The affine transformation.
     """
-    if orientation == 'sagittal':
-        v = np.array([offset, 0.0, 0.0])
-    elif orientation == 'coronal':
-        v = np.array([0.0, -offset, 0.0])
-    elif orientation == 'axial':
-        v = np.array([0.0, 0.0, offset])
-    else:
-        raise ValueError('Invalid axis name : {0}'.format(orientation))
 
+    offset_flip, ax_idx = [1., -1., 1.], get_axis_index(orientation)
     affine = np.identity(4)
-    affine[0:3, 3] = v
+    affine[ax_idx, 3] = offset_flip[ax_idx] * offset
     return affine
 
 

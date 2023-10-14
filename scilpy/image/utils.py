@@ -6,6 +6,8 @@ import nibabel as nib
 import numpy as np
 from sklearn.cluster import KMeans
 
+from scilpy.utils.util import RAS_AXES_NAMES, get_axis_index
+
 
 def volume_iterator(img, blocksize=1, start=0, end=0):
     """Generator that iterates on volumes of data.
@@ -82,18 +84,13 @@ def check_slice_indices(vol_img, axis_name, slice_ids):
         Slice indices.
     """
 
-    shape = vol_img.shape
-    if axis_name == "axial":
-        idx = 2
-    elif axis_name == "coronal":
-        idx = 1
-    elif axis_name == "sagittal":
-        idx = 0
-    else:
+    if axis_name not in RAS_AXES_NAMES:
         raise NotImplementedError(
             f"Unsupported axis name:\n"
-            f"Found: {axis_name}; Available: axial, coronal, sagittal")
+            f"Found: {axis_name}; Available: {RAS_AXES_NAMES.join(', ')}")
 
+    shape = vol_img.shape
+    idx = get_axis_index(axis_name)
     _slice_ids = list(filter(lambda x: x > shape[idx], slice_ids))
     if _slice_ids:
         raise ValueError(

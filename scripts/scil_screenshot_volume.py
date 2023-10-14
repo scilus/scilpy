@@ -79,10 +79,10 @@ from scilpy.io.utils import (
     assert_inputs_exist
 )
 from scilpy.image.utils import check_slice_indices
+from scilpy.utils.util import get_axis_index
 from scilpy.viz.screenshot import (compose_mosaic,
                                    screenshot_volume,
                                    screenshot_contour)
-from scilpy.viz.utils import RAS_AXES
 
 
 def _build_arg_parser():
@@ -135,7 +135,8 @@ def main():
         check_slice_indices(vol_img, args.axis_name, args.slice_ids)
         slice_ids = args.slice_ids
     else:
-        slice_ids = np.arange(vol_img.shape[RAS_AXES[args.axis_name]])
+        ax_idx = get_axis_index(args.axis_name)
+        slice_ids = np.arange(vol_img.shape[ax_idx])
 
     # Generate the image slices
     vol_scene_container = screenshot_volume(

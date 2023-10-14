@@ -30,6 +30,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              parse_sh_basis_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
+from scilpy.utils.util import RAS_AXES_NAMES
 from scilpy.viz.backends.fury import create_scene, render_scene
 from scilpy.viz.slice import (create_odf_slicer,
                               create_peaks_slicer,
@@ -58,7 +59,7 @@ def _build_arg_parser():
                         '[%(default)s]')
 
     p.add_argument('--axis_name', default='axial', type=str,
-                   choices={'axial', 'coronal', 'sagittal'},
+                   choices=RAS_AXES_NAMES,
                    help='Name of the axis to visualize. [%(default)s]')
 
     p.add_argument('--silent', action='store_true',
