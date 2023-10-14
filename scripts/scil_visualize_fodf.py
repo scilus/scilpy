@@ -31,7 +31,12 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_headers_compatible)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.utils.util import RAS_AXES_NAMES
-from scilpy.viz.backends.fury import create_scene, render_scene
+# TODO: There should not be as less backend in scripts as possible
+from scilpy.viz.backends.fury import (create_interactive_window,
+                                      create_scene,
+                                      snapshot_scenes)
+from scilpy.viz.backends.pil import rgb2gray4pil
+from scilpy.viz.screenshot import compose_image
 from scilpy.viz.slice import (create_odf_slicer,
                               create_peaks_slicer,
                               create_texture_slicer)
@@ -351,8 +356,20 @@ def main():
             args.bg_color,
         )
 
-    render_scene(scene, args.win_dims, args.interactor,
-                 args.output, args.silent, mask_scene=mask_scene)
+    # TODO : fuse with visualize bingham fit and export to viz module
+    if not args.silent:
+        create_interactive_window(
+            scene, args.win_dims, args.interactor)
+
+    if args.output:
+        snapshots = snapshot_scenes([scene, mask_scene], args.win_dims)
+        _mask_arr = rgb2gray4pil(snapshots[1])
+        image = compose_image(snapshots[0],
+                              args.win_dims,
+                              args.slice_index,
+                              mask_overlay_scene=_mask_arr)
+
+        image.save(args.output)
 
 
 if __name__ == '__main__':

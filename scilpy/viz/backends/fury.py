@@ -3,12 +3,10 @@
 from enum import Enum
 import numpy as np
 from fury import window
+from fury.colormap import distinguishable_colormap
+from fury.utils import numpy_to_vtk_colors
 
-from scilpy.io.utils import snapshot
 from scilpy.utils.util import get_axis_index
-from scilpy.viz.backends.pil import (create_canvas,
-                                     draw_scene_at_pos,
-                                     rgb2gray4pil)
 
 
 class CamParams(Enum):
@@ -134,7 +132,7 @@ def create_scene(actors, orientation, slice_index,
     return scene
 
 
-def create_interactive_window(scene, window_size, interactor, title, 
+def create_interactive_window(scene, window_size, interactor, title="Viewer", 
                               open_window=True):
     """
     Create a 3D window with the content of scene, equiped with an interactor.
@@ -165,48 +163,5 @@ def create_interactive_window(scene, window_size, interactor, title,
     return showm
 
 
-def render_scene(scene, window_size, interactor,
-                 output, silent, mask_scene=None, title='Viewer'):
-    """
-    Render a scene. If a output is supplied, a snapshot of the rendered
-    scene is taken. If a mask is supplied, all values outside the mask are set
-    to full transparency in the saved scene.
-
-    Parameters
-    ----------
-    scene : window.Scene()
-        3D scene to render.
-    window_size : tuple (width, height)
-        The dimensions for the vtk window.
-    interactor : str
-        Specify interactor mode for vtk window. Choices are image or trackball.
-    output : str
-        Path to output file.
-    silent : bool
-        If True, disable interactive visualization.
-    mask_scene : window.Scene(), optional
-        Transparency mask scene.
-    title : str, optional
-        Title of the scene. Defaults to Viewer.
-    """
-    if not silent:
-        create_interactive_window(scene, window_size, interactor, title)
-
-    if output:
-        if mask_scene is not None:
-            # Create the screenshots
-            scene_arr = window.snapshot(scene, size=window_size)
-            mask_scene_arr = window.snapshot(mask_scene, size=window_size)
-            # Create the target image
-            out_img = create_canvas(*window_size, 0, 0, 1, 1)
-            # Convert the mask scene data to grayscale and adjust for handling
-            # with Pillow
-            _mask_arr = rgb2gray4pil(mask_scene_arr)
-            # Create the masked image
-            draw_scene_at_pos(
-                out_img, scene_arr, window_size, 0, 0, mask=_mask_arr
-            )
-
-            out_img.save(output)
-        else:
-            snapshot(scene, output, size=window_size)
+def snapshot_scenes(scenes, window_size):
+    return [window.snapshot(scene, size=window_size) for scene in scenes]

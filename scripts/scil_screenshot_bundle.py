@@ -39,7 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.image.volume_operations import register_image
 from scilpy.utils.util import RAS_AXES_NAMES, get_axis_name
 from scilpy.viz.legacy import display_slices
-from scilpy.viz.backends.pil import get_colormap
+from scilpy.viz.color import get_colormap
 
 
 def _build_arg_parser():

@@ -21,7 +21,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.util import RAS_AXES_NAMES, get_axis_index
-from scilpy.viz.backends.fury import create_scene, render_scene
+# TODO: There should not be as less backend in scripts as possible
+from scilpy.viz.backends.fury import create_interactive_window, create_scene, snapshot_scenes
+from scilpy.viz.screenshot import compose_image
 from scilpy.viz.slice import create_bingham_slicer
 
 
@@ -128,8 +130,19 @@ def main():
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
                          data.shape[:3])
-    render_scene(scene, args.win_dims, args.interactor,
-                 args.output, args.silent)
+
+    # TODO : fuse with visualize fodf and export to viz module
+    if not args.silent:
+        create_interactive_window(
+            scene, args.win_dims, args.interactor)
+
+    if args.output:
+        snapshots = snapshot_scenes([scene], args.win_dims)
+        image = compose_image(snapshots[0],
+                              args.win_dims,
+                              args.slice_index)
+
+        image.save(args.output)
 
 
 if __name__ == '__main__':

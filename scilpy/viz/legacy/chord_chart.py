@@ -11,7 +11,7 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
 
-from scilpy.viz.backends.pil import get_colormap
+from scilpy.viz.color import get_colormap
 
 
 def polar2xy(r, theta):
