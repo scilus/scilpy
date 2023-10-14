@@ -35,7 +35,7 @@ from scilpy.utils.util import RAS_AXES_NAMES
 from scilpy.viz.backends.fury import (create_interactive_window,
                                       create_scene,
                                       snapshot_scenes)
-from scilpy.viz.backends.pil import rgb2gray4pil
+from scilpy.viz.backends.pil import any2grayscale
 from scilpy.viz.screenshot import compose_image
 from scilpy.viz.slice import (create_odf_slicer,
                               create_peaks_slicer,
@@ -363,7 +363,7 @@ def main():
 
     if args.output:
         snapshots = snapshot_scenes([scene, mask_scene], args.win_dims)
-        _mask_arr = rgb2gray4pil(snapshots[1])
+        _mask_arr = any2grayscale(snapshots[1])
         image = compose_image(snapshots[0],
                               args.win_dims,
                               args.slice_index,

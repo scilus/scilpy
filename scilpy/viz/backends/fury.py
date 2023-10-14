@@ -41,24 +41,25 @@ def initialize_camera(orientation, slice_index, volume_shape):
     # heuristic for setting the camera position at a distance
     # proportional to the scale of the scene
     eye_distance = max(volume_shape)
-    ax_idx = get_axis_index(orientation)
+    axis_index = get_axis_index(orientation)
 
     if slice_index is None:
-        slice_index = volume_shape[ax_idx] // 2
+        slice_index = volume_shape[axis_index] // 2
 
     view_pos_sign = [-1.0, 1.0, -1.0]
     camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
-    camera[CamParams.VIEW_POS][ax_idx] = view_pos_sign[ax_idx] * eye_distance
+    camera[CamParams.VIEW_POS][axis_index] = (
+        view_pos_sign[axis_index] * eye_distance)
 
     camera[CamParams.VIEW_CENTER] = 0.5 * (np.array(volume_shape) - 1.0)
-    camera[CamParams.VIEW_CENTER][ax_idx] = slice_index
+    camera[CamParams.VIEW_CENTER][axis_index] = slice_index
 
     camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
-    if ax_idx == 2:
+    if axis_index == 2:
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
 
     camera[CamParams.ZOOM_FACTOR] = 2.0 / \
-        min(np.delete(volume_shape, ax_idx, 0))
+        min(np.delete(volume_shape, axis_index, 0))
 
     return camera
 
@@ -79,18 +80,18 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
         Index of the slice to visualize along the chosen orientation.
     """
 
-    ax_idx = get_axis_index(orientation)
+    axis_index = get_axis_index(orientation)
     extents = np.vstack(([0., 0., 0.], volume_shape)).T.flatten()
 
     if slice_index is None:
-        slice_index = volume_shape[ax_idx] // 2
+        slice_index = volume_shape[axis_index] // 2
 
-    extents[2 * ax_idx:2 * ax_idx + 2] = slice_index
+    extents[2 * axis_index:2 * axis_index + 2] = slice_index
     slicer_actor.display_extent(*extents)
 
 
-def create_scene(actors, orientation, slice_index,
-                 volume_shape, bg_color=(0, 0, 0)):
+def create_scene(actors, orientation, slice_index, volume_shape,
+                 bg_color=(0, 0, 0)):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -126,14 +127,14 @@ def create_scene(actors, orientation, slice_index,
     scene.zoom(camera[CamParams.ZOOM_FACTOR])
 
     # Add actors to the scene
-    for curr_actor in actors:
-        scene.add(curr_actor)
+    for _actor in actors:
+        scene.add(_actor)
 
     return scene
 
 
-def create_interactive_window(scene, window_size, interactor, title="Viewer", 
-                              open_window=True):
+def create_interactive_window(scene, window_size, interactor,
+                              title="Viewer", open_window=True):
     """
     Create a 3D window with the content of scene, equiped with an interactor.
 
@@ -164,4 +165,7 @@ def create_interactive_window(scene, window_size, interactor, title="Viewer",
 
 
 def snapshot_scenes(scenes, window_size):
+    """
+    Snapshot a list of scenes inside a window of given size
+    """
     return [window.snapshot(scene, size=window_size) for scene in scenes]
