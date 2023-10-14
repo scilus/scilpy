@@ -130,7 +130,7 @@ def create_scene(actors, orientation, slice_index,
 
     Parameters
     ----------
-    actors : tab
+    actors : list of actor
         Ensemble of actors from Fury
     orientation : str
         Name of the axis to visualize. Choices are axial, coronal and sagittal.
@@ -164,6 +164,37 @@ def create_scene(actors, orientation, slice_index,
     return scene
 
 
+def create_interactive_window(scene, window_size, interactor, title, 
+                              open_window=True):
+    """
+    Create a 3D window with the content of scene, equiped with an interactor.
+
+    Parameters
+    ----------
+    scene : window.Scene()
+        Object from Fury containing the 3D scene.
+    window_size : tuple (width, height)
+        The dimensions for the vtk window.
+    interactor : str
+        Specify interactor mode for vtk window. Choices are image or trackball.
+    title : str, optional
+        Title of the scene. Defaults to Viewer.
+    open_window : bool, optional
+        When true, initializes the interactor and opens the window 
+        (This suspends the current thread).
+    """
+    showm = window.ShowManager(scene, title=title,
+                               size=window_size,
+                               reset_camera=False,
+                               interactor_style=interactor)
+
+    if open_window:
+        showm.initialize()
+        showm.start()
+
+    return showm
+
+
 def render_scene(scene, window_size, interactor,
                  output, silent, mask_scene=None, title='Viewer'):
     """
@@ -189,13 +220,7 @@ def render_scene(scene, window_size, interactor,
         Title of the scene. Defaults to Viewer.
     """
     if not silent:
-        showm = window.ShowManager(scene, title=title,
-                                   size=window_size,
-                                   reset_camera=False,
-                                   interactor_style=interactor)
-
-        showm.initialize()
-        showm.start()
+        create_interactive_window(scene, window_size, interactor, title)
 
     if output:
         if mask_scene is not None:

@@ -10,7 +10,7 @@ from scilpy.viz.backends.pil import (annotate_scene,
                                      rgb2gray4pil)
 from scilpy.viz.backends.vtk import contour_actor_from_image
 from scilpy.viz.utils import compute_cell_topleft_pos
-from scilpy.viz.volume_slicing import create_texture_slicer
+from scilpy.viz.slice import create_texture_slicer
 
 
 def screenshot_volume(img, axis_name, slice_ids, size):
