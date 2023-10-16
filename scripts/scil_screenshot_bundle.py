@@ -36,7 +36,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.image import register_image
+from scilpy.image.volume_operations import register_image
 from scilpy.viz.screenshot import display_slices
 from scilpy.viz.utils import get_colormap
 
