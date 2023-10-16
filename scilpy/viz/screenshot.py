@@ -39,7 +39,7 @@ def screenshot_volume(img, axis_name, slice_ids, size):
     for idx in slice_ids:
 
         slice_actor = create_texture_slicer(
-            img.get_fdata(), axis_name, idx, offset=0.0
+            img.dataobj, axis_name, idx, offset=0.0
         )
         scene = create_scene([slice_actor], axis_name, idx, img.shape)
         scene_arr = window.snapshot(scene, size=size)
@@ -76,7 +76,7 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
 
     for idx in slice_ids:
         actor = create_contours_slicer(
-            bin_img.get_fdata(), [1.], ax_idx, idx, color=[255, 255, 255])
+            bin_img.dataobj, [1.], ax_idx, idx, color=[255, 255, 255])
 
         scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)

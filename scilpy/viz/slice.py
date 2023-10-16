@@ -51,10 +51,9 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
         texture[np.where(mask == 0)] = 0
 
     if value_range:
-        texture = np.clip((texture - value_range[0]) / value_range[1] * 255,
-                          0, 255)
+        value_range = np.clip(value_range, texture.min(), texture.max())
 
-    slicer_actor = actor.slicer(texture, affine=affine,
+    slicer_actor = actor.slicer(texture, affine=affine, value_range=value_range,
                                 opacity=opacity, interpolation=interpolation)
 
     set_display_extent(slicer_actor, orientation, texture.shape, slice_index)
