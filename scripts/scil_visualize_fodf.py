@@ -285,14 +285,13 @@ def main():
     var_color = np.asarray(args.var_color) * 255
     # Instantiate the ODF slicer actor
     odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
-                                             args.slice_index, mask, sph,
-                                             args.sph_subdivide, sh_order,
-                                             sh_basis, full_basis,
-                                             args.scale,
+                                             args.slice_index, sph, sh_order,
+                                             sh_basis, full_basis, 
+                                             args.scale, variance, mask, 
+                                             args.sph_subdivide,
                                              not args.radial_scale_off,
                                              not args.norm_off,
                                              args.colormap or color_rgb,
-                                             sh_variance=variance,
                                              variance_k=args.variance_k,
                                              variance_color=var_color,
                                              is_legacy=is_legacy)

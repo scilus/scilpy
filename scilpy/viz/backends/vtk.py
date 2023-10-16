@@ -1,6 +1,6 @@
 import numpy as np
 # TODO : Using fury in the VTK backend. Maybe a code split to make here
-from fury.utils import get_actor_from_polydata, numpy_to_vtk_image_data
+from fury.utils import numpy_to_vtk_image_data
 import vtk
 
 
@@ -70,45 +70,27 @@ def create_tube_with_radii(positions, radii, error, error_coloring=False,
     return actor
 
 
-def contour_actor_from_image(
-    img, axis, slice_index,
-    contour_value=1.,
-    color=[255, 0, 0],
-    opacity=1.,
-    linewidth=3.,
-    smoothing_radius=0.
-):
+def contours_from_data(data, contour_values=[1.], smoothing_radius=0.):
     """
-    Get an isocontour actor from an image slice, at a defined value.
+    Get isocontour polydata from an array, at defined values.
 
     Parameters
     ----------
-    img : Nifti1Image
-        Nifti volume (mask, binary image, labels).
-    slice_index : int
-        Index of the slice to visualize along the chosen orientation.
-    axis : int
-        Slicing axis
-    contour_values : float
+    data : np.ndarray
+        N-dimensional array of data (mask, binary image, labels).
+    contour_values : list, optional
         Values at which to extract isocontours.
-    color : tuple, list of int
-        Color of the contour in RGB [0, 255].
-    opacity: float
-        Opacity of the contour.
-    linewidth : float
-        Thickness of the contour line.
     smoothing_radius : float
         Pre-smoothing to apply to the image before 
         computing the contour (in pixels).
 
     Returns
     -------
-    actor : vtkActor
-        Actor for the contour polydata.
+    contours : vtkPolyData
+       Contours polydata.
     """
 
-    mask_data = numpy_to_vtk_image_data(
-        np.rot90(img.get_fdata().take([slice_index], axis).squeeze()))
+    mask_data = numpy_to_vtk_image_data(data)
     mask_data.SetOrigin(0, 0, 0)
 
     if smoothing_radius > 0:
@@ -121,23 +103,10 @@ def contour_actor_from_image(
 
     marching_squares = vtk.vtkMarchingSquares()
     marching_squares.SetInputData(mask_data)
-    marching_squares.SetValue(0, contour_value)
+
+    marching_squares.SetNumberOfContours(len(contour_values))
+    for i, value in enumerate(contour_values):
+        marching_squares.SetValue(i, value)
     marching_squares.Update()
 
-    actor = get_actor_from_polydata(marching_squares.GetOutput())
-    actor.GetMapper().ScalarVisibilityOff()
-    actor.GetProperty().SetLineWidth(linewidth)
-    actor.GetProperty().SetColor(color)
-    actor.GetProperty().SetOpacity(opacity)
-
-    position =[0, 0, 0]
-    position[axis] = slice_index
-
-    if axis == 0:
-        actor.SetOrientation(90, 0, 90)
-    elif axis == 1:
-        actor.SetOrientation(90, 0, 0)
-
-    actor.SetPosition(*position)
-
-    return actor
+    return marching_squares.GetOutput()
