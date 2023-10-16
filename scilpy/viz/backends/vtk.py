@@ -1,5 +1,3 @@
-import numpy as np
-# TODO : Using fury in the VTK backend. Maybe a code split to make here
 from fury.utils import numpy_to_vtk_image_data
 import vtk
 

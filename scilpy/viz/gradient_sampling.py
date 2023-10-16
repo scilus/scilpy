@@ -47,7 +47,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         # TODO : move memmap ODF to more global package, a class or something
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
-        fid, fname = mkstemp(suffix='_odf_slicer.mmap')
+        _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
         odfs[:] = 1
         odfs[..., 0] = 1

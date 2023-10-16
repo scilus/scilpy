@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from fury.colormap import distinguishable_colormap
+from fury.utils import numpy_to_vtk_colors
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 
 from scilpy.viz.backends.vtk import get_color_by_name
-from scilpy.viz.backends.fury import (distinguishable_colormap,
-                                      numpy_to_vtk_colors)
 
 
 def convert_color_names_to_rgb(names):

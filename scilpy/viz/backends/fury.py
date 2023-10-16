@@ -3,8 +3,7 @@
 from enum import Enum
 import numpy as np
 from fury import actor, window
-from fury.colormap import distinguishable_colormap
-from fury.utils import get_actor_from_polydata, numpy_to_vtk_colors
+from fury.utils import get_actor_from_polydata
 
 from scilpy.utils.util import get_axis_index
 
