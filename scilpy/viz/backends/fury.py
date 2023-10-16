@@ -2,9 +2,9 @@
 
 from enum import Enum
 import numpy as np
-from fury import window
+from fury import actor, window
 from fury.colormap import distinguishable_colormap
-from fury.utils import numpy_to_vtk_colors
+from fury.utils import get_actor_from_polydata, numpy_to_vtk_colors
 
 from scilpy.utils.util import get_axis_index
 
@@ -169,3 +169,103 @@ def snapshot_scenes(scenes, window_size):
     Snapshot a list of scenes inside a window of given size
     """
     return [window.snapshot(scene, size=window_size) for scene in scenes]
+
+
+def create_contours_actor(contours, opacity=1., linewidth=3.,
+                          color=[255, 0, 0]):
+    """
+    Create an actor from a vtkPolyData of contours
+
+    Parameters :
+    ------------
+    contours : vtkPolyData
+        Contours polydata.
+    opacity: float, optional
+        Opacity of the contour.
+    linewidth : float, optional
+        Thickness of the contour line.
+    color : tuple, list of int, optional
+        Color of the contour in RGB [0, 255].
+
+    Returns
+    -------
+    contours_actor : actor.odf_slicer
+        Fury object containing the contours information.
+    """
+
+    contours_actor = get_actor_from_polydata(contours)
+    contours_actor.GetMapper().ScalarVisibilityOff()
+    contours_actor.GetProperty().SetLineWidth(linewidth)
+    contours_actor.GetProperty().SetColor(color)
+    contours_actor.GetProperty().SetOpacity(opacity)
+
+    return contours_actor
+
+
+def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
+                      radial_scale=False, norm=False, colormap=None,
+                      variance_k=1.0, variance_color=None):
+    """
+    Create a ODF slicer actor displaying a fODF slice. The input volume is a
+    3-dimensional grid containing the SH coefficients of the fODF for each
+    voxel at each voxel, with the grid dimension having a size of 1 along the
+    axis corresponding to the selected orientation.
+
+    Parameters
+    ----------
+    sf_fodf : np.ndarray
+        Spherical function of fODF data.
+    sphere: DIPY Sphere
+        Sphere used for visualization.
+    scale : float
+        Scaling factor for FODF.
+    sf_variance : np.ndarray, optional
+        Spherical function of the variance fODF data.
+    mask : np.ndarray, optional
+        Only the data inside the mask will be displayed. Defaults to None.
+    radial_scale : bool, optional
+        If True, enables radial scale for ODF slicer.
+    norm : bool, optional
+        If True, enables normalization of ODF slicer.
+    colormap : str, optional
+        Colormap for the ODF slicer. If None, a RGB colormap is used.
+    variance_k : float, optional
+        Factor that multiplies sqrt(variance).
+    variance_color : tuple, optional
+        Color of the variance fODF data, in RGB.
+
+    Returns
+    -------
+    odf_actor : actor.odf_slicer
+        Fury object containing the odf information.
+    var_actor : actor.odf_slicer
+        Fury object containing the odf variance information.
+    """
+
+    var_actor = None
+    if sf_variance is not None:
+        fodf_uncertainty = sf_fodf + variance_k * np.sqrt(
+            np.clip(sf_variance, 0, None))
+
+        # normalise fodf and variance
+        if norm:
+            maximums = np.abs(np.append(sf_fodf, fodf_uncertainty, axis=-1)) \
+                .max(axis=-1)
+            sf_fodf[maximums > 0] /= maximums[maximums > 0][..., None]
+            fodf_uncertainty[maximums > 0] /= maximums[maximums > 0][..., None]
+
+        var_actor = actor.odf_slicer(fodf_uncertainty, mask=mask, norm=False,
+                                     radial_scale=radial_scale,
+                                     sphere=sphere, scale=scale,
+                                     colormap=variance_color)
+
+        var_actor.GetProperty().SetDiffuse(0.0)
+        var_actor.GetProperty().SetAmbient(1.0)
+        var_actor.GetProperty().SetFrontfaceCulling(True)
+
+    odf_actor = actor.odf_slicer(sf_fodf, mask=mask, norm=False,
+                                 radial_scale=radial_scale,
+                                 sphere=sphere, scale=scale,
+                                 colormap=colormap)
+
+    return odf_actor, var_actor

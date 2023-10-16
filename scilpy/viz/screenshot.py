@@ -9,10 +9,9 @@ from scilpy.viz.backends.pil import (annotate_image,
                                      create_canvas,
                                      draw_2d_array_at_position,
                                      any2grayscale)
-from scilpy.viz.backends.vtk import contour_actor_from_image
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.utils import compute_cell_topleft_pos
-from scilpy.viz.slice import create_texture_slicer
+from scilpy.viz.slice import create_texture_slicer, create_contours_slicer
 
 
 def screenshot_volume(img, axis_name, slice_ids, size):
@@ -76,8 +75,8 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
     image_size_2d[ax_idx] = 1
 
     for idx in slice_ids:
-        actor = contour_actor_from_image(
-            bin_img, ax_idx, idx, color=[255, 255, 255])
+        actor = create_contours_slicer(
+            bin_img.get_fdata(), [1.], ax_idx, idx, color=[255, 255, 255])
 
         scene = create_scene([actor], axis_name, idx, image_size_2d)
         scene_arr = window.snapshot(scene, size=size)
