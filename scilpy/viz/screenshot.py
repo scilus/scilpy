@@ -226,6 +226,11 @@ def compose_mosaic(
     display_lr : bool or int, optional
         If 1 or -1, identifies the left and right sides on the image. -1 flips 
         left and right positions.
+
+    Returns
+    -------
+    mosaic : PIL.Image
+        Canvas containing the mosaic scene.
     """
 
     def _compute_overlap_length(length, _overlap):
