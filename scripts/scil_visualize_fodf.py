@@ -214,22 +214,24 @@ def _get_data_from_inputs(args):
     between the data for mask, background, peaks and fODF.
     """
 
-    fodf = nib.nifti1.load(args.in_fodf).get_fdata(dtype=np.float32)
+    fodf = nib.load(args.in_fodf).dataobj
     data = {'fodf': fodf}
     if args.background:
         assert_same_resolution([args.background, args.in_fodf])
-        bg = nib.nifti1.load(args.background).get_fdata(dtype=np.float32)
+        bg = nib.load(args.background).dataobj
         data['bg'] = bg
     if args.in_transparency_mask:
         transparency_mask = get_data_as_mask(
-            nib.nifti1.load(args.in_transparency_mask), dtype=bool)
+            nib.load(args.in_transparency_mask), dtype=bool
+        )
         data['transparency_mask'] = transparency_mask
     if args.mask:
-        mask = get_data_as_mask(nib.nifti1.load(args.mask), dtype=bool)
+        assert_same_resolution([args.mask, args.in_fodf])
+        mask = get_data_as_mask(nib.load(args.mask), dtype=bool)
         data['mask'] = mask
     if args.peaks:
         assert_same_resolution([args.peaks, args.in_fodf])
-        peaks = nib.nifti1.load(args.peaks).get_fdata(dtype=np.float32)
+        peaks = nib.load(args.peaks).dataobj
         if len(peaks.shape) == 4:
             last_dim = peaks.shape[-1]
             if last_dim % 3 == 0:
@@ -243,11 +245,11 @@ def _get_data_from_inputs(args):
         if args.peaks_values:
             assert_same_resolution([args.peaks_values, args.in_fodf])
             peak_vals =\
-                nib.nifti1.load(args.peaks_values).get_fdata(dtype=np.float32)
+                nib.load(args.peaks_values).dataobj
             data['peaks_values'] = peak_vals
     if args.variance:
         assert_same_resolution([args.variance, args.in_fodf])
-        variance = nib.nifti1.load(args.variance).get_fdata(dtype=np.float32)
+        variance = nib.load(args.variance).dataobj
         if len(variance.shape) == 3:
             variance = np.reshape(variance, variance.shape + (1,))
         if variance.shape != fodf.shape:
@@ -355,7 +357,7 @@ def main():
             args.bg_color,
         )
 
-    # TODO : fuse with visualize bingham fit and export to viz module
+    # TODO : fuse with visualize bingham fit and export to viz module in utils
     if not args.silent:
         create_interactive_window(
             scene, args.win_dims, args.interactor)

@@ -104,7 +104,7 @@ def _get_data_from_inputs(args):
     """
     Load data given by args.
     """
-    bingham = nib.nifti1.load(args.in_bingham).get_fdata(dtype=np.float32)
+    bingham = nib.nifti1.load(args.in_bingham).dataobj
     if not args.slice_index:
         slice_index = bingham.shape[get_axis_index(args.axis_name)] // 2
     else:
@@ -131,7 +131,7 @@ def main():
                          args.slice_index,
                          data.shape[:3])
 
-    # TODO : fuse with visualize fodf and export to viz module
+    # TODO : fuse with visualize fodf and export to viz module utils
     if not args.silent:
         create_interactive_window(
             scene, args.win_dims, args.interactor)
