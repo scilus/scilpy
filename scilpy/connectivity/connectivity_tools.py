@@ -10,7 +10,8 @@ from scipy.cluster import hierarchy
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.stats.matrix_stats import omega_sigma
-from scilpy.tractanalysis.reproducibility_measures import approximate_surface_node
+from scilpy.tractanalysis.reproducibility_measures import \
+    approximate_surface_node
 
 simplefilter("ignore", hierarchy.ClusterWarning)
 
@@ -157,8 +158,8 @@ def evaluate_graph_measures(conn_matrix, len_matrix, avg_node_wise,
 
     gtm_dict['assortativity'] = bct.assortativity_wei(conn_matrix,
                                                       flag=0)
-    gtm_dict['participation'] = func_cast(bct.participation_coef_sign(conn_matrix,
-                                                                      ci)[0])
+    gtm_dict['participation'] = func_cast(bct.participation_coef_sign(
+        conn_matrix, ci)[0])
     gtm_dict['clustering'] = func_cast(bct.clustering_coef_wu(conn_matrix))
 
     gtm_dict['nodal_strength'] = func_cast(bct.strengths_und(conn_matrix))

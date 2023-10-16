@@ -78,9 +78,9 @@ def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
     text = ' paired' if paired else ''
     logging.debug('Performing{} t-test with "{}" hypothesis.'
                   .format(text, tail))
-    logging.debug('Data has dimensions {}x{} with {} and {} observations.'.format(
-        matrix_shape[0], matrix_shape[1],
-        nb_group_g1, nb_group_g2))
+    logging.debug('Data has dimensions {}x{} with {} and {} observations.'
+                  .format(matrix_shape[0], matrix_shape[1],
+                          nb_group_g1, nb_group_g2))
 
     # For conversion to p-values
     if paired:
@@ -94,11 +94,11 @@ def ttest_two_matrices(matrices_g1, matrices_g2, paired, tail, fdr,
             continue
 
         if paired:
-            t_stat = _ttest_paired_stat_only(matrices_g1[ind], matrices_g2[ind],
-                                             tail)
+            t_stat = (_ttest_paired_stat_only(
+                matrices_g1[ind], matrices_g2[ind], tail))
         else:
-            t_stat = _ttest_stat_only(matrices_g1[ind], matrices_g2[ind],
-                                      tail)
+            t_stat = _ttest_stat_only(
+                matrices_g1[ind], matrices_g2[ind], tail)
 
         pval = stats_t.sf(t_stat, dof)
         matrix_pval[ind] = pval if tail == 'both' else pval / 2.0
@@ -165,7 +165,8 @@ def omega_sigma(matrix):
 
         transitivity_rand_list.append(bct.transitivity_wu(random))
         transitivity_latt_list.append(bct.transitivity_wu(lattice))
-        path_length_rand_list.append(float(np.average(bct.distance_wei(random)[0])))
+        path_length_rand_list.append(
+            float(np.average(bct.distance_wei(random)[0])))
 
     transitivity = bct.transitivity_wu(matrix)
     path_length = float(np.average(bct.distance_wei(matrix)[0]))
