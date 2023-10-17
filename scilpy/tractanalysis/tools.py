@@ -18,6 +18,9 @@ def extract_longest_segments_from_profile(strl_indices, atlas_data):
     segments_info: list[dict]
         A list of length 1 with the information dict if , else, an empty list.
     """
+    # toDo. background/wm is defined as label 0 in segmenting func, but should
+    #  be asked to user.
+
     start_label = None
     end_label = None
     start_idx = None
@@ -95,6 +98,8 @@ def compute_connectivity(indices, atlas_data, real_labels, segmenting_func):
             'out_idx': int}
     """
     connectivity = {k: {lab: [] for lab in real_labels} for k in real_labels}
+
+    # toDo. real_labels is not used in segmenting func!
     for strl_idx, strl_vox_indices in enumerate(indices):
         # Managing streamlines out of bound.
         if (np.array(strl_vox_indices) > atlas_data.shape).any():
