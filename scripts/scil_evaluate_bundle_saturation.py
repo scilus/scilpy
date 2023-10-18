@@ -54,38 +54,38 @@ def build_args_parser():
 
     p.add_argument('bundle',
                    help='Path to the bundle file to be analyzed. Must be in a '
-                   'supported format (.trk, .tck, etc.).')
+                        'supported format (.trk, .tck, etc.).')
 
     p.add_argument('--out_dir', default='',
                    help='Directory where all output files will be saved. '
-                   '\nIf not specified, outputs will be saved in the current '
+                        '\nIf not specified, outputs will be saved in the current '
                         'directory.')
     p.add_argument('--out_prefix',
                    help='Prefix for output files. Useful for distinguishing between '
-                   'different runs.')
+                        'different runs.')
 
     p.add_argument('--whole_brain',
                    help='Path to the whole-brain tractogram file.'
-                   '\nProvides a more realistic SATA (Saturation Analysis) sampling.'
+                        '\nProvides a more realistic SATA (Saturation Analysis) sampling.'
                         '\nHighly recommended for comprehensive analysis.')
 
     p2 = p.add_mutually_exclusive_group()
     p2.add_argument('--nb_steps', type=int, default=20,
                     help='Number of steps to perform in the iteration.'
-                    '\nDefines how many different sizes of the tractogram or '
-                    'bundle will be analyzed [%(default)s].')
+                         '\nDefines how many different sizes of the tractogram or '
+                         'bundle will be analyzed [%(default)s].')
     p2.add_argument('--stepping_size', type=int,
                     help='Size of the step for each iteration. '
-                    'For bundles, smaller sizes like 1000 are recommended.'
-                    '\nwhile for whole-brain tractograms, larger sizes like '
-                    '100000 may be more appropriate.')
+                         'For bundles, smaller sizes like 1000 are recommended.'
+                         '\nwhile for whole-brain tractograms, larger sizes like '
+                         '100000 may be more appropriate.')
 
     p.add_argument('--geomspace', action='store_true',
                    help='Use geometric spacing for the steps. '
-                   'This provides higher resolution at smaller sizes.')
+                        'This provides higher resolution at smaller sizes.')
     p.add_argument('--nb_recount', type=int, default=10,
                    help='Number of resamples at each step to average out random '
-                   'sampling variations. Default is 10.')
+                        'sampling variations. Default is 10.')
 
     add_reference_arg(p)
     add_verbose_arg(p)
