@@ -36,6 +36,8 @@ Input:
 - A tractogram file representing a bundle of interest (`bundle` argument).
 - Optionally, a whole-brain tractogram for comprehensive analysis
     (`--whole_brain` argument).
+Both of these (if used) should be extremely dense tractograms, to ensure
+more than enough streamlines are available for sampling.
 
 Output:
 - A JSON file containing metrics such as volume, dice coefficient, entropy,
