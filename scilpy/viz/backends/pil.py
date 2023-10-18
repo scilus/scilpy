@@ -66,7 +66,7 @@ def create_image_from_2d_array(array_2d, size, mode=None, lut=None):
     # Might be solved in newer versions of the package.
     return Image.fromarray(array_2d, mode=mode) \
         .transpose(Image.FLIP_TOP_BOTTOM) \
-        .resize(size, Image.ANTIALIAS)
+        .resize(size, Image.LANCZOS)
 
 
 def create_mask_from_2d_array(array_2d, size, greater_threshold=0):
@@ -129,7 +129,7 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
     return width, height
 
 
-def create_canvas(rows, columns, cell_width, cell_height,
+def create_canvas(cell_width, cell_height, rows, columns,
                   overlap_horiz, overlap_vert):
     """
     Create a canvas for given number of rows and columns, 
@@ -168,6 +168,7 @@ def annotate_image(image, slice_number, display_slice_number, display_lr):
         '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
 
     stroke, padding = max(image.width // 200, 1), image.width // 100
+    width, height = image.width, image.height
     image = ImageDraw.Draw(image)
 
     if display_slice_number:
@@ -179,10 +180,10 @@ def annotate_image(image, slice_number, display_slice_number, display_lr):
         if display_lr < 0:
             l_text, r_text = r_text, l_text
 
-        image.text((padding, image.height // 2), l_text, (255,255,255),
+        image.text((padding, height // 2), l_text, (255,255,255),
                    font=font, anchor="lm",
                    stroke_width=stroke, stroke_fill=(0, 0, 0))
-        image.text((image.width - padding, image.height // 2),
+        image.text((width - padding, height // 2),
                    r_text, (255,255,255),
                    font=font, anchor="rm",
                    stroke_width=stroke, stroke_fill=(0, 0, 0))

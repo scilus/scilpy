@@ -4,7 +4,7 @@
 from fury import window
 from scilpy.utils.util import get_axis_index
 
-from scilpy.viz.backends.fury import create_scene
+from scilpy.viz.backends.fury import create_scene, set_viewport, snapshot_slices
 from scilpy.viz.backends.pil import (annotate_image,
                                      create_canvas,
                                      draw_2d_array_at_position,
@@ -30,22 +30,15 @@ def screenshot_volume(img, axis_name, slice_ids, size):
 
     Returns
     -------
-    scene_container : list
-        Scene screenshot data container.
+    snapshots : generator
+        Scene screenshots generator.
     """
+    print(f"Snaphot of {id(img)}")
+    slice_actor = create_texture_slicer(
+        img.get_fdata(), axis_name, 0, offset=0.0
+    )
 
-    scene_container = []
-
-    for idx in slice_ids:
-
-        slice_actor = create_texture_slicer(
-            img.dataobj, axis_name, idx, offset=0.0
-        )
-        scene = create_scene([slice_actor], axis_name, idx, img.shape)
-        scene_arr = window.snapshot(scene, size=size)
-        scene_container.append(scene_arr)
-
-    return scene_container
+    return snapshot_slices([slice_actor], slice_ids, axis_name, img.shape, size)
 
 
 def screenshot_contour(bin_img, axis_name, slice_ids, size):
@@ -65,24 +58,20 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
 
     Returns
     -------
-    scene_container : list
-        Scene screenshot data container.
+    snapshots : generator
+        Scene screenshots generator.
     """
 
-    scene_container = []
     ax_idx = get_axis_index(axis_name)
     image_size_2d = list(bin_img.shape)
     image_size_2d[ax_idx] = 1
 
     for idx in slice_ids:
         actor = create_contours_slicer(
-            bin_img.dataobj, [1.], ax_idx, idx, color=[255, 255, 255])
-
+            bin_img.get_fdata(), [1.], ax_idx, idx, color=[255, 255, 255])
         scene = create_scene([actor], axis_name, idx, image_size_2d)
-        scene_arr = window.snapshot(scene, size=size)
-        scene_container.append(scene_arr)
 
-    return scene_container
+        yield window.snapshot(scene, size=size)
 
 
 def compose_image(
@@ -148,10 +137,13 @@ def compose_image(
     """
 
     if canvas is None:
-        canvas = create_canvas(*img_size, 0, 0, 1, 1)
+        canvas = create_canvas(*img_size, 1, 1, 0, 0)
 
-    vol_lut = get_lookup_table(vol_cmap_name)
-    labelmap_lut = get_lookup_table(labelmap_cmap_name)
+    vol_lut, labelmap_lut = None, None
+    if vol_cmap_name:
+        vol_lut = get_lookup_table(vol_cmap_name)
+    if labelmap_cmap_name:
+        labelmap_lut = get_lookup_table(labelmap_cmap_name)
 
     draw_2d_array_at_position(
         canvas,

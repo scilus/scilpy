@@ -15,10 +15,11 @@ class CamParams(Enum):
     VIEW_POS = 'view_position'
     VIEW_CENTER = 'view_center'
     VIEW_UP = 'up_vector'
-    ZOOM_FACTOR = 'zoom_factor'
+    ZOOM = 'zoom_factor'
 
 
-def initialize_camera(orientation, slice_index, volume_shape):
+def initialize_camera(orientation, slice_index, volume_shape,
+                      view_angle=np.pi / 6.):
     """
     Initialize a camera for a given orientation.
 
@@ -37,13 +38,13 @@ def initialize_camera(orientation, slice_index, volume_shape):
         Dictionnary containing camera information.
     """
     camera = {}
-    # heuristic for setting the camera position at a distance
-    # proportional to the scale of the scene
-    eye_distance = max(volume_shape)
     axis_index = get_axis_index(orientation)
 
     if slice_index is None:
         slice_index = volume_shape[axis_index] // 2
+
+    remain_axes = np.delete(volume_shape, axis_index, 0)
+    eye_distance = max(remain_axes)
 
     view_pos_sign = [-1.0, 1.0, -1.0]
     camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
@@ -57,8 +58,7 @@ def initialize_camera(orientation, slice_index, volume_shape):
     if axis_index == 2:
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
 
-    camera[CamParams.ZOOM_FACTOR] = 2.0 / \
-        min(np.delete(volume_shape, axis_index, 0))
+    camera[CamParams.ZOOM] = 2.0 / max(remain_axes)
 
     return camera
 
@@ -80,13 +80,40 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     """
 
     axis_index = get_axis_index(orientation)
-    extents = np.vstack(([0., 0., 0.], volume_shape)).T.flatten()
+    extents = np.vstack(([0, 0, 0], volume_shape)).astype(int).T.flatten()
 
     if slice_index is None:
         slice_index = volume_shape[axis_index] // 2
 
     extents[2 * axis_index:2 * axis_index + 2] = slice_index
     slicer_actor.display_extent(*extents)
+
+
+def set_viewport(scene, orientation, slice_index, volume_shape, zoom=True):
+    """
+    Place the camera in the scene to capture the all its 
+    content at a given slice_index.
+
+    Parameters
+    ----------
+    scene : window.Scene()
+        Object from Fury containing the 3D scene.
+    orientation : str
+        Name of the axis to visualize. Choices are axial, coronal and sagittal.
+    slice_index : int
+        Index of the slice to visualize along the chosen orientation.
+    volume_shape : tuple
+        Shape of the sliced volume.
+    """
+
+    camera = initialize_camera(orientation, slice_index, volume_shape)
+    scene.set_camera(position=camera[CamParams.VIEW_POS],
+                     focal_point=camera[CamParams.VIEW_CENTER],
+                     view_up=camera[CamParams.VIEW_UP])
+
+    #current_view_angle = np.pi *  / 180.
+    if zoom:
+        scene.zoom(camera[CamParams.ZOOM])
 
 
 def create_scene(actors, orientation, slice_index, volume_shape,
@@ -114,20 +141,16 @@ def create_scene(actors, orientation, slice_index, volume_shape,
     scene : window.Scene()
         Object from Fury containing the 3D scene.
     """
-    # Configure camera
-    camera = initialize_camera(orientation, slice_index, volume_shape)
 
     scene = window.Scene()
     scene.background(bg_color)
     scene.projection('parallel')
-    scene.set_camera(position=camera[CamParams.VIEW_POS],
-                     focal_point=camera[CamParams.VIEW_CENTER],
-                     view_up=camera[CamParams.VIEW_UP])
-    scene.zoom(camera[CamParams.ZOOM_FACTOR])
 
     # Add actors to the scene
     for _actor in actors:
         scene.add(_actor)
+
+    set_viewport(scene, orientation, slice_index, volume_shape)
 
     return scene
 
@@ -161,6 +184,21 @@ def create_interactive_window(scene, window_size, interactor,
         showm.start()
 
     return showm
+
+
+def snapshot_slices(actors, slice_ids, axis_name, shape, size):
+    """
+    Snapshot a series of slice_ids from a scene on a given axis_name
+    """
+
+    scene = create_scene(actors, axis_name, 0, shape)
+    for idx in slice_ids:
+        for _actor in actors:
+           set_display_extent(_actor, axis_name, shape, idx)
+        
+        set_viewport(scene, axis_name, idx, shape, False)
+        print(f"snapshot at idx : {idx}")
+        yield window.snapshot(scene, size=size)
 
 
 def snapshot_scenes(scenes, window_size):

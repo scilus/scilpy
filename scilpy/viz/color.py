@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from fury.colormap import distinguishable_colormap
-from fury.utils import numpy_to_vtk_colors
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -63,7 +62,7 @@ def generate_n_colors(n, generator=distinguishable_colormap,
     if shuffle:
         np.random.shuffle(_colors)
 
-    return numpy_to_vtk_colors(_colors)
+    return _colors
 
 
 def get_lookup_table(name):
