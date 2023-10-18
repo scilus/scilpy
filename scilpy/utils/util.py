@@ -93,7 +93,7 @@ def get_axis_index(axis, affine=np.eye(4)):
                          "or basis vector name : {}".format(axis))
 
     _ornt = ornt.io_orientation(affine)
-    return _cmp[_ornt[:, 0]].index(_ax)
+    return np.array(_cmp)[_ornt[:, 0].astype(int)].tolist().index(_ax)
 
 
 def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):

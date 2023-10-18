@@ -65,6 +65,7 @@ import argparse
 import logging
 
 from itertools import zip_longest
+import itertools
 import numpy as np
 from os.path import splitext
 
@@ -80,7 +81,7 @@ from scilpy.io.utils import (
 )
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.util import get_axis_index
-from scilpy.viz.screenshot import (compose_mosaic,
+from scilpy.viz.screenshot import (compose_image, compose_mosaic,
                                    screenshot_volume,
                                    screenshot_contour)
 
@@ -123,6 +124,9 @@ def _parse_args(parser):
 
 
 def main():
+    def empty_generator():
+        yield from ()
+
     parser = _build_arg_parser()
     args = _parse_args(parser)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
@@ -139,63 +143,63 @@ def main():
         slice_ids = np.arange(vol_img.shape[ax_idx])
 
     # Generate the image slices
-    vol_scene_container = screenshot_volume(
+    volume_screenhots_generator = screenshot_volume(
         vol_img,
         args.axis_name,
         slice_ids,
         args.win_dims
     )
 
-    transparency_scene_container = []
+    transparency_screenshots_generator = empty_generator()
     if t_mask_img is not None:
-        transparency_scene_container = screenshot_volume(
+        transparency_screenshots_generator = screenshot_volume(
             t_mask_img, args.axis_name, slice_ids, args.win_dims)
 
-    labelmap_scene_container = []
+    labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
-        labelmap_scene_container = screenshot_volume(
+        labelmap_screenshots_generator = screenshot_volume(
             labelmap_img, args.axis_name, slice_ids, args.win_dims)
 
-    mask_screenshotter = screenshot_volume
+    overlay_screenshotter = screenshot_volume
     if args.masks_as_contours:
-        mask_screenshotter = screenshot_contour
+        overlay_screenshotter = screenshot_contour
 
-    mask_overlay_scene_container, mask_overlay_colors = [], []
+    overlay_screenshots_generator, mask_overlay_colors = empty_generator(), []
     if mask_imgs is not None:
         mask_overlay_colors = mask_colors
-        for mask_img in mask_imgs:
-             mask_overlay_scene_container.append(
-                mask_screenshotter(
-                    mask_img, args.axis_name, slice_ids, args.win_dims))
-
-        mask_overlay_scene_container = np.swapaxes(
-            mask_overlay_scene_container, 0, 1)
+        overlay_screenshots_generator = zip(*itertools.starmap(overlay_screenshotter,
+                                            ([mask, args.axis_name,
+                                             slice_ids, args.win_dims]
+                                             for mask in mask_imgs)))
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
 
     # Compose and save each slice
-    for (volume, trans, label, contour, name, slice_id) in list(
-        zip_longest(vol_scene_container,
-                    transparency_scene_container,
-                    labelmap_scene_container,
-                    mask_overlay_scene_container,
-                    names,
-                    slice_ids,
-                    fillvalue=tuple())):
+    for volume, trans, label, contour, name, slice_id in zip_longest(
+        volume_screenhots_generator,
+        transparency_screenshots_generator,
+        labelmap_screenshots_generator,
+        overlay_screenshots_generator,
+        names,
+        slice_ids,
+        fillvalue=None):
 
-        img = compose_mosaic(
-            [volume], args.win_dims, 1, 1, [slice_id],
+        print(f"Composing image at {slice_id}")
+
+        img = compose_image(
+            volume, args.win_dims, slice_id,
             vol_cmap_name=args.volume_cmap_name,
-            transparency_scene_container=[trans],
-            mask_overlay_scene_container=[contour],
+            transparency_scene=trans,
+            mask_overlay_scene=contour,
             mask_overlay_color=mask_overlay_colors,
             mask_overlay_alpha=args.masks_alpha,
-            labelmap_scene_container=[label],
+            labelmap_scene=label,
             labelmap_cmap_name=args.labelmap_cmap_name,
             labelmap_overlay_alpha=args.labelmap_alpha,
             display_slice_number=args.display_slice_number,
-            display_lr=args.display_lr)
+            display_lr=args.display_lr
+        )
 
         # Save the snapshot
         img.save(name)

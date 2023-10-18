@@ -51,7 +51,7 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
         texture[np.where(mask == 0)] = 0
 
     if value_range:
-        value_range = np.clip(value_range, texture.min(), texture.max())
+        value_range = np.clip(value_range, np.min(texture), np.max(texture))
 
     slicer_actor = actor.slicer(texture, affine=affine, value_range=value_range,
                                 opacity=opacity, interpolation=interpolation)
@@ -96,8 +96,8 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
     data = np.rot90(data.take([slice_index], orientation).squeeze())
     contours_polydata = contours_from_data(data, contour_values,
                                            smoothing_radius)
-    contours_slicer = create_contours_actor(contours_polydata, color, opacity,
-                                            linewidth)
+    contours_slicer = create_contours_actor(contours_polydata, opacity,
+                                            linewidth, color)
 
     # Equivalent of set_display_extent for polydata actors
     position = [0, 0, 0]
