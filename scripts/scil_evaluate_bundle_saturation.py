@@ -1,6 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+This script performs a bundle saturation analysis (SATA) on a given tractogram,
+either as a standalone bundle or within the context of a whole-brain tractogram.
+
+It simulates a sampling of your bundle/tractogram and shows how the metrics
+evolve with the number of streamlines picked. This allows you to determine
+the number of streamlines needed to get a stable values.
+
+Input:
+- A tractogram file representing a bundle of interest (`bundle` argument).
+- Optionally, a whole-brain tractogram for comprehensive analysis
+    (`--whole_brain` argument).
+Both of these (if used) should be extremely dense tractograms, to ensure
+more than enough streamlines are available for sampling.
+
+Output:
+- A JSON file containing metrics such as volume, dice coefficient, entropy,
+    etc., computed at different sampling levels.
+- A set of PNG plots for each metric, illustrating how the metric values
+    change with different sampling levels.
+"""
+
 import argparse
 import copy
 import json
@@ -24,33 +46,11 @@ from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractograms.tractogram_operations import (intersection,
                                                       perform_tractogram_operation_on_lines)
 
-DESCRIPTION = """
-This script performs a bundle saturation analysis (SATA) on a given tractogram,
-either as a standalone bundle or within the context of a whole-brain tractogram.
-
-It simulates a sampling of your bundle/tractogram and shows how the metrics
-evolve with the number of streamlines picked. This allows you to determine
-the number of streamlines needed to get a stable values.
-
-Input:
-- A tractogram file representing a bundle of interest (`bundle` argument).
-- Optionally, a whole-brain tractogram for comprehensive analysis
-    (`--whole_brain` argument).
-Both of these (if used) should be extremely dense tractograms, to ensure
-more than enough streamlines are available for sampling.
-
-Output:
-- A JSON file containing metrics such as volume, dice coefficient, entropy,
-    etc., computed at different sampling levels.
-- A set of PNG plots for each metric, illustrating how the metric values
-    change with different sampling levels.
-"""
-
 
 def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=DESCRIPTION)
+        description=__doc__)
 
     p.add_argument('bundle',
                    help='Path to the bundle file to be analyzed. Must be in a '
