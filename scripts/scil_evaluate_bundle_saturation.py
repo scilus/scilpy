@@ -280,7 +280,7 @@ def main():
 
     assert_inputs_exist(parser, [args.bundle],
                         [args.whole_brain, args.reference])
-    if args.out_prefix[-1] == '_':
+    if args.out_prefix and args.out_prefix[-1] == '_':
         args.out_prefix = args.out_prefix[:-1]
     output_data_filename = os.path.join(args.out_dir,
                                         '{}_data.json'.format(args.out_prefix))
