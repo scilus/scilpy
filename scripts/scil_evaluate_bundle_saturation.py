@@ -60,7 +60,7 @@ def build_args_parser():
                    help='Directory where all output files will be saved. '
                         '\nIf not specified, outputs will be saved in the current '
                         'directory.')
-    p.add_argument('--out_prefix',
+    p.add_argument('--out_prefix', default='',
                    help='Prefix for output files. Useful for distinguishing between '
                         'different runs.')
 
