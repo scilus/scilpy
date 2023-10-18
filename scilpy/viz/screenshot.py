@@ -39,7 +39,6 @@ def screenshot_volume(img, orientation, slice_ids, size):
     snapshots : generator
         Scene screenshots generator.
     """
-
     slice_actor = create_texture_slicer(img.get_fdata(), orientation, 0,
                                         offset=0.0)
 
