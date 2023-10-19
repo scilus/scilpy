@@ -18,6 +18,8 @@ class CamParams(Enum):
     VIEW_UP = 'up_vector'
     VIEW_ANGLE = 'view_angle'
     PARA_SCALE = 'parallel_scale'
+    VIEW_ANGLE = 'view_angle'
+    PARA_SCALE = 'parallel_scale'
 
 
 def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
@@ -155,6 +157,10 @@ def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
                      focal_point=camera[CamParams.VIEW_CENTER],
                      view_up=camera[CamParams.VIEW_UP])
 
+    # View POS and View Angle do nothing for parallel projection.
+    # To set the screen correctly, View POS is set to +-1 and the
+    # parallel scale to half the largest planar axis (not orientation)
+    scene.camera().SetParallelScale(camera[CamParams.PARA_SCALE])
     # View POS and View Angle do nothing for parallel projection.
     # To set the screen correctly, View POS is set to +-1 and the
     # parallel scale to half the largest planar axis (not orientation)
