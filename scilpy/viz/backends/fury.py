@@ -15,11 +15,11 @@ class CamParams(Enum):
     VIEW_POS = 'view_position'
     VIEW_CENTER = 'view_center'
     VIEW_UP = 'up_vector'
-    ZOOM = 'zoom_factor'
+    VIEW_ANGLE = 'view_angle'
+    PARA_SCALE = 'parallel_scale'
 
 
-def initialize_camera(orientation, slice_index, volume_shape,
-                      view_angle=np.pi / 6.):
+def initialize_camera(orientation, slice_index, volume_shape):
     """
     Initialize a camera for a given orientation.
 
@@ -44,7 +44,7 @@ def initialize_camera(orientation, slice_index, volume_shape,
         slice_index = volume_shape[axis_index] // 2
 
     remain_axes = np.delete(volume_shape, axis_index, 0)
-    eye_distance = max(remain_axes)
+    eye_distance = 1.0
 
     view_pos_sign = [-1.0, 1.0, -1.0]
     camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
@@ -58,7 +58,10 @@ def initialize_camera(orientation, slice_index, volume_shape,
     if axis_index == 2:
         camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
 
-    camera[CamParams.ZOOM] = 2.0 / max(remain_axes)
+    # From vtkCamera documentation, see SetViewAngle and SetParallelScale
+    # https://vtk.org/doc/nightly/html/classvtkCamera.html
+    camera[CamParams.VIEW_ANGLE] = 2.0 * np.arctan(max(remain_axes) / 2.0)
+    camera[CamParams.PARA_SCALE] = max(remain_axes) / 2.0
 
     return camera
 
@@ -106,14 +109,16 @@ def set_viewport(scene, orientation, slice_index, volume_shape, zoom=True):
         Shape of the sliced volume.
     """
 
+    scene.projection('parallel')
     camera = initialize_camera(orientation, slice_index, volume_shape)
     scene.set_camera(position=camera[CamParams.VIEW_POS],
                      focal_point=camera[CamParams.VIEW_CENTER],
                      view_up=camera[CamParams.VIEW_UP])
 
-    #current_view_angle = np.pi *  / 180.
-    if zoom:
-        scene.zoom(camera[CamParams.ZOOM])
+    # View POS and View Angle do nothing for parallel projection.
+    # To set the screen correctly, View POS is set to +-1 and the
+    # parallel scale to half the largest planar axis (not orientation)
+    scene.camera().SetParallelScale(camera[CamParams.PARA_SCALE])
 
 
 def create_scene(actors, orientation, slice_index, volume_shape,
@@ -144,7 +149,6 @@ def create_scene(actors, orientation, slice_index, volume_shape,
 
     scene = window.Scene()
     scene.background(bg_color)
-    scene.projection('parallel')
 
     # Add actors to the scene
     for _actor in actors:
@@ -197,7 +201,6 @@ def snapshot_slices(actors, slice_ids, axis_name, shape, size):
            set_display_extent(_actor, axis_name, shape, idx)
         
         set_viewport(scene, axis_name, idx, shape, False)
-        print(f"snapshot at idx : {idx}")
         yield window.snapshot(scene, size=size)
 
 
