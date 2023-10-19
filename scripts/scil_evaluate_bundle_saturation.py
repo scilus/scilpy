@@ -21,6 +21,13 @@ Output:
     etc., computed at different sampling levels.
 - A set of PNG plots for each metric, illustrating how the metric values
     change with different sampling levels.
+
+Interpretation:
+- Volume: The volume is the number of voxels occupied by the bundle.
+- Dice: The dice coefficient is a measure of similarity/overlap.
+- W_dice: The weighted dice coefficient is a measure of density aggrement.
+- Entropy: The entropy is a measure of the randomness of the sampling.
+- Slope: The slope is a measure of the stability of the volume.
 """
 
 import argparse
@@ -46,11 +53,18 @@ from scilpy.tractanalysis.reproducibility_measures import compute_dice_voxel
 from scilpy.tractograms.tractogram_operations import (intersection,
                                                       perform_tractogram_operation_on_lines)
 
+EPILOG = """
+[1] Rheault, F., Poulin, P., Caron, A. V., St-Onge, E., & Descoteaux, M. (2020).
+    Common misconceptions, hidden biases and modern challenges of dMRI 
+    tractography. Journal of neural engineering, 17(1), 011001.
+"""
+
 
 def build_args_parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+        description=__doc__,
+        epilog=EPILOG)
 
     p.add_argument('bundle',
                    help='Path to the bundle file to be analyzed. Must be in a '
@@ -236,7 +250,12 @@ def plot_measures(measures_data, iteration_pick, out_prefix, out_dir):
     iteration_pick = iteration_pick[~zeros]
 
     # Iterate over each measure to create separate graphs
-    for measure in measures_data.keys():
+    for measure in list(measures_data.keys())+['volume_norm']:
+        normalize = False
+        if measure == 'volume_norm':
+            normalize = True
+            measure = 'volume'
+
         plt.figure()
 
         avg = np.average(measures_data[measure], axis=1)
@@ -261,13 +280,17 @@ def plot_measures(measures_data, iteration_pick, out_prefix, out_dir):
         # Set y-axis limits for specific measures
         if measure in ['dice', 'w_dice', 'entropy']:
             plt.ylim(0, 1.05)
+        elif normalize:
+            plt.ylim(0)
 
         plt.title(f"Measure: {measure}")
-        plt.xlabel("Iteration")
+        plt.xlabel("Sample size")
         plt.ylabel("Value")
         plt.legend()
 
         # Save the plot
+        if normalize:
+            measure = 'volume_norm'
         filename = os.path.join(out_dir, "{}_{}.png".format(out_prefix,
                                                             measure))
         plt.savefig(filename, dpi=1200)
