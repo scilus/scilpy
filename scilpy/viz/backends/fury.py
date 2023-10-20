@@ -19,9 +19,33 @@ class CamParams(Enum):
     PARA_SCALE = 'parallel_scale'
 
 
-def initialize_camera(orientation, slice_index, volume_shape):
+def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     """
-    Initialize a camera for a given orientation.
+    Initialize a camera for a given orientation. The camera's focus 
+    (VIEW_CENTER) is set to the slice_index along the chosen orientation, at 
+    the center of the slice. The camera's position (VIEW_POS) is set 
+    perpendicular to the slice, at the origin along slice_index, pointing 
+    toward the slice's center. 
+
+    .. code-block:: text
+
+         Camera                        Image plane
+                         ---
+        ---------         | VIEW_ANGLE      |
+        |   *   |< -------|-----------------|* VIEW_CENTER
+        ---------         |                 |
+        VIEW_POS         ¯¯¯
+
+    The camera's view angle (VIEW_ANGLE) is set to capture the smallest axis 
+    of the image plane in whole.
+
+        - In perpective mode : 2 * arctan(ref_height / 2)
+        - In parallel mode : ref_height / 2
+    
+    To compute ref_height, the slice's aspect ratio is compared to the 
+    viewport's. In case the slice's aspect ratio is greater, the reference 
+    height must be computed w.r.t the slice's width, scaled to the viewport's
+    aspect ratio.
 
     Parameters
     ----------
@@ -31,6 +55,8 @@ def initialize_camera(orientation, slice_index, volume_shape):
         Index of the slice to visualize along the chosen orientation.
     volume_shape : tuple
         Shape of the sliced volume.
+    aspect_ratio : float
+        Ratio between viewport's width and height.
 
     Returns
     -------
@@ -43,25 +69,34 @@ def initialize_camera(orientation, slice_index, volume_shape):
     if slice_index is None:
         slice_index = volume_shape[axis_index] // 2
 
-    remain_axes = np.delete(volume_shape, axis_index, 0)
-    eye_distance = 1.0
-
-    view_pos_sign = [-1.0, 1.0, -1.0]
-    camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
-    camera[CamParams.VIEW_POS][axis_index] = (
-        view_pos_sign[axis_index] * eye_distance)
-
+    # Set the camera's focus to the center of the slice
     camera[CamParams.VIEW_CENTER] = 0.5 * (np.array(volume_shape) - 1.0)
     camera[CamParams.VIEW_CENTER][axis_index] = slice_index
 
-    camera[CamParams.VIEW_UP] = np.array([0.0, 0.0, 1.0])
-    if axis_index == 2:
-        camera[CamParams.VIEW_UP] = np.array([0.0, 1.0, 0.0])
+    # Set the camera's position perpendicular to the slice, at the origin
+    # along slice_index, pointing toward the slice's center
+    signed_view_pos = [-1.0, 1.0, -1.0]
+    camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
+    camera[CamParams.VIEW_POS][axis_index] = signed_view_pos[axis_index]
+
+    # Set the camera's up vector parallel to the vertical axis 
+    # of the image w.r.t. the viewport
+    vert_idx = 1 if axis_index == 2 else 2
+    camera[CamParams.VIEW_UP] = np.zeros((3,))
+    camera[CamParams.VIEW_UP][vert_idx] = 1.0
+
+    # Based on : https://stackoverflow.com/questions/6565703/
+    # math-algorithm-fit-image-to-screen-retain-aspect-ratio
+    remain_axis = np.delete(volume_shape, [axis_index, vert_idx], 0)
+    ref_height = volume_shape[vert_idx]
+    if remain_axis[0] / volume_shape[vert_idx] > aspect_ratio:
+        ref_height = remain_axis[0] / aspect_ratio
 
     # From vtkCamera documentation, see SetViewAngle and SetParallelScale
     # https://vtk.org/doc/nightly/html/classvtkCamera.html
-    camera[CamParams.VIEW_ANGLE] = 2.0 * np.arctan(max(remain_axes) / 2.0)
-    camera[CamParams.PARA_SCALE] = max(remain_axes) / 2.0
+    camera[CamParams.VIEW_ANGLE] = 2.0 / aspect_ratio * np.arctan(
+        ref_height / 2.0)
+    camera[CamParams.PARA_SCALE] = ref_height / (2.0)
 
     return camera
 
@@ -92,7 +127,7 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     slicer_actor.display_extent(*extents)
 
 
-def set_viewport(scene, orientation, slice_index, volume_shape, zoom=True):
+def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
     """
     Place the camera in the scene to capture the all its 
     content at a given slice_index.
@@ -107,10 +142,13 @@ def set_viewport(scene, orientation, slice_index, volume_shape, zoom=True):
         Index of the slice to visualize along the chosen orientation.
     volume_shape : tuple
         Shape of the sliced volume.
+    aspect_ratio : float
+        Ratio between viewport's width and height.
     """
 
     scene.projection('parallel')
-    camera = initialize_camera(orientation, slice_index, volume_shape)
+    camera = initialize_camera(
+        orientation, slice_index, volume_shape, aspect_ratio)
     scene.set_camera(position=camera[CamParams.VIEW_POS],
                      focal_point=camera[CamParams.VIEW_CENTER],
                      view_up=camera[CamParams.VIEW_UP])
@@ -121,8 +159,8 @@ def set_viewport(scene, orientation, slice_index, volume_shape, zoom=True):
     scene.camera().SetParallelScale(camera[CamParams.PARA_SCALE])
 
 
-def create_scene(actors, orientation, slice_index, volume_shape,
-                 bg_color=(0, 0, 0)):
+def create_scene(actors, orientation, slice_index, volume_shape, aspect_ratio,
+                 bg_color=(0, 0, 0),):
     """
     Create a 3D scene containing actors fitting inside a grid. The camera is
     placed based on the orientation supplied by the user. The projection mode
@@ -138,6 +176,8 @@ def create_scene(actors, orientation, slice_index, volume_shape,
         Index of the slice to visualize along the chosen orientation.
     volume_shape : tuple
         Shape of the sliced volume.
+    aspect_ratio : float
+        Ratio between viewport's width and height.
     bg_color: tuple, optional
         Background color expressed as RGB triplet in the range [0, 1].
 
@@ -154,7 +194,7 @@ def create_scene(actors, orientation, slice_index, volume_shape,
     for _actor in actors:
         scene.add(_actor)
 
-    set_viewport(scene, orientation, slice_index, volume_shape)
+    set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio)
 
     return scene
 
@@ -195,12 +235,13 @@ def snapshot_slices(actors, slice_ids, axis_name, shape, size):
     Snapshot a series of slice_ids from a scene on a given axis_name
     """
 
-    scene = create_scene(actors, axis_name, 0, shape)
+    scene = create_scene(actors, axis_name, 0, shape, size[0] / size[1])
+
     for idx in slice_ids:
         for _actor in actors:
            set_display_extent(_actor, axis_name, shape, idx)
         
-        set_viewport(scene, axis_name, idx, shape, False)
+        set_viewport(scene, axis_name, idx, shape, size[0] / size[1])
         yield window.snapshot(scene, size=size)
 
 

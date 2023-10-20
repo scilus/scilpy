@@ -4,7 +4,10 @@
 from fury import window
 from scilpy.utils.util import get_axis_index
 
-from scilpy.viz.backends.fury import create_scene, set_viewport, snapshot_slices
+from scilpy.viz.backends.fury import (create_scene,
+                                      set_display_extent,
+                                      set_viewport,
+                                      snapshot_slices)
 from scilpy.viz.backends.pil import (annotate_image,
                                      create_canvas,
                                      draw_2d_array_at_position,
@@ -33,7 +36,7 @@ def screenshot_volume(img, axis_name, slice_ids, size):
     snapshots : generator
         Scene screenshots generator.
     """
-    print(f"Snaphot of {id(img)}")
+
     slice_actor = create_texture_slicer(
         img.get_fdata(), axis_name, 0, offset=0.0
     )
@@ -41,7 +44,7 @@ def screenshot_volume(img, axis_name, slice_ids, size):
     return snapshot_slices([slice_actor], slice_ids, axis_name, img.shape, size)
 
 
-def screenshot_contour(bin_img, axis_name, slice_ids, size):
+def screenshot_contour(bin_img, axis_name, slice_ids, size, bg_opacity=0.):
     """Take a screenshot of the given binary image countour with the 
     appropriate slice data at the provided slice indices.
 
@@ -55,6 +58,8 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
+    bg_opacity : float, optional
+        Background opacity in range [0, 1].
 
     Returns
     -------
@@ -66,12 +71,26 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size):
     image_size_2d = list(bin_img.shape)
     image_size_2d[ax_idx] = 1
 
+    _actors = []
+    if bg_opacity > 0.:
+        _actors.append(create_texture_slicer(
+            bin_img.get_fdata(), axis_name, 0, offset=0.0, opacity=bg_opacity))
+
+    scene = create_scene(_actors, axis_name, 0, image_size_2d,
+                         size[0] / size[1])
+
     for idx in slice_ids:
-        actor = create_contours_slicer(
+        for _actor in _actors:
+            set_display_extent(_actor, axis_name, image_size_2d, idx)
+
+        contour_actor = create_contours_slicer(
             bin_img.get_fdata(), [1.], ax_idx, idx, color=[255, 255, 255])
-        scene = create_scene([actor], axis_name, idx, image_size_2d)
+
+        scene.add(contour_actor)
+        set_viewport(scene, axis_name, idx, image_size_2d, size[0] / size[1])
 
         yield window.snapshot(scene, size=size)
+        scene.rm(contour_actor)
 
 
 def compose_image(

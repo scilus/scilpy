@@ -309,7 +309,8 @@ def main():
             actor_list.append(slice_actor)
 
     scene = create_scene(actor_list, "axial",
-                         spatial_shape[2] //2, spatial_shape,
+                         spatial_shape[2] // 2, spatial_shape,
+                         args.win_dims[0] / args.win_dims[1],
                          bg_color=tuple(map(int, args.background)))
 
     # If there's actually streamlines to display

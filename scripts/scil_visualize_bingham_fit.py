@@ -129,7 +129,8 @@ def main():
     # Prepare and display the scene
     scene = create_scene(actors, args.axis_name,
                          args.slice_index,
-                         data.shape[:3])
+                         data.shape[:3],
+                         args.win_dims[0] / args.win_dims[1])
 
     # TODO : fuse with visualize fodf and export to viz module utils
     if not args.silent:
