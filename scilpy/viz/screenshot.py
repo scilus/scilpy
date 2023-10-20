@@ -111,6 +111,8 @@ def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
         Slice indices.
     size : array-like
         Size of the screenshot image (pixels).
+    bg_opacity : float, optional
+        Background opacity in range [0, 1].
 
     Returns
     -------
