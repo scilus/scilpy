@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from fury import window
 from scilpy.utils.util import get_axis_index
 
