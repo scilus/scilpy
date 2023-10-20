@@ -38,6 +38,7 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
     ores: tuple
         resolution of the output png
     """
+
     _colors = generate_n_colors(len(ms))
 
     if use_sphere:
@@ -98,6 +99,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     ores: tuple
         resolution of the output png
     """
+
     _colors = generate_n_colors(len(ms))
 
     scene = window.Scene()
