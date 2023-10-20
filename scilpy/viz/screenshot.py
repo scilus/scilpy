@@ -41,11 +41,12 @@ def screenshot_volume(img, axis_name, slice_ids, size):
         img.get_fdata(), axis_name, 0, offset=0.0
     )
 
-    return snapshot_slices([slice_actor], slice_ids, axis_name, img.shape, size)
+    return snapshot_slices([slice_actor], slice_ids, axis_name,
+                           img.shape, size)
 
 
 def screenshot_contour(bin_img, axis_name, slice_ids, size, bg_opacity=0.):
-    """Take a screenshot of the given binary image countour with the 
+    """Take a screenshot of the given binary image countour with the
     appropriate slice data at the provided slice indices.
 
     Parameters
@@ -111,8 +112,8 @@ def compose_image(
     canvas=None
 ):
     """
-    Compose an image with the given scenes, with transparency, overlays, 
-    labelmap and annotations. If no canvas for the image is given, it will 
+    Compose an image with the given scenes, with transparency, overlays,
+    labelmap and annotations. If no canvas for the image is given, it will
     be automatically create with sizings to fit.
 
     Parameters
@@ -144,7 +145,7 @@ def compose_image(
     display_slice_number : bool, optional
         If true, displays the slice number in the upper left corner.
     display_lr : bool or int, optional
-        If 1 or -1, identifies the left and right sides on the image. -1 flips 
+        If 1 or -1, identifies the left and right sides on the image. -1 flips
         left and right positions.
     canvas : PIL.Image, optional
         Base canvas into which to paste the scene.
@@ -235,7 +236,7 @@ def compose_mosaic(
     display_slice_number : bool, optional
         If true, displays the slice number in the upper left corner.
     display_lr : bool or int, optional
-        If 1 or -1, identifies the left and right sides on the image. -1 flips 
+        If 1 or -1, identifies the left and right sides on the image. -1 flips
         left and right positions.
 
     Returns

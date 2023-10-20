@@ -288,8 +288,8 @@ def main():
     # Instantiate the ODF slicer actor
     odf_actor, var_actor = create_odf_slicer(data['fodf'], args.axis_name,
                                              args.slice_index, sph, sh_order,
-                                             sh_basis, full_basis, 
-                                             args.scale, variance, mask, 
+                                             sh_basis, full_basis,
+                                             args.scale, variance, mask,
                                              args.sph_subdivide,
                                              not args.radial_scale_off,
                                              not args.norm_off,

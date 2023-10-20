@@ -21,11 +21,11 @@ class CamParams(Enum):
 
 def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     """
-    Initialize a camera for a given orientation. The camera's focus 
-    (VIEW_CENTER) is set to the slice_index along the chosen orientation, at 
-    the center of the slice. The camera's position (VIEW_POS) is set 
-    perpendicular to the slice, at the origin along slice_index, pointing 
-    toward the slice's center. 
+    Initialize a camera for a given orientation. The camera's focus
+    (VIEW_CENTER) is set to the slice_index along the chosen orientation, at
+    the center of the slice. The camera's position (VIEW_POS) is set
+    perpendicular to the slice, at the origin along slice_index, pointing
+    toward the slice's center.
 
     .. code-block:: text
 
@@ -36,14 +36,14 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
         ---------         |                 |
         VIEW_POS         ¯¯¯
 
-    The camera's view angle (VIEW_ANGLE) is set to capture the smallest axis 
+    The camera's view angle (VIEW_ANGLE) is set to capture the smallest axis
     of the image plane in whole.
 
         - In perpective mode : 2 * arctan(ref_height / 2)
         - In parallel mode : ref_height / 2
-    
-    To compute ref_height, the slice's aspect ratio is compared to the 
-    viewport's. In case the slice's aspect ratio is greater, the reference 
+
+    To compute ref_height, the slice's aspect ratio is compared to the
+    viewport's. In case the slice's aspect ratio is greater, the reference
     height must be computed w.r.t the slice's width, scaled to the viewport's
     aspect ratio.
 
@@ -79,7 +79,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     camera[CamParams.VIEW_POS] = 0.5 * (np.array(volume_shape) - 1.0)
     camera[CamParams.VIEW_POS][axis_index] = signed_view_pos[axis_index]
 
-    # Set the camera's up vector parallel to the vertical axis 
+    # Set the camera's up vector parallel to the vertical axis
     # of the image w.r.t. the viewport
     vert_idx = 1 if axis_index == 2 else 2
     camera[CamParams.VIEW_UP] = np.zeros((3,))
@@ -129,7 +129,7 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
 
 def set_viewport(scene, orientation, slice_index, volume_shape, aspect_ratio):
     """
-    Place the camera in the scene to capture the all its 
+    Place the camera in the scene to capture the all its
     content at a given slice_index.
 
     Parameters
@@ -215,7 +215,7 @@ def create_interactive_window(scene, window_size, interactor,
     title : str, optional
         Title of the scene. Defaults to Viewer.
     open_window : bool, optional
-        When true, initializes the interactor and opens the window 
+        When true, initializes the interactor and opens the window
         (This suspends the current thread).
     """
     showm = window.ShowManager(scene, title=title,
@@ -239,8 +239,8 @@ def snapshot_slices(actors, slice_ids, axis_name, shape, size):
 
     for idx in slice_ids:
         for _actor in actors:
-           set_display_extent(_actor, axis_name, shape, idx)
-        
+            set_display_extent(_actor, axis_name, shape, idx)
+
         set_viewport(scene, axis_name, idx, shape, size[0] / size[1])
         yield window.snapshot(scene, size=size)
 

@@ -63,14 +63,14 @@ def get_basis_vector_name(axis_index, affine=np.eye(4)):
 
 def get_axis_index(axis, affine=np.eye(4)):
     """
-    Get the axis index (or position) in the image from the axis, coordinate or 
-    basis vector name.
+    Get the axis index (or position) in the image from the axis,
+    coordinate or basis vector name.
 
     Parameters
     ----------
     axis : str
-        Either an axis name (see RAS_AXES_NAMES), a coordinate name 
-        (see RAS_AXES_COORDINATES) or a basis vector name 
+        Either an axis name (see RAS_AXES_NAMES), a coordinate name
+        (see RAS_AXES_COORDINATES) or a basis vector name
         (see RAS_AXES_BASIS_VECTORS).
     affine : np.array, optional
         An affine used to compute axis reordering from RAS.

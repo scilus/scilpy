@@ -22,7 +22,9 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 from scilpy.utils.util import RAS_AXES_NAMES, get_axis_index
 # TODO: There should not be as less backend in scripts as possible
-from scilpy.viz.backends.fury import create_interactive_window, create_scene, snapshot_scenes
+from scilpy.viz.backends.fury import (create_interactive_window,
+                                      create_scene,
+                                      snapshot_scenes)
 from scilpy.viz.screenshot import compose_image
 from scilpy.viz.slice import create_bingham_slicer
 

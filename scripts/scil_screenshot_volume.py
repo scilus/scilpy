@@ -111,7 +111,7 @@ def _parse_args(parser):
     assert_same_resolution(inputs)
     assert_overlay_colors(args.masks_colors, args.in_masks, parser)
 
-    #TODO : check outputs (we need to know the slicing), could be glob
+    # TODO : check outputs (we need to know the slicing), could be glob
 
     return args
 
@@ -154,8 +154,10 @@ def main():
     # Create the overlay screenshotter
     overlay_screenshotter = screenshot_volume
     if args.masks_as_contours:
-        overlay_screenshotter = lambda *args, **kwargs: screenshot_contour(
-            *args, **kwargs, bg_opacity=0.3)
+        def _dual_screenshot(*args, **kwargs):
+            return screenshot_contour(*args, **kwargs, bg_opacity=0.3)
+  
+        overlay_screenshotter = _dual_screenshot 
 
     # Generate the overlay stack, if requested, zipping over all overlays
     overlay_screenshots_generator, mask_overlay_colors = empty_generator(), []
@@ -170,13 +172,13 @@ def main():
 
     # Compose and save each slice
     for volume, trans, label, contour, name, slice_id in zip_longest(
-        volume_screenhots_generator,
-        transparency_screenshots_generator,
-        labelmap_screenshots_generator,
-        overlay_screenshots_generator,
-        names,
-        slice_ids,
-        fillvalue=None):
+            volume_screenhots_generator,
+            transparency_screenshots_generator,
+            labelmap_screenshots_generator,
+            overlay_screenshots_generator,
+            names,
+            slice_ids,
+            fillvalue=None):
 
         img = compose_image(volume, args.win_dims, slice_id,
                             vol_cmap_name=args.volume_cmap_name,

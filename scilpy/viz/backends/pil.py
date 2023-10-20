@@ -6,10 +6,9 @@ from PIL import Image, ImageDraw, ImageFont
 from scilpy.viz.color import generate_n_colors
 
 
-
 def any2grayscale(_array):
     """
-    Convert a [0, 1] bounded array to `uint8` grayscale so that it can be 
+    Convert a [0, 1] bounded array to `uint8` grayscale so that it can be
     appropriately handled by `PIL`. Threshold will be applied to any data
     that overflows a 8bit unsigned container.
 
@@ -132,7 +131,7 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
 def create_canvas(cell_width, cell_height, rows, columns,
                   overlap_horiz, overlap_vert):
     """
-    Create a canvas for given number of rows and columns, 
+    Create a canvas for given number of rows and columns,
     and the requested cell size and overlap values.
 
     Parameters
@@ -172,19 +171,20 @@ def annotate_image(image, slice_number, display_slice_number, display_lr):
     image = ImageDraw.Draw(image)
 
     if display_slice_number:
-        image.text((padding, padding), "{}".format(slice_number), (255,255,255),
-                   font=font, stroke_width=stroke, stroke_fill=(0, 0, 0))
+        image.text((padding, padding), "{}".format(slice_number),
+                   (255, 255, 255), font=font,
+                   stroke_width=stroke, stroke_fill=(0, 0, 0))
 
     if display_lr:
         l_text, r_text = "L", "R"
         if display_lr < 0:
             l_text, r_text = r_text, l_text
 
-        image.text((padding, height // 2), l_text, (255,255,255),
+        image.text((padding, height // 2), l_text, (255, 255, 255),
                    font=font, anchor="lm",
                    stroke_width=stroke, stroke_fill=(0, 0, 0))
         image.text((width - padding, height // 2),
-                   r_text, (255,255,255),
+                   r_text, (255, 255, 255),
                    font=font, anchor="rm",
                    stroke_width=stroke, stroke_fill=(0, 0, 0))
 
@@ -234,7 +234,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
 
     _transparency = None
     if transparency is not None:
-        _transparency = create_image_from_2d_array(transparency, size, mode="L")
+        _transparency = create_image_from_2d_array(transparency, size,
+                                                   mode="L")
 
     canvas.paste(image, (left_position, top_position), mask=_transparency)
 

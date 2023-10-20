@@ -14,7 +14,7 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
                           value_range=None, opacity=1.0, offset=0.5,
                           interpolation='nearest'):
     """
-    Create a texture displayed at a given offset (in the given orientation) 
+    Create a texture displayed at a given offset (in the given orientation)
     from the origin of the grid.
 
     Parameters
@@ -53,8 +53,9 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
     if value_range:
         value_range = np.clip(value_range, np.min(texture), np.max(texture))
 
-    slicer_actor = actor.slicer(texture, affine=affine, value_range=value_range,
-                                opacity=opacity, interpolation=interpolation)
+    slicer_actor = actor.slicer(texture, value_range=value_range,
+                                affine=affine, opacity=opacity,
+                                interpolation=interpolation)
 
     set_display_extent(slicer_actor, orientation, texture.shape, slice_index)
 
@@ -78,7 +79,7 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
     slice_index : int
         Index of the slice to visualize along the chosen orientation.
     smoothing_radius : float, optional
-        Pre-smoothing to apply to the image before 
+        Pre-smoothing to apply to the image before
         computing the contour (in pixels).
     opacity: float, optional
         Opacity of the contour.
@@ -225,8 +226,9 @@ def create_odf_slicer(sh_fodf, orientation, slice_index, sphere, sh_order,
     fodf_var = sh_to_sf(sh_variance, sphere, sh_order, sh_basis,
                         full_basis=full_basis, legacy=is_legacy)
 
-    odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var, 
-                                             mask, radial_scale, norm, colormap,
+    odf_actor, var_actor = create_odf_actors(fodf, sphere, scale, fodf_var,
+                                             mask, radial_scale,
+                                             norm, colormap,
                                              variance_k, variance_color)
 
     set_display_extent(odf_actor, orientation, sh_fodf.shape[:3], slice_index)
@@ -274,7 +276,7 @@ def create_bingham_slicer(data, orientation, slice_index,
         color = colors[nn] if color_per_lobe else None
 
         odf_actor, _ = create_odf_actors(sf, sphere, 1., colormap=color)
-    
+
         set_display_extent(odf_actor, orientation, shape[:3], slice_index)
         actors.append(odf_actor)
 
