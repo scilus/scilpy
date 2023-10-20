@@ -109,6 +109,7 @@ def compose_image(
     labelmap_cmap_name=None,
     display_slice_number=False,
     display_lr=False,
+    lr_labels=["L", "R"],
     canvas=None
 ):
     """
@@ -145,8 +146,10 @@ def compose_image(
     display_slice_number : bool, optional
         If true, displays the slice number in the upper left corner.
     display_lr : bool or int, optional
-        If 1 or -1, identifies the left and right sides on the image. -1 flips
+        If 1 or -1, annotates the left and right sides on the image. -1 flips
         left and right positions.
+    lr_labels : list, optional
+        Labels used to annotate the left and right sides of the image.
     canvas : PIL.Image, optional
         Base canvas into which to paste the scene.
 
@@ -181,7 +184,8 @@ def compose_image(
         labelmap_lut=labelmap_lut,
     )
 
-    annotate_image(canvas, slice_number, display_slice_number, display_lr)
+    annotate_image(canvas, slice_number, display_slice_number,
+                   display_lr, lr_labels)
 
     return canvas
 
@@ -202,7 +206,8 @@ def compose_mosaic(
     vol_cmap_name=None,
     labelmap_cmap_name=None,
     display_slice_number=False,
-    display_lr=False
+    display_lr=False,
+    lr_labels=["L", "R"]
 ):
     """Create the mosaic canvas for given number of rows and columns, and the
     requested cell size and overlap values.
@@ -236,8 +241,10 @@ def compose_mosaic(
     display_slice_number : bool, optional
         If true, displays the slice number in the upper left corner.
     display_lr : bool or int, optional
-        If 1 or -1, identifies the left and right sides on the image. -1 flips
+        If 1 or -1, annotates the left and right sides on the image. -1 flips
         left and right positions.
+    lr_labels : list, optional
+        Labels used to annotate the left and right sides of the image.
 
     Returns
     -------
@@ -305,6 +312,7 @@ def compose_mosaic(
                       labelmap_cmap_name=labelmap_cmap_name,
                       display_slice_number=display_slice_number,
                       display_lr=display_lr,
+                      lr_labels=lr_labels,
                       canvas=mosaic)
 
     return mosaic
