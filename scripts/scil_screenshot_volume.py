@@ -169,6 +169,7 @@ def main():
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
+    sides_labels = ["A", "P"] if args.axis_name == "sagittal" else ["L", "R"]
 
     # Compose and save each slice
     for volume, trans, label, contour, name, slice_id in zip_longest(
@@ -190,7 +191,8 @@ def main():
                             labelmap_cmap_name=args.labelmap_cmap_name,
                             labelmap_overlay_alpha=args.labelmap_alpha,
                             display_slice_number=args.display_slice_number,
-                            display_lr=args.display_lr)
+                            display_lr=args.display_lr,
+                            lr_labels=sides_labels)
 
         # Save the snapshot
         img.save(name)

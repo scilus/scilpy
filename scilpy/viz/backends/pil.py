@@ -161,7 +161,8 @@ def create_canvas(cell_width, cell_height, rows, columns,
     return Image.new("RGBA", (width, height), (0, 0, 0, 0))
 
 
-def annotate_image(image, slice_number, display_slice_number, display_lr):
+def annotate_image(image, slice_number, display_slice_number,
+                   display_lr, lr_labels=["L", "R"]):
     font_size = image.width // 10
     font = ImageFont.truetype(
         '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
@@ -176,7 +177,7 @@ def annotate_image(image, slice_number, display_slice_number, display_lr):
                    stroke_width=stroke, stroke_fill=(0, 0, 0))
 
     if display_lr:
-        l_text, r_text = "L", "R"
+        l_text, r_text = lr_labels
         if display_lr < 0:
             l_text, r_text = r_text, l_text
 
