@@ -11,7 +11,7 @@ from scilpy.tractanalysis.quick_tools import (get_next_real_point,
                                               get_previous_real_point)
 
 
-def get_streamline_pt_index(points_to_index, vox_index, from_start=True):
+def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
     cur_idx = np.where(points_to_index == vox_index)
 
     if not len(cur_idx[0]):
@@ -25,7 +25,7 @@ def get_streamline_pt_index(points_to_index, vox_index, from_start=True):
     return cur_idx[0][idx_to_take]
 
 
-def get_point_on_line(first_point, second_point, vox_lower_corner):
+def _get_point_on_line(first_point, second_point, vox_lower_corner):
     # To manage the case where there is no real streamline point in an
     # intersected voxel, we need to generate an artificial point.
     # We use line / cube intersections as presented in
@@ -281,31 +281,31 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     nb_points = 0
 
     # Check if the indexed voxel contains a real streamline point
-    in_strl_point = get_streamline_pt_index(points_to_indices,
-                                            in_vox_idx)
+    in_strl_point = _get_streamline_pt_index(points_to_indices,
+                                             in_vox_idx)
 
     if in_strl_point is None:
         # Find the next real streamline point
         in_strl_point = get_next_real_point(points_to_indices, in_vox_idx)
 
-        additional_start_pt = get_point_on_line(orig_strl[in_strl_point - 1],
-                                                orig_strl[in_strl_point],
-                                                inter_vox[in_vox_idx])
+        additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
+                                                 orig_strl[in_strl_point],
+                                                 inter_vox[in_vox_idx])
         nb_points += 1
 
     # Generate point for the current voxel
-    exit_strl_point = get_streamline_pt_index(points_to_indices,
-                                              out_vox_idx,
-                                              from_start=False)
+    exit_strl_point = _get_streamline_pt_index(points_to_indices,
+                                               out_vox_idx,
+                                               from_start=False)
 
     if exit_strl_point is None:
         # Find the previous real streamline point
         exit_strl_point = get_previous_real_point(points_to_indices,
                                                   out_vox_idx)
 
-        additional_exit_pt = get_point_on_line(orig_strl[exit_strl_point],
-                                               orig_strl[exit_strl_point + 1],
-                                               inter_vox[out_vox_idx])
+        additional_exit_pt = _get_point_on_line(orig_strl[exit_strl_point],
+                                                orig_strl[exit_strl_point + 1],
+                                                inter_vox[out_vox_idx])
         nb_points += 1
 
     if exit_strl_point >= in_strl_point:
