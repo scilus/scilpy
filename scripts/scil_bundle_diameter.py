@@ -82,6 +82,9 @@ def _build_arg_parser():
     p2.add_argument('--opacity', type=float, default=0.2,
                     help='Opacity for the streamlines rendered with the tube.'
                     '\n[Default: %(default)s]')
+    p2.add_argument("--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"),
+                    default=(1920, 1080), type=int,
+                    help="The dimensions for the vtk window. [%(default)s]")
     p2.add_argument('--background', metavar=('R', 'G', 'B'), nargs=3,
                     default=[1, 1, 1], type=parser_color_type,
                     help='RBG values [0, 255] of the color of the background.'
@@ -315,39 +318,39 @@ def main():
 
     # If there's actually streamlines to display
     if args.show_rendering:
-        create_interactive_window(scene, (1920, 1080), "image")
+        create_interactive_window(scene, args.win_dims, "image")
     elif args.save_rendering:
         # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'superior.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
         scene.pitch(180)
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'inferior.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
         scene.pitch(90)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'posterior.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
         scene.pitch(180)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'anterior.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
         scene.yaw(90)
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'right.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
         scene.yaw(180)
         scene.reset_camera()
         snapshot(scene, os.path.join(args.save_rendering, 'left.png'),
-                 size=(1920, 1080), offscreen=True)
+                 size=args.win_dims, offscreen=True)
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 

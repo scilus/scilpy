@@ -24,9 +24,9 @@ BASE_10_COLORS = convert_color_names_to_rgb(["Blue",
                                              "White",
                                              "Brown",
                                              "Grey"])
-    
 
-def generate_n_colors(n, generator=distinguishable_colormap, 
+
+def generate_n_colors(n, generator=distinguishable_colormap,
                       pick_from_base10=True, shuffle=False):
     """
     Generate a set of N colors (unicity not guaranteed, based on the generator)
@@ -39,7 +39,7 @@ def generate_n_colors(n, generator=distinguishable_colormap,
         Color generating function f(n, exclude=[...]) -> [color, color, ...],
         accepting an optional list of colors to exclude from the generation.
     pick_from_base10 : bool
-        When True, start picking from the base 10 colors before using 
+        When True, start picking from the base 10 colors before using
         the generator funtion (see BASE_COLORS_10).
     shuffle : bool
         Shuffle the color list before returning.
@@ -67,13 +67,13 @@ def generate_n_colors(n, generator=distinguishable_colormap,
 
 def get_lookup_table(name):
     """
-    Get a matplotlib lookup table (colormap) from a name or create 
+    Get a matplotlib lookup table (colormap) from a name or create
     a lookup table (colormap) from a list of named colors.
 
     Parameters
     ----------
     name : str
-        Name of the lookup table (colormap) or a list of named colors 
+        Name of the lookup table (colormap) or a list of named colors
         (separated by a -) to form a lookup table (colormap) from.
 
     Returns

@@ -156,8 +156,8 @@ def main():
     if args.masks_as_contours:
         def _dual_screenshot(*args, **kwargs):
             return screenshot_contour(*args, **kwargs, bg_opacity=0.3)
-  
-        overlay_screenshotter = _dual_screenshot 
+
+        overlay_screenshotter = _dual_screenshot
 
     # Generate the overlay stack, if requested, zipping over all overlays
     overlay_screenshots_generator, mask_overlay_colors = empty_generator(), []
