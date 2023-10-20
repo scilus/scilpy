@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from dipy.reconst.shm import sh_to_sf
 from fury import actor
 import numpy as np
@@ -45,6 +47,7 @@ def create_texture_slicer(texture, orientation, slice_index, mask=None,
     slicer_actor : actor.slicer
         Fury object containing the texture information.
     """
+
     affine = affine_from_offset(orientation, offset)
 
     if mask is not None:

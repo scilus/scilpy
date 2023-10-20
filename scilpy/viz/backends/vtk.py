@@ -1,8 +1,29 @@
+# -*- coding: utf-8 -*-
+
 from fury.utils import numpy_to_vtk_image_data
 import vtk
 
 
 def get_color_by_name(color_name):
+    """
+    Get a vtkColor by name. See : 
+        https://vtk.org/doc/nightly/html/classvtkNamedColors.html
+
+    Some color names can be found in the CSS3 specification :
+        https://www.w3.org/TR/css-color-3/#html4
+        https://www.w3.org/TR/css-color-3/#svg-color
+
+    Parameters
+    ----------
+    color_name : str
+        Name of the color.
+
+    Returns
+    -------
+    color : vtkColor
+        RGB color object.
+    """
+
     try:
         color_wheel = vtk.vtkNamedColors()
         return color_wheel.GetColor3d(color_name)
@@ -12,6 +33,28 @@ def get_color_by_name(color_name):
 
 def create_tube_with_radii(positions, radii, error, error_coloring=False,
                            wireframe=False):
+    """
+    Create a tube actor from a list of positions, radii and errors.
+
+    Parameters
+    ----------
+    positions : np.ndarray
+        Array of positions of the joints.
+    radii : np.ndarray
+        Array of radii at the joints.
+    error : np.ndarray
+        Array of fitting error at the joints.
+    error_coloring : bool, optional
+        Color the tube based on the amplitude of the error.
+    wireframe : bool, optional
+        Render the tube as a wireframe.
+
+    Returns
+    -------
+    actor : vtkActor
+        Tube actor.
+    """
+
     # Generate the polydata from the centroids
     joint_count = len(positions)
     pts = vtk.vtkPoints()

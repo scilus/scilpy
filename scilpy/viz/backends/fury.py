@@ -12,6 +12,7 @@ class CamParams(Enum):
     """
     Enum containing camera parameters
     """
+
     VIEW_POS = 'view_position'
     VIEW_CENTER = 'view_center'
     VIEW_UP = 'up_vector'
@@ -63,6 +64,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
     camera : dict
         Dictionnary containing camera information.
     """
+
     camera = {}
     axis_index = get_axis_index(orientation)
 
@@ -94,8 +96,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
 
     # From vtkCamera documentation, see SetViewAngle and SetParallelScale
     # https://vtk.org/doc/nightly/html/classvtkCamera.html
-    camera[CamParams.VIEW_ANGLE] = 2.0 / aspect_ratio * np.arctan(
-        ref_height / 2.0)
+    camera[CamParams.VIEW_ANGLE] = 2.0 * np.arctan(ref_height / 2.0)
     camera[CamParams.PARA_SCALE] = ref_height / (2.0)
 
     return camera
@@ -217,39 +218,77 @@ def create_interactive_window(scene, window_size, interactor,
     open_window : bool, optional
         When true, initializes the interactor and opens the window
         (This suspends the current thread).
+
+    Returns
+    -------
+    show_manager : window.ShowManager()
+        Object from Fury containing the 3D scene interactor.
     """
+
     showm = window.ShowManager(scene, title=title,
                                size=window_size,
                                reset_camera=False,
                                interactor_style=interactor)
+    showm.initialize()
 
     if open_window:
-        showm.initialize()
         showm.start()
 
     return showm
 
 
-def snapshot_slices(actors, slice_ids, axis_name, shape, size):
+def snapshot_slices(actors, slice_ids, orientation, shape, size):
     """
     Snapshot a series of slice_ids from a scene on a given axis_name
+
+    Parameters
+    ----------
+    actors : list of vtkActor
+        List of actors to snapshot.
+    slice_ids : list of int
+        List of slice indices to snapshot.
+    orientation : str
+        Name of the axis to snapshot.
+    shape : tuple
+        Shape of the volume.
+    size : tuple
+        Size of the viewport.
+
+    Returns
+    -------
+    snapshots : generator of 2d np.ndarray
+        Generator of snapshots.
     """
 
-    scene = create_scene(actors, axis_name, 0, shape, size[0] / size[1])
+    scene = create_scene(actors, orientation, 0, shape, size[0] / size[1])
 
     for idx in slice_ids:
         for _actor in actors:
-            set_display_extent(_actor, axis_name, shape, idx)
+            set_display_extent(_actor, orientation, shape, idx)
 
-        set_viewport(scene, axis_name, idx, shape, size[0] / size[1])
+        set_viewport(scene, orientation, idx, shape, size[0] / size[1])
         yield window.snapshot(scene, size=size)
 
 
 def snapshot_scenes(scenes, window_size):
     """
     Snapshot a list of scenes inside a window of given size
+
+    Parameters
+    ----------
+    scenes : list of window.Scene
+        List of scenes to snapshot.
+    window_size : tuple
+        Size of the window.
+
+    Returns
+    -------
+    snapshots : generator of 2d np.ndarray
+        Generator of snapshots.
     """
-    return [window.snapshot(scene, size=window_size) for scene in scenes]
+
+    for scene in scenes:
+        yield window.snapshot(scene, size=window_size)
 
 
 def create_contours_actor(contours, opacity=1., linewidth=3.,
@@ -330,8 +369,9 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
 
         # normalise fodf and variance
         if norm:
-            maximums = np.abs(np.append(sf_fodf, fodf_uncertainty, axis=-1)) \
-                .max(axis=-1)
+            maximums = np.abs(np.append(sf_fodf, fodf_uncertainty,
+                                        axis=-1)).max(axis=-1)
+
             sf_fodf[maximums > 0] /= maximums[maximums > 0][..., None]
             fodf_uncertainty[maximums > 0] /= maximums[maximums > 0][..., None]
 
