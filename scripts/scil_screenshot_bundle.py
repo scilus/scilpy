@@ -39,7 +39,7 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.image.volume_operations import register_image
 from scilpy.utils.util import RAS_AXES_NAMES, get_axis_name
 from scilpy.viz.legacy import display_slices
-from scilpy.viz.color import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():
@@ -256,7 +256,7 @@ def main():
         sft.to_rasmm()
         colors = []
         normalized_data = reference_data / np.max(reference_data)
-        cmap = get_colormap(args.reference_coloring)
+        cmap = get_lookup_table(args.reference_coloring)
         for points in streamlines_vox:
             values = map_coordinates(normalized_data, points.T,
                                      order=1, mode='nearest')

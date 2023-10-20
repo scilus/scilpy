@@ -11,7 +11,7 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
 
-from scilpy.viz.color import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def polar2xy(r, theta):
@@ -211,7 +211,7 @@ def chordDiagram(X, ax, colors=None, width=0.1, pad=2, chordwidth=0.7,
     ax.set_ylim(-text_dist, text_dist)
 
     if colors is None:
-        cmap = get_colormap(colormap)
+        cmap = get_lookup_table(colormap)
         colors = [cmap(i)[0:3] for i in np.linspace(0, 1, len(x))]
 
     # find position for each start and end
