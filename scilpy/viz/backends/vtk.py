@@ -2,7 +2,6 @@ from fury.utils import numpy_to_vtk_image_data
 import vtk
 
 
-
 def get_color_by_name(color_name):
     try:
         color_wheel = vtk.vtkNamedColors()
@@ -79,7 +78,7 @@ def contours_from_data(data, contour_values=[1.], smoothing_radius=0.):
     contour_values : list, optional
         Values at which to extract isocontours.
     smoothing_radius : float
-        Pre-smoothing to apply to the image before 
+        Pre-smoothing to apply to the image before
         computing the contour (in pixels).
 
     Returns
