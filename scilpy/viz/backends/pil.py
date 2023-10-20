@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 from scilpy.viz.color import generate_n_colors
 
 
-def any2grayscale(_array):
+def any2grayscale(array_2d):
     """
     Convert a [0, 1] bounded array to `uint8` grayscale so that it can be
     appropriately handled by `PIL`. Threshold will be applied to any data
@@ -14,7 +14,7 @@ def any2grayscale(_array):
 
     Parameters
     ----------
-    _array : ndarray
+    array_2d : ndarray
         Data in [0, 1] range.
 
     Returns
@@ -22,13 +22,13 @@ def any2grayscale(_array):
         Grayscale `unit8` data in [0, 255] range.
     """
 
-    if _array.max() > 1:
+    if array_2d.max() > 1:
         raise ValueError(
             "RGB conversion requires the input array to be in range [0, 1]")
 
     # Convert from RGB to grayscale
     # TODO : PIL float images, can the uint8 conversion go ?
-    _gray = Image.fromarray(np.uint8(_array * 255)).convert("L")
+    _gray = Image.fromarray(np.uint8(array_2d * 255)).convert("L")
 
     # Relocate overflow values to the dynamic range
     return np.array(_gray * 255).astype("uint8")
@@ -100,6 +100,10 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
 
     Parameters
     ----------
+    rows : int
+        Number of rows.
+    cols : int
+        Number of columns.
     cell_width : int
         Cell width (pixels).
     cell_height : int
@@ -108,10 +112,6 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
         Overlap on the image width (pixels).
     height_overlap : int
         Overlap on the image height (pixels).
-    rows : int
-        Number of rows.
-    cols : int
-        Number of columns.
 
     Returns
     -------
@@ -122,10 +122,8 @@ def compute_canvas_size(rows, columns, cell_width, cell_height,
     def _compute_canvas_length(line_count, cell_length, overlap):
         return (line_count - 1) * (cell_length - overlap) + cell_length
 
-    width = _compute_canvas_length(columns, cell_width, width_overlap)
-    height = _compute_canvas_length(rows, cell_height, height_overlap)
-
-    return width, height
+    return _compute_canvas_length(columns, cell_width, width_overlap), \
+        _compute_canvas_length(rows, cell_height, height_overlap)
 
 
 def create_canvas(cell_width, cell_height, rows, columns,
@@ -136,14 +134,14 @@ def create_canvas(cell_width, cell_height, rows, columns,
 
     Parameters
     ----------
-    rows : int
-        Row count.
-    columns : int
-        Column count.
     cell_width : int
         Cell width (pixels).
     cell_height : int
         Cell height (pixels).
+    rows : int
+        Row count.
+    columns : int
+        Column count.
     overlap_horiz : int
         Horizontal overlap (pixels).
     overlap_vert : int
@@ -163,6 +161,23 @@ def create_canvas(cell_width, cell_height, rows, columns,
 
 def annotate_image(image, slice_number, display_slice_number,
                    display_lr, lr_labels=["L", "R"]):
+    """
+    Annotate an image with slice number and left/right labels.
+
+    Parameters
+    ----------
+    image : PIL.Image
+        Image to annotate.
+    slice_number : int
+        Slice number.
+    display_slice_number : bool
+        Display the slice number in the upper left corner.
+    display_lr : int
+        Display the left/right labels in the middle of the image. If 
+        negative, the labels are inverted.
+    lr_labels : list, optional
+        Left/right labels.
+    """
     font_size = image.width // 10
     font = ImageFont.truetype(
         '/usr/share/fonts/truetype/freefont/FreeSans.ttf', font_size)
@@ -184,6 +199,7 @@ def annotate_image(image, slice_number, display_slice_number,
         image.text((padding, height // 2), l_text, (255, 255, 255),
                    font=font, anchor="lm",
                    stroke_width=stroke, stroke_fill=(0, 0, 0))
+
         image.text((width - padding, height // 2),
                    r_text, (255, 255, 255),
                    font=font, anchor="rm",
@@ -219,6 +235,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Transparency mask.
     labelmap_overlay : ndarray
         Labelmap overlay scene data to be drawn.
+    labelmap_overlay_alpha : float
+        Alpha value for labelmap overlay in range [0, 1].
     mask_overlay : ndarray
         Mask overlay scene data to be drawn.
     mask_overlay_alpha : float

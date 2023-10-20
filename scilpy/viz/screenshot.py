@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from fury import window
 from scilpy.utils.util import get_axis_index
 
@@ -17,14 +16,15 @@ from scilpy.viz.utils import compute_cell_topleft_pos
 from scilpy.viz.slice import create_texture_slicer, create_contours_slicer
 
 
-def screenshot_volume(img, axis_name, slice_ids, size):
-    """Take a screenshot of the given volume at the provided slice indices.
+def screenshot_volume(img, orientation, slice_ids, size):
+    """
+    Take a screenshot of the given volume at the provided slice indices.
 
     Parameters
     ----------
     img : nib.Nifti1Image
         Volume image.
-    axis_name : str
+    orientation : str
         Slicing axis name.
     slice_ids : array-like
         Slice indices.
@@ -37,23 +37,23 @@ def screenshot_volume(img, axis_name, slice_ids, size):
         Scene screenshots generator.
     """
 
-    slice_actor = create_texture_slicer(
-        img.get_fdata(), axis_name, 0, offset=0.0
-    )
+    slice_actor = create_texture_slicer(img.get_fdata(), orientation, 0,
+                                        offset=0.0)
 
-    return snapshot_slices([slice_actor], slice_ids, axis_name,
+    return snapshot_slices([slice_actor], slice_ids, orientation,
                            img.shape, size)
 
 
-def screenshot_contour(bin_img, axis_name, slice_ids, size, bg_opacity=0.):
-    """Take a screenshot of the given binary image countour with the
+def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
+    """
+    Take a screenshot of the given binary image countour with the
     appropriate slice data at the provided slice indices.
 
     Parameters
     ----------
     bin_img : nib.Nifti1Image
         Binary volume image.
-    axis_name : str
+    orientation : str
         Slicing axis name.
     slice_ids : array-like
         Slice indices.
@@ -68,50 +68,40 @@ def screenshot_contour(bin_img, axis_name, slice_ids, size, bg_opacity=0.):
         Scene screenshots generator.
     """
 
-    ax_idx = get_axis_index(axis_name)
+    ax_idx = get_axis_index(orientation)
     image_size_2d = list(bin_img.shape)
     image_size_2d[ax_idx] = 1
 
     _actors = []
     if bg_opacity > 0.:
-        _actors.append(create_texture_slicer(
-            bin_img.get_fdata(), axis_name, 0, offset=0.0, opacity=bg_opacity))
+        _actors.append(create_texture_slicer(bin_img.get_fdata(),
+                                             orientation, 0,
+                                             offset=0.0, opacity=bg_opacity))
 
-    scene = create_scene(_actors, axis_name, 0, image_size_2d,
+    scene = create_scene(_actors, orientation, 0, image_size_2d,
                          size[0] / size[1])
 
     for idx in slice_ids:
         for _actor in _actors:
-            set_display_extent(_actor, axis_name, image_size_2d, idx)
+            set_display_extent(_actor, orientation, image_size_2d, idx)
 
         contour_actor = create_contours_slicer(
             bin_img.get_fdata(), [1.], ax_idx, idx, color=[255, 255, 255])
 
         scene.add(contour_actor)
-        set_viewport(scene, axis_name, idx, image_size_2d, size[0] / size[1])
+        set_viewport(scene, orientation, idx, image_size_2d, size[0] / size[1])
 
         yield window.snapshot(scene, size=size)
         scene.rm(contour_actor)
 
 
-def compose_image(
-    img_scene,
-    img_size,
-    slice_number,
-    corner_position=(0, 0),
-    transparency_scene=None,
-    labelmap_scene=None,
-    labelmap_overlay_alpha=0.7,
-    mask_overlay_scene=None,
-    mask_overlay_alpha=0.7,
-    mask_overlay_color=None,
-    vol_cmap_name=None,
-    labelmap_cmap_name=None,
-    display_slice_number=False,
-    display_lr=False,
-    lr_labels=["L", "R"],
-    canvas=None
-):
+def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
+                  transparency_scene=None, labelmap_scene=None,
+                  labelmap_overlay_alpha=0.7, mask_overlay_scene=None,
+                  mask_overlay_alpha=0.7, mask_overlay_color=None,
+                  vol_cmap_name=None, labelmap_cmap_name=None,
+                  display_slice_number=False, display_lr=False,
+                  lr_labels=["L", "R"], canvas=None):
     """
     Compose an image with the given scenes, with transparency, overlays,
     labelmap and annotations. If no canvas for the image is given, it will
@@ -168,21 +158,15 @@ def compose_image(
     if labelmap_cmap_name:
         labelmap_lut = get_lookup_table(labelmap_cmap_name)
 
-    draw_2d_array_at_position(
-        canvas,
-        img_scene,
-        img_size,
-        corner_position[0],
-        corner_position[1],
-        transparency=transparency_scene,
-        labelmap_overlay=labelmap_scene,
-        labelmap_overlay_alpha=labelmap_overlay_alpha,
-        mask_overlay=mask_overlay_scene,
-        mask_overlay_alpha=mask_overlay_alpha,
-        mask_overlay_color=mask_overlay_color,
-        vol_lut=vol_lut,
-        labelmap_lut=labelmap_lut,
-    )
+    draw_2d_array_at_position(canvas, img_scene, img_size,
+                              corner_position[0], corner_position[1],
+                              transparency=transparency_scene,
+                              labelmap_overlay=labelmap_scene,
+                              labelmap_overlay_alpha=labelmap_overlay_alpha,
+                              mask_overlay=mask_overlay_scene,
+                              mask_overlay_alpha=mask_overlay_alpha,
+                              mask_overlay_color=mask_overlay_color,
+                              vol_lut=vol_lut, labelmap_lut=labelmap_lut)
 
     annotate_image(canvas, slice_number, display_slice_number,
                    display_lr, lr_labels)
@@ -190,27 +174,16 @@ def compose_image(
     return canvas
 
 
-def compose_mosaic(
-    img_scene_container,
-    cell_size,
-    rows,
-    cols,
-    slice_numbers,
-    overlap_factor=None,
-    transparency_scene_container=None,
-    labelmap_scene_container=None,
-    labelmap_overlay_alpha=0.7,
-    mask_overlay_scene_container=None,
-    mask_overlay_alpha=0.7,
-    mask_overlay_color=None,
-    vol_cmap_name=None,
-    labelmap_cmap_name=None,
-    display_slice_number=False,
-    display_lr=False,
-    lr_labels=["L", "R"]
-):
-    """Create the mosaic canvas for given number of rows and columns, and the
-    requested cell size and overlap values.
+def compose_mosaic(img_scene_container, cell_size, rows, cols, slice_numbers,
+                   overlap_factor=None, transparency_scene_container=None,
+                   labelmap_scene_container=None, labelmap_overlay_alpha=0.7,
+                   mask_overlay_scene_container=None, mask_overlay_alpha=0.7,
+                   mask_overlay_color=None, vol_cmap_name=None,
+                   labelmap_cmap_name=None, display_slice_number=False,
+                   display_lr=False, lr_labels=["L", "R"]):
+    """
+    Create the mosaic canvas for given number of rows and columns,
+    and the requested cell size and overlap values.
 
     Parameters
     ----------
@@ -279,9 +252,8 @@ def compose_mosaic(
                                                 fillvalue=tuple()))):
 
         # Compute the mosaic cell position
-        top_pos, left_pos = compute_cell_topleft_pos(
-            idx, cols, offset_h, offset_v
-        )
+        top_pos, left_pos = compute_cell_topleft_pos(idx, cols,
+                                                     offset_h, offset_v)
 
         # Convert the scene data to grayscale and adjust for handling with
         # Pillow

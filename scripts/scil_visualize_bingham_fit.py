@@ -140,11 +140,8 @@ def main():
             scene, args.win_dims, args.interactor)
 
     if args.output:
-        snapshots = snapshot_scenes([scene], args.win_dims)
-        image = compose_image(snapshots[0],
-                              args.win_dims,
-                              args.slice_index)
-
+        snapshot = next(snapshot_scenes([scene], args.win_dims))
+        image = compose_image(snapshot, args.win_dims, args.slice_index)
         image.save(args.output)
 
 

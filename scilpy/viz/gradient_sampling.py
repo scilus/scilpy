@@ -37,10 +37,8 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
         output filename
     ores: tuple
         resolution of the output png
-
-    Return
-    ------
     """
+
     _colors = generate_n_colors(len(ms))
 
     if use_sphere:
@@ -100,10 +98,8 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
         output filename
     ores: tuple
         resolution of the output png
-
-    Return
-    ------
     """
+
     _colors = generate_n_colors(len(ms))
 
     scene = window.Scene()
@@ -111,7 +107,7 @@ def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,
     if use_sphere:
         sphere = get_sphere('symmetric724')
         shape = (1, 1, 1, sphere.vertices.shape[0])
-        fid, fname = mkstemp(suffix='_odf_slicer.mmap')
+        _, fname = mkstemp(suffix='_odf_slicer.mmap')
         odfs = np.memmap(fname, dtype=np.float64, mode='w+', shape=shape)
         odfs[:] = 1
         odfs[..., 0] = 1

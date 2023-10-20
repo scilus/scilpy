@@ -363,9 +363,9 @@ def main():
             scene, args.win_dims, args.interactor)
 
     if args.output:
-        snapshots = snapshot_scenes([scene, mask_scene], args.win_dims)
-        _mask_arr = any2grayscale(snapshots[1])
-        image = compose_image(snapshots[0],
+        snapshots = snapshot_scenes([mask_scene, scene], args.win_dims)
+        _mask_arr = any2grayscale(next(snapshots))
+        image = compose_image(next(snapshots),
                               args.win_dims,
                               args.slice_index,
                               mask_overlay_scene=_mask_arr)

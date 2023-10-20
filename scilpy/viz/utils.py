@@ -32,7 +32,8 @@ def affine_from_offset(orientation, offset):
 
 
 def check_mosaic_layout(img_count, rows, cols):
-    """Check whether a mosaic can be built given the image count and the
+    """
+    Check whether a mosaic can be built given the image count and the
     requested number of rows and columns. Raise a `ValueError` if it cannot be
     built.
 
@@ -63,7 +64,8 @@ def check_mosaic_layout(img_count, rows, cols):
 
 
 def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
-    """Compute the top-left position of a cell to be drawn in a mosaic.
+    """
+    Compute the top-left position of a cell to be drawn in a mosaic.
 
     Parameters
     ----------
@@ -75,6 +77,13 @@ def compute_cell_topleft_pos(idx, cols, offset_h, offset_v):
         Horizontal offset (pixels).
     offset_v :
         Vertical offset (pixels).
+
+    Returns
+    -------
+    top_pos : int
+        Top position (pixels).
+    left_pos : int
+        Left position (pixels).
     """
 
     row_idx = int(np.floor(idx / cols))

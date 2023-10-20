@@ -11,6 +11,16 @@ from scilpy.viz.backends.vtk import get_color_by_name
 def convert_color_names_to_rgb(names):
     """
     Convert a list of VTK color names to RGB
+
+    Parameters
+    ----------
+    names : list
+        List of VTK color names.
+
+    Returns
+    -------
+    colors : list
+        List of RGB vtkColor.
     """
 
     return [get_color_by_name(name) for name in names]
