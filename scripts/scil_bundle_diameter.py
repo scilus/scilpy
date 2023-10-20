@@ -50,7 +50,7 @@ from scilpy.io.utils import (add_json_args,
                              snapshot)
 from scilpy.viz.backends.fury import create_interactive_window, create_scene
 from scilpy.viz.backends.vtk import create_tube_with_radii
-from scilpy.viz.color import get_colormap
+from scilpy.viz.color import get_lookup_table
 
 
 def _build_arg_parser():
@@ -296,7 +296,7 @@ def main():
                                                 error_coloring=args.error_coloring)
             actor_list.append(tube_actor)
             # TODO : move streamline actor to fury backend
-            cmap = get_colormap('jet')
+            cmap = get_lookup_table('jet')
             coloring = cmap(pts_labels / np.max(pts_labels))[:, 0:3]
             streamlines_actor = actor.streamtube(sft.streamlines,
                                                  linewidth=args.width,
