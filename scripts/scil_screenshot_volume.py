@@ -70,28 +70,24 @@ import numpy as np
 from os.path import splitext
 
 from scilpy.io.image import assert_same_resolution
-from scilpy.io.utils import (
-    get_default_screenshotting_data,
-    add_nifti_screenshot_default_args,
-    add_nifti_screenshot_overlays_args,
-    assert_overlay_colors,
-    add_verbose_arg,
-    add_overwrite_arg,
-    assert_inputs_exist
-)
+from scilpy.io.utils import (add_nifti_screenshot_default_args,
+                             add_nifti_screenshot_overlays_args,
+                             add_verbose_arg,
+                             add_overwrite_arg,
+                             get_default_screenshotting_data,
+                             assert_inputs_exist,
+                             assert_overlay_colors)
 from scilpy.image.utils import check_slice_indices
 from scilpy.utils.util import get_axis_index
-from scilpy.viz.screenshot import (compose_image, compose_mosaic,
-                                   screenshot_volume,
-                                   screenshot_contour)
+from scilpy.viz.screenshot import (compose_image,
+                                   screenshot_contour,
+                                   screenshot_volume)
 
 
 def _build_arg_parser():
 
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
 
     add_nifti_screenshot_default_args(p, False, False)
     add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
@@ -104,10 +100,7 @@ def _build_arg_parser():
 def _parse_args(parser):
 
     args = parser.parse_args()
-
-    inputs = []
-
-    inputs.append(args.in_volume)
+    inputs = [args.in_volume]
 
     if args.in_masks:
         inputs.extend(args.in_masks)
@@ -115,10 +108,10 @@ def _parse_args(parser):
         inputs.append(args.in_labelmap)
 
     assert_inputs_exist(parser, inputs)
-
     assert_same_resolution(inputs)
-
     assert_overlay_colors(args.masks_colors, args.in_masks, parser)
+
+    #TODO : check outputs (we need to know the slicing), could be glob
 
     return args
 
@@ -143,34 +136,34 @@ def main():
         slice_ids = np.arange(vol_img.shape[ax_idx])
 
     # Generate the image slices
-    volume_screenhots_generator = screenshot_volume(
-        vol_img,
-        args.axis_name,
-        slice_ids,
-        args.win_dims
-    )
+    volume_screenhots_generator = screenshot_volume(vol_img, args.axis_name,
+                                                    slice_ids, args.win_dims)
 
+    # Generate transparency, if requested
     transparency_screenshots_generator = empty_generator()
     if t_mask_img is not None:
         transparency_screenshots_generator = screenshot_volume(
             t_mask_img, args.axis_name, slice_ids, args.win_dims)
 
+    # Generate labelmap, if requested
     labelmap_screenshots_generator = empty_generator()
     if labelmap_img:
         labelmap_screenshots_generator = screenshot_volume(
             labelmap_img, args.axis_name, slice_ids, args.win_dims)
 
+    # Create the overlay screenshotter
     overlay_screenshotter = screenshot_volume
     if args.masks_as_contours:
-        overlay_screenshotter = screenshot_contour
+        overlay_screenshotter = lambda *args, **kwargs: screenshot_contour(
+            *args, **kwargs, bg_opacity=0.3)
 
+    # Generate the overlay stack, if requested, zipping over all overlays
     overlay_screenshots_generator, mask_overlay_colors = empty_generator(), []
     if mask_imgs is not None:
         mask_overlay_colors = mask_colors
-        overlay_screenshots_generator = zip(*itertools.starmap(overlay_screenshotter,
-                                            ([mask, args.axis_name,
-                                             slice_ids, args.win_dims]
-                                             for mask in mask_imgs)))
+        overlay_screenshots_generator = zip(*itertools.starmap(
+            overlay_screenshotter, ([mask, args.axis_name, slice_ids,
+                                     args.win_dims] for mask in mask_imgs)))
 
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
@@ -185,21 +178,17 @@ def main():
         slice_ids,
         fillvalue=None):
 
-        print(f"Composing image at {slice_id}")
-
-        img = compose_image(
-            volume, args.win_dims, slice_id,
-            vol_cmap_name=args.volume_cmap_name,
-            transparency_scene=trans,
-            mask_overlay_scene=contour,
-            mask_overlay_color=mask_overlay_colors,
-            mask_overlay_alpha=args.masks_alpha,
-            labelmap_scene=label,
-            labelmap_cmap_name=args.labelmap_cmap_name,
-            labelmap_overlay_alpha=args.labelmap_alpha,
-            display_slice_number=args.display_slice_number,
-            display_lr=args.display_lr
-        )
+        img = compose_image(volume, args.win_dims, slice_id,
+                            vol_cmap_name=args.volume_cmap_name,
+                            transparency_scene=trans,
+                            mask_overlay_scene=contour,
+                            mask_overlay_color=mask_overlay_colors,
+                            mask_overlay_alpha=args.masks_alpha,
+                            labelmap_scene=label,
+                            labelmap_cmap_name=args.labelmap_cmap_name,
+                            labelmap_overlay_alpha=args.labelmap_alpha,
+                            display_slice_number=args.display_slice_number,
+                            display_lr=args.display_lr)
 
         # Save the snapshot
         img.save(name)
