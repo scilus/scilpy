@@ -296,7 +296,7 @@ def add_sh_basis_args(parser, mandatory=False, input_output=False):
     ----------
     parser: argparse.ArgumentParser object
         Parser.
-    mandatory: bool
+    mandatory: bool, optional
         Whether this argument is mandatory.
     input_output: bool
         Whether this argument should expect both input and output bases or not.
@@ -380,9 +380,20 @@ def parse_sh_basis_arg(args):
         return sh_basis, is_legacy
 
 
-def add_nifti_screenshot_default_args(
-        parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
-):
+def add_nifti_screenshot_default_args(parser, slice_ids_mandatory=True,
+                                      transparency_mask_mandatory=True):
+    """
+    Add default arguments for nifti screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    slice_ids_mandatory: bool, optional
+        Whether the slice_ids argument is mandatory.
+    transparency_mask_mandatory: bool, optional
+        Whether the transparency mask argument is mandatory.
+    """
     _mask_prefix = "" if transparency_mask_mandatory else "--"
 
     _slice_ids_prefix, _slice_ids_help = "", "Slice indices to screenshot."
@@ -397,42 +408,54 @@ def add_nifti_screenshot_default_args(
                        "volume_slice_0.jpg, volume_slice_0.png)."
 
     # Positional arguments
-    parser.add_argument(
-        "in_volume", help="Input 3D Nifti file (.nii/.nii.gz).")
+    parser.add_argument("in_volume",
+                        help="Input 3D Nifti file (.nii/.nii.gz).")
     parser.add_argument("out_fname", help=_output_help)
 
     # Variable arguments
-    parser.add_argument(
-        f"{_mask_prefix}in_transparency_mask",
-        help="Transparency mask 3D Nifti image (.nii/.nii.gz).")
-    parser.add_argument(
-        f"{_slice_ids_prefix}slice_ids", nargs="+", type=int,
-        help=_slice_ids_help)
+    parser.add_argument(f"{_mask_prefix}in_transparency_mask",
+                        help="Transparency mask Nifti image (.nii/.nii.gz).")
+    parser.add_argument(f"{_slice_ids_prefix}slice_ids", nargs="+", type=int,
+                        help=_slice_ids_help)
 
     # Optional arguments
-    parser.add_argument(
-        "--volume_cmap_name", default=None,
-        help="Colormap name for the volume image data. [%(default)s]")
-    parser.add_argument(
-        "--axis_name", default="axial", type=str, choices=RAS_AXES_NAMES,
-        help="Name of the axis to visualize. [%(default)s]")
-    parser.add_argument(
-        "--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"), default=(768, 768),
-        type=int, help="The dimensions for the vtk window. [%(default)s]")
-    parser.add_argument(
-        "--display_slice_number", action="store_true",
-        help="If true, displays the slice number in the upper left corner."
-    )
-    parser.add_argument(
-        "--display_lr", action="store_true",
-        help="If true, add left and right annotations to the images."
-    )
+    parser.add_argument("--volume_cmap_name", default=None,
+                        help="Colormap name for the volume image "
+                             "data. [%(default)s]")
+    parser.add_argument("--axis_name", default="axial", type=str,
+                        choices=RAS_AXES_NAMES,
+                        help="Name of the axis to visualize. [%(default)s]")
+    parser.add_argument("--win_dims", nargs=2, metavar=("WIDTH", "HEIGHT"),
+                        default=(768, 768), type=int,
+                        help="The dimensions for the vtk "
+                             "window. [%(default)s]")
+    parser.add_argument("--display_slice_number", action="store_true",
+                        help="If true, displays the slice number "
+                             "in the upper left corner.")
+    parser.add_argument("--display_lr", action="store_true",
+                        help="If true, add left and right "
+                             "annotations to the images.")
 
 
-def add_nifti_screenshot_overlays_args(
-        parser, labelmap_overlay=True, mask_overlay=True,
-        transparency_is_overlay=False
-):
+def add_nifti_screenshot_overlays_args(parser, labelmap_overlay=True,
+                                       mask_overlay=True,
+                                       transparency_is_overlay=False):
+    """
+    Add arguments for overlay screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    labelmap_overlay: bool, optional
+        Whether to add labelmap overlay arguments.
+    mask_overlay: bool, optional
+        Whether to add mask overlay arguments.
+    transparency_is_overlay: bool, optional
+        Whether the transparency mask is used to mask the
+        primary image or as an overlay.
+    """
+
     if labelmap_overlay:
         parser.add_argument(
             "--in_labelmap", help="Labelmap 3D Nifti image (.nii/.nii.gz).")

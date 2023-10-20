@@ -86,30 +86,21 @@ from scilpy.viz.utils import check_mosaic_layout
 
 def _build_arg_parser():
 
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawTextHelpFormatter)
 
     add_nifti_screenshot_default_args(p)
     add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
 
-    p.add_argument(
-        "mosaic_rows_cols",
-        nargs=2,
-        # metavar=("rows", "cols"),  # CPython issue 58282
-        type=int,
-        help="The mosaic row and column count."
-    )
+    # metavar=("rows", "cols"),  # CPython issue 58282
+    p.add_argument("mosaic_rows_cols", nargs=2, type=int,
+                   help="The mosaic row and column count.")
 
-    p.add_argument(
-        "--overlap_factor",
-        nargs=2,
-        metavar=("OVERLAP_HORIZ", "OVERLAP_VERT"),
-        default=(0.6, 0.0),
-        type=ranged_type(float, 0.0, 1.0),
-        help="The overlap factor with respect to the dimension. [%(default)s]"
-    )
+    p.add_argument("--overlap_factor", nargs=2,
+                   metavar=("OVERLAP_HORIZ", "OVERLAP_VERT"),
+                   default=(0.6, 0.0), type=ranged_type(float, 0.0, 1.0),
+                   help="The overlap factor with respect to "
+                        "the dimension. [%(default)s]")
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -136,9 +127,7 @@ def _parse_args(parser):
 
     assert_inputs_exist(parser, inputs)
     assert_outputs_exist(parser, args, output)
-
     assert_same_resolution(inputs)
-
     assert_overlay_colors(args.masks_colors, args.in_masks, parser)
 
     return args
