@@ -18,8 +18,6 @@ class CamParams(Enum):
     VIEW_UP = 'up_vector'
     VIEW_ANGLE = 'view_angle'
     PARA_SCALE = 'parallel_scale'
-    VIEW_ANGLE = 'view_angle'
-    PARA_SCALE = 'parallel_scale'
 
 
 def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
