@@ -15,6 +15,7 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
     """
     Compute an endpoints density map, supports selecting more than one points
     at each end.
+
     Parameters
     ----------
     streamlines: list of np.ndarray
@@ -23,8 +24,8 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
         The shape of the reference volume for the streamlines.
     point_to_select: int
         Instead of computing the density based on the first and last points,
-        select more than one at each end. To support compressed streamlines,
-        a resampling to 0.5mm per segment is performed.
+        select more than one at each end.
+
     Returns
     -------
     np.ndarray: A np.ndarray where voxel values represent the density of
@@ -60,6 +61,7 @@ def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
     """
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
+    # TODO: This can be optimized to assign all points at once
     for streamline in streamlines:
         # TODO: There is a bug here, the number of points is at max 2
         # meaning we can never select more than the first and last points
@@ -86,6 +88,9 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     """ Cut streamlines so their longest segment are within the bounding box
     or a binary mask.
     This function erases the data_per_point and data_per_streamline.
+
+    This function always returns streamlines in voxel space, and in corner.
+    TODO?: Return streamlines in their original space.
 
     Parameters
     ----------
@@ -142,9 +147,13 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
 
 
 def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
-    """ Cut streamlines so their segment are within the bounding box
-    or going from binary mask #1 to binary mask #2.
+    """ Cut streamlines so their segment are  going from binary mask #1
+    to binary mask #2.
+
     This function erases the data_per_point and data_per_streamline.
+
+    This function always returns streamlines in voxel space, and in corner.
+    TODO?: Return streamlines in their original space.
 
     Parameters
     ----------
@@ -200,7 +209,8 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
 
 
 def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
-    """ Find the first and last points of the streamline that are in the ROIs.
+    """ Find the first and last "voxels" of the streamline that are in the
+    ROIs.
 
     Parameters
     ----------
