@@ -34,10 +34,8 @@ diffusion MRI. Medical Image Analysis (2022)
 import argparse
 import logging
 
-from dipy.core.gradients import GradientTable
-from dipy.data import get_sphere, default_sphere
-from dipy.reconst import shm
-from dipy.reconst.mcsd import MultiShellResponse, MultiShellDeconvModel
+from dipy.data import get_sphere
+from dipy.reconst.mcsd import MultiShellDeconvModel
 import nibabel as nib
 import numpy as np
 
@@ -48,7 +46,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_sh_basis_args, add_processes_arg,
                              add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
-from scilpy.reconst.b_tensor_utils import generate_btensor_input
+from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
+                                           multi_shell_fiber_response)
 
 
 def _build_arg_parser():
@@ -118,92 +117,6 @@ def _build_arg_parser():
         help='Output filename for the volume fractions map in rgb.')
 
     return p
-
-
-def single_tensor_btensor(gtab, evals, b_delta, S0=1):
-    # This function should be moved to Dipy at some point
-
-    if b_delta > 1 or b_delta < -0.5:
-        msg = """The value of b_delta must be between -0.5 and 1."""
-        raise ValueError(msg)
-
-    out_shape = gtab.bvecs.shape[:gtab.bvecs.ndim - 1]
-    gradients = gtab.bvecs.reshape(-1, 3)
-
-    evals = np.asarray(evals)
-    D_iso = np.sum(evals) / 3.
-    D_para = evals[np.argmax(abs(evals - D_iso))]
-    D_perp = evals[np.argmin(abs(evals - D_iso))]
-    D_delta = (D_para - D_perp) / (3 * D_iso)
-
-    S = np.zeros(len(gradients))
-    for (i, g) in enumerate(gradients):
-        theta = np.arctan2(np.sqrt(g[0] ** 2 + g[1] ** 2), g[2])
-        P_2 = (3 * np.cos(theta) ** 2 - 1) / 2.
-        b = gtab.bvals[i]
-        S[i] = S0 * np.exp(-b * D_iso * (1 + 2 * b_delta * D_delta * P_2))
-
-    return S.reshape(out_shape)
-
-
-def multi_shell_fiber_response(sh_order, bvals, wm_rf, gm_rf, csf_rf,
-                               b_deltas=None, sphere=None, tol=20):
-    # This function should be moved to Dipy at some point
-
-    bvals = np.array(bvals, copy=True)
-
-    n = np.arange(0, sh_order + 1, 2)
-    m = np.zeros_like(n)
-
-    if sphere is None:
-        sphere = default_sphere
-
-    big_sphere = sphere.subdivide()
-    theta, phi = big_sphere.theta, big_sphere.phi
-
-    B = shm.real_sh_descoteaux_from_index(m, n, theta[:, None], phi[:, None])
-    A = shm.real_sh_descoteaux_from_index(0, 0, 0, 0)
-
-    if b_deltas is None:
-        b_deltas = np.ones(len(bvals) - 1)
-
-    response = np.empty([len(bvals), len(n) + 2])
-
-    if bvals[0] < tol:
-        gtab = GradientTable(big_sphere.vertices * 0)
-        wm_response = single_tensor_btensor(gtab, wm_rf[0, :3], 1, wm_rf[0, 3])
-        response[0, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
-
-        response[0, 1] = gm_rf[0, 3] / A
-        response[0, 0] = csf_rf[0, 3] / A
-        for i, bvalue in enumerate(bvals[1:]):
-            gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3],
-                                                b_deltas[i],
-                                                wm_rf[i, 3])
-            response[i+1, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
-
-            response[i+1, 1] = gm_rf[i, 3] * np.exp(-bvalue * gm_rf[i, 0]) / A
-            response[i+1, 0] = csf_rf[i, 3] * np.exp(-bvalue
-                                                     * csf_rf[i, 0]) / A
-
-        S0 = [csf_rf[0, 3], gm_rf[0, 3], wm_rf[0, 3]]
-
-    else:
-        logging.warning('No b0 was given. Proceeding either way.')
-        for i, bvalue in enumerate(bvals):
-            gtab = GradientTable(big_sphere.vertices * bvalue)
-            wm_response = single_tensor_btensor(gtab, wm_rf[i, :3],
-                                                b_deltas[i],
-                                                wm_rf[i, 3])
-            response[i, 2:] = np.linalg.lstsq(B, wm_response, rcond=None)[0]
-
-            response[i, 1] = gm_rf[i, 3] * np.exp(-bvalue * gm_rf[i, 0]) / A
-            response[i, 0] = csf_rf[i, 3] * np.exp(-bvalue * csf_rf[i, 0]) / A
-
-        S0 = [csf_rf[0, 3], gm_rf[0, 3], wm_rf[0, 3]]
-
-    return MultiShellResponse(response, sh_order, bvals, S0=S0)
 
 
 def main():
