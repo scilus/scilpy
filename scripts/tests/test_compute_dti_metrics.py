@@ -25,7 +25,10 @@ def test_execution_processing(script_runner):
     in_bvec = os.path.join(get_home(), 'processing',
                            '1000.bvec')
     ret = script_runner.run('scil_compute_dti_metrics.py', in_dwi,
-                            in_bval, in_bvec, '--not_all', '--fa', 'fa.nii.gz',
-                            '--md', 'md.nii.gz', '--ad', 'ad.nii.gz',
-                            '--rd', 'rd.nii.gz', '--residual', 'residual.nii.gz')
+                            in_bval, in_bvec, '--not_all',
+                            '--fa', 'fa.nii.gz',
+                            '--md', 'md.nii.gz',
+                            '--ad', 'ad.nii.gz',
+                            '--rd', 'rd.nii.gz',
+                            '--residual', 'residual.nii.gz')
     assert ret.success
