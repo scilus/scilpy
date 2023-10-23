@@ -11,13 +11,13 @@ https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.ht
 import argparse
 import warnings
 
-import numpy as np
 import nibabel as nib
+import numpy as np
 
+from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.image.volume_operations import apply_transform
 
 
 def _build_arg_parser():
@@ -59,21 +59,24 @@ def main():
     _, ref_extension = split_name_with_nii(args.in_target_file)
     _, in_extension = split_name_with_nii(args.in_file)
     if ref_extension not in ['.nii', '.nii.gz']:
-        parser.error('{} is an unsupported format.'.format(args.in_target_file))
+        parser.error('{} is an unsupported format.'.format(
+            args.in_target_file))
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
     # Load images and validate input type.
     moving = nib.load(args.in_file)
-    
+
     if moving.get_fdata().ndim == 4:
-        warnings.warn('You are applying a transform to a 4D dwi volume, make sure to rotate your bvecs with '
+        warnings.warn('You are applying a transform to a 4D dwi volume, '
+                      'make sure to rotate your bvecs with '
                       'scil_apply_transform_to_bvecs.py')
-    
+
     reference = nib.load(args.in_target_file)
-    
-    warped_img = apply_transform(transfo, reference, moving, keep_dtype=args.keep_dtype)
-    
+
+    warped_img = apply_transform(
+        transfo, reference, moving, keep_dtype=args.keep_dtype)
+
     nib.save(warped_img, args.out_name)
 
 

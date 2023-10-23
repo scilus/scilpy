@@ -20,7 +20,7 @@ from scipy.ndimage import binary_dilation
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
-     
+
 
 def count_non_zero_voxels(image):
     """
@@ -45,14 +45,14 @@ def count_non_zero_voxels(image):
 def flip_volume(data, axes):
     """
     Flip volume along a specific axis.
-    
+
     Parameters
     ----------
     data: np.ndarray
         Volume data.
     axes: List 
         A list containing any number of values amongst ['x', 'y', 'z'].
-        
+
     Return
     ------
     data: Flipped volume data along specified axes.
@@ -73,14 +73,14 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     """
     Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
-    
+
     Parameters
     ----------
     img: nib.Nifti1Image
         Input image to crop.
     wbbox: WorldBoundingBox
         Bounding box. 
-        
+
     Return
     ------
     nib.Nifti1Image with the cropped data and transformed affine.
@@ -125,7 +125,7 @@ def apply_transform(transfo, reference, moving,
     keep_dtype : bool
         If True, keeps the data_type of the input moving image when saving
         the output image
-        
+
     Return
     ------
     nib.Nifti1Image of the warped moving image.
@@ -160,7 +160,7 @@ def apply_transform(transfo, reference, moving,
                                   interpolation=interp)
     else:
         raise ValueError('Does not support this dataset (shape, type, etc)')
-    
+
     return nib.Nifti1Image(resampled.astype(orig_type), grid2world)
 
 
@@ -179,7 +179,7 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     interpolation : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
-        
+
     Return
     ------
     nib.Nifti1Image of the warped 4D volume.
