@@ -55,11 +55,12 @@ def main():
     else:
         nz_mask_data = np.nonzero(np.average(dwi_data, axis=-1))
 
-    nuc_dwi_data = np.divide(dwi_data[nz_mask_data],
-                             bias_field_data[nz_mask_data].reshape((len(nz_mask_data[0]), 1)))
+    nuc_dwi_data = np.divide(
+        dwi_data[nz_mask_data],
+        bias_field_data[nz_mask_data].reshape((len(nz_mask_data[0]), 1)))
 
     rescaled_nuc_data = rescale_dwi(dwi_data[nz_mask_data],
-                                     nuc_dwi_data)
+                                    nuc_dwi_data)
 
     dwi_data[nz_mask_data] = rescaled_nuc_data
     nib.save(nib.Nifti1Image(dwi_data, dwi_img.affine,

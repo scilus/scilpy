@@ -26,6 +26,3 @@ def rescale_dwi(in_data, bc_data):
         bc_data[chunk[i]:chunk[i+1]] = rescaled_data
 
     return bc_data
-
-
-
