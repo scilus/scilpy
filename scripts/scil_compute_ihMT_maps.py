@@ -75,8 +75,8 @@ from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (compute_contrasts_maps,
-                                compute_ihMT_maps,
-                                compute_MT_maps_from_ihMT, threshold_ihMT_maps,
+                                compute_ihMT_maps, threshold_MT_maps,
+                                compute_MT_maps_from_ihMT,
                                 apply_B1_correction)
 
 EPILOG = """
@@ -222,10 +222,12 @@ def main():
 
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
-    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask,
-                                0, 100, [4, 3, 1, 0, 2])
-    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
-                                  0, 10, [4, 3, 1, 0])
+    ihMTR = threshold_MT_maps(ihMTR, args.in_mask, 0, 100,
+                              idx_contrast_list=[4, 3, 1, 0, 2],
+                              contrasts_maps=computed_contrasts)
+    ihMTsat = threshold_MT_maps(ihMTsat, args.in_mask, 0, 10,
+                                idx_contrast_list=[4, 3, 1, 0],
+                                contrasts_maps=computed_contrasts)
     if args.in_B1_map:
         ihMTR = apply_B1_correction(ihMTR, args.in_B1_map)
         ihMTsat = apply_B1_correction(ihMTsat, args.in_B1_map)
@@ -233,8 +235,9 @@ def main():
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps_from_ihMT(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
-        curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
-                                       args.in_mask, 0, 100, [4, 2])
+        curr_map = threshold_MT_maps(curr_map, args.in_mask, 0, 100,
+                                     idx_contrast_list=[4, 2],
+                                     contrasts_maps=computed_contrasts)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 

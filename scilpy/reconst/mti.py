@@ -261,20 +261,21 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
-                        lower_threshold, upper_threshold, idx_contrast_list):
+def threshold_MT_maps(computed_map,  in_mask,
+                      lower_threshold, upper_threshold,
+                      idx_contrast_list=None, contrasts_maps=None):
     """
     Remove NaN and apply different threshold based on
        - maximum and minimum threshold value
        - T1 mask
        - combination of specific contrasts maps
+    idx_contrast_list and contrasts_maps are required for
+    thresholding of ihMT images.
 
     Parameters
     ----------
     computed_map        3D-Array data.
                         Myelin map (ihMT or non-ihMT maps)
-    contrasts_maps      List of 3D-Array. File must containing the
-                        6 contrasts maps.
     in_mask             Path to binary T1 mask from T1 segmentation.
                         Must be the sum of GM+WM+CSF.
     lower_threshold     Value for low thresold <int>
@@ -283,6 +284,8 @@ def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
                         that of input contrasts_maps ex.: [0, 2, 5]
                         Altnp = 0; Atlpn = 1; Reference = 2; Negative = 3;
                         Positive = 4; T1weighted = 5
+    contrasts_maps      List of 3D-Array. File must containing the
+                        6 contrasts maps.
     Returns
     ----------
     Thresholded matrix in 3D-array.
@@ -299,40 +302,9 @@ def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
     computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrasts maps
-    for idx in idx_contrast_list:
-        computed_map[contrasts_maps[idx] == 0] = 0
-
-    return computed_map
-
-
-def threshold_MT_maps(computed_map, in_mask, lower_threshold, upper_threshold):
-    """
-    Remove NaN and apply different threshold based on
-       - maximum and minimum threshold value
-       - T1 mask
-
-    Parameters
-    ----------
-    computed_map        3D-Array Myelin map.
-    in_mask             Path to binary T1 mask from T1 segmentation.
-                        Must be the sum of GM+WM+CSF.
-    lower_threshold     Value for low thresold <int>
-    upper_thresold      Value for up thresold <int>
-
-    Returns
-    ----------
-    Thresholded matrix in 3D-array.
-    """
-    # Remove NaN and apply thresold based on lower and upper value
-    computed_map[np.isnan(computed_map)] = 0
-    computed_map[np.isinf(computed_map)] = 0
-    computed_map[computed_map < lower_threshold] = 0
-    computed_map[computed_map > upper_threshold] = 0
-
-    # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask)
-    mask_data = get_data_as_mask(mask_image)
-    computed_map[np.where(mask_data == 0)] = 0
+    if idx_contrast_list and contrasts_maps:
+        for idx in idx_contrast_list:
+            computed_map[contrasts_maps[idx] == 0] = 0
 
     return computed_map
 

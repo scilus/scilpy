@@ -56,11 +56,9 @@ The output consist in two types of images in two folders :
 
 import argparse
 import os
-import json
 
 import nibabel as nib
 import numpy as np
-import scipy.ndimage
 
 from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
                              assert_inputs_exist,
