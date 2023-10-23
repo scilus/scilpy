@@ -262,8 +262,8 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
 
 
 def threshold_maps(computed_map,  in_mask,
-                      lower_threshold, upper_threshold,
-                      idx_contrast_list=None, contrasts_maps=None):
+                   lower_threshold, upper_threshold,
+                   idx_contrast_list=None, contrasts_maps=None):
     """
     Remove NaN and apply different threshold based on
        - maximum and minimum threshold value
