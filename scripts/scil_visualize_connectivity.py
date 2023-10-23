@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import numpy as np
 
-from scilpy.image.operations import EPSILON
+from scilpy.image.volume_math import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy

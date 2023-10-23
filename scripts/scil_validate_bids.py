@@ -190,7 +190,6 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         nRun = curr_dwi.entities['run']
 
     IntendedForPath = os.path.sep.join(curr_dwi.relpath.split(os.path.sep)[1:])
-
     related_files = layout.get(part="mag",
                                IntendedFor=IntendedForPath,
                                regex_search=True,
@@ -201,7 +200,6 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
                    regex_search=True,
                    TotalReadoutTime=totalreadout,
                    invalid_filters='drop')
-
     related_files_filtered = []
     for curr_related in related_files:
         if curr_related.entities['suffix'] != 'dwi' and\
@@ -230,10 +228,10 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
 
         if related_files_suffixes.count('epi') > 2 or related_files_suffixes.count('sbref') > 2:
             topup_suffix = {'epi': ['', ''], 'sbref': ['', '']}
-            logging.info('Too many files pointing to {}.'.format(dwis[0].path))
+            logging.warning('Too many files pointing to {}.'.format(dwis[0].path))
     else:
         topup = ['', '']
-        logging.info('IntendedFor: No file pointing to {}'.format(dwis[0].path))
+        logging.warning('IntendedFor: No file pointing to {}'.format(dwis[0].path))
 
     if len(dwis) == 2:
         if not any(s == '' for s in topup_suffix['sbref']):
@@ -247,15 +245,27 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         # since sbref is a derivate of multi-band dwi
         if topup_suffix['epi'][1] != '':
             topup = topup_suffix['epi']
+        elif not any(s == '' for s in topup_suffix['sbref']):
+            logging.warning("You have two sbref but only one dwi this scheme is not accepted.")
+            topup = ['', '']
         else:
             topup = ['', '']
     else:
         print(dwis)
-        logging.info("""
-                     BIDS structure unkown.Please send an issue:
-                     https://github.com/scilus/scilpy/issues
-                     """)
+        logging.warning("""
+                        BIDS structure unkown.Please send an issue:
+                        https://github.com/scilus/scilpy/issues
+                        """)
         return {}
+
+    if not any(s == '' for s in topup):
+        logging.info("Found rev b0 and b0 images to correct for geometrical distorsion")
+    elif not topup[1]:
+        logging.warning("No rev image found to correct for geometrical distorsion")
+    elif topup[1]:
+        logging.info("Found rev b0 to correct for geometrical distorsion")
+    else:
+        logging.warning("Only found one b0 with same PhaseEncodedDirection won't be enough to correct for geometrical distorsion")
 
     # T1 setup
     t1_path = 'todo'
@@ -280,10 +290,10 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         if len(t1_nSess) == 1:
             t1_path = t1_nSess[0].path
         elif len(t1_nSess) == 0:
-            logging.info('No T1 file found.')
+            logging.warning('No T1 file found.')
         else:
             t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
-            logging.info('More than one T1 file found.'
+            logging.warning('More than one T1 file found.'
                          ' [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
@@ -349,7 +359,7 @@ def associate_dwis(layout, nSub):
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
-        logging.info("These acquisitions have too many encoding directions.")
+        logging.warning("These acquisitions have too many encoding directions.")
         return []
 
     all_dwis = layout.get(part=Query.NONE,
@@ -396,9 +406,9 @@ def associate_dwis(layout, nSub):
                     curr_association.append(rev_dwi)
                     rev_iter_to_rm.append(iter_rev)
                 else:
-                    if rev_curr_entity[direction] == rev_dwi[direction]:
+                    if rev_curr_entity[direction] == rev_dwi.entities[direction]:
                         # Print difference between entities
-                        logging.info('DWIs {} and {} have opposite phase encoding directions but different entities.'
+                        logging.warning('DWIs {} and {} have opposite phase encoding directions but different entities.'
                                      'Please check their respective json files.'.format(curr_dwi, rev_dwi))
 
         # drop all rev_dwi used
@@ -411,7 +421,7 @@ def associate_dwis(layout, nSub):
         if len(curr_association) < 3:
             all_associated_dwis.append(curr_association)
         else:
-            logging.info("These acquisitions have too many associated dwis.")
+            logging.warning("These acquisitions have too many associated dwis.")
         del all_dwis[0]
 
     if len(all_rev_dwis):
@@ -428,9 +438,9 @@ def main():
     assert_inputs_exist(parser, [], args.bids_ignore)
     assert_outputs_exist(parser, args, args.out_json)
 
-    log_level = logging.INFO if args.verbose else logging.WARNING
-    logging.getLogger().setLevel(log_level)
-    coloredlogs.install(level=log_level)
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+    coloredlogs.install(level=logging.INFO)
 
     data = []
     bids_indexer = BIDSLayoutIndexer(validate=False,
@@ -441,33 +451,33 @@ def main():
     subjects = layout.get_subjects()
     subjects.sort()
 
-    logging.warning("Found {} subject(s)".format(len(subjects)))
+    logging.info("Found {} subject(s)".format(len(subjects)))
 
     for nSub in subjects:
-        mess = '# Validating subject: {}'.format(nSub)
-        logging.warning("-" * len(mess))
-        logging.warning(mess)
+        mess = 'Validating subject: {}'.format(nSub)
+        logging.info("-" * len(mess))
+        logging.info(mess)
         dwis = associate_dwis(layout, nSub)
         fs_inputs = []
         t1s = []
 
         if args.fs:
             abs_fs = os.path.abspath(args.fs)
-            logging.warning("# Looking for FS files")
+            logging.info("Looking for FS files")
             t1_fs = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/T1.mgz'))
             wmparc = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
             aparc_aseg = glob(os.path.join(abs_fs, 'sub-' + nSub,
                                            'mri/aparc+aseg.mgz'))
             if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                 fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
-                logging.warning("# Found FS files")
+                logging.info("Found FS files")
         else:
-            logging.warning("# Looking for T1 files")
+            logging.info("Looking for T1 files")
             t1s = layout.get(subject=nSub,
                              datatype='anat', extension='nii.gz',
                              suffix='T1w')
             if t1s:
-                logging.warning("# Found {} T1 files".format(len(t1s)))
+                logging.info("Found {} T1 files".format(len(t1s)))
         # Get the data for each run of DWIs
         for dwi in dwis:
             data.append(get_data(layout,

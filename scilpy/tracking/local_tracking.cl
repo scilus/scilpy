@@ -273,13 +273,13 @@ int propagate(float3 last_pos, float3 last_dir, int current_length,
 {
     bool is_valid = is_valid_pos(tracking_mask, last_pos);
 
-    // If standard tracking, the forward and backward pass are both
-    // allowed to track for a distance of MAX_LENGTH / 2.
-    // If forward only, then we can 
-    const int max_length = is_forward && !FORWARD_ONLY ?
-                           MAX_LENGTH / 2 :
-                           current_length + MAX_LENGTH / 2;
-
+#if !FORWARD_ONLY
+    const int max_length = is_forward ?
+                           ceil((float)MAX_LENGTH / 2.0f) :
+                           current_length + floor((float)MAX_LENGTH / 2.0f);
+#else
+    const int max_length = MAX_LENGTH;
+#endif
     while(current_length < max_length && is_valid)
     {
         // Sample SF at position.

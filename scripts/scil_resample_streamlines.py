@@ -14,8 +14,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tracking.tools import (resample_streamlines_num_points,
-                                   resample_streamlines_step_size)
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points, resample_streamlines_step_size
 
 
 def _build_arg_parser():

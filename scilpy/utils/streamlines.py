@@ -11,8 +11,8 @@ from sklearn.cluster import KMeans
 
 from scilpy.io.utils import load_matrix_in_any_format
 from scilpy.tractanalysis.features import get_streamlines_centroid
-
-from scilpy.viz.utils import get_colormap
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
 
 
 def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
@@ -29,8 +29,6 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     swap: boolean, optional
         Swap the orientation of streamlines
     """
-    from scilpy.tractanalysis.reproducibility_measures import \
-        get_endpoints_density_map
     old_space = sft.space
     old_origin = sft.origin
     sft.to_vox()

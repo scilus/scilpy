@@ -43,6 +43,7 @@ Example usages:
 """
 
 import argparse
+from copy import deepcopy
 import json
 import logging
 import os
@@ -67,9 +68,10 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation)
-from scilpy.tracking.tools import filter_streamlines_by_length
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_length
+from scilpy.tractograms.tractogram_operations import \
+    perform_tractogram_operation_on_sft
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
@@ -119,6 +121,8 @@ def _build_arg_parser():
                         ' images, etc) in the filtering process.')
     p.add_argument('--save_counts', action='store_true',
                    help='Save the streamline counts to a file (.json)')
+    p.add_argument('--save_rejected', action='store_true',
+                   help='Save rejected streamlines to output tractogram.')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamlines.')
 
@@ -202,7 +206,7 @@ def save_intermediate_sft(sft, outliers_sft, new_path, in_sft_name,
     """
     sft_name = os.path.join(new_path, in_sft_name + "_" + steps_combined + ext)
     outliers_sft_name = os.path.join(
-        new_path, in_sft_name + "_" + step_name + "_outliers" + ext)
+        new_path, in_sft_name + "_" + steps_combined + "_outliers" + ext)
 
     if len(sft.streamlines) == 0:
         if no_empty:
@@ -226,11 +230,27 @@ def compute_outliers(sft, new_sft):
     Return a stateful tractogram whose streamlines are the difference of the
     two input stateful tractograms
     """
-    streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_tractogram_operation(
-        difference, streamlines_list, precision=0)
-    outliers_sft = sft[indices]
+    outliers_sft, _ = perform_tractogram_operation_on_sft('difference_robust',
+                                                          [sft, new_sft],
+                                                          precision=3,
+                                                          no_metadata=True,
+                                                          fake_metadata=False)
     return outliers_sft
+
+
+def save_rejected(sft, new_sft, rejected_sft_name, no_empty):
+    """
+    Save rejected streamlines
+    """
+    rejected_sft = compute_outliers(sft, new_sft)
+
+    if len(rejected_sft.streamlines) == 0:
+        if no_empty:
+            logging.debug("The file" + rejected_sft_name +
+                          " won't be written (0 streamlines)")
+            return
+
+    save_tractogram(rejected_sft, rejected_sft_name)
 
 
 def display_count(o_dict, indent, sort_keys):
@@ -272,6 +292,8 @@ def main():
         parser.error('Cortex dilation radius "{}" '.format(
                      args.ctx_dilation_radius) + 'must be greater than 0')
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft.to_vox()
+    sft.to_corner()
 
     img_wmparc = nib.load(args.in_wmparc)
     if not is_header_compatible(img_wmparc, sft):
@@ -303,6 +325,12 @@ def main():
     out_sft_name = os.path.join(args.out_path,
                                 out_sft_rootname + ext)
 
+    if args.save_rejected:
+        initial_sft = deepcopy(sft)
+        rejected_sft_name = os.path.join(args.out_path,
+                                         in_sft_name +
+                                         "_rejected" + ext)
+
     # STEP 1 - Filter length
     step = step_dict[0]
     steps_combined = step
@@ -316,10 +344,10 @@ def main():
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '01-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -330,22 +358,23 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
+            if args.save_rejected:
+                save_tractogram(initial_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
-
         if args.save_counts:
             save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
         return
 
     sft = new_sft
@@ -368,7 +397,7 @@ def main():
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_volumes:
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '02-' + step)
         if not args.csf_bin:
             nib.save(nib.Nifti1Image(mask, img_wmparc.affine,
                                      img_wmparc.header),
@@ -376,10 +405,10 @@ def main():
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '02-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -390,23 +419,23 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
 
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
-
         if args.save_counts:
             save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
         return
 
     sft = new_sft
@@ -438,60 +467,21 @@ def main():
     new_sft, _ = filter_grid_roi(sft, freesurfer_mask, 'both_ends', False)
 
     # Streamline count after final filtering
-    o_dict[out_sft_rootname + ext] =\
+    o_dict[in_sft_name + '_' + steps_combined + ext] =\
         dict({'streamline_count': len(new_sft.streamlines)})
 
     if args.save_volumes:
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '03-' + step)
         nib.save(nib.Nifti1Image(freesurfer_mask, img_wmparc.affine,
                                  img_wmparc.header),
                  os.path.join(new_path, 'atlas_bin' + '.nii.gz'))
 
     if args.save_intermediate_tractograms:
         outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
+        new_path = create_dir(args.out_path, '03-' + step)
         save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
                               step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
-            dict({'streamline_count': len(outliers_sft.streamlines)})
-
-    # Finish filtering
-    if args.verbose:
-        display_count(o_dict, args.indent, args.sort_keys)
-
-    if args.save_counts:
-        save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
-    if len(new_sft.streamlines) == 0:
-        if args.no_empty:
-            logging.debug("The file {} won't be written".format(
-                          out_sft_name) + "(0 streamlines after "
-                          + step + " filtering).")
-            return
-        logging.debug('The file {} contains 0 streamlines after '.format(
-                      out_sft_name) + step + ' filtering')
-
-    # STEP 4 - Filter loops
-    step = step_dict[3]
-    steps_combined += "_" + step
-
-    if args.angle != np.inf:
-        ids_c = remove_loops_and_sharp_turns(sft.streamlines, args.angle,
-                                             num_processes=nbr_cpu)
-        new_sft = filter_tractogram_data(sft, ids_c)
-    else:
-        new_sft = sft
-
-    # Streamline count after filtering loops
-    o_dict[in_sft_name + '_' + steps_combined + ext] =\
-        dict({'streamline_count': len(new_sft.streamlines)})
-
-    if args.save_intermediate_tractograms:
-        outliers_sft = compute_outliers(sft, new_sft)
-        new_path = create_dir(args.out_path, step)
-        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
-                              step, steps_combined, ext, args.no_empty)
-        o_dict[in_sft_name + '_' + step + '_outliers' + ext] =\
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
     if len(new_sft.streamlines) == 0:
@@ -502,27 +492,77 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
+            return
 
+        logging.debug('The file {} contains 0 streamlines after '.format(
+                      out_sft_name) + step + ' filtering')
+        save_tractogram(new_sft, out_sft_name)
+
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
+        if args.verbose:
+            display_count(o_dict, args.indent, args.sort_keys)
+        if args.save_counts:
+            save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+        return
+
+    sft = new_sft
+
+    # STEP 4 - Filter loops
+    step = step_dict[3]
+    steps_combined += "_" + step
+
+    if args.angle != np.inf:
+        ids_c = remove_loops_and_sharp_turns(sft.streamlines, args.angle,
+                                             num_processes=nbr_cpu)
+        new_sft = filter_tractogram_data(sft, ids_c)
+    else:
+        new_sft = deepcopy(sft)
+
+    # Streamline count after filtering loops
+    o_dict[in_sft_name + '_' + steps_combined + ext] =\
+        dict({'streamline_count': len(new_sft.streamlines)})
+
+    if args.save_intermediate_tractograms:
+        outliers_sft = compute_outliers(sft, new_sft)
+        new_path = create_dir(args.out_path, '04-' + step)
+        save_intermediate_sft(new_sft, outliers_sft, new_path, in_sft_name,
+                              step, steps_combined, ext, args.no_empty)
+        o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
+            dict({'streamline_count': len(outliers_sft.streamlines)})
+
+    if len(new_sft.streamlines) == 0:
+        if args.no_empty:
+            logging.debug("The file {} won't be written".format(
+                          out_sft_name) + "(0 streamlines after "
+                          + step + " filtering).")
+
+            if args.verbose:
+                display_count(o_dict, args.indent, args.sort_keys)
+            if args.save_counts:
+                save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                           out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
 
-        if args.verbose:
-            display_count(o_dict, args.indent, args.sort_keys)
-
-        if args.save_counts:
-            save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
-        return
+    if args.verbose:
+        display_count(o_dict, args.indent, args.sort_keys)
+    if args.save_counts:
+        save_count(o_dict, args.out_path, args.indent, args.sort_keys)
 
     sft = new_sft
     save_tractogram(sft, out_sft_name)
+    if args.save_rejected:
+        save_rejected(initial_sft, sft, rejected_sft_name, args.no_empty)
 
 
 if __name__ == "__main__":

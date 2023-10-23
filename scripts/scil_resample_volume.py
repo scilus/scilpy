@@ -13,7 +13,7 @@ import nibabel as nib
 
 from scilpy.io.utils import (add_verbose_arg, add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.image.resample_volume import resample_volume
+from scilpy.image.volume_operations import resample_volume
 
 
 def _build_arg_parser():

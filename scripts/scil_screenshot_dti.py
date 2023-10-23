@@ -23,7 +23,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.bvec_bval_tools import normalize_bvecs, get_shell_indices
-from scilpy.utils.image import register_image
+from scilpy.image.volume_operations import register_image
 from scilpy.viz.screenshot import display_slices
 
 

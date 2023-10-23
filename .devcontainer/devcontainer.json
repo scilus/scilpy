@@ -1,0 +1,30 @@
+{
+    "name": "Scilpy development container",
+    "build": { "dockerfile": "Dockerfile" },
+    "forwardPorts": [3000],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/scilpy,type=bind,consistency=cached",
+    "workspaceFolder": "/scilpy",
+    "onCreateCommand": "bash .devcontainer/setup_container.sh",
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "GitHub.vscode-pull-request-github",
+                "ms-azuretools.vscode-docker",
+                "ms-python.isort",
+                "ms-python.vscode-pylance",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.cpptools-themes",
+                "ms-vscode.makefile-tools",
+                "twxs.cmake",
+                "yzhang.markdown-all-in-one"
+            ]
+        }
+    }
+}
