@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def rescale_intensity(val, slope, in_max, bc_max):
+def _rescale_intensity(val, slope, in_max, bc_max):
     return in_max - slope * (bc_max - val)
 
 
