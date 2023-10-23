@@ -552,7 +552,7 @@ def assert_roi_radii_format(parser):
         roi_radii = args.roi_radii
     else:
         parser.error('Wrong size for --roi_radii, can only be a scalar' +
-                    'or an array of size (3,)')
+                     'or an array of size (3,)')
     return roi_radii
 
 
