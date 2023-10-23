@@ -371,7 +371,7 @@ def main():
         # data volume
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
-        #GPU tracking needs the full sphere
+        # GPU tracking needs the full sphere
         sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
 
         streamlines_generator = GPUTacker(
