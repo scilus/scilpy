@@ -223,11 +223,11 @@ def main():
     # Compute and thresold ihMT maps
     ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
     ihMTR = threshold_maps(ihMTR, args.in_mask, 0, 100,
-                              idx_contrast_list=[4, 3, 1, 0, 2],
-                              contrasts_maps=computed_contrasts)
+                           idx_contrast_list=[4, 3, 1, 0, 2],
+                           contrasts_maps=computed_contrasts)
     ihMTsat = threshold_maps(ihMTsat, args.in_mask, 0, 10,
-                                idx_contrast_list=[4, 3, 1, 0],
-                                contrasts_maps=computed_contrasts)
+                             idx_contrast_list=[4, 3, 1, 0],
+                             contrasts_maps=computed_contrasts)
     if args.in_B1_map:
         ihMTR = apply_B1_correction(ihMTR, args.in_B1_map)
         ihMTsat = apply_B1_correction(ihMTsat, args.in_B1_map)
@@ -236,8 +236,8 @@ def main():
     MTR, MTsat = compute_MT_maps_from_ihMT(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
         curr_map = threshold_maps(curr_map, args.in_mask, 0, 100,
-                                     idx_contrast_list=[4, 2],
-                                     contrasts_maps=computed_contrasts)
+                                  idx_contrast_list=[4, 2],
+                                  contrasts_maps=computed_contrasts)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 
