@@ -15,7 +15,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.image import transform_anatomy
+from scilpy.image.volume_operations import apply_transform
 
 
 def _build_arg_parser():
@@ -63,8 +63,8 @@ def main():
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
-    transform_anatomy(transfo, args.in_target_file, args.in_file,
-                      args.out_name, keep_dtype=args.keep_dtype)
+    apply_transform(transfo, args.in_target_file, args.in_file,
+                    args.out_name, keep_dtype=args.keep_dtype)
 
 
 if __name__ == "__main__":

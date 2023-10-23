@@ -49,7 +49,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.image.operations import normalize_max, normalize_sum, base_10_log
+from scilpy.image.volume_math import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,

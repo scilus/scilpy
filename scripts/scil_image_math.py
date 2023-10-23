@@ -21,7 +21,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.operations import (get_image_ops, get_operations_doc)
+from scilpy.image.volume_math import (get_image_ops, get_operations_doc)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_outputs_exist)
