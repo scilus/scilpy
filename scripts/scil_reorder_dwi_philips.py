@@ -12,6 +12,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.gradients import get_new_order_philips
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -30,7 +31,7 @@ def _build_arg_parser():
     p.add_argument('in_bval',
                    help='Input bval FSL format.')
     p.add_argument('in_table',
-                   help='original table - first line is skipped.')
+                   help='Original philips table - first line is skipped.')
     p.add_argument('out_basename',
                    help='Basename output file.')
 
@@ -38,44 +39,6 @@ def _build_arg_parser():
     add_verbose_arg(p)
 
     return p
-
-
-def valideInputs(oTable, dwis, bvals, bvecs):
-
-    logging.info('Check number of b0s, gradients per shells,\
-                  directions overall')
-
-    # Check number of gradients, bvecs, bvals, dwi and oTable
-    if len(bvecs) != dwis.shape[3] or len(bvals) != len(oTable):
-        raise ValueError('bvec/bval/dwi and original table \
-            does not contain the same number of gradients')
-
-    # Check bvals
-    tableBVals = np.unique(oTable[:, 3])
-    tableDWIShells = tableBVals[tableBVals > 1]
-    tableB0Shells = tableBVals[tableBVals < 1]
-
-    dwiShells = np.unique(bvals[bvals > 1])
-    b0Shells = np.unique(bvals[bvals < 1])
-
-    if len(tableDWIShells) != len(dwiShells) or\
-       len(tableB0Shells) != len(b0Shells):
-        raise ValueError('bvec/bval/dwi and original table\
-                          does not contain the same shells')
-
-    newIndex = np.zeros(bvals.shape)
-
-    for nBVal in tableBVals:
-        currBVal = np.where(bvals == nBVal)[0]
-        currBValTable = np.where(oTable[:, 3] == nBVal)[0]
-
-        if len(currBVal) != len(currBValTable):
-            raise ValueError('bval/bvec and orginal table does not contain \
-                the same number of gradients for shell {0}'.format(nBVal))
-
-        newIndex[currBValTable] = currBVal
-
-    return newIndex.astype(int)
 
 
 def main():
@@ -95,20 +58,20 @@ def main():
     assert_inputs_exist(parser, required_args)
     assert_outputs_exist(parser, args, output_filenames)
 
-    oTable = np.loadtxt(args.in_table, skiprows=1)
+    philips_table = np.loadtxt(args.in_table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
-    dwis = nib.load(args.in_dwi)
+    dwi = nib.load(args.in_dwi)
 
-    newIndex = valideInputs(oTable, dwis, bvals, bvecs)
-    bvecs = bvecs[newIndex]
-    bvals = bvals[newIndex]
+    new_index = get_new_order_philips(philips_table, dwi, bvals, bvecs)
+    bvecs = bvecs[new_index]
+    bvals = bvals[new_index]
 
-    data = dwis.dataobj.get_unscaled()
-    data = data[:, :, :, newIndex]
+    data = dwi.dataobj.get_unscaled()
+    data = data[:, :, :, new_index]
 
-    tmp = nib.Nifti1Image(data, dwis.affine, header=dwis.header)
-    tmp.header['scl_slope'] = dwis.dataobj.slope
-    tmp.header['scl_inter'] = dwis.dataobj.inter
+    tmp = nib.Nifti1Image(data, dwi.affine, header=dwi.header)
+    tmp.header['scl_slope'] = dwi.dataobj.slope
+    tmp.header['scl_inter'] = dwi.dataobj.inter
     tmp.update_header()
 
     nib.save(tmp, output_filenames[0])
