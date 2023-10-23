@@ -35,6 +35,8 @@ from dipy.reconst.shm import sph_harm_ind_list
 
 from scilpy.reconst.multi_processes import peaks_from_sh
 from scilpy.reconst.utils import get_sh_order_and_fullness
+from scilpy.reconst.aodf import (compute_asymmetry_index,
+                                 compute_odd_power_map)
 from scilpy.io.utils import (add_processes_arg,
                              add_sh_basis_args,
                              assert_inputs_exist,
