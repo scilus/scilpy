@@ -65,6 +65,10 @@ import scipy.ndimage
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.reconst.mti import (set_acq_parameters,
+                               compute_contrasts_MT_maps,
+                               compute_MT_maps, threshold_MT_maps,
+                               apply_B1_correction)
 
 EPILOG = """
 Helms G, Dathe H, Kallenberg K, Dechent P. High-resolution maps of
@@ -106,192 +110,6 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
-
-
-def set_acq_parameters(json_path):
-    """
-    Function to extract Repetition Time and Flip Angle from json file.
-
-    Parameters
-    ----------
-    json_path   Path to the json file
-
-    Returns
-    ----------
-    Return Repetition Time (in second) and Flip Angle (in radians)
-    """
-    with open(json_path) as f:
-        data = json.load(f)
-    TR = data['RepetitionTime']*1000
-    FlipAngle = data['FlipAngle']*np.pi/180
-    return TR, FlipAngle
-
-
-def merge_images(echoes_image):
-    """
-    Function to load each echo in a 3D-array matrix and
-    concatenate each of them along the 4th dimension.
-
-    Parameters
-    ----------
-    echoes_image     List : list of echoes path for each contrasts. Ex.
-                     ['path/to/echo-1_acq-pos',
-                      'path/to/echo-2_acq-pos',
-                      'path/to/echo-3_acq-pos']
-
-    Returns
-    ----------
-    Return a 4D-array matrix of size x, y, z, n where n represented
-    the number of echoes.
-    """
-    merge_array = []
-    for echo in range(len(echoes_image)):
-        load_image = nib.load(echoes_image[echo])
-        merge_array.append(load_image.get_fdata(dtype=np.float32))
-    merge_array = np.stack(merge_array, axis=-1)
-    return merge_array
-
-
-def compute_contrasts_maps(echoes_image):
-    """
-    Load echoes and compute corresponding contrast map.
-
-    Parameters
-    ----------
-    echoes_image    List of file path : list of echoes path for contrast
-    filtering       Apply Gaussian filtering to remove Gibbs ringing
-                    (default is False).
-
-    Returns
-    -------
-    Contrast map in 3D-Array.
-    """
-
-    # Merged the 3 echo images into 4D-array
-    merged_map = merge_images(echoes_image)
-
-    # Compute the sum of contrast map
-    contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
-
-    return contrast_map
-
-
-def compute_MT_maps(contrasts_maps, acq_parameters):
-    """
-    Compute Magnetization transfer ratio and saturation maps.
-    MT ratio is computed as the percentage difference of two images, one
-    acquired with off-resonance saturation (MT-on) and one without (MT-off).
-    MT saturation is computed from apparent longitudinal relaxation rate
-    (R1app) and apparent signal amplitude (Aapp). The estimation of the MT
-    saturation includes correction for the effects of excitation flip angle
-    and longitudinal relaxation rate, and remove the effect of T1-weighted
-    image.
-        cPD : contrast proton density
-            1 : reference proton density (MT-off)
-            2 : mean of positive and negative proton density (MT-on)
-        cT1 : contrast T1-weighted
-        num : numberator
-        den : denumerator
-
-    see Helms et al., 2008
-    https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21732
-
-    Parameters
-    ----------
-    contrasts_maps:      List of 3D-array constrats matrices : list of all
-                        contrast maps computed with compute_ihMT_contrasts
-    acq_parameters:     List of TR and Flipangle for ihMT and T1w images
-                        [TR, Flipangle]
-    Returns
-    -------
-    MT ratio and MT saturation matrice in 3D-array.
-    """
-    # Compute MT Ratio map
-    MTR = 100*(contrasts_maps[0] - contrasts_maps[1]) / contrasts_maps[0]
-
-    # Compute MT saturation maps: cPD1 = mt-off; cPD2 = mt-on
-    cPD1 = contrasts_maps[0]
-    cPD2 = contrasts_maps[1]
-    cT1 = contrasts_maps[2]
-
-    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
-    Aapp = Aapp_num / Aapp_den
-
-    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
-    R1app = R1app_num / R1app_den
-
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app)/cPD2)
-                 - (acq_parameters[0][0]/R1app) - (acq_parameters[0][1]**2)/2)
-
-    return MTR, MTsat
-
-
-def threshold_MT_maps(computed_map, in_mask, lower_threshold, upper_threshold):
-    """
-    Remove NaN and apply different threshold based on
-       - maximum and minimum threshold value
-       - T1 mask
-
-    Parameters
-    ----------
-    computed_map        3D-Array Myelin map.
-    in_mask             Path to binary T1 mask from T1 segmentation.
-                        Must be the sum of GM+WM+CSF.
-    lower_threshold     Value for low thresold <int>
-    upper_thresold      Value for up thresold <int>
-
-    Returns
-    ----------
-    Thresholded matrix in 3D-array.
-    """
-    # Remove NaN and apply thresold based on lower and upper value
-    computed_map[np.isnan(computed_map)] = 0
-    computed_map[np.isinf(computed_map)] = 0
-    computed_map[computed_map < lower_threshold] = 0
-    computed_map[computed_map > upper_threshold] = 0
-
-    # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask)
-    mask_data = get_data_as_mask(mask_image)
-    computed_map[np.where(mask_data == 0)] = 0
-
-    return computed_map
-
-
-def apply_B1_correction(MT_map, B1_map):
-    """
-    Function to apply an empiric B1 correction.
-
-    see Weiskopf et al., 2013
-    https://www.frontiersin.org/articles/10.3389/fnins.2013.00095/full
-
-    Parameters
-    ----------
-    MT_map           3D-Array Myelin map.
-    B1_map           Path to B1 coregister map.
-
-    Returns
-    ----------
-    Corrected MT matrix in 3D-array.
-    """
-    # Load B1 image
-    B1_img = nib.load(B1_map)
-    B1_img_data = B1_img.get_fdata(dtype=np.float32)
-
-    # Apply a light smoothing to the B1 map
-    h = np.ones((5, 5, 1))/25
-    B1_smooth_map = scipy.ndimage.convolve(B1_img_data,
-                                           h).astype(np.float32)
-
-    # Apply an empiric B1 correction via B1 smooth on MT data
-    MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
-
-    return MT_map_B1_corrected
 
 
 def main():
@@ -340,7 +158,7 @@ def main():
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_maps(curr_map))
+        computed_contrasts.append(compute_contrasts_MT_maps(curr_map))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),
