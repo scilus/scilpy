@@ -6,6 +6,7 @@ import os
 import multiprocessing
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
@@ -33,6 +34,15 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'regrid']
 
 axis_name_choices = ["axial", "coronal", "sagittal"]
+
+
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -529,6 +539,31 @@ def assert_overlay_colors(colors, overlays, parser):
         parser.error(f"Bad number of colors supplied for overlays "
                      f"({len(overlays)}). Either provide no color, a "
                      f"single mask color or as many colors as there is masks")
+
+
+def assert_roi_radii_format(parser):
+    """
+    Verifies the format of the inputed roi radii.
+
+    Parameters
+    ----------
+    parser: argument parser
+        Will raise an error if the --roi_radii format is wrong.
+
+    Returns
+    -------
+    roi_radii: int or numpy array
+        Roi radii as a scalar or an array of size (3,).
+    """
+    args = parser.parse_args()
+    if len(args.roi_radii) == 1:
+        roi_radii = args.roi_radii[0]
+    elif len(args.roi_radii) == 3:
+        roi_radii = args.roi_radii
+    else:
+        parser.error('Wrong size for --roi_radii, can only be a scalar' +
+                     'or an array of size (3,)')
+    return roi_radii
 
 
 def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
