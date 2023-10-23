@@ -62,10 +62,10 @@ import nibabel as nib
 import numpy as np
 import scipy.ndimage
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_maps,
+from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_MT_maps, threshold_MT_maps,
                                 apply_B1_correction)
 
@@ -141,8 +141,13 @@ def main():
 
     # Set TR and FlipAngle parameters for MT (mtoff contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[0][0].replace('.nii.gz', '.json')),
-                  set_acq_parameters(maps[2][0].replace('.nii.gz', '.json'))]
+    parameters = []
+    for curr_map in maps[0][0], maps[2][0]:
+        acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
+                                                            '.json'),
+                                           ['RepetitionTime', 'FlipAngle'])
+        acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
+        parameters.append(acq_parameter)
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')

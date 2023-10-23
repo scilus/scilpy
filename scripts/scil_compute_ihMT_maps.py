@@ -69,12 +69,12 @@ import os
 import nibabel as nib
 import numpy as np
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
-from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_maps,
+from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_ihMT_maps,
                                 compute_MT_maps_from_ihMT, threshold_ihMT_maps,
                                 apply_B1_correction)
@@ -175,8 +175,13 @@ def main():
 
     # Set TR and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz', '.json')),
-                  set_acq_parameters(maps[5][0].replace('.nii.gz', '.json'))]
+    parameters = []
+    for curr_map in maps[4][0], maps[5][0]:
+        acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
+                                                            '.json'),
+                                           ['RepetitionTime', 'FlipAngle'])
+        acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
+        parameters.append(acq_parameter)
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
@@ -198,18 +203,16 @@ def main():
         contrasts_name = [args.out_prefix + '_' + curr_name
                           for curr_name in contrasts_name]
 
-    # Load and concatenate MT images
-    input_img = []
-    for input_arg in maps:
-        img, _ = load_img(input_arg)
-        input_img.append(img)
-    
-    merged_images = concatenate(input_img, input_img[0])
-    # Compute contrasts maps
+# Compute contrasts maps
     computed_contrasts = []
-    for idx, curr_map in enumerate(merged_images):
+    for idx, curr_map in enumerate(maps):
+        input_images = []
+        for image in curr_map:
+            img, _ = load_img(image)
+            input_images.append(img)
+        merged_curr_map = concatenate(input_images, input_images[0])
         computed_contrasts.append(compute_contrasts_maps(
-                                  curr_map, filtering=args.filtering,
+                                  merged_curr_map, filtering=args.filtering,
                                   single_echo=args.single_echo))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),

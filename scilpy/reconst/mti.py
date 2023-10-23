@@ -9,25 +9,6 @@ import scipy.ndimage
 from scilpy.io.image import get_data_as_mask
 
 
-def set_acq_parameters(json_path):
-    """
-    Function to extract Repetition Time and Flip Angle from json file.
-
-    Parameters
-    ----------
-    json_path   Path to the json file
-
-    Returns
-    ----------
-    Return Repetition Time (in second) and Flip Angle (in radians)
-    """
-    with open(json_path) as f:
-        data = json.load(f)
-    TR = data['RepetitionTime']*1000
-    FlipAngle = data['FlipAngle']*np.pi/180
-    return TR, FlipAngle
-
-
 def py_fspecial_gauss(shape, sigma):
     """
     Function to mimic the 'fspecial gaussian' MATLAB function
@@ -62,7 +43,7 @@ def compute_contrasts_maps(merged_images, single_echo=False,
 
     Parameters
     ----------
-    4d_image        4D images 
+    4d_image        4D images
     single_echo     Apply when only one echo is used to compute contrast maps
     filtering       Apply Gaussian filtering to remove Gibbs ringing
                     (default is False).
@@ -71,9 +52,6 @@ def compute_contrasts_maps(merged_images, single_echo=False,
     -------
     Contrast map in 3D-Array.
     """
-
-    # Merged the 3 echo images into 4D-array
-    #merged_map = merge_images(echoes_image)
 
     if single_echo:
         contrast_map = np.sqrt(np.squeeze(merged_images**2))
