@@ -6,6 +6,7 @@ import os
 import multiprocessing
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
@@ -33,6 +34,15 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'regrid']
 
 axis_name_choices = ["axial", "coronal", "sagittal"]
+
+
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
