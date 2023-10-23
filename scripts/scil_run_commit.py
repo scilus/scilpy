@@ -24,7 +24,8 @@ The output from COMMIT is:
     Dictionary containing the experiment parameters and final weights
 - compartment_EC.nii.gz (est. Extra-Cellular signal fraction)
 - compartment_IC.nii.gz (est. Intra-Cellular signal fraction)
-- compartment_ISO.nii.gz (est. isotropic signal fraction (freewater comportment))
+- compartment_ISO.nii.gz (est. isotropic signal fraction
+  (freewater comportment))
     Each of COMMIT compartments
 - streamline_weights.txt
     Text file containing the commit weights for each streamline of the
@@ -46,9 +47,10 @@ COMMIT.
 
 COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
-longer computation time. This wrapper offers a simplify way to call COMMIT, but
-does not allow to use (or fine-tune) every parameters. If you want to use COMMIT
-with full access to all parameters, visit: https://github.com/daducci/COMMIT
+longer computation time. This wrapper offers a simplify way to call COMMIT,
+but does not allow to use (or fine-tune) every parameters. If you want to use
+COMMIT with full access to all parameters,
+visit: https://github.com/daducci/COMMIT
 
 When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
 --lambda_commit_2 you should evaluate the quality of results by:
@@ -141,7 +143,8 @@ def _build_arg_parser():
                     help='Run commit2, requires .h5 as input and will force\n'
                          'ball&stick model.')
     g0.add_argument('--lambda_commit_2', type=float, default=1e-3,
-                    help='Specify the clustering prior strength [%(default)s].')
+                    help='Specify the clustering prior strength '
+                    '[%(default)s].')
 
     g1 = p.add_argument_group(title='Model options')
     g1.add_argument('--ball_stick', action='store_true',
@@ -208,8 +211,8 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
             new_hdf5_file.attrs['dimensions'] = sft.dimensions
             new_hdf5_file.attrs['voxel_sizes'] = sft.voxel_sizes
             new_hdf5_file.attrs['voxel_order'] = sft.voxel_order
-            # Assign the weights into the hdf5, while respecting the ordering of
-            # connections/streamlines
+            # Assign the weights into the hdf5, while respecting
+            # the ordering of connections/streamlines
             logging.debug('Adding commit weights to {}.'.format(new_filename))
             for i, key in enumerate(list(hdf5_file.keys())):
                 new_group = new_hdf5_file.create_group(key)
@@ -220,10 +223,11 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                 essential_ind = np.where(tmp_streamline_weights > 0)[0]
                 tmp_streamline_weights = tmp_streamline_weights[essential_ind]
 
-                tmp_streamlines = reconstruct_streamlines(old_group['data'],
-                                                          old_group['offsets'],
-                                                          old_group['lengths'],
-                                                          indices=essential_ind)
+                tmp_streamlines = reconstruct_streamlines(
+                    old_group['data'],
+                    old_group['offsets'],
+                    old_group['lengths'],
+                    indices=essential_ind)
                 tmp_length_list = length(tmp_streamlines)
                 # Replacing the data with the one above the threshold
                 # Safe since this hdf5 was a copy in the first place
@@ -248,8 +252,9 @@ def _save_results_wrapper(args, tmp_dir, ext, hdf5_file, offsets_list,
                     'tot_commit1_weights'
                 new_group.create_dataset(dps_key,
                                          data=tmp_streamline_weights)
-                new_group.create_dataset(dps_key_tot,
-                                         data=tmp_streamline_weights*tmp_length_list)
+                new_group.create_dataset(
+                    dps_key_tot,
+                    data=tmp_streamline_weights*tmp_length_list)
 
     files = os.listdir(commit_results_dir)
     for f in files:
@@ -404,7 +409,8 @@ def main():
         # (based on order of magnitude of signal)
         img = nib.load(args.in_dwi)
         data = img.get_fdata(dtype=np.float32)
-        data[data < (0.001*10**np.floor(np.log10(np.mean(data[data > 0]))))] = 0
+        data[data <
+             (0.001*10**np.floor(np.log10(np.mean(data[data > 0]))))] = 0
         nib.save(nib.Nifti1Image(data, img.affine),
                  os.path.join(tmp_dir.name, 'dwi_zero_fix.nii.gz'))
 
