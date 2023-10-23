@@ -37,7 +37,8 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
 from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
@@ -170,13 +171,7 @@ def main():
     assert_outputs_exist(parser, args, [args.out_wm_frf, args.out_gm_frf,
                                         args.out_csf_frf])
 
-    if len(args.roi_radii) == 1:
-        roi_radii = args.roi_radii[0]
-    elif len(args.roi_radii) == 2:
-        parser.error('--roi_radii cannot be of size (2,).')
-    else:
-        roi_radii = args.roi_radii
-    roi_center = args.roi_center
+    roi_radii = assert_roi_radii_format(parser)
 
     vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)
@@ -226,7 +221,7 @@ def main():
                                             md_thr_csf=args.md_thr_csf,
                                             min_nvox=args.min_nvox,
                                             roi_radii=roi_radii,
-                                            roi_center=roi_center,
+                                            roi_center=args.roi_center,
                                             tol=tol,
                                             force_b0_threshold=force_b0_thr)
 
