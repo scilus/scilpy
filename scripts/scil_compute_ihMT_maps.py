@@ -71,14 +71,14 @@ import nibabel as nib
 import numpy as np
 import scipy.ndimage
 
-from scilpy.io.image import get_data_as_mask
+
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.reconst.mti import (set_acq_parameters,
-                               compute_contrasts_ihMT_maps,
-                               compute_ihMT_maps, 
-                               compute_MT_maps_from_ihMT, threshold_ihMT_maps,
-                               apply_B1_correction)
+                                compute_contrasts_ihMT_maps,
+                                compute_ihMT_maps,
+                                compute_MT_maps_from_ihMT, threshold_ihMT_maps,
+                                apply_B1_correction)
 
 EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.

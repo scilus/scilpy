@@ -80,7 +80,6 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-
 def compute_contrasts_MT_maps(echoes_image):
     """
     Load echoes and compute corresponding contrast map.
@@ -105,8 +104,8 @@ def compute_contrasts_MT_maps(echoes_image):
     return contrast_map
 
 
-
-def compute_contrasts_ihMT_maps(echoes_image, single_echo=False, filtering=False):
+def compute_contrasts_ihMT_maps(echoes_image, single_echo=False,
+                                filtering=False):
     """
     Load echoes and compute corresponding contrast map.
 
@@ -175,10 +174,10 @@ def compute_saturation(cPD1, cPD2, cT1, acq_parameters):
                  (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
     R1app = R1app_num / R1app_den
 
-    sat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app)
-                 / cPD2) - (acq_parameters[0][0] / R1app)
-                 - (acq_parameters[0][1]**2) / 2)
-    
+    sat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app
+                 ) / cPD2) - (acq_parameters[0][0] / R1app) -
+               (acq_parameters[0][1]**2) / 2)
+
     return sat
 
 
@@ -219,7 +218,7 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
     # Compute ihMT ratio map
     ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
                  contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
-    
+
     # Compute MT saturation maps
     cPD1 = contrasts_maps[2]
     cPDa = (contrasts_maps[4] + contrasts_maps[3]) / 2
@@ -228,15 +227,20 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
 
     if legacy_sat:
         # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
-        R1appa_num = ((cPDa / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-        R1appa_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0] / 1000)
-                    - (cPDa*acq_parameters[0][1]) / (2*acq_parameters[0][0]
-                                                    / 1000))
+        R1appa_num = ((cPDa / acq_parameters[0][1]) -
+                      (cT1 / acq_parameters[1][1]))
+        R1appa_den = ((cT1*acq_parameters[1][1]) /
+                      (2*acq_parameters[1][0] / 1000) -
+                      (cPDa*acq_parameters[0][1]) /
+                      (2*acq_parameters[0][0] / 1000))
         freewater_sat = R1appa_num / R1appa_den
 
-        R1appb_num = ((cPDb / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-        R1appb_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]/1000) -
-                    (cPDb*acq_parameters[0][1]) / (2*acq_parameters[0][0]/1000))
+        R1appb_num = ((cPDb / acq_parameters[0][1]) -
+                      (cT1 / acq_parameters[1][1]))
+        R1appb_den = ((cT1*acq_parameters[1][1]) /
+                      (2*acq_parameters[1][0]/1000) -
+                      (cPDb*acq_parameters[0][1]) /
+                      (2*acq_parameters[0][0]/1000))
         bound_sat = R1appb_num / R1appb_den
 
         ihMTdR1sat = (1 / bound_sat) - (1 / freewater_sat)
@@ -282,8 +286,8 @@ def compute_MT_maps_from_ihMT(contrasts_maps, acq_parameters):
     """
     # Compute MT Ratio map
     MTR = 100*((contrasts_maps[2] -
-               (contrasts_maps[4] + contrasts_maps[3]) / 2)
-               / contrasts_maps[2])
+               (contrasts_maps[4] + contrasts_maps[3]) / 2) /
+               contrasts_maps[2])
 
     # Compute MT saturation maps
     cPD1 = contrasts_maps[2]
@@ -344,8 +348,9 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
                  (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
     R1app = R1app_num / R1app_den
 
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app)/cPD2)
-                 - (acq_parameters[0][0]/R1app) - (acq_parameters[0][1]**2)/2)
+    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app) /
+                  cPD2) - (acq_parameters[0][0]/R1app) -
+                 (acq_parameters[0][1]**2)/2)
 
     return MTR, MTsat
 
@@ -380,7 +385,6 @@ def threshold_MT_maps(computed_map, in_mask, lower_threshold, upper_threshold):
     computed_map[np.where(mask_data == 0)] = 0
 
     return computed_map
-
 
 
 def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
@@ -456,4 +460,3 @@ def apply_B1_correction(MT_map, B1_map):
     MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
 
     return MT_map_B1_corrected
-
