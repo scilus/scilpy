@@ -167,7 +167,7 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
-def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
+def add_sphere_arg(parser, symmetric_only=False, default='repulsion724'):
     spheres = sorted(SPHERE_FILES.keys())
     if symmetric_only:
         spheres = [s for s in spheres if 'symmetric' in s]

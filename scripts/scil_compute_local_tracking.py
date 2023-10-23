@@ -22,7 +22,7 @@ implementations:
     * Algo: For the GPU implementation, the only available algorithm is
         Algo 'prob'.
     * Tracking sphere: The only sphere available for GPU tracking is
-        `symmetric724` and `--sub_sphere` is not available for GPU tracking.
+        `repulsion724` and `--sub_sphere` is not available for GPU tracking.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
@@ -76,7 +76,7 @@ from scilpy.tracking.tracker import GPUTacker
 DEFAULT_BATCH_SIZE = 10000
 DEFAULT_SH_INTERP = 'trilinear'
 DEFAULT_FWD_ONLY = False
-DEFAULT_GPU_SPHERE = 'symmetric724'
+DEFAULT_GPU_SPHERE = 'repulsion724'
 
 
 def _build_arg_parser():
@@ -90,7 +90,7 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
-    add_sphere_arg(track_g, symmetric_only=True)
+    add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
@@ -276,7 +276,7 @@ def main():
                          'Set --algo to `prob` for GPU tracking.'
                          .format(args.algo))
         if args.sphere != DEFAULT_GPU_SPHERE:
-            parser.error('Cannot use sphere `{}`. Only symmetric724 is '
+            parser.error('Cannot use sphere `{}`. Only repulsion724 is '
                          'available for GPU tracking.'.format(args.sphere))
         if args.sub_sphere:
             parser.error('Invalid argument --sub_sphere. Not implemented '
