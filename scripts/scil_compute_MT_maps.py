@@ -65,6 +65,8 @@ import scipy.ndimage
 from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.io.image import load_img
+from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_MT_maps, threshold_MT_maps,
                                 apply_B1_correction)
@@ -165,8 +167,14 @@ def main():
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(
-            compute_contrasts_maps(curr_map, filtering=args.filtering))
+        input_images = []
+        for image in curr_map:
+            img, _ = load_img(image)
+            input_images.append(img)
+        merged_curr_map = concatenate(input_images, input_images[0])
+
+        computed_contrasts.append(compute_contrasts_maps(
+            merged_curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),
