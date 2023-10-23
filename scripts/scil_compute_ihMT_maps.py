@@ -75,7 +75,7 @@ import scipy.ndimage
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_ihMT_maps,
+                                compute_contrasts_maps,
                                 compute_ihMT_maps,
                                 compute_MT_maps_from_ihMT, threshold_ihMT_maps,
                                 apply_B1_correction)
@@ -115,9 +115,6 @@ def _build_arg_parser():
                         'Not recommended.')
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
-    p.add_argument('--legacy_sat', action='store_true',
-                   help='Use this option to choose the ihMTdR1sat contrast. '
-                        'This is not recommended.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -205,7 +202,7 @@ def main():
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_ihMT_maps(
+        computed_contrasts.append(compute_contrasts_maps(
                                   curr_map, filtering=args.filtering,
                                   single_echo=args.single_echo))
 
@@ -215,8 +212,7 @@ def main():
                               contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
-    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters,
-                                       args.legacy_sat)
+    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
     ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask,
                                 0, 100, [4, 3, 1, 0, 2])
     ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,

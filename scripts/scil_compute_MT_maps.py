@@ -65,7 +65,7 @@ import scipy.ndimage
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_MT_maps,
+                                compute_contrasts_maps,
                                 compute_MT_maps, threshold_MT_maps,
                                 apply_B1_correction)
 
@@ -90,6 +90,9 @@ def _build_arg_parser():
                    help='Prefix to be used for each output image.')
     p.add_argument('--in_B1_map',
                    help='Path to B1 coregister map to MT contrasts.')
+    p.add_argument('--filtering', action='store_true',
+                   help='Gaussian filtering to remove Gibbs ringing. '
+                        'Not recommended.')
 
     g = p.add_argument_group(title='MT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -157,7 +160,8 @@ def main():
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_MT_maps(curr_map))
+        computed_contrasts.append(
+            compute_contrasts_maps(curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),

@@ -80,32 +80,8 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-def compute_contrasts_MT_maps(echoes_image):
-    """
-    Load echoes and compute corresponding contrast map.
-
-    Parameters
-    ----------
-    echoes_image    List of file path : list of echoes path for contrast
-    filtering       Apply Gaussian filtering to remove Gibbs ringing
-                    (default is False).
-
-    Returns
-    -------
-    Contrast map in 3D-Array.
-    """
-
-    # Merged the 3 echo images into 4D-array
-    merged_map = merge_images(echoes_image)
-
-    # Compute the sum of contrast map
-    contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
-
-    return contrast_map
-
-
-def compute_contrasts_ihMT_maps(echoes_image, single_echo=False,
-                                filtering=False):
+def compute_contrasts_maps(echoes_image, single_echo=False,
+                           filtering=False):
     """
     Load echoes and compute corresponding contrast map.
 
@@ -181,7 +157,7 @@ def compute_saturation(cPD1, cPD2, cT1, acq_parameters):
     return sat
 
 
-def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
+def compute_ihMT_maps(contrasts_maps, acq_parameters):
     """
     Compute Inhomogenous Magnetization transfer ratio and saturation maps.
     - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
@@ -209,7 +185,6 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
                                            with compute_contrasts_maps
     acq_parameters:     List of TR and Flipangle values for ihMT and T1w images
                         [TR, Flipangle]
-    legacy_sat:         If set, returns the ihMTdR1sat contrast instead
     Returns
     -------
     ihMT ratio (ihMTR) and ihMT saturation (ihMTsat) matrices in 3D-array.
@@ -224,28 +199,6 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters, legacy_sat=False):
     cPDa = (contrasts_maps[4] + contrasts_maps[3]) / 2
     cPDb = (contrasts_maps[1] + contrasts_maps[0]) / 2
     cT1 = contrasts_maps[5]
-
-    if legacy_sat:
-        # Compute an ihMTsat image (dR1sat in Varma et al., 2015)
-        R1appa_num = ((cPDa / acq_parameters[0][1]) -
-                      (cT1 / acq_parameters[1][1]))
-        R1appa_den = ((cT1*acq_parameters[1][1]) /
-                      (2*acq_parameters[1][0] / 1000) -
-                      (cPDa*acq_parameters[0][1]) /
-                      (2*acq_parameters[0][0] / 1000))
-        freewater_sat = R1appa_num / R1appa_den
-
-        R1appb_num = ((cPDb / acq_parameters[0][1]) -
-                      (cT1 / acq_parameters[1][1]))
-        R1appb_den = ((cT1*acq_parameters[1][1]) /
-                      (2*acq_parameters[1][0]/1000) -
-                      (cPDb*acq_parameters[0][1]) /
-                      (2*acq_parameters[0][0]/1000))
-        bound_sat = R1appb_num / R1appb_den
-
-        ihMTdR1sat = (1 / bound_sat) - (1 / freewater_sat)
-
-        return ihMTR, ihMTdR1sat
 
     MT_sat_single = compute_saturation(cPD1, cPDa, cT1, acq_parameters)
     MT_sat_dual = compute_saturation(cPD1, cPDb, cT1, acq_parameters)
@@ -355,38 +308,6 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_MT_maps(computed_map, in_mask, lower_threshold, upper_threshold):
-    """
-    Remove NaN and apply different threshold based on
-       - maximum and minimum threshold value
-       - T1 mask
-
-    Parameters
-    ----------
-    computed_map        3D-Array Myelin map.
-    in_mask             Path to binary T1 mask from T1 segmentation.
-                        Must be the sum of GM+WM+CSF.
-    lower_threshold     Value for low thresold <int>
-    upper_thresold      Value for up thresold <int>
-
-    Returns
-    ----------
-    Thresholded matrix in 3D-array.
-    """
-    # Remove NaN and apply thresold based on lower and upper value
-    computed_map[np.isnan(computed_map)] = 0
-    computed_map[np.isinf(computed_map)] = 0
-    computed_map[computed_map < lower_threshold] = 0
-    computed_map[computed_map > upper_threshold] = 0
-
-    # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask)
-    mask_data = get_data_as_mask(mask_image)
-    computed_map[np.where(mask_data == 0)] = 0
-
-    return computed_map
-
-
 def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
                         lower_threshold, upper_threshold, idx_contrast_list):
     """
@@ -427,6 +348,38 @@ def threshold_ihMT_maps(computed_map, contrasts_maps, in_mask,
     # Apply threshold based on combination of specific contrasts maps
     for idx in idx_contrast_list:
         computed_map[contrasts_maps[idx] == 0] = 0
+
+    return computed_map
+
+
+def threshold_MT_maps(computed_map, in_mask, lower_threshold, upper_threshold):
+    """
+    Remove NaN and apply different threshold based on
+       - maximum and minimum threshold value
+       - T1 mask
+
+    Parameters
+    ----------
+    computed_map        3D-Array Myelin map.
+    in_mask             Path to binary T1 mask from T1 segmentation.
+                        Must be the sum of GM+WM+CSF.
+    lower_threshold     Value for low thresold <int>
+    upper_thresold      Value for up thresold <int>
+
+    Returns
+    ----------
+    Thresholded matrix in 3D-array.
+    """
+    # Remove NaN and apply thresold based on lower and upper value
+    computed_map[np.isnan(computed_map)] = 0
+    computed_map[np.isinf(computed_map)] = 0
+    computed_map[computed_map < lower_threshold] = 0
+    computed_map[computed_map > upper_threshold] = 0
+
+    # Load and apply sum of T1 probability maps on myelin maps
+    mask_image = nib.load(in_mask)
+    mask_data = get_data_as_mask(mask_image)
+    computed_map[np.where(mask_data == 0)] = 0
 
     return computed_map
 
