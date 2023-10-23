@@ -14,7 +14,7 @@ def compute_asymmetry_index(sh_coeffs, order, mask):
     asymmetric ODF volume expressed in full SH basis.
 
     Parameters
-    -----------------
+    ----------
     sh_coeffs: ndarray (x, y, z, ncoeffs)
          Input spherical harmonics coefficients.
     order: int > 0
@@ -23,7 +23,7 @@ def compute_asymmetry_index(sh_coeffs, order, mask):
          Mask inside which ASI should be computed.
 
     Returns
-    -----------
+    -------
     asi_map: ndarray (x, y, z)
          Asymmetry index map.
     """
@@ -52,7 +52,7 @@ def compute_odd_power_map(sh_coeffs, order, mask):
     asymmetric ODF volume expressed in full SH basis.
 
     Parameters
-    -----------------
+    ----------
     sh_coeffs: ndarray (x, y, z, ncoeffs)
          Input spherical harmonics coefficients.
     order: int > 0
@@ -61,7 +61,7 @@ def compute_odd_power_map(sh_coeffs, order, mask):
          Mask inside which odd-power map should be computed.
 
     Returns
-    -----------
+    -------
     odd_power_map: ndarray (x, y, z)
          Odd-power map.
     """
