@@ -12,6 +12,25 @@ from scilpy.tractanalysis.quick_tools import (get_next_real_point,
 
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
+    """ Get the index of the streamline point in the voxel.
+
+    Arguments
+    ---------
+    points_to_index: np.ndarray
+        The indices of the voxels in the streamline's voxel grid.
+    vox_index: int
+        The index of the voxel in the voxel grid.
+    from_start: bool
+        If True, will return the first streamline point in the voxel.
+        If False, will return the last streamline point in the voxel.
+
+    Returns
+    -------
+    index: int or None
+        The index of the streamline point in the voxel.
+        If None, there is no streamline point in the voxel.
+    """
+
     cur_idx = np.where(points_to_index == vox_index)
 
     if not len(cur_idx[0]):
@@ -26,12 +45,30 @@ def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
 
 
 def _get_point_on_line(first_point, second_point, vox_lower_corner):
-    # To manage the case where there is no real streamline point in an
-    # intersected voxel, we need to generate an artificial point.
-    # We use line / cube intersections as presented in
-    # Physically Based Rendering, Second edition, pp. 192-195
-    # Some simplifications are made since we are sure that an intersection
-    # exists (else this function would not have been called).
+    """ Get the point on a line that is in a voxel.
+
+    To manage the case where there is no real streamline point in an
+    intersected voxel, we need to generate an artificial point.
+    We use line / cube intersections as presented in
+    Physically Based Rendering, Second edition, pp. 192-195
+    Some simplifications are made since we are sure that an intersection
+    exists (else this function would not have been called).
+
+    Arguments
+    ---------
+    first_point: np.ndarray
+        The first point of the line.
+    second_point: np.ndarray
+        The second point of the line.
+    vox_lower_corner: np.ndarray
+        The lower corner coordinates of the voxel.
+
+    Returns
+    -------
+    intersection_point: np.ndarray
+        The point on the line that is in the voxel.
+    """
+
     ray = second_point - first_point
     ray /= np.linalg.norm(ray)
 
@@ -276,6 +313,27 @@ def _warn_and_save(new_streamlines, sft):
 
 def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
                                points_to_indices):
+    """ Compute the segment of a streamline that is in a given mask.
+
+    Parameters
+    ----------
+    orig_strl: np.ndarray
+        The original streamline.
+    inter_vox: np.ndarray
+        The intersection points of the streamline with the voxel grid.
+    in_vox_idx: int
+        The index of the voxel where the streamline enters.
+    out_vox_idx: int
+        The index of the voxel where the streamline exits.
+    points_to_indices: np.ndarray
+        The indices of the voxels in the voxel grid.
+
+    Returns
+    -------
+    segment: np.ndarray
+        The segment of the streamline that is in the voxel.
+    """
+
     additional_start_pt = None
     additional_exit_pt = None
     nb_points = 0
