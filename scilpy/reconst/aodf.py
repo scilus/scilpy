@@ -9,6 +9,7 @@ import numpy as np
 
 from dipy.reconst.shm import sph_harm_ind_list
 
+
 def compute_asymmetry_index(sh_coeffs, order, mask):
     _, l_list = sph_harm_ind_list(order, full_basis=True)
 
