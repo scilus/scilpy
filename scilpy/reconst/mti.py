@@ -28,31 +28,6 @@ def set_acq_parameters(json_path):
     return TR, FlipAngle
 
 
-def merge_images(echoes_image):
-    """
-    Function to load each echo in a 3D-array matrix and
-    concatenate each of them along the 4th dimension.
-
-    Parameters
-    ----------
-    echoes_image     List : list of echoes path for each contrasts. Ex.
-                     ['path/to/echo-1_acq-pos',
-                      'path/to/echo-2_acq-pos',
-                      'path/to/echo-3_acq-pos']
-
-    Returns
-    ----------
-    Return a 4D-array matrix of size x, y, z, n where n represented
-    the number of echoes.
-    """
-    merge_array = []
-    for echo in range(len(echoes_image)):
-        load_image = nib.load(echoes_image[echo])
-        merge_array.append(load_image.get_fdata(dtype=np.float32))
-    merge_array = np.stack(merge_array, axis=-1)
-    return merge_array
-
-
 def py_fspecial_gauss(shape, sigma):
     """
     Function to mimic the 'fspecial gaussian' MATLAB function
