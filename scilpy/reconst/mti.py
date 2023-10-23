@@ -261,7 +261,7 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_MT_maps(computed_map,  in_mask,
+def threshold_maps(computed_map,  in_mask,
                       lower_threshold, upper_threshold,
                       idx_contrast_list=None, contrasts_maps=None):
     """

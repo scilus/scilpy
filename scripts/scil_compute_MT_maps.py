@@ -66,7 +66,7 @@ from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (compute_contrasts_maps,
-                                compute_MT_maps, threshold_MT_maps,
+                                compute_MT_maps, threshold_maps,
                                 apply_B1_correction)
 
 EPILOG = """
@@ -182,7 +182,7 @@ def main():
     # Compute and thresold MT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
-        curr_map = threshold_MT_maps(curr_map, args.in_mask, 0, 100)
+        curr_map = threshold_maps(curr_map, args.in_mask, 0, 100)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 
