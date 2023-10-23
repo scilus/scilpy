@@ -21,6 +21,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
 
+<<<<<<< HEAD:scilpy/image/volume_operations.py
 
 def count_non_zero_voxels(image):
     """
@@ -78,6 +79,65 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
         voxel_bb_maxs[i] = min(extent[i], voxel_bb_maxs[i])
     translation = voxel_to_world(voxel_bb_mins, affine)
 
+=======
+
+def count_non_zero_voxels(image):
+    """
+    Count number of non-zero voxels
+
+    Parameters:
+    -----------
+    image: string
+        Path to the image
+    """
+    # Count the number of non-zero voxels.
+    if len(image.shape) >= 4:
+        axes_to_sum = np.arange(3, len(image.shape))
+        nb_voxels = np.count_nonzero(np.sum(np.absolute(image),
+                                            axis=tuple(axes_to_sum)))
+    else:
+        nb_voxels = np.count_nonzero(image)
+
+    return nb_voxels
+
+
+def flip_volume(data, axes):
+    """
+    data: np.ndarray
+    axes: a list containing any number of values amongst ['x', 'y', 'z'].
+    """
+    if 'x' in axes:
+        data = data[::-1, ...]
+
+    if 'y' in axes:
+        data = data[:, ::-1, ...]
+
+    if 'z' in axes:
+        data = data[:, :, ::-1, ...]
+
+    return data
+
+
+def crop_volume(img: nib.Nifti1Image, wbbox):
+    """Applies cropping from a world space defined bounding box and fixes the
+    affine to keep data aligned.
+
+    wbbox: WorldBoundingBox from the scrip scil_crop_volume. ToDo. Update this.
+    """
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = img.affine
+
+    voxel_bb_mins = world_to_voxel(wbbox.minimums, affine)
+    voxel_bb_maxs = world_to_voxel(wbbox.maximums, affine)
+
+    # Prevent from trying to crop outside data boundaries by clipping bbox
+    extent = list(data.shape[:3])
+    for i in range(3):
+        voxel_bb_mins[i] = max(0, voxel_bb_mins[i])
+        voxel_bb_maxs[i] = min(extent[i], voxel_bb_maxs[i])
+    translation = voxel_to_world(voxel_bb_mins, affine)
+
+>>>>>>> 59f6c9ae... Do all tests:scilpy/utils/image.py
     data_crop = np.copy(crop(data, voxel_bb_mins, voxel_bb_maxs))
 
     new_affine = np.copy(affine)

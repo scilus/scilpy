@@ -102,29 +102,29 @@ def _validate_length(input_list, length, at_least=False):
     (length)."""
     if at_least:
         if not len(input_list) >= length:
-            logging.error(
-                'This operation requires at least {} operands.'.format(length))
-            raise ValueError
+            raise ValueError('This operation requires at least {}'
+                             ' operands.'.format(length))
+            
     else:
         if not len(input_list) == length:
-            logging.error(
-                'This operation requires exactly {} operands.'.format(length))
-            raise ValueError
+            raise ValueError('This operation requires exactly {} '
+                             'operands.'.format(length))
+            
 
 
 def _validate_type(x, dtype):
     """Make sure that the input has the right type."""
     if not isinstance(x, dtype):
-        logging.error(
-            'The input must be of type {} for this operation.'.format(dtype))
-        raise ValueError
+        raise ValueError('The input must be of type {} for this'
+                         ' operation.'.format(dtype))
+        
 
 
 def _validate_float(x):
     """Make sure that the input can be casted to a float."""
     if not is_float(x):
-        logging.error('The input must be float/int for this operation.')
-        raise ValueError
+        raise ValueError('The input must be float/int for this operation.')
+        
 
 
 def cut_up_cube(data, blck):
