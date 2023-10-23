@@ -12,7 +12,7 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.gradients import get_new_order_philips
+from scilpy.gradients.utils import get_new_order_philips
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
