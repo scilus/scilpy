@@ -10,7 +10,6 @@ to apply simple operations on nibabel images or numpy arrays.
 
 from itertools import combinations
 from collections import OrderedDict
-import logging
 
 import nibabel as nib
 import numpy as np
@@ -104,12 +103,11 @@ def _validate_length(input_list, length, at_least=False):
         if not len(input_list) >= length:
             raise ValueError('This operation requires at least {}'
                              ' operands.'.format(length))
-            
+
     else:
         if not len(input_list) == length:
             raise ValueError('This operation requires exactly {} '
                              'operands.'.format(length))
-            
 
 
 def _validate_type(x, dtype):
@@ -117,14 +115,12 @@ def _validate_type(x, dtype):
     if not isinstance(x, dtype):
         raise ValueError('The input must be of type {} for this'
                          ' operation.'.format(dtype))
-        
 
 
 def _validate_float(x):
     """Make sure that the input can be casted to a float."""
     if not is_float(x):
         raise ValueError('The input must be float/int for this operation.')
-        
 
 
 def cut_up_cube(data, blck):
