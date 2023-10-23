@@ -5,6 +5,31 @@ import logging
 import numpy as np
 import os
 
+from scilpy.utils.util import is_float
+
+
+def load_img(arg):
+    if is_float(arg):
+        img = float(arg)
+        dtype = np.float64
+    else:
+        if not os.path.isfile(arg):
+            raise ValueError('Input file {} does not exist.'.format(arg))
+        img = nib.load(arg)
+        shape = img.header.get_data_shape()
+        dtype = img.header.get_data_dtype()
+        logging.info('Loaded {} of shape {} and data_type {}.'.format(
+                     arg, shape, dtype))
+
+        if len(shape) > 3:
+            logging.warning('{} has {} dimensions, be careful.'.format(
+                arg, len(shape)))
+        elif len(shape) < 3:
+            raise ValueError('{} has {} dimensions, not valid.'.format(
+                arg, len(shape)))
+
+    return img, dtype
+
 
 def merge_labels_into_mask(atlas, filtering_args):
     """

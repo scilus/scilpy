@@ -22,10 +22,10 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_math import (get_image_ops, get_operations_doc)
+from scilpy.io.image import load_img
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
-                             assert_outputs_exist,
-                             load_img)
+                             assert_outputs_exist)
 from scilpy.utils.util import is_float
 
 OPERATIONS = get_image_ops()
