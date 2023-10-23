@@ -2,6 +2,7 @@
 
 from dipy.io.utils import is_header_compatible
 import logging
+import nibabel as nib
 import numpy as np
 import os
 
