@@ -56,17 +56,17 @@ The output consist in two types of images in two folders :
 
 import argparse
 import os
-import json
 
 import nibabel as nib
 import numpy as np
-import scipy.ndimage
 
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_MT_maps,
-                                compute_MT_maps, threshold_MT_maps,
+from scilpy.io.image import load_img
+from scilpy.image.volume_math import concatenate
+from scilpy.reconst.mti import (compute_contrasts_maps,
+                                compute_MT_maps, threshold_maps,
                                 apply_B1_correction)
 
 EPILOG = """
@@ -90,6 +90,9 @@ def _build_arg_parser():
                    help='Prefix to be used for each output image.')
     p.add_argument('--in_B1_map',
                    help='Path to B1 coregister map to MT contrasts.')
+    p.add_argument('--filtering', action='store_true',
+                   help='Gaussian filtering to remove Gibbs ringing. '
+                        'Not recommended.')
 
     g = p.add_argument_group(title='MT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -138,8 +141,13 @@ def main():
 
     # Set TR and FlipAngle parameters for MT (mtoff contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[0][0].replace('.nii.gz', '.json')),
-                  set_acq_parameters(maps[2][0].replace('.nii.gz', '.json'))]
+    parameters = []
+    for curr_map in maps[0][0], maps[2][0]:
+        acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
+                                                            '.json'),
+                                           ['RepetitionTime', 'FlipAngle'])
+        acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
+        parameters.append(acq_parameter)
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
@@ -157,7 +165,14 @@ def main():
     # Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_MT_maps(curr_map))
+        input_images = []
+        for image in curr_map:
+            img, _ = load_img(image)
+            input_images.append(img)
+        merged_curr_map = concatenate(input_images, input_images[0])
+
+        computed_contrasts.append(compute_contrasts_maps(
+            merged_curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),
@@ -167,7 +182,7 @@ def main():
     # Compute and thresold MT maps
     MTR, MTsat = compute_MT_maps(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
-        curr_map = threshold_MT_maps(curr_map, args.in_mask, 0, 100)
+        curr_map = threshold_maps(curr_map, args.in_mask, 0, 100)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 

@@ -65,19 +65,18 @@ replace the * with the specific number of the echo.
 
 import argparse
 import os
-import json
 
 import nibabel as nib
 import numpy as np
-import scipy.ndimage
 
-
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
+from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+                             assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.reconst.mti import (set_acq_parameters,
-                                compute_contrasts_ihMT_maps,
-                                compute_ihMT_maps,
-                                compute_MT_maps_from_ihMT, threshold_ihMT_maps,
+from scilpy.io.image import load_img
+from scilpy.image.volume_math import concatenate
+from scilpy.reconst.mti import (compute_contrasts_maps,
+                                compute_ihMT_maps, threshold_maps,
+                                compute_MT_maps_from_ihMT,
                                 apply_B1_correction)
 
 EPILOG = """
@@ -115,9 +114,6 @@ def _build_arg_parser():
                         'Not recommended.')
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
-    p.add_argument('--legacy_sat', action='store_true',
-                   help='Use this option to choose the ihMTdR1sat contrast. '
-                        'This is not recommended.')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -179,8 +175,13 @@ def main():
 
     # Set TR and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
-    parameters = [set_acq_parameters(maps[4][0].replace('.nii.gz', '.json')),
-                  set_acq_parameters(maps[5][0].replace('.nii.gz', '.json'))]
+    parameters = []
+    for curr_map in maps[4][0], maps[5][0]:
+        acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
+                                                            '.json'),
+                                           ['RepetitionTime', 'FlipAngle'])
+        acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
+        parameters.append(acq_parameter)
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
@@ -202,11 +203,16 @@ def main():
         contrasts_name = [args.out_prefix + '_' + curr_name
                           for curr_name in contrasts_name]
 
-    # Compute contrasts maps
+# Compute contrasts maps
     computed_contrasts = []
     for idx, curr_map in enumerate(maps):
-        computed_contrasts.append(compute_contrasts_ihMT_maps(
-                                  curr_map, filtering=args.filtering,
+        input_images = []
+        for image in curr_map:
+            img, _ = load_img(image)
+            input_images.append(img)
+        merged_curr_map = concatenate(input_images, input_images[0])
+        computed_contrasts.append(compute_contrasts_maps(
+                                  merged_curr_map, filtering=args.filtering,
                                   single_echo=args.single_echo))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
@@ -215,12 +221,13 @@ def main():
                               contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
-    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters,
-                                       args.legacy_sat)
-    ihMTR = threshold_ihMT_maps(ihMTR, computed_contrasts, args.in_mask,
-                                0, 100, [4, 3, 1, 0, 2])
-    ihMTsat = threshold_ihMT_maps(ihMTsat, computed_contrasts, args.in_mask,
-                                  0, 10, [4, 3, 1, 0])
+    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
+    ihMTR = threshold_maps(ihMTR, args.in_mask, 0, 100,
+                           idx_contrast_list=[4, 3, 1, 0, 2],
+                           contrasts_maps=computed_contrasts)
+    ihMTsat = threshold_maps(ihMTsat, args.in_mask, 0, 10,
+                             idx_contrast_list=[4, 3, 1, 0],
+                             contrasts_maps=computed_contrasts)
     if args.in_B1_map:
         ihMTR = apply_B1_correction(ihMTR, args.in_B1_map)
         ihMTsat = apply_B1_correction(ihMTsat, args.in_B1_map)
@@ -228,8 +235,9 @@ def main():
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps_from_ihMT(computed_contrasts, parameters)
     for curr_map in MTR, MTsat:
-        curr_map = threshold_ihMT_maps(curr_map, computed_contrasts,
-                                       args.in_mask, 0, 100, [4, 2])
+        curr_map = threshold_maps(curr_map, args.in_mask, 0, 100,
+                                  idx_contrast_list=[4, 2],
+                                  contrasts_maps=computed_contrasts)
         if args.in_B1_map:
             curr_map = apply_B1_correction(curr_map, args.in_B1_map)
 
