@@ -124,7 +124,7 @@ def main():
 
     acqparams = create_acqparams(args.readout, args.encoding_direction,
                                  args.synb0, b0.shape[-1], rev_b0.shape[-1])
-    print(acqparams)
+
     if not os.path.exists(args.out_directory):
         os.makedirs(args.out_directory)
 

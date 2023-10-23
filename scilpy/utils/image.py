@@ -107,6 +107,44 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
 
 def register_image(static, static_grid2world, moving, moving_grid2world,
                    transformation_type='affine', dwi=None, fine=False):
+    """
+    Register a moving image to a static image using either rigid or affine
+    transformations. If a DWI (4D) is provided, it applies the transformation
+    to each volume.
+
+    Parameters
+    ----------
+    static : ndarray
+        The static image volume to which the moving image will be registered.
+    static_grid2world : ndarray
+        The grid-to-world (vox2ras) transformation associated with the static
+        image.
+    moving : ndarray
+        The moving image volume that needs to be registered to the static image.
+    moving_grid2world : ndarray
+        The grid-to-world (vox2ras) transformation associated with the moving
+        image.
+    transformation_type : str, optional
+        The type of transformation ('rigid' or 'affine'). Default is 'affine'.
+    dwi : ndarray, optional
+        Diffusion-weighted imaging data (if applicable). Default is None.
+    fine : bool, optional
+        Whether to use fine or coarse settings for the registration.
+        Default is False.
+
+    Raises
+    ------
+    ValueError
+        If the transformation_type is neither 'rigid' nor 'affine'.
+
+    Returns
+    -------
+    ndarray or tuple
+        If `dwi` is None, returns transformed moving image and transformation
+        matrix.
+        If `dwi` is not None, returns transformed DWI and transformation matrix.
+    """
+
     if transformation_type not in ['rigid', 'affine']:
         raise ValueError('Transformation type not available in Dipy')
 
