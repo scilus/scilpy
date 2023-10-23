@@ -1,30 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
-
-def grad_equality_constraints(bvecs, *args):
-    """
-    Return normals to the surface constraint (wich corresponds to
-    the gradient of the implicit function).
-
-    Parameters
-    ----------
-    bvecs : array-like shape (N * 3)
-
-    Returns
-    -------
-    array shape (N, N * 3). grad[i, j] contains
-    $\\partial f_i / \\partial x_j$
-    """
-    N = bvecs.shape[0] / 3
-    bvecs = bvecs.reshape((N, 3))
-    bvecs = (bvecs.T / np.sqrt((bvecs ** 2).sum(1))).T
-    grad = np.zeros((N, N * 3))
-    for i in range(3):
-        grad[:, i * N:(i+1) * N] = np.diag(bvecs[:, i])
-    return grad
-
 
 def write_multiple_shells(bvecs, nb_shells, nb_points_per_shell, filename):
     """
@@ -50,4 +25,3 @@ def write_multiple_shells(bvecs, nb_shells, nb_points_per_shell, filename):
                            (s, bvecs[k, 0], bvecs[k, 1], bvecs[k, 2]))
             k += 1
     datafile.close()
-
