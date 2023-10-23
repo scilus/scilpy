@@ -20,6 +20,7 @@ import six
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.utils.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
+from scilpy.utils.util import is_float
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
@@ -33,6 +34,29 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'regrid']
 
 axis_name_choices = ["axial", "coronal", "sagittal"]
+
+
+def load_img(arg):
+    if is_float(arg):
+        img = float(arg)
+        dtype = np.float64
+    else:
+        if not os.path.isfile(arg):
+            raise ValueError('Input file {} does not exist.'.format(arg))
+        img = nib.load(arg)
+        shape = img.header.get_data_shape()
+        dtype = img.header.get_data_dtype()
+        logging.info('Loaded {} of shape {} and data_type {}.'.format(
+                     arg, shape, dtype))
+
+        if len(shape) > 3:
+            logging.warning('{} has {} dimensions, be careful.'.format(
+                arg, len(shape)))
+        elif len(shape) < 3:
+            raise ValueError('{} has {} dimensions, not valid.'.format(
+                arg, len(shape)))
+
+    return img, dtype
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):

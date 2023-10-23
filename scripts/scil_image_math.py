@@ -24,7 +24,8 @@ import numpy as np
 from scilpy.image.volume_math import (get_image_ops, get_operations_doc)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
-                             assert_outputs_exist)
+                             assert_outputs_exist,
+                             load_img)
 from scilpy.utils.util import is_float
 
 OPERATIONS = get_image_ops()
@@ -57,29 +58,6 @@ def _build_arg_parser():
     add_verbose_arg(p)
 
     return p
-
-
-def load_img(arg):
-    if is_float(arg):
-        img = float(arg)
-        dtype = np.float64
-    else:
-        if not os.path.isfile(arg):
-            raise ValueError('Input file {} does not exist.'.format(arg))
-        img = nib.load(arg)
-        shape = img.header.get_data_shape()
-        dtype = img.header.get_data_dtype()
-        logging.info('Loaded {} of shape {} and data_type {}.'.format(
-                     arg, shape, dtype))
-
-        if len(shape) > 3:
-            logging.warning('{} has {} dimensions, be careful.'.format(
-                arg, len(shape)))
-        elif len(shape) < 3:
-            raise ValueError('{} has {} dimensions, not valid.'.format(
-                arg, len(shape)))
-
-    return img, dtype
 
 
 def main():
