@@ -31,7 +31,6 @@ import numpy as np
 
 from dipy.data import get_sphere, SPHERE_FILES
 from dipy.direction.peaks import reshape_peaks_for_visualization
-from dipy.reconst.shm import sph_harm_ind_list
 
 from scilpy.reconst.multi_processes import peaks_from_sh
 from scilpy.reconst.utils import get_sh_order_and_fullness
