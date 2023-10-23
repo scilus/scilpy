@@ -27,7 +27,8 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
         a resampling to 0.5mm per segment is performed.
     Returns
     -------
-    np.ndarray: A np.ndarray where voxel values represent the density of endpoints.
+    np.ndarray: A np.ndarray where voxel values represent the density of
+    endpoints.
     """
     endpoints_map_head, endpoints_map_tail = \
         get_head_tail_density_maps(streamlines, dimensions, point_to_select)
@@ -60,6 +61,8 @@ def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
     for streamline in streamlines:
+        # TODO: There is a bug here, the number of points is at max 2
+        # meaning we can never select more than the first and last points
         nb_point = max(2,  int(length(streamline))*2)
         streamline = set_number_of_points(streamline, nb_point)
         points_list_head = \
@@ -111,10 +114,8 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
         last_success = 0
         curr_len = 0
         longest_seq = (0, 0)
-        # For each point in the streamline, check if it is in the mask
-        # If it is, check if it is the first point in the mask
-        # If it is, check if the current sequence is the longest
-        # If it is, save it
+        # For each point in the streamline, find the longest sequence of points
+        # that are in the mask.
         for ind, pos in enumerate(streamline):
             pos = tuple(pos.astype(np.int16))
             if binary_mask[pos]:
