@@ -35,6 +35,15 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
 axis_name_choices = ["axial", "coronal", "sagittal"]
 
 
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
+
+
 def link_bundles_and_reference(parser, args, input_tractogram_list):
     """
     Associate the bundle to their reference (if they require a reference).
