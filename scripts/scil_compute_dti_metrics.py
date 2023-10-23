@@ -52,10 +52,6 @@ logger = logging.getLogger("Compute_DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 
-def _get_min_nonzero_signal(data):
-    return np.min(data[data > 0])
-
-
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -200,10 +196,10 @@ def main():
     if args.method == 'restore':
         sigma = ne.estimate_sigma(data)
         tenmodel = TensorModel(gtab, fit_method=args.method, sigma=sigma,
-                               min_signal=_get_min_nonzero_signal(data))
+                               min_signal=np.min(data[data > 0])
     else:
         tenmodel = TensorModel(gtab, fit_method=args.method,
-                               min_signal=_get_min_nonzero_signal(data))
+                               min_signal=np.min(data[data > 0])
 
     tenfit = tenmodel.fit(data, mask)
 
