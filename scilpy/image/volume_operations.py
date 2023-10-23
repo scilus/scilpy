@@ -20,7 +20,7 @@ from scipy.ndimage import binary_dilation
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
-
+     
 
 def count_non_zero_voxels(image):
     """
@@ -44,8 +44,18 @@ def count_non_zero_voxels(image):
 
 def flip_volume(data, axes):
     """
+    Flip volume along a specific axis.
+    
+    Parameters
+    ----------
     data: np.ndarray
-    axes: a list containing any number of values amongst ['x', 'y', 'z'].
+        Volume data.
+    axes: List 
+        A list containing any number of values amongst ['x', 'y', 'z'].
+        
+    Return
+    ------
+    data: Flipped volume data along specified axes.
     """
     if 'x' in axes:
         data = data[::-1, ...]
@@ -60,10 +70,20 @@ def flip_volume(data, axes):
 
 
 def crop_volume(img: nib.Nifti1Image, wbbox):
-    """Applies cropping from a world space defined bounding box and fixes the
+    """
+    Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
-
-    wbbox: WorldBoundingBox from the scrip scil_crop_volume. ToDo. Update this.
+    
+    Parameters
+    ----------
+    img: nib.Nifti1Image
+        Input image to crop.
+    wbbox: WorldBoundingBox
+        Bounding box. 
+        
+    Return
+    ------
+    nib.Nifti1Image with the cropped data and transformed affine.
     """
     data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
@@ -86,7 +106,7 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     return nib.Nifti1Image(data_crop, new_affine)
 
 
-def apply_transform(transfo, reference, moving, filename_to_save,
+def apply_transform(transfo, reference, moving,
                     interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
@@ -95,41 +115,39 @@ def apply_transform(transfo, reference, moving, filename_to_save,
     ----------
     transfo: numpy.ndarray
         Transformation matrix to be applied
-    reference: str
+    reference: nib.Nifti1Image
         Filename of the reference image (target)
-    moving: str
+    moving: nib.Nifti1Image
         Filename of the moving image
-    filename_to_save: str
-        Filename of the output image
     interp : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     keep_dtype : bool
         If True, keeps the data_type of the input moving image when saving
         the output image
+        
+    Return
+    ------
+    nib.Nifti1Image of the warped moving image.
     """
     grid2world, dim, _, _ = get_reference_info(reference)
-    static_data = nib.load(reference).get_fdata(dtype=np.float32)
+    static_data = reference.get_fdata(dtype=np.float32)
 
-    nib_file = nib.load(moving)
-    curr_type = nib_file.get_data_dtype()
+    curr_type = moving.get_data_dtype()
     if keep_dtype:
-        moving_data = np.asanyarray(nib_file.dataobj).astype(curr_type)
+        moving_data = np.asanyarray(moving.dataobj).astype(curr_type)
     else:
-        moving_data = nib_file.get_fdata(dtype=np.float32)
-    moving_affine = nib_file.affine
+        moving_data = moving.get_fdata(dtype=np.float32)
+    moving_affine = moving.affine
 
-    if moving_data.ndim == 3 and isinstance(moving_data[0, 0, 0],
-                                            np.ScalarType):
+    if moving_data.ndim == 3:
         orig_type = moving_data.dtype
         affine_map = AffineMap(np.linalg.inv(transfo),
                                dim, grid2world,
                                moving_data.shape, moving_affine)
         resampled = affine_map.transform(moving_data.astype(np.float64),
                                          interpolation=interp)
-        nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
-                 filename_to_save)
-    elif len(moving_data[0, 0, 0]) > 1:
+    elif moving_data.ndim == 4:
         if isinstance(moving_data[0, 0, 0], np.void):
             raise ValueError('Does not support TrackVis RGB')
 
@@ -140,10 +158,10 @@ def apply_transform(transfo, reference, moving, filename_to_save,
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,
                                   interpolation=interp)
-        nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
-                 filename_to_save)
     else:
         raise ValueError('Does not support this dataset (shape, type, etc)')
+    
+    return nib.Nifti1Image(resampled.astype(orig_type), grid2world)
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):

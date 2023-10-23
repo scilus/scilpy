@@ -9,8 +9,10 @@ https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.ht
 """
 
 import argparse
+import warnings
 
 import numpy as np
+import nibabel as nib
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
@@ -31,10 +33,8 @@ def _build_arg_parser():
                         'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_name',
                    help='Output filename of the transformed data.')
-
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse transformation.')
-
     p.add_argument('--keep_dtype', action='store_true',
                    help='If True, keeps the data_type of the input image '
                         '(in_file) when saving the output image (out_name).')
@@ -63,8 +63,18 @@ def main():
     if in_extension not in ['.nii', '.nii.gz']:
         parser.error('{} is an unsupported format.'.format(args.in_file))
 
-    apply_transform(transfo, args.in_target_file, args.in_file,
-                    args.out_name, keep_dtype=args.keep_dtype)
+    # Load images and validate input type.
+    moving = nib.load(args.in_file)
+    
+    if moving.get_fdata().ndim == 4:
+        warnings.warn('You are applying a transform to a 4D dwi volume, make sure to rotate your bvecs with '
+                      'scil_apply_transform_to_bvecs.py')
+    
+    reference = nib.load(args.in_target_file)
+    
+    warped_img = apply_transform(transfo, reference, moving, keep_dtype=args.keep_dtype)
+    
+    nib.save(warped_img, args.out_name)
 
 
 if __name__ == "__main__":

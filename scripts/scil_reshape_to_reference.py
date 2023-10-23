@@ -13,6 +13,7 @@ to the original input image.
 
 import argparse
 
+import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
@@ -49,10 +50,15 @@ def main():
 
     assert_inputs_exist(parser, [args.in_file, args.in_ref_file])
     assert_outputs_exist(parser, args, args.out_file)
+    
+    # Load images.
+    in_file = nib.load(args.in_file)
+    ref_file = nib.load(args.in_ref_file)
 
-    apply_transform(np.eye(4), args.in_ref_file, args.in_file,
-                    args.out_file, interp=args.interpolation,
-                    keep_dtype=args.keep_dtype)
+    reshaped_img = apply_transform(np.eye(4), ref_file, in_file, interp=args.interpolation,
+                                   keep_dtype=args.keep_dtype)
+    
+    nib.save(reshaped_img, args.out_file)
 
 
 if __name__ == "__main__":

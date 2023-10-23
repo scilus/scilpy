@@ -3,6 +3,7 @@
 import collections.abc
 
 from dipy.io.utils import get_reference_info
+from dipy.segment.mask import bounding_box
 import numpy as np
 from numpy.lib.index_tricks import r_ as row
 
@@ -42,6 +43,13 @@ def compute_distance_barycenters(ref_1, ref_2, ref_2_transfo):
     return distance_before, distance_after
 
 
+class WorldBoundingBox(object):
+    def __init__(self, minimums, maximums, voxel_size):
+        self.minimums = minimums
+        self.maximums = maximums
+        self.voxel_size = voxel_size
+
+
 def voxel_to_world(coord, affine):
     """Takes a n dimensionnal voxel coordinate and returns its 3 first
     coordinates transformed to world space from a given voxel to world affine
@@ -62,6 +70,22 @@ def world_to_voxel(coord, affine):
     vox_coord = np.dot(iaffine, normalized_coord)
     vox_coord = np.round(vox_coord).astype(int)
     return vox_coord[0:3]
+
+
+def compute_nifti_bounding_box(img):
+    """Finds bounding box from data and transforms it in world space for use
+    on data with different attributes like voxel size."""
+    data = img.get_fdata(dtype=np.float32, caching='unchanged')
+    affine = img.affine
+    voxel_size = img.header.get_zooms()[0:3]
+
+    voxel_bb_mins, voxel_bb_maxs = bounding_box(data)
+
+    world_bb_mins = voxel_to_world(voxel_bb_mins, affine)
+    world_bb_maxs = voxel_to_world(voxel_bb_maxs, affine)
+    wbbox = WorldBoundingBox(world_bb_mins, world_bb_maxs, voxel_size)
+
+    return wbbox
 
 
 def str_to_index(axis):
