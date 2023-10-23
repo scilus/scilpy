@@ -34,11 +34,12 @@ import nibabel as nib
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
+from scilpy.io.fetcher import get_synb0_template_path
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.image import get_synb0_template_path, register_image
+from scilpy.utils.image import register_image
 
 
 def _build_arg_parser():

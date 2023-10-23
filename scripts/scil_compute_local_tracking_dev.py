@@ -42,7 +42,6 @@ References: [1] Girard, G., Whittingstall K., Deriche, R., and
 """
 import argparse
 import logging
-import math
 import time
 
 import dipy.core.geometry as gm
@@ -53,13 +52,14 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
                                         set_sft_logger_level
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
+from nibabel.streamlines import detect_format, TrkFile
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
-from scilpy.image.datasets import DataVolume
+from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.seed import SeedGenerator
 from scilpy.tracking.tools import get_theta
@@ -93,10 +93,13 @@ def _build_arg_parser():
                               "for the step function.\n"
                               "For more information, refer to the note in the"
                               " script description. [%(default)s]")
-    track_g.add_argument('--max_invalid_length', metavar='MAX', type=float,
-                         default=1,
-                         help="Maximum length without valid direction, in mm. "
-                              "[%(default)s]")
+    track_g.add_argument('--max_invalid_nb_points', metavar='MAX', type=float,
+                         default=0,
+                         help="Maximum number of steps without valid "
+                              "direction, \nex: if threshold on ODF or max "
+                              "angles are reached.\n"
+                              "Default: 0, i.e. do not add points following "
+                              "an invalid direction.")
     track_g.add_argument('--forward_only', action='store_true',
                          help="If set, tracks in one direction only (forward) "
                               "given the \ninitial seed. The direction is "
@@ -109,6 +112,14 @@ def _build_arg_parser():
                          choices=['nearest', 'trilinear'],
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
+    track_g.add_argument(
+        '--discard_last_out_point', action='store_true',
+        help="If set, discard the last point (once out of the tracking mask) "
+             "of \nthe streamline. Default: append them. This is the default "
+             " in \nDipy too. Note that points obtained after an invalid "
+             "direction \n(based on the propagator's definition of invalid; "
+             "ex when \nangle is too sharp of sh_threshold not reached) are "
+             "never added.")
 
     add_seeding_options(p)
 
@@ -152,11 +163,18 @@ def main():
     verify_compression_th(args.compress)
     verify_seed_options(parser, args)
 
+    tracts_format = detect_format(args.out_tractogram)
+    if tracts_format is not TrkFile:
+        logging.warning("You have selected option --save_seeds but you are "
+                        "not saving your tractogram as a .trk file. \n"
+                        "Data_per_point information CANNOT be saved.\n"
+                        "Ignoring.")
+        args.save_seeds = False
+
     theta = gm.math.radians(get_theta(args.theta, args.algo))
 
     max_nbr_pts = int(args.max_length / args.step_size)
-    min_nbr_pts = int(args.min_length / args.step_size) + 1
-    max_invalid_dirs = int(math.ceil(args.max_invalid_length / args.step_size))
+    min_nbr_pts = max(int(args.min_length / args.step_size), 1)
 
     assert_same_resolution([args.in_mask, args.in_odf, args.in_seed])
 
@@ -218,14 +236,16 @@ def main():
         space=our_space, origin=our_origin)
 
     logging.debug("Instantiating tracker.")
+    append_last_point = not args.discard_last_out_point
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
-                      max_nbr_pts, max_invalid_dirs,
+                      max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=args.compress,
                       nbr_processes=args.nbr_processes,
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip)
+                      skip=args.skip, append_last_point=append_last_point,
+                      verbose=args.verbose)
 
     start = time.time()
     logging.debug("Tracking...")

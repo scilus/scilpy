@@ -112,10 +112,12 @@ class RecobundlesX(object):
 
     def _cluster_model_bundle(self, model_clust_thr, identifier):
         """
-        Wrapper function to compute QBx for the model and logging informations.
-        :param model, list or ArraySequence, streamlines to be used as model.
-        :param model_clust_thr, float, distance in mm for clustering.
-        :param identifier, str, name of the bundle for logging.
+        Wrapper function to compute QBx for the model and logging information.
+
+        Parameters
+        ----------
+        model_clust_thr, float, distance in mm for clustering.
+        identifier, str, name of the bundle for logging.
         """
         thresholds = [30, 20, 15, model_clust_thr]
         model_cluster_map = qbx_and_merge(self.model_streamlines, thresholds,

@@ -114,7 +114,7 @@ def filter_grid_roi(sft, mask, filter_type, is_exclude, filter_distance=0):
     mask : numpy.ndarray
         Binary mask in which the streamlines should pass.
     filter_type: str
-        One of the 3 following choices, 'any', 'all', 'either_end', 'both_ends'.
+        One of the 4 following choices, 'any', 'all', 'either_end', 'both_ends'.
     is_exclude: bool
         Value to indicate if the ROI is an AND (false) or a NOT (true).
     Returns

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from contextlib import nullcontext
 import itertools
 import logging
 import multiprocessing
@@ -8,6 +9,7 @@ from tempfile import TemporaryDirectory
 from time import perf_counter
 import traceback
 from typing import Union
+from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
@@ -15,7 +17,7 @@ from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
 
-from scilpy.image.datasets import DataVolume
+from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import AbstractPropagator, PropagationStatus
 from scilpy.reconst.utils import find_order_from_nb_coeff
 from scilpy.tracking.seed import SeedGenerator
@@ -32,8 +34,9 @@ class Tracker(object):
                  seed_generator: SeedGenerator, nbr_seeds, min_nbr_pts,
                  max_nbr_pts, max_invalid_dirs, compression_th=0.1,
                  nbr_processes=1, save_seeds=False,
-                 mmap_mode: Union[str, None] = None,
-                 rng_seed=1234, track_forward_only=False, skip=0):
+                 mmap_mode: Union[str, None] = None, rng_seed=1234,
+                 track_forward_only=False, skip=0, verbose=False,
+                 append_last_point=True):
         """
         Parameters
         ----------
@@ -74,6 +77,14 @@ class Tracker(object):
             tractogram with a fixed rng_seed. Ex: If tractogram_1 was created
             with nbr_seeds=1,000,000, you can create tractogram_2 with
             skip 1,000,000.
+        verbose: bool
+            Display tracking progression.
+        append_last_point: bool
+            Whether to add the last point (once out of the tracking mask) to
+            the streamline or not. Note that points obtained after an invalid
+            direction (based on the propagator's definition of invalid; ex
+            when angle is too sharp of sh_threshold not reached) are never
+            added.
         """
         self.propagator = propagator
         self.mask = mask
@@ -87,6 +98,7 @@ class Tracker(object):
         self.mmap_mode = mmap_mode
         self.rng_seed = rng_seed
         self.track_forward_only = track_forward_only
+        self.append_last_point = append_last_point
         self.skip = skip
 
         self.origin = self.propagator.origin
@@ -113,6 +125,7 @@ class Tracker(object):
         self.nbr_processes = self._set_nbr_processes(nbr_processes)
 
         self.printing_frequency = 1000
+        self.verbose = verbose
 
     def track(self):
         """
@@ -133,11 +146,14 @@ class Tracker(object):
             # Each process will use get_streamlines_at_seeds
             chunk_ids = np.arange(self.nbr_processes)
             with TemporaryDirectory() as tmpdir:
+                # Lock for logging
+                lock = multiprocessing.Manager().Lock()
+                zipped_chunks = zip(chunk_ids, [lock] * self.nbr_processes)
 
                 pool = self._prepare_multiprocessing_pool(tmpdir)
 
                 lines_per_process, seeds_per_process = zip(*pool.map(
-                    self._get_streamlines_sub, chunk_ids))
+                    self._get_streamlines_sub, zipped_chunks))
                 pool.close()
                 # Make sure all worker processes have exited before leaving
                 # context manager.
@@ -191,7 +207,7 @@ class Tracker(object):
 
         # Saving data. We will reload it in each process.
         data_file_name = os.path.join(tmpdir, 'data.npy')
-        np.save(data_file_name, self.propagator.dataset.data)
+        np.save(data_file_name, self.propagator.datavolume.data)
 
         # Clear data from memory
         self.propagator.reset_data(new_data=None)
@@ -216,7 +232,7 @@ class Tracker(object):
         multiprocess_init_args = init_args
         return
 
-    def _get_streamlines_sub(self, chunk_id):
+    def _get_streamlines_sub(self, params):
         """
         multiprocessing.pool.map input function. Calls the main tracking
         method (_get_streamlines) with correct initialization arguments
@@ -224,19 +240,21 @@ class Tracker(object):
 
         Parameters
         ----------
-        chunk_id: int
-            This processes's id.
+        params: Tuple[chunk_id, Lock]
+            chunk_id: int, this processes's id.
+            Lock: the multiprocessing lock.
 
         Return
         -------
         lines: list
             List of list of 3D positions (streamlines).
         """
+        chunk_id, lock = params
         global multiprocess_init_args
 
         self._reload_data_for_new_process(multiprocess_init_args)
         try:
-            streamlines, seeds = self._get_streamlines(chunk_id)
+            streamlines, seeds = self._get_streamlines(chunk_id, lock)
             return streamlines, seeds
         except Exception as e:
             logging.error("Operation _get_streamlines_sub() failed.")
@@ -256,7 +274,7 @@ class Tracker(object):
         self.propagator.reset_data(np.load(
             init_args['data_file_name'], mmap_mode=init_args['mmap_mode']))
 
-    def _get_streamlines(self, chunk_id):
+    def _get_streamlines(self, chunk_id, lock=None):
         """
         Tracks the n streamlines associates with current process (identified by
         chunk_id). The number n is the total number of seeds / the number of
@@ -267,6 +285,9 @@ class Tracker(object):
         ----------
         chunk_id: int
             This process ID.
+        lock: Lock
+            The multiprocessing lock for verbose printing (optional with
+            single processing).
 
         Returns
         -------
@@ -289,11 +310,21 @@ class Tracker(object):
             chunk_size += self.nbr_seeds % self.nbr_processes
 
         # Getting streamlines
-        for s in range(chunk_size):
-            if s % self.printing_frequency == 0:
-                logging.info("Process {} (id {}): {} / {}"
-                             .format(chunk_id, os.getpid(), s, chunk_size))
+        tqdm_text = "#" + "{}".format(chunk_id).zfill(3)
 
+        if self.verbose:
+            if lock is None:
+                lock = nullcontext()
+            with lock:
+                # Note. Option miniters does not work with manual pbar update.
+                # Will verify manually, lower.
+                # Fixed choice of value rather than a percentage of the chunk
+                # size because our tracker is quite slow.
+                miniters = 100
+                p = tqdm(total=chunk_size, desc=tqdm_text, position=chunk_id+1,
+                         leave=False)
+
+        for s in range(chunk_size):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
 
@@ -319,6 +350,13 @@ class Tracker(object):
                 if self.save_seeds:
                     seeds.append(np.asarray(seed, dtype='float32'))
 
+            if self.verbose and (s + 1) % miniters == 0:
+                with lock:
+                    p.update(miniters)
+
+        if self.verbose:
+            with lock:
+                p.close()
         return streamlines, seeds
 
     def _get_line_both_directions(self, seeding_pos):
@@ -398,33 +436,24 @@ class Tracker(object):
             new_pos, new_tracking_info, is_direction_valid = \
                 self.propagator.propagate(line, tracking_info)
 
-            # Verifying and appending
+            # Verifying if direction is valid
+            # If invalid: break. Else, verify tracking mask.
             if is_direction_valid:
                 invalid_direction_count = 0
             else:
                 invalid_direction_count += 1
-            propagation_can_continue = self._verify_stopping_criteria(
-                invalid_direction_count, new_pos)
-            if propagation_can_continue:
+                if invalid_direction_count > self.max_invalid_dirs:
+                    break
+
+            propagation_can_continue = self._verify_stopping_criteria(new_pos)
+            if propagation_can_continue or self.append_last_point:
                 line.append(new_pos)
 
             tracking_info = new_tracking_info
 
-        # Possible last step.
-        final_pos = self.propagator.finalize_streamline(line[-1],
-                                                        tracking_info)
-        if (final_pos is not None and
-                not np.array_equal(final_pos, line[-1]) and
-                self.mask.is_coordinate_in_bound(
-                    *final_pos, space=self.space, origin=self.origin)):
-            line.append(final_pos)
         return line
 
-    def _verify_stopping_criteria(self, invalid_direction_count, last_pos):
-
-        # Checking number of consecutive invalid directions
-        if invalid_direction_count > self.max_invalid_dirs:
-            return False
+    def _verify_stopping_criteria(self, last_pos):
 
         # Checking if out of bound
         if not self.mask.is_coordinate_in_bound(
@@ -457,11 +486,9 @@ class GPUTacker():
     mask : ndarray
         Tracking mask. Tracking stops outside the mask.
     seeds : ndarray (n_seeds, 3)
-        Seed positions in voxel space with origin `corner`.
+        Seed positions in voxel space with origin `center`.
     step_size : float
         Step size in voxel space.
-    min_nbr_pts : int
-        Minimum length of a streamline in voxel space.
     max_nbr_pts : int
         Maximum length of a streamline in voxel space.
     theta : float or list of float, optional
@@ -476,7 +503,7 @@ class GPUTacker():
     rng_seed : int, optional
         Seed for random number generator.
     """
-    def __init__(self, sh, mask, seeds, step_size, min_nbr_pts, max_nbr_pts,
+    def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', batch_size=100000,
                  forward_only=False, rng_seed=None):
@@ -490,23 +517,18 @@ class GPUTacker():
         self.sh_interp_nn = sh_interp == 'nearest'
         self.mask = mask
 
-        if (seeds < 0).any():
-            raise ValueError('Invalid seed positions.\nGPUTracker works with'
-                             ' origin \'corner\'.')
         self.n_seeds = len(seeds)
+
         self.seed_batches =\
-            np.array_split(seeds, np.ceil(len(seeds)/batch_size))
+            np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
 
         # tracking step_size and number of points
         self.step_size = step_size
         self.sf_threshold = sf_threshold
-        self.min_strl_points = min_nbr_pts
         self.max_strl_points = max_nbr_pts
 
         # convert theta to array
-        if isinstance(theta, float):
-            theta = np.array([theta])
-        self.theta = theta
+        self.theta = np.atleast_1d(theta)
 
         self.sh_basis = sh_basis
         self.forward_only = forward_only
@@ -522,14 +544,17 @@ class GPUTacker():
 
         return fodf_max
 
-    def track(self):
+    def __iter__(self):
+        return self._track()
+
+    def _track(self):
         """
         GPU streamlines generator yielding streamlines with corresponding
         seed positions one by one.
         """
         t0 = perf_counter()
 
-        # Load the sphere
+        # TODO: Take as class parameter
         sphere = get_sphere('symmetric724')
 
         # Convert theta to cos(theta)
@@ -575,13 +600,7 @@ class GPUTacker():
 
         cl_manager.add_input_buffer(5, max_cos_theta)
 
-        logging.debug('Initialized OpenCL program in {:.2f}s.'
-                      .format(perf_counter() - t0))
-
         # Generate streamlines in batches
-        t0 = perf_counter()
-        nb_processed_streamlines = 0
-        nb_valid_streamlines = 0
         for seed_batch in self.seed_batches:
             # Generate random values for sf sampling
             # TODO: Implement random number generator directly
@@ -602,19 +621,10 @@ class GPUTacker():
 
             # Run the kernel
             tracks, n_points = cl_manager.run((len(seed_batch), 1, 1))
-            n_points = n_points.squeeze().astype(np.int16)
+            n_points = n_points.flatten().astype(np.int16)
             for (strl, seed, n_pts) in zip(tracks, seed_batch, n_points):
-                if n_pts >= self.min_strl_points:
-                    strl = strl[:n_pts]
-                    nb_valid_streamlines += 1
+                strl = strl[:n_pts]
 
-                    # output is yielded so that we can use lazy tractogram.
-                    yield strl, seed
-
-            # per-batch logging information
-            nb_processed_streamlines += len(seed_batch)
-            logging.info('{0:>8}/{1} streamlines generated'
-                         .format(nb_processed_streamlines, self.n_seeds))
-
-        logging.info('Tracked {0} streamlines in {1:.2f}s.'
-                     .format(nb_valid_streamlines, perf_counter() - t0))
+                # output is yielded so that we can use LazyTractogram.
+                # seed and strl with origin center (same as DIPY)
+                yield strl - 0.5, seed - 0.5

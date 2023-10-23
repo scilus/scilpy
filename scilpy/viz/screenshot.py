@@ -8,7 +8,8 @@ from scilpy.io.utils import snapshot
 def display_slices(volume_actor, slices,
                    output_filename, axis_name,
                    view_position, focal_point,
-                   peaks_actor=None, streamlines_actor=None):
+                   peaks_actor=None, streamlines_actor=None,
+                   roi_actors=None):
     # Setting for the slice of interest
     if axis_name == 'sagittal':
         volume_actor.display(slices[0], None, None)
@@ -33,6 +34,10 @@ def display_slices(volume_actor, slices,
         scene.add(streamlines_actor)
     elif peaks_actor:
         scene.add(peaks_actor)
+
+    if roi_actors:
+        for roi_actor in roi_actors:
+            scene.add(roi_actor)
     scene.set_camera(position=view_position,
                      view_up=view_up_vector,
                      focal_point=focal_point)

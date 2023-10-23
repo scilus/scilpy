@@ -16,8 +16,8 @@ with open('requirements.txt') as f:
 
 
 def get_extensions():
-    uncompress = Extension('scilpy.tractanalysis.uncompress',
-                           ['scilpy/tractanalysis/uncompress.pyx'])
+    uncompress = Extension('scilpy.tractograms.uncompress',
+                           ['scilpy/tractograms/uncompress.pyx'])
     quick_tools = Extension('scilpy.tractanalysis.quick_tools',
                             ['scilpy/tractanalysis/quick_tools.pyx'])
     grid_intersections = Extension('scilpy.tractanalysis.grid_intersections',

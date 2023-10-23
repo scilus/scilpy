@@ -1,7 +1,5 @@
 # encoding: utf-8
 
-import logging
-
 from dipy.align.bundlemin import distance_matrix_mdf
 from dipy.tracking.streamline import set_number_of_points
 import numpy as np

@@ -2,7 +2,6 @@ import itertools
 import logging
 import multiprocessing
 
-from scipy.sparse.linalg import ArpackNoConvergence
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.multi_voxel import MultiVoxelFit
 from dipy.reconst.odf import gfa

@@ -110,7 +110,7 @@ def bingham_to_peak_direction(bingham_volume):
 
     Parameters
     ----------
-    binghams: ndarray (..., max_lobes, 9)
+    bingham_volume: ndarray (..., max_lobes, 9)
         Bingham volume.
 
     Returns

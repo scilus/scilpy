@@ -4,34 +4,7 @@ import logging
 
 import nibabel as nib
 import numpy as np
-import six
-
-
-def count_non_zero_voxels(image):
-    """
-    Count number of non zero voxels
-
-    Parameters:
-    -----------
-    image: string
-        Path to the image
-    """
-    if isinstance(image, six.string_types):
-        nb_object = nib.load(image)
-    else:
-        nb_object = image
-
-    data = nb_object.get_fdata(dtype=np.float32, caching='unchanged')
-
-    # Count the number of non-zero voxels.
-    if len(data.shape) >= 4:
-        axes_to_sum = np.arange(3, len(data.shape))
-        nb_voxels = np.count_nonzero(np.sum(np.absolute(data),
-                                            axis=tuple(axes_to_sum)))
-    else:
-        nb_voxels = np.count_nonzero(data)
-
-    return nb_voxels
+from sklearn.cluster import KMeans
 
 
 def volume_iterator(img, blocksize=1, start=0, end=0):
@@ -126,3 +99,32 @@ def check_slice_indices(vol_img, axis_name, slice_ids):
         raise ValueError(
             "Slice indices exceed the volume shape along the given axis:\n"
             f"Slices {_slice_ids} exceed shape {shape} along dimension {idx}.")
+
+
+def split_mask_blobs_kmeans(data, nb_clusters):
+    """
+    Split a mask between head and tail with k means.
+
+    Parameters
+    ----------
+    data: numpy.ndarray
+        Mask to be split.
+    nb_clusters: int
+        Number of clusters to split.
+
+    Returns
+    -------
+    masks: List[np.ndarray]
+        The masks for each cluster.
+    """
+
+    X = np.argwhere(data)
+    k_means = KMeans(n_clusters=nb_clusters).fit(X)
+
+    masks = []
+    for i in range(nb_clusters):
+        mask_i = np.zeros(data.shape)
+        mask_i[tuple(X[np.where(k_means.labels_ == i)].T)] = 1
+        masks.append(mask_i)
+
+    return masks

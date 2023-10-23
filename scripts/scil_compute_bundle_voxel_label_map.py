@@ -9,7 +9,6 @@ The number of labels will be the same as the centroid's number of points.
 """
 
 import argparse
-import logging
 import os
 
 from dipy.align.streamlinear import StreamlineLinearRegistration
@@ -23,16 +22,17 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.image.operations import correlation
+from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
-from scilpy.tracking.tools import resample_streamlines_num_points
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-from scilpy.tractanalysis.tools import cut_outside_of_mask_streamlines
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
+from scilpy.tractograms.streamline_and_mask_operations import \
+    cut_outside_of_mask_streamlines
+from scilpy.tractograms.streamline_operations import resample_streamlines_num_points
 from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
@@ -140,7 +140,6 @@ def main():
 
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
     tmp_sft = resample_streamlines_num_points(concat_sft, args.nb_pts)
-
 
     if not args.new_labelling:
         new_streamlines = sft_centroid.streamlines.copy()

@@ -8,13 +8,15 @@ from dipy.segment.clustering import QuickBundles, qbx_and_merge
 from dipy.segment.featurespeed import ResampleFeature
 from dipy.segment.metric import AveragePointwiseEuclideanMetric
 from dipy.tracking import metrics as tm
-from scilpy.tracking.tools import resample_streamlines_num_points
 import numpy as np
+
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points
 
 
 def detect_ushape(sft, minU, maxU):
     """
-    Extract streamlines depending of their "u-shapeness".
+    Extract streamlines depending on their "u-shapeness".
     Parameters
     ----------
     sft: Statefull tractogram
@@ -253,12 +255,18 @@ def remove_outliers(streamlines, threshold, nb_points=12, nb_samplings=30,
                     fast_approx=False):
     """
     Wrapper to classify inliers and outliers from a list of streamlines.
+
     Parameters
     ----------
     streamlines: list of ndarray
         The list of streamlines from which inliers and outliers are separated.
     threshold: float
         Quickbundles distance threshold for the last threshold.
+    nb_points: int
+    nb_samplings: int
+    fast_approx: bool
+
+    Returns
     -------
     A tuple containing
         list: streamlines considered inliers
