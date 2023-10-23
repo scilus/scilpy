@@ -41,6 +41,8 @@ def count_non_zero_voxels(image):
 
     return nb_voxels
 
+    return data
+
 
 def flip_volume(data, axes):
     """

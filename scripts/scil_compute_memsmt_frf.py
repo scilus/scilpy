@@ -44,7 +44,8 @@ from scilpy.image.utils import extract_affine
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
 from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 from scilpy.reconst.b_tensor_utils import generate_btensor_input
@@ -162,11 +163,6 @@ def buildArgsParser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
-    p.add_argument('--frf_table',
-                   metavar='file', default='',
-                   help='Path to the output frf table file. Saves the frf for '
-                        'each b-value, in .txt format.')
-
     add_force_b0_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -198,13 +194,7 @@ def main():
 
     affine = extract_affine(args.in_dwis)
 
-    if len(args.roi_radii) == 1:
-        roi_radii = args.roi_radii[0]
-    elif len(args.roi_radii) == 2:
-        parser.error('--roi_radii cannot be of size (2,).')
-    else:
-        roi_radii = args.roi_radii
-    roi_center = args.roi_center
+    roi_radii = assert_roi_radii_format(parser)
 
     tol = args.tolerance
     dti_lim = args.dti_bval_limit
@@ -271,7 +261,7 @@ def main():
                                             md_thr_csf=args.md_thr_csf,
                                             min_nvox=args.min_nvox,
                                             roi_radii=roi_radii,
-                                            roi_center=roi_center,
+                                            roi_center=args.roi_center,
                                             tol=0,
                                             force_b0_threshold=force_b0_thr)
 
@@ -285,20 +275,6 @@ def main():
 
     for frf, response in zip(frf_out, responses):
         np.savetxt(frf, response)
-
-    if args.frf_table:
-        if ubvals[0] < tol:
-            bvals = ubvals[1:]
-        else:
-            bvals = ubvals
-        response_csf = responses[2]
-        response_gm = responses[1]
-        response_wm = responses[0]
-        iso_responses = np.concatenate((response_csf[:, :3],
-                                        response_gm[:, :3]), axis=1)
-        responses = np.concatenate((iso_responses, response_wm[:, :3]), axis=1)
-        frf_table = np.vstack((bvals, responses.T)).T
-        np.savetxt(args.frf_table, frf_table)
 
 
 if __name__ == "__main__":
