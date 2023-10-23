@@ -6,7 +6,6 @@ import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 
 
-# TODO: make this robust to having b0s
 def swap_sampling_eddy(points, shell_idx, verbose=1):
     """
     Optimize the bvecs of fixed multi-shell gradient sampling for eddy
