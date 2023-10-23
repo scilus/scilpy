@@ -18,7 +18,7 @@ import os
 
 from scilpy.io.utils import (
     add_overwrite_arg, add_verbose_arg, assert_outputs_exist)
-from scilpy.gradientsampling.gen_gradient_sampling import (
+from scilpy.acquisition.gen_gradient_sampling import (
     generate_gradient_sampling)
 from scilpy.gradientsampling.optimize_gradient_sampling import (
     add_b0s, add_bvalue_b0, compute_bvalue_lin_b, compute_bvalue_lin_q,
