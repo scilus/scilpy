@@ -4,11 +4,53 @@ import numpy as np
 
 
 def _rescale_intensity(val, slope, in_max, bc_max):
+    """
+    Rescale an intensity value given a scaling factor.
+    This scaling factor ensures that the intensity
+    range before and after correction is the same.
+
+    Parameters
+    ----------
+    val: float
+         Value to be scaled
+    scale: float
+         Scaling factor to be applied
+    in_max: float
+         Max possible value
+    bc_max: float
+         Max value in the bias correction value range
+
+    Returns
+    -------
+    rescaled_value: float
+         Bias field corrected value scaled by the slope
+         of the data
+    """
+
     return in_max - slope * (bc_max - val)
 
 
 # https://github.com/stnava/ANTs/blob/master/Examples/N4BiasFieldCorrection.cxx
 def rescale_dwi(in_data, bc_data):
+    """
+    Apply N4 Bias Field Correction to a DWI volume.
+    bc stands for bias correction. The code comes
+    from the C++ ANTS implmentation.
+
+    Parameters
+    ----------
+    in_data: ndarray (x, y, z, ndwi)
+         Input DWI volume 4-dimensional data.
+    bc_data: ndarray (x, y, z, ndwi)
+         Bias field correction volume estimated from ANTS
+         Copied for every dimension of the DWI 4-th dimension
+
+    Returns
+    -------
+    bc_data: ndarray (x, y, z, ndwi)
+         Bias field corrected DWI volume
+    """
+
     in_min = np.amin(in_data)
     in_max = np.amax(in_data)
     bc_min = np.amin(bc_data)
