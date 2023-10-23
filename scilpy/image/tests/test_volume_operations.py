@@ -80,14 +80,14 @@ def test_transform_dwi():
     
     
 #def test_register_image():
-
+    # TODO
 
 
 #def test_compute_snr():
-    
-    
+    # TODO    
+
     
 #def test_resample_volume():
-    
+    # TODO
     
     

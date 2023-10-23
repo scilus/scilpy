@@ -179,6 +179,10 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     interpolation : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
+        
+    Return
+    ------
+    nib.Nifti1Image of the warped 4D volume.
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
