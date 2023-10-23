@@ -380,10 +380,11 @@ def main():
         if args.mask is None:
             logger.info("Outlier detection will not be performed, since no "
                         "mask was provided.")
-            stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
-                                    'whishi', 'whislo', 'fliers', 'q1',
-                                    'med', 'q3'], [])
-                     for i in range(data.shape[-1])]
+
+        stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
+                                'whishi', 'whislo', 'fliers', 'q1',
+                                'med', 'q3'], [])
+                 for i in range(data.shape[-1])]
         # Note that stats will be computed manually and plotted using bxp
         # but could be computed using stats = cbook.boxplot_stats
         # or pyplot.boxplot(x)
