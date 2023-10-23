@@ -109,6 +109,14 @@ def main():
                                                  args.bundle_volume])
     assert_outputs_exist(parser, args, args.out_matrix)
 
+    atlas_filepath = None
+    labels_filepath = None
+    if args.parcel_volume or args.parcel_surface:
+        atlas_tuple = args.parcel_volume if args.parcel_volume \
+            else args.parcel_surface
+        atlas_filepath, labels_filepath = atlas_tuple
+        assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
+
     in_matrix = load_matrix_in_any_format(args.in_matrix)
 
     # Normalization can be combined.
@@ -129,11 +137,6 @@ def main():
     # Parcel volume and surface normalization require the atlas
     # This script should be used directly after scil_decompose_connectivity.py
     if args.parcel_volume or args.parcel_surface:
-        atlas_tuple = args.parcel_volume if args.parcel_volume \
-            else args.parcel_surface
-        atlas_filepath, labels_filepath = atlas_tuple
-        assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
-
         atlas_img = nib.load(atlas_filepath)
         labels_list = np.loadtxt(labels_filepath)
         out_matrix = normalize_matrix_from_parcel(
