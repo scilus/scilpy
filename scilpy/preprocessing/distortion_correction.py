@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
 
 
@@ -24,6 +26,9 @@ def create_acqparams(readout, encoding_direction, synb0=False,
     acqparams: np.array
         acqparams
     """
+    if synb0:
+        logging.warning('Using SyNb0, untested feature. Be careful.')
+
     acqparams = np.zeros((nb_b0s + nb_rev_b0s, 4))
     acqparams[:, 3] = readout
 

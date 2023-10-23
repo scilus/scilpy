@@ -74,6 +74,9 @@ def main():
     else:
         logging.getLogger().setLevel(logging.INFO)
 
+    logging.info('The usage of synthetic b0 is not fully tested.'
+                 'Be careful when using it.')
+
     template_img = nib.load(get_synb0_template_path())
     template_data = template_img.get_fdata()
 
