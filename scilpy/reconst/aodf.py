@@ -64,7 +64,7 @@ def compute_odd_power_map(sh_coeffs, order, mask):
     -----------
     odd_power_map: ndarray (x, y, z)
          Odd-power map.
-    """    
+    """
     _, l_list = sph_harm_ind_list(order, full_basis=True)
     odd_l_list = (l_list % 2 == 1).reshape((1, 1, 1, -1))
 
