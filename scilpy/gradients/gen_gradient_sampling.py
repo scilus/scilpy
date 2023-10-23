@@ -13,7 +13,7 @@ The code was reorganized, but general process is kept the same.
 import numpy as np
 from scipy import optimize
 
-from scilpy.acquisition.utils import random_uniform_on_sphere
+from scilpy.gradients.utils import random_uniform_on_sphere
 
 
 def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
