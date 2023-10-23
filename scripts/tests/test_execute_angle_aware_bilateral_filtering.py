@@ -10,6 +10,7 @@ import tempfile
 from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
 from scilpy.tests.checks import assert_images_close
 from scilpy.tests.checks import assert_images_close
+from scilpy.tests.mocking import create_mock
 
 
 # If they already exist, this only takes 5 seconds (check md5sum)
@@ -20,18 +21,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 @pytest.fixture(scope='function')
 def filter_mock(mocker, apply_mocks, out_fodf):
-    if apply_mocks:
-        def _mock_side_effect(*args, **kwargs):
-            img = nib.load(out_fodf)
-            return img.get_fdata(dtype=np.float32)
+    def _mock_side_effect(*args, **kwargs):
+        img = nib.load(out_fodf)
+        return img.get_fdata(dtype=np.float32)
 
-        return mocker.patch(
-            "{}.{}".format(
-                "scripts.scil_execute_angle_aware_bilateral_filtering",
-                "angle_aware_bilateral_filtering"),
-            side_effect=_mock_side_effect, create=True)
-
-    return None
+    return create_mock("scripts.scil_execute_angle_aware_bilateral_filtering",
+                       "angle_aware_bilateral_filtering", mocker, apply_mocks,
+                       side_effect=_mock_side_effect)
 
 
 def test_help_option(script_runner):
