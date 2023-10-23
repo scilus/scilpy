@@ -4,10 +4,10 @@
 """
 Compute a connectivity matrix from a tractogram and a parcellation.
 
-Current strategy is to keep the longest streamline segment connecting
-2 regions. If the streamline crosses other gray matter regions before
-reaching its final connected region, the kept connection is still the
-longest. This is robust to compressed streamlines.
+Current strategy is to keep the longest streamline segment connecting 2
+regions. If the streamline crosses other gray matter regions before reaching
+its final connected region, the kept connection is still the longest. This is
+robust to compressed streamlines.
 
 The output file is a hdf5 (.h5) where the keys are 'LABEL1_LABEL2' and each
 group is composed of 'data', 'offsets' and 'lengths' from the array_sequence.
@@ -16,9 +16,10 @@ The 'data' is stored in VOX/CORNER for simplicity and efficiency.
 For the --outlier_threshold option the default is a recommended good trade-off
 for a freesurfer parcellation. With smaller parcels (brainnetome, glasser) the
 threshold should most likely be reduced.
+
 Good candidate connections to QC are the brainstem to precentral gyrus
 connection and precentral left to precentral right connection, or equivalent
-in your parcellation."
+in your parcellation.
 
 NOTE: this script can take a while to run. Please be patient.
 Example: on a tractogram with 1.8M streamlines, running on a SSD:
@@ -264,9 +265,10 @@ def main():
     coloredlogs.install(level=log_level)
     set_sft_logger_level('WARNING')
 
+    # Load everything
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_labels(img_labels)
-    real_labels = np.unique(data_labels)[1:]
+    real_labels = np.unique(data_labels)[1:]   # Removing the background 0.
     if args.out_labels_list:
         np.savetxt(args.out_labels_list, real_labels, fmt='%i')
 
@@ -276,7 +278,6 @@ def main():
         parser.error('Labels must be isotropic')
 
     logging.info('*** Loading streamlines ***')
-    time1 = time.time()
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     # If loaded with invalid (bbox_check False), remove invalid streamlines
@@ -284,22 +285,17 @@ def main():
     if not args.bbox_check:
         sft.remove_invalid_streamlines()
         
-    time2 = time.time()
-    logging.info('    Loading {} streamlines took {} sec.'.format(
-        len(sft), round(time2 - time1, 2)))
-
     if not is_header_compatible(sft, img_labels):
         raise IOError('{} and {}do not have a compatible header'.format(
             args.in_tractogram, args.in_labels))
 
     sft.to_vox()
     sft.to_corner()
-    # Get all streamlines intersection indices
-    logging.info('*** Computing streamlines intersection ***')
+
+    # Get the indices of the voxels traversed by each streamline
+    logging.info('*** Computing voxels traversed by each streamline ***')
     time1 = time.time()
-
     indices, points_to_idx = uncompress(sft.streamlines, return_mapping=True)
-
     time2 = time.time()
     logging.info('    Streamlines intersection took {} sec.'.format(
         round(time2 - time1, 2)))
@@ -333,7 +329,7 @@ def main():
         hdf5_file.attrs['voxel_sizes'] = voxel_sizes
         hdf5_file.attrs['voxel_order'] = voxel_order
 
-        # Each connections is processed independently. Multiprocessing would be
+        # Each connection is processed independently. Multiprocessing would be
         # a burden on the I/O of most SSD/HD
         for in_label, out_label in comb_list:
             if iteration_counter > 0 and iteration_counter % 100 == 0:
