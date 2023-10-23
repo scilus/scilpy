@@ -7,7 +7,7 @@ def get_theta(requested_theta, tracking_type):
     if requested_theta is not None:
         theta = requested_theta
     elif tracking_type == 'ptt':
-        theta = 15
+        theta = 10
     elif tracking_type == 'prob':
         theta = 20
     elif tracking_type == 'eudx':

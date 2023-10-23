@@ -45,7 +45,7 @@ def add_tracking_options(p):
                          help='Maximum angle between 2 steps. If the angle is '
                               'too big, streamline is \nstopped and the '
                               'following point is NOT included.\n'
-                              '["eudx"=60, "det"=45, "prob"=20]')
+                              '["eudx"=60, "det"=45, "prob"=20, "ptt"=10]')
     track_g.add_argument('--sfthres', dest='sf_threshold', metavar='sf_th',
                          type=float, default=0.1,
                          help='Spherical function relative threshold. '
