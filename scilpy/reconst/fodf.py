@@ -2,130 +2,94 @@
 
 import logging
 
-from dipy.core.gradients import gradient_table
 from dipy.data import get_sphere
-from dipy.direction.peaks import peaks_from_model
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
+import numpy as np
 
-from scilpy.io.utils import validate_sh_basis_choice
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
-                                          is_normalized_bvecs)
+from scilpy.reconst.utils import find_order_from_nb_coeff, get_b_matrix
 
 
-def compute_fodf(data, bvals, bvecs, full_frf, sh_order=8, nbr_processes=None,
-                 mask=None, sh_basis='descoteaux07', return_sh=True,
-                 n_peaks=5, force_b0_threshold=False):
+def get_ventricles_max_fodf(data, fa, md, zoom, args):
     """
-     Script to compute Constrained Spherical Deconvolution (CSD) fiber ODFs.
-
-     By default, will output all possible files, using default names. Specific
-     names can be specified using the file flags specified in the "File flags"
-     section.
-
-    If --not_all is set, only the files specified explicitly by the flags
-    will be output.
-
-    See [Tournier et al. NeuroImage 2007] and [Cote et al Tractometer MedIA 2013]
-    for quantitative comparisons with Sharpening Deconvolution Transform (SDT).
+    Compute mean maximal fodf value in ventricules. Given
+    heuristics thresholds on FA and MD values, finds the
+    voxels of the ventricules or CSF and computes a mean
+    fODF value. This is described in
+    Dell'Acqua et al HBM 2013.
 
     Parameters
     ----------
-    data: ndarray
-        4D Input diffusion volume with shape (X, Y, Z, N)
-    bvals: ndarray
-        1D bvals array with shape (N,)
-    bvecs: ndarray
-        2D (normalized) bvecs array with shape (N, 3)
-    full_frf: ndarray
-        frf data, ex, loaded from a frf_file, with shape (4,).
-    sh_order: int, optional
-        SH order used for the CSD. (Default: 8)
-    nbr_processes: int, optional
-        Number of sub processes to start. Default = none, i.e use the cpu count.
-        If 0, use all processes.
-    mask: ndarray, optional
-        3D mask with shape (X,Y,Z)
-        Binary mask. Only the data inside the mask will be used for
-        computations and reconstruction. Useful if no white matter mask is
-        available.
-    sh_basis: str, optional
-        Spherical harmonics basis used for the SH coefficients.Must be either
-        'descoteaux07' or 'tournier07' (default 'descoteaux07')
-        - 'descoteaux07': SH basis from the Descoteaux et al. MRM 2007 paper
-        - 'tournier07': SH basis from the Tournier et al. NeuroImage 2007 paper.
-    return_sh: bool, optional
-        If true, returns the sh.
-    n_peaks: int, optional
-        Nb of peaks for the fodf. Default: copied dipy's default, i.e. 5.
-    force_b0_threshold: bool, optional
-        If True, will continue even if the minimum bvalue is suspiciously high.
+    data: ndarray (x, y, z, ncoeffs)
+         Input fODF file in spherical harmonics coefficients.
+    fa: ndarray (x, y, z)
+         FA (Fractional Anisotropy) volume from DTI
+    md: ndarray (x, y, z)
+         MD (Mean Diffusivity) volume from DTI
+    vol: int > 0
+         Maximum Nnumber of voxels used to compute the mean.
+         1000 works well at 2x2x2 = 8 mm3
 
     Returns
     -------
-    peaks_csd: PeaksAndMetrics
-        An object with ``gfa``, ``peak_directions``, ``peak_values``,
-        ``peak_indices``, ``odf``, ``shm_coeffs`` as attributes
+    mean, mask: int, ndarray (x, y, z)
+         Mean maximum fODF value and mask of voxels used
     """
 
-    # Checking data and sh_order
-    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
-    if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
-        logging.warning(
-            'We recommend having at least {} unique DWI volumes, but you '
-            'currently have {} volumes. Try lowering the parameter sh_order '
-            'in case of non convergence.'.format(
-                (sh_order + 1) * (sh_order + 2) / 2, data.shape[-1]))
+    order = find_order_from_nb_coeff(data)
+    sphere = get_sphere('repulsion100')
+    b_matrix = get_b_matrix(order, sphere, args.sh_basis)
+    sum_of_max = 0
+    count = 0
 
-    # Checking bvals, bvecs values and loading gtab
-    if not is_normalized_bvecs(bvecs):
-        logging.warning('Your b-vectors do not seem normalized...')
-        bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+    mask = np.zeros(data.shape[:-1])
 
-    # Checking full_frf and separating it
-    if not full_frf.shape[0] == 4:
-        raise ValueError('FRF file did not contain 4 elements. '
-                         'Invalid or deprecated FRF format')
-    frf = full_frf[0:3]
-    mean_b0_val = full_frf[3]
+    if np.min(data.shape[:-1]) > 40:
+        step = 20
+    else:
+        if np.min(data.shape[:-1]) > 20:
+            step = 10
+        else:
+            step = 5
 
-    # Checking if we will use parallel processing
-    parallel = True
-    if nbr_processes is not None:
-        if nbr_processes == 0:  # Will use all processed
-            nbr_processes = None
-        elif nbr_processes == 1:
-            parallel = False
-        elif nbr_processes < 0:
-            raise ValueError('nbr_processes should be positive.')
+    # 1000 works well at 2x2x2 = 8 mm3
+    # Hence, we multiply by the volume of a voxel
+    vol = (zoom[0] * zoom[1] * zoom[2])
+    if vol != 0:
+        max_number_of_voxels = 1000 * 8 // vol
+    else:
+        max_number_of_voxels = 1000
 
-    # Checking sh basis
-    validate_sh_basis_choice(sh_basis)
+    # In the case of 2D-like data (3D data with one dimension size of 1), or
+    # a small 3D dataset, the full range of data is scanned.
+    if args.small_dims:
+        all_i = list(range(0, data.shape[0]))
+        all_j = list(range(0, data.shape[1]))
+        all_k = list(range(0, data.shape[2]))
+    # In the case of a normal 3D dataset, a window is created in the middle of
+    # the image to capture the ventricules. No need to scan the whole image.
+    else:
+        all_i = list(range(int(data.shape[0]/2) - step,
+                           int(data.shape[0]/2) + step))
+        all_j = list(range(int(data.shape[1]/2) - step,
+                           int(data.shape[1]/2) + step))
+        all_k = list(range(int(data.shape[2]/2) - step,
+                           int(data.shape[2]/2) + step))
+    for i in all_i:
+        for j in all_j:
+            for k in all_k:
+                if count > max_number_of_voxels - 1:
+                    continue
+                if fa[i, j, k] < args.fa_threshold \
+                        and md[i, j, k] > args.md_threshold:
+                    sf = np.dot(data[i, j, k], b_matrix.T)
+                    sum_of_max += sf.max()
+                    count += 1
+                    mask[i, j, k] = 1
 
-    # Loading the spheres
-    reg_sphere = get_sphere('symmetric362')
-    peaks_sphere = get_sphere('symmetric724')
+    logging.debug('Number of voxels detected: {}'.format(count))
+    if count == 0:
+        logging.warning('No voxels found for evaluation! Change your fa '
+                        'and/or md thresholds')
+        return 0, mask
 
-    # Computing CSD
-    csd_model = ConstrainedSphericalDeconvModel(
-        gtab, (frf, mean_b0_val),
-        reg_sphere=reg_sphere,
-        sh_order=sh_order)
-
-    # Computing peaks. Run in parallel, using the default number of processes
-    # (default: CPU count)
-    peaks_csd = peaks_from_model(model=csd_model,
-                                 data=data,
-                                 sphere=peaks_sphere,
-                                 relative_peak_threshold=.5,
-                                 min_separation_angle=25,
-                                 mask=mask,
-                                 return_sh=return_sh,
-                                 sh_basis_type=sh_basis,
-                                 sh_order=sh_order,
-                                 normalize_peaks=True,
-                                 npeaks=n_peaks,
-                                 parallel=parallel,
-                                 nbr_processes=nbr_processes)
-
-    return peaks_csd
+    logging.debug('Average max fodf value: {}'.format(sum_of_max / count))
+    return sum_of_max / count, mask
