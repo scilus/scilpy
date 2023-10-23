@@ -64,23 +64,6 @@ def apply_olo(array, perm):
     return array[perm].T[perm]
 
 
-def parse_ordering(in_ordering_file, labels_list=None):
-    with open(in_ordering_file, 'r') as my_file:
-        lines = my_file.readlines()
-        ordering = [[int(val) for val in lines[0].split()],
-                    [int(val) for val in lines[1].split()]]
-    if labels_list:
-        labels_list = np.loadtxt(labels_list,
-                                 dtype=np.int16).tolist()
-        # If the reordering file refers to labels and not indices
-        real_ordering = [[], []]
-        real_ordering[0] = [labels_list.index(i) for i in ordering[0]]
-        real_ordering[1] = [labels_list.index(i) for i in ordering[1]]
-        return real_ordering
-
-    return ordering
-
-
 def apply_reordering(array, ordering):
     """
     Apply a non-symmetric array ordering that support non-square output.

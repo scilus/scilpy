@@ -27,7 +27,6 @@ import os
 import numpy as np
 
 from scilpy.connectivity.connectivity_tools import (compute_olo,
-                                                    parse_ordering,
                                                     apply_reordering)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -69,6 +68,26 @@ def _build_arg_parser():
     add_overwrite_arg(p)
 
     return p
+
+
+def parse_ordering(in_ordering_file, labels_list=None):
+    """
+    toDo. Docstring please.
+    """
+    with open(in_ordering_file, 'r') as my_file:
+        lines = my_file.readlines()
+        ordering = [[int(val) for val in lines[0].split()],
+                    [int(val) for val in lines[1].split()]]
+    if labels_list:
+        labels_list = np.loadtxt(labels_list,
+                                 dtype=np.int16).tolist()
+        # If the reordering file refers to labels and not indices
+        real_ordering = [[], []]
+        real_ordering[0] = [labels_list.index(i) for i in ordering[0]]
+        real_ordering[1] = [labels_list.index(i) for i in ordering[1]]
+        return real_ordering
+
+    return ordering
 
 
 def main():
