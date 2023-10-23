@@ -275,12 +275,6 @@ def main():
             parser.error('Algo `{}` not supported for GPU tracking. '
                          'Set --algo to `prob` for GPU tracking.'
                          .format(args.algo))
-        if args.sphere != DEFAULT_GPU_SPHERE:
-            parser.error('Cannot use sphere `{}`. Only repulsion724 is '
-                         'available for GPU tracking.'.format(args.sphere))
-        if args.sub_sphere:
-            parser.error('Invalid argument --sub_sphere. Not implemented '
-                         'for GPU.')
     else:
         if args.batch_size is not None:
             parser.error('Invalid argument --batch_size. '
@@ -377,6 +371,9 @@ def main():
         # data volume
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
+        #GPU tracking needs the full sphere
+        sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
+
         streamlines_generator = GPUTacker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
@@ -386,7 +383,8 @@ def main():
             sh_basis=args.sh_basis,
             batch_size=batch_size,
             forward_only=forward_only,
-            rng_seed=args.seed)
+            rng_seed=args.seed,
+            sphere=sphere)
 
     # dump streamlines on-the-fly to file
     _save_tractogram(streamlines_generator, tracts_format,

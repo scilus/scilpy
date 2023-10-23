@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 import numpy as np
 from dipy.data import get_sphere
+from dipy.core.sphere import HemiSphere
 from dipy.io.stateful_tractogram import Space
 from dipy.reconst.shm import sh_to_sf_matrix
 from dipy.tracking.streamlinespeed import compress_streamlines
@@ -502,11 +503,13 @@ class GPUTacker():
         If True, only forward tracking is performed.
     rng_seed : int, optional
         Seed for random number generator.
+    sphere : int, optional
+        Sphere to use for the tracking.
     """
     def __init__(self, sh, mask, seeds, step_size, max_nbr_pts,
                  theta=20.0, sf_threshold=0.1, sh_interp='trilinear',
                  sh_basis='descoteaux07', batch_size=100000,
-                 forward_only=False, rng_seed=None):
+                 forward_only=False, rng_seed=None, sphere=None):
         if not have_opencl:
             raise ImportError('pyopencl is not installed. In order to use'
                               'GPU tracker, you need to install it first.')
@@ -521,6 +524,11 @@ class GPUTacker():
 
         self.seed_batches =\
             np.array_split(seeds + 0.5, np.ceil(len(seeds)/batch_size))
+
+        if sphere is None:
+            self.sphere = get_sphere("repulsion724")
+        else:
+            self.sphere = sphere
 
         # tracking step_size and number of points
         self.step_size = step_size
@@ -554,9 +562,6 @@ class GPUTacker():
         """
         t0 = perf_counter()
 
-        # TODO: Take as class parameter
-        sphere = get_sphere('symmetric724')
-
         # Convert theta to cos(theta)
         max_cos_theta = np.cos(np.deg2rad(self.theta))
 
@@ -567,7 +572,7 @@ class GPUTacker():
         cl_kernel.set_define('IM_Y_DIM', self.sh.shape[1])
         cl_kernel.set_define('IM_Z_DIM', self.sh.shape[2])
         cl_kernel.set_define('IM_N_COEFFS', self.sh.shape[3])
-        cl_kernel.set_define('N_DIRS', len(sphere.vertices))
+        cl_kernel.set_define('N_DIRS', len(self.sphere.vertices))
 
         cl_kernel.set_define('N_THETAS', len(self.theta))
         cl_kernel.set_define('STEP_SIZE', '{:.8f}f'.format(self.step_size))
@@ -587,10 +592,10 @@ class GPUTacker():
         # Input buffers
         # Constant input buffers
         cl_manager.add_input_buffer(0, self.sh)
-        cl_manager.add_input_buffer(1, sphere.vertices)
+        cl_manager.add_input_buffer(1, self.sphere.vertices)
 
         sh_order = find_order_from_nb_coeff(self.sh)
-        B_mat = sh_to_sf_matrix(sphere, sh_order, self.sh_basis,
+        B_mat = sh_to_sf_matrix(self.sphere, sh_order, self.sh_basis,
                                 return_inv=False)
         cl_manager.add_input_buffer(2, B_mat)
 
