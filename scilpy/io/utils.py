@@ -6,6 +6,7 @@ import os
 import multiprocessing
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
