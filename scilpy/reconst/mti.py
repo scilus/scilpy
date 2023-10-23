@@ -80,14 +80,14 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-def compute_contrasts_maps(echoes_image, single_echo=False,
+def compute_contrasts_maps(merged_images, single_echo=False,
                            filtering=False):
     """
     Load echoes and compute corresponding contrast map.
 
     Parameters
     ----------
-    echoes_image    List of file path : list of echoes path for contrast
+    4d_image        4D images 
     single_echo     Apply when only one echo is used to compute contrast maps
     filtering       Apply Gaussian filtering to remove Gibbs ringing
                     (default is False).
@@ -98,13 +98,13 @@ def compute_contrasts_maps(echoes_image, single_echo=False,
     """
 
     # Merged the 3 echo images into 4D-array
-    merged_map = merge_images(echoes_image)
+    #merged_map = merge_images(echoes_image)
 
     if single_echo:
-        contrast_map = np.sqrt(np.squeeze(merged_map**2))
+        contrast_map = np.sqrt(np.squeeze(merged_images**2))
     else:
         # Compute the sum of contrast map
-        contrast_map = np.sqrt(np.sum(np.squeeze(merged_map**2), 3))
+        contrast_map = np.sqrt(np.sum(np.squeeze(merged_images**2), 3))
 
     # Apply gaussian filtering if needed
     if filtering:

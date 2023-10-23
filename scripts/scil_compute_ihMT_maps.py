@@ -65,15 +65,14 @@ replace the * with the specific number of the echo.
 
 import argparse
 import os
-import json
 
 import nibabel as nib
 import numpy as np
-import scipy.ndimage
-
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
+from scilpy.io.image import load_img
+from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (set_acq_parameters,
                                 compute_contrasts_maps,
                                 compute_ihMT_maps,
@@ -199,9 +198,16 @@ def main():
         contrasts_name = [args.out_prefix + '_' + curr_name
                           for curr_name in contrasts_name]
 
+    # Load and concatenate MT images
+    input_img = []
+    for input_arg in maps:
+        img, _ = load_img(input_arg)
+        input_img.append(img)
+    
+    merged_images = concatenate(input_img, input_img[0])
     # Compute contrasts maps
     computed_contrasts = []
-    for idx, curr_map in enumerate(maps):
+    for idx, curr_map in enumerate(merged_images):
         computed_contrasts.append(compute_contrasts_maps(
                                   curr_map, filtering=args.filtering,
                                   single_echo=args.single_echo))
