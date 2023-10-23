@@ -277,9 +277,9 @@ def main():
 
     logging.info('*** Loading streamlines ***')
     time1 = time.time()
-    sft_merged = None
+    sft = None
     for in_tractogram in args.in_tractograms:
-        if sft_merged is None:
+        if sft is None:
             sft = load_tractogram_with_reference(parser, args, in_tractogram)
             if not is_header_compatible(sft, img_labels):
                 raise IOError('{} and {}do not have a compatible header'.format(
