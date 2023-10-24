@@ -90,7 +90,6 @@ def _build_arg_parser():
         '--do_multiple_s0', action='store_false',
         help='If set, does not take into account multiple baseline signals.')
 
-    add_force_b0_arg(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -166,13 +165,11 @@ def main():
     affine = extract_affine(args.in_dwis)
 
     tol = args.tolerance
-    force_b0_thr = args.force_b0_threshold
 
     data, gtab_infos = generate_btensor_input(args.in_dwis,
                                               args.in_bvals,
                                               args.in_bvecs,
                                               args.in_bdeltas,
-                                              force_b0_thr,
                                               do_pa_signals=True,
                                               tol=tol)
 

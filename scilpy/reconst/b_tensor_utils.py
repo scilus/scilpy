@@ -13,8 +13,7 @@ from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
 
 
-def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
-                           in_bdeltas, force_b0_threshold,
+def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,
                            do_pa_signals=False, tol=20):
     """Generate b-tensor input from an ensemble of data, bvals and bvecs files.
     This generated input is mandatory for all scripts using b-tensor encoding
@@ -30,8 +29,6 @@ def generate_btensor_input(in_dwis, in_bvals, in_bvecs,
         All of the bvecs files associated.
     in_bdeltas : list of floats
         All of the b_deltas (describing the type of encoding) files associated.
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
     do_pa_signals : bool, optional
         If set, will compute the powder_averaged input instead of the regular
         one. This means that the signal is averaged over all directions for

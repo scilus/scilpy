@@ -204,7 +204,6 @@ def main():
                                                           args.in_bvals,
                                                           args.in_bvecs,
                                                           args.in_bdeltas,
-                                                          force_b0_thr,
                                                           tol=tol)
 
     if not np.all(ubvals <= dti_lim):
