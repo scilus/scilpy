@@ -2,8 +2,10 @@
 import numpy as np
 
 from scilpy.gradients.gen_gradient_sampling import generate_gradient_sampling
-from scilpy.gradients.optimize_gradient_sampling import compute_bvalue_lin_b, compute_bvalue_lin_q, \
-    add_b0s_to_bvectors, compute_min_duty_cycle_bruteforce, correct_b0s_philips, compute_peak_power
+from scilpy.gradients.optimize_gradient_sampling import (
+    add_b0s_to_bvectors, correct_b0s_philips, compute_bvalue_lin_b,
+    compute_bvalue_lin_q, compute_min_duty_cycle_bruteforce,
+    compute_peak_power)
 
 
 def test_swap_sampling_eddy():
