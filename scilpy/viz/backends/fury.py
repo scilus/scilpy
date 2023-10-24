@@ -67,6 +67,7 @@ def initialize_camera(orientation, slice_index, volume_shape, aspect_ratio):
 
     camera = {}
     axis_index = get_axis_index(orientation)
+    volume_shape = volume_shape[:3]
 
     if slice_index is None:
         slice_index = volume_shape[axis_index] // 2
@@ -119,7 +120,7 @@ def set_display_extent(slicer_actor, orientation, volume_shape, slice_index):
     """
 
     axis_index = get_axis_index(orientation)
-    extents = np.vstack(([0, 0, 0], volume_shape)).astype(int).T.flatten()
+    extents = np.vstack(([0, 0, 0], volume_shape[:3])).astype(int).T.flatten()
 
     if slice_index is None:
         slice_index = volume_shape[axis_index] // 2
