@@ -6,8 +6,8 @@ from enum import Enum
 import numpy as np
 
 from scilpy.image.utils import volume_iterator
-from scilpy.gradientsampling.save_gradient_sampling import (save_gradient_sampling_fsl,
-                                                            save_gradient_sampling_mrtrix)
+from scilpy.io.save_gradient_sampling import (save_gradient_sampling_fsl,
+                                              save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
 

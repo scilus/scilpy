@@ -20,10 +20,10 @@ from scilpy.io.utils import (
     add_overwrite_arg, add_verbose_arg, assert_outputs_exist)
 from scilpy.gradients.gen_gradient_sampling import (
     generate_gradient_sampling)
-from scilpy.gradientsampling.optimize_gradient_sampling import (
+from scilpy.gradients.optimize_gradient_sampling import (
     add_b0s, compute_bvalue_lin_b, compute_bvalue_lin_q,
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
-from scilpy.gradientsampling.save_gradient_sampling import (
+from scilpy.io.save_gradient_sampling import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
 
 
