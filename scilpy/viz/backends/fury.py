@@ -391,3 +391,50 @@ def create_odf_actors(sf_fodf, sphere, scale, sf_variance=None, mask=None,
                                  colormap=colormap)
 
     return odf_actor, var_actor
+
+
+def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
+                       symmetric=False, lut_values=None, lod=False,
+                       lod_nb_points=10000, lod_points_size=3):
+    """
+    Create a Peaks actor from a N-dimensional array. Data can be from 2D 
+    (M 3D peaks) to 5D (XxYxZxM 3D peaks). Color is None by default so coloring 
+    defaults to orientation coloring.
+
+    Parameters
+    ----------
+    peaks : np.ndarray
+        Peaks data.
+    mask : np.ndarray
+        Mask used to restrict the rendered data.
+    opacity : float, optional
+        Opacity of the peaks.
+    linewidth : float, optional
+        Thickness of the peaks line.
+    color : tuple, list of int, optional
+        Color of the peaks in RGB [0, 255]. If None, orientation
+        coloring is used.
+    symmetric : bool, optional
+        If True, the peaks are rendered symmetrically on both
+        sides of the voxel's center.
+    lut_values : np.ndarray, optional
+        Use those values to color each peak.
+    lod : bool, optional
+        If True, use level of detail rendering.
+    lod_nb_points : int, optional
+        Number of points to use for level of detail rendering.
+    lod_points_size : float, optional
+        Size of the points for level of detail rendering.
+
+    Returns
+    -------
+    peaks_actor : actor.odf_slicer
+        Fury object containing the peaks information.
+    """
+
+    return actor.peak_slicer(peaks, mask=mask, affine=np.eye(4),
+                             colors=color, opacity=opacity,
+                             linewidth=linewidth, symmetric=symmetric,
+                             peaks_values=lut_values,
+                             lod=lod, lod_points=lod_nb_points,
+                             lod_points_size=lod_points_size)

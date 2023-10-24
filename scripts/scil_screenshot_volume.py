@@ -72,6 +72,7 @@ from os.path import splitext
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_nifti_screenshot_default_args,
                              add_nifti_screenshot_overlays_args,
+                             add_nifti_screenshot_peaks_arg,
                              add_verbose_arg,
                              add_overwrite_arg,
                              get_default_screenshotting_data,
@@ -81,6 +82,7 @@ from scilpy.image.utils import check_slice_indices
 from scilpy.utils.util import get_axis_index
 from scilpy.viz.screenshot import (compose_image,
                                    screenshot_contour,
+                                   screenshot_peaks,
                                    screenshot_volume)
 
 
@@ -91,6 +93,7 @@ def _build_arg_parser():
 
     add_nifti_screenshot_default_args(p, False, False)
     add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
+    add_nifti_screenshot_peaks_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -106,6 +109,8 @@ def _parse_args(parser):
         inputs.extend(args.in_masks)
     if args.in_labelmap:
         inputs.append(args.in_labelmap)
+    if args.in_peaks:
+        inputs.append(args.in_peaks)
 
     assert_inputs_exist(parser, inputs)
     assert_same_resolution(inputs)
@@ -124,7 +129,7 @@ def main():
     args = _parse_args(parser)
     logging.getLogger().setLevel(logging.getLevelName(args.verbose))
 
-    vol_img, t_mask_img, labelmap_img, mask_imgs, mask_colors = \
+    vol_img, t_mask_img, labelmap_img, mask_imgs, mask_colors, peaks_imgs = \
         get_default_screenshotting_data(args)
 
     # Check if the screenshots can be taken
@@ -167,16 +172,22 @@ def main():
             overlay_screenshotter, ([mask, args.axis_name, slice_ids,
                                      args.win_dims] for mask in mask_imgs)))
 
+    if peaks_imgs is not None:
+        peaks_screenshots_generator = zip(*itertools.starmap(
+            screenshot_peaks, ([peaks, args.axis_name, slice_ids,
+                                args.win_dims] for peaks in peaks_imgs)))
+
     name, ext = splitext(args.out_fname)
     names = ["{}_slice_{}{}".format(name, s, ext) for s in slice_ids]
     sides_labels = ["A", "P"] if args.axis_name == "sagittal" else ["L", "R"]
 
     # Compose and save each slice
-    for volume, trans, label, contour, name, slice_id in zip_longest(
+    for volume, trans, label, contour, peaks, name, slice_id in zip_longest(
             volume_screenhots_generator,
             transparency_screenshots_generator,
             labelmap_screenshots_generator,
             overlay_screenshots_generator,
+            peaks_screenshots_generator,
             names,
             slice_ids,
             fillvalue=None):
@@ -190,6 +201,8 @@ def main():
                             labelmap_scene=label,
                             labelmap_cmap_name=args.labelmap_cmap_name,
                             labelmap_overlay_alpha=args.labelmap_alpha,
+                            peaks_overlay_scene=peaks,
+                            peaks_overlay_alpha=args.peaks_alpha,
                             display_slice_number=args.display_slice_number,
                             display_lr=args.display_lr,
                             lr_labels=sides_labels)
