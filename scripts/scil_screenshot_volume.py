@@ -172,6 +172,7 @@ def main():
             overlay_screenshotter, ([mask, args.axis_name, slice_ids,
                                      args.win_dims] for mask in mask_imgs)))
 
+    peaks_screenshots_generator = empty_generator()
     if peaks_imgs is not None:
         peaks_screenshots_generator = zip(*itertools.starmap(
             screenshot_peaks, ([peaks, args.axis_name, slice_ids,
