@@ -117,6 +117,12 @@ def test_compute_snr():
 
 
 def test_resample_volume():
-    # TODO
+    moving3d = np.pad(np.ones((4, 4, 4)), pad_width=1,
+                      mode='constant', constant_values=0)
+    ref3d = np.ones((2, 2, 2))
 
-    pass
+    moving3d_img = nib.Nifti1Image(moving3d, np.eye(4))
+
+    resampled_img = resample_volume(moving3d_img, res=(2, 2, 2), interp='nn')
+
+    assert_equal(resampled_img.get_fdata(), ref3d)
