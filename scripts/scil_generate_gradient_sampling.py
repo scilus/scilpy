@@ -3,7 +3,7 @@
 
 """
 Generate multi-shell gradient sampling with various processing options. Helps
-accelerate acquisition, optimize duty cycle and avoid artefacts.
+accelerate gradients, optimize duty cycle and avoid artefacts.
 
 Multi-shell gradient sampling is generated as in [1]. The bvecs are then
 flipped to maximize spread for eddy current correction, b0s are interleaved at
@@ -40,7 +40,7 @@ def _build_arg_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__,
         epilog=EPILOG)
-    p.add_argument('nb_samples', type=int, nargs='+',
+    p.add_argument('nb_samples_per_shell', type=int, nargs='+',
                    help='Number of samples on each non b0 shell. '
                         'If multishell, provide a number per shell.')
     p.add_argument('out_basename',
@@ -55,20 +55,26 @@ def _build_arg_parser():
                    help='If set, we apply duty cycle optimization. '
                         '\nB-vectors are shuffled to reduce consecutive '
                         'colinearity in the samples. [%(default)s]')
-    p.add_argument('--b0_every',
-                   type=int, default=-1,
-                   help='Interleave a b0 every b0_every. \nNo b0 if 0. '
-                        '\nOnly one b0 at the beginning if > number of '
-                        'samples or if -1 (default).')
-    p.add_argument('--b0_end', action='store_true',
+
+    g = p.add_argument_group("b0 acquisitions")
+    gg = p.add_mutually_exclusive_group()
+    gg.add_argument('--no_b0_start',
+                    help="If set, do not add a b0 at the beginning. Default is "
+                         "to have one.")
+    gg.add_argument('--b0_every', type=int,
+                    help='Interleave a b0 every n=b0_every values. Starts '
+                         'after the first b0 (cannot be used with '
+                         '--no_b0_start). Must be an integer >= 1.')
+    g.add_argument('--b0_end', action='store_true',
                    help='If set, adds a b0 as last sample.')
-    p.add_argument('--b0_value', type=float, default=0.0,
+    g.add_argument('--b0_value', type=float, default=0.0,
                    help='b-value of the b0s. [%(default)s]')
-    p.add_argument('--b0_philips', action='store_true',
+    g.add_argument('--b0_philips', action='store_true',
                    help='If set, replaces values of b0s bvecs by existing '
                         'bvecs for Philips handling.')
 
-    bvals_group = p.add_mutually_exclusive_group(required=True)
+    g = p.add_argument_group("Non-b0 acquisitions")
+    bvals_group = g.add_mutually_exclusive_group(required=True)
     bvals_group.add_argument('--bvals', type=float, nargs='+', metavar='bvals',
                              help='bval of each non-b0 shell.')
     bvals_group.add_argument('--b_lin_max', type=float,
@@ -95,64 +101,60 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
+    # ---- Checks
     out_basename, _ = os.path.splitext(args.out_basename)
 
     if args.fsl:
         out_filename = [out_basename + '.bval', out_basename + '.bvec']
-    else:  # args.mrtrix = True
+    else:  # mrtrix
         out_filename = out_basename + '.b'
 
     assert_outputs_exist(parser, args, out_filename)
 
+    nb_shells = len(args.nb_samples_per_shell)
+    if args.bvals is not None:
+        unique_bvals = np.unique(args.bvals)
+        if len(unique_bvals) != nb_shells:
+            parser.error('You have provided {} shells '.format(nb_shells) +
+                         'but {} unique bvals.'.format(len(unique_bvals)))
+    if args.b0_every is not None and args.b0_every <= 0:
+        parser.error("--b0_every must be an integer > 0.")
+
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.getLogger().setLevel(log_level)
 
-    # Total number of samples
-    K = np.sum(args.nb_samples)
-    # Number of non-b0 shells
-    S = len(args.nb_samples)
-
-    b0_every = args.b0_every
-    b0_end = args.b0_end
-    b0_value = args.b0_value
-    b0_philips = args.b0_philips
-
-    # Only a b0 at the beginning
-    if (b0_every > K) or (b0_every < 0):
-        b0_every = K + 1
-
-    # Compute bval list
-    if args.bvals is not None:
-        bvals = args.bvals
-        unique_bvals = np.unique(bvals)
-        if len(unique_bvals) != S:
-            parser.error('You have provided {} shells '.format(S) +
-                         'but {} unique bvals.'.format(len(unique_bvals)))
-
-    elif args.b_lin_max is not None:
-        bvals = compute_bvalue_lin_b(bmin=0.0, bmax=args.b_lin_max,
-                                     nb_of_b_inside=S - 1, exclude_bmin=True)
-    elif args.q_lin_max is not None:
-        bvals = compute_bvalue_lin_q(bmin=0.0, bmax=args.q_lin_max,
-                                     nb_of_b_inside=S - 1, exclude_bmin=True)
-    # Add b0 b-value
-    if b0_every != 0:
-        bvals = add_bvalue_b0(bvals, b0_value=b0_value)
-
-    # Gradient sampling generation
-    points, shell_idx = generate_gradient_sampling(args.nb_samples, verbose=int(
-        3 - logging.getLogger().getEffectiveLevel()//10))
+    # ---- b-vectors generation
+    # Non-b0 samples: gradient sampling generation
+    # Generates the b-vectors only. We will set their b-values after.
+    scipy_verbose = int(3 - logging.getLogger().getEffectiveLevel()//10)
+    points, shell_idx = generate_gradient_sampling(
+        args.nb_samples_per_shell, verbose=scipy_verbose)
 
     # eddy current optimization
     if args.eddy:
         points, shell_idx = swap_sampling_eddy(points, shell_idx)
 
-    # Adding interleaved b0s
-    if b0_every != 0:
-        points, shell_idx = add_b0s(points,
-                                    shell_idx,
-                                    b0_every=b0_every,
-                                    finish_b0=b0_end)
+    # ---- b-values
+    if args.bvals is not None:
+        bvals = args.bvals
+    elif args.b_lin_max is not None:
+        bvals = compute_bvalue_lin_b(
+            bmin=0.0, bmax=args.b_lin_max, nb_of_b_inside=nb_shells - 1,
+            exclude_bmin=True)
+    else:  # args.q_lin_max:
+        bvals = compute_bvalue_lin_q(
+            bmin=0.0, bmax=args.q_lin_max,  nb_of_b_inside=nb_shells - 1,
+            exclude_bmin=True)
+
+    # ---- Adding b0s
+    b0_start = not args.no_b0_start
+    add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
+    if add_at_least_a_b0:
+        bvals = add_bvalue_b0(bvals, b0_value=args.b0_value)
+        points, shell_idx = add_b0s(points, shell_idx,
+                                    start_b0=b0_start,
+                                    b0_every=args.b0_every,
+                                    finish_b0=args.b0_end)
 
     # duty cycle optimization
     if args.duty:

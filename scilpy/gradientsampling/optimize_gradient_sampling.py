@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 
 
-def swap_sampling_eddy(points, shell_idx, verbose=1):
+def swap_sampling_eddy(points, shell_idx):
     """
     Optimize the bvecs of fixed multi-shell gradient sampling for eddy
     currents correction (fsl EDDY).
@@ -24,25 +24,28 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
     Parameters
     ----------
-    points: numpy.array, bvecs normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
+    points: numpy.array
+        bvecs normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
 
-    Return
-    ------
-    points: numpy.array, bvecs normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
+    Returns
+    -------
+    points: numpy.array
+        bvecs normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
     """
 
     new_points = points.copy()
+    nb_points_per_shell = _compute_nb_points_per_shell_from_idx(shell_idx)
+    max_nb_iter = 100
 
-    Ks = compute_ks_from_shell_idx(shell_idx)
-
-    maxIter = 100
-
-    for shell in range(len(Ks)):
+    logging.debug("Verifying shells for eddy current optimization")
+    for shell in range(len(nb_points_per_shell)):
         # Extract points from shell
-        shell_pts = points[shell_idx == shell].copy()
+        this_shell_idx = shell_idx == shell
+        shell_pts = points[this_shell_idx].copy()
 
         logging.debug('Shell = {}'.format(shell))
 
@@ -53,42 +56,39 @@ def swap_sampling_eddy(points, shell_idx, verbose=1):
 
         it = 0
         converged = False
-
-        while (it < maxIter) and not converged:
+        while (it < max_nb_iter) and not converged:
             converged = True
             # For each bvec on the shell
             for pts_idx in range(len(shell_pts)):
                 # Find closest neighbor w.r.t. metric of dist
-                toMove = np.argmin(dist[pts_idx])
+                to_move = np.argmin(dist[pts_idx])
+
                 # Compute new column of system matrix with flipped toMove point
-                new_col = cdist(shell_pts, -shell_pts[None, toMove]).squeeze()
+                new_col = cdist(shell_pts, -shell_pts[None, to_move]).squeeze()
 
-                old_pts_ener = dist[toMove].sum()
+                old_pts_ener = dist[to_move].sum()
                 new_pts_ener = new_col.sum()
-
                 if new_pts_ener > old_pts_ener:
-                    # Swap sign of point toMove
-                    shell_pts[toMove] *= -1
-                    dist[:, toMove] = new_col
-                    dist[toMove, :] = new_col
+                    # Swap sign of point to_move
+                    shell_pts[to_move] *= -1
+                    dist[:, to_move] = new_col
+                    dist[to_move, :] = new_col
 
                     converged = False
 
-                    logging.debug('Swapped {} ({:.2f} -->  \
-                                  {:.2f})'.format(toMove,
-                                                  old_pts_ener,
-                                                  new_pts_ener))
+                    logging.debug('Swapped {} ({:.2f} --> {:.2f})'
+                                  .format(to_move, old_pts_ener, new_pts_ener))
 
             it += 1
 
-        new_points[shell_idx == shell] = shell_pts
+        new_points[this_shell_idx] = shell_pts
 
     logging.info('Eddy current swap optimization finished.')
 
     return new_points, shell_idx
 
 
-def compute_ks_from_shell_idx(shell_idx):
+def _compute_nb_points_per_shell_from_idx(shell_idx):
     """
     Recover number of points per shell from point-wise shell index.
 
@@ -102,27 +102,32 @@ def compute_ks_from_shell_idx(shell_idx):
     Ks: list
         number of samples for each shell, starting from lowest.
     """
-    K = len(set(shell_idx))
+    nb_shells = len(set(shell_idx))
 
-    Ks = []
-    for idx in range(K):
-        Ks.append(np.sum(shell_idx == idx))
+    nb_points_per_shell = []
+    for idx in range(nb_shells):
+        nb_points_per_shell.append(np.sum(shell_idx == idx))
 
-    return Ks
+    return nb_points_per_shell
 
 
-def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
+def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
     """
     Add interleaved b0s to gradient sampling.
 
     Parameters
     ----------
-    points: numpy.array, bvecs normalized to 1.
-    shell_idx: numpy.array, Shell index for bvecs in points.
-    b0_every: integer, final gradient sampling will have a b0 every b0_every
-              samples
-    finish_b0: boolean, Option to add a b0 as last sample.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
+    points: numpy.array,
+        bvecs normalized to 1.
+    shell_idx: numpy.array
+        Shell index for bvecs in points.
+    start_b0: bool
+        Option to add a b0 at the beginning.
+    b0_every: integer
+        Final gradient sampling will have a b0 every b0_every samples.
+        (start_b0 must be true)
+    finish_b0: bool
+        Option to add a b0 as last sample.
 
     Return
     ------
@@ -131,18 +136,34 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     shell_idx: numpy.array
         Shell index for bvecs in points.
     """
-
     new_points = []
     new_shell_idx = []
 
-    for idx in range(shell_idx.shape[0]):
-        if not idx % (b0_every - 1):
-            # insert b0
-            new_points.append(np.array([0.0, 0.0, 0.0]))
-            new_shell_idx.append(-1)
+    # Only a b0 at the beginning.
+    # Same as a b0 every n with n > nb_samples
+    # By default, we do add a b0
+    nb_points_total = len(shell_idx)
 
-        new_points.append(points[idx])
-        new_shell_idx.append(shell_idx[idx])
+    # Prepare b0_every
+    if b0_every is not None:
+        if not start_b0:
+            raise ValueError("Can't add a b0 every {} values with option "
+                             "start_b0 at False.".format(b0_every))
+    elif start_b0:
+        # Setting b0_every to one more than the total number creates the right
+        # result.
+        b0_every = nb_points_total + 1
+
+    if b0_every is not None:
+        for idx in range(nb_points_total):
+            if not idx % (b0_every - 1):
+                # insert b0
+                new_points.append(np.array([0.0, 0.0, 0.0]))
+                new_shell_idx.append(-1)  # Shell -1 ==> means b0.
+
+            # Add pre-defined points.
+            new_points.append(points[idx])
+            new_shell_idx.append(shell_idx[idx])
 
     if finish_b0 and (new_shell_idx[-1] != -1):
         # insert b0
@@ -152,7 +173,7 @@ def add_b0s(points, shell_idx, b0_every=10, finish_b0=False, verbose=1):
     logging.info('Interleaved {} b0s'.format(len(new_shell_idx) -
                                              shell_idx.shape[0]))
 
-    return np.array(new_points), np.array(new_shell_idx)
+    return np.asarray(new_points), np.asarray(new_shell_idx)
 
 
 def correct_b0s_philips(points, shell_idx, verbose=1):
@@ -193,19 +214,19 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
 
 def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
-                                      Niter=100000, verbose=1, plotting=False,
+                                      nb_iter=100000, plotting=False,
                                       rand_seed=0):
     """
     Optimize the ordering of non-b0s sample to optimize gradient duty-cycle.
 
     Philips scanner (and other) will find the peak power requirements with its
     duty cycle model (this is an approximation) and increase the TR accordingly
-    to the hardware needs. This minimize this effects by:
+    to the hardware needs. This minimizes this effect by:
 
     1) Randomly permuting the non-b0s samples
     2) Finding the peak X, Y, and Z amplitude with a sliding-window
-    3) Compute peak power needed as max(peak_x, peak_y, peak_z)
-    4) Keeps the permutation yielding the lowest peak power
+    3) Computint the peak power needed as max(peak_x, peak_y, peak_z)
+    4) Keeping the permutation yielding the lowest peak power
 
     Parameters
     ----------
@@ -217,9 +238,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
         increasing bvals, b0 last.
     ker_size: int
         kernel size for the sliding window.
-    Niter: int
+    nb_iter: int
         number of bruteforce iterations.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
     plotting: bool
         plot the energy at each iteration.
     rand_seed: int
@@ -234,7 +254,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     """
 
     logging.debug('Shuffling Data (N_iter = {}, \
-                                   ker_size = {})'.format(Niter, ker_size))
+                                   ker_size = {})'.format(nb_iter, ker_size))
 
     if plotting:
         store_best_value = []
@@ -242,7 +262,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
 
-    q_scheme = np.abs(points * np.sqrt(np.array([bvals[idx] for idx in shell_idx]))[:, None])
+    q_scheme = np.abs(points * np.sqrt(
+        np.array([bvals[idx] for idx in shell_idx]))[:, None])
 
     q_scheme_current = q_scheme.copy()
 
@@ -254,9 +275,9 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
     np.random.seed(rand_seed)
 
-    for it in range(Niter):
-        if not it % np.ceil(Niter/10.):
-            logging.debug('Iter {} / {}  : {}'.format(it, Niter, power_best))
+    for it in range(nb_iter):
+        if not it % np.ceil(nb_iter / 10.):
+            logging.debug('Iter {} / {}  : {}'.format(it, nb_iter, power_best))
 
         ordering_current = np.random.permutation(N_dir)
         q_scheme_current[non_b0s_mask] \
@@ -271,7 +292,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
             if plotting:
                 store_best_value.append((it+1, power_best))
 
-    logging.debug('Iter {} / {}  : {}'.format(Niter, Niter, power_best))
+    logging.debug('Iter {} / {}  : {}'.format(nb_iter, nb_iter, power_best))
 
     logging.info('Duty cycle optimization finished.')
 
