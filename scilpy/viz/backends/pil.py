@@ -214,6 +214,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
                               mask_overlay=None,
                               mask_overlay_alpha=0.7,
                               mask_overlay_color=None,
+                              peaks_overlay=None,
+                              peaks_overlay_alpha=0.7,
                               vol_lut=None,
                               labelmap_lut=None):
     """
@@ -243,6 +245,10 @@ def draw_2d_array_at_position(canvas, array_2d, size,
         Alpha value for mask overlay in range [0, 1].
     mask_overlay_color : list, optional
         Color for the mask overlay as a list of 3 integers in range [0, 255].
+    peaks_overlay : ndarray
+        Peaks overlay scene data to be drawn.
+    peaks_overlay_alpha : float
+        Alpha value for peaks overlay in range [0, 1].
     vol_lut : function, optional
         Lookup table (colormap) function for the image scene data.
     labelmap_lut_table : function, optional
@@ -285,6 +291,18 @@ def draw_2d_array_at_position(canvas, array_2d, size,
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
                 (img * mask_overlay_alpha).astype(np.uint8), size).convert("L")
+
+            canvas.paste(overlay, (left_position, top_position),
+                         mask=overlay_transparency)
+
+    if peaks_overlay is not None:
+        for img in peaks_overlay:
+            overlay = create_image_from_2d_array(
+                (img * 255).astype(np.uint8), size, "RGB")
+
+            # Create transparency mask over the mask overlay image
+            overlay_transparency = create_image_from_2d_array(
+                (img * peaks_overlay_alpha).astype(np.uint8), size).convert("L")
 
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)

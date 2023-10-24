@@ -485,6 +485,35 @@ def add_nifti_screenshot_overlays_args(parser, labelmap_overlay=True,
             help="Opacity value for the masks overlays. [%(default)s].")
 
 
+def add_nifti_screenshot_peaks_arg(parser):
+    """
+    Add arguments for peaks screenshotting.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser object
+        Parser.
+    """
+
+    parser.add_argument(
+        "--in_peaks", nargs="+", help="Peaks Nifti image (.nii/.nii.gz).")
+    # TODO: check if possible, it would be cool to color by angular lut
+    # or peak intensity. Maybe we do need peeks scalars here, or 
+    # its simple to use
+    #parser.add_argument(
+    #    "--peaks_cmap_name", default="viridis",
+    #    help="Colormap name for the peaks image data. [%(default)s]")
+    #parser.add_argument(
+    #    "--peaks_scalars", help="Peaks scalars Nifti image (.nii/.nii.gz) "
+    #                            "used as values for the LUT.")
+    parser.add_argument(
+        "--peaks_width", default=3., type=float,
+        help="Width of the peaks' lines. [%(default)s]")
+    parser.add_argument(
+        "--peaks_alpha", type=ranged_type(float, 0., 1.), default=1.0,
+        help="Opacity value for the peaks overlay. [%(default)s]")
+
+
 def validate_nbr_processes(parser, args):
     """
     Check if the passed number of processes arg is valid.
@@ -1007,8 +1036,13 @@ def get_default_screenshotting_data(args):
 
             masks_colors = masks_colors / 255.
 
+    peaks_imgs = None
+    if args.in_peaks:
+        peaks_imgs = [nib.load(f) for f in args.in_peaks]
+
     return volume_img, \
         transparency_mask_img, \
         labelmap_img, \
         mask_imgs, \
-        masks_colors
+        masks_colors, \
+        peaks_imgs

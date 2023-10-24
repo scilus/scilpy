@@ -5,7 +5,7 @@ from fury import actor
 import numpy as np
 
 from scilpy.reconst.bingham import bingham_to_sf
-from scilpy.viz.backends.fury import (create_contours_actor, create_odf_actors,
+from scilpy.viz.backends.fury import (create_contours_actor, create_odf_actors, create_peaks_actor,
                                       set_display_extent)
 from scilpy.viz.backends.vtk import contours_from_data
 from scilpy.viz.color import generate_n_colors
@@ -119,7 +119,7 @@ def create_contours_slicer(data, contour_values, orientation, slice_index,
 
 def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
                         mask=None, color=None, peaks_width=1.0,
-                        symmetric=False):
+                        opacity=1.0, symmetric=False):
     """
     Create a peaks slicer actor rendering a slice of the input peaks.
 
@@ -140,6 +140,8 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
         None.
     peaks_width : float, optional
         Width of peaks segments. Defaults to 1.0.
+    opacity : float, optional
+        Opacity of the peaks. Defaults to 1.0.
     symmetric : bool, optional
         If True, peaks are drawn for both peaks_dirs and -peaks_dirs. Else,
         peaks are only drawn for directions given by peaks_dirs. Defaults to
@@ -153,12 +155,14 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     # Normalize input data
     norm = np.linalg.norm(data, axis=-1)
     data[norm > 0] /= norm[norm > 0].reshape((-1, 1))
+    # Reshape peaks volume to XxYxZxNx3
+    data = data.reshape(data.shape[:3] + (-1, 3))
 
     # Instantiate peaks slicer
-    peaks_slicer = actor.peak_slicer(data, peaks_values=peak_values,
-                                     mask=mask, colors=color,
-                                     linewidth=peaks_width,
-                                     symmetric=symmetric)
+    peaks_slicer = create_peaks_actor(data, mask, opacity=opacity,
+                                      linewidth=peaks_width, color=color,
+                                      lut_values=peak_values,
+                                      symmetric=symmetric)
 
     set_display_extent(peaks_slicer, orientation, data.shape, slice_index)
 

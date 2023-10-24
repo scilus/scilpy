@@ -3,7 +3,7 @@
 from fury import window
 from scilpy.utils.util import get_axis_index
 
-from scilpy.viz.backends.fury import (create_scene,
+from scilpy.viz.backends.fury import (create_peaks_actor, create_scene,
                                       set_display_extent,
                                       set_viewport,
                                       snapshot_slices)
@@ -13,7 +13,7 @@ from scilpy.viz.backends.pil import (annotate_image,
                                      any2grayscale)
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.utils import compute_cell_topleft_pos
-from scilpy.viz.slice import create_texture_slicer, create_contours_slicer
+from scilpy.viz.slice import create_peaks_slicer, create_texture_slicer, create_contours_slicer
 
 
 def screenshot_volume(img, orientation, slice_ids, size):
@@ -95,10 +95,39 @@ def screenshot_contour(bin_img, orientation, slice_ids, size, bg_opacity=0.):
         scene.rm(contour_actor)
 
 
+def screenshot_peaks(img, orientation, slice_ids, size, mask_img=None):
+    """
+    Take a screenshot of the given peaks image at the provided slice indices.
+
+    Parameters
+    ----------
+    img : nib.Nifti1Image
+        Peaks volume image.
+    orientation : str
+        Slicing axis name.
+    slice_ids : array-like
+        Slice indices.
+    size : array-like
+        Size of the screenshot image (pixels).
+
+    Returns
+    -------
+    snapshots : generator
+        Scene screenshots generator.
+    """
+
+    peaks_actor = create_peaks_slicer(img.get_fdata(), orientation, 0,
+                                      mask=mask_img.get_fdata().astype(bool))
+
+    return snapshot_slices([peaks_actor], slice_ids, orientation,
+                           img.shape, size)
+
+
 def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                   transparency_scene=None, labelmap_scene=None,
                   labelmap_overlay_alpha=0.7, mask_overlay_scene=None,
                   mask_overlay_alpha=0.7, mask_overlay_color=None,
+                  peaks_overlay_scene=None, peaks_overlay_alpha=0.7,
                   vol_cmap_name=None, labelmap_cmap_name=None,
                   display_slice_number=False, display_lr=False,
                   lr_labels=["L", "R"], canvas=None):
@@ -129,6 +158,10 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
         Alpha value for mask overlay in range [0, 1].
     mask_overlay_color : list, optional
         Color for the mask overlay as a list of 3 integers in range [0, 255].
+    peaks_overlay_scene : np.ndarray, optional
+        Peaks overlay scene data.
+    peaks_overlay_alpha : float, optional
+        Alpha value for peaks overlay in range [0, 1].
     vol_cmap_name : str, optional
         Colormap name for the image scene data.
     labelmap_cmap_name : str, optional
@@ -166,6 +199,8 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                               mask_overlay=mask_overlay_scene,
                               mask_overlay_alpha=mask_overlay_alpha,
                               mask_overlay_color=mask_overlay_color,
+                              peaks_overlay=peaks_overlay_scene,
+                              peaks_overlay_alpha=peaks_overlay_alpha,
                               vol_lut=vol_lut, labelmap_lut=labelmap_lut)
 
     annotate_image(canvas, slice_number, display_slice_number,
