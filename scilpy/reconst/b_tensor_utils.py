@@ -11,6 +11,41 @@ from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}
+bdeltas = {"STE": 0, "LTE": 1, "PTE": -0.5, "CTE": 0.5}
+
+
+def convert_bshape_to_bdelta(b_shapes):
+    """Convert an array of b_shapes to an array of b_deltas.
+
+    Parameters
+    ----------
+    b_shapes: array of strings
+        b_shapes to convert. Strings can only be LTE, PTE, STE or CTE.
+
+    Returns
+    -------
+    b_deltas: array of floats
+        Converted b_deltas, such that LTE = 1, STE = 0, PTE = -0.5, CTE = 0.5.
+    """
+    b_deltas = np.vectorize(bdeltas.get)(b_shapes)
+    return b_deltas
+
+
+def convert_bdelta_to_bshape(b_deltas):
+    """Convert an array of b_deltas to an array of b_shapes.
+
+    Parameters
+    ----------
+    b_deltas: array of floats
+        b_deltas to convert. Floats can only be 1, 0, -0.5 or 0.5.
+
+    Returns
+    -------
+    b_shapes: array of strings
+        Converted b_shapes, such that LTE = 1, STE = 0, PTE = -0.5, CTE = 0.5.
+    """
+    b_shapes = np.vectorize(bshapes.get)(b_deltas)
+    return b_shapes
 
 
 def generate_btensor_input(in_dwis, in_bvals, in_bvecs, in_bdeltas,

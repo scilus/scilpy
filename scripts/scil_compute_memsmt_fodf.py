@@ -46,7 +46,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_sh_basis_args, add_processes_arg,
                              add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
-from scilpy.reconst.b_tensor_utils import generate_btensor_input
+from scilpy.reconst.b_tensor_utils import (generate_btensor_input,
+                                           convert_bdelta_to_bshape)
 
 
 def _build_arg_parser():
@@ -201,11 +202,12 @@ def main():
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
 
+    ubshapes= convert_bdelta_to_bshape(ubdeltas)
     memsmt_response = multi_shell_fiber_response(sh_order,
                                                  ubvals,
                                                  wm_frf, gm_frf, csf_frf,
-                                                 ubdeltas[1:],
-                                                 tol=tol)
+                                                 tol=tol,
+                                                 btens=ubshapes)
 
     reg_sphere = get_sphere('symmetric362')
 
