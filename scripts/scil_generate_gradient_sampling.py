@@ -150,7 +150,7 @@ def main():
     b0_start = not args.no_b0_start
     add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
     if add_at_least_a_b0:
-        bvals = add_bvalue_b0(bvals, b0_value=args.b0_value)
+        bvals = bvals.append(args.b0_value)
         points, shell_idx = add_b0s(points, shell_idx,
                                     start_b0=b0_start,
                                     b0_every=args.b0_every,

@@ -265,6 +265,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
     ordering_best = np.arange(N_dir)
     power_best = compute_peak_power(q_scheme_current, ker_size=ker_size)
+    logging.info("Duty cycle: initial peak power = {}".format(power_best))
 
     np.random.seed(rand_seed)
 
@@ -282,9 +283,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
             ordering_best = ordering_current.copy()
             power_best = power_current
 
-    logging.debug('Iter {} / {}  : {}'.format(nb_iter, nb_iter, power_best))
-
-    logging.info('Duty cycle optimization finished.')
+    logging.info('Duty cycle optimization finished ({} iterations). '
+                 'Final peak power: {}'.format(nb_iter, power_best))
 
     new_points = points.copy()
     new_points[non_b0s_mask] = points[non_b0s_mask][ordering_best]
@@ -325,7 +325,7 @@ def compute_peak_power(q_scheme, ker_size=10):
 
 
 def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
-                         exclude_bmin=True, verbose=1):
+                         exclude_bmin=True):
     """
     Compute bvals linearly distributed in q-value in the
     interval [bmin, bmax].
@@ -340,7 +340,6 @@ def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
         number of b-value excluding bmin and bmax.
     exclude_bmin: bool
         exclude bmin from the interval, useful if bmin = 0.0.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
@@ -360,7 +359,7 @@ def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
 
 
 def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
-                         exclude_bmin=True, verbose=1):
+                         exclude_bmin=True):
     """
     Compute bvals linearly distributed in b-value in the
     interval [bmin, bmax].
@@ -375,7 +374,6 @@ def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
         number of b-value excluding bmin and bmax.
     exclude_bmin: boolean
         exclude bmin from the interval, useful if bmin = 0.0.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
 
     Return
     ------
@@ -389,24 +387,4 @@ def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
 
     logging.info('bvals linear in b: {}'.format(bvals))
 
-    return bvals
-
-
-def add_bvalue_b0(bvals, b0_value=0.0):
-    """
-    Add the b0 value to the bvals list.
-
-    Parameters
-    ----------
-    bvals: list
-        bvals of the non-b0 shells.
-    b0_value: float
-        bvals of the b0s
-
-    Return
-    ------
-    bvals: list
-        bvals of the shells and b0s.
-    """
-    bvals.append(b0_value)
     return bvals
