@@ -214,8 +214,7 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 
 
 def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
-                                      nb_iter=100000, plotting=False,
-                                      rand_seed=0):
+                                      nb_iter=100000, rand_seed=0):
     """
     Optimize the ordering of non-b0s sample to optimize gradient duty-cycle.
 
@@ -256,9 +255,6 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     logging.debug('Shuffling Data (N_iter = {}, \
                                    ker_size = {})'.format(nb_iter, ker_size))
 
-    if plotting:
-        store_best_value = []
-
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
 
@@ -269,9 +265,6 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
     ordering_best = np.arange(N_dir)
     power_best = compute_peak_power(q_scheme_current, ker_size=ker_size)
-
-    if plotting:
-        store_best_value.append((0, power_best))
 
     np.random.seed(rand_seed)
 
@@ -289,18 +282,9 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
             ordering_best = ordering_current.copy()
             power_best = power_current
 
-            if plotting:
-                store_best_value.append((it+1, power_best))
-
     logging.debug('Iter {} / {}  : {}'.format(nb_iter, nb_iter, power_best))
 
     logging.info('Duty cycle optimization finished.')
-
-    if plotting:
-        store_best_value = np.array(store_best_value)
-        import pylab as pl
-        pl.plot(store_best_value[:, 0], store_best_value[:, 1], '-o')
-        pl.show()
 
     new_points = points.copy()
     new_points[non_b0s_mask] = points[non_b0s_mask][ordering_best]
