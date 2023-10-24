@@ -8,15 +8,13 @@ from dipy.align.imaffine import (AffineMap,
                                  transform_centers_of_mass)
 from dipy.align.transforms import (AffineTransform3D,
                                    RigidTransform3D)
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
-
-from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scipy.ndimage import binary_dilation
 
+from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
@@ -50,7 +48,7 @@ def flip_volume(data, axes):
     ----------
     data: np.ndarray
         Volume data.
-    axes: List 
+    axes: List
         A list containing any number of values amongst ['x', 'y', 'z'].
 
     Return
@@ -79,7 +77,7 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     img: nib.Nifti1Image
         Input image to crop.
     wbbox: WorldBoundingBox
-        Bounding box. 
+        Bounding box.
 
     Return
     ------
@@ -246,42 +244,44 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
 
     Parameters
     ----------
-    dwi: string
-        Path to the dwi file
-    bvec: string
-        Path to the bvec file
-    bval: string
-        Path to the bval file
+    dwi: nib.Nifti1Image
+        DWI file in nibabel format.
+    bval: array
+        Array containing bvalues (from dipy.io.gradients.read_bvals_bvecs).
+    bvec: array
+        Array containing bvectors (from dipy.io.gradients.read_bvals_bvecs).
     b0_thr: int
-        Threshold to define b0 minimum value
-    mask: string
-        Path to the mask
-    noise_mask: string
-        Path to the noise mask
-    noise_map: string
-        Path to the noise map
+        Threshold to define b0 minimum value.
+    mask: nib.Nifti1Image
+        Mask file in nibabel format.
+    noise_mask: nib.Nifti1Image
+        Noise mask file in nibabel format.
+    noise_map: nib.Nifti1Image
+        Noise map file in nibabel format.
     basename: string
-        Basename used for naming all output files
+        Basename used for naming all output files.
 
     verbose: boolean
         Set to use logging
+
+    Return
+    ------
+    Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     """
     if verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    img = nib.load(dwi)
-    data = img.get_fdata(dtype=np.float32)
-    affine = img.affine
-    mask = get_data_as_mask(nib.load(mask), dtype=bool)
-    bvals, bvecs = read_bvals_bvecs(bval, bvec)
+    data = dwi.get_fdata(dtype=np.float32)
+    affine = dwi.affine
+    mask = get_data_as_mask(mask, dtype=bool)
 
     if split_shells:
-        centroids, shell_indices = identify_shells(bvals, threshold=40.0,
+        centroids, shell_indices = identify_shells(bval, threshold=40.0,
                                                    roundCentroids=False,
                                                    sort=False)
-        bvals = centroids[shell_indices]
+        bval = centroids[shell_indices]
 
-    b0s_location = bvals <= b0_thr
+    b0s_location = bval <= b0_thr
 
     if not np.any(b0s_location):
         raise ValueError('You should ajust --b0_thr={} '
@@ -308,18 +308,17 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         nib.save(nib.Nifti1Image(noise_mask, affine),
                  basename + '_noise_mask.nii.gz')
     elif noise_mask:
-        noise_mask = get_data_as_mask(nib.load(noise_mask),
+        noise_mask = get_data_as_mask(noise_mask,
                                       dtype=bool).squeeze()
     elif noise_map:
-        img_noisemap = nib.load(noise_map)
-        data_noisemap = img_noisemap.get_fdata(dtype=np.float32)
+        data_noisemap = noise_map.get_fdata(dtype=np.float32)
 
     # Val = np array (mean_signal, std_noise)
     val = {0: {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
     for idx in range(data.shape[-1]):
         val[idx] = {}
-        val[idx]['bvec'] = bvecs[idx]
-        val[idx]['bval'] = bvals[idx]
+        val[idx]['bvec'] = bvec[idx]
+        val[idx]['bval'] = bval[idx]
         val[idx]['mean'] = np.mean(data[..., idx:idx+1][mask > 0])
         if noise_map:
             val[idx]['std'] = np.std(data_noisemap[mask > 0])

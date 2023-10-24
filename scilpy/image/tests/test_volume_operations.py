@@ -1,18 +1,30 @@
 # -*- coding: utf-8 -*-
 
+import os
+import tempfile
 
+from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 from numpy.testing import assert_equal
 
-
 from scilpy.image.volume_operations import (flip_volume,
                                             crop_volume,
                                             apply_transform,
-                                            register_image,
                                             compute_snr,
                                             resample_volume)
+from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
 from scilpy.utils.util import compute_nifti_bounding_box
+
+# Fetching testing dwi data.
+fetch_data(get_testing_files_dict(), keys='processing.zip')
+tmp_dir = tempfile.TemporaryDirectory()
+in_dwi = os.path.join(get_home(), 'processing', 'dwi.nii.gz')
+in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
+in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
+in_mask = os.path.join(get_home(), 'processing', 'cc.nii.gz')
+in_noise_mask = os.path.join(get_home(), 'processing',
+                             'small_roi_gm_mask.nii.gz')
 
 
 def test_count_non_zero_voxel():
@@ -81,15 +93,27 @@ def test_transform_dwi():
 
 
 def test_register_image():
-    # TODO
+    # Not necessary since it is mostly dipy's function.
 
     pass
 
 
 def test_compute_snr():
-    # TODO
+    # Optimal unit test would be on perfect data with simulated noise but would
+    # require making a dwi volume with known bvals and bvecs.
+    dwi = nib.load(in_dwi)
+    bvals, bvecs = read_bvals_bvecs(in_bval, in_bvec)
+    mask = nib.load(in_mask)
+    noise_mask = nib.load(in_noise_mask)
 
-    pass
+    snr = compute_snr(dwi, bvals, bvecs, 20, mask,
+                      noise_mask=noise_mask, noise_map=None,
+                      split_shells=True)
+
+    # Value returned from multiple runs on the same data.
+    target_val = 10.216334
+
+    assert np.allclose(snr[0]['snr'], target_val, atol=0.00005)
 
 
 def test_resample_volume():
