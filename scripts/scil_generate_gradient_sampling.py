@@ -21,7 +21,7 @@ from scilpy.io.utils import (
 from scilpy.gradients.gen_gradient_sampling import (
     generate_gradient_sampling)
 from scilpy.gradients.optimize_gradient_sampling import (
-    add_b0s, compute_bvalue_lin_b, compute_bvalue_lin_q,
+    add_b0s_to_bvectors, compute_bvalue_lin_b, compute_bvalue_lin_q,
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
 from scilpy.io.save_gradient_sampling import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
@@ -79,10 +79,11 @@ def _build_arg_parser():
                              help='bval of each non-b0 shell.')
     bvals_group.add_argument('--b_lin_max', type=float,
                              help='b-max for linear bval distribution '
-                                  'in *b*. [replaces -bvals]')
+                                  'in *b*.')
     bvals_group.add_argument('--q_lin_max', type=float,
                              help='b-max for linear bval distribution '
-                                  'in *q*. [replaces -bvals]')
+                                  'in *q*; the square root of b-values will '
+                                  'be linearly distributed..')
 
     g1 = p.add_argument_group(title='Save as')
     g1 = g1.add_mutually_exclusive_group(required=True)
@@ -154,10 +155,10 @@ def main():
     add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
     if add_at_least_a_b0:
         bvals.append(args.b0_value)
-        points, shell_idx, nb_b0s = add_b0s(points, shell_idx,
-                                            start_b0=b0_start,
-                                            b0_every=args.b0_every,
-                                            finish_b0=args.b0_end)
+        points, shell_idx, nb_b0s = add_b0s_to_bvectors(points, shell_idx,
+                                                        start_b0=b0_start,
+                                                        b0_every=args.b0_every,
+                                                        finish_b0=args.b0_end)
         logging.info('   Interleaved {} b0s'.format(nb_b0s))
     else:
         logging.info("   Careful! No b0 added!")

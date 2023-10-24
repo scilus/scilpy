@@ -30,7 +30,7 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     Parameters
     ----------
-    nb_samples_per_shell: list
+    nb_samples_per_shell: list[int]
         Number of samples for each shell, starting from lowest.
     verbose: int
         0 = silent, 1 = summary upon completion, 2 = print iterations
@@ -38,7 +38,7 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     Return
     ------
-    points: numpy.array
+    points: numpy.array of shape [n, 3]
         bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.

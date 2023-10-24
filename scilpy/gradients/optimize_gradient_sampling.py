@@ -109,7 +109,8 @@ def _compute_nb_points_per_shell_from_idx(shell_idx):
     return nb_points_per_shell
 
 
-def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
+def add_b0s_to_bvectors(points, shell_idx, start_b0=True, b0_every=None,
+                        finish_b0=False):
     """
     Add interleaved b0s to gradient sampling.
 
@@ -121,7 +122,7 @@ def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
         Shell index for bvecs in points.
     start_b0: bool
         Option to add a b0 at the beginning.
-    b0_every: integer
+    b0_every: integer or None
         Final gradient sampling will have a b0 every b0_every samples.
         (start_b0 must be true)
     finish_b0: bool
@@ -132,7 +133,8 @@ def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
     points: numpy.array
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs in points. Vectors with shells of value -1 are b0
+        vectors.
     nb_new_b0s: int
         The number of b0s interleaved.
     """
@@ -190,15 +192,17 @@ def correct_b0s_philips(points, shell_idx):
     points: numpy.array
         bvecs normalized to 1
     shell_idx: numpy.array
-        Shell index for bvecs in points.
-    verbose: 0 = silent, 1 = summary upon completion, 2 = print iterations.
+        Shell index for bvecs in points. Vectors with shells of value -1 are b0
+        vectors.
 
     Return
     ------
     points: numpy.array
-        bvecs normalized to 1
+        bvecs normalized to 1. b0 vectors are now impossible to know as they
+        are replaced by random values from another vector.
     shell_idx: numpy.array
-        Shell index for bvecs in points
+        Shell index for bvecs in points. b0 vectors still have shells of value
+        -1.
     """
 
     new_points = points.copy()
@@ -255,8 +259,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
 
-    sqrt = np.sqrt(np.array([bvals[idx] for idx in shell_idx]))
-    q_scheme = np.abs(points * sqrt[:, None])
+    sqrt_val = np.sqrt(np.array([bvals[idx] for idx in shell_idx]))
+    q_scheme = np.abs(points * sqrt_val[:, None])
 
     q_scheme_current = q_scheme.copy()
 
@@ -324,8 +328,8 @@ def compute_peak_power(q_scheme, ker_size=10):
 def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
                          exclude_bmin=True):
     """
-    Compute bvals linearly distributed in q-value in the
-    interval [bmin, bmax].
+    Compute bvals linearly distributed in q-value in the interval [bmin, bmax].
+    This leads to sqrt(b_values) linearly distributed.
 
     Parameters
     ----------
