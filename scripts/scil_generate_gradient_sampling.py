@@ -21,7 +21,7 @@ from scilpy.io.utils import (
 from scilpy.gradients.gen_gradient_sampling import (
     generate_gradient_sampling)
 from scilpy.gradientsampling.optimize_gradient_sampling import (
-    add_b0s, add_bvalue_b0, compute_bvalue_lin_b, compute_bvalue_lin_q,
+    add_b0s, compute_bvalue_lin_b, compute_bvalue_lin_q,
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
 from scilpy.gradientsampling.save_gradient_sampling import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
@@ -126,15 +126,18 @@ def main():
     # ---- b-vectors generation
     # Non-b0 samples: gradient sampling generation
     # Generates the b-vectors only. We will set their b-values after.
+    logging.info("Generating b-vectors.")
     scipy_verbose = int(3 - logging.getLogger().getEffectiveLevel()//10)
     points, shell_idx = generate_gradient_sampling(
         args.nb_samples_per_shell, verbose=scipy_verbose)
 
     # eddy current optimization
     if args.eddy:
+        logging.info("Optimizing values for Eddy current.")
         points, shell_idx = swap_sampling_eddy(points, shell_idx)
 
     # ---- b-values
+    logging.info("Preparing b-values.")
     if args.bvals is not None:
         bvals = args.bvals
     elif args.b_lin_max is not None:
@@ -150,20 +153,28 @@ def main():
     b0_start = not args.no_b0_start
     add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
     if add_at_least_a_b0:
-        bvals = bvals.append(args.b0_value)
-        points, shell_idx = add_b0s(points, shell_idx,
-                                    start_b0=b0_start,
-                                    b0_every=args.b0_every,
-                                    finish_b0=args.b0_end)
+        bvals.append(args.b0_value)
+        points, shell_idx, nb_b0s = add_b0s(points, shell_idx,
+                                            start_b0=b0_start,
+                                            b0_every=args.b0_every,
+                                            finish_b0=args.b0_end)
+        logging.info('   Interleaved {} b0s'.format(nb_b0s))
+    else:
+        logging.info("   Careful! No b0 added!")
 
     # duty cycle optimization
     if args.duty:
+        logging.info("Optimizing the ordering of non-b0s samples to optimize "
+                     "gradient duty-cycle.")
         points, shell_idx = compute_min_duty_cycle_bruteforce(
             points, shell_idx, bvals)
 
     # Correcting b0s bvecs for Philips
-    if b0_philips and np.sum(shell_idx == -1) > 1:
+    if args.b0_philips and np.sum(shell_idx == -1) > 1:
+        logging.info("Correcting b0 vectors for Philips")
         points, shell_idx = correct_b0s_philips(points, shell_idx)
+
+    logging.info("Done. Saving in {}".format(out_filename))
 
     if args.fsl:
         save_gradient_sampling_fsl(points, shell_idx, bvals,
@@ -173,6 +184,10 @@ def main():
             points = points.transpose()
             save_gradient_sampling_mrtrix(points, shell_idx, bvals,
                                           filename=out_filename)
+        else:
+            raise ValueError("Expecting points.shape[0] to be different than "
+                             "3 but not the case. Error in scilpy's code? "
+                             "What is the case here?")
 
 
 if __name__ == "__main__":

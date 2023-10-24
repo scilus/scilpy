@@ -83,8 +83,6 @@ def swap_sampling_eddy(points, shell_idx):
 
         new_points[this_shell_idx] = shell_pts
 
-    logging.info('Eddy current swap optimization finished.')
-
     return new_points, shell_idx
 
 
@@ -135,6 +133,8 @@ def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
         bvecs normalized to 1.
     shell_idx: numpy.array
         Shell index for bvecs in points.
+    nb_new_b0s: int
+        The number of b0s interleaved.
     """
     new_points = []
     new_shell_idx = []
@@ -170,13 +170,12 @@ def add_b0s(points, shell_idx, start_b0=True, b0_every=None, finish_b0=False):
         new_points.append(np.array([0.0, 0.0, 0.0]))
         new_shell_idx.append(-1)
 
-    logging.info('Interleaved {} b0s'.format(len(new_shell_idx) -
-                                             shell_idx.shape[0]))
+    nb_new_b0s = len(new_shell_idx) - shell_idx.shape[0]
 
-    return np.asarray(new_points), np.asarray(new_shell_idx)
+    return np.asarray(new_points), np.asarray(new_shell_idx), nb_new_b0s
 
 
-def correct_b0s_philips(points, shell_idx, verbose=1):
+def correct_b0s_philips(points, shell_idx):
     """
     Replace the [0.0, 0.0, 0.0] value of b0s bvecs
     by existing bvecs in the gradient sampling.
@@ -216,7 +215,7 @@ def correct_b0s_philips(points, shell_idx, verbose=1):
 def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
                                       nb_iter=100000, rand_seed=0):
     """
-    Optimize the ordering of non-b0s sample to optimize gradient duty-cycle.
+    Optimize the ordering of non-b0 samples to optimize gradient duty-cycle.
 
     Philips scanner (and other) will find the peak power requirements with its
     duty cycle model (this is an approximation) and increase the TR accordingly
@@ -239,8 +238,6 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
         kernel size for the sliding window.
     nb_iter: int
         number of bruteforce iterations.
-    plotting: bool
-        plot the energy at each iteration.
     rand_seed: int
         seed for the random permutations.
 
@@ -258,8 +255,8 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     non_b0s_mask = shell_idx != -1
     N_dir = non_b0s_mask.sum()
 
-    q_scheme = np.abs(points * np.sqrt(
-        np.array([bvals[idx] for idx in shell_idx]))[:, None])
+    sqrt = np.sqrt(np.array([bvals[idx] for idx in shell_idx]))
+    q_scheme = np.abs(points * sqrt[:, None])
 
     q_scheme_current = q_scheme.copy()
 
