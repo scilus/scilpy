@@ -152,11 +152,22 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
     slicer_actor : actor.peak_slicer
         Fury object containing the peaks information.
     """
-    # Normalize input data
-    norm = np.linalg.norm(data, axis=-1)
-    data[norm > 0] /= norm[norm > 0].reshape((-1, 1))
+
     # Reshape peaks volume to XxYxZxNx3
     data = data.reshape(data.shape[:3] + (-1, 3))
+    norm = np.linalg.norm(data, axis=-1)
+
+    # Only send non-empty data slices to render
+    zero_norms = np.sum(norm.reshape((-1, norm.shape[-1])), axis=0) == 0
+
+    if zero_norms.all():
+        raise ValueError('Peak slicer received an empty volume to render.')
+
+    data = data[..., ~zero_norms]
+    norm = norm[..., ~zero_norms]
+
+    # Normalize input data
+    data[norm > 0] /= norm[norm > 0].reshape((-1, 1))
 
     # Instantiate peaks slicer
     peaks_slicer = create_peaks_actor(data, mask, opacity=opacity,
