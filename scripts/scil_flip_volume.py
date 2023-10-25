@@ -9,6 +9,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 
+from scilpy.image.volume_operations import flip_volume
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -42,14 +43,7 @@ def main():
     affine = vol.affine
     header = vol.header
 
-    if 'x' in args.axes:
-        data = data[::-1, ...]
-
-    if 'y' in args.axes:
-        data = data[:, ::-1, ...]
-
-    if 'z' in args.axes:
-        data = data[:, :, ::-1, ...]
+    data = flip_volume(data, args.axes)
 
     nib.save(nib.Nifti1Image(data, affine, header=header), args.out_image)
 

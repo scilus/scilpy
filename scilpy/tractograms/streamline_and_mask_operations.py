@@ -166,9 +166,9 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
     for strl_idx, strl in enumerate(streamlines):
         strl_indices = indices[strl_idx]
 
-        in_strl_idx, out_strl_idx = intersects_two_rois(roi_data_1,
-                                                        roi_data_2,
-                                                        strl_indices)
+        in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
+                                                         roi_data_2,
+                                                         strl_indices)
 
         if in_strl_idx is not None and out_strl_idx is not None:
             points_to_indices = points_to_idx[strl_idx]
@@ -180,7 +180,7 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
-def intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
+def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
     """ Cut streamlines so their longest segment are within the bounding box
     or a binary mask.
     This function keeps the data_per_point and data_per_streamline.

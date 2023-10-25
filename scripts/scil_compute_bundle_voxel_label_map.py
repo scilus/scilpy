@@ -22,7 +22,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.spatial import cKDTree
 
-from scilpy.image.operations import correlation
+from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,

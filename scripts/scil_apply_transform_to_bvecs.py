@@ -13,8 +13,6 @@ from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
-from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.image import transform_anatomy
 
 
 def _build_arg_parser():
