@@ -170,8 +170,6 @@ def create_peaks_slicer(data, orientation, slice_index, peak_values=None,
 
     # Normalize input data
     data[norm > 0] /= norm[norm > 0].reshape((-1, 1))
-    # Reshape peaks volume to XxYxZxNx3
-    data = data.reshape(data.shape[:3] + (-1, 3))
 
     # Instantiate peaks slicer
     peaks_slicer = create_peaks_actor(data, mask, opacity=opacity,
