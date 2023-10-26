@@ -37,13 +37,30 @@ cdef struct Pointers:
 def uncompress(streamlines, return_mapping=False):
     """
     Get the indices of the voxels traversed by each streamline; then returns
-    an ArraySequence of indices. Yes, of *indices*. ArraySequence.get_data() is
-    always of type float32 and contains points except here: it's of type
-    uint16 and contain indices. You can use this object exactly as you would
-    use a normal ArraySequence.
+    an ArraySequence of indices, i.e. [i, j, k] coordinates.
 
-    :param streamlines: nibabel.streamlines.array_sequence.ArraySequence
-        should be in voxel space, aligned to corner.
+    Parameters
+    ----------
+    streamlines: nibabel.streamlines.array_sequence.ArraySequence
+        Should be in voxel space, aligned to corner.
+    return_mapping: bool
+        If true, also returns the points_to_idx.
+
+    Returns
+    -------
+    indices: nibabel.streamlines.array_sequence.ArraySequence
+        An array of length nb_streamlines. Each element is a np.ndarray of
+        shape (nb_voxels, 3) containing indices. All 3D coordinates are unique.
+        Note. ArraySequence.get_data() is always of type float32 and contains
+        points except here: it's of type uint16 and contain indices. You can use
+        this object exactly as you would use a normal ArraySequence.
+    points_to_idx: nibabel.streamlines.array_sequence.ArraySequence (optional)
+        An array of length nb_streamlines. Each element is a np.ndarray of
+        shape (nb_points) containing, for each streamline point, the associated
+        voxel in indices.
+        Note: Some points are associated to the same index, if they were in the
+        same voxel. Some voxels are associated to no point, if they were
+        traversed by a segment but contained no point.
     """
     cdef:
         cnp.npy_intp nb_streamlines = len(streamlines._lengths)

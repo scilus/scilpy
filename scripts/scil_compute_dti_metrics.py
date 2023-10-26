@@ -52,10 +52,6 @@ logger = logging.getLogger("Compute_DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 
-def _get_min_nonzero_signal(data):
-    return np.min(data[data > 0])
-
-
 def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__,
@@ -200,10 +196,10 @@ def main():
     if args.method == 'restore':
         sigma = ne.estimate_sigma(data)
         tenmodel = TensorModel(gtab, fit_method=args.method, sigma=sigma,
-                               min_signal=_get_min_nonzero_signal(data))
+                               min_signal=np.min(data[data > 0]))
     else:
         tenmodel = TensorModel(gtab, fit_method=args.method,
-                               min_signal=_get_min_nonzero_signal(data))
+                               min_signal=np.min(data[data > 0]))
 
     tenfit = tenmodel.fit(data, mask)
 
@@ -384,17 +380,24 @@ def main():
         if args.mask is None:
             logger.info("Outlier detection will not be performed, since no "
                         "mask was provided.")
-        stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi', 'whishi',
-                                'whislo', 'fliers', 'q1', 'med', 'q3'], [])
-                 for i in range(data.shape[-1])]  # stats with format for boxplots
+
+        stats = [dict.fromkeys(['label', 'mean', 'iqr', 'cilo', 'cihi',
+                                'whishi', 'whislo', 'fliers', 'q1',
+                                'med', 'q3'], [])
+                 for i in range(data.shape[-1])]
         # Note that stats will be computed manually and plotted using bxp
         # but could be computed using stats = cbook.boxplot_stats
         # or pyplot.boxplot(x)
-        R_k = np.zeros(data.shape[-1], dtype=np.float32)    # mean residual per DWI
-        std = np.zeros(data.shape[-1], dtype=np.float32)  # std residual per DWI
-        q1 = np.zeros(data.shape[-1], dtype=np.float32)   # first quartile per DWI
-        q3 = np.zeros(data.shape[-1], dtype=np.float32)   # third quartile per DWI
-        iqr = np.zeros(data.shape[-1], dtype=np.float32)  # interquartile per DWI
+        # mean residual per DWI
+        R_k = np.zeros(data.shape[-1], dtype=np.float32)
+        # std residual per DWI
+        std = np.zeros(data.shape[-1], dtype=np.float32)
+        # first quartile per DWI
+        q1 = np.zeros(data.shape[-1], dtype=np.float32)
+        # third quartile per DWI
+        q3 = np.zeros(data.shape[-1], dtype=np.float32)
+        # interquartile per DWI
+        iqr = np.zeros(data.shape[-1], dtype=np.float32)
         percent_outliers = np.zeros(data.shape[-1], dtype=np.float32)
         nb_voxels = np.count_nonzero(mask)
         for k in range(data.shape[-1]):

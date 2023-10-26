@@ -22,7 +22,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             redirect_stdout_c)
 from scilpy.utils.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 
@@ -91,15 +92,6 @@ def _build_arg_parser():
     return p
 
 
-def redirect_stdout_c():
-    sys.stdout.flush()
-    newstdout = os.dup(1)
-    devnull = os.open(os.devnull, os.O_WRONLY)
-    os.dup2(devnull, 1)
-    os.close(devnull)
-    sys.stdout = os.fdopen(newstdout, 'w')
-
-
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -135,9 +127,10 @@ def main():
     np.savetxt(tmp_bval_filename, shells_centroids[indices_shells],
                newline=' ', fmt='%i')
     fsl2mrtrix(tmp_bval_filename, args.in_bvec, tmp_scheme_filename)
-    logging.debug('Compute FreeWater with AMICO on {} shells at found at {}.'.format(
-        len(shells_centroids),
-        shells_centroids))
+    logging.debug(
+        'Compute FreeWater with AMICO on {} shells at found at {}.'.format(
+            len(shells_centroids),
+            shells_centroids))
 
     with redirected_stdout:
         amico.core.setup()
