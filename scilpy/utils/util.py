@@ -51,9 +51,23 @@ class WorldBoundingBox(object):
 
 
 def voxel_to_world(coord, affine):
-    """Takes a n dimensionnal voxel coordinate and returns its 3 first
+    """
+    Takes a n dimensionnal voxel coordinate and returns its 3 first
     coordinates transformed to world space from a given voxel to world affine
-    transformation."""
+    transformation.
+
+    Parameters
+    ----------
+    coord: np.ndarray
+        N-dimensional world coordinate array.
+    affine: np.array
+        Image affine.
+
+    Returns
+    -------
+    world_coord: np.ndarray
+        Array of world coordinates.
+    """
 
     normalized_coord = row[coord[0:3], 1.0].astype(float)
     world_coord = np.dot(affine, normalized_coord)
@@ -61,9 +75,23 @@ def voxel_to_world(coord, affine):
 
 
 def world_to_voxel(coord, affine):
-    """Takes a n dimensionnal world coordinate and returns its 3 first
+    """
+    Takes a n dimensionnal world coordinate and returns its 3 first
     coordinates transformed to voxel space from a given voxel to world affine
-    transformation."""
+    transformation.
+
+    Parameters
+    ----------
+    coord: np.ndarray
+        N-dimensional world coordinate array.
+    affine: np.array
+        Image affine.
+
+    Returns
+    -------
+    vox_coord: np.ndarray
+        Array of voxel coordinates.
+    """
 
     normalized_coord = row[coord[0:3], 1.0].astype(float)
     iaffine = np.linalg.inv(affine)
@@ -73,8 +101,20 @@ def world_to_voxel(coord, affine):
 
 
 def compute_nifti_bounding_box(img):
-    """Finds bounding box from data and transforms it in world space for use
-    on data with different attributes like voxel size."""
+    """
+    Finds bounding box from data and transforms it in world space for use
+    on data with different attributes like voxel size.
+
+    Parameters
+    ----------
+    img: nib.Nifti1Image
+        Input image file.
+
+    Returns
+    -------
+    wbbox: WorldBoundingBox Object
+        Bounding box in world space.
+    """
     data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
     voxel_size = img.header.get_zooms()[0:3]

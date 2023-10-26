@@ -53,7 +53,8 @@ def flip_volume(data, axes):
 
     Return
     ------
-    data: Flipped volume data along specified axes.
+    data: np.ndarray
+        Flipped volume data along specified axes.
     """
     if 'x' in axes:
         data = data[::-1, ...]
