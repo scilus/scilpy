@@ -31,13 +31,14 @@ def test_add_b0s_and_correct_b0s():
         points, idx, start_b0=True, b0_every=3, finish_b0=False)
     # With 4 b-vectors: we should have [b0 1 2 b0 3 4]
     assert len(new_points) == len(points) + 2
+    assert new_shells[0] == -1  # -1 = the "b0 shell".
 
-    print(new_points)
-    print(new_shells)
-    new_points, nb_shells = correct_b0s_philips(new_points, new_shells)
-    print(new_points)
-    print(new_shells)
-    assert False
+    new_points, new_shells2 = correct_b0s_philips(new_points, new_shells)
+    assert new_shells2 == new_shells
+    # We want to verify that all rows are unique. One way to do it fast is
+    # to calculate the correlation matrix and ask if only the diagonal elements
+    # are 1. Thanks stackoverflow!
+    assert np.sum(np.corrcoef(new_points) == 1) == new_points.shape[0]
 
 
 def test_compute_min_duty_cycle_bruteforce():

@@ -59,8 +59,8 @@ def _build_arg_parser():
     g = p.add_argument_group("b0 acquisitions")
     gg = p.add_mutually_exclusive_group()
     gg.add_argument('--no_b0_start',
-                    help="If set, do not add a b0 at the beginning. Default is "
-                         "to have one.")
+                    help="If set, do not add a b0 at the beginning. Default "
+                         "is to have one.")
     gg.add_argument('--b0_every', type=int,
                     help='Interleave a b0 every n=b0_every values. Starts '
                          'after the first b0 (cannot be used with '

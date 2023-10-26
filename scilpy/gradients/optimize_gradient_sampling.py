@@ -8,11 +8,10 @@ from scipy.spatial.distance import cdist, pdist, squareform
 
 def swap_sampling_eddy(points, shell_idx):
     """
-    Optimize the bvecs of fixed multi-shell gradient sampling for eddy
-    currents correction (fsl EDDY).
+    Optimize the bvecs of fixed multi-shell gradient sampling for eddy currents
+    correction (fsl EDDY).
 
-    Bruteforce approach to maximally spread the bvec,
-    shell per shell.
+    Bruteforce approach to maximally spread the bvec, shell per shell.
 
     For each shell:
         For each vector:
@@ -179,13 +178,13 @@ def add_b0s_to_bvectors(points, shell_idx, start_b0=True, b0_every=None,
 
 def correct_b0s_philips(points, shell_idx):
     """
-    Replace the [0.0, 0.0, 0.0] value of b0s bvecs
-    by existing bvecs in the gradient sampling.
+    Replace the [0.0, 0.0, 0.0] value of b0s bvecs by existing bvecs in the
+    gradient sampling, except possibly the first one.
 
-    This is useful because Recon 1.0 of Philips allocates memory
-    proportional to (total nb. of diff. bvals) x (total nb. diff. bvecs)
-    and we can't leave multiple b0s with b-vector [0.0, 0.0, 0.0] and b-value 0
-    because (b-vector, b-value) pairs have to be unique.
+    This is useful because Recon 1.0 of Philips allocates memory proportional
+    to (total nb. of diff. bvals) x (total nb. diff. bvecs) and we can't leave
+    multiple b0s with b-vector [0.0, 0.0, 0.0] and b-value 0 because
+    (b-vector, b-value) pairs have to be unique.
 
     Parameters
     ----------
@@ -298,6 +297,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
 def compute_peak_power(q_scheme, ker_size=10):
     """
+    toDo: Description of peak power.
 
     Parameters
     ------
@@ -362,8 +362,7 @@ def compute_bvalue_lin_q(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
 def compute_bvalue_lin_b(bmin=0.0, bmax=3000.0, nb_of_b_inside=2,
                          exclude_bmin=True):
     """
-    Compute bvals linearly distributed in b-value in the
-    interval [bmin, bmax].
+    Compute bvals linearly distributed in b-value in the interval [bmin, bmax].
 
     Parameters
     ----------
