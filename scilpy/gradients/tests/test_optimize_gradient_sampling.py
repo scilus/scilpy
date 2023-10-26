@@ -34,11 +34,12 @@ def test_add_b0s_and_correct_b0s():
     assert new_shells[0] == -1  # -1 = the "b0 shell".
 
     new_bvecs, new_shells2 = correct_b0s_philips(new_bvecs, new_shells)
-    assert new_shells2 == new_shells
-    # We want to verify that all rows are unique. One way to do it fast is
-    # to calculate the correlation matrix and ask if only the diagonal elements
-    # are 1. Thanks stackoverflow!
-    assert np.sum(np.corrcoef(new_bvecs) == 1) == new_bvecs.shape[0]
+    assert np.array_equal(new_shells2, new_shells)
+    # We want to verify that all rows are unique per shell.
+    for shell_nb in [-1, 0]:
+        shell_bvecs = new_bvecs[new_shells2 == shell_nb, :].tolist()
+        for i, b in enumerate(shell_bvecs):
+            assert b not in shell_bvecs[i + 1:-1]
 
 
 def test_compute_min_duty_cycle_bruteforce():
