@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 
 
-def swap_sampling_eddy(points, shell_idx):
+def swap_sampling_eddy(bvecs, shell_idx):
     """
     Optimize the bvecs of fixed multi-shell gradient sampling for eddy currents
     correction (fsl EDDY).
@@ -23,20 +23,20 @@ def swap_sampling_eddy(points, shell_idx):
 
     Parameters
     ----------
-    points: numpy.array
+    bvecs: numpy.array
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs.
 
     Returns
     -------
-    points: numpy.array
+    new_bvecs: numpy.array
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs.
     """
 
-    new_points = points.copy()
+    new_bvecs = bvecs.copy()
     nb_points_per_shell = _compute_nb_points_per_shell_from_idx(shell_idx)
     max_nb_iter = 100
 
@@ -44,7 +44,7 @@ def swap_sampling_eddy(points, shell_idx):
     for shell in range(len(nb_points_per_shell)):
         # Extract points from shell
         this_shell_idx = shell_idx == shell
-        shell_pts = points[this_shell_idx].copy()
+        shell_pts = bvecs[this_shell_idx].copy()
 
         logging.debug('Shell = {}'.format(shell))
 
@@ -62,7 +62,8 @@ def swap_sampling_eddy(points, shell_idx):
                 # Find closest neighbor w.r.t. metric of dist
                 to_move = np.argmin(dist[pts_idx])
 
-                # Compute new column of system matrix with flipped toMove point
+                # Compute new column of system matrix with flipped to_move
+                # point
                 new_col = cdist(shell_pts, -shell_pts[None, to_move]).squeeze()
 
                 old_pts_ener = dist[to_move].sum()
@@ -80,9 +81,9 @@ def swap_sampling_eddy(points, shell_idx):
 
             it += 1
 
-        new_points[this_shell_idx] = shell_pts
+        new_bvecs[this_shell_idx] = shell_pts
 
-    return new_points, shell_idx
+    return new_bvecs, shell_idx
 
 
 def _compute_nb_points_per_shell_from_idx(shell_idx):
@@ -108,17 +109,17 @@ def _compute_nb_points_per_shell_from_idx(shell_idx):
     return nb_points_per_shell
 
 
-def add_b0s_to_bvecs(points, shell_idx, start_b0=True, b0_every=None,
+def add_b0s_to_bvecs(bvecs, shell_idx, start_b0=True, b0_every=None,
                      finish_b0=False):
     """
     Add interleaved b0s to gradient sampling.
 
     Parameters
     ----------
-    points: numpy.array,
+    bvecs: numpy.array,
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs.
     start_b0: bool
         Option to add a b0 at the beginning.
     b0_every: integer or None
@@ -129,15 +130,14 @@ def add_b0s_to_bvecs(points, shell_idx, start_b0=True, b0_every=None,
 
     Return
     ------
-    points: numpy.array
+    new_bvecs: numpy.array
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points. Vectors with shells of value -1 are b0
-        vectors.
+        Shell index for bvecs. Vectors with shells of value -1 are b0 vectors.
     nb_new_b0s: int
         The number of b0s interleaved.
     """
-    new_points = []
+    new_bvecs = []
     new_shell_idx = []
 
     # Only a b0 at the beginning.
@@ -159,24 +159,24 @@ def add_b0s_to_bvecs(points, shell_idx, start_b0=True, b0_every=None,
         for idx in range(nb_points_total):
             if not idx % (b0_every - 1):
                 # insert b0
-                new_points.append(np.array([0.0, 0.0, 0.0]))
+                new_bvecs.append(np.array([0.0, 0.0, 0.0]))
                 new_shell_idx.append(-1)  # Shell -1 ==> means b0.
 
             # Add pre-defined points.
-            new_points.append(points[idx])
+            new_bvecs.append(bvecs[idx])
             new_shell_idx.append(shell_idx[idx])
 
     if finish_b0 and (new_shell_idx[-1] != -1):
         # insert b0
-        new_points.append(np.array([0.0, 0.0, 0.0]))
+        new_bvecs.append(np.array([0.0, 0.0, 0.0]))
         new_shell_idx.append(-1)
 
     nb_new_b0s = len(new_shell_idx) - shell_idx.shape[0]
 
-    return np.asarray(new_points), np.asarray(new_shell_idx), nb_new_b0s
+    return np.asarray(new_bvecs), np.asarray(new_shell_idx), nb_new_b0s
 
 
-def correct_b0s_philips(points, shell_idx):
+def correct_b0s_philips(bvecs, shell_idx):
     """
     Replace the [0.0, 0.0, 0.0] value of b0s bvecs by existing bvecs in the
     gradient sampling, except possibly the first one.
@@ -188,23 +188,21 @@ def correct_b0s_philips(points, shell_idx):
 
     Parameters
     ----------
-    points: numpy.array
+    bvecs: numpy.array
         bvecs normalized to 1
     shell_idx: numpy.array
-        Shell index for bvecs in points. Vectors with shells of value -1 are b0
-        vectors.
+        Shell index for bvecs. Vectors with shells of value -1 are b0 vectors.
 
     Return
     ------
-    points: numpy.array
+    new_bvecs: numpy.array
         bvecs normalized to 1. b0 vectors are now impossible to know as they
         are replaced by random values from another vector.
     shell_idx: numpy.array
-        Shell index for bvecs in points. b0 vectors still have shells of value
-        -1.
+        Shell index for bvecs. b0 vectors still have shells of value -1.
     """
 
-    new_points = points.copy()
+    new_bvecs = bvecs.copy()
 
     # We could replace by a random value, but (we think that... to verify?)
     # the machine is more efficient if we copy the previous gradient; the
@@ -217,15 +215,15 @@ def correct_b0s_philips(points, shell_idx):
     # 3. Assume that we never have two b0s one after the other. This is how we
     # build them in our scripts.
 
-    new_points[np.where(shell_idx == -1)[0][1:]] \
-        = new_points[np.where(shell_idx == -1)[0][1:] - 1]
+    new_bvecs[np.where(shell_idx == -1)[0][1:]] \
+        = new_bvecs[np.where(shell_idx == -1)[0][1:] - 1]
 
     logging.info('Done adapting b0s for Philips scanner.')
 
-    return new_points, shell_idx
+    return new_bvecs, shell_idx
 
 
-def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
+def compute_min_duty_cycle_bruteforce(bvecs, shell_idx, bvals, ker_size=10,
                                       nb_iter=100000, rand_seed=0):
     """
     Optimize the ordering of non-b0 samples to optimize gradient duty-cycle.
@@ -236,15 +234,15 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
     1) Randomly permuting the non-b0s samples
     2) Finding the peak X, Y, and Z amplitude with a sliding-window
-    3) Computint the peak power needed as max(peak_x, peak_y, peak_z)
+    3) Computing the peak power needed as max(peak_x, peak_y, peak_z)
     4) Keeping the permutation yielding the lowest peak power
 
     Parameters
     ----------
-    points: numpy.array
+    bvecs: numpy.array
         bvecs normalized to 1
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs.
     bvals: list
         increasing bvals, b0 last.
     ker_size: int
@@ -256,10 +254,10 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
 
     Return
     ------
-    points: numpy.array
+    new_bvecs: numpy.array
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for bvecs.
     """
 
     logging.debug('Shuffling Data (N_iter = {}, \
@@ -269,7 +267,7 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     N_dir = non_b0s_mask.sum()
 
     sqrt_val = np.sqrt(np.array([bvals[idx] for idx in shell_idx]))
-    q_scheme = np.abs(points * sqrt_val[:, None])
+    q_scheme = np.abs(bvecs * sqrt_val[:, None])
 
     q_scheme_current = q_scheme.copy()
 
@@ -296,18 +294,25 @@ def compute_min_duty_cycle_bruteforce(points, shell_idx, bvals, ker_size=10,
     logging.info('Duty cycle optimization finished ({} iterations). '
                  'Final peak power: {}'.format(nb_iter, power_best))
 
-    new_points = points.copy()
-    new_points[non_b0s_mask] = points[non_b0s_mask][ordering_best]
+    new_bvecs = bvecs.copy()
+    new_bvecs[non_b0s_mask] = bvecs[non_b0s_mask][ordering_best]
 
     new_shell_idx = shell_idx.copy()
     new_shell_idx[non_b0s_mask] = shell_idx[non_b0s_mask][ordering_best]
 
-    return new_points, new_shell_idx
+    return new_bvecs, new_shell_idx
 
 
 def compute_peak_power(q_scheme, ker_size=10):
     """
-    toDo: Description of peak power.
+    Function suggested by Guillaume Gilbert.
+
+    Optimize the diffusion gradient table by minimizing the maximum gradient
+    load on any of the 3 axes over a preset temporal window (i.e. successive
+    b-vectors).
+
+    In short, we want to avoid using the same gradient axis (x, y, or z)
+    intensely for many successive b-vectors.
 
     Parameters
     ------
@@ -321,9 +326,10 @@ def compute_peak_power(q_scheme, ker_size=10):
         Max peak power from q_scheme.
     """
 
-    # Note: np.convolve inverses the filter
+    # Using a filter of ones = moving average.
     ker = np.ones(ker_size)
 
+    # Note: np.convolve inverses the filter
     pow_x = np.convolve(q_scheme[:, 0], ker, 'full')[:-(ker_size-1)]
     pow_y = np.convolve(q_scheme[:, 1], ker, 'full')[:-(ker_size-1)]
     pow_z = np.convolve(q_scheme[:, 2], ker, 'full')[:-(ker_size-1)]

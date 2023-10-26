@@ -14,58 +14,65 @@ def test_swap_sampling_eddy():
 
 def test_add_b0s_and_correct_b0s():
     nb_samples_per_shell = [4]
-    points, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
+    bvecs, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
 
-    new_points, new_shells, nb_new = add_b0s_to_bvecs(
-        points, idx, start_b0=True, b0_every=None, finish_b0=False)
+    new_bvecs, new_shells, nb_new = add_b0s_to_bvecs(
+        bvecs, idx, start_b0=True, b0_every=None, finish_b0=False)
     # With 4 b-vectors: we should have [b0 1 2 3 4]
-    assert len(new_points) == len(points) + 1
+    assert len(new_bvecs) == len(bvecs) + 1
 
-    new_points, new_shells, nb_new = add_b0s_to_bvecs(
-        points, idx, start_b0=True, b0_every=3, finish_b0=True)
+    new_bvecs, new_shells, nb_new = add_b0s_to_bvecs(
+        bvecs, idx, start_b0=True, b0_every=3, finish_b0=True)
     # With 4 b-vectors: we should have [b0 1 2 b0 3 4 b0]
-    assert len(new_points) == len(points) + 3
+    assert len(new_bvecs) == len(bvecs) + 3
     assert nb_new == 3
 
-    new_points, new_shells, nb_new = add_b0s_to_bvecs(
-        points, idx, start_b0=True, b0_every=3, finish_b0=False)
+    new_bvecs, new_shells, nb_new = add_b0s_to_bvecs(
+        bvecs, idx, start_b0=True, b0_every=3, finish_b0=False)
     # With 4 b-vectors: we should have [b0 1 2 b0 3 4]
-    assert len(new_points) == len(points) + 2
+    assert len(new_bvecs) == len(bvecs) + 2
     assert new_shells[0] == -1  # -1 = the "b0 shell".
 
-    new_points, new_shells2 = correct_b0s_philips(new_points, new_shells)
+    new_bvecs, new_shells2 = correct_b0s_philips(new_bvecs, new_shells)
     assert new_shells2 == new_shells
     # We want to verify that all rows are unique. One way to do it fast is
     # to calculate the correlation matrix and ask if only the diagonal elements
     # are 1. Thanks stackoverflow!
-    assert np.sum(np.corrcoef(new_points) == 1) == new_points.shape[0]
+    assert np.sum(np.corrcoef(new_bvecs) == 1) == new_bvecs.shape[0]
 
 
 def test_compute_min_duty_cycle_bruteforce():
     nb_samples_per_shell = [16]
     bvals = [1000]
-    points, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
+    bvecs, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
 
-    new_points, new_idx = compute_min_duty_cycle_bruteforce(points, idx, bvals)
-    assert len(points) == len(new_points)
+    new_bvecs, new_idx = compute_min_duty_cycle_bruteforce(bvecs, idx, bvals)
+    assert len(bvecs) == len(new_bvecs)
 
-    # Verifying that they are the same points; up to a permutation.
-    new_points = new_points.tolist()
-    points = points.tolist()
+    # Verifying that they are the same bvecs; up to a permutation.
+    new_bvecs = new_bvecs.tolist()
+    bvecs = bvecs.tolist()
     for i in range(16):
-        assert points[i] in new_points
+        assert bvecs[i] in new_bvecs
 
 
 def test_compute_peak_power():
-    nb_samples_per_shell = [4]
+    nb_samples_per_shell = [6]
     bvals = [1000]
-    points, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
+    bvecs, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
 
+    # q value is proportional to abs of sqrt of b-value.
+    # See code in compute_min_duty_cycle_bruteforce
     sqrt_val = np.sqrt(np.array([bvals[idx] for idx in idx]))
-    q_scheme = np.abs(points * sqrt_val[:, None])
-    power_best = compute_peak_power(q_scheme)
+    q_scheme = np.abs(bvecs * sqrt_val[:, None])
 
-    # toDO. What to test here????
+    power_best = compute_peak_power(q_scheme, ker_size=6)
+
+    # kern size = nb samples, so should simply compute the max of the sum
+    # per axis in the whole sample.
+    mean_per_axis = np.sum(q_scheme, axis=0)
+    max_total = np.max(mean_per_axis)
+    assert max_total == power_best
 
 
 def test_compute_bvalue_lin_q():

@@ -130,13 +130,13 @@ def main():
     # Generates the b-vectors only. We will set their b-values after.
     logging.info("Generating b-vectors.")
     scipy_verbose = int(3 - logging.getLogger().getEffectiveLevel()//10)
-    points, shell_idx = generate_gradient_sampling(
+    bvecs, shell_idx = generate_gradient_sampling(
         args.nb_samples_per_shell, verbose=scipy_verbose)
 
     # eddy current optimization
     if args.eddy:
         logging.info("Optimizing values for Eddy current.")
-        points, shell_idx = swap_sampling_eddy(points, shell_idx)
+        bvecs, shell_idx = swap_sampling_eddy(bvecs, shell_idx)
 
     # ---- b-values
     logging.info("Preparing b-values.")
@@ -156,7 +156,7 @@ def main():
     add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
     if add_at_least_a_b0:
         bvals.append(args.b0_value)
-        points, shell_idx, nb_b0s = add_b0s_to_bvecs(points, shell_idx,
+        bvecs, shell_idx, nb_b0s = add_b0s_to_bvecs(bvecs, shell_idx,
                                                      start_b0=b0_start,
                                                      b0_every=args.b0_every,
                                                      finish_b0=args.b0_end)
@@ -168,26 +168,26 @@ def main():
     if args.duty:
         logging.info("Optimizing the ordering of non-b0s samples to optimize "
                      "gradient duty-cycle.")
-        points, shell_idx = compute_min_duty_cycle_bruteforce(
-            points, shell_idx, bvals)
+        bvecs, shell_idx = compute_min_duty_cycle_bruteforce(
+            bvecs, shell_idx, bvals)
 
     # Correcting b0s bvecs for Philips
     if args.b0_philips and np.sum(shell_idx == -1) > 1:
         logging.info("Correcting b0 vectors for Philips")
-        points, shell_idx = correct_b0s_philips(points, shell_idx)
+        bvecs, shell_idx = correct_b0s_philips(bvecs, shell_idx)
 
     logging.info("Done. Saving in {}".format(out_filename))
 
     if args.fsl:
-        save_gradient_sampling_fsl(points, shell_idx, bvals,
+        save_gradient_sampling_fsl(bvecs, shell_idx, bvals,
                                    out_filename[0], out_filename[1])
     else:  # args.mrtrix:
-        if not points.shape[0] == 3:
-            points = points.transpose()
-            save_gradient_sampling_mrtrix(points, shell_idx, bvals,
+        if not bvecs.shape[0] == 3:
+            bvecs = bvecs.transpose()
+            save_gradient_sampling_mrtrix(bvecs, shell_idx, bvals,
                                           filename=out_filename)
         else:
-            raise ValueError("Expecting points.shape[0] to be different than "
+            raise ValueError("Expecting bvecs.shape[0] to be different than "
                              "3 but not the case. Error in scilpy's code? "
                              "What is the case here?")
 

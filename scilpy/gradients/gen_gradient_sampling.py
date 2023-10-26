@@ -38,10 +38,10 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     Return
     ------
-    points: numpy.array of shape [n, 3]
+    bvecs: numpy.array of shape [n, 3]
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for each bvec in the returned matrix 'points'.
+        Shell index for each bvec.
     """
 
     nb_shells = len(nb_samples_per_shell)
@@ -58,13 +58,13 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
 
     # Where the optimized gradient sampling is computed
     # max_iter hardcoded to fit default Caruyer's value
-    points = _generate_gradient_sampling_with_weights(
+    bvecs = _generate_gradient_sampling_with_weights(
         nb_shells, nb_samples_per_shell, weights, max_iter=100,
         verbose=verbose)
 
     shell_idx = np.repeat(range(nb_shells), nb_samples_per_shell)
 
-    return points, shell_idx
+    return bvecs, shell_idx
 
 
 def _compute_weights(nb_shells, nb_points_per_shell, shell_groups, alphas):
@@ -276,7 +276,7 @@ def _grad_electrostatic_repulsion_energy(bvecs, weight_matrix, alpha=1.0):
     bvecs : array-like shape (N * 3,)
         Vectors.
     weight_matrix: array-like, shape (N, N)
-        The contribution weight of each pair of points.
+        The contribution weight of each pair of bvec.
     alpha : float
         Controls the power of the repulsion. Default is 1.0
 
