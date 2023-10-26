@@ -21,8 +21,6 @@ implementations:
         GPU implementation uses an in-house OpenCL implementation.
     * Algo: For the GPU implementation, the only available algorithm is
         Algo 'prob'.
-    * Tracking sphere: The only sphere available for GPU tracking is
-        `repulsion724` and `--sub_sphere` is not available for GPU tracking.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
