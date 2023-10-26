@@ -15,7 +15,7 @@ from scilpy.tractograms.streamline_and_mask_operations import (
     get_endpoints_density_map,
     get_head_tail_density_maps)
 
-fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
+fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 

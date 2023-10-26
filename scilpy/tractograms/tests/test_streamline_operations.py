@@ -4,23 +4,61 @@ import tempfile
 
 import numpy as np
 from dipy.io.streamline import load_tractogram
+from dipy.tracking.streamlinespeed import length
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
-from scilpy.tractograms.streamline_operations import \
-    resample_streamlines_num_points, resample_streamlines_step_size
+from scilpy.tractograms.streamline_operations import (
+    filter_streamlines_by_length,
+    resample_streamlines_num_points,
+    resample_streamlines_step_size)
 
-# Prepare SFT
-fetch_data(get_testing_files_dict(), keys='surface_vtk_fib.zip')
+fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
-in_sft = os.path.join(get_home(), 'surface_vtk_fib', 'gyri_fanning.trk')
-
-# Loading and keeping only a few streamlines for faster testing.
-sft = load_tractogram(in_sft, 'same')[0:4]
 
 
-def test_filter_streamlines_by_length():
-    # toDo
-    pass
+def _setup_files():
+    """ Load streamlines and masks relevant to the tests here.
+    """
+    os.chdir(os.path.expanduser(tmp_dir.name))
+
+    in_sft = os.path.join(get_home(), 'tracking',
+                          'pft.trk')
+    # Load sft
+    sft = load_tractogram(in_sft, 'same')
+    return sft
+
+
+def test_filter_streamlines_by_length_max_length():
+    """ Test the filter_streamlines_by_length function with a max length.
+    """
+
+    sft = _setup_files()
+
+    min_length = 0.
+    max_length = 100
+    # Filter streamlines by length and get the lengths
+    resampled_sft = filter_streamlines_by_length(
+        sft, min_length=min_length, max_length=max_length)
+    lengths = length(resampled_sft.streamlines)
+
+    assert np.all(lengths <= max_length)
+
+
+def test_filter_streamlines_by_length_min_length():
+    """ Test the filter_streamlines_by_length function with a min length.
+    """
+
+    sft = _setup_files()
+
+    min_length = 100
+    max_length = np.inf
+
+    # Filter streamlines by length and get the lengths
+    resampled_sft = filter_streamlines_by_length(
+        sft, min_length=min_length, max_length=max_length)
+    lengths = length(resampled_sft.streamlines)
+
+    assert np.all(lengths >= min_length)
 
 
 def test_filter_streamlines_by_total_length_per_dim():
@@ -28,31 +66,64 @@ def test_filter_streamlines_by_total_length_per_dim():
     pass
 
 
-def test_resample_streamlines_num_points():
-    lengths = [len(s) for s in sft.streamlines]
+def test_resample_streamlines_num_points_2():
+    """ Test the resample_streamlines_num_points function to 2 points.
+    """
 
-    nb_points_down = min(lengths) - 1  # Downsampling all
-    nb_points_up = max(lengths) + 1  # Upsampling all
+    sft = _setup_files()
+    nb_points = 2
 
-    for nb_points in [nb_points_up, nb_points_down]:
-        sft2 = resample_streamlines_num_points(sft, nb_points)
-        lengths2 = [len(s) for s in sft2.streamlines]
-        assert np.all(np.asarray(lengths2, dtype=int) == nb_points)
+    resampled_sft = resample_streamlines_num_points(sft, nb_points)
+    lengths = [len(s) == nb_points for s in resampled_sft.streamlines]
+
+    assert np.all(lengths)
 
 
-def test_resample_streamlines_step_size():
+def test_resample_streamlines_num_points_1000():
+    """ Test the resample_streamlines_num_points function to 1000 points.
+    """
+
+    sft = _setup_files()
+    nb_points = 1000
+
+    resampled_sft = resample_streamlines_num_points(sft, nb_points)
+    lengths = [len(s) == nb_points for s in resampled_sft.streamlines]
+
+    assert np.all(lengths)
+
+
+def test_resample_streamlines_step_size_1mm():
+    """ Test the resample_streamlines_step_size function to 1mm.
+    """
+
+    sft = _setup_files()
+
     step_size = 1.0
-    sft2 = resample_streamlines_step_size(sft, step_size)
+    resampled_sft = resample_streamlines_step_size(sft, step_size)
 
-    # Checking only first streamline:
-    steps = np.sqrt(np.sum(np.diff(sft2.streamlines[0], axis=0)**2, axis=-1))
-    print(steps)
+    # Compute the step size of each streamline and concatenate them
+    # to get a single array of steps
+    steps = np.concatenate([np.linalg.norm(np.diff(s, axis=0), axis=-1)
+                            for s in resampled_sft.streamlines])
+    # Tolerance of 10% of the step size
+    assert np.allclose(steps, step_size, atol=0.1), steps
 
-    # From our tests:
-    #  - with step_size 0.5: steps are ~0.5079
-    #  - with step_size 1.0: steps are ~1.048
-    #  - with step_size 1.0: steps are ~2.24
-    assert np.allclose(steps, step_size, atol=0.05)
+
+def test_resample_streamlines_step_size_01mm():
+    """ Test the resample_streamlines_step_size function to 0.1mm.
+    """
+
+    sft = _setup_files()
+
+    step_size = 0.1
+    resampled_sft = resample_streamlines_step_size(sft, step_size)
+
+    # Compute the step size of each streamline and concatenate them
+    # to get a single array of steps
+    steps = np.concatenate([np.linalg.norm(np.diff(s, axis=0), axis=-1)
+                            for s in resampled_sft.streamlines])
+    # Tolerance of 10% of the step size
+    assert np.allclose(steps, step_size, atol=0.01), steps
 
 
 def compute_streamline_segment():

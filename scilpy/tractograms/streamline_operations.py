@@ -76,6 +76,7 @@ def _get_point_on_line(first_point, second_point, vox_lower_corner):
 
     t0 = 0
     t1 = np.inf
+
     for i in range(3):
         if ray[i] != 0.:
             inv_ray = 1. / ray[i]
@@ -236,6 +237,7 @@ def resample_streamlines_num_points(sft, num_points):
 
     # Resampling
     resampled_streamlines = []
+    # TODO: Can we do this without a loop?
     for streamline in sft.streamlines:
         line = set_number_of_points(streamline, num_points)
         resampled_streamlines.append(line)
@@ -285,6 +287,7 @@ def resample_streamlines_step_size(sft, step_size):
         logging.warning("Some streamlines are shorter than the provided "
                         "step size...")
         nb_points[nb_points == 1] = 2
+
     resampled_streamlines = [set_number_of_points(s, n) for s, n in
                              zip(sft.streamlines, nb_points)]
 
@@ -338,6 +341,9 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     additional_exit_pt = None
     nb_points = 0
 
+    # TODO: Check if we can simplify this function and optimize it
+    # The `at_point` variable is especially weird
+
     # Check if the indexed voxel contains a real streamline point
     in_strl_point = _get_streamline_pt_index(points_to_indices,
                                              in_vox_idx)
@@ -351,7 +357,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
                                                  inter_vox[in_vox_idx])
         nb_points += 1
 
-    # Generate point for the current voxel
+    # Get point for the current voxel
     exit_strl_point = _get_streamline_pt_index(points_to_indices,
                                                out_vox_idx,
                                                from_start=False)
@@ -371,6 +377,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         nb_points += nb_points_orig_strl
 
     segment = np.zeros((nb_points, 3))
+    # at_point is used to know where to put the next point in the segment
     at_point = 0
 
     if additional_start_pt is not None:
@@ -393,15 +400,34 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
 
 
 def smooth_line_gaussian(streamline, sigma):
+    """ Smooth a streamline using a gaussian filter.
+
+    Parameters
+    ----------
+    streamline: np.ndarray
+        The streamline to smooth.
+    sigma: float
+        The sigma of the gaussian filter.
+
+    Returns
+    -------
+    smoothed_streamline: np.ndarray
+        The smoothed streamline.
+    """
+
     if sigma < 0.00001:
         ValueError('Cant have a 0 sigma with gaussian.')
 
+    # We need to have at least 2 points to smooth
     nb_points = int(length(streamline))
     if nb_points < 2:
         logging.debug('Streamline shorter than 1mm, corner cases possible.')
         nb_points = 2
+
     sampled_streamline = set_number_of_points(streamline, nb_points)
 
+    # Smooth each dimension separately
+    # TODO: Can achieve the same result smoothing all dimensions at once?
     x, y, z = sampled_streamline.T
     x3 = ndi.gaussian_filter1d(x, sigma)
     y3 = ndi.gaussian_filter1d(y, sigma)
@@ -415,8 +441,28 @@ def smooth_line_gaussian(streamline, sigma):
     return smoothed_streamline
 
 
-def smooth_line_spline(streamline, sigma, nb_ctrl_points):
-    if sigma < 0.00001:
+def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
+    """ Smooth a streamline using a spline. The number of control points
+    can be specified, but must be at least 3.
+
+    # TODO: Set a default value for the number of control points.
+
+    Parameters
+    ----------
+    streamline: np.ndarray
+        The streamline to smooth.
+    smoothing_parameter: float
+        The sigma of the .
+    nb_ctrl_points: int
+        The number of control points.
+
+    Returns
+    -------
+    smoothed_streamline: np.ndarray
+        The smoothed streamline.
+    """
+
+    if smoothing_parameter < 0.00001:
         ValueError('Cant have a 0 sigma with spline.')
 
     nb_points = int(length(streamline))
@@ -426,9 +472,13 @@ def smooth_line_spline(streamline, sigma, nb_ctrl_points):
     if nb_ctrl_points < 3:
         nb_ctrl_points = 3
 
+    # Resample the streamline to have the desired number of points
+    # which will be used as control points for the spline
     sampled_streamline = set_number_of_points(streamline, nb_ctrl_points)
 
-    tck, u = splprep(sampled_streamline.T, s=sigma)
+    # Fit the spline using the control points
+    tck, u = splprep(sampled_streamline.T, s=smoothing_parameter)
+    # Evaluate the spline at 99 points # TODO: why 99?
     smoothed_streamline = splev(np.linspace(0, 1, 99), tck)
     smoothed_streamline = np.squeeze(np.asarray([smoothed_streamline]).T)
 
