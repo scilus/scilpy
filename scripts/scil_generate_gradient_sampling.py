@@ -21,7 +21,7 @@ from scilpy.io.utils import (
 from scilpy.gradients.gen_gradient_sampling import (
     generate_gradient_sampling)
 from scilpy.gradients.optimize_gradient_sampling import (
-    add_b0s_to_bvectors, compute_bvalue_lin_b, compute_bvalue_lin_q,
+    add_b0s_to_bvecs, compute_bvalue_lin_b, compute_bvalue_lin_q,
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
 from scilpy.io.save_gradient_sampling import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
@@ -37,11 +37,11 @@ pp. 1534-1540. <http://dx.doi.org/10.1002/mrm.24736>
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
         description=__doc__,
         epilog=EPILOG)
     p.add_argument('nb_samples_per_shell', type=int, nargs='+',
-                   help='Number of samples on each non b0 shell. '
+                   help='Number of samples on each non b0 shell. \n'
                         'If multishell, provide a number per shell.')
     p.add_argument('out_basename',
                    help='Gradient sampling output basename (don\'t '
@@ -56,14 +56,15 @@ def _build_arg_parser():
                         '\nB-vectors are shuffled to reduce consecutive '
                         'colinearity in the samples. [%(default)s]')
 
-    g = p.add_argument_group("b0 acquisitions")
-    gg = p.add_mutually_exclusive_group()
+    g = p.add_argument_group("b0 acquisitions",
+                             "Default if you add no option is to have a b0 "
+                             "at the start.")
+    gg = g.add_mutually_exclusive_group()
     gg.add_argument('--no_b0_start',
-                    help="If set, do not add a b0 at the beginning. Default "
-                         "is to have one.")
+                    help="If set, do not add a b0 at the beginning. ")
     gg.add_argument('--b0_every', type=int,
                     help='Interleave a b0 every n=b0_every values. Starts '
-                         'after the first b0 (cannot be used with '
+                         'after the first b0 \n(cannot be used with '
                          '--no_b0_start). Must be an integer >= 1.')
     g.add_argument('--b0_end', action='store_true',
                    help='If set, adds a b0 as last sample.')
@@ -82,7 +83,7 @@ def _build_arg_parser():
                                   'in *b*.')
     bvals_group.add_argument('--q_lin_max', type=float,
                              help='b-max for linear bval distribution '
-                                  'in *q*; the square root of b-values will '
+                                  'in *q*; \nthe square root of b-values will '
                                   'be linearly distributed..')
 
     g1 = p.add_argument_group(title='Save as')
@@ -155,10 +156,10 @@ def main():
     add_at_least_a_b0 = b0_start or (args.b0_every is not None) or args.b0_end
     if add_at_least_a_b0:
         bvals.append(args.b0_value)
-        points, shell_idx, nb_b0s = add_b0s_to_bvectors(points, shell_idx,
-                                                        start_b0=b0_start,
-                                                        b0_every=args.b0_every,
-                                                        finish_b0=args.b0_end)
+        points, shell_idx, nb_b0s = add_b0s_to_bvecs(points, shell_idx,
+                                                     start_b0=b0_start,
+                                                     b0_every=args.b0_every,
+                                                     finish_b0=args.b0_end)
         logging.info('   Interleaved {} b0s'.format(nb_b0s))
     else:
         logging.info("   Careful! No b0 added!")

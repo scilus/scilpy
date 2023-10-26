@@ -108,8 +108,8 @@ def _compute_nb_points_per_shell_from_idx(shell_idx):
     return nb_points_per_shell
 
 
-def add_b0s_to_bvectors(points, shell_idx, start_b0=True, b0_every=None,
-                        finish_b0=False):
+def add_b0s_to_bvecs(points, shell_idx, start_b0=True, b0_every=None,
+                     finish_b0=False):
     """
     Add interleaved b0s to gradient sampling.
 
@@ -206,7 +206,17 @@ def correct_b0s_philips(points, shell_idx):
 
     new_points = points.copy()
 
-    # Assume non-collinearity of non-b0s bvecs (i.e. Caruyer sampler type)
+    # We could replace by a random value, but (we think that... to verify?)
+    # the machine is more efficient if we copy the previous gradient; the
+    # machine then does have to change its parameters between images.
+
+    # 1. By default, other shells should already be ok (never twice the same
+    # gradients per shell.)
+    # 2. Assume non-collinearity of non-b0s bvecs (i.e. Caruyer sampler type)
+    # between shells. Could be verified?
+    # 3. Assume that we never have two b0s one after the other. This is how we
+    # build them in our scripts.
+
     new_points[np.where(shell_idx == -1)[0][1:]] \
         = new_points[np.where(shell_idx == -1)[0][1:] - 1]
 

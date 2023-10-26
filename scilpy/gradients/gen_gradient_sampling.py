@@ -41,7 +41,7 @@ def generate_gradient_sampling(nb_samples_per_shell, verbose=1):
     points: numpy.array of shape [n, 3]
         bvecs normalized to 1.
     shell_idx: numpy.array
-        Shell index for bvecs in points.
+        Shell index for each bvec in the returned matrix 'points'.
     """
 
     nb_shells = len(nb_samples_per_shell)

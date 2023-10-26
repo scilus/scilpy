@@ -3,7 +3,7 @@ import numpy as np
 
 from scilpy.gradients.gen_gradient_sampling import generate_gradient_sampling
 from scilpy.gradients.optimize_gradient_sampling import (
-    add_b0s_to_bvectors, correct_b0s_philips, compute_bvalue_lin_b,
+    add_b0s_to_bvecs, correct_b0s_philips, compute_bvalue_lin_b,
     compute_bvalue_lin_q, compute_min_duty_cycle_bruteforce,
     compute_peak_power)
 
@@ -16,18 +16,18 @@ def test_add_b0s_and_correct_b0s():
     nb_samples_per_shell = [4]
     points, idx = generate_gradient_sampling(nb_samples_per_shell, 1)
 
-    new_points, new_shells, nb_new = add_b0s_to_bvectors(
+    new_points, new_shells, nb_new = add_b0s_to_bvecs(
         points, idx, start_b0=True, b0_every=None, finish_b0=False)
     # With 4 b-vectors: we should have [b0 1 2 3 4]
     assert len(new_points) == len(points) + 1
 
-    new_points, new_shells, nb_new = add_b0s_to_bvectors(
+    new_points, new_shells, nb_new = add_b0s_to_bvecs(
         points, idx, start_b0=True, b0_every=3, finish_b0=True)
     # With 4 b-vectors: we should have [b0 1 2 b0 3 4 b0]
     assert len(new_points) == len(points) + 3
     assert nb_new == 3
 
-    new_points, new_shells, nb_new = add_b0s_to_bvectors(
+    new_points, new_shells, nb_new = add_b0s_to_bvecs(
         points, idx, start_b0=True, b0_every=3, finish_b0=False)
     # With 4 b-vectors: we should have [b0 1 2 b0 3 4]
     assert len(new_points) == len(points) + 2
