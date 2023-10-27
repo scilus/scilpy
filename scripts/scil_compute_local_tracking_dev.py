@@ -119,9 +119,9 @@ def _build_arg_parser():
              " in \nDipy too. Note that points obtained after an invalid "
              "direction \n(based on the propagator's definition of invalid; "
              "ex when \nangle is too sharp of sh_threshold not reached) are "
-             "never added.\n"
-             "REMARK: Our results (our endpoints) seem to differ from dipy's. "
-             "This should be investigated.")
+             "never added.\n")
+    # ToDo Our results (our endpoints) seem to differ from dipy's, with or
+    #  witout option. This should be investigated.
     track_g.add_argument(
         "--do_not_randomize_seed_positions", action="store_true",
         help="By default, seed position is moved randomly inside the voxel. "
