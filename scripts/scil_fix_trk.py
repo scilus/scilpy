@@ -123,10 +123,6 @@ def main():
 
     assert_outputs_exist(parser, args, args.out_tractogram)
 
-    if args.software not in softwares:
-        parser.error('Argument --softwares needs to be '
-                     'one of this choices: {}'.format(softwares))
-
     if args.software == 'startrack':
         assert_inputs_exist(parser, [args.in_tractogram, args.reference])
         sft = load_tractogram(args.in_tractogram, 'same',
