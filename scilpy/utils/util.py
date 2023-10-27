@@ -3,6 +3,7 @@
 import collections.abc
 
 from dipy.io.utils import get_reference_info
+import vtk
 import numpy as np
 from numpy.lib.index_tricks import r_ as row
 
@@ -120,3 +121,58 @@ def recursive_print(data):
         recursive_print(data[list(data.keys())[0]])
     else:
         return
+
+
+def extract_xform(filename):
+    """Use the log.txt file of the scil_convert_surface.py script
+    to align the freesurfer surface with T1"""
+
+    with open(filename) as f:
+        content = f.readlines()
+    names = [x.strip() for x in content]
+
+    raw_xform = []
+    for i in names:
+        raw_xform.extend(i.split())
+
+    start_read = 0
+    for i, value in enumerate(raw_xform):
+        if value == 'xform':
+            start_read = int(i)
+            break
+
+    if start_read == 0:
+        raise ValueError('No xform in that file...')
+
+    matrix = np.eye(4)
+    for i in range(3):
+        for j in range(4):
+            matrix[i, j] = float(raw_xform[13*i + (j*3) + 4+2+start_read][:-1])
+    return matrix
+
+
+def flip_LPS(polydata):
+    """Apply a flip to the freesurfer surface
+    in the scil_convert_surface.py script"""
+
+    flip_LPS = vtk.vtkMatrix4x4()
+    flip_LPS.Identity()
+    flip_LPS.SetElement(0, 0, -1)
+    flip_LPS.SetElement(1, 1, -1)
+
+    # Apply the transforms
+    transform = vtk.vtkTransform()
+    transform.Concatenate(flip_LPS)
+
+    # Apply the transforms
+    transform = vtk.vtkTransform()
+    transform.Concatenate(flip_LPS)
+
+    # Transform the polydata
+    transform_polydata = vtk.vtkTransformPolyDataFilter()
+    transform_polydata.SetTransform(transform)
+    transform_polydata.SetInputData(polydata)
+    transform_polydata.Update()
+    polydata = transform_polydata.GetOutput()
+
+    return polydata
