@@ -23,7 +23,7 @@ from scilpy.gradients.gen_gradient_sampling import (
 from scilpy.gradients.optimize_gradient_sampling import (
     add_b0s_to_bvecs, compute_bvalue_lin_b, compute_bvalue_lin_q,
     compute_min_duty_cycle_bruteforce, correct_b0s_philips, swap_sampling_eddy)
-from scilpy.io.save_gradient_sampling import (
+from scilpy.io.gradient_table import (
     save_gradient_sampling_fsl, save_gradient_sampling_mrtrix)
 
 
