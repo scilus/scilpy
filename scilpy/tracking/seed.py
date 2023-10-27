@@ -130,9 +130,14 @@ class SeedGenerator:
         # Sub-voxel initial positioning
         # Prepare sub-voxel random movement now (faster out of loop)
         n = len(which_seeds)
-        r_x = random_generator.uniform(0, 1, size=n)
-        r_y = random_generator.uniform(0, 1, size=n)
-        r_z = random_generator.uniform(0, 1, size=n)
+        if self.randomize_positions:
+            r_x = random_generator.uniform(0, 1, size=n)
+            r_y = random_generator.uniform(0, 1, size=n)
+            r_z = random_generator.uniform(0, 1, size=n)
+        else:
+            r_x = np.zeros(n)
+            r_y = np.zeros(n)
+            r_z = np.zeros(n)
 
         seeds = []
         # Looping. toDo, see if can be done faster.
