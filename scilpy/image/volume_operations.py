@@ -9,6 +9,8 @@ from dipy.align.imaffine import (AffineMap,
 from dipy.align.transforms import (AffineTransform3D,
                                    RigidTransform3D)
 from dipy.io.utils import get_reference_info
+from dipy.reconst.utils import _mask_from_roi, _roi_in_volume
+
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
@@ -444,3 +446,23 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
                 data2 = fix_dim_volume
 
     return nib.Nifti1Image(data2.astype(data.dtype), affine2)
+
+
+def crop_data_with_default_cube(data):
+    """ Crop data with a default cube
+    Cube: data.shape/3 centered
+
+    Parameters
+    ----------
+    data : 3D ndarray
+        Volume data.
+    Returns
+    -------
+        Data masked
+    """
+    shape = np.array(data.shape[:3])
+    roi_center = shape // 2
+    roi_radii = _roi_in_volume(shape, roi_center, shape // 3)
+    roi_mask = _mask_from_roi(shape, roi_center, roi_radii)
+
+    return data * roi_mask
