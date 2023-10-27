@@ -123,8 +123,8 @@ def _build_arg_parser():
     # ToDo Our results (our endpoints) seem to differ from dipy's, with or
     #  witout option. This should be investigated.
     track_g.add_argument(
-        "--do_not_randomize_seed_positions", action="store_true",
-        help="By default, seed position is moved randomly inside the voxel. "
+        "--no_seed_displacement", action="store_true",
+        help="By default, seed position is moved randomly inside the voxel.\n"
              "Use this option to have all seeds centered at the middle of the "
              "voxel.")
 
@@ -201,7 +201,7 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_img.header.get_zooms()[:3]
-    randomize_positions = not args.do_not_randomize_seed_positions
+    randomize_positions = not args.no_seed_displacement
     seed_generator = SeedGenerator(seed_data, seed_res,
                                    space=our_space, origin=our_origin,
                                    randomize_positions=randomize_positions)
