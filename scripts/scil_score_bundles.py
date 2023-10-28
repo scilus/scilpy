@@ -167,7 +167,7 @@ def load_and_verify_everything(parser, args):
             ib_names.append(os.path.basename(bundle))
             sft = load_tractogram(bundle, 'same',
                                   bbox_valid_check=args.bbox_check)
-            ib_sft_list.append(ref_sft)
+            ib_sft_list.append(sft)
             if ref_sft is None:
                 ref_sft = sft
     else:
