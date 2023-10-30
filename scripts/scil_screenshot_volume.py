@@ -110,7 +110,7 @@ def _parse_args(parser):
     if args.in_labelmap:
         inputs.append(args.in_labelmap)
     if args.in_peaks:
-        inputs.append(args.in_peaks)
+        inputs.extend(args.in_peaks)
 
     assert_inputs_exist(parser, inputs)
     assert_same_resolution(inputs)
