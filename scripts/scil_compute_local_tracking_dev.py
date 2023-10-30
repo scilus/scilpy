@@ -123,10 +123,10 @@ def _build_arg_parser():
     # ToDo Our results (our endpoints) seem to differ from dipy's, with or
     #  witout option. This should be investigated.
     track_g.add_argument(
-        "--no_seed_displacement", action="store_true",
-        help="By default, seed position is moved randomly inside the voxel.\n"
-             "Use this option to have all seeds centered at the middle of the "
-             "voxel.")
+        "--n_repeats_per_seed", type=int, default=1,
+        help="By default, each seed position is used only once. This option\n"
+             "allows for tracking from the exact same seed n_repeats_per_seed"
+             "\ntimes. [%(default)s]")
 
     add_seeding_options(p)
 
@@ -201,20 +201,19 @@ def main():
                       'seeding mask.'.format(args.in_seed))
 
     seed_res = seed_img.header.get_zooms()[:3]
-    randomize_positions = not args.no_seed_displacement
     seed_generator = SeedGenerator(seed_data, seed_res,
                                    space=our_space, origin=our_origin,
-                                   randomize_positions=randomize_positions)
+                                   n_repeats=args.n_repeats_per_seed)
     if args.npv:
         # toDo. This will not really produce n seeds per voxel, only true
         #  in average.
-        nbr_seeds = len(seed_generator.seeds_vox) * args.npv
+        nbr_seeds = len(seed_generator.seeds_vox_corner) * args.npv
     elif args.nt:
         nbr_seeds = args.nt
     else:
         # Setting npv = 1.
-        nbr_seeds = len(seed_generator.seeds_vox)
-    if len(seed_generator.seeds_vox) == 0:
+        nbr_seeds = len(seed_generator.seeds_vox_corner)
+    if len(seed_generator.seeds_vox_corner) == 0:
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
