@@ -41,6 +41,7 @@ as well as DSI-studio/Startrack version.
 """
 
 import argparse
+import logging
 
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  MutualInformationMetric,
@@ -76,7 +77,8 @@ def _build_arg_parser():
                    help='Path of the output tractogram file.')
     p.add_argument('--software', metavar='string', default='None',
                    choices=softwares,
-                   help='Software used to create in_tractogram.')
+                   help='Software used to create in_tractogram.\n'
+                        'Choices: {}'.format(softwares))
 
     invalid = p.add_mutually_exclusive_group()
     invalid.add_argument('--cut_invalid', action='store_true',
@@ -120,6 +122,15 @@ def _build_arg_parser():
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
+
+    logging.getLogger().setLevel(logging.INFO)
+    warning_msg = """
+        # This script is still experimental, DSI-Studio and Startrack
+        # evolve quickly and results may vary depending on the data itself
+        # as well as DSI-studio/Startrack version.
+    """
+
+    logging.warning(warning_msg)
 
     assert_outputs_exist(parser, args, args.out_tractogram)
 
