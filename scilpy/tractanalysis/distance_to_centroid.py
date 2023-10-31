@@ -7,8 +7,9 @@ from scipy.spatial import KDTree
 def min_dist_to_centroid(bundle_pts, centroid_pts, nb_pts):
     tree = KDTree(centroid_pts, copy_data=True)
     dists, labels = tree.query(bundle_pts, k=1)
-    dists, labels = np.expand_dims(
-        dists, axis=1), np.expand_dims(labels, axis=1)
+
+    dists = np.expand_dims(dists, axis=1)
+    labels = np.expand_dims(labels, axis=1)
 
     labels = np.mod(labels, nb_pts)
 

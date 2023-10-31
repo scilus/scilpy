@@ -207,36 +207,36 @@ def main():
 
     t0 = time()
     if not args.new_labelling:
-        labels, _ = min_dist_to_centroid(concat_sft.streamlines._data,
+        indices = np.array(np.nonzero(binary_bundle), dtype=int).T
+        labels, _ = min_dist_to_centroid(indices,
                                             sft_centroid.streamlines._data,
                                             args.nb_pts)
         labels += 1  # 0 means no labels
         labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
-        indices = np.array(np.nonzero(binary_bundle), dtype=int).T
-
-        kd_tree = cKDTree(concat_sft.streamlines._data)
-        for ind in indices:
-            _, neighbor_ids = kd_tree.query(ind, k=5)
-
-            if not len(neighbor_ids):
-                continue
-
-            labels_val = labels[neighbor_ids]
-
-            vote = np.bincount(labels_val)
-            total = np.arange(np.amax(labels_val+1))
-            winner = total[np.argmax(vote)]
-            labels_map[ind[0], ind[1], ind[2]] = winner
-
+        labels_map[np.where(binary_bundle)] = labels
     else:
         svc = SVC(C=1, kernel='rbf')
-        labels = np.tile(np.arange(0,args.nb_pts)[::-1], len(sft_centroid))
+        #def transfer_and_diffuse_labels(sft_source, sft_target):
+
+        labels = np.tile(np.arange(0,args.nb_pts)[::-1], len(tmp_sft))
         labels += 1
-        svc.fit(X=sft_centroid.streamlines._data, y=labels)
+        svc.fit(X=tmp_sft.streamlines._data, y=labels)
 
         labels_pred = svc.predict(X=np.array(np.where(binary_bundle)).T)
         labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
         labels_map[np.where(binary_bundle)] = labels_pred
+
+        exp_labels = np.tile(np.arange(0,args.nb_pts)[::-1], len(sft_centroid))
+        exp_labels += 1
+        svc.fit(X=sft_centroid.streamlines._data, y=exp_labels)
+
+        exp_labels_pred = svc.predict(X=np.array(np.where(binary_bundle)).T)
+        exp_labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
+        exp_labels_map[np.where(binary_bundle)] = exp_labels_pred
+
+        mapping = compute_overlap_and_mapping(labels_map, exp_labels_map)
+        print(mapping)
+
 
     print('a', time()-t0)
 
