@@ -1,35 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import heapq
+
+from dipy.tracking.metrics import length
 import numpy as np
-from scipy.ndimage import binary_dilation
 from scipy.spatial import KDTree
-
-
-def transfer_and_diffuse_labels(target_sft, source_sft, nb_pts=20,):
-    tree = KDTree(source_sft.streamlines._data, copy_data=True)
-    pts_ids = tree.query_ball_point(target_sft.streamlines._data, r=4)
-
-    max_count_labels = []
-    for pts_id in pts_ids:
-        if not pts_id:  # If no source point is close enough
-            max_count_labels.append(-1)
-            continue
-        labels = np.mod(pts_id, nb_pts) + 1
-        unique_labels, counts = np.unique(labels, return_counts=True)
-        max_count_label = unique_labels[np.argmax(counts)]
-        max_count_labels.append(max_count_label)
-    
-    labels = np.array(max_count_labels, dtype=np.uint16)
-
-    curr_ind = 0
-    for _, streamline in enumerate(target_sft.streamlines):
-        next_ind = curr_ind + len(streamline)
-        curr_labels = labels[curr_ind:next_ind]
-        labels[curr_ind:next_ind] = diffuse_labels(streamline, curr_labels)
-        curr_ind = next_ind
-
-    return labels
-
+from scipy.spatial.distance import pdist, squareform
 
 
 def min_dist_to_centroid(target_pts, source_pts, nb_pts=None,
@@ -48,45 +24,52 @@ def min_dist_to_centroid(target_pts, source_pts, nb_pts=None,
     return labels.astype(np.uint16)
 
 
-def diffuse_labels(streamline, labels):
-    """
-    Replace -1 labels in the polyline using a diffusion algorithm.
+def associate_labels(target_sft, source_sft,
+                                nb_pts=20):
+    kdtree = KDTree(source_sft.streamlines._data)
 
-    Parameters:
-        streamline (ndarray): Coordinates of the polyline.
-        labels (ndarray): Labels corresponding to the points in the polyline.
+    # Initialize vote counters
+    head_votes = np.zeros(nb_pts, dtype=int)
+    tail_votes = np.zeros(nb_pts, dtype=int)
 
-    Returns:
-        ndarray: Updated labels with -1 replaced.
-    """
-    iteration = 0
-    while np.any(labels == 65535):  # Continue until no -1 labels are left
-        for i, label in enumerate(labels):
-            if label == 65535:
-                # Find closest point with a non-negative label
-                min_distance = np.inf
-                closest_label = -1
-                for j, other_label in enumerate(labels):
-                    if other_label != 65535:
-                        distance = np.linalg.norm(streamline[i]-streamline[j])
-                        if distance < min_distance:
-                            min_distance = distance
-                            closest_label = other_label
-                # Update the label
-                if iteration > 10:
-                    labels[i] = 1
-                labels[i] = closest_label
-    return labels
+    for streamline in target_sft.streamlines:
+        head = streamline[0]
+        tail = streamline[-1]
 
-from scipy.spatial.distance import pdist, squareform
+        # Find closest IDs in the target
+        closest_head_id = kdtree.query(head)[1]
+        closest_tail_id = kdtree.query(tail)[1]
+
+        # Knowing the centroids are already labels correctly, their
+        # label is the modulo of the ID (based on nb_pts)
+        closest_head_label = np.mod(closest_head_id, nb_pts) + 1
+        closest_tail_label = np.mod(closest_tail_id, nb_pts) + 1
+        head_votes[closest_head_label - 1] += 1
+        tail_votes[closest_tail_label - 1] += 1
+
+    # Trouver l'étiquette avec le plus de votes
+    most_voted_head = np.argmax(head_votes) + 1
+    most_voted_tail = np.argmax(tail_votes) + 1
+
+    labels = []
+    for i in range(len(target_sft)):
+        streamline = target_sft.streamlines[i]
+        lengths = np.insert(length(streamline, along=True), 0, 0)
+        lengths = (lengths / np.max(lengths)) * \
+            (most_voted_tail - most_voted_head) + most_voted_head
+
+        labels = np.concatenate((labels, lengths))
+        
+    return labels.astype(np.uint16), most_voted_head, most_voted_tail
+
 
 def find_medoid(points):
     """
     Find the medoid among a set of points.
-    
+
     Parameters:
         points (ndarray): Points in N-dimensional space.
-        
+
     Returns:
         ndarray: Coordinates of the medoid.
     """
@@ -95,50 +78,82 @@ def find_medoid(points):
     return points[medoid_idx]
 
 
-def compute_shell_barycenters(labels_map):
+def compute_labels_map_barycenters(labels_map, euclidian=False, nb_pts=False):
     """
     Compute the barycenter for each label in a 3D NumPy array by maximizing
     the distance to the boundary.
-    
+
     Parameters:
         labels_map (ndarray): The 3D array containing labels from 1-nb_pts.
-        
+        euclidian (bool): If True, the barycenter is the mean of the points
+
     Returns:
         ndarray: An array of size (nb_pts, 3) containing the barycenter
         for each label.
     """
-    labels = np.unique(labels_map)[1:]
+    labels = np.arange(1, nb_pts+1) if nb_pts else np.unique(labels_map)[1:]
     barycenters = np.zeros((len(labels), 3))
-
-    for label in labels:
-        mask = np.zeros_like(labels_map)
-        mask[labels_map == label] = 1
-        mask_coords = np.argwhere(mask)
-
-        barycenter = find_medoid(mask_coords)
-        barycenters[label - 1] = barycenter
-
-    return barycenters
-
-
-def compute_euclidean_barycenters(labels_map):
-    """
-    Compute the euclidean barycenter for each label in a 3D NumPy array.
-
-    Parameters:
-        labels_map (ndarray): The 3D array containing labels from 1-nb_pts.
-
-    Returns:
-        ndarray: A NumPy array of shape (nb_pts, 3) containing the barycenter
-        for each label.
-    """
-    labels = np.unique(labels_map)[1:]
-    barycenters = np.zeros((len(labels), 3))
+    barycenters[:] = np.NAN
 
     for label in labels:
         indices = np.argwhere(labels_map == label)
         if indices.size > 0:
-            barycenter = np.mean(indices, axis=0)
-            barycenters[label-1, :] = barycenter
+            mask = np.zeros_like(labels_map)
+            mask[labels_map == label] = 1
+            mask_coords = np.argwhere(mask)
 
-    return barycenters
+            if euclidian:
+                barycenter = np.mean(mask_coords, axis=0)
+            else:
+                barycenter = find_medoid(mask_coords)
+            if labels_map[tuple(barycenter.astype(int))] != label:
+                tree = KDTree(indices)
+                _, ind = tree.query(barycenter, k=1)
+                barycenter = indices[ind]
+
+            barycenters[label - 1] = barycenter
+
+    return np.array(barycenters)
+
+
+def masked_manhattan_distance(mask, target_positions):
+    """
+    Compute the Manhattan distance from every position in a mask to a set of positions, 
+    without stepping out of the mask.
+
+    Parameters:
+        mask (ndarray): A binary 3D array representing the mask.
+        target_positions (list): A list of target positions within the mask.
+
+    Returns:
+        ndarray: A 3D array of the same shape as the mask, containing the Manhattan distances.
+    """
+    # Initialize distance array with infinite values
+    distances = np.full(mask.shape, np.inf)
+
+    # Initialize priority queue and set distance for target positions to zero
+    priority_queue = []
+    for x, y, z in target_positions:
+        heapq.heappush(priority_queue, (0, (x, y, z)))
+        distances[x, y, z] = 0
+
+    # Directions for moving in the grid (Manhattan distance)
+    directions = [(0, 0, 1), (0, 0, -1), (0, 1, 0),
+                  (0, -1, 0), (1, 0, 0), (-1, 0, 0)]
+
+    while priority_queue:
+        current_distance, (x, y, z) = heapq.heappop(priority_queue)
+
+        for dx, dy, dz in directions:
+            nx, ny, nz = x + dx, y + dy, z + dz
+
+            if 0 <= nx < mask.shape[0] and 0 <= ny < mask.shape[1] and 0 <= nz < mask.shape[2]:
+                if mask[nx, ny, nz]:
+                    new_distance = current_distance + 1
+
+                    if new_distance < distances[nx, ny, nz]:
+                        distances[nx, ny, nz] = new_distance
+                        heapq.heappush(
+                            priority_queue, (new_distance, (nx, ny, nz)))
+
+    return distances

@@ -23,8 +23,6 @@ import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
-from scipy.spatial import cKDTree
-from scipy.ndimage import binary_erosion
 
 from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
@@ -34,14 +32,13 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (min_dist_to_centroid,
-                                                       compute_euclidean_barycenters,
-                                                       compute_shell_barycenters,
-                                                       transfer_and_diffuse_labels)
+                                                       compute_labels_map_barycenters,
+                                                       associate_labels,
+                                                       masked_manhattan_distance)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
-from scilpy.tractograms.streamline_operations import resample_streamlines_num_points
-from scilpy.tractograms.streamline_and_mask_operations import \
-    get_head_tail_density_maps
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points, resample_streamlines_step_size
 from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
@@ -153,54 +150,40 @@ def main():
         else args.nb_pts
 
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
-    uniformize_bundle_sft(concat_sft, ref_bundle=sft_centroid[0])
-    tmp_sft = resample_streamlines_num_points(concat_sft[0:2500], args.nb_pts)
 
-    print('Uni+SLR time', time()-t0)
-    t0 = time()
+    # Select 2000 elements from the SFTs
+    random_indices = np.random.choice(len(concat_sft), 2000,
+                                      replace=False)
+    tmp_sft = resample_streamlines_step_size(concat_sft[random_indices], 2.0)
+
     t0 = time()
     if not args.new_labelling:
         indices = np.array(np.nonzero(binary_bundle), dtype=int).T
         labels = min_dist_to_centroid(indices,
                                       sft_centroid[0].streamlines._data,
                                       nb_pts=args.nb_pts)
-        labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
+        labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
         labels_map[np.where(binary_bundle)] = labels
-        barycenters = compute_euclidean_barycenters(labels_map)
-        nib.save(nib.Nifti1Image(labels_map, sft_list[0].affine),
-                 os.path.join(args.out_dir, 'labels_map_1.nii.gz'))
         labels = ndi.map_coordinates(labels_map,
                                      concat_sft.streamlines._data.T-0.5,
                                      order=0)
-        print('Euclidian time', time()-t0)
-        t0 = time()
     else:
+        # The head and tail are the labels (not the indices)
+        labels, _, _ = associate_labels(tmp_sft, sft_centroid,
+                                        args.nb_pts)
+
         svc = SVC(C=1, kernel='rbf', cache_size=1000)
-        labels = transfer_and_diffuse_labels(tmp_sft, sft_centroid)
-        print('Diffuse time', time()-t0)
-        t0 = time()
         svc.fit(X=tmp_sft.streamlines._data, y=labels)
-        print('Fit time', time()-t0)
-        t0 = time()
-        # print(exp_labels)
-
         exp_labels = svc.predict(X=np.array(np.where(binary_bundle)).T)
-        print('Predict time', time()-t0)
-        t0 = time()
 
-        exp_labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
+        exp_labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
         exp_labels_map[np.where(binary_bundle)] = exp_labels
-        barycenters = compute_shell_barycenters(exp_labels_map)
-        exp_labels = svc.predict(X=barycenters)
 
         labels = ndi.map_coordinates(exp_labels_map,
                                      concat_sft.streamlines._data.T-0.5,
                                      order=0)
-        print('Map making time', time()-t0)
-        t0 = time()
-
-    barycenter_sft = StatefulTractogram([barycenters], sft_centroid,
-                                        space=Space.VOX, origin=Origin.TRACKVIS)
+    print('Map making time', time()-t0)
+    t0 = time()
 
     # It is not allowed that labels jumps labels for consistency
     # Streamlines should have continous labels
@@ -251,50 +234,57 @@ def main():
     labels = min_dist_to_centroid(indices,
                                   final_streamlines._data,
                                   pre_computed_labels=final_labels._data)
-    labels_map = np.zeros(binary_bundle.shape, dtype=np.int16)
+    labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
     labels_map[np.where(binary_bundle)] = labels
     print('Clean Up time', time()-t0)
     t0 = time()
-    dists = np.ones(binary_bundle.shape, dtype=float) * -1
 
-    save_tractogram(barycenter_sft, os.path.join(args.out_dir,
-                                                    'barycenters.trk'))
-                                                    
-    import dijkstra3d
-    barycenter_bin = compute_tract_counts_map(barycenter_sft.streamlines,
-                                                  barycenter_sft.dimensions)
+    barycenters = compute_labels_map_barycenters(labels_map,
+                                                 euclidian=args.new_labelling,
+                                                 nb_pts=args.nb_pts)
+
+    isnan = np.isnan(barycenters).all(axis=1)
+    # These two return the labels (not the indices)
+    head = np.argmax(~isnan) + 1
+    tail = len(isnan) - np.argmax(~isnan[::-1])
+
+    distance_map = np.zeros(binary_bundle.shape, dtype=float)
+    barycenter_strs = [barycenters[head-1:tail]]
+    barycenter_bin = compute_tract_counts_map(barycenter_strs,
+                                              sft_centroid.dimensions)
     barycenter_bin[barycenter_bin > 0] = 1
-    # for label in range(1, args.nb_pts+1):
-    #     indices = np.array(np.nonzero(labels_map == label), dtype=int).T
-    #     field = np.ones(labels_map.shape, dtype=float)
-    #     for ind in indices:
-    #         ind = tuple(ind)
-    #         
-    #         path = dijkstra3d.dijkstra(field, barycenter, ind, compass=True)
-    #         dists[ind] = len(path)-1
-    for label in range(1, args.nb_pts+1):
+    for label in range(head, tail+1):
         mask = np.zeros(labels_map.shape)
         mask[labels_map == label] = 1
+        labels_coords = np.array(np.where(mask)).T
+        if labels_coords.size == 0:
+            continue
+
         barycenter_bin_intersect = barycenter_bin * mask
-        barycenter_intersect_coords = np.array(np.nonzero(barycenter_bin_intersect),
-                                               dtype=int).T
-        bundle_disjoint, num_labels = ndi.label(mask)
-        iterations = 0
-        
-        while num_labels > 1:
-            mask = ndi.binary_dilation(mask)
+        barycenter_intersect_coords = np.array(
+            np.nonzero(barycenter_bin_intersect), dtype=int).T
+
+        if barycenter_intersect_coords.size == 0:
+            continue
+
+        if not args.new_labelling:
+            distances = np.linalg.norm(barycenter_intersect_coords[:, np.newaxis] -
+                                       labels_coords, axis=-1)
+            distance_map[labels_map == label] = np.min(distances, axis=0)
+
+        else:
             bundle_disjoint, num_labels = ndi.label(mask)
-            iterations += 1
-            print('a', label, iterations, num_labels)
+            iterations = 0
 
-        barycenter = tuple(np.round(barycenters[label-1]).astype(int))
-        print(label, labels_map[barycenter], barycenter)
-        curr_dists = dijkstra3d.distance_field(mask,
-                                               source=barycenter_intersect_coords)
-        dists[labels_map == label] = curr_dists[labels_map == label]
-        print(np.unique(curr_dists, return_counts=True))
-        print()
+            while num_labels > 1:
+                mask = ndi.binary_dilation(mask)
+                bundle_disjoint, num_labels = ndi.label(mask)
+                iterations += 1
 
+            coords = [tuple(coord) for coord in barycenter_intersect_coords]
+            curr_dists = masked_manhattan_distance(mask, coords)
+            distance_map[labels_map ==
+                         label] = curr_dists[labels_map == label]+1
     print('Dijkstra time', time()-t0)
     t0 = time()
 
@@ -304,43 +294,38 @@ def main():
             sub_out_dir = os.path.join(args.out_dir, 'session_{}'.format(i+1))
         else:
             sub_out_dir = args.out_dir
+
         new_sft = StatefulTractogram.from_sft(sft.streamlines, sft_list[0])
+        new_sft.data_per_point['color'] = ArraySequence(new_sft.streamlines)
         if not os.path.isdir(sub_out_dir):
             os.mkdir(sub_out_dir)
 
-        # Save each session map if multiple inputs
-        nib.save(nib.Nifti1Image((binary_list[i]*labels_map).astype(np.uint16),
-                                 sft_list[0].affine),
-                 os.path.join(sub_out_dir, 'labels_map.nii.gz'))
-        nib.save(nib.Nifti1Image(binary_list[i]*corr_map,
-                                 sft_list[0].affine),
-                 os.path.join(sub_out_dir, 'correlation_map.nii.gz'))
-        nib.save(nib.Nifti1Image(binary_list[i]*dists,
-                                 sft_list[0].affine),
-                 os.path.join(sub_out_dir, 'distance_map.nii.gz'))
+        # Dictionary to hold the data for each type
+        data_dict = {'labels': labels_map.astype(np.uint16),
+                     'distance': distance_map.astype(float),
+                     'correlation': corr_map.astype(float)}
 
-        if len(sft):
-            tmp_labels = ndi.map_coordinates(labels_map,
-                                             sft.streamlines._data.T-0.5,
-                                             order=0)
-            tmp_corr = ndi.map_coordinates(corr_map,
-                                           sft.streamlines._data.T-0.5,
-                                           order=0)
-            cmap = plt.colormaps[args.colormap]
-            new_sft.data_per_point['color'] = ArraySequence(
-                new_sft.streamlines)
+        # Iterate through each type to save the files
+        for basename, map in data_dict.items():
+            nib.save(nib.Nifti1Image((binary_list[i] * map), sft_list[0].affine),
+                     os.path.join(sub_out_dir, "{}_map.nii.gz".format(basename)))
 
-            # Nicer visualisation for MI-Brain
-            new_sft.data_per_point['color']._data = cmap(
-                tmp_labels / np.max(tmp_labels))[:, 0:3] * 255
-        save_tractogram(new_sft,
-                        os.path.join(sub_out_dir, 'labels.trk'))
+            if basename == 'correlation' and len(args.in_bundles) == 1:
+                continue
 
-        if len(sft) and len(args.in_bundles) > 1:
-            new_sft.data_per_point['color']._data = cmap(tmp_corr)[
-                :, 0:3] * 255
-        save_tractogram(new_sft,
-                        os.path.join(sub_out_dir, 'correlation.trk'))
+            if len(sft):
+                tmp_data = ndi.map_coordinates(
+                    map, sft.streamlines._data.T - 0.5, order=0)
+
+                max_val = args.nb_pts if basename == 'labels' else np.max(
+                    tmp_data)
+                new_sft.data_per_point['color']._data = cmap(
+                    tmp_data / max_val)[:, 0:3] * 255
+
+                # Save the tractogram
+                save_tractogram(new_sft,
+                                os.path.join(sub_out_dir,
+                                             "{}.trk".format(basename)))
     print('Finish time', time()-t0)
     t0 = time()
 
