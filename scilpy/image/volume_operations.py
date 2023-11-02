@@ -8,15 +8,15 @@ from dipy.align.imaffine import (AffineMap,
                                  transform_centers_of_mass)
 from dipy.align.transforms import (AffineTransform3D,
                                    RigidTransform3D)
-from dipy.io.gradients import read_bvals_bvecs
 from dipy.io.utils import get_reference_info
+from dipy.reconst.utils import _mask_from_roi, _roi_in_volume
+
 from dipy.segment.mask import crop, median_otsu
 import nibabel as nib
 import numpy as np
-
-from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scipy.ndimage import binary_dilation
 
+from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
 from scilpy.utils.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
@@ -44,8 +44,19 @@ def count_non_zero_voxels(image):
 
 def flip_volume(data, axes):
     """
+    Flip volume along a specific axis.
+
+    Parameters
+    ----------
     data: np.ndarray
-    axes: a list containing any number of values amongst ['x', 'y', 'z'].
+        Volume data.
+    axes: List
+        A list containing any number of values amongst ['x', 'y', 'z'].
+
+    Return
+    ------
+    data: np.ndarray
+        Flipped volume data along specified axes.
     """
     if 'x' in axes:
         data = data[::-1, ...]
@@ -60,10 +71,20 @@ def flip_volume(data, axes):
 
 
 def crop_volume(img: nib.Nifti1Image, wbbox):
-    """Applies cropping from a world space defined bounding box and fixes the
+    """
+    Applies cropping from a world space defined bounding box and fixes the
     affine to keep data aligned.
 
-    wbbox: WorldBoundingBox from the scrip scil_crop_volume. ToDo. Update this.
+    Parameters
+    ----------
+    img: nib.Nifti1Image
+        Input image to crop.
+    wbbox: WorldBoundingBox
+        Bounding box.
+
+    Return
+    ------
+    nib.Nifti1Image with the cropped data and transformed affine.
     """
     data = img.get_fdata(dtype=np.float32, caching='unchanged')
     affine = img.affine
@@ -86,7 +107,7 @@ def crop_volume(img: nib.Nifti1Image, wbbox):
     return nib.Nifti1Image(data_crop, new_affine)
 
 
-def apply_transform(transfo, reference, moving, filename_to_save,
+def apply_transform(transfo, reference, moving,
                     interp='linear', keep_dtype=False):
     """
     Apply transformation to an image using Dipy's tool
@@ -95,41 +116,39 @@ def apply_transform(transfo, reference, moving, filename_to_save,
     ----------
     transfo: numpy.ndarray
         Transformation matrix to be applied
-    reference: str
+    reference: nib.Nifti1Image
         Filename of the reference image (target)
-    moving: str
+    moving: nib.Nifti1Image
         Filename of the moving image
-    filename_to_save: str
-        Filename of the output image
     interp : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
     keep_dtype : bool
         If True, keeps the data_type of the input moving image when saving
         the output image
+
+    Return
+    ------
+    nib.Nifti1Image of the warped moving image.
     """
     grid2world, dim, _, _ = get_reference_info(reference)
-    static_data = nib.load(reference).get_fdata(dtype=np.float32)
+    static_data = reference.get_fdata(dtype=np.float32)
 
-    nib_file = nib.load(moving)
-    curr_type = nib_file.get_data_dtype()
+    curr_type = moving.get_data_dtype()
     if keep_dtype:
-        moving_data = np.asanyarray(nib_file.dataobj).astype(curr_type)
+        moving_data = np.asanyarray(moving.dataobj).astype(curr_type)
     else:
-        moving_data = nib_file.get_fdata(dtype=np.float32)
-    moving_affine = nib_file.affine
+        moving_data = moving.get_fdata(dtype=np.float32)
+    moving_affine = moving.affine
 
-    if moving_data.ndim == 3 and isinstance(moving_data[0, 0, 0],
-                                            np.ScalarType):
+    if moving_data.ndim == 3:
         orig_type = moving_data.dtype
         affine_map = AffineMap(np.linalg.inv(transfo),
                                dim, grid2world,
                                moving_data.shape, moving_affine)
         resampled = affine_map.transform(moving_data.astype(np.float64),
                                          interpolation=interp)
-        nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
-                 filename_to_save)
-    elif len(moving_data[0, 0, 0]) > 1:
+    elif moving_data.ndim == 4:
         if isinstance(moving_data[0, 0, 0], np.void):
             raise ValueError('Does not support TrackVis RGB')
 
@@ -140,10 +159,10 @@ def apply_transform(transfo, reference, moving, filename_to_save,
         orig_type = moving_data.dtype
         resampled = transform_dwi(affine_map, static_data, moving_data,
                                   interpolation=interp)
-        nib.save(nib.Nifti1Image(resampled.astype(orig_type), grid2world),
-                 filename_to_save)
     else:
         raise ValueError('Does not support this dataset (shape, type, etc)')
+
+    return nib.Nifti1Image(resampled.astype(orig_type), grid2world)
 
 
 def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
@@ -161,6 +180,10 @@ def transform_dwi(reg_obj, static, dwi, interpolation='linear'):
     interpolation : string, either 'linear' or 'nearest'
         the type of interpolation to be used, either 'linear'
         (for k-linear interpolation) or 'nearest' for nearest neighbor
+
+    Return
+    ------
+    nib.Nifti1Image of the warped 4D volume.
     """
     trans_dwi = np.zeros(static.shape + (dwi.shape[3],), dtype=dwi.dtype)
     for i in range(dwi.shape[3]):
@@ -224,42 +247,44 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
 
     Parameters
     ----------
-    dwi: string
-        Path to the dwi file
-    bvec: string
-        Path to the bvec file
-    bval: string
-        Path to the bval file
+    dwi: nib.Nifti1Image
+        DWI file in nibabel format.
+    bval: array
+        Array containing bvalues (from dipy.io.gradients.read_bvals_bvecs).
+    bvec: array
+        Array containing bvectors (from dipy.io.gradients.read_bvals_bvecs).
     b0_thr: int
-        Threshold to define b0 minimum value
-    mask: string
-        Path to the mask
-    noise_mask: string
-        Path to the noise mask
-    noise_map: string
-        Path to the noise map
+        Threshold to define b0 minimum value.
+    mask: nib.Nifti1Image
+        Mask file in nibabel format.
+    noise_mask: nib.Nifti1Image
+        Noise mask file in nibabel format.
+    noise_map: nib.Nifti1Image
+        Noise map file in nibabel format.
     basename: string
-        Basename used for naming all output files
+        Basename used for naming all output files.
 
     verbose: boolean
         Set to use logging
+
+    Return
+    ------
+    Dictionary of values (bvec, bval, mean, std, snr) for all volumes.
     """
     if verbose:
         logging.getLogger().setLevel(logging.INFO)
 
-    img = nib.load(dwi)
-    data = img.get_fdata(dtype=np.float32)
-    affine = img.affine
-    mask = get_data_as_mask(nib.load(mask), dtype=bool)
-    bvals, bvecs = read_bvals_bvecs(bval, bvec)
+    data = dwi.get_fdata(dtype=np.float32)
+    affine = dwi.affine
+    mask = get_data_as_mask(mask, dtype=bool)
 
     if split_shells:
-        centroids, shell_indices = identify_shells(bvals, threshold=40.0,
+        centroids, shell_indices = identify_shells(bval, threshold=40.0,
                                                    roundCentroids=False,
                                                    sort=False)
-        bvals = centroids[shell_indices]
+        bval = centroids[shell_indices]
 
-    b0s_location = bvals <= b0_thr
+    b0s_location = bval <= b0_thr
 
     if not np.any(b0s_location):
         raise ValueError('You should ajust --b0_thr={} '
@@ -286,18 +311,17 @@ def compute_snr(dwi, bval, bvec, b0_thr, mask,
         nib.save(nib.Nifti1Image(noise_mask, affine),
                  basename + '_noise_mask.nii.gz')
     elif noise_mask:
-        noise_mask = get_data_as_mask(nib.load(noise_mask),
+        noise_mask = get_data_as_mask(noise_mask,
                                       dtype=bool).squeeze()
     elif noise_map:
-        img_noisemap = nib.load(noise_map)
-        data_noisemap = img_noisemap.get_fdata(dtype=np.float32)
+        data_noisemap = noise_map.get_fdata(dtype=np.float32)
 
     # Val = np array (mean_signal, std_noise)
     val = {0: {'bvec': [0, 0, 0], 'bval': 0, 'mean': 0, 'std': 0}}
     for idx in range(data.shape[-1]):
         val[idx] = {}
-        val[idx]['bvec'] = bvecs[idx]
-        val[idx]['bval'] = bvals[idx]
+        val[idx]['bvec'] = bvec[idx]
+        val[idx]['bval'] = bval[idx]
         val[idx]['mean'] = np.mean(data[..., idx:idx+1][mask > 0])
         if noise_map:
             val[idx]['std'] = np.std(data_noisemap[mask > 0])
@@ -422,3 +446,23 @@ def resample_volume(img, ref=None, res=None, iso_min=False, zoom=None,
                 data2 = fix_dim_volume
 
     return nib.Nifti1Image(data2.astype(data.dtype), affine2)
+
+
+def crop_data_with_default_cube(data):
+    """ Crop data with a default cube
+    Cube: data.shape/3 centered
+
+    Parameters
+    ----------
+    data : 3D ndarray
+        Volume data.
+    Returns
+    -------
+        Data masked
+    """
+    shape = np.array(data.shape[:3])
+    roi_center = shape // 2
+    roi_radii = _roi_in_volume(shape, roi_center, shape // 3)
+    roi_mask = _mask_from_roi(shape, roi_center, roi_radii)
+
+    return data * roi_mask

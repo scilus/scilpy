@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import json
 import logging
 import os
 import multiprocessing
@@ -34,6 +35,28 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'regrid']
 
 axis_name_choices = ["axial", "coronal", "sagittal"]
+
+
+def get_acq_parameters(json_path, args_list):
+    """
+    Function to extract acquisition parameters from json file.
+
+    Parameters
+    ----------
+    json_path   Path to the json file
+    args_list   List of keys corresponding to parameters
+
+    Returns
+    ----------
+    Returns a list of values matching the list of keys.
+    """
+    with open(json_path) as f:
+        data = json.load(f)
+
+    acq_parameters = []
+    for parameter in args_list:
+        acq_parameters.append(data[parameter])
+    return acq_parameters
 
 
 def redirect_stdout_c():
@@ -177,7 +200,7 @@ def add_reference_arg(parser, arg_name=None):
                                  'support (.nii or .nii.gz).')
 
 
-def add_sphere_arg(parser, symmetric_only=False, default='symmetric724'):
+def add_sphere_arg(parser, symmetric_only=False, default='repulsion724'):
     spheres = sorted(SPHERE_FILES.keys())
     if symmetric_only:
         spheres = [s for s in spheres if 'symmetric' in s]
@@ -230,8 +253,9 @@ def add_sh_basis_args(parser, mandatory=False):
     """
     choices = ['descoteaux07', 'tournier07']
     def_val = 'descoteaux07'
-    help_msg = 'Spherical harmonics basis used for the SH coefficients.\nMust ' +\
-               'be either \'descoteaux07\' or \'tournier07\' [%(default)s]:\n' +\
+    help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
+               '\nMustbe either \'descoteaux07\' or \'tournier07\'' +\
+               ' [%(default)s]:\n' +\
                '    \'descoteaux07\': SH basis from the Descoteaux et al.\n' +\
                '                      MRM 2007 paper\n' +\
                '    \'tournier07\'  : SH basis from the Tournier et al.\n' +\
