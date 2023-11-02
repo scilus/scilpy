@@ -141,6 +141,14 @@ def main():
                               trk_header_check=False)
         new_sft = StatefulTractogram(sft.streamlines, args.reference,
                                      Space.VOX)
+        
+        # Startrack flips the TRK
+        flip_axis = ['x']
+        new_sft.to_vox()
+        new_sft.streamlines._data -= _get_axis_flip_vector(flip_axis)
+        new_sft = flip_sft(new_sft, flip_axis)
+        new_sft.to_rasmm()
+
     else:
         if args.load_transfo and args.in_native_fa is None:
             parser.error('When loading a transformation, the final '
