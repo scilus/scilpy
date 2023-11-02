@@ -13,8 +13,7 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
-                                              flip_fsl_gradient_sampling, swap_gradient_axis,
-                                              swap_mrtrix_gradient_axis)
+                                              swap_gradient_axis)
 from scilpy.utils.util import str_to_index
 
 

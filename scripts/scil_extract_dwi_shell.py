@@ -89,9 +89,9 @@ def main():
 
     logging.info("Selected indices: {}".format(indices))
 
-    shell_idx = np.ones(len(bvecs))  # Only one shell here!
-    save_gradient_sampling_fsl(bvecs, shell_idx, bvals,
-                               args.out_bval, args.out_bvec)
+    # toDo Could we use: scilpy.io.gradients.save_gradient_sampling_fsl?
+    np.savetxt(args.out_bval, new_bvals, '%d')
+    np.savetxt(args.out_bvec, new_bvecs.T, '%0.15f')
     nib.save(nib.Nifti1Image(shell_data, img.affine, header=img.header),
              args.out_dwi)
 
