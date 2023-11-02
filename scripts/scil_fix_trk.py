@@ -141,7 +141,7 @@ def main():
                               trk_header_check=False)
         new_sft = StatefulTractogram(sft.streamlines, args.reference,
                                      Space.VOX)
-        
+
         # Startrack flips the TRK
         flip_axis = ['x']
         new_sft.to_vox()
