@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              redirect_stdout_c)
-from scilpy.dwi.bvec_bval_tools import fsl2mrtrix, identify_shells
+from scilpy.gradients.bvec_bval_tools import fsl2mrtrix, identify_shells
 
 
 EPILOG = """

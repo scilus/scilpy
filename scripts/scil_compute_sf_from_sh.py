@@ -24,7 +24,7 @@ from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.multi_processes import convert_sh_to_sf
-from scilpy.dwi.bvec_bval_tools import (check_b0_threshold)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold)
 
 
 def _build_arg_parser():

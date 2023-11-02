@@ -6,8 +6,8 @@ from dipy.core.sphere import Sphere
 from dipy.reconst.shm import sf_to_sh
 import numpy as np
 
-from scilpy.dwi.bvec_bval_tools import (check_b0_threshold, identify_shells,
-                                        is_normalized_bvecs, normalize_bvecs)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold, identify_shells,
+                                              is_normalized_bvecs, normalize_bvecs)
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=4,

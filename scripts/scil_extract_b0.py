@@ -17,10 +17,11 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.dwi.utils import extract_b0
 from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
                              add_verbose_arg)
-from scilpy.dwi.bvec_bval_tools import (check_b0_threshold, extract_b0,
-                                        B0ExtractionStrategy)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)

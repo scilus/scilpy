@@ -20,7 +20,7 @@ from scipy.io import loadmat
 import six
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.dwi.bvec_bval_tools import DEFAULT_B0_THRESHOLD
+from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
