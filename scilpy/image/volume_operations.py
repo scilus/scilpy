@@ -18,7 +18,7 @@ from scipy.ndimage import binary_dilation
 
 from scilpy.image.reslice import reslice  # Don't use Dipy's reslice. Buggy.
 from scilpy.io.image import get_data_as_mask
-from scilpy.utils.bvec_bval_tools import identify_shells
+from scilpy.dwi.bvec_bval_tools import identify_shells
 from scilpy.utils.util import voxel_to_world, world_to_voxel
 
 

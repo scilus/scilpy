@@ -23,7 +23,7 @@ import numpy as np
 from scilpy.io.utils import (assert_inputs_exist,
                              add_force_b0_arg,
                              add_verbose_arg)
-from scilpy.utils.bvec_bval_tools import check_b0_threshold, normalize_bvecs
+from scilpy.dwi.bvec_bval_tools import check_b0_threshold, normalize_bvecs
 import math
 
 

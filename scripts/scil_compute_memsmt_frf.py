@@ -47,7 +47,7 @@ from scilpy.io.utils import (add_force_b0_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
-from scilpy.utils.bvec_bval_tools import extract_dwi_shell
+from scilpy.dwi.bvec_bval_tools import extract_dwi_shell
 from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 

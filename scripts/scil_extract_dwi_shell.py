@@ -26,7 +26,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import extract_dwi_shell
+from scilpy.dwi.bvec_bval_tools import extract_dwi_shell
 
 
 def _build_arg_parser():

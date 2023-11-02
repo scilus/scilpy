@@ -13,7 +13,7 @@ import os
 
 from dipy.data import get_sphere
 
-from scilpy.utils.bvec_bval_tools import identify_shells
+from scilpy.dwi.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_gradients_filenames_valid,

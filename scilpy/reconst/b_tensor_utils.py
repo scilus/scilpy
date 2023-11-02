@@ -6,8 +6,8 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          extract_dwi_shell)
+from scilpy.dwi.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+                                        extract_dwi_shell)
 
 
 bshapes = {0: "STE", 1: "LTE", -0.5: "PTE", 0.5: "CTE"}

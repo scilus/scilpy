@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Extract B0s from DWI.
+Extract B0s from DWI, based on the bval and bvec information.
 
 The default behavior is to save the first b0 of the series.
 """
@@ -19,8 +19,8 @@ import numpy as np
 
 from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
                              add_verbose_arg)
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, extract_b0,
-                                          B0ExtractionStrategy)
+from scilpy.dwi.bvec_bval_tools import (check_b0_threshold, extract_b0,
+                                        B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
 
 logger = logging.getLogger(__file__)
@@ -42,22 +42,22 @@ def _build_arg_parser():
                         'to b0_thr are considered as b0s i.e. without '
                         'diffusion weighting. [%(default)s]')
 
-    group = p.add_mutually_exclusive_group()
+    group_ = p.add_argument_group("Options in the case of multiple b0s.")
+    group = group_.add_mutually_exclusive_group()
     group.add_argument('--all', action='store_true',
-                       help='Extract all b0. Index number will be appended to '
-                            'the output file.')
+                       help='Extract all b0s. Index number will be appended '
+                            'to the output file.')
     group.add_argument('--mean', action='store_true', help='Extract mean b0.')
     group.add_argument('--cluster-mean', action='store_true',
                        help='Extract mean of each continuous cluster of b0s.')
     group.add_argument('--cluster-first', action='store_true',
-                       help='Extract first b0 of each '
-                            'continuous cluster of b0s.')
+                       help='Extract first b0 of each continuous cluster of '
+                            'b0s.')
 
     p.add_argument('--block-size', '-s',
                    metavar='INT', type=int,
-                   help='Load the data using this block size. '
-                        'Useful\nwhen the data is too large to be '
-                        'loaded in memory.')
+                   help='Load the data using this block size. Useful\nwhen '
+                        'the data is too large to be loaded in memory.')
 
     p.add_argument('--single-image', action='store_true',
                    help='If output b0 volume has multiple time points, only '
