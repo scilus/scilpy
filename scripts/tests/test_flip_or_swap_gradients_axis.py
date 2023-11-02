@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_flip_gradients.py', '--help')
+    ret = script_runner.run('scil_flip_or_swap_gradients_axis.py', '--help')
     assert ret.success
 
 
@@ -20,6 +20,7 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_encoding = os.path.join(get_home(), 'processing',
                                '1000.b')
-    ret = script_runner.run('scil_flip_gradients.py', in_encoding,
-                            '1000_flip.b', 'x', '--mrtrix')
+    ret = script_runner.run('scil_flip_or_swap_gradients_axis.py', in_encoding,
+                            '1000_flip.b', '--final_order', 'x', '-z', 'y',
+                            '--mrtrix')
     assert ret.success

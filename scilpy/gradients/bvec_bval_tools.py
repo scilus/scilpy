@@ -277,91 +277,52 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     return centroids, shell_indices
 
 
-def flip_mrtrix_gradient_sampling(gradient_sampling_filename,
-                                  gradient_sampling_flipped_filename, axes):
+def flip_gradient_sampling(bvecs, axes, sampling_type):
     """
-    Flip Mrtrix gradient sampling on a axis
+    Flip bvecs on chosen axis.
 
     Parameters
     ----------
-    gradient_sampling_filename: str
-        Gradient sampling filename
-    gradient_sampling_flipped_filename: str
-        Gradient sampling flipped filename
+    bvecs: np.ndarray
+        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
+        bvals.
     axes: list of int
         List of axes to flip (e.g. [0, 1])
+    sampling_type: str
+        Either 'mrtrix' or 'fsl'.
     """
-    gradient_sampling = np.loadtxt(gradient_sampling_filename)
-    for axis in axes:
-        gradient_sampling[:, axis] *= -1
+    assert sampling_type in ['mrtrix', 'fsl']
+    if sampling_type == 'mrtrix':
+        for axis in axes:
+            bvecs[:, axis] *= -1
+    else:
+        for axis in axes:
+            bvecs[axis, :] *= -1
+    return bvecs
 
-    np.savetxt(gradient_sampling_flipped_filename,
-               gradient_sampling,
-               "%.8f %.8f %.8f %0.6f")
 
-
-def flip_fsl_gradient_sampling(bvecs_filename, bvecs_flipped_filename, axes):
+def swap_gradient_axis(bvecs, final_order, sampling_type):
     """
-    Flip FSL bvecs on a axis
+    Swap bvecs.
 
     Parameters
     ----------
-    bvecs_filename: str
-        Bvecs filename
-    bvecs_flipped_filename: str
-        Bvecs flipped filename
-    axes: list of int
-        List of axes to flip (e.g. [0, 1])
+    bvecs: np.array
+        Loaded bvecs. In the case 'mrtrix' the bvecs actually also contain the
+        bvals.
+    final_order: new order
+        Final order (ex, 2 1 0)
+    sampling_type: str
+        Either 'mrtrix' or 'fsl'.
     """
-    bvecs = np.loadtxt(bvecs_filename)
-    for axis in axes:
-        bvecs[axis, :] *= -1
-
-    np.savetxt(bvecs_flipped_filename, bvecs, "%.8f")
-
-
-def swap_fsl_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
-    """
-    Swap FSL bvecs
-
-    Parameters
-    ----------
-    bvecs_filename: str
-        Bvecs filename
-    bvecs_swapped_filename: str
-        Bvecs swapped filename
-    axes: list of int
-        List of axes to swap (e.g. [0, 1])
-    """
-
-    bvecs = np.loadtxt(bvecs_filename)
     new_bvecs = np.copy(bvecs)
-    new_bvecs[axes[0], :] = bvecs[axes[1], :]
-    new_bvecs[axes[1], :] = bvecs[axes[0], :]
-
-    np.savetxt(bvecs_swapped_filename, new_bvecs, "%.8f")
-
-
-def swap_mrtrix_gradient_axis(bvecs_filename, bvecs_swapped_filename, axes):
-    """
-    Swap MRtrix bvecs
-
-    Parameters
-    ----------
-    bvecs_filename: str
-        Bvecs filename
-    bvecs_swapped_filename: str
-        Bvecs swapped filename
-    axes: list of int
-        List of axes to swap (e.g. [0, 1])
-    """
-
-    bvecs = np.loadtxt(bvecs_filename)
-    new_bvecs = np.copy(bvecs)
-
-    new_bvecs[:, axes[0]] = bvecs[:, axes[1]]
-    new_bvecs[:, axes[1]] = bvecs[:, axes[0]]
-
-    np.savetxt(bvecs_swapped_filename,
-               new_bvecs,
-               "%.8f %.8f %.8f %0.6f")
+    assert sampling_type in ['mrtrix', 'fsl']
+    if sampling_type == 'mrtrix':
+        new_bvecs[:, 0] = bvecs[:, final_order[0]]
+        new_bvecs[:, 1] = bvecs[:, final_order[1]]
+        new_bvecs[:, 2] = bvecs[:, final_order[2]]
+    else:
+        new_bvecs[0, :] = bvecs[final_order[0], :]
+        new_bvecs[1, :] = bvecs[final_order[1], :]
+        new_bvecs[2, :] = bvecs[final_order[2], :]
+    return new_bvecs
