@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute RecobundlesX (multi-atlas & multi-parameters).
+Compute BundleSeg & supports multi-atlas & multi-parameters (RBx-like).
 The model needs to be cleaned and lightweight.
 Transform should come from ANTs: (using the --inverse flag)
 AntsRegistrationSyNQuick.sh -d 3 -m MODEL_REF -f SUBJ_REF
@@ -13,7 +13,7 @@ the provided transformation is not used correctly.
 
 The number of folders inside 'models_directories' will increase the number of
 runs. Each folder is considered like an atlas and bundles inside will initiate
-more Recobundle executions. The more atlases you have, the more robust the
+more BundleSeg executions. The more atlases you have, the more robust the
 recognition will be.
 
 --minimal_vote_ratio is a value between 0 and 1. If you have 5 input model
@@ -44,14 +44,9 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.segment.voting_scheme import VotingScheme
 
 EPILOG = """
-[1] Garyfallidis, Eleftherios, et al. "Recognition of white matter bundles using
-    local and global streamline-based registration and clustering."
-    NeuroImage (2018)
-[2] St-Onge, Etienne, Eleftherios Garyfallidis, and D. Louis Collins.
-    "Fast Streamline Search: An Exact Technique for Diffusion MRI Tractography."
-    Neuroinformatics (2022)
-[3] Rheault, François. "Analyse et reconstruction de faisceaux de la matière
-    blanche." Computer Science. Université de Sherbrooke (2020).
+[1] Etienne St-Onge, Kurt Schilling, Francois Rheault, "BundleSeg: A versatile,
+    reliable and reproducible approach to white matter bundle segmentation.",
+    arXiv, 2308.10958 (2023)
 """
 
 
@@ -132,6 +127,8 @@ def main():
     with open(args.in_config_file) as json_data:
         config = json.load(json_data)
 
+    # For code simplicity, it is still RecobundlesX class and all, but
+    # the last pruning step was modified to be in line with BundleSeg.
     voting = VotingScheme(config, args.in_models_directories,
                           transfo, args.out_dir,
                           minimal_vote_ratio=args.minimal_vote_ratio)

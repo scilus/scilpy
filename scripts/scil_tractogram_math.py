@@ -58,7 +58,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              is_header_compatible_multiple_files)
 from scilpy.tractograms.lazy_tractogram_operations import lazy_concatenate
 from scilpy.tractograms.tractogram_operations import (
-    perform_tractogram_operation, concatenate_sft)
+    perform_tractogram_operation_on_sft, concatenate_sft)
 
 
 def _build_arg_parser():
@@ -116,7 +116,10 @@ def main():
     assert_inputs_exist(parser, args.in_tractograms)
     assert_outputs_exist(parser, args, args.out_tractogram,
                          optional=args.save_indices)
-    is_header_compatible_multiple_files(parser, args.in_tractograms)
+
+    is_header_compatible_multiple_files(
+        parser, args.in_tractograms, verbose_all_compatible=args.verbose,
+        reference=args.reference)
 
     if args.operation == 'lazy_concatenate':
         logging.info('Using lazy_concatenate, no spatial or metadata related '
@@ -163,7 +166,7 @@ def main():
             op_name += '_robust'
 
         logging.info('Performing operation \'{}\'.'.format(op_name))
-        new_sft, indices_per_sft = perform_tractogram_operation(
+        new_sft, indices_per_sft = perform_tractogram_operation_on_sft(
             op_name, sft_list, precision=args.precision,
             no_metadata=args.no_metadata, fake_metadata=args.fake_metadata)
 

@@ -43,6 +43,7 @@ Example usages:
 """
 
 import argparse
+from copy import deepcopy
 import json
 import logging
 import os
@@ -67,9 +68,10 @@ from scilpy.io.utils import (add_json_args,
 from scilpy.image.labels import get_data_as_labels
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-from scilpy.tractograms.tractogram_operations import (
-    difference, perform_tractogram_operation)
-from scilpy.tracking.tools import filter_streamlines_by_length
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_length
+from scilpy.tractograms.tractogram_operations import \
+    perform_tractogram_operation_on_sft
 from scilpy.utils.streamlines import filter_tractogram_data
 
 
@@ -119,6 +121,8 @@ def _build_arg_parser():
                         ' images, etc) in the filtering process.')
     p.add_argument('--save_counts', action='store_true',
                    help='Save the streamline counts to a file (.json)')
+    p.add_argument('--save_rejected', action='store_true',
+                   help='Save rejected streamlines to output tractogram.')
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamlines.')
 
@@ -226,11 +230,27 @@ def compute_outliers(sft, new_sft):
     Return a stateful tractogram whose streamlines are the difference of the
     two input stateful tractograms
     """
-    streamlines_list = [sft.streamlines, new_sft.streamlines]
-    _, indices = perform_tractogram_operation(
-        difference, streamlines_list, precision=0)
-    outliers_sft = sft[indices]
+    outliers_sft, _ = perform_tractogram_operation_on_sft('difference_robust',
+                                                          [sft, new_sft],
+                                                          precision=3,
+                                                          no_metadata=True,
+                                                          fake_metadata=False)
     return outliers_sft
+
+
+def save_rejected(sft, new_sft, rejected_sft_name, no_empty):
+    """
+    Save rejected streamlines
+    """
+    rejected_sft = compute_outliers(sft, new_sft)
+
+    if len(rejected_sft.streamlines) == 0:
+        if no_empty:
+            logging.debug("The file" + rejected_sft_name +
+                          " won't be written (0 streamlines)")
+            return
+
+    save_tractogram(rejected_sft, rejected_sft_name)
 
 
 def display_count(o_dict, indent, sort_keys):
@@ -272,6 +292,8 @@ def main():
         parser.error('Cortex dilation radius "{}" '.format(
                      args.ctx_dilation_radius) + 'must be greater than 0')
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
+    sft.to_vox()
+    sft.to_corner()
 
     img_wmparc = nib.load(args.in_wmparc)
     if not is_header_compatible(img_wmparc, sft):
@@ -303,6 +325,12 @@ def main():
     out_sft_name = os.path.join(args.out_path,
                                 out_sft_rootname + ext)
 
+    if args.save_rejected:
+        initial_sft = deepcopy(sft)
+        rejected_sft_name = os.path.join(args.out_path,
+                                         in_sft_name +
+                                         "_rejected" + ext)
+
     # STEP 1 - Filter length
     step = step_dict[0]
     steps_combined = step
@@ -330,22 +358,23 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
+            if args.save_rejected:
+                save_tractogram(initial_sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
-
         if args.save_counts:
             save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
         return
 
     sft = new_sft
@@ -390,23 +419,23 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
-
         save_tractogram(new_sft, out_sft_name)
 
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
         if args.verbose:
             display_count(o_dict, args.indent, args.sort_keys)
-
         if args.save_counts:
             save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
         return
 
     sft = new_sft
@@ -455,21 +484,32 @@ def main():
         o_dict[in_sft_name + '_' + steps_combined + '_outliers' + ext] =\
             dict({'streamline_count': len(outliers_sft.streamlines)})
 
-    # Finish filtering
-    if args.verbose:
-        display_count(o_dict, args.indent, args.sort_keys)
-
-    if args.save_counts:
-        save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
     if len(new_sft.streamlines) == 0:
         if args.no_empty:
             logging.debug("The file {} won't be written".format(
                           out_sft_name) + "(0 streamlines after "
                           + step + " filtering).")
+
+            if args.verbose:
+                display_count(o_dict, args.indent, args.sort_keys)
+            if args.save_counts:
+                save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
             return
+
         logging.debug('The file {} contains 0 streamlines after '.format(
                       out_sft_name) + step + ' filtering')
+        save_tractogram(new_sft, out_sft_name)
+
+        if args.save_rejected:
+            save_rejected(initial_sft, new_sft,
+                          rejected_sft_name, args.no_empty)
+        if args.verbose:
+            display_count(o_dict, args.indent, args.sort_keys)
+        if args.save_counts:
+            save_count(o_dict, args.out_path, args.indent, args.sort_keys)
+        return
 
     sft = new_sft
 
@@ -482,7 +522,7 @@ def main():
                                              num_processes=nbr_cpu)
         new_sft = filter_tractogram_data(sft, ids_c)
     else:
-        new_sft = sft
+        new_sft = deepcopy(sft)
 
     # Streamline count after filtering loops
     o_dict[in_sft_name + '_' + steps_combined + ext] =\
@@ -504,10 +544,10 @@ def main():
 
             if args.verbose:
                 display_count(o_dict, args.indent, args.sort_keys)
-
             if args.save_counts:
                 save_count(o_dict, args.out_path, args.indent, args.sort_keys)
-
+            if args.save_rejected:
+                save_tractogram(sft, rejected_sft_name)
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
@@ -516,14 +556,13 @@ def main():
 
     if args.verbose:
         display_count(o_dict, args.indent, args.sort_keys)
-
     if args.save_counts:
         save_count(o_dict, args.out_path, args.indent, args.sort_keys)
 
-        return
-
     sft = new_sft
     save_tractogram(sft, out_sft_name)
+    if args.save_rejected:
+        save_rejected(initial_sft, sft, rejected_sft_name, args.no_empty)
 
 
 if __name__ == "__main__":

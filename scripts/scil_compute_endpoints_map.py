@@ -27,7 +27,7 @@ from scilpy.io.utils import (add_json_args,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.tractanalysis.reproducibility_measures import \
+from scilpy.tractograms.streamline_and_mask_operations import \
     get_head_tail_density_maps
 
 

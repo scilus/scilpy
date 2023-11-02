@@ -34,11 +34,12 @@ import nibabel as nib
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
+from scilpy.io.fetcher import get_synb0_template_path
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.image import get_synb0_template_path, register_image
+from scilpy.utils.image import register_image
 
 
 def _build_arg_parser():
@@ -72,6 +73,9 @@ def main():
         sys.stdout = open(os.devnull, 'w')
     else:
         logging.getLogger().setLevel(logging.INFO)
+
+    logging.info('The usage of synthetic b0 is not fully tested.'
+                 'Be careful when using it.')
 
     template_img = nib.load(get_synb0_template_path())
     template_data = template_img.get_fdata()

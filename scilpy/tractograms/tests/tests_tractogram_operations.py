@@ -8,9 +8,9 @@ from dipy.io.streamline import load_tractogram
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
 from scilpy.tractograms.tractogram_operations import flip_sft, \
-    shuffle_streamlines, _perform_tractogram_operation, intersection, union, \
+    shuffle_streamlines, perform_tractogram_operation_on_lines, intersection, union, \
     difference, intersection_robust, difference_robust, union_robust, \
-    concatenate_sft, perform_tractogram_operation
+    concatenate_sft, perform_tractogram_operation_on_sft
 
 # Prepare SFT
 fetch_data(get_testing_files_dict(), keys='surface_vtk_fib.zip')
@@ -54,38 +54,38 @@ def test_operations():
     compared = [same, different, similar]
 
     # Intersection: should find 2 similar.
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         intersection, [[same], compared])
     assert len(output) == 1
 
     # Intersection less precise. Should find 3 similar.
     # (but can't be tested now; returns the rounded unique streamline)
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         intersection, [[same], compared], precision=1)
     assert len(output) == 1
 
     # Difference: A - B: should return 0
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         difference, [[same], compared])
     assert len(output) == 0
 
     # Difference: B - A: should return 2
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         difference, [compared, [same]])
     assert len(output) == 2
 
     # Difference: B - A less precise: should return 1
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         difference, [compared, [same]], precision=1)
     assert len(output) == 1
 
     # Union: should combine the two same,
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         union, [[same], compared])
     assert len(output) == 3
 
     # Union less precise: should combine the similar too
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         union, [[same], compared], precision=1)
     assert len(output) == 2
 
@@ -104,20 +104,20 @@ def test_robust_operations():
     compared = [same, shifted_same, different]
 
     # Intersection: same/shifted
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         intersection_robust, [[same], compared], precision=precision_shifted)
     assert np.array_equal(indices, [0])
     assert len(output) == 1
 
     # Difference: different
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         difference_robust, [compared, [same]], precision=precision_shifted)
     logging.warning(indices)
     assert np.array_equal(indices, [2])
     assert len(output) == 1
 
     # Union: 4 (different, similar/same/shited)
-    output, indices = _perform_tractogram_operation(
+    output, indices = perform_tractogram_operation_on_lines(
         union_robust, [compared, [same]], precision=precision_shifted)
     logging.warning(indices)
     assert len(output) == 2
@@ -145,6 +145,6 @@ def test_concatenate_sft():
 
 def test_combining_sft():
     # todo
-    perform_tractogram_operation('union', [sft, sft], precision=None,
-                                 fake_metadata=False, no_metadata=False)
+    perform_tractogram_operation_on_sft('union', [sft, sft], precision=None,
+                                        fake_metadata=False, no_metadata=False)
 

@@ -11,7 +11,10 @@ Spatial attributes are: affine, dimensions, voxel sizes and voxel order.
 import argparse
 
 
-from scilpy.io.utils import assert_inputs_exist, is_header_compatible_multiple_files
+from scilpy.io.utils import (
+    add_reference_arg,
+    assert_inputs_exist,
+    is_header_compatible_multiple_files)
 
 
 def _build_arg_parser():
@@ -19,8 +22,8 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
 
     p.add_argument('in_files', nargs='+',
-                   help='List of file to compare (trk and nii).')
-
+                   help='List of file to compare (trk, tck and nii/nii.gz).')
+    add_reference_arg(p)
     return p
 
 
@@ -30,7 +33,8 @@ def main():
 
     assert_inputs_exist(parser, args.in_files)
     is_header_compatible_multiple_files(parser, args.in_files,
-                                        verbose_all_compatible=True)
+                                        verbose_all_compatible=True,
+                                        reference=args.reference)
 
 
 if __name__ == "__main__":

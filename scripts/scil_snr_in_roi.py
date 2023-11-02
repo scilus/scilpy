@@ -36,7 +36,7 @@ from scilpy.io.utils import (add_json_args,
                              add_verbose_arg,
                              assert_inputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.image import compute_snr
+from scilpy.image.volume_operations import compute_snr
 
 
 def _build_arg_parser():

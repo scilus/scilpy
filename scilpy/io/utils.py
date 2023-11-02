@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import itertools
 import logging
 import os
 import multiprocessing
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 
 import nibabel as nib
@@ -34,6 +34,15 @@ topup_options = ['out', 'fout', 'iout', 'logout', 'warpres', 'subsamp', 'fwhm',
                  'regrid']
 
 axis_name_choices = ["axial", "coronal", "sagittal"]
+
+
+def redirect_stdout_c():
+    sys.stdout.flush()
+    newstdout = os.dup(1)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, 1)
+    os.close(devnull)
+    sys.stdout = os.fdopen(newstdout, 'w')
 
 
 def link_bundles_and_reference(parser, args, input_tractogram_list):
@@ -242,7 +251,7 @@ def add_nifti_screenshot_default_args(
     parser, slice_ids_mandatory=True, transparency_mask_mandatory=True
 ):
     _mask_prefix = "" if transparency_mask_mandatory else "--"
-    
+
     _slice_ids_prefix, _slice_ids_help = "", "Slice indices to screenshot."
     _output_help = "Name of the output image (e.g. img.jpg, img.png)."
     if not slice_ids_mandatory:
@@ -251,8 +260,8 @@ def add_nifti_screenshot_default_args(
                            "the transparency mask are selected."
         _output_help = "Name of the output image(s). If multiple slices are " \
                        "provided (or none), their index will be append to " \
-                        "the name (e.g. volume.jpg, volume.png becomes " \
-                        "volume_slice_0.jpg, volume_slice_0.png)."
+            "the name (e.g. volume.jpg, volume.png becomes " \
+            "volume_slice_0.jpg, volume_slice_0.png)."
 
     # Positional arguments
     parser.add_argument(
@@ -285,6 +294,7 @@ def add_nifti_screenshot_default_args(
         "--display_lr", action="store_true",
         help="If true, add left and right annotations to the images."
     )
+
 
 def add_nifti_screenshot_overlays_args(
     parser, labelmap_overlay=True, mask_overlay=True,
@@ -531,6 +541,31 @@ def assert_overlay_colors(colors, overlays, parser):
                      f"single mask color or as many colors as there is masks")
 
 
+def assert_roi_radii_format(parser):
+    """
+    Verifies the format of the inputed roi radii.
+
+    Parameters
+    ----------
+    parser: argument parser
+        Will raise an error if the --roi_radii format is wrong.
+
+    Returns
+    -------
+    roi_radii: int or numpy array
+        Roi radii as a scalar or an array of size (3,).
+    """
+    args = parser.parse_args()
+    if len(args.roi_radii) == 1:
+        roi_radii = args.roi_radii[0]
+    elif len(args.roi_radii) == 3:
+        roi_radii = args.roi_radii
+    else:
+        parser.error('Wrong size for --roi_radii, can only be a scalar' +
+                     'or an array of size (3,)')
+    return roi_radii
+
+
 def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
                                             parser, args):
     """
@@ -572,39 +607,53 @@ def verify_compatibility_with_reference_sft(ref_sft, files_to_verify,
 
 
 def is_header_compatible_multiple_files(parser, list_files,
-                                        verbose_all_compatible=False):
+                                        verbose_all_compatible=False,
+                                        reference=None):
     """
     Verifies the compatibility between the first item in list_files
     and the remaining files in list.
 
+    Arguments
+    ---------
     parser: argument parser
         Will raise an error if a file is not compatible.
-
-    list_files: List
+    list_files: List[str]
         List of files to test
-
     verbose_all_compatible: bool
         If true will print a message when everything is okay
+    reference: str
+        Reference for any .tck passed in `list_files`
     """
     all_valid = True
 
+    # Gather "headers" for all files to compare against
+    # eachother later
+    headers = []
     for filepath in list_files:
         _, in_extension = split_name_with_nii(filepath)
-        if in_extension not in ['.trk', '.nii', '.nii.gz']:
-            parser.error('{} does not have a supported extension'.format(
+        if in_extension in ['.trk', '.nii', '.nii.gz']:
+            headers.append(filepath)
+        elif in_extension == '.tck':
+            if reference:
+                headers.append(reference)
+            else:
+                parser.error(
+                    '{} must be provided with a reference.'.format(
+                        filepath))
+        else:
+            parser.error('{} does not have a supported extension.'.format(
                 filepath))
 
-    all_pairs = list(itertools.combinations(list_files, 2))
-    for curr_pair in all_pairs:
-        if not is_header_compatible(curr_pair[0], curr_pair[1]):
-            print('ERROR:\"{}\" and \"{}\" do not have compatible header.'.format(
-                curr_pair[0], curr_pair[1]))
+    for curr in headers[1:]:
+        if not is_header_compatible(headers[0], curr):
+            print('ERROR:\"{}\" and \"{}\" do not have compatible '
+                  'headers.'.format(headers[0], curr))
             all_valid = False
 
     if all_valid and verbose_all_compatible:
         print('All input files have compatible headers.')
     elif not all_valid:
-        parser.error('All input files have not compatible header.')
+        parser.error('Not all input files have compatible headers.')
 
 
 def read_info_from_mb_bdo(filename):

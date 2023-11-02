@@ -15,10 +15,13 @@ from dipy.tracking.utils import length as compute_length
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.segment.streamlines import filter_grid_roi, filter_grid_roi_both
-from scilpy.tracking.tools import filter_streamlines_by_total_length_per_dim
 from scilpy.tractanalysis.features import remove_loops_and_sharp_turns
-from scilpy.tractanalysis.tools import split_heads_tails_kmeans
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+
+from scilpy.tractograms.streamline_and_mask_operations import \
+    split_mask_blobs_kmeans
+from scilpy.tractograms.streamline_operations import \
+    filter_streamlines_by_total_length_per_dim
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -123,7 +126,7 @@ def _extract_and_save_tails_heads_from_endpoints(gt_endpoints, out_dir):
     affine = mask_img.affine
     dimensions = mask.shape
 
-    head, tail = split_heads_tails_kmeans(mask)
+    head, tail = split_mask_blobs_kmeans(mask, nb_clusters=2)
 
     basename = os.path.basename(split_name_with_nii(gt_endpoints)[0])
     tail_filename = os.path.join(out_dir, '{}_tail.nii.gz'.format(basename))

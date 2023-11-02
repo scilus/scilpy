@@ -46,9 +46,11 @@ from scilpy.tractanalysis.reproducibility_measures \
             compute_bundle_adjacency_streamlines,
             compute_bundle_adjacency_voxel,
             compute_correlation,
-            compute_dice_streamlines,
-            get_endpoints_density_map)
+            compute_dice_streamlines)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+
+from scilpy.tractograms.streamline_and_mask_operations import \
+    get_endpoints_density_map
 
 
 def _build_arg_parser():
