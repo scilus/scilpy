@@ -326,3 +326,40 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
         new_bvecs[1, :] = bvecs[final_order[1], :]
         new_bvecs[2, :] = bvecs[final_order[2], :]
     return new_bvecs
+
+
+def extract_bvals(bvals, tolerance, bvals_to_extract):
+    """
+    Return bvals equal to a list of chosen bvals, up to a tolerance.
+
+    Parameters
+    ----------
+    bvals: np.array
+        All the b-values.
+    tolerance: float
+        The tolerance
+    bvals_to_extract: list
+        The shells of interest.
+    """
+    # Find the volume indices that correspond to the shells to extract.
+    sorted_centroids, sorted_indices = identify_shells(bvals, tolerance,
+                                                       sort=True)
+
+    bvals_to_extract = np.sort(bvals_to_extract)
+    nb_new_shells = np.shape(bvals_to_extract)[0]
+
+    logging.info("number of shells: {}".format(nb_new_shells))
+    logging.info("bvals to extract: {}".format(bvals_to_extract))
+    logging.info("estimated centroids: {}".format(sorted_centroids))
+    logging.info("original bvals: {}".format(bvals))
+    logging.info("selected indices: {}".format(sorted_indices))
+
+    new_bvals = bvals
+    for i in range(nb_new_shells):
+        if np.abs(sorted_centroids[i] - bvals_to_extract[i]) <= tolerance:
+            new_bvals[np.where(sorted_indices == i)] = bvals_to_extract[i]
+        else:
+            raise ValueError("No bvals found on shell #{}: {}: "
+                             "tolerance is too low?"
+                             .format(i, bvals[i]))
+    return new_bvals
