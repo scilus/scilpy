@@ -10,52 +10,9 @@ import argparse
 import json
 import os
 
-import numpy as np
-
 from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
-
-
-def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
-    new_dict = {}
-    for key in dict_1.keys():
-        new_dict[key] = dict_1[key]
-
-    for key in dict_2.keys():
-        if isinstance(dict_2[key], dict) and recursive:
-            if key not in dict_1:
-                dict_1[key] = {}
-            new_dict[key] = _merge_dict(dict_1[key], dict_2[key],
-                                        no_list=no_list, recursive=recursive)
-        elif key not in new_dict:
-            new_dict[key] = dict_2[key]
-        else:
-            if not isinstance(new_dict[key], list) and not no_list:
-                new_dict[key] = [new_dict[key]]
-
-            if not isinstance(dict_2[key], list) and not no_list:
-                new_dict[key].extend([dict_2[key]])
-            else:
-                if isinstance(dict_2[key], dict):
-                    new_dict.update(dict_2)
-                else:
-                    new_dict[key] = new_dict[key] + dict_2[key]
-
-    return new_dict
-
-
-def _average_dict(dict_1):
-    for key in dict_1.keys():
-        if isinstance(dict_1[key], dict):
-            dict_1[key] = _average_dict(dict_1[key])
-        elif isinstance(dict_1[key], list) or np.isscalar(dict_1[key]):
-            new_dict = {}
-            for subkey in dict_1.keys():
-                new_dict[subkey] = {'mean': np.average(dict_1[subkey]),
-                                    'std': np.std(dict_1[subkey])}
-            return new_dict
-
-    return dict_1
+from scilpy.tractanalysis.json_utils import _merge_dict, _average_dict
 
 
 def _build_arg_parser():
