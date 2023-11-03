@@ -27,14 +27,16 @@ def _build_arg_parser():
     p.add_argument('out_gradient_sampling_file',
                    help='Where to save the flipped gradient sampling file.')
 
-    p.add_argument('--final_order', metavar='dimension',
-                   choices=['x', 'y', 'z', '-x', '-y', '-z'], nargs=3,
-                   help='The final order of the axis, compared to original '
-                        'order.\n'
-                        'Ex: to only flip y: --final_order x -y z.\n'
-                        'Ex: to only swap x and y: --final_order y x z.\n'
-                        'Ex: to first flip x, then permute all three axes: '
-                        '--final_order z -x y.')
+    # Note: We can't ask for 3 separate nargs because -x is understood as
+    # another option -x.
+    p.add_argument('final_order', metavar='"axis axis axis"',
+                   help="The final order of the axis, compared to original "
+                        "order. \n"
+                        "Choices: ['x', 'y', 'z', '-x', '-y', '-z']\n"
+                        "Ex: to only flip y: --final_order x-yz.\n"
+                        "Ex: to only swap x and y: --final_order yxz.\n"
+                        "Ex: to first flip x, then permute all three axes: "
+                        "--final_order z-xy.")
 
     gradients_type = p.add_mutually_exclusive_group(required=True)
     gradients_type.add_argument('--fsl', dest='fsl_bvecs',
@@ -56,20 +58,25 @@ def main():
     assert_inputs_exist(parser, args.in_gradient_sampling_file)
     assert_outputs_exist(parser, args, args.out_gradient_sampling_file)
 
-    # Separating into flip and swap
+    # Format final order
     axes_to_flip = []
     swapped_order = []
-    for axis in args.final_order:
-        if axis[0] == '-':
-            axes_to_flip.append(axis[1])
-            axis = axis[1]
-        swapped_order.append(axis)
-    axes_to_flip = [str_to_index(axis) for axis in axes_to_flip]
-    swapped_order = [str_to_index(axis) for axis in swapped_order]
+    next_axis = ''
+    for char in args.final_order:
+        next_axis += char
+        if char != '-':
+            if next_axis in ['x', 'y', 'z']:
+                swapped_order.append(str_to_index(next_axis))
+            elif next_axis in ['-x', '-y', '-z']:
+                axes_to_flip.append(str_to_index(next_axis[1]))
+                swapped_order.append(str_to_index(next_axis[1]))
+            else:
+                parser.error("Sorry, final_order not understood.")
+            next_axis = ''
 
-    # Verifying that user did not ask for, ex, -x x y
+    # Verifying that user did not ask for, ex, -xxy
     if len(np.unique(swapped_order)) != 3:
-        parser.error("--final_order should contain the three axis.")
+        parser.error("final_order should contain the three axis.")
 
     _, ext = os.path.splitext(args.in_gradient_sampling_file)
     bvecs = np.loadtxt(args.in_gradient_sampling_file)
