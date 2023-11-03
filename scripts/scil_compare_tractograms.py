@@ -63,7 +63,9 @@ def _build_arg_parser():
 
     p.add_argument('--in_mask', metavar='IN_FILE',
                    help='Optional input mask.')
-
+    p.add_argument('--skip_streamlines_distance', action='store_true',
+                   help='Skip computation of the spatial distance between '
+                        'streamlines.')
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -101,7 +103,8 @@ def generate_matched_points(sft):
     return matched_points
 
 
-def compute_difference_for_voxel(chunk_indices):
+def compute_difference_for_voxel(chunk_indices,
+                                 skip_streamlines_distance=False):
     """
     Compute the difference for a single voxel index.
     """
@@ -110,6 +113,19 @@ def compute_difference_for_voxel(chunk_indices):
     results = []
     for vox_ind in chunk_indices:
         vox_ind = tuple(vox_ind)
+
+        global B
+        has_data = sh_data_1[vox_ind].any() and sh_data_2[vox_ind].any()
+        if has_data:
+            sf_1 = np.dot(sh_data_1[vox_ind], B)
+            sf_2 = np.dot(sh_data_2[vox_ind], B)
+            corr = np.corrcoef(sf_1, sf_2)[0, 1]
+        else:
+            corr = -1
+
+        if skip_streamlines_distance or not has_data:
+            results.append([-1, corr])
+            continue
 
         # Get the streamlines in the neighborhood (i.e., 2mm away)
         pts_ind_1 = tree_1.query_ball_point(vox_ind, 1.5)
@@ -136,15 +152,8 @@ def compute_difference_for_voxel(chunk_indices):
             sparse_ma_dist_vec = np.squeeze(np.min(sparse_ma_dist_mat,
                                                    axis=0))
 
-            if np.any(sparse_ma_dist_vec):
-                global B
-                sf_1 = np.dot(sh_data_1[vox_ind], B)
-                sf_2 = np.dot(sh_data_2[vox_ind], B)
-                dist = np.average(sparse_ma_dist_vec)
-                corr = np.corrcoef(sf_1, sf_2)[0, 1]
-                results.append([dist, corr])
-            else:
-                results.append([-1, -1])
+            dist = np.average(sparse_ma_dist_vec)
+            results.append([dist, corr])
 
     return results
 
@@ -217,9 +226,8 @@ def main():
     logging.info('Loading tractograms...')
     global sft_1, sft_2
     sft_1 = load_tractogram_with_reference(parser, args, args.in_tractogram_1)
-    # sft_1 = resample_streamlines_step_size(sft_1, 0.5)
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
-    # sft_2 = resample_streamlines_step_size(sft_2, 0.5)
+
     sft_1.to_vox()
     sft_2.to_vox()
     sft_1.streamlines._data = sft_1.streamlines._data.astype(np.float16)
@@ -298,7 +306,8 @@ def main():
 
     with ProcessPoolExecutor(max_workers=nbr_cpu) as executor:
         futures = {executor.submit(
-            compute_difference_for_voxel, chunk): chunk for chunk in index_chunks}
+            compute_difference_for_voxel, chunk,
+            args.skip_streamlines_distance): chunk for chunk in index_chunks}
 
         for future in as_completed(futures):
             chunk = futures[future]
