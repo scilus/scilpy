@@ -82,6 +82,6 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-SCRIPTS = glob.glob("scripts/*.py")
+SCRIPTS = glob.glob("scripts/*.py") + glob.glob("scripts/legacy/*.py")
 
 PREVIOUS_MAINTAINERS=["Jean-Christophe Houde"]
