@@ -316,7 +316,7 @@ def main():
                       "The wmparc atlas will not be dilated!")
 
     o_dict = {}
-    step_dict = ['length', 'no_end_csf', 'end_in_atlas', 'no_loops']
+    step_dict = ['length', 'no_csf', 'end_in_atlas', 'no_loops']
     wm_labels = load_wmparc_labels()
 
     in_sft_name = os.path.splitext(os.path.basename(args.in_tractogram))[0]
@@ -335,7 +335,6 @@ def main():
     step = step_dict[0]
     steps_combined = step
     new_sft = filter_streamlines_by_length(sft, args.minL, args.maxL)
-
     # Streamline count before and after filtering lengths
     o_dict[in_sft_name + ext] =\
         dict({'streamline_count': len(sft.streamlines)})
@@ -379,7 +378,7 @@ def main():
 
     sft = new_sft
 
-    # STEP 2 - Filter CSF endings
+    # STEP 2 - Filter CSF
     step = step_dict[1]
     steps_combined += "_" + step
 

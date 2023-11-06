@@ -6,12 +6,14 @@
    If the procpar contains diffusion information, it will be saved as bval and
    bvec in the same folder as the output file.
 
-   ex: scil_convert_fdf.py semsdw/b0_folder/ semsdw/dwi_folder/ dwi.nii.gz --bval dwi.bval --bvec dwi.bvec -f
+   ex: scil_convert_fdf.py semsdw/b0_folder/ semsdw/dwi_folder/ dwi.nii.gz \
+            --bval dwi.bval --bvec dwi.bvec -f
 """
 
 import argparse
 
-from scilpy.io.varian_fdf import load_fdf, save_babel, correct_dwi_intensity
+from scilpy.io.varian_fdf import (correct_procpar_intensity, load_fdf,
+                                  save_babel)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_outputs_exist)
 
@@ -54,8 +56,8 @@ def main():
     data_dwi, header_dwi = load_fdf(args.in_dwi_path)
     data_b0, header_b0 = load_fdf(args.in_b0_path)
 
-    data_dwi = correct_dwi_intensity(data_dwi, args.in_dwi_path,
-                                     args.in_b0_path)
+    data_dwi = correct_procpar_intensity(data_dwi, args.in_dwi_path,
+                                         args.in_b0_path)
 
     save_babel(data_dwi, header_dwi,
                data_b0, header_b0,

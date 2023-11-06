@@ -11,7 +11,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_gradients_filenames_valid,
                              assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import mrtrix2fsl
+from scilpy.gradients.bvec_bval_tools import mrtrix2fsl
 
 
 def _build_arg_parser():

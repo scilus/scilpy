@@ -24,9 +24,9 @@ from dipy.io import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import extract_dwi_shell
 
 
 def _build_arg_parser():

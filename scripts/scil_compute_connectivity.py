@@ -286,6 +286,7 @@ def main():
     logging.getLogger().setLevel(log_level)
     coloredlogs.install(level=log_level)
 
+    # Summarizing all options chosen by user in measures_to_compute.
     measures_to_compute = []
     measures_output_filename = []
     if args.volume:
@@ -301,6 +302,7 @@ def main():
         measures_to_compute.append('similarity')
         measures_output_filename.append(args.similarity[1])
 
+    # Adding measures from pre-computed maps.
     dict_maps_out_name = {}
     if args.maps is not None:
         for in_folder, out_name in args.maps:
@@ -308,12 +310,13 @@ def main():
             dict_maps_out_name[in_folder] = out_name
             measures_output_filename.append(out_name)
 
+    # Adding measures from pre-computed metrics.
     dict_metrics_out_name = {}
     if args.metrics is not None:
         for in_name, out_name in args.metrics:
             # Verify that all metrics are compatible with each other
             if not is_header_compatible(args.metrics[0][0], in_name):
-                raise IOError('Metrics {} and  {} do not share a compatible '
+                raise IOError('Metrics {} and {} do not share a compatible '
                               'header'.format(args.metrics[0][0], in_name))
 
             # This is necessary to support more than one map for weighting
@@ -321,6 +324,7 @@ def main():
             dict_metrics_out_name[in_name] = out_name
             measures_output_filename.append(out_name)
 
+    # Adding measures from lesions.
     dict_lesion_out_name = {}
     if args.lesion_load is not None:
         in_name = args.lesion_load[0]
@@ -340,6 +344,7 @@ def main():
         dict_lesion_out_name[in_name+'sc'] = out_name_3
         measures_output_filename.extend([out_name_1, out_name_2, out_name_3])
 
+    # Verifying all outputs that will be used for all measures.
     assert_outputs_exist(parser, args, measures_output_filename)
     if not measures_to_compute:
         parser.error('No connectivity measures were selected, nothing '
@@ -353,6 +358,7 @@ def main():
             os.makedirs(args.include_dps)
         logging.info('data_per_streamline weighting is activated.')
 
+    # Loading the data
     img_labels = nib.load(args.in_labels)
     data_labels = get_data_as_labels(img_labels)
     if not args.force_labels_list:
@@ -361,10 +367,12 @@ def main():
         labels_list = np.loadtxt(
             args.force_labels_list, dtype=np.int16).tolist()
 
+    # Finding all connectivity combo (start-finish)
     comb_list = list(itertools.combinations(labels_list, r=2))
     if not args.no_self_connection:
         comb_list.extend(zip(labels_list, labels_list))
 
+    # Running everything!
     nbr_cpu = validate_nbr_processes(parser, args)
     measures_dict_list = []
     if nbr_cpu == 1:

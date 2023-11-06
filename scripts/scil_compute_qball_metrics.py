@@ -31,8 +31,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              assert_outputs_exist, add_force_b0_arg,
                              validate_nbr_processes)
 from scilpy.io.image import get_data_as_mask
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold)
+from scilpy.gradients.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+                                              check_b0_threshold)
 
 
 DEFAULT_SMOOTH = 0.006

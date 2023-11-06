@@ -21,7 +21,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import identify_shells
+from scilpy.gradients.bvec_bval_tools import identify_shells
 
 
 def _build_arg_parser():
