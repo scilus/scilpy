@@ -2,6 +2,7 @@
 import os
 import tempfile
 
+import nibabel as nib
 import numpy as np
 import pytest
 
@@ -9,14 +10,19 @@ from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
+from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import (
+    compute_streamline_segment,
     filter_streamlines_by_length,
     filter_streamlines_by_total_length_per_dim,
     resample_streamlines_num_points,
     resample_streamlines_step_size,
     smooth_line_gaussian,
     smooth_line_spline)
+from scilpy.tractograms.streamline_and_mask_operations import \
+    _intersects_two_rois
 from scilpy.tractograms.tractogram_operations import concatenate_sft
+from scilpy.tractograms.uncompress import uncompress
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -40,20 +46,27 @@ def _setup_files():
                           'streamline_operations',
                           'bundle_4_wm.nii.gz')
 
+    in_rois = os.path.join(get_home(), 'tractograms',
+                           'streamline_operations',
+                           'bundle_4_head_tail_offset.nii.gz')
+
     # Load sft
     long_sft = load_tractogram(in_long_sft, in_ref)
     mid_sft = load_tractogram(in_mid_sft, in_ref)
     short_sft = load_tractogram(in_short_sft, in_ref)
 
     sft = concatenate_sft([long_sft, mid_sft, short_sft])
-    return sft
+
+    # Load mask
+    rois = nib.load(in_rois)
+    return sft, rois
 
 
 def test_filter_streamlines_by_length_max_length():
     """ Test the filter_streamlines_by_length function with a max length.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     min_length = 0.
     max_length = 100
@@ -69,7 +82,7 @@ def test_filter_streamlines_by_length_min_length():
     """ Test the filter_streamlines_by_length function with a min length.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     min_length = 100
     max_length = np.inf
@@ -86,7 +99,7 @@ def test_filter_streamlines_by_length_min_and_max_length():
     """ Test the filter_streamlines_by_length function with a min length.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     min_length = 100
     max_length = 120
@@ -109,7 +122,7 @@ def test_filter_streamlines_by_total_length_per_dim_x():
 
     # Streamlines are going purely left-right, so the
     # x dimension should have the longest span.
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     min_length = 115
     max_length = 125
@@ -141,7 +154,7 @@ def test_filter_streamlines_by_total_length_per_dim_y():
 
     # Streamlines are going purely left-right, so the
     # streamlines have to be rotated to be purely up-down.
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     # Rotate streamlines by swapping x and y for all streamlines
     swapped_streamlines_y = [s[:, [1, 0, 2]] for s in sft.streamlines]
@@ -173,7 +186,7 @@ def test_filter_streamlines_by_total_length_per_dim_z():
 
     # Streamlines are going purely left-right, so the
     # streamlines have to be rotated to be purely front-back.
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     # Rotate streamlines by swapping x and z for all streamlines
     swapped_streamlines_y = [s[:, [2, 1, 0]] for s in sft.streamlines]
@@ -198,7 +211,7 @@ def test_resample_streamlines_num_points_2():
     """ Test the resample_streamlines_num_points function to 2 points.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
     nb_points = 2
 
     resampled_sft = resample_streamlines_num_points(sft, nb_points)
@@ -211,7 +224,7 @@ def test_resample_streamlines_num_points_1000():
     """ Test the resample_streamlines_num_points function to 1000 points.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
     nb_points = 1000
 
     resampled_sft = resample_streamlines_num_points(sft, nb_points)
@@ -224,7 +237,7 @@ def test_resample_streamlines_step_size_1mm():
     """ Test the resample_streamlines_step_size function to 1mm.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     step_size = 1.0
     resampled_sft = resample_streamlines_step_size(sft, step_size)
@@ -241,7 +254,7 @@ def test_resample_streamlines_step_size_01mm():
     """ Test the resample_streamlines_step_size function to 0.1mm.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
 
     step_size = 0.1
     resampled_sft = resample_streamlines_step_size(sft, step_size)
@@ -255,8 +268,41 @@ def test_resample_streamlines_step_size_01mm():
 
 
 def test_compute_streamline_segment():
-    # toDo
-    pass
+    """ Test the compute_streamline_segment function by cutting a
+    streamline between two rois.
+    """
+
+    sft, binary_mask = _setup_files()
+    sft.to_vox()
+    sft.to_corner()
+    one_sft = sft[0]
+
+    # Split head and tail from mask
+    roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
+        binary_mask.get_fdata(), nb_clusters=2)
+
+    (indices, points_to_idx) = uncompress(one_sft.streamlines,
+                                          return_mapping=True)
+
+    strl_indices = indices[0]
+    # Find the first and last "voxels" of the streamline that are in the
+    # ROIs
+    in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
+                                                     roi_data_2,
+                                                     strl_indices)
+    # If the streamline intersects both ROIs
+    if in_strl_idx is not None and out_strl_idx is not None:
+        points_to_indices = points_to_idx[0]
+        # Compute the new streamline by keeping only the segment between
+        # the two ROIs
+        res = compute_streamline_segment(one_sft.streamlines[0],
+                                         strl_indices,
+                                         in_strl_idx, out_strl_idx,
+                                         points_to_indices)
+
+    # Streamline should be shorter than the original
+    assert len(res) < len(one_sft.streamlines[0])
+    assert len(res) == 105
 
 
 def test_smooth_line_gaussian_error():
@@ -265,7 +311,7 @@ def test_smooth_line_gaussian_error():
     value of 0, therefore it should throw and error.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
     streamline = sft.streamlines[0]
 
     # Add noise to the streamline
@@ -282,14 +328,19 @@ def test_smooth_line_gaussian():
     closer to the original streamline than the noisy one.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
     streamline = sft.streamlines[0]
 
+    rng = np.random.default_rng(1337)
+
     # Add noise to the streamline
-    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+    noise = rng.normal(0, 0.5, streamline.shape)
+    noise[0] = np.zeros(3)
+    noise[-1] = np.zeros(3)
+    noisy_streamline = streamline + noise
 
     # Smooth the noisy streamline
-    smoothed_streamline = smooth_line_gaussian(noisy_streamline, 1.0)
+    smoothed_streamline = smooth_line_gaussian(noisy_streamline, 5.0)
 
     # Compute the distance between the original and smoothed streamline
     # and between the noisy and smoothed streamline
@@ -305,11 +356,16 @@ def test_smooth_line_spline():
     closer to the original streamline than the noisy one.
     """
 
-    sft = _setup_files()
+    sft, _ = _setup_files()
     streamline = sft.streamlines[-1]
 
+    rng = np.random.default_rng(1337)
+
     # Add noise to the streamline
-    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+    noise = rng.normal(0, 0.5, streamline.shape)
+    noise[0] = np.zeros(3)
+    noise[-1] = np.zeros(3)
+    noisy_streamline = streamline + noise
 
     # Smooth the noisy streamline
     smoothed_streamline = smooth_line_spline(noisy_streamline, 5., 10)

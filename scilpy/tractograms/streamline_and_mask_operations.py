@@ -172,6 +172,7 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
     sft.to_corner()
     streamlines = sft.streamlines
 
+    # TODO: This is unused ?
     density = get_endpoints_density_map(streamlines, binary_mask.shape)
     density[density > 0] = 1
     density[binary_mask == 0] = 0
