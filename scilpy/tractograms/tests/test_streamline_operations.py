@@ -308,20 +308,11 @@ def test_smooth_line_spline():
     sft = _setup_files()
     streamline = sft.streamlines[-1]
 
-    # Visualize the streamline
-    from dipy.viz import window, actor
-    renderer = window.Scene()
-
     # Add noise to the streamline
     noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
 
     # Smooth the noisy streamline
     smoothed_streamline = smooth_line_spline(noisy_streamline, 5., 10)
-
-    renderer.add(actor.line(streamline[None, ...], linewidth=0.1, colors=(0, 0, 1)))
-    renderer.add(actor.line(noisy_streamline[None, ...], linewidth=0.1, colors=(0, 1, 0)))
-    renderer.add(actor.line(smoothed_streamline[None, ...], linewidth=0.1, colors=(1, 0, 0)))
-    window.show(renderer, size=(600, 600), reset_camera=False)
 
     # Compute the distance between the original and smoothed streamline
     # and between the noisy and smoothed streamline
