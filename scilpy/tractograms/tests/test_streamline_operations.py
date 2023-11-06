@@ -3,28 +3,49 @@ import os
 import tempfile
 
 import numpy as np
+import pytest
+
 from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
 from scilpy.tractograms.streamline_operations import (
     filter_streamlines_by_length,
+    filter_streamlines_by_total_length_per_dim,
     resample_streamlines_num_points,
-    resample_streamlines_step_size)
+    resample_streamlines_step_size,
+    smooth_line_gaussian,
+    smooth_line_spline)
+from scilpy.tractograms.tractogram_operations import concatenate_sft
 
-fetch_data(get_testing_files_dict(), keys=['tracking.zip'])
+fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
 
 
 def _setup_files():
     """ Load streamlines and masks relevant to the tests here.
     """
-    os.chdir(os.path.expanduser(tmp_dir.name))
 
-    in_sft = os.path.join(get_home(), 'tracking',
-                          'pft.trk')
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_long_sft = os.path.join(get_home(), 'tractograms',
+                               'streamline_operations',
+                               'bundle_4.tck')
+    in_mid_sft = os.path.join(get_home(), 'tractograms',
+                              'streamline_operations',
+                              'bundle_4_cut_endpoints.tck')
+    in_short_sft = os.path.join(get_home(), 'tractograms',
+                                'streamline_operations',
+                                'bundle_4_cut_center.tck')
+    in_ref = os.path.join(get_home(), 'tractograms',
+                          'streamline_operations',
+                          'bundle_4_wm.nii.gz')
+
     # Load sft
-    sft = load_tractogram(in_sft, 'same')
+    long_sft = load_tractogram(in_long_sft, in_ref)
+    mid_sft = load_tractogram(in_mid_sft, in_ref)
+    short_sft = load_tractogram(in_short_sft, in_ref)
+
+    sft = concatenate_sft([long_sft, mid_sft, short_sft])
     return sft
 
 
@@ -37,9 +58,9 @@ def test_filter_streamlines_by_length_max_length():
     min_length = 0.
     max_length = 100
     # Filter streamlines by length and get the lengths
-    resampled_sft = filter_streamlines_by_length(
+    filtered_sft = filter_streamlines_by_length(
         sft, min_length=min_length, max_length=max_length)
-    lengths = length(resampled_sft.streamlines)
+    lengths = length(filtered_sft.streamlines)
 
     assert np.all(lengths <= max_length)
 
@@ -54,16 +75,123 @@ def test_filter_streamlines_by_length_min_length():
     max_length = np.inf
 
     # Filter streamlines by length and get the lengths
-    resampled_sft = filter_streamlines_by_length(
+    filtered_sft = filter_streamlines_by_length(
         sft, min_length=min_length, max_length=max_length)
-    lengths = length(resampled_sft.streamlines)
+    lengths = length(filtered_sft.streamlines)
 
     assert np.all(lengths >= min_length)
 
 
-def test_filter_streamlines_by_total_length_per_dim():
-    # toDo
-    pass
+def test_filter_streamlines_by_length_min_and_max_length():
+    """ Test the filter_streamlines_by_length function with a min length.
+    """
+
+    sft = _setup_files()
+
+    min_length = 100
+    max_length = 120
+
+    # Filter streamlines by length and get the lengths
+    filtered_sft = filter_streamlines_by_length(
+        sft, min_length=min_length, max_length=max_length)
+    lengths = length(filtered_sft.streamlines)
+
+    assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
+
+
+def test_filter_streamlines_by_total_length_per_dim_x():
+    """ Test the filter_streamlines_by_total_length_per_dim function.
+    This function is quite awkward to test without reimplementing
+    the logic, but luckily we have data going purely left-right.
+
+    This test also tests the return of rejected streamlines.
+    """
+
+    # Streamlines are going purely left-right, so the
+    # x dimension should have the longest span.
+    sft = _setup_files()
+
+    min_length = 115
+    max_length = 125
+
+    constraint = [min_length, max_length]
+    inf_constraint = [-np.inf, np.inf]
+
+    # Filter streamlines by length and get the lengths
+    # No rejected streamlines should be returned
+    filtered_sft, ids, rejected = filter_streamlines_by_total_length_per_dim(
+        sft, constraint, inf_constraint, inf_constraint,
+        True, False)
+    lengths = length(filtered_sft.streamlines)
+
+    # Remaining streamlines should have the correct length
+    assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
+    # No rejected streamlines should have been returned
+    assert rejected is None
+
+
+def test_filter_streamlines_by_total_length_per_dim_y():
+    """ Test the filter_streamlines_by_total_length_per_dim function.
+    This function is quite awkward to test without reimplementing
+    the logic. We rotate the streamlines to be purely up-down.
+
+    This test also tests the return of rejected streamlines. The rejected
+    streamlines should have "invalid" lengths.
+    """
+
+    # Streamlines are going purely left-right, so the
+    # streamlines have to be rotated to be purely up-down.
+    sft = _setup_files()
+
+    # Rotate streamlines by swapping x and y for all streamlines
+    swapped_streamlines_y = [s[:, [1, 0, 2]] for s in sft.streamlines]
+    sft_y = sft.from_sft(swapped_streamlines_y, sft)
+
+    min_length = 115
+    max_length = 125
+
+    constraint = [min_length, max_length]
+    inf_constraint = [-np.inf, np.inf]
+
+    # Filter streamlines by length and get the lengths
+    filtered_sft, _, rejected = filter_streamlines_by_total_length_per_dim(
+        sft_y, inf_constraint, constraint, inf_constraint,
+        True, True)
+    lengths = length(filtered_sft.streamlines)
+    rejected_lengths = length(rejected.streamlines)
+
+    assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
+    assert np.all(np.logical_or(min_length > rejected_lengths,
+                                rejected_lengths > max_length))
+
+
+def test_filter_streamlines_by_total_length_per_dim_z():
+    """ Test the filter_streamlines_by_total_length_per_dim function.
+    This function is quite awkward to test without reimplementing
+    the logic.
+    """
+
+    # Streamlines are going purely left-right, so the
+    # streamlines have to be rotated to be purely front-back.
+    sft = _setup_files()
+
+    # Rotate streamlines by swapping x and z for all streamlines
+    swapped_streamlines_y = [s[:, [2, 1, 0]] for s in sft.streamlines]
+    sft_y = sft.from_sft(swapped_streamlines_y, sft)
+
+    min_length = 115
+    max_length = 125
+
+    constraint = [min_length, max_length]
+    inf_constraint = [-np.inf, np.inf]
+
+    # Filter streamlines by length and get the lengths
+    filtered_sft, _, _ = filter_streamlines_by_total_length_per_dim(
+        sft_y, inf_constraint, inf_constraint, constraint,
+        True, False)
+    lengths = length(filtered_sft.streamlines)
+
+    assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
 
 
 def test_resample_streamlines_num_points_2():
@@ -126,6 +254,78 @@ def test_resample_streamlines_step_size_01mm():
     assert np.allclose(steps, step_size, atol=0.01), steps
 
 
-def compute_streamline_segment():
+def test_compute_streamline_segment():
     # toDo
     pass
+
+
+def test_smooth_line_gaussian_error():
+    """ Test the smooth_line_gaussian function by adding noise to a
+    streamline and smoothing it. The function does not accept a sigma
+    value of 0, therefore it should throw and error.
+    """
+
+    sft = _setup_files()
+    streamline = sft.streamlines[0]
+
+    # Add noise to the streamline
+    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+
+    # Should throw a ValueError
+    with pytest.raises(ValueError):
+        _ = smooth_line_gaussian(noisy_streamline, 0.0)
+
+
+def test_smooth_line_gaussian():
+    """ Test the smooth_line_gaussian function by adding noise to a
+    streamline and smoothing it. The smoothed streamline should be
+    closer to the original streamline than the noisy one.
+    """
+
+    sft = _setup_files()
+    streamline = sft.streamlines[0]
+
+    # Add noise to the streamline
+    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+
+    # Smooth the noisy streamline
+    smoothed_streamline = smooth_line_gaussian(noisy_streamline, 1.0)
+
+    # Compute the distance between the original and smoothed streamline
+    # and between the noisy and smoothed streamline
+    dist_1 = np.linalg.norm(streamline - smoothed_streamline)
+    dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
+
+    assert dist_1 < dist_2
+
+
+def test_smooth_line_spline():
+    """ Test the smooth_line_spline function by adding noise to a
+    streamline and smoothing it. The smoothed streamline should be
+    closer to the original streamline than the noisy one.
+    """
+
+    sft = _setup_files()
+    streamline = sft.streamlines[-1]
+
+    # Visualize the streamline
+    from dipy.viz import window, actor
+    renderer = window.Scene()
+
+    # Add noise to the streamline
+    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+
+    # Smooth the noisy streamline
+    smoothed_streamline = smooth_line_spline(noisy_streamline, 5., 10)
+
+    renderer.add(actor.line(streamline[None, ...], linewidth=0.1, colors=(0, 0, 1)))
+    renderer.add(actor.line(noisy_streamline[None, ...], linewidth=0.1, colors=(0, 1, 0)))
+    renderer.add(actor.line(smoothed_streamline[None, ...], linewidth=0.1, colors=(1, 0, 0)))
+    window.show(renderer, size=(600, 600), reset_camera=False)
+
+    # Compute the distance between the original and smoothed streamline
+    # and between the noisy and smoothed streamline
+    dist_1 = np.linalg.norm(streamline - smoothed_streamline)
+    dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
+
+    assert dist_1 < dist_2

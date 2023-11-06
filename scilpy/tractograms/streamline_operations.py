@@ -107,6 +107,8 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
         A tractogram without short streamlines.
     """
 
+    # TODO?: Add a check to make sure min_length < max_length
+
     # Make sure we are in world space
     orig_space = sft.space
     sft.to_rasmm()
@@ -416,10 +418,10 @@ def smooth_line_gaussian(streamline, sigma):
     """
 
     if sigma < 0.00001:
-        ValueError('Cant have a 0 sigma with gaussian.')
+        raise ValueError('Cant have a 0 sigma with gaussian.')
 
     # We need to have at least 2 points to smooth
-    nb_points = int(length(streamline))
+    nb_points = int(len(streamline))
     if nb_points < 2:
         logging.debug('Streamline shorter than 1mm, corner cases possible.')
         nb_points = 2
@@ -452,7 +454,7 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     streamline: np.ndarray
         The streamline to smooth.
     smoothing_parameter: float
-        The sigma of the .
+        The sigma of the spline.
     nb_ctrl_points: int
         The number of control points.
 
@@ -472,14 +474,16 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     if nb_ctrl_points < 3:
         nb_ctrl_points = 3
 
+    initial_nb_of_points = len(streamline)
+
     # Resample the streamline to have the desired number of points
     # which will be used as control points for the spline
     sampled_streamline = set_number_of_points(streamline, nb_ctrl_points)
 
     # Fit the spline using the control points
     tck, u = splprep(sampled_streamline.T, s=smoothing_parameter)
-    # Evaluate the spline at 99 points # TODO: why 99?
-    smoothed_streamline = splev(np.linspace(0, 1, 99), tck)
+    # Evaluate the spline
+    smoothed_streamline = splev(np.linspace(0, 1, initial_nb_of_points), tck)
     smoothed_streamline = np.squeeze(np.asarray([smoothed_streamline]).T)
 
     # Ensure first and last point remain the same

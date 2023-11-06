@@ -8,6 +8,7 @@ import zipfile
 
 GOOGLE_URL = "https://drive.google.com/uc?"
 
+
 def download_file_from_google_drive(id, destination):
     """
     Download large file from Google Drive.
@@ -97,6 +98,9 @@ def get_testing_files_dict():
             'tracking.zip':
             ['1QSekZYDoMvv-An6FRMSt_s_qPeB3BHfw',
              '6d88910403fb4d9b79604f11100d8915'],
+            'tractograms.zip':
+            ['TODO',
+             'b967b543fafdd04054554a294c79ebd1'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc'],
