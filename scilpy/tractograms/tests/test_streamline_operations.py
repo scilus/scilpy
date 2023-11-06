@@ -10,19 +10,14 @@ from dipy.io.streamline import load_tractogram
 from dipy.tracking.streamlinespeed import length
 
 from scilpy.io.fetcher import fetch_data, get_testing_files_dict, get_home
-from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_operations import (
-    compute_streamline_segment,
     filter_streamlines_by_length,
     filter_streamlines_by_total_length_per_dim,
     resample_streamlines_num_points,
     resample_streamlines_step_size,
     smooth_line_gaussian,
     smooth_line_spline)
-from scilpy.tractograms.streamline_and_mask_operations import \
-    _intersects_two_rois
 from scilpy.tractograms.tractogram_operations import concatenate_sft
-from scilpy.tractograms.uncompress import uncompress
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -267,44 +262,6 @@ def test_resample_streamlines_step_size_01mm():
     assert np.allclose(steps, step_size, atol=0.01), steps
 
 
-def test_compute_streamline_segment():
-    """ Test the compute_streamline_segment function by cutting a
-    streamline between two rois.
-    """
-
-    sft, binary_mask = _setup_files()
-    sft.to_vox()
-    sft.to_corner()
-    one_sft = sft[0]
-
-    # Split head and tail from mask
-    roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
-        binary_mask.get_fdata(), nb_clusters=2)
-
-    (indices, points_to_idx) = uncompress(one_sft.streamlines,
-                                          return_mapping=True)
-
-    strl_indices = indices[0]
-    # Find the first and last "voxels" of the streamline that are in the
-    # ROIs
-    in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
-                                                     roi_data_2,
-                                                     strl_indices)
-    # If the streamline intersects both ROIs
-    if in_strl_idx is not None and out_strl_idx is not None:
-        points_to_indices = points_to_idx[0]
-        # Compute the new streamline by keeping only the segment between
-        # the two ROIs
-        res = compute_streamline_segment(one_sft.streamlines[0],
-                                         strl_indices,
-                                         in_strl_idx, out_strl_idx,
-                                         points_to_indices)
-
-    # Streamline should be shorter than the original
-    assert len(res) < len(one_sft.streamlines[0])
-    assert len(res) == 105
-
-
 def test_smooth_line_gaussian_error():
     """ Test the smooth_line_gaussian function by adding noise to a
     streamline and smoothing it. The function does not accept a sigma
@@ -348,6 +305,23 @@ def test_smooth_line_gaussian():
     dist_2 = np.linalg.norm(noisy_streamline - smoothed_streamline)
 
     assert dist_1 < dist_2
+
+
+def test_smooth_line_spline_error():
+    """ Test the smooth_line_spline function by adding noise to a
+    streamline and smoothing it. The function does not accept a sigma
+    value of 0, therefore it should throw and error.
+    """
+
+    sft, _ = _setup_files()
+    streamline = sft.streamlines[0]
+
+    # Add noise to the streamline
+    noisy_streamline = streamline + np.random.normal(0, 0.1, streamline.shape)
+
+    # Should throw a ValueError
+    with pytest.raises(ValueError):
+        _ = smooth_line_spline(noisy_streamline, 0.0, 10)
 
 
 def test_smooth_line_spline():

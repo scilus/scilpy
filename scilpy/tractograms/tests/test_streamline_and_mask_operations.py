@@ -6,14 +6,19 @@ import tempfile
 import nibabel as nib
 import numpy as np
 
-from dipy.io.streamline import load_tractogram, save_tractogram
+from dipy.io.streamline import load_tractogram
 
 from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
+from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_and_mask_operations import (
+    compute_streamline_segment,
     cut_between_masks_streamlines,
     cut_outside_of_mask_streamlines,
     get_endpoints_density_map,
     get_head_tail_density_maps)
+from scilpy.tractograms.streamline_and_mask_operations import \
+    _intersects_two_rois
+from scilpy.tractograms.uncompress import uncompress
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
 tmp_dir = tempfile.TemporaryDirectory()
@@ -156,7 +161,7 @@ def test_cut_between_masks_streamlines():
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4.tck')
-    save_tractogram(cut_sft, in_result)
+
     res = load_tractogram(in_result, reference)
     # `cut_between_masks_streamlines` always returns a voxel space sft
     # with streamlines in corner, so move the expected result to the same
@@ -184,7 +189,7 @@ def test_cut_between_masks_streamlines_offset():
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_endpoints.tck')
-    save_tractogram(cut_sft, in_result)
+
     res = load_tractogram(in_result, reference)
     # `cut_between_masks_streamlines` always returns a voxel space sft
     # with streamlines in corner, so move the expected result to the same
@@ -192,3 +197,43 @@ def test_cut_between_masks_streamlines_offset():
     res.to_vox()
     res.to_corner()
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
+
+
+def test_compute_streamline_segment():
+    """ Test the compute_streamline_segment function by cutting a
+    streamline between two rois.
+    """
+
+    sft, reference, _, head_tail_offset_rois, _ = \
+        _setup_files()
+
+    sft.to_vox()
+    sft.to_corner()
+    one_sft = sft[0]
+
+    # Split head and tail from mask
+    roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
+        head_tail_offset_rois, nb_clusters=2)
+
+    (indices, points_to_idx) = uncompress(one_sft.streamlines,
+                                          return_mapping=True)
+
+    strl_indices = indices[0]
+    # Find the first and last "voxels" of the streamline that are in the
+    # ROIs
+    in_strl_idx, out_strl_idx = _intersects_two_rois(roi_data_1,
+                                                     roi_data_2,
+                                                     strl_indices)
+    # If the streamline intersects both ROIs
+    if in_strl_idx is not None and out_strl_idx is not None:
+        points_to_indices = points_to_idx[0]
+        # Compute the new streamline by keeping only the segment between
+        # the two ROIs
+        res = compute_streamline_segment(one_sft.streamlines[0],
+                                         strl_indices,
+                                         in_strl_idx, out_strl_idx,
+                                         points_to_indices)
+
+    # Streamline should be shorter than the original
+    assert len(res) < len(one_sft.streamlines[0])
+    assert len(res) == 105

@@ -7,9 +7,6 @@ from dipy.io.stateful_tractogram import StatefulTractogram
 from dipy.tracking.streamlinespeed import (length, set_number_of_points)
 from scipy.interpolate import splev, splprep
 
-from scilpy.tractanalysis.quick_tools import (get_next_real_point,
-                                              get_previous_real_point)
-
 
 def _get_streamline_pt_index(points_to_index, vox_index, from_start=True):
     """ Get the index of the streamline point in the voxel.
@@ -238,15 +235,11 @@ def resample_streamlines_num_points(sft, num_points):
         raise ValueError("The value of num_points should be greater than 1!")
 
     # Resampling
-    resampled_streamlines = []
-    # TODO: Can we do this without a loop?
-    for streamline in sft.streamlines:
-        line = set_number_of_points(streamline, num_points)
-        resampled_streamlines.append(line)
+    lines = set_number_of_points(sft.streamlines, num_points)
 
     # Creating sft
     # CAREFUL. Data_per_point will be lost.
-    resampled_sft = _warn_and_save(resampled_streamlines, sft)
+    resampled_sft = _warn_and_save(lines, sft)
 
     return resampled_sft
 
@@ -316,91 +309,6 @@ def _warn_and_save(new_streamlines, sft):
     return new_sft
 
 
-def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
-                               points_to_indices):
-    """ Compute the segment of a streamline that is in a given mask.
-
-    Parameters
-    ----------
-    orig_strl: np.ndarray
-        The original streamline.
-    inter_vox: np.ndarray
-        The intersection points of the streamline with the voxel grid.
-    in_vox_idx: int
-        The index of the voxel where the streamline enters.
-    out_vox_idx: int
-        The index of the voxel where the streamline exits.
-    points_to_indices: np.ndarray
-        The indices of the voxels in the voxel grid.
-
-    Returns
-    -------
-    segment: np.ndarray
-        The segment of the streamline that is in the voxel.
-    """
-
-    additional_start_pt = None
-    additional_exit_pt = None
-    nb_points = 0
-
-    # TODO: Check if we can simplify this function and optimize it
-    # The `at_point` variable is especially weird
-
-    # Check if the indexed voxel contains a real streamline point
-    in_strl_point = _get_streamline_pt_index(points_to_indices,
-                                             in_vox_idx)
-
-    if in_strl_point is None:
-        # Find the next real streamline point
-        in_strl_point = get_next_real_point(points_to_indices, in_vox_idx)
-
-        additional_start_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
-                                                 orig_strl[in_strl_point],
-                                                 inter_vox[in_vox_idx])
-        nb_points += 1
-
-    # Get point for the current voxel
-    exit_strl_point = _get_streamline_pt_index(points_to_indices,
-                                               out_vox_idx,
-                                               from_start=False)
-
-    if exit_strl_point is None:
-        # Find the previous real streamline point
-        exit_strl_point = get_previous_real_point(points_to_indices,
-                                                  out_vox_idx)
-
-        additional_exit_pt = _get_point_on_line(orig_strl[exit_strl_point],
-                                                orig_strl[exit_strl_point + 1],
-                                                inter_vox[out_vox_idx])
-        nb_points += 1
-
-    if exit_strl_point >= in_strl_point:
-        nb_points_orig_strl = exit_strl_point - in_strl_point + 1
-        nb_points += nb_points_orig_strl
-
-    segment = np.zeros((nb_points, 3))
-    # at_point is used to know where to put the next point in the segment
-    at_point = 0
-
-    if additional_start_pt is not None:
-        segment[0] = additional_start_pt
-        at_point += 1
-
-    if exit_strl_point >= in_strl_point:
-        # Note: this works correctly even in the case where the "previous"
-        # point is the same or lower than the entry point, because of
-        # numpy indexing
-        segment[at_point:at_point + nb_points_orig_strl] = \
-            orig_strl[in_strl_point:exit_strl_point + 1]
-        at_point += nb_points_orig_strl
-
-    if additional_exit_pt is not None:
-        segment[at_point] = additional_exit_pt
-        at_point += 1
-
-    return segment
-
-
 def smooth_line_gaussian(streamline, sigma):
     """ Smooth a streamline using a gaussian filter.
 
@@ -420,17 +328,12 @@ def smooth_line_gaussian(streamline, sigma):
     if sigma < 0.00001:
         raise ValueError('Cant have a 0 sigma with gaussian.')
 
-    # We need to have at least 2 points to smooth
-    nb_points = int(len(streamline))
-    if nb_points < 2:
+    if length(streamline) < 1:
         logging.debug('Streamline shorter than 1mm, corner cases possible.')
-        nb_points = 2
-
-    sampled_streamline = set_number_of_points(streamline, nb_points)
 
     # Smooth each dimension separately
     # TODO: Can achieve the same result smoothing all dimensions at once?
-    x, y, z = sampled_streamline.T
+    x, y, z = streamline.T
     x3 = ndi.gaussian_filter1d(x, sigma)
     y3 = ndi.gaussian_filter1d(y, sigma)
     z3 = ndi.gaussian_filter1d(z, sigma)
@@ -465,10 +368,9 @@ def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     """
 
     if smoothing_parameter < 0.00001:
-        ValueError('Cant have a 0 sigma with spline.')
+        raise ValueError('Cant have a 0 sigma with spline.')
 
-    nb_points = int(length(streamline))
-    if nb_points < 2:
+    if length(streamline) < 1:
         logging.debug('Streamline shorter than 1mm, corner cases possible.')
 
     if nb_ctrl_points < 3:
