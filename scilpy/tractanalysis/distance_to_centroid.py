@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
-import scipy.ndimage as ndi
-from nibabel.streamlines.array_sequence import ArraySequence
 import heapq
 
 from dipy.tracking.metrics import length
+from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+import scipy.ndimage as ndi
 from scipy.spatial import KDTree
 from scipy.spatial.distance import pdist, squareform
+
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
 def min_dist_to_centroid(target_pts, source_pts, nb_pts=None,
@@ -34,7 +34,8 @@ def associate_labels(target_sft, source_sft, nb_pts=20):
                             dtype=float)
     curr_ind = 0
     for streamline in target_sft.streamlines:
-        distances, ids = source_kdtree.query(streamline, k=1)
+        distances, ids = source_kdtree.query(streamline,
+                                             k=max(1, nb_pts // 5))
 
         valid_points = distances != np.inf
 
@@ -46,6 +47,7 @@ def associate_labels(target_sft, source_sft, nb_pts=20):
         lengths = np.insert(length(streamline, along=True), 0, 0)[::-1]
         lengths = (lengths / np.max(lengths)) * \
             (head - tail) + tail
+
         final_labels[curr_ind:curr_ind+len(lengths)] = lengths
         curr_ind += len(lengths)
 
@@ -107,15 +109,16 @@ def compute_labels_map_barycenters(labels_map, is_euclidian=False, nb_pts=False)
 
 def masked_manhattan_distance(mask, target_positions):
     """
-    Compute the Manhattan distance from every position in a mask to a set of positions, 
-    without stepping out of the mask.
+    Compute the Manhattan distance from every position in a mask to a set of
+    positions, without stepping out of the mask.
 
     Parameters:
         mask (ndarray): A binary 3D array representing the mask.
         target_positions (list): A list of target positions within the mask.
 
     Returns:
-        ndarray: A 3D array of the same shape as the mask, containing the Manhattan distances.
+        ndarray: A 3D array of the same shape as the mask, containing the
+        Manhattan distances.
     """
     # Initialize distance array with infinite values
     distances = np.full(mask.shape, np.inf)
@@ -136,7 +139,9 @@ def masked_manhattan_distance(mask, target_positions):
         for dx, dy, dz in directions:
             nx, ny, nz = x + dx, y + dy, z + dz
 
-            if 0 <= nx < mask.shape[0] and 0 <= ny < mask.shape[1] and 0 <= nz < mask.shape[2]:
+            if 0 <= nx < mask.shape[0] and \
+                0 <= ny < mask.shape[1] and \
+                    0 <= nz < mask.shape[2]:
                 if mask[nx, ny, nz]:
                     new_distance = current_distance + 1
 
@@ -153,26 +158,42 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
     Computes the distance map for each label in the labels_map.
 
     Parameters:
-    labels_map (numpy.ndarray): A 3D array representing the labels map.
-    binary_map (numpy.ndarray): A 3D binary map used to calculate barycenter binary map.
-    new_labelling (bool): A flag to determine the type of distance calculation.
-    nb_pts (int): Number of points to use for computing barycenters.
+    labels_map (numpy.ndarray):
+        A 3D array representing the labels map.
+    binary_map (numpy.ndarray):
+        A 3D binary map used to calculate barycenter binary map.
+    new_labelling (bool):
+        A flag to determine the type of distance calculation.
+    nb_pts (int):
+        Number of points to use for computing barycenters.
 
     Returns:
-    numpy.ndarray: A 3D array representing the distance map.
+        numpy.ndarray: A 3D array representing the distance map.
     """
     barycenters = compute_labels_map_barycenters(labels_map,
                                                  is_euclidian=new_labelling,
                                                  nb_pts=nb_pts)
-
+    # If the first/last few points are NaN, remove them this indicates that the
+    # head/tail are not 1-NB_PTS
     isnan = np.isnan(barycenters).all(axis=1)
     head = np.argmax(~isnan) + 1
     tail = len(isnan) - np.argmax(~isnan[::-1])
 
+    # Identify the indices that do contain NaN values after/before head/tail
+    tmp_barycenter = barycenters[head-1:tail]
+    valid_indices = np.argwhere(
+        ~np.isnan(tmp_barycenter).any(axis=1)).flatten()
+    valid_data = tmp_barycenter[valid_indices]
+    interpolated_data = np.array(
+        [np.interp(np.arange(len(tmp_barycenter)),
+                   valid_indices,
+                   valid_data[:, i]) for i in range(tmp_barycenter.shape[1])]).T
+    barycenters[head-1:tail] = interpolated_data
+
     distance_map = np.zeros(binary_map.shape, dtype=float)
     barycenter_strs = [barycenters[head-1:tail]]
-    barycenter_bin = compute_tract_counts_map(
-        barycenter_strs, binary_map.shape)
+    barycenter_bin = compute_tract_counts_map(barycenter_strs,
+                                              binary_map.shape)
     barycenter_bin[barycenter_bin > 0] = 1
 
     for label in range(head, tail+1):
@@ -201,3 +222,76 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
                 curr_dists[labels_map == label]
 
     return distance_map
+
+
+def correct_labels_jump(labels_map, streamlines, nb_pts):
+    labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
+                                      order=0)
+
+    # It is not allowed that labels jumps labels for consistency
+    # Streamlines should have continous labels
+    final_streamlines = []
+    final_labels = []
+    curr_ind = 0
+    for streamline in streamlines:
+        next_ind = curr_ind + len(streamline)
+        curr_labels = labels_data[curr_ind:next_ind]
+        curr_ind = next_ind
+
+        # Flip streamlines so the labels increase (facilitate if/else)
+        # Should always be ordered in nextflow pipeline
+        gradient = np.gradient(curr_labels)
+        if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
+            streamline = streamline[::-1]
+            curr_labels = curr_labels[::-1]
+
+        # Find jumps, cut them and find the longest
+        gradient = np.ediff1d(curr_labels)
+        max_jump = max(nb_pts // 2, 1)
+        if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
+            pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
+            split_chunk = np.split(curr_labels,
+                                   pos_jump)
+
+            max_len = 0
+            max_pos = 0
+            for j, chunk in enumerate(split_chunk):
+                if len(chunk) > max_len:
+                    max_len = len(chunk)
+                    max_pos = j
+
+            curr_labels = split_chunk[max_pos]
+            gradient_chunk = np.ediff1d(chunk)
+            if len(np.unique(np.sign(gradient_chunk))) > 1:
+                continue
+            streamline = np.split(streamline,
+                                  pos_jump)[max_pos]
+
+        final_streamlines.append(streamline)
+        final_labels.append(curr_labels)
+
+    # Once the streamlines abnormalities are corrected, we can
+    # recompute the labels map with the new streamlines/labels
+    final_labels = ArraySequence(final_labels)
+    final_streamlines = ArraySequence(final_streamlines)
+
+    kd_tree = KDTree(final_streamlines._data)
+    indices = np.array(np.nonzero(labels_map), dtype=int).T
+    labels_map = np.zeros(labels_map.shape, dtype=np.int16)
+
+    for ind in indices:
+        neighbor_dists, neighbor_ids = kd_tree.query(ind, k=5)
+
+        if not len(neighbor_ids):
+            continue
+
+        labels_val = final_labels._data[neighbor_ids]
+        sum_dists_vox = np.sum(neighbor_dists)
+        weights = np.exp(-neighbor_dists / sum_dists_vox)
+
+        vote = np.bincount(labels_val, weights=weights)
+        total = np.arange(np.amax(labels_val+1))
+        winner = total[np.argmax(vote)]
+        labels_map[ind[0], ind[1], ind[2]] = winner
+
+    return labels_map

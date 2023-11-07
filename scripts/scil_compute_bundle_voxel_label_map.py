@@ -8,27 +8,23 @@ Each voxel will have the label of its nearest centroid point.
 The number of labels will be the same as the centroid's number of points.
 """
 
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import LinearSVC
-from sklearn.kernel_approximation import RBFSampler
-from sklearn.svm import SVC
-from collections import defaultdict
 from time import time
 import argparse
 import os
 
-# from dipy.align.streamlinear import BundleMinDistanceMetric, StreamlineLinearRegistration
+
 from dipy.io.streamline import save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level, Space, Origin
+from dipy.io.stateful_tractogram import (StatefulTractogram,
+                                         set_sft_logger_level)
 from dipy.io.utils import is_header_compatible
-import matplotlib.pyplot as plt
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import SGDClassifier
+from sklearn.kernel_approximation import RBFSampler
 
-from scilpy.image.labels import weighted_vote_median_filter
 from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
@@ -39,7 +35,8 @@ from scilpy.io.utils import (add_overwrite_arg,
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (min_dist_to_centroid,
                                                        compute_distance_map,
-                                                       associate_labels)
+                                                       associate_labels,
+                                                       correct_labels_jump)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
 from scilpy.tractograms.streamline_operations import \
@@ -160,13 +157,17 @@ def main():
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
 
+    # This allows to have a more uniform (in size) first and last labels
+    if args.new_labelling:
+        args.nb_pts += 2
+
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
 
     # Select 2000 elements from the SFTs
     random_indices = np.random.choice(len(concat_sft),
                                       min(len(concat_sft), 2000),
                                       replace=False)
-    tmp_sft = resample_streamlines_step_size(concat_sft[random_indices], 2.0)
+    tmp_sft = resample_streamlines_step_size(concat_sft[random_indices], 1.0)
 
     t0 = time()
     if not args.new_labelling:
@@ -208,8 +209,21 @@ def main():
 
     labels_map = np.zeros(binary_map.shape, dtype=np.uint16)
     labels_map[np.where(binary_map)] = labels
+    t0 = time()
+
+    # Correct the labels to have a more uniform size
+    if args.new_labelling:
+        labels_map[labels_map == args.nb_pts] = args.nb_pts - 1
+        labels_map[labels_map == 1] = 2
+        labels_map[labels_map > 0] -= 1
+    labels_map = correct_labels_jump(labels_map, concat_sft.streamlines,
+                                     args.nb_pts)
+    print('Correct labels time for {}'.format(args.out_dir), time()-t0)
+
+    t0 = time()
     distance_map = compute_distance_map(labels_map, binary_map,
                                         args.new_labelling, args.nb_pts)
+    print('Distance map time for {}'.format(args.out_dir), time()-t0)
 
     cmap = get_colormap(args.colormap)
     for i, sft in enumerate(sft_list):

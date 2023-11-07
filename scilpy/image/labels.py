@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import time
-from scipy.ndimage import generic_filter
 import inspect
 import logging
 import os
