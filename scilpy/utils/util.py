@@ -128,29 +128,6 @@ def compute_nifti_bounding_box(img):
     return wbbox
 
 
-def str_to_index(axis):
-    """
-    Convert x y z axis string to 0 1 2 axis index
-
-    Parameters
-    ----------
-    axis: str
-        Axis value (x, y or z)
-
-    Returns
-    -------
-    index: int or None
-        Axis index
-    """
-    axis = axis.lower()
-    axes = {'x': 0, 'y': 1, 'z': 2}
-
-    if axis in axes:
-        return axes[axis]
-
-    return None
-
-
 def is_float(value):
     """Returns True if the argument can be casted to a float."""
     try:

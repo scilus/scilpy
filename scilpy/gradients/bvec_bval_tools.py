@@ -5,8 +5,8 @@ from enum import Enum
 
 import numpy as np
 
-from scilpy.io.gradient_table import (save_gradient_sampling_fsl,
-                                      save_gradient_sampling_mrtrix)
+from scilpy.io.gradients import (save_gradient_sampling_fsl,
+                                 save_gradient_sampling_mrtrix)
 
 DEFAULT_B0_THRESHOLD = 20
 
@@ -277,6 +277,29 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     return centroids, shell_indices
 
 
+def str_to_index(axis):
+    """
+    Convert x y z axis string to 0 1 2 axis index
+
+    Parameters
+    ----------
+    axis: str
+        Axis value (x, y or z)
+
+    Returns
+    -------
+    index: int or None
+        Axis index
+    """
+    axis = axis.lower()
+    axes = {'x': 0, 'y': 1, 'z': 2}
+
+    if axis in axes:
+        return axes[axis]
+
+    return None
+
+
 def flip_gradient_sampling(bvecs, axes, sampling_type):
     """
     Flip bvecs on chosen axis.
@@ -290,6 +313,11 @@ def flip_gradient_sampling(bvecs, axes, sampling_type):
         List of axes to flip (e.g. [0, 1])
     sampling_type: str
         Either 'mrtrix' or 'fsl'.
+
+    Returns
+    -------
+    bvecs: np.array
+        The final bvecs.
     """
     assert sampling_type in ['mrtrix', 'fsl']
     if sampling_type == 'mrtrix':
@@ -314,6 +342,11 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
         Final order (ex, 2 1 0)
     sampling_type: str
         Either 'mrtrix' or 'fsl'.
+
+    Returns
+    -------
+    new_bvecs: np.array
+        The final bvecs.
     """
     new_bvecs = np.copy(bvecs)
     assert sampling_type in ['mrtrix', 'fsl']
@@ -328,7 +361,7 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
     return new_bvecs
 
 
-def extract_bvals(bvals, tolerance, bvals_to_extract):
+def extract_bvals_from_list(bvals, tolerance, bvals_to_extract):
     """
     Return bvals equal to a list of chosen bvals, up to a tolerance.
 

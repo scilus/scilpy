@@ -20,7 +20,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.gradients.bvec_bval_tools import identify_shells, extract_bvals
+from scilpy.gradients.bvec_bval_tools import identify_shells, extract_bvals_from_list
 
 
 def _build_arg_parser():
@@ -61,7 +61,7 @@ def main():
 
     bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
-    new_bvals = extract_bvals(bvals, args.tolerance, args.bvals_to_extract)
+    new_bvals = extract_bvals_from_list(bvals, args.tolerance, args.bvals_to_extract)
 
     logging.info("new bvals: {}".format(new_bvals))
     new_bvals.reshape((1, len(new_bvals)))
