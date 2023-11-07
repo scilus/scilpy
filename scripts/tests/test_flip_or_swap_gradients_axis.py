@@ -18,8 +18,15 @@ def test_help_option(script_runner):
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
-                               '1000.b')
+
+    # mrtrix
+    in_encoding = os.path.join(get_home(), 'processing', '1000.b')
     ret = script_runner.run('scil_flip_or_swap_gradients_axis.py', in_encoding,
-                            '1000_flip.b', 'x-zy', '--mrtrix')
+                            '1000_flip.b', 'x-zy')
+    assert ret.success
+
+    # FSL
+    in_encoding = os.path.join(get_home(), 'processing', '1000.bvec')
+    ret = script_runner.run('scil_flip_or_swap_gradients_axis.py', in_encoding,
+                            '1000_flip.bvec', 'x-zy')
     assert ret.success
