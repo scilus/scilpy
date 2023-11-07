@@ -104,8 +104,6 @@ def filter_streamlines_by_length(sft, min_length=0., max_length=np.inf):
         A tractogram without short streamlines.
     """
 
-    # TODO?: Add a check to make sure min_length < max_length
-
     # Make sure we are in world space
     orig_space = sft.space
     sft.to_rasmm()
@@ -333,7 +331,6 @@ def smooth_line_gaussian(streamline, sigma):
         logging.debug('Streamline shorter than 1mm, corner cases possible.')
 
     # Smooth each dimension separately
-    # TODO: Can achieve the same result smoothing all dimensions at once?
     x, y, z = streamline.T
     x3 = ndi.gaussian_filter1d(x, sigma)
     y3 = ndi.gaussian_filter1d(y, sigma)
@@ -350,8 +347,6 @@ def smooth_line_gaussian(streamline, sigma):
 def smooth_line_spline(streamline, smoothing_parameter, nb_ctrl_points):
     """ Smooth a streamline using a spline. The number of control points
     can be specified, but must be at least 3.
-
-    # TODO: Set a default value for the number of control points.
 
     Parameters
     ----------
