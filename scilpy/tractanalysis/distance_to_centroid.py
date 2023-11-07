@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+import scipy.ndimage as ndi
 from nibabel.streamlines.array_sequence import ArraySequence
 import heapq
 
@@ -27,34 +29,27 @@ def min_dist_to_centroid(target_pts, source_pts, nb_pts=None,
 
 def associate_labels(target_sft, source_sft, nb_pts=20):
     # KDTree for the target streamlines
-    target_kdtree = KDTree(target_sft.streamlines._data)
+    source_kdtree = KDTree(source_sft.streamlines._data)
+    final_labels = np.zeros(target_sft.streamlines._data.shape[0],
+                            dtype=float)
+    curr_ind = 0
+    for streamline in target_sft.streamlines:
+        distances, ids = source_kdtree.query(streamline, k=1)
 
-    distances, _ = target_kdtree.query(source_sft.streamlines._data, k=1,
-                                       distance_upper_bound=5)
-    valid_points = distances != np.inf
+        valid_points = distances != np.inf
 
-    # Find the first and last indices of non-infinite values
-    if valid_points.any():
-        valid_points = np.mod(np.flatnonzero(valid_points), nb_pts)
-        labels, count = np.unique(valid_points, return_counts=True)
-        count = count / np.sum(count)
-        count[count < 1.0 / (nb_pts*1.5)] = np.NaN
-        valid_indices = np.where(~np.isnan(count))[0]
+        curr_labels = np.mod(ids[valid_points], nb_pts) + 1
 
-        # Find the first and last non-NaN indices
-        head = labels[valid_indices[0]] + 1
-        tail = labels[valid_indices[-1]] + 1
+        head = np.min(curr_labels)
+        tail = np.max(curr_labels)
 
-    labels = []
-    for i in range(len(target_sft)):
-        streamline = target_sft.streamlines[i]
         lengths = np.insert(length(streamline, along=True), 0, 0)[::-1]
         lengths = (lengths / np.max(lengths)) * \
             (head - tail) + tail
+        final_labels[curr_ind:curr_ind+len(lengths)] = lengths
+        curr_ind += len(lengths)
 
-        labels = np.concatenate((labels, lengths))
-
-    return np.round(labels), head, tail
+    return np.round(final_labels), head, tail
 
 
 def find_medoid(points):
@@ -153,9 +148,6 @@ def masked_manhattan_distance(mask, target_positions):
     return distances
 
 
-import numpy as np
-import scipy.ndimage as ndi
-from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
     """
     Computes the distance map for each label in the labels_map.
@@ -179,7 +171,8 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
 
     distance_map = np.zeros(binary_map.shape, dtype=float)
     barycenter_strs = [barycenters[head-1:tail]]
-    barycenter_bin = compute_tract_counts_map(barycenter_strs, binary_map.shape)
+    barycenter_bin = compute_tract_counts_map(
+        barycenter_strs, binary_map.shape)
     barycenter_bin[barycenter_bin > 0] = 1
 
     for label in range(head, tail+1):
@@ -206,5 +199,5 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
             curr_dists = masked_manhattan_distance(binary_map, coords)
             distance_map[labels_map == label] = \
                 curr_dists[labels_map == label]
-    
+
     return distance_map

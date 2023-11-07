@@ -203,13 +203,11 @@ def main():
 
         # Predict the labels for the voxels
         labels = sgd_clf.predict(X=transformed_voxel_coords)
-        ###
+
     print('SVC time for {}'.format(args.out_dir), time()-t0)
 
     labels_map = np.zeros(binary_map.shape, dtype=np.uint16)
     labels_map[np.where(binary_map)] = labels
-    density_map = np.sum(density_list, axis=0) * binary_map
-    labels_map = weighted_vote_median_filter(labels_map, density_map)
     distance_map = compute_distance_map(labels_map, binary_map,
                                         args.new_labelling, args.nb_pts)
 
