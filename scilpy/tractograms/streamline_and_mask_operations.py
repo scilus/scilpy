@@ -114,37 +114,10 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     sft.to_corner()
     streamlines = sft.streamlines
 
-    # TODO: This function can be uniformized with cut_between_masks_streamlines
-    # TODO: It can also be optimized and simplified
-
-    new_streamlines = []
-    for _, streamline in enumerate(streamlines):
-        entry_found = False
-        last_success = 0
-        curr_len = 0
-        longest_seq = (0, 0)
-        # For each point in the streamline, find the longest sequence of points
-        # that are in the mask.
-        for ind, pos in enumerate(streamline):
-            pos = tuple(pos.astype(np.int16))
-            if binary_mask[pos]:
-                if not entry_found:
-                    entry_found = True
-                    last_success = ind
-                    curr_len = 0
-                else:
-                    curr_len += 1
-                    if curr_len > longest_seq[1] - longest_seq[0]:
-                        longest_seq = (last_success, ind + 1)
-            else:
-                if entry_found:
-                    entry_found = False
-                    if curr_len > longest_seq[1] - longest_seq[0]:
-                        longest_seq = (last_success, ind)
-                        curr_len = 0
-
-        if longest_seq[1] != 0:
-            new_streamlines.append(streamline[longest_seq[0]:longest_seq[1]])
+    # Cut streamlines within the mask and return the new streamlines
+    # New endpoints may be generated
+    new_streamlines = _cut_streamlines_with_masks(
+        streamlines, binary_mask, binary_mask)
 
     new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
     return filter_streamlines_by_length(new_sft, min_length=min_len)
@@ -176,14 +149,22 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
     sft.to_corner()
     streamlines = sft.streamlines
 
-    # TODO: This is unused ?
-    density = get_endpoints_density_map(streamlines, binary_mask.shape)
-    density[density > 0] = 1
-    density[binary_mask == 0] = 0
-
     # Split head and tail from mask
     roi_data_1, roi_data_2 = split_mask_blobs_kmeans(
         binary_mask, nb_clusters=2)
+    # Cut streamlines with the masks and return the new streamlines
+    # New endpoints may be generated
+    new_streamlines = _cut_streamlines_with_masks(streamlines, roi_data_1,
+                                                  roi_data_2)
+    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    return filter_streamlines_by_length(new_sft, min_length=min_len)
+
+
+def _cut_streamlines_with_masks(streamlines, roi_data_1, roi_data_2):
+    """ Cut streamlines so their segment are  going from binary mask #1
+    to binary mask #2. New endpoints may be generated to maximize the
+    streamline length within the masks.
+    """
 
     new_streamlines = []
     # Get the indices of the "voxels" intersected by the streamlines and the
@@ -209,8 +190,7 @@ def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
             # Add the new streamline to the sft
             new_streamlines.append(cut_strl)
 
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
-    return filter_streamlines_by_length(new_sft, min_length=min_len)
+    return new_streamlines
 
 
 def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
@@ -220,7 +200,7 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
     Parameters
     ----------
     roi_data_1: np.ndarray
-        Boolean array representing the region #1
+       Boolean array representing the region #1
     roi_data_2: np.ndarray
         Boolean array representing the region #2
     strl_indices: list of tuple (N, 3)
@@ -237,11 +217,10 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
     # Find all the points of the streamline that are in the ROIs
     roi_data_1_intersect = map_coordinates(
         roi_data_1, strl_indices.T, order=0, mode='constant', cval=0)
-
     roi_data_2_intersect = map_coordinates(
         roi_data_2, strl_indices.T, order=0, mode='constant', cval=0)
 
-    # Find the voxels at the "edge" of the ROIs
+    # Get the indices of the voxels intersecting with the ROIs
     in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze()
     out_strl_indices = np.argwhere(roi_data_2_intersect).squeeze()
 
