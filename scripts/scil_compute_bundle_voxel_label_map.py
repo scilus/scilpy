@@ -8,6 +8,10 @@ Each voxel will have the label of its nearest centroid point.
 The number of labels will be the same as the centroid's number of points.
 """
 
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import LinearSVC
+from sklearn.kernel_approximation import RBFSampler
 from sklearn.svm import SVC
 from collections import defaultdict
 from time import time
@@ -24,17 +28,18 @@ from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 import scipy.ndimage as ndi
 
+from scilpy.image.labels import weighted_vote_median_filter
 from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_processes_arg,
                              add_reference_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import (min_dist_to_centroid,
-                                                       compute_labels_map_barycenters,
-                                                       associate_labels,
-                                                       masked_manhattan_distance)
+                                                       compute_distance_map,
+                                                       associate_labels)
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
 from scilpy.tractograms.streamline_operations import \
@@ -63,7 +68,10 @@ def _build_arg_parser():
                         '[%(default)s].')
     p.add_argument('--new_labelling', action='store_true',
                    help='Use the new labelling method (multi-centroids).')
+    p.add_argument('--skip_uniformize', action='store_true',
+                   help='Skip uniformization of the bundles orientation.')
 
+    add_processes_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 
@@ -82,15 +90,14 @@ def main():
     sft_centroid = load_tractogram_with_reference(parser, args,
                                                   args.in_centroid)
 
-    sft_centroid.to_vox()
-    sft_centroid.to_corner()
-
     sft_list = []
     for filename in args.in_bundles:
         sft = load_tractogram_with_reference(parser, args, filename)
         if not len(sft.streamlines):
             raise IOError('Empty bundle file {}. '
                           'Skipping'.format(args.in_bundle))
+        if not args.skip_uniformize:
+            uniformize_bundle_sft(sft, ref_bundle=sft_centroid)
         sft.to_vox()
         sft.to_corner()
         sft_list.append(sft)
@@ -99,7 +106,11 @@ def main():
             if not is_header_compatible(sft_list[0], sft_list[-1]):
                 parser.error('Header of {} and {} are not compatible'.format(
                     args.in_bundles[0], filename))
-    print('Loading time', time()-t0)
+
+    # Perform after the uniformization
+    sft_centroid.to_vox()
+    sft_centroid.to_corner()
+
     t0 = time()
     density_list = []
     binary_list = []
@@ -123,15 +134,15 @@ def main():
 
     # Slightly cut the bundle at the edgge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
-    binary_bundle = np.zeros(corr_map.shape, dtype=bool)
-    binary_bundle[corr_map > 0.5] = 1
+    binary_map = np.zeros(corr_map.shape, dtype=bool)
+    binary_map[corr_map > 0.5] = 1
 
-    bundle_disjoint, _ = ndi.label(binary_bundle)
+    bundle_disjoint, _ = ndi.label(binary_map)
     unique, count = np.unique(bundle_disjoint, return_counts=True)
     val = unique[np.argmax(count[1:])+1]
-    binary_bundle[bundle_disjoint != val] = 0
+    binary_map[bundle_disjoint != val] = 0
 
-    corr_map = corr_map*binary_bundle
+    corr_map = corr_map*binary_map
     nib.save(nib.Nifti1Image(corr_map, sft_list[0].affine),
              os.path.join(args.out_dir, 'correlation_map.nii.gz'))
 
@@ -141,10 +152,10 @@ def main():
     concat_sft.to_corner()
     for i in range(len(sft_list)):
         sft_list[i] = cut_outside_of_mask_streamlines(sft_list[i],
-                                                      binary_bundle)
+                                                      binary_map)
         if len(sft_list[i]):
             concat_sft += sft_list[i]
-    print('Chop time', time()-t0)
+
     t0 = time()
     args.nb_pts = len(sft_centroid.streamlines[0]) if args.nb_pts is None \
         else args.nb_pts
@@ -152,141 +163,55 @@ def main():
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
 
     # Select 2000 elements from the SFTs
-    random_indices = np.random.choice(len(concat_sft), 2000,
+    random_indices = np.random.choice(len(concat_sft),
+                                      min(len(concat_sft), 2000),
                                       replace=False)
     tmp_sft = resample_streamlines_step_size(concat_sft[random_indices], 2.0)
 
     t0 = time()
     if not args.new_labelling:
-        indices = np.array(np.nonzero(binary_bundle), dtype=int).T
+        indices = np.array(np.nonzero(binary_map), dtype=int).T
         labels = min_dist_to_centroid(indices,
                                       sft_centroid[0].streamlines._data,
                                       nb_pts=args.nb_pts)
-        labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
-        labels_map[np.where(binary_bundle)] = labels
-        labels = ndi.map_coordinates(labels_map,
-                                     concat_sft.streamlines._data.T-0.5,
-                                     order=0)
     else:
-        # The head and tail are the labels (not the indices)
         labels, _, _ = associate_labels(tmp_sft, sft_centroid,
                                         args.nb_pts)
 
-        svc = SVC(C=1, kernel='rbf', cache_size=1000)
-        svc.fit(X=tmp_sft.streamlines._data, y=labels)
-        exp_labels = svc.predict(X=np.array(np.where(binary_bundle)).T)
+        # Initialize the scaler and the RBF sampler
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        rbf_feature = RBFSampler(gamma=1.0, n_components=500, random_state=1)
 
-        exp_labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
-        exp_labels_map[np.where(binary_bundle)] = exp_labels
+        # Fit the scaler to the streamline data and transform it
+        scaler.fit(tmp_sft.streamlines._data)
+        scaled_streamline_data = scaler.transform(tmp_sft.streamlines._data)
 
-        labels = ndi.map_coordinates(exp_labels_map,
-                                     concat_sft.streamlines._data.T-0.5,
-                                     order=0)
-    print('Map making time', time()-t0)
-    t0 = time()
+        # Fit the RBFSampler to the scaled data and transform it
+        rbf_feature.fit(scaled_streamline_data)
+        features = rbf_feature.transform(scaled_streamline_data)
 
-    # It is not allowed that labels jumps labels for consistency
-    # Streamlines should have continous labels
-    final_streamlines = []
-    final_label = []
-    curr_ind = 0
-    for i, streamline in enumerate(concat_sft.streamlines):
-        next_ind = curr_ind + len(streamline)
-        curr_labels = labels[curr_ind:next_ind]
-        curr_ind = next_ind
+        # Initialize and fit the SGDClassifier with log loss
+        sgd_clf = SGDClassifier(loss='log_loss', max_iter=10000, tol=1e-4,
+                                alpha=0.0001, random_state=1,
+                                n_jobs=min(args.nb_pts, args.nbr_processes))
+        sgd_clf.fit(X=features, y=labels)
 
-        # Flip streamlines so the labels increase (facilitate if/else)
-        # Should always be ordered in nextflow pipeline
-        gradient = np.gradient(curr_labels)
-        if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
-            streamline = streamline[::-1]
-            curr_labels = curr_labels[::-1]
+        # Scale the coordinates of the voxels and transform with RBFSampler
+        voxel_coords = np.array(np.where(binary_map)).T
+        scaled_voxel_coords = scaler.transform(voxel_coords)
+        transformed_voxel_coords = rbf_feature.transform(scaled_voxel_coords)
 
-        # # Find jumps, cut them and find the longest
-        gradient = np.ediff1d(curr_labels)
-        max_jump = 2
-        if len(np.argwhere(np.abs(gradient) > max_jump)) > 0:
-            pos_jump = np.where(np.abs(gradient) > max_jump)[0] + 1
-            split_chunk = np.split(curr_labels,
-                                   pos_jump)
+        # Predict the labels for the voxels
+        labels = sgd_clf.predict(X=transformed_voxel_coords)
+        ###
+    print('SVC time for {}'.format(args.out_dir), time()-t0)
 
-            max_len = 0
-            max_pos = 0
-            for j, chunk in enumerate(split_chunk):
-                if len(chunk) > max_len:
-                    max_len = len(chunk)
-                    max_pos = j
-
-            curr_labels = split_chunk[max_pos]
-            gradient_chunk = np.ediff1d(chunk)
-            if len(np.unique(np.sign(gradient_chunk))) > 1:
-                continue
-            streamline = np.split(streamline,
-                                  pos_jump)[max_pos]
-
-        final_streamlines.append(streamline)
-        final_label.append(curr_labels)
-
-    final_streamlines = ArraySequence(final_streamlines)
-    final_labels = ArraySequence(final_label)
-
-    indices = np.array(np.nonzero(binary_bundle), dtype=int).T
-    labels = min_dist_to_centroid(indices,
-                                  final_streamlines._data,
-                                  pre_computed_labels=final_labels._data)
-    labels_map = np.zeros(binary_bundle.shape, dtype=np.uint16)
-    labels_map[np.where(binary_bundle)] = labels
-    print('Clean Up time', time()-t0)
-    t0 = time()
-
-    barycenters = compute_labels_map_barycenters(labels_map,
-                                                 euclidian=args.new_labelling,
-                                                 nb_pts=args.nb_pts)
-
-    isnan = np.isnan(barycenters).all(axis=1)
-    # These two return the labels (not the indices)
-    head = np.argmax(~isnan) + 1
-    tail = len(isnan) - np.argmax(~isnan[::-1])
-
-    distance_map = np.zeros(binary_bundle.shape, dtype=float)
-    barycenter_strs = [barycenters[head-1:tail]]
-    barycenter_bin = compute_tract_counts_map(barycenter_strs,
-                                              sft_centroid.dimensions)
-    barycenter_bin[barycenter_bin > 0] = 1
-    for label in range(head, tail+1):
-        mask = np.zeros(labels_map.shape)
-        mask[labels_map == label] = 1
-        labels_coords = np.array(np.where(mask)).T
-        if labels_coords.size == 0:
-            continue
-
-        barycenter_bin_intersect = barycenter_bin * mask
-        barycenter_intersect_coords = np.array(
-            np.nonzero(barycenter_bin_intersect), dtype=int).T
-
-        if barycenter_intersect_coords.size == 0:
-            continue
-
-        if not args.new_labelling:
-            distances = np.linalg.norm(barycenter_intersect_coords[:, np.newaxis] -
-                                       labels_coords, axis=-1)
-            distance_map[labels_map == label] = np.min(distances, axis=0)
-
-        else:
-            bundle_disjoint, num_labels = ndi.label(mask)
-            iterations = 0
-
-            while num_labels > 1:
-                mask = ndi.binary_dilation(mask)
-                bundle_disjoint, num_labels = ndi.label(mask)
-                iterations += 1
-
-            coords = [tuple(coord) for coord in barycenter_intersect_coords]
-            curr_dists = masked_manhattan_distance(mask, coords)
-            distance_map[labels_map ==
-                         label] = curr_dists[labels_map == label]+1
-    print('Dijkstra time', time()-t0)
-    t0 = time()
+    labels_map = np.zeros(binary_map.shape, dtype=np.uint16)
+    labels_map[np.where(binary_map)] = labels
+    density_map = np.sum(density_list, axis=0) * binary_map
+    labels_map = weighted_vote_median_filter(labels_map, density_map)
+    distance_map = compute_distance_map(labels_map, binary_map,
+                                        args.new_labelling, args.nb_pts)
 
     cmap = get_colormap(args.colormap)
     for i, sft in enumerate(sft_list):
@@ -326,8 +251,6 @@ def main():
                 save_tractogram(new_sft,
                                 os.path.join(sub_out_dir,
                                              "{}.trk".format(basename)))
-    print('Finish time', time()-t0)
-    t0 = time()
 
 
 if __name__ == '__main__':

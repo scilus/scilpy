@@ -35,6 +35,8 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
     sft.to_corner()
     density = get_endpoints_density_map(sft.streamlines, sft.dimensions,
                                         point_to_select=3)
+    sft.to_space(old_space)
+    sft.to_origin(old_origin)
     indices = np.argwhere(density > 0)
     kmeans = KMeans(n_clusters=2, random_state=0, copy_x=True,
                     n_init=20).fit(indices)
@@ -51,22 +53,33 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
         axis_name = ['x', 'y', 'z']
         if axis is None or ref_bundle is not None:
             if ref_bundle is not None:
-                ref_bundle.to_vox()
-                ref_bundle.to_corner()
                 centroid = get_streamlines_centroid(ref_bundle.streamlines,
                                                     20)[0]
             else:
                 centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
-            main_dir_ends = np.argmax(np.abs(centroid[0] - centroid[-1]))
-            main_dir_displacement = np.argmax(
-                np.abs(np.sum(np.gradient(centroid, axis=0), axis=0)))
+            endpoints_distance = np.abs(centroid[0] - centroid[-1])
+            total_travel = np.abs(
+                np.sum(np.gradient(centroid, axis=0), axis=0))
+
+            # Reweigth the distance to the endpoints and the total travel
+            # to avoid having a XYbundle oriented in the wrong direction
+            endpoints_distance[-1] *= 0.9
+            total_travel[-1] *= 0.9
+            main_dir_ends = np.argmax(endpoints_distance)
+            main_dir_displacement = np.argmax(total_travel)
 
             if main_dir_displacement != main_dir_ends \
                     or main_dir_displacement != main_dir_barycenter:
                 logging.info('Ambiguity in orientation, you should use --axis')
-            axis = axis_name[main_dir_displacement]
+
+            # Get the winner
+            winner = np.zeros(3)
+            winner[main_dir_displacement] += 1
+            winner[main_dir_ends] += 1
+            winner[main_dir_barycenter] += 1
+            axis_pos = np.argmax(winner)
+            axis = axis_name[axis_pos]
         logging.info('Orienting endpoints in the {} axis'.format(axis))
-        axis_pos = axis_name.index(axis)
 
         if bool(k_means_centers[0][axis_pos] >
                 k_means_centers[1][axis_pos]) ^ bool(swap):
@@ -95,8 +108,6 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
                     for key in sft.data_per_point[i]:
                         sft.data_per_point[key][i] = \
                             sft.data_per_point[key][i][::-1]
-    sft.to_space(old_space)
-    sft.to_origin(old_origin)
 
 
 def uniformize_bundle_sft_using_mask(sft, mask, swap=False):
