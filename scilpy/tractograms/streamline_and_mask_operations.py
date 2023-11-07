@@ -65,26 +65,30 @@ def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
     """
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
-    # TODO: This can be optimized to assign all points at once
+
+    # A possible optimization would be to compute all coordinates first
+    # and then do the np.add.at only once.
     for streamline in streamlines:
-        # TODO: There is a bug here, the number of points is at max 2
-        # meaning we can never select more than the first and last points
-        nb_point = max(2,  int(length(streamline))*2)
+
+        # Resample the streamline to make sure we have enough points
+        nb_point = max(len(streamline), point_to_select*2)
         streamline = set_number_of_points(streamline, nb_point)
-        points_list_head = \
-            list(streamline[0:point_to_select, :])
-        points_list_tail = \
-            list(streamline[-point_to_select:, :])
-        for xyz in points_list_head:
-            x_val = np.clip(xyz[0], 0, dimensions[0]-1).astype(int)
-            y_val = np.clip(xyz[1], 0, dimensions[1]-1).astype(int)
-            z_val = np.clip(xyz[2], 0, dimensions[2]-1).astype(int)
-            endpoints_map_head[x_val, y_val, z_val] += 1
-        for xyz in points_list_tail:
-            x_val = np.clip(xyz[0], 0, dimensions[0]-1).astype(int)
-            y_val = np.clip(xyz[1], 0, dimensions[1]-1).astype(int)
-            z_val = np.clip(xyz[2], 0, dimensions[2]-1).astype(int)
-            endpoints_map_tail[x_val, y_val, z_val] += 1
+
+        # Get the head and tail coordinates
+        points_list_head = streamline[0:point_to_select, :]
+        points_list_tail = streamline[-point_to_select:, :]
+
+        # Convert the points to indices by rounding them and clipping them
+        head_indices = np.clip(
+            points_list_head, 0, np.asarray(dimensions) - 1).astype(int).T
+        tail_indices = np.clip(
+            points_list_tail, 0, np.asarray(dimensions) - 1).astype(int).T
+
+        # Add the points to the endpoints map
+        # Note: np.add.at is used to support duplicate points
+        np.add.at(endpoints_map_tail, tuple(tail_indices), 1)
+        np.add.at(endpoints_map_head, tuple(head_indices), 1)
+
     return endpoints_map_head, endpoints_map_tail
 
 

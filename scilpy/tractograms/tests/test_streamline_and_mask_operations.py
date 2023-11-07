@@ -74,6 +74,17 @@ def test_get_endpoints_density_map():
                              'bundle_4_endpoints_1point.nii.gz')
 
     result = nib.load(in_result).get_fdata()
+
+    # Visualize the ROIs using fury-gl and the expected result
+    # using the following code:
+    # from fury import window, actor
+    # scene = window.Scene()
+    # scene.add(actor.contour_from_roi(result, color=(0, 1, 0), opacity=0.5))
+    # scene.add(actor.contour_from_roi(endpoints_map, color=(1, 0, 0), opacity=0.5))
+    # window.show(scene, size=(600, 600), reset_camera=False)
+
+
+    print(np.where(endpoints_map != result))
     assert np.allclose(endpoints_map, result)
 
 
@@ -95,7 +106,16 @@ def test_get_endpoints_density_map_five_points():
                              'bundle_4_endpoints_5points.nii.gz')
 
     result = nib.load(in_result).get_fdata()
-    assert np.allclose(endpoints_map, result)
+
+    # Visualize the ROIs using fury-gl and the expected result
+    # using the following code:
+    from fury import window, actor
+    scene = window.Scene()
+    scene.add(actor.contour_from_roi(result, color=(0, 1, 0), opacity=0.5))
+    scene.add(actor.contour_from_roi(endpoints_map, color=(1, 0, 0), opacity=0.5))
+    window.show(scene, size=(600, 600), reset_camera=False)
+    print(np.where(endpoints_map != result))
+    assert np.allclose(endpoints_map, result), np.where(endpoints_map != result)
 
 
 def test_get_head_tail_density_maps():
