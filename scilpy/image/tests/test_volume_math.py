@@ -277,7 +277,6 @@ def test_lower_threshold():
 
     # Assert that the output matches the expected output
     assert_array_equal(output_data, expected_output)
-    print("Test for lower_threshold passed.")
 
 
 def test_upper_threshold():

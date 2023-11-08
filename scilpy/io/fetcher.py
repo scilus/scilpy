@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import inspect
 import logging
 import logging
 import hashlib
@@ -174,22 +173,3 @@ def fetch_data(files_dict, keys=None):
         else:
             # toDo. Verify that data on disk is the right one.
             logging.warning("Not fetching data; already on disk.")
-
-
-def get_synb0_template_path():
-    """
-    Return MNI 2.5mm template in scilpy repository
-
-    Returns
-    -------
-    path: str
-        Template path
-    """
-    # Get the valid LUT choices.
-    import scilpy  # ToDo. Is this the only way?
-    module_path = inspect.getfile(scilpy)
-    module_path = os.path.dirname(os.path.dirname(module_path))
-
-    path = os.path.join(module_path, 'data/',
-                        'mni_icbm152_t1_tal_nlin_asym_09c_masked_2_5.nii.gz')
-    return path
