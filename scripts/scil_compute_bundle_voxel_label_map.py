@@ -216,6 +216,7 @@ def main():
         labels_map[labels_map == args.nb_pts] = args.nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
+        args.nb_pts -= 2
     labels_map = correct_labels_jump(labels_map, concat_sft.streamlines,
                                      args.nb_pts)
     print('Correct labels time for {}'.format(args.out_dir), time()-t0)
