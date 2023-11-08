@@ -54,7 +54,7 @@ def associate_labels(target_sft, source_sft, nb_pts=20):
     return np.round(final_labels), head, tail
 
 
-def find_medoid(points):
+def find_medoid(points, max_points=10000):
     """
     Find the medoid among a set of points.
 
@@ -64,6 +64,11 @@ def find_medoid(points):
     Returns:
         ndarray: Coordinates of the medoid.
     """
+    if len(points) > max_points:
+        selected_indices = np.random.choice(len(points), max_points,
+                                            replace=False)
+        points = points[selected_indices]
+
     distance_matrix = squareform(pdist(points))
     medoid_idx = np.argmin(distance_matrix.sum(axis=1))
     return points[medoid_idx]
@@ -92,14 +97,15 @@ def compute_labels_map_barycenters(labels_map, is_euclidian=False, nb_pts=False)
             mask = np.zeros_like(labels_map)
             mask[labels_map == label] = 1
             mask_coords = np.argwhere(mask)
-
             if is_euclidian:
                 barycenter = np.mean(mask_coords, axis=0)
             else:
                 barycenter = find_medoid(mask_coords)
+            # If the barycenter is not in the mask, find the closest point
             if labels_map[tuple(barycenter.astype(int))] != label:
                 tree = KDTree(indices)
                 _, ind = tree.query(barycenter, k=1)
+                del tree
                 barycenter = indices[ind]
 
             barycenters[label - 1] = barycenter
@@ -153,7 +159,7 @@ def masked_manhattan_distance(mask, target_positions):
     return distances
 
 
-def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
+def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
     """
     Computes the distance map for each label in the labels_map.
 
@@ -162,7 +168,7 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
         A 3D array representing the labels map.
     binary_map (numpy.ndarray):
         A 3D binary map used to calculate barycenter binary map.
-    new_labelling (bool):
+    hyperplane (bool):
         A flag to determine the type of distance calculation.
     nb_pts (int):
         Number of points to use for computing barycenters.
@@ -171,7 +177,7 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
         numpy.ndarray: A 3D array representing the distance map.
     """
     barycenters = compute_labels_map_barycenters(labels_map,
-                                                 is_euclidian=new_labelling,
+                                                 is_euclidian=is_euclidian,
                                                  nb_pts=nb_pts)
     # If the first/last few points are NaN, remove them this indicates that the
     # head/tail are not 1-NB_PTS
@@ -210,7 +216,7 @@ def compute_distance_map(labels_map, binary_map, new_labelling, nb_pts):
         if barycenter_intersect_coords.size == 0:
             continue
 
-        if not new_labelling:
+        if is_euclidian:
             distances = np.linalg.norm(
                 barycenter_intersect_coords[:, np.newaxis] - labels_coords,
                 axis=-1)
@@ -277,7 +283,7 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
 
     kd_tree = KDTree(final_streamlines._data)
     indices = np.array(np.nonzero(labels_map), dtype=int).T
-    labels_map = np.zeros(labels_map.shape, dtype=np.int16)
+    labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
 
     for ind in indices:
         neighbor_dists, neighbor_ids = kd_tree.query(ind, k=5)

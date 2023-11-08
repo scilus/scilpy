@@ -17,7 +17,7 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-def test_execution_tractometry(script_runner):
+def test_execution_tractometry_euclidian(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
                              'IFGWM.trk')
@@ -25,6 +25,19 @@ def test_execution_tractometry(script_runner):
                                'IFGWM_uni_c_10.trk')
     ret = script_runner.run('scil_compute_bundle_voxel_label_map.py',
                             in_bundle, in_centroid,
-                            'results_dir/',
+                            'results_euc/',
                             '--colormap', 'viridis')
+    assert ret.success
+
+def test_execution_tractometry_hyperplane(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_bundle = os.path.join(get_home(), 'tractometry',
+                             'IFGWM.trk')
+    in_centroid = os.path.join(get_home(), 'tractometry',
+                               'IFGWM_uni_c_10.trk')
+    ret = script_runner.run('scil_compute_bundle_voxel_label_map.py',
+                            in_bundle, in_centroid,
+                            'results_man/',
+                            '--colormap', 'viridis',
+                            '--hyperplane', '--use_manhattan')
     assert ret.success
