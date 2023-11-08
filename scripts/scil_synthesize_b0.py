@@ -13,6 +13,8 @@ in Scilpy):
 - tensorflow-addons
 - tensorrt
 - tensorflow
+
+NOTE: There is no tests for this scripts due to the dependencies.
 """
 
 
