@@ -2,7 +2,7 @@
 
 import numpy as np
 from dipy.io.stateful_tractogram import StatefulTractogram
-from dipy.tracking.streamlinespeed import set_number_of_points, length
+from dipy.tracking.streamlinespeed import set_number_of_points
 
 from scipy.ndimage import map_coordinates
 
@@ -225,11 +225,18 @@ def _intersects_two_rois(roi_data_1, roi_data_2, strl_indices):
         roi_data_2, strl_indices.T, order=0, mode='constant', cval=0)
 
     # Get the indices of the voxels intersecting with the ROIs
-    in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze()
-    out_strl_indices = np.argwhere(roi_data_2_intersect).squeeze()
+    in_strl_indices = np.argwhere(roi_data_1_intersect).squeeze(-1)
+    out_strl_indices = np.argwhere(roi_data_2_intersect).squeeze(-1)
+
+    # If there are no points in the ROIs, return None
+    if len(in_strl_indices) == 0:
+        in_strl_indices = [None]
+    if len(out_strl_indices) == 0:
+        out_strl_indices = [None]
 
     # If the entry point is after the exit point, swap them
-    if min(in_strl_indices) > min(out_strl_indices):
+    if in_strl_indices[0] is not None and out_strl_indices[0] is not None \
+       and min(in_strl_indices) > min(out_strl_indices):
         in_strl_indices, out_strl_indices = out_strl_indices, in_strl_indices
 
     # Get the index of the first and last "voxels" of the streamline that are
@@ -309,6 +316,13 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
     nb_points_orig_strl = out_strl_point - in_strl_point + 1
     nb_points += nb_points_orig_strl
 
+    # TODO: Fix this
+    # There is a bug with `uncompress` where the number of `points_to_indices`
+    # is not the same as the number of points in the streamline. This is
+    # a temporary fix.
+    nb_points = min(
+        nb_points,
+        len(orig_strl[in_strl_point:out_strl_point + 1]))
     # Initialize the new streamline segment
     segment = np.zeros((nb_points, 3))
     # offset for indexing in case there are new points
