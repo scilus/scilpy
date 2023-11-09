@@ -329,8 +329,20 @@ class Tracker(object):
             seed = self.seed_generator.get_next_pos(
                 random_generator, indices, first_seed_of_chunk + s)
 
+            # Setting the random value.
+            # Previous usage (and usage in Dipy) is to set the random seed
+            # based on the (real) seed position. However, in the case where we
+            # like to have exactly the same seed more than once, this will lead
+            # to exactly the same line, even in probabilistic tracking.
+            # Changing to seed position + seed number.
+            # Then in the case of multiprocessing, adding also a fraction based
+            # on current process ID.
+            eps = s + chunk_id / (self.nbr_processes + 1)
+            line_generator = np.random.default_rng(
+                np.uint32(hash((seed + (eps, eps, eps), self.rng_seed))))
+
             # Forward and backward tracking
-            line = self._get_line_both_directions(seed)
+            line = self._get_line_both_directions(seed, line_generator)
 
             if line is not None:
                 streamline = np.array(line, dtype='float32')
@@ -360,7 +372,7 @@ class Tracker(object):
                 p.close()
         return streamlines, seeds
 
-    def _get_line_both_directions(self, seeding_pos):
+    def _get_line_both_directions(self, seeding_pos, line_generator):
         """
         Generate a streamline from an initial position following the tracking
         parameters.
@@ -375,16 +387,10 @@ class Tracker(object):
         line: list of 3D positions
             The generated streamline for seeding_pos.
         """
-
-        # toDo See numpy's doc: np.random.seed:
-        #  This is a convenience, legacy function.
-        #  The best practice is to not reseed a BitGenerator, rather to
-        #  recreate a new one. This method is here for legacy reasons.
-        np.random.seed(np.uint32(hash((seeding_pos, self.rng_seed))))
-
         # Forward
         line = [np.asarray(seeding_pos)]
-        tracking_info = self.propagator.prepare_forward(seeding_pos)
+        tracking_info = self.propagator.prepare_forward(seeding_pos,
+                                                        line_generator)
         if tracking_info == PropagationStatus.ERROR:
             # No good tracking direction can be found at seeding position.
             return None
