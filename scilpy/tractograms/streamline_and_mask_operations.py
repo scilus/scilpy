@@ -276,7 +276,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
 
     additional_start_pt = None
     additional_exit_pt = None
-    nb_points = 0
+    nb_add_points = 0
 
     # Check if the ROI contains a real streamline point at
     # the beginning of the streamline
@@ -292,7 +292,7 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         additional_in_pt = _get_point_on_line(orig_strl[in_strl_point - 1],
                                               orig_strl[in_strl_point],
                                               inter_vox[in_vox_idx])
-        nb_points += 1
+        nb_add_points += 1
 
     # Check if the ROI contains a real streamline point at
     # the end of the streamline
@@ -309,22 +309,23 @@ def compute_streamline_segment(orig_strl, inter_vox, in_vox_idx, out_vox_idx,
         additional_out_pt = _get_point_on_line(orig_strl[out_strl_point],
                                                orig_strl[out_strl_point + 1],
                                                inter_vox[out_vox_idx])
-        nb_points += 1
+        nb_add_points += 1
 
     # Compute the number of points in the cut streamline and
     # add the number of artificial points
     nb_points_orig_strl = out_strl_point - in_strl_point + 1
-    nb_points += nb_points_orig_strl
+    nb_points = nb_points_orig_strl + nb_add_points
+    orig_segment_len = len(orig_strl[in_strl_point:out_strl_point + 1])
 
-    # TODO: Fix this
+    # TODO: Fix the bug in `uncompress` and remove this
     # There is a bug with `uncompress` where the number of `points_to_indices`
     # is not the same as the number of points in the streamline. This is
     # a temporary fix.
-    nb_points = min(
+    segment_len = min(
         nb_points,
-        len(orig_strl[in_strl_point:out_strl_point + 1]))
+        orig_segment_len + nb_add_points)
     # Initialize the new streamline segment
-    segment = np.zeros((nb_points, 3))
+    segment = np.zeros((segment_len, 3))
     # offset for indexing in case there are new points
     offset = 0
 
