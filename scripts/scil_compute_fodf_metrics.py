@@ -42,7 +42,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_processes_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.reconst.multi_processes import peaks_from_sh, maps_from_sh
+from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
 
 def _build_arg_parser():
