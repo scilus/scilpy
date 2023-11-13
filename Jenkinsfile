@@ -12,7 +12,6 @@ pipeline {
                                 pip3 install numpy==1.23.*
                                 pip3 install Cython==0.29.*
                                 pip3 install packaging==23.*
-                                pip3 install setuptools
                                 pip3 install -e .
                             '''
                         }
@@ -28,7 +27,6 @@ pipeline {
                         pip3 install wheel==0.38.*
                         pip3 install numpy==1.23.*
                         pip3 install packaging==23.*
-                        pip3 install setuptools
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
