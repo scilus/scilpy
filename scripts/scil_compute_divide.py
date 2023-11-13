@@ -33,12 +33,12 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.utils import extract_affine
+from scilpy.io.b_tensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
                              add_processes_arg, add_verbose_arg)
 from scilpy.reconst.divide import fit_gamma, gamma_fit2metrics
-from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 
 def _build_arg_parser():

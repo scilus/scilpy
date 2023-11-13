@@ -42,6 +42,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.utils import extract_affine
+from scilpy.io.b_tensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg,
@@ -49,7 +50,6 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_verbose_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
-from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 
 def _build_arg_parser():
