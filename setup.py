@@ -29,30 +29,6 @@ def get_extensions():
     return [uncompress, quick_tools, grid_intersections, streamlines_metrics]
 
 
-class CheckScriptsDeprecationWindowCommand(install_scripts):
-    def run(self):
-        # Check if the scripts are still in the deprecated window
-        out_of_window_scripts = []
-        print("hello world ! I will check your deprecated scripts !")
-
-        for script in LEGACY_SCRIPTS:
-            try:
-                self.spawn([sys.executable, script, '--help'])
-            except Exception:
-                out_of_window_scripts.append(script)
-
-        if len(out_of_window_scripts) > 0:
-            error_msg = ["Legacy scripts are out the deprecation window:"]
-            for script in out_of_window_scripts:
-                error_msg.append("  - {}".format(script))
-
-            error_msg.append("Please remove above scripts to resume the build")
-
-            raise SetupError("\n".join(error_msg))
-
-        install_scripts.run(self)
-
-
 class CustomBuildExtCommand(build_ext):
     """ build_ext command to use when numpy headers are needed. """
 
@@ -91,8 +67,7 @@ opts = dict(name=NAME,
             version=VERSION,
             packages=find_packages(),
             cmdclass={
-                'build_ext': CustomBuildExtCommand,
-                'install_scripts': CheckScriptsDeprecationWindowCommand
+                'build_ext': CustomBuildExtCommand
             },
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
@@ -102,7 +77,7 @@ opts = dict(name=NAME,
                 'console_scripts': ["{}=scripts.{}:main".format(
                     os.path.basename(s),
                     os.path.basename(s).split(".")[0]) for s in SCRIPTS] + \
-                        ["{}=scripts.legacy.{}:main".format(
+                ["{}=scripts.legacy.{}:main".format(
                     os.path.basename(s),
                     os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
             },
@@ -113,4 +88,3 @@ opts = dict(name=NAME,
             include_package_data=True)
 
 setup(**opts)
-s override install-scripts
