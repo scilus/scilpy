@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
+import itertools
+import multiprocessing
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import erf
 
 
-def get_bounds():
+def _get_bounds():
     """Define the lower (lb) and upper (ub) boundaries of the fitting
     parameters, being the signal without diffusion weighting (S0), the mean
     diffusivity (MD), the isotropic variance (V_I) and the anisotropic variance
@@ -25,7 +28,7 @@ def get_bounds():
     return lb, ub
 
 
-def random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
+def _random_p0(signal, gtab_infos, lb, ub, weight, n_iter):
     """Produce a guess of initial parameters for the fit, by calculating the
     signals of a given number of random sets of parameters and keeping the one
     closest to the input signal.
@@ -130,7 +133,7 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         signal = gamma_fit2data(gtab_infos, params_SI)
         return signal * weight
 
-    lb_SI, ub_SI = get_bounds()
+    lb_SI, ub_SI = _get_bounds()
     lb_SI = np.concatenate((lb_SI, 0.5 * np.ones(ns)))
     ub_SI = np.concatenate((ub_SI, 2.0 * np.ones(ns)))
     lb_SI[0] *= np.max(signal)
@@ -150,8 +153,8 @@ def gamma_data2fit(signal, gtab_infos, fit_iters=1, random_iters=50,
         if do_weight_pa:
             weight *= weight_pa()
 
-        p0_SI = random_p0(signal, gtab_infos, lb_SI, ub_SI, weight,
-                          random_iters)
+        p0_SI = _random_p0(signal, gtab_infos, lb_SI, ub_SI, weight,
+                           random_iters)
         p0_unit = p0_SI / unit_to_SI
         params_unit, params_cov = curve_fit(my_gamma_fit2data, gtab_infos,
                                             signal * weight, p0=p0_unit,
@@ -257,3 +260,98 @@ def gamma_fit2metrics(params):
     microFA[np.isnan(microFA)] = 0
 
     return microFA, MK_I, MK_A, MK_T
+
+
+def _fit_gamma_parallel(args):
+    data = args[0]
+    gtab_infos = args[1]
+    fit_iters = args[2]
+    random_iters = args[3]
+    do_weight_bvals = args[4]
+    do_weight_pa = args[5]
+    do_multiple_s0 = args[6]
+    chunk_id = args[7]
+
+    sub_fit_array = np.zeros((data.shape[0], 4))
+    for i in range(data.shape[0]):
+        if data[i].any():
+            sub_fit_array[i] = gamma_data2fit(data[i], gtab_infos, fit_iters,
+                                              random_iters, do_weight_bvals,
+                                              do_weight_pa, do_multiple_s0)
+
+    return chunk_id, sub_fit_array
+
+
+def fit_gamma(data, gtab_infos, mask=None, fit_iters=1, random_iters=50,
+              do_weight_bvals=False, do_weight_pa=False, do_multiple_s0=False,
+              nbr_processes=None):
+    """Fit the gamma model to data
+
+    Parameters
+    ----------
+    data : np.ndarray (4d)
+        Diffusion data, powder averaged. Obtained as output of the function
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    gtab_infos : np.ndarray
+        Contains information about the gtab, such as the unique bvals, the
+        encoding types, the number of directions and the acquisition index.
+        Obtained as output of the function
+        `reconst.b_tensor_utils.generate_powder_averaged_data`.
+    mask : np.ndarray, optional
+        If `mask` is provided, only the data inside the mask will be
+        used for computations.
+    fit_iters : int, optional
+        Number of iterations in the gamma fit. Defaults to 1.
+    random_iters : int, optional
+        Number of random sets of parameters tested to find the initial
+        parameters. Defaults to 50.
+    do_weight_bvals : bool , optional
+        If set, does a weighting on the bvalues in the gamma fit.
+    do_weight_pa : bool, optional
+        If set, does a powder averaging weighting in the gamma fit.
+    do_multiple_s0 : bool, optional
+        If set, takes into account multiple baseline signals.
+    nbr_processes : int, optional
+        The number of subprocesses to use.
+        Default: multiprocessing.cpu_count()
+
+    Returns
+    -------
+    fit_array : np.ndarray
+        Array containing the fit
+    """
+    data_shape = data.shape
+    if mask is None:
+        mask = np.sum(data, axis=3).astype(bool)
+
+    nbr_processes = multiprocessing.cpu_count() if nbr_processes is None \
+        or nbr_processes <= 0 else nbr_processes
+
+    # Ravel the first 3 dimensions while keeping the 4th intact, like a list of
+    # 1D time series voxels. Then separate it in chunks of len(nbr_processes).
+    data = data[mask].reshape((np.count_nonzero(mask), data_shape[3]))
+    chunks = np.array_split(data, nbr_processes)
+
+    chunk_len = np.cumsum([0] + [len(c) for c in chunks])
+    pool = multiprocessing.Pool(nbr_processes)
+    results = pool.map(_fit_gamma_parallel,
+                       zip(chunks,
+                           itertools.repeat(gtab_infos),
+                           itertools.repeat(fit_iters),
+                           itertools.repeat(random_iters),
+                           itertools.repeat(do_weight_bvals),
+                           itertools.repeat(do_weight_pa),
+                           itertools.repeat(do_multiple_s0),
+                           np.arange(len(chunks))))
+    pool.close()
+    pool.join()
+
+    # Re-assemble the chunk together in the original shape.
+    fit_array = np.zeros((data_shape[0:3])+(4,))
+    tmp_fit_array = np.zeros((np.count_nonzero(mask), 4))
+    for i, fit in results:
+        tmp_fit_array[chunk_len[i]:chunk_len[i+1]] = fit
+
+    fit_array[mask] = tmp_fit_array
+
+    return fit_array
