@@ -30,7 +30,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              validate_nbr_processes)
-from scilpy.tractanalysis.afd_along_streamlines import afd_map_along_streamlines
+from scilpy.tractanalysis.afd_along_streamlines \
+    import afd_map_along_streamlines
 
 EPILOG = """
 Reference:
