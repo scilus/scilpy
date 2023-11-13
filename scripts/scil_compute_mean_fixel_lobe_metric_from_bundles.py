@@ -32,7 +32,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.reconst.lobe_metrics_along_streamlines \
+from scilpy.tractanalysis.lobe_metrics_along_streamlines \
     import lobe_specific_metric_map_along_streamlines
 
 
