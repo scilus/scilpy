@@ -6,8 +6,8 @@ from importlib import metadata
 from packaging.version import parse
 
 
-DEFAULT_DEPRECATION_WINDOW = 1 # Wait for 1 major release 
-                               # before forcing script removal
+DEFAULT_DEPRECATION_WINDOW = 1  # Wait for 1 major release
+                                # before forcing script removal
 
 
 def deprecate_script(message, from_version):
