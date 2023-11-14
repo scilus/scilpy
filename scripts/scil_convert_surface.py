@@ -9,14 +9,13 @@ Script to convert a surface (FreeSurfer or VTK supported).
 """
 import argparse
 import os
-import vtk
-from nibabel.freesurfer.io import read_geometry
 
 from trimeshpy.vtk_util import (load_polydata,
                                 save_polydata)
 
-from scilpy.utils.util import (flip_LPS,
-                               extract_xform)
+from scilpy.surfaces.utils import (convert_freesurfer_into_polydata,
+                                   extract_xform,
+                                   flip_LPS)
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -52,32 +51,6 @@ def _build_arg_parser():
     return p
 
 
-def convert_with_vtk_legacy(surface_to_vtk, xform):
-
-    surface = read_geometry(surface_to_vtk)
-    points = vtk.vtkPoints()
-    triangles = vtk.vtkCellArray()
-
-    flip_LPS = [-1, -1, 1]
-
-    for vertex in surface[0]:
-        id = points.InsertNextPoint((vertex[0:3]+xform)*flip_LPS)
-
-    for vertex_id in surface[1]:
-        triangle = vtk.vtkTriangle()
-        triangle.GetPointIds().SetId(0, vertex_id[0])
-        triangle.GetPointIds().SetId(1, vertex_id[1])
-        triangle.GetPointIds().SetId(2, vertex_id[2])
-        triangles.InsertNextCell(triangle)
-
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(points)
-    polydata.SetPolys(triangles)
-    polydata.Modified()
-
-    return polydata
-
-
 def main():
 
     parser = _build_arg_parser()
@@ -94,8 +67,9 @@ def main():
 
     if not ((os.path.splitext(args.in_surface)[1])
             in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']):
-        polydata = convert_with_vtk_legacy(args.in_surface, xform_translation)
-
+        polydata = convert_freesurfer_into_polydata(args.in_surface, 
+                                                    xform_translation)
+        
     else:
         polydata = load_polydata(args.out_surface)
 
