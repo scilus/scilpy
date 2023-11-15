@@ -6,8 +6,7 @@ from scilpy.io.deprecator import deprecate_script
 from scripts.scil_tractogram_math import main as new_main
 
 
-DEPRECATION_MSG = """
-
+DEPRECATION_MSG = """\
 *** WARNING ***
 
 This script will soon be renamed scil_tractogram_math.py. You should change
@@ -19,7 +18,7 @@ convention:
   tractogram.
 """
 
-@deprecate_script(DEPRECATION_MSG, '1.5.0')
+@deprecate_script("scil_streamlines_math.py", DEPRECATION_MSG, '1.5.0')
 def main():
     new_main()
 
