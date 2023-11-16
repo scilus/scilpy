@@ -65,7 +65,7 @@ def deprecate_script(script, message, from_version):
     def _deprecation_decorator(func):
         @wraps(func)
         def _wrapper(*args, **kwargs):
-            if cmp_pkg_version(current_version, expiration_version) > 0:
+            if cmp_pkg_version(current_version, expiration_version) >= 0:
                 footer = f"""\
                           {message}
                           {EXPIRATION_FOOTER.format(
