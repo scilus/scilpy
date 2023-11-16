@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import warnings
 
 from scilpy.io.deprecator import deprecate_script
 from scripts.scil_tractogram_math import main as new_main
 
 
-DEPRECATION_MSG = """\
-*** WARNING ***
-
-This script will soon be renamed scil_tractogram_math.py. You should change
+DEPRECATION_MSG = """
+This script has been renamed scil_tractogram_math.py. Please change
 your existing pipelines accordingly. We will try to keep the following
 convention:
 
@@ -19,7 +16,7 @@ convention:
 """
 
 
-@deprecate_script("scil_streamlines_math.py", DEPRECATION_MSG, '1.5.0')
+@deprecate_script("scil_streamlines_math.py", DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

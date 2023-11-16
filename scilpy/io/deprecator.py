@@ -14,96 +14,86 @@ class ScilpyExpiredDeprecation(ExpiredDeprecationError):
 DEFAULT_SEPARATOR = "="
 DEFAULT_DEPRECATION_WINDOW = 2  # Wait for 2 minor releases before rasing error
 
-DEPRECATION_HEADER = f"""
-{DEFAULT_SEPARATOR * 68}
-
-!!! WARNING !!! SCRIPT IS DEPRECATED AND WON'T BE AVAILABLE SOON !!!
-
-{DEFAULT_SEPARATOR * 68}
+DEPRECATION_HEADER = """
+!!! WARNING !!! THIS SCRIPT IS DEPRECATED !!!
 """
 
-
 DEPRECATION_FOOTER = """
-{SEPARATOR}
-
-{MESSAGE}
-
-AS OF VERSION {EXP_VERSION}, CALLING THIS SCRIPT WILL RAISE {EXP_ERROR}")
-
-{SEPARATOR}
+AS OF VERSION {EXP_VERSION}, CALLING THIS SCRIPT WILL RAISE {EXP_ERROR}
 """
 
 EXPIRATION_FOOTER = """
-{SEPARATOR}
+SCRIPT {SCRIPT_NAME} HAS BEEN REMOVED SINCE {EXP_VERSION}
+"""
 
+SEPARATOR_BLOCK = """
+{UP_SEPARATOR}
 {MESSAGE}
-
-SCRIPT {SCRIPT_NAME} HAS BEEN DEPRECATED SINCE {EXP_VERSION}
-
-{SEPARATOR}
+{LOW_SEPARATOR}
 """
 
 
-def _separator(_msg):
-    _msg_width = max([len(_m) for _m in _msg.split("\n")])
-
-    return f"{DEFAULT_SEPARATOR * _msg_width}"
-
-
-def _format_expiration_message(_script, _msg, _exp_version):
-    return EXPIRATION_FOOTER.format(
-        SCRIPT_NAME=_script,
-        MESSAGE=_msg,
-        EXP_VERSION=_exp_version,
-        SEPARATOR=_separator(EXPIRATION_FOOTER + _msg))
+def _block(_msg, _sep_len=80):
+    _sep = f"{DEFAULT_SEPARATOR * _sep_len}"
+    return SEPARATOR_BLOCK.format(
+        UP_SEPARATOR=_sep, MESSAGE=_msg, LOW_SEPARATOR=_sep)
 
 
-def _format_deprecation_message(_msg, _exp_version):
-    _sep = DEPRECATION_FOOTER.format(
-        MESSAGE=_msg,
-        EXP_VERSION=_exp_version,
-        EXP_ERROR=ScilpyExpiredDeprecation,
-        SEPARATOR="")
-
-    return DEPRECATION_FOOTER.format(
-        MESSAGE=_msg,
-        EXP_VERSION=_exp_version,
-        EXP_ERROR=ScilpyExpiredDeprecation,
-        SEPARATOR=_separator(_sep))
+def _header(_msg, _sep_len=80):
+    _sep = f"{DEFAULT_SEPARATOR * _sep_len}"
+    return SEPARATOR_BLOCK.format(
+        UP_SEPARATOR=_sep, MESSAGE=_msg, LOW_SEPARATOR="").rstrip("\n")
 
 
-def _warn(_exp_version, _msg, _func, *_args, **_kwargs):
+def _raise_warning(header, footer, func, *args, **kwargs):
     warnings.simplefilter('always', DeprecationWarning)
-    warnings.warn(DEPRECATION_HEADER, DeprecationWarning, stacklevel=4)
+    warnings.warn(header, DeprecationWarning, stacklevel=4)
 
-    _error_to_raise = None
     try:
-        _res = _func(*_args, **_kwargs)
-    except BaseException as e:
-        _error_to_raise = e
-
-    warnings.warn(_format_deprecation_message(_msg, _exp_version),
-                  DeprecationWarning, stacklevel=4)
-
-    if _error_to_raise:
-        raise _error_to_raise
-
-    return _res
+        return func(*args, **kwargs)
+    except:
+        raise
+    finally:
+        print("")
+        warnings.warn(footer, DeprecationWarning, stacklevel=4)
 
 
 def deprecate_script(script, message, from_version):
-    _from_version = parse(from_version)
-    _exp_minor = _from_version.minor + DEFAULT_DEPRECATION_WINDOW
-    _exp_version = f"{_from_version.major}.{_exp_minor}.0"
+    from_version = parse(from_version)
+    expiration_minor = from_version.minor + DEFAULT_DEPRECATION_WINDOW
+    expiration_version = f"{from_version.major}.{expiration_minor}.0"
+    current_version = metadata.version('scilpy')
 
     def _deprecation_decorator(func):
         @wraps(func)
         def _wrapper(*args, **kwargs):
-            if cmp_pkg_version(metadata.version('scilpy'), _exp_version) > 0:
-                raise ScilpyExpiredDeprecation(
-                    _format_expiration_message(script, message, _exp_version))
+            if cmp_pkg_version(current_version, expiration_version) > 0:
+                footer = f"""\
+                          {message}
+                          {EXPIRATION_FOOTER.format(
+                              SCRIPT_NAME=script,
+                              EXP_VERSION=expiration_version)}\
+                          """
+
+                raise ScilpyExpiredDeprecation(f"""\
+                                                {_header(DEPRECATION_HEADER)}
+                                                {_block(footer)}
+                                                """)
             else:
-                return _warn(_exp_version, message, func, *args, **kwargs)
+                header = DEPRECATION_HEADER
+                footer = f"""\
+                         {message}
+                         {DEPRECATION_FOOTER.format(
+                             EXP_VERSION=expiration_version,
+                             EXP_ERROR=ScilpyExpiredDeprecation)}\
+                         """
+
+                msg_length = max(
+                    len(_l) for _l in (header + footer).splitlines())
+
+                return _raise_warning(_block(header, msg_length),
+                                      _block(footer, msg_length),
+                                      func, *args, **kwargs)
 
         return _wrapper
 
