@@ -12,7 +12,7 @@ import os
 
 from scilpy.io.utils import (add_overwrite_arg, add_json_args,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.tractanalysis.json_utils import _merge_dict, _average_dict
+from scilpy.tractanalysis.json_utils import merge_dict, average_dict
 
 
 def _build_arg_parser():
@@ -58,12 +58,12 @@ def main():
             if args.keep_separate:
                 out_dict[os.path.splitext(in_file)[0]] = in_dict
             else:
-                out_dict = _merge_dict(out_dict, in_dict,
-                                       no_list=args.no_list,
-                                       recursive=args.recursive)
+                out_dict = merge_dict(out_dict, in_dict,
+                                      no_list=args.no_list,
+                                      recursive=args.recursive)
 
     if args.average_last_layer:
-        out_dict = _average_dict(out_dict)
+        out_dict = average_dict(out_dict)
 
     with open(args.out_json, 'w') as outfile:
         if args.add_parent_key:

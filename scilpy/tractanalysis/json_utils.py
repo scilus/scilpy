@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
+def merge_dict(dict_1, dict_2, no_list=False, recursive=False):
     """
     Merge two dictionary (used for tractometry)
 
@@ -33,8 +33,8 @@ def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
         if isinstance(dict_2[key], dict) and recursive:
             if key not in dict_1:
                 dict_1[key] = {}
-            new_dict[key] = _merge_dict(dict_1[key], dict_2[key],
-                                        no_list=no_list, recursive=recursive)
+            new_dict[key] = merge_dict(dict_1[key], dict_2[key],
+                                       no_list=no_list, recursive=recursive)
         elif key not in new_dict:
             new_dict[key] = dict_2[key]
         else:
@@ -52,14 +52,14 @@ def _merge_dict(dict_1, dict_2, no_list=False, recursive=False):
     return new_dict
 
 
-def _average_dict(curr_dict):
+def average_dict(curr_dict):
     """
     Compute the mean and std of a metric in a json file
 
     Parameters
     ------
     curr_dict: dict
-    
+
 
     Returns
     -------
@@ -67,7 +67,7 @@ def _average_dict(curr_dict):
     """
     for key in curr_dict.keys():
         if isinstance(curr_dict[key], dict):
-            curr_dict[key] = _average_dict(curr_dict[key])
+            curr_dict[key] = average_dict(curr_dict[key])
         elif isinstance(curr_dict[key], list) or np.isscalar(curr_dict[key]):
             new_dict = {}
             for subkey in curr_dict.keys():
