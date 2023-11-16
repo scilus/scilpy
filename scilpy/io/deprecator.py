@@ -51,8 +51,6 @@ def _raise_warning(header, footer, func, *args, **kwargs):
 
     try:
         return func(*args, **kwargs)
-    except:
-        raise
     finally:
         print("")
         warnings.warn(footer, DeprecationWarning, stacklevel=4)
