@@ -7,14 +7,12 @@ from packaging.version import parse
 import warnings
 
 
-
 class ScilpyExpiredDeprecation(ExpiredDeprecationError):
     pass
 
 
 DEFAULT_SEPARATOR = "="
-DEFAULT_DEPRECATION_WINDOW = 2  # Wait for 2 minor releases
-                                # before forcing script removal
+DEFAULT_DEPRECATION_WINDOW = 2  # Wait for 2 minor releases before rasing error
 
 DEPRECATION_HEADER = f"""
 {DEFAULT_SEPARATOR * 68}
@@ -44,6 +42,7 @@ SCRIPT {SCRIPT_NAME} HAS BEEN DEPRECATED SINCE {EXP_VERSION}
 
 {SEPARATOR}
 """
+
 
 def _separator(_msg):
     _msg_width = max([len(_m) for _m in _msg.split("\n")])
@@ -107,5 +106,5 @@ def deprecate_script(script, message, from_version):
                 return _warn(_exp_version, message, func, *args, **kwargs)
 
         return _wrapper
-    
+
     return _deprecation_decorator

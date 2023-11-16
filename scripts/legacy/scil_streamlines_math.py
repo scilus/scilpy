@@ -18,6 +18,7 @@ convention:
   tractogram.
 """
 
+
 @deprecate_script("scil_streamlines_math.py", DEPRECATION_MSG, '1.5.0')
 def main():
     new_main()

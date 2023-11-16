@@ -76,7 +76,7 @@ opts = dict(name=NAME,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
                     os.path.basename(s),
-                    os.path.basename(s).split(".")[0]) for s in SCRIPTS] + \
+                    os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
                 ["{}=scripts.legacy.{}:main".format(
                     os.path.basename(s),
                     os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
