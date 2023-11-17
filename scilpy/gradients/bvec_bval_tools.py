@@ -277,7 +277,7 @@ def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
     return centroids, shell_indices
 
 
-def str_to_index(axis):
+def str_to_axis_index(axis):
     """
     Convert x y z axis string to 0 1 2 axis index
 
@@ -361,7 +361,7 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
     return new_bvecs
 
 
-def extract_bvals_from_list(bvals, tolerance, bvals_to_extract):
+def round_bvals_to_shell(bvals, tolerance, shells_to_extract):
     """
     Return bvals equal to a list of chosen bvals, up to a tolerance.
 
@@ -371,28 +371,26 @@ def extract_bvals_from_list(bvals, tolerance, bvals_to_extract):
         All the b-values.
     tolerance: float
         The tolerance
-    bvals_to_extract: list
+    shells_to_extract: list
         The shells of interest.
     """
     # Find the volume indices that correspond to the shells to extract.
     sorted_centroids, sorted_indices = identify_shells(bvals, tolerance,
                                                        sort=True)
+    shells_to_extract = np.sort(shells_to_extract)
+    nb_new_shells = np.shape(shells_to_extract)[0]
 
-    bvals_to_extract = np.sort(bvals_to_extract)
-    nb_new_shells = np.shape(bvals_to_extract)[0]
-
-    logging.info("number of shells: {}".format(nb_new_shells))
-    logging.info("bvals to extract: {}".format(bvals_to_extract))
-    logging.info("estimated centroids: {}".format(sorted_centroids))
-    logging.info("original bvals: {}".format(bvals))
-    logging.info("selected indices: {}".format(sorted_indices))
+    if not np.array_equal(sorted_centroids, shells_to_extract):
+        raise ValueError("With given tolerance, some b-values cannot be "
+                         "associated with the expected shells to extract! \n"
+                         "   Expected shells: {}\n"
+                         "   Shells obtained: {}\n"
+                         "Please increase the tolerance or adjust the shells"
+                         "to extract."
+                         .format(shells_to_extract, sorted_centroids))
 
     new_bvals = bvals
     for i in range(nb_new_shells):
-        if np.abs(sorted_centroids[i] - bvals_to_extract[i]) <= tolerance:
-            new_bvals[np.where(sorted_indices == i)] = bvals_to_extract[i]
-        else:
-            raise ValueError("No bvals found on shell #{}: {}: "
-                             "tolerance is too low?"
-                             .format(i, bvals[i]))
+        new_bvals[np.where(sorted_indices == i)] = shells_to_extract[i]
+
     return new_bvals

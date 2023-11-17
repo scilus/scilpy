@@ -2,14 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Extract b-values on specific b-value shells for sampling schemes where b-values
-of a shell are not all identical. The --tolerance argument needs to be adjusted
-to vary the accepted interval around the targetted b-value.
+Select b-values on specific b-value shells.
 
-For example, a b-value of 2000 and a tolerance of 20 will resample all
-volumes with a b-values from 1980 to 2020 to the value of 2000.
+With the --tolerance argument, this is useful for sampling schemes where
+b-values of a shell are not all identical. Adjust the tolerance to vary the
+accepted interval around the targetted b-value.
 
->> scil_resample_bvals.py bvals 0 1000 2000 newbvals --tolerance 20
+For example, a b-value of 2000 and a tolerance of 20 will select all b-values
+between [1980, 2020] and round them to the value of 2000.
+
+>> scil_round_bvals_on_shells.py bvals 0 1000 2000 newbvals --tolerance 20
 """
 
 import argparse
@@ -20,7 +22,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.gradients.bvec_bval_tools import identify_shells, extract_bvals_from_list
+from scilpy.gradients.bvec_bval_tools import round_bvals_to_shell
 
 
 def _build_arg_parser():
@@ -30,18 +32,19 @@ def _build_arg_parser():
 
     parser.add_argument('in_bval',
                         help='The b-values in FSL format.')
-    parser.add_argument('bvals_to_extract', nargs='+',
-                        metavar='bvals-to-extract', type=int,
-                        help='The list of b-values to extract. For example '
-                             '0 1000 2000.')
+    parser.add_argument(
+        'shells', nargs='+', type=int,
+        help='The list of expected shells. For example 0 1000 2000.\n'
+             'All b-values in the b_val file should correspond to one given '
+             'shell (up to the tolerance).')
     parser.add_argument('out_bval',
                         help='The name of the output b-values.')
-
-    parser.add_argument('--tolerance', '-t',
-                        metavar='INT', type=int, default=20,
-                        help='The tolerated gap between the b-values to '
-                             'extract\nand the actual b-values. '
-                             '[%(default)s]')
+    parser.add_argument(
+        'tolerance', type=int,
+        help='The tolerated gap between the b-values to extract and the \n'
+             'actual b-values. Expecting an integer value. Comparison is \n'
+             'strict: a b-value of 1010 with a tolerance of 10 is NOT \n'
+             'included in shell 1000. Suggestion: 20.')
 
     add_verbose_arg(parser)
     add_overwrite_arg(parser)
@@ -61,7 +64,7 @@ def main():
 
     bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
-    new_bvals = extract_bvals_from_list(bvals, args.tolerance, args.bvals_to_extract)
+    new_bvals = round_bvals_to_shell(bvals, args.tolerance, args.shells)
 
     logging.info("new bvals: {}".format(new_bvals))
     new_bvals.reshape((1, len(new_bvals)))

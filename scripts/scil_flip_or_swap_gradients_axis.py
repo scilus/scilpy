@@ -11,11 +11,9 @@ import os
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
-                                              swap_gradient_axis)
-from scilpy.gradients.utils import str_to_flip_swap
+                                              swap_gradient_axis, str_to_axis_index)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.util import str_to_index
 
 
 def _build_arg_parser():
@@ -65,10 +63,10 @@ def main():
         next_axis += char
         if char != '-':
             if next_axis in ['x', 'y', 'z']:
-                swapped_order.append(str_to_index(next_axis))
+                swapped_order.append(str_to_axis_index(next_axis))
             elif next_axis in ['-x', '-y', '-z']:
-                axes_to_flip.append(str_to_index(next_axis[1]))
-                swapped_order.append(str_to_index(next_axis[1]))
+                axes_to_flip.append(str_to_axis_index(next_axis[1]))
+                swapped_order.append(str_to_axis_index(next_axis[1]))
             else:
                 parser.error("Sorry, final_order not understood.")
             next_axis = ''
