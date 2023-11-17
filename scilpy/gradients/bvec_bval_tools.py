@@ -65,7 +65,7 @@ def normalize_bvecs(bvecs, filename=None):
 
 
 def check_b0_threshold(
-    force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
+        force_b0_threshold, bvals_min, b0_thr=DEFAULT_B0_THRESHOLD
 ):
     """Check if the minimal bvalue is under zero or over the threshold.
     If `force_b0_threshold` is true, don't raise an error even if the minimum
@@ -374,13 +374,17 @@ def round_bvals_to_shell(bvals, tolerance, shells_to_extract):
     shells_to_extract: list
         The shells of interest.
     """
+    new_bvals = bvals.copy()
+    shells_to_extract = np.sort(shells_to_extract)
+
     # Find the volume indices that correspond to the shells to extract.
     sorted_centroids, sorted_indices = identify_shells(bvals, tolerance,
                                                        sort=True)
-    shells_to_extract = np.sort(shells_to_extract)
     nb_new_shells = np.shape(shells_to_extract)[0]
 
-    if not np.array_equal(sorted_centroids, shells_to_extract):
+    if (not len(sorted_centroids) == len(shells_to_extract) or
+            not np.allclose(sorted_centroids, shells_to_extract,
+                            atol=tolerance)):
         raise ValueError("With given tolerance, some b-values cannot be "
                          "associated with the expected shells to extract! \n"
                          "   Expected shells: {}\n"
@@ -389,7 +393,6 @@ def round_bvals_to_shell(bvals, tolerance, shells_to_extract):
                          "to extract."
                          .format(shells_to_extract, sorted_centroids))
 
-    new_bvals = bvals
     for i in range(nb_new_shells):
         new_bvals[np.where(sorted_indices == i)] = shells_to_extract[i]
 
