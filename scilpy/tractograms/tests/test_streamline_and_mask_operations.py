@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import tempfile
 
 import nibabel as nib
 import numpy as np
@@ -12,7 +11,7 @@ from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
 from scilpy.image.utils import split_mask_blobs_kmeans
 from scilpy.tractograms.streamline_and_mask_operations import (
     compute_streamline_segment,
-    cut_between_masks_streamlines,
+    cut_between_mask_two_blobs_streamlines,
     cut_outside_of_mask_streamlines,
     get_endpoints_density_map,
     get_head_tail_density_maps)
@@ -21,13 +20,12 @@ from scilpy.tractograms.streamline_and_mask_operations import \
 from scilpy.tractograms.uncompress import uncompress
 
 fetch_data(get_testing_files_dict(), keys=['tractograms.zip'])
-tmp_dir = tempfile.TemporaryDirectory()
 
 
 def _setup_files():
     """ Load streamlines and masks relevant to the tests here.
     """
-    os.chdir(os.path.expanduser(tmp_dir.name))
+
     in_ref = os.path.join(get_home(), 'tractograms',
                           'streamline_and_mask_operations',
                           'bundle_4_wm.nii.gz')
@@ -60,15 +58,11 @@ def test_get_endpoints_density_map():
     """ Test the get_endpoints_density_map function.
     """
 
-    sft, reference, _, _, _ = \
-        _setup_files()
-
-    sft.to_vox()
+    sft, reference, *_ = _setup_files()
 
     endpoints_map = get_endpoints_density_map(
-        sft.streamlines, reference.shape, point_to_select=1)
+        sft, point_to_select=1)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_1point.nii.gz')
@@ -82,15 +76,11 @@ def test_get_endpoints_density_map_five_points():
     """ Test the get_endpoints_density_map function with 5 points.
     """
 
-    sft, reference, _, _, _ = \
-        _setup_files()
-
-    sft.to_vox()
+    sft, reference, *_ = _setup_files()
 
     endpoints_map = get_endpoints_density_map(
-        sft.streamlines, reference.shape, point_to_select=5)
+        sft, point_to_select=5)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_5points.nii.gz')
@@ -106,15 +96,11 @@ def test_get_head_tail_density_maps():
     function only adds the two rois together, we do the same here.
     """
 
-    sft, reference, _, _, _ = \
-        _setup_files()
-
-    sft.to_vox()
+    sft, reference, *_ = _setup_files()
 
     head_map, tail_map = get_head_tail_density_maps(
-        sft.streamlines, reference.shape, point_to_select=1)
+        sft, point_to_select=1)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_endpoints_1point.nii.gz')
@@ -125,13 +111,11 @@ def test_get_head_tail_density_maps():
 
 def test_cut_outside_of_mask_streamlines():
 
-    sft, reference, _, _, center_roi = \
-        _setup_files()
+    sft, reference, _, _, center_roi = _setup_files()
 
     cut_sft = cut_outside_of_mask_streamlines(
         sft, center_roi)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_center.tck')
@@ -145,27 +129,25 @@ def test_cut_outside_of_mask_streamlines():
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
 
 
-def test_cut_between_masks_streamlines():
-    """ Test the cut_between_masks_streamlines function. This test
+def test_cut_between_mask_two_blobs_streamlines():
+    """ Test the cut_between_mask_two_blobs_streamlines function. This test
     loads a bundle with 10 streamlines, and "cuts it" with a mask that
     should not changed the bundle.
     """
 
-    sft, reference, head_tail_rois, _, _ = \
-        _setup_files()
+    sft, reference, head_tail_rois, *_ = _setup_files()
     # head_tail_rois is a mask with two rois that correspond
     # to the bundle's endpoints.
-    cut_sft = cut_between_masks_streamlines(
+    cut_sft = cut_between_mask_two_blobs_streamlines(
         sft, head_tail_rois)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     # The expected result is the input bundle.
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4.tck')
 
     res = load_tractogram(in_result, reference)
-    # `cut_between_masks_streamlines` always returns a voxel space sft
+    # `cut_between_mask_two_blobs_streamlines` always returns a voxel space sft
     # with streamlines in corner, so move the expected result to the same
     # space.
     res.to_vox()
@@ -174,26 +156,24 @@ def test_cut_between_masks_streamlines():
     assert np.allclose(cut_sft.streamlines._data, res.streamlines._data)
 
 
-def test_cut_between_masks_streamlines_offset():
-    """ Test the cut_between_masks_streamlines function. This test
+def test_cut_between_mask_two_blobs_streamlines_offset():
+    """ Test the cut_between_mask_two_blobs_streamlines function. This test
     loads a bundle with 10 streamlines, and cuts it with a mask that
     shaves off the endpoints slightly.
     """
 
-    sft, reference, _, head_tail_offset_rois, _ = \
-        _setup_files()
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
     # head_tail_offset_rois is a mask with two rois that are not
     # exactly at the endpoints of the bundle.
-    cut_sft = cut_between_masks_streamlines(
+    cut_sft = cut_between_mask_two_blobs_streamlines(
         sft, head_tail_offset_rois)
 
-    os.chdir(os.path.expanduser(tmp_dir.name))
     in_result = os.path.join(get_home(), 'tractograms',
                              'streamline_and_mask_operations',
                              'bundle_4_cut_endpoints.tck')
 
     res = load_tractogram(in_result, reference)
-    # `cut_between_masks_streamlines` always returns a voxel space sft
+    # `cut_between_mask_two_blobs_streamlines` always returns a voxel space sft
     # with streamlines in corner, so move the expected result to the same
     # space.
     res.to_vox()
@@ -206,8 +186,7 @@ def test_compute_streamline_segment():
     streamline between two rois.
     """
 
-    sft, reference, _, head_tail_offset_rois, _ = \
-        _setup_files()
+    sft, reference, _, head_tail_offset_rois, _ = _setup_files()
 
     sft.to_vox()
     sft.to_corner()

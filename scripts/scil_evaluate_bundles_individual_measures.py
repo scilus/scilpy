@@ -113,7 +113,7 @@ def compute_measures(args):
     sft.to_corner()
     streamlines = sft.streamlines
     density = compute_tract_counts_map(streamlines, dimensions)
-    endpoints_density = get_endpoints_density_map(streamlines, dimensions)
+    endpoints_density = get_endpoints_density_map(sft)
 
     span_list = list(map(compute_span, streamline_cords))
     span = float(np.average(span_list))
@@ -127,7 +127,7 @@ def compute_measures(args):
     irregularity = surf_area / (np.pi * diameter * length_avg)
 
     endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft.streamlines, dimensions)
+        get_head_tail_density_maps(sft)
     endpoints_map_head_roi = \
         np.where(endpoints_map_head != 0, 1, endpoints_map_head)
     endpoints_map_tail_roi = \

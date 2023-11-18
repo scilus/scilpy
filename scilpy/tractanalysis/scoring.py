@@ -40,8 +40,6 @@ import logging
 
 import numpy as np
 
-from dipy.io.stateful_tractogram import StatefulTractogram
-
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 from scilpy.tractograms.streamline_and_mask_operations import \
@@ -184,8 +182,7 @@ def get_binary_maps(sft):
     bundles_voxels = compute_tract_counts_map(sft.streamlines,
                                               dimensions).astype(np.int16)
 
-    endpoints_voxels = get_endpoints_density_map(sft.streamlines,
-                                                 dimensions).astype(np.int16)
+    endpoints_voxels = get_endpoints_density_map(sft).astype(np.int16)
 
     bundles_voxels[bundles_voxels > 0] = 1
     endpoints_voxels[endpoints_voxels > 0] = 1

@@ -74,7 +74,7 @@ def main():
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
 
-    transfo, dim, _, _ = sft.space_attributes
+    transfo, *_ = sft.space_attributes
 
     head_name = args.endpoints_map_head
     tail_name = args.endpoints_map_tail
@@ -84,7 +84,7 @@ def main():
         tail_name = args.endpoints_map_head
 
     endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(sft.streamlines, dim, args.nb_points)
+        get_head_tail_density_maps(sft, args.nb_points)
 
     if args.binary:
         endpoints_map_head = (endpoints_map_head > 0).astype(np.int16)

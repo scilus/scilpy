@@ -15,17 +15,15 @@ from scilpy.tractograms.streamline_operations import \
     filter_streamlines_by_length, _get_point_on_line, _get_streamline_pt_index
 
 
-def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
+def get_endpoints_density_map(sft, point_to_select=1):
     """
     Compute an endpoints density map, supports selecting more than one points
     at each end.
 
     Parameters
     ----------
-    streamlines: list of np.ndarray
-        The list of streamlines to compute endpoints density from.
-    dimensions: tuple
-        The shape of the reference volume for the streamlines.
+    sft: StatefulTractogram
+        The streamlines to compute endpoints density from.
     point_to_select: int
         Instead of computing the density based on the first and last points,
         select more than one at each end.
@@ -35,26 +33,26 @@ def get_endpoints_density_map(streamlines, dimensions, point_to_select=1):
     np.ndarray: A np.ndarray where voxel values represent the density of
     endpoints.
     """
+
     endpoints_map_head, endpoints_map_tail = \
-        get_head_tail_density_maps(streamlines, dimensions, point_to_select)
+        get_head_tail_density_maps(sft, point_to_select)
     return endpoints_map_head + endpoints_map_tail
 
 
-def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
+def get_head_tail_density_maps(sft, point_to_select=1):
     """
     Compute two separate endpoints density maps for the head and tail of
     a list of streamlines.
 
     Parameters
     ----------
-    streamlines: list of np.ndarray
-        The list of streamlines to compute endpoints density from.
-    dimensions: tuple
-        The shape of the reference volume for the streamlines.
+    sft: StatefulTractogram
+        The streamlines to compute endpoints density from.
     point_to_select: int
         Instead of computing the density based on the first and last points,
         select more than one at each end. To support compressed streamlines,
         a resampling to 0.5mm per segment is performed.
+
     Returns
     -------
     A tuple containing
@@ -63,6 +61,13 @@ def get_head_tail_density_maps(streamlines, dimensions, point_to_select=1):
         np.ndarray: A np.ndarray where voxel values represent the density of
             tail endpoints.
     """
+
+    sft.to_vox()
+    sft.to_corner()
+
+    dimensions = sft.dimensions
+    streamlines = sft.streamlines
+
     endpoints_map_head = np.zeros(dimensions)
     endpoints_map_tail = np.zeros(dimensions)
 
@@ -127,9 +132,10 @@ def cut_outside_of_mask_streamlines(sft, binary_mask, min_len=0):
     return filter_streamlines_by_length(new_sft, min_length=min_len)
 
 
-def cut_between_masks_streamlines(sft, binary_mask, min_len=0):
-    """ Cut streamlines so their segment are  going from binary mask #1
-    to binary mask #2.
+def cut_between_mask_two_blobs_streamlines(sft, binary_mask, min_len=0):
+    """ Cut streamlines so their segment are going from blob #1 to blob #2
+    in a binary mask. This function presumes strictly two blobs are present
+    in the mask.
 
     This function erases the data_per_point and data_per_streamline.
 
