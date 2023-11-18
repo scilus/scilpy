@@ -12,6 +12,7 @@ Algo 'det': the maxima of the spherical function (SF) the most closely aligned
 to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
+Algo 'ptt': Parallel-Transport Tractography. See [1] for more details.
 
 The local tracking algorithm can also run on the GPU using the --use_gpu
 option (experimental). By default, GPU tracking behaves the same as
@@ -32,6 +33,12 @@ NOTE: eudx can be used with pre-computed peaks from fodf as well as
 evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
 All the input nifti files must be in isotropic resolution.
+
+References
+----------
+
+[1]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
+IEEE transactions on medical imaging, 40(2), 635-647.
 """
 
 import argparse
@@ -139,7 +146,7 @@ def _get_direction_getter(args):
         kwargs = {}
         if args.algo == 'ptt':
             dg_class = PTTDirectionGetter
-            kwargs = {'probe_length': args.step_size}
+            kwargs = {'probe_length': args.voxel_size}
         elif args.algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
@@ -338,6 +345,9 @@ def main():
     voxel_size = odf_sh_img.header.get_zooms()[0]
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
+
+    if args.algo == 'ptt':
+        args.voxel_size = voxel_size
 
     if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
