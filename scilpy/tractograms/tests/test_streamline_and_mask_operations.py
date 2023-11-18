@@ -132,7 +132,7 @@ def test_cut_outside_of_mask_streamlines():
 def test_cut_between_mask_two_blobs_streamlines():
     """ Test the cut_between_mask_two_blobs_streamlines function. This test
     loads a bundle with 10 streamlines, and "cuts it" with a mask that
-    should not changed the bundle.
+    should not change the bundle.
     """
 
     sft, reference, head_tail_rois, *_ = _setup_files()

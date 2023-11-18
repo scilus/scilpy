@@ -70,6 +70,9 @@ def test_filter_streamlines_by_length_max_length():
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
+
     assert np.all(lengths <= max_length)
 
 
@@ -87,11 +90,15 @@ def test_filter_streamlines_by_length_min_length():
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
+    # Test that streamlines shorter than 100 were removed.
     assert np.all(lengths >= min_length)
 
 
 def test_filter_streamlines_by_length_min_and_max_length():
-    """ Test the filter_streamlines_by_length function with a min length.
+    """ Test the filter_streamlines_by_length function with a min
+    and max length.
     """
 
     sft, _ = _setup_files()
@@ -104,6 +111,9 @@ def test_filter_streamlines_by_length_min_and_max_length():
         sft, min_length=min_length, max_length=max_length)
     lengths = length(filtered_sft.streamlines)
 
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
+    # Test that streamlines shorter than 100 and longer than 120 were removed.
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
 
 
@@ -132,6 +142,8 @@ def test_filter_streamlines_by_total_length_per_dim_x():
         True, False)
     lengths = length(filtered_sft.streamlines)
 
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
     # Remaining streamlines should have the correct length
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
     # No rejected streamlines should have been returned
@@ -168,6 +180,8 @@ def test_filter_streamlines_by_total_length_per_dim_y():
     lengths = length(filtered_sft.streamlines)
     rejected_lengths = length(rejected.streamlines)
 
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
     assert np.all(np.logical_or(min_length > rejected_lengths,
                                 rejected_lengths > max_length))
@@ -198,6 +212,9 @@ def test_filter_streamlines_by_total_length_per_dim_z():
         sft_y, inf_constraint, inf_constraint, constraint,
         True, False)
     lengths = length(filtered_sft.streamlines)
+
+    # Test that streamlines were removed and that the test is not bogus.
+    assert len(filtered_sft) < len(sft)
 
     assert np.all(lengths >= min_length) and np.all(lengths <= max_length)
 
