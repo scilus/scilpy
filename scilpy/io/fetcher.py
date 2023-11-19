@@ -100,7 +100,7 @@ def get_testing_files_dict():
              '6d88910403fb4d9b79604f11100d8915'],
             'tractograms.zip':
             ['1f98s0TP-862KtB_xsSmRNrmi2nrqRaNU',
-             'a2c1926cf2b0d36af56fca38a724fd1f'],
+             '911bc59dfdcee3656564f212ae8ed3a1'],
             'tractometry.zip':
             ['130mxBo4IJWPnDFyOELSYDif1puRLGHMX',
              '3e27625a1e7f2484b7fa5028c95324cc'],
