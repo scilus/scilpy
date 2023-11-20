@@ -67,9 +67,8 @@ def main():
 
     if not ((os.path.splitext(args.in_surface)[1])
             in ['.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj']):
-        polydata = convert_freesurfer_into_polydata(args.in_surface, 
+        polydata = convert_freesurfer_into_polydata(args.in_surface,
                                                     xform_translation)
-        
     else:
         polydata = load_polydata(args.out_surface)
 
