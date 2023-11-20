@@ -8,18 +8,22 @@ from nibabel.freesurfer.io import read_geometry
 def convert_freesurfer_into_polydata(surface_to_polydata, xform):
     """
     Convert a freesurfer surface into a polydata surface with vtk.
+
     Parameters
     ----------
     surface_to_vtk: Input a surface from freesurfer.
     The header must not contain any of these suffixes:
     '.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj'.
 
-    xform: Apply a transformation matrix to the surface to align
+    xform: array [float]
+    Apply a transformation matrix to the surface to align
     freesurfer surface with T1.
+
     Returns
     -------
-    polydata: A polydata is a surface mesh structure that can
-    hold data arrays in points, cells, or in the dataset itself.
+    polydata : A polydata surface.
+    A polydata is a mesh structure that can hold data arrays
+    in points, cells, or in the dataset itself.
     """
     surface = read_geometry(surface_to_polydata)
     points = vtk.vtkPoints()
@@ -45,25 +49,25 @@ def convert_freesurfer_into_polydata(surface_to_polydata, xform):
     return polydata
 
 
-def extract_xform(filename):
+def extract_xform(xform):
     """
     Use the log.txt file from mri_info to generate a transformation
     matrix to align the freesurfer surface with the T1.
+
     Parameters
     ----------
-    filename: .txt file.
+    filename : .txt file.
     The copy-paste output from mri_info of the surface using:
     mri_info $surface >> log.txt
+
     Returns
     -------
-    Matrix: a transformation matrix to align the surface with the T1.
+    Matrix : np.array
+    a transformation matrix to align the surface with the T1.
     """
-    with open(filename) as f:
-        content = f.readlines()
-    names = [x.strip() for x in content]
 
     raw_xform = []
-    for i in names:
+    for i in xform:
         raw_xform.extend(i.split())
 
     start_read = 0
@@ -85,14 +89,17 @@ def extract_xform(filename):
 def flip_LPS(polydata):
     """
     Apply a flip to the freesurfer surface of the anteroposterior axis.
+
     Parameters
     ----------
-    polydata: polydata surface.
+    polydata : polydata surface.
     A surface mesh structure after a transformation in polydata
     surface with vtk.
+
     Returns
     -------
-    polydata: The polydata surface turned over.
+    polydata : polydata surface.
+    return the polydata turned over.
     """
     flip_LPS = vtk.vtkMatrix4x4()
     flip_LPS.Identity()

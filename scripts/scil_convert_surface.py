@@ -60,7 +60,10 @@ def main():
     assert_outputs_exist(parser, args, args.out_surface)
 
     if args.xform:
-        xform_matrix = extract_xform(args.xform)
+        with open(args.xform) as f:
+            content = f.readlines()
+        xform = [x.strip() for x in content]
+        xform_matrix = extract_xform(xform)
         xform_translation = xform_matrix[0:3, 3]
     else:
         xform_translation = [0, 0, 0]
