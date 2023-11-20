@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+import numpy as np
 
 from scilpy.surfaces.utils import (extract_xform)
 from scilpy.tests.arrays import (xform, xform_matrix_ref)
@@ -13,7 +13,5 @@ def test_flip_LPS():
 
 
 def test_extract_xform():
-
     out = extract_xform(xform)
-
-    assert xform_matrix_ref == out
+    assert np.allclose(out, xform_matrix_ref)
