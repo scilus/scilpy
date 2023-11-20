@@ -11,7 +11,7 @@ accepted interval around the targetted b-value.
 For example, a b-value of 2000 and a tolerance of 20 will select all b-values
 between [1980, 2020] and round them to the value of 2000.
 
->> scil_round_bvals_on_shells.py bvals 0 1000 2000 newbvals --tolerance 20
+>> scil_gradients_round_bvals.py bvals 0 1000 2000 newbvals --tolerance 20
 """
 
 import argparse
