@@ -12,18 +12,18 @@ def convert_freesurfer_into_polydata(surface_to_polydata, xform):
     Parameters
     ----------
     surface_to_vtk: Input a surface from freesurfer.
-    The header must not contain any of these suffixes:
-    '.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj'.
+        The header must not contain any of these suffixes:
+        '.vtk', '.vtp', '.fib', '.ply', '.stl', '.xml', '.obj'.
 
     xform: array [float]
-    Apply a transformation matrix to the surface to align
-    freesurfer surface with T1.
+        Apply a transformation matrix to the surface to align
+        freesurfer surface with T1.
 
     Returns
     -------
     polydata : A polydata surface.
-    A polydata is a mesh structure that can hold data arrays
-    in points, cells, or in the dataset itself.
+        A polydata is a mesh structure that can hold data arrays
+        in points, cells, or in the dataset itself.
     """
     surface = read_geometry(surface_to_polydata)
     points = vtk.vtkPoints()
@@ -56,14 +56,14 @@ def extract_xform(xform):
 
     Parameters
     ----------
-    filename : .txt file.
-    The copy-paste output from mri_info of the surface using:
-    mri_info $surface >> log.txt
+    filename : list
+        The copy-paste output from mri_info of the surface using:
+        mri_info $surface >> log.txt
 
     Returns
     -------
     Matrix : np.array
-    a transformation matrix to align the surface with the T1.
+        a transformation matrix to align the surface with the T1.
     """
 
     raw_xform = []
@@ -93,13 +93,13 @@ def flip_LPS(polydata):
     Parameters
     ----------
     polydata : polydata surface.
-    A surface mesh structure after a transformation in polydata
-    surface with vtk.
+        A surface mesh structure after a transformation in polydata
+        surface with vtk.
 
     Returns
     -------
     polydata : polydata surface.
-    return the polydata turned over.
+        return the polydata turned over.
     """
     flip_LPS = vtk.vtkMatrix4x4()
     flip_LPS.Identity()
