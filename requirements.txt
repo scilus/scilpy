@@ -38,7 +38,7 @@ scipy==1.9.*
 six==1.16.*
 spams==2.6.*
 statsmodels==0.13.*
-trimeshpy==0.0.2
+trimeshpy==0.0.3
 vtk==9.2.*
 # Dipy requirements
 h5py>=2.8.0
