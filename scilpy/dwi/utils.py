@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from dipy.core.gradients import get_bval_indices
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import get_shell_indices, B0ExtractionStrategy
+from scilpy.gradients.bvec_bval_tools import B0ExtractionStrategy
 from scilpy.image.utils import volume_iterator
 
 
@@ -51,7 +52,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         Selected b-vectors.
 
     """
-    indices = [get_shell_indices(bvals, shell, tol=tol)
+    indices = [get_bval_indices(bvals, shell, tol=tol)
                for shell in bvals_to_extract]
     indices = np.unique(np.sort(np.hstack(indices)))
 
@@ -63,7 +64,7 @@ def extract_dwi_shell(dwi, bvals, bvecs, bvals_to_extract, tol=20,
         "Extracting shells [{}], with number of images per shell [{}], "
         "from {} images from {}."
         .format(" ".join([str(b) for b in bvals_to_extract]),
-                " ".join([str(len(get_shell_indices(bvals, shell, tol=tol)))
+                " ".join([str(len(get_bval_indices(bvals, shell, tol=tol)))
                           for shell in bvals_to_extract]),
                 len(bvals), dwi.get_filename()))
 

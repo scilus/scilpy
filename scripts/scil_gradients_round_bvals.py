@@ -64,7 +64,7 @@ def main():
 
     bvals, _ = read_bvals_bvecs(args.in_bval, None)
 
-    new_bvals = round_bvals_to_shell(bvals, args.tolerance, args.shells)
+    new_bvals = round_bvals_to_shell(bvals, args.shells, tol=args.tolerance)
 
     logging.info("new bvals: {}".format(new_bvals))
     new_bvals.reshape((1, len(new_bvals)))
