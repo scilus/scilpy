@@ -16,7 +16,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.reconst.raw_signal import compute_sh_coefficients
+from scilpy.reconst.dwi import compute_sh_coefficients
 
 
 def _build_arg_parser():

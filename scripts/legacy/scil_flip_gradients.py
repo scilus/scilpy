@@ -7,7 +7,7 @@ from scripts.scil_gradients_modify_axes import main as new_main
 
 DEPRECATION_MSG = """
 This script has been renamed scil_gradients_modify_axes.py.
-Please change your existing pipelines accordingly. Please note that options 
+Please change your existing pipelines accordingly. Please note that options
 have changed, too.
 """
 
