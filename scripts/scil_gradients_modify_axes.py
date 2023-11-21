@@ -11,7 +11,8 @@ import os
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
-                                              swap_gradient_axis, str_to_axis_index)
+                                              swap_gradient_axis,
+                                              str_to_axis_index)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist)
 

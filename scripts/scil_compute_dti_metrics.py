@@ -42,9 +42,10 @@ from dipy.reconst.dti import mode as dipy_mode
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
-from scilpy.reconst.dti import convert_tensor_from_dipy_format, \
+from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
-from scilpy.gradients.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
+                                              is_normalized_bvecs,
                                               check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 

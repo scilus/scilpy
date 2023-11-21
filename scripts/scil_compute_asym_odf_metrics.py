@@ -32,7 +32,7 @@ import numpy as np
 from dipy.data import get_sphere, SPHERE_FILES
 from dipy.direction.peaks import reshape_peaks_for_visualization
 
-from scilpy.reconst.multi_processes import peaks_from_sh
+from scilpy.reconst.sh import peaks_from_sh
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.reconst.aodf import (compute_asymmetry_index,
                                  compute_odd_power_map)
