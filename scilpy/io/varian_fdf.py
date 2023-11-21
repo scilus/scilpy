@@ -10,7 +10,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.utils.util import str_to_index
+from scilpy.gradients.bvec_bval_tools import str_to_axis_index
 
 
 def load_fdf(file_path):
@@ -385,12 +385,12 @@ def write_gradient_information(dwi_header, b0_header,
             bvecs[2, :] = b0_header['diff_z'] + dwi_header['diff_z']
 
             if flip:
-                axes = [str_to_index(axis) for axis in list(flip)]
+                axes = [str_to_axis_index(axis) for axis in list(flip)]
                 for axis in axes:
                     bvecs[axis, :] *= -1
 
             if swap:
-                axes = [str_to_index(axis) for axis in list(swap)]
+                axes = [str_to_axis_index(axis) for axis in list(swap)]
                 new_bvecs = np.zeros(bvecs.shape)
                 new_bvecs[axes[0], :] = bvecs[axes[1], :]
                 new_bvecs[axes[1], :] = bvecs[axes[0], :]
