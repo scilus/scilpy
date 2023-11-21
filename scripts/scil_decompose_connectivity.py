@@ -62,7 +62,8 @@ from scilpy.tractanalysis.tools import (compute_connectivity,
                                         extract_longest_segments_from_profile)
 from scilpy.tractograms.uncompress import uncompress
 
-from scilpy.tractograms.streamline_operations import compute_streamline_segment
+from scilpy.tractograms.streamline_and_mask_operations import \
+    compute_streamline_segment
 
 
 def _get_output_paths(args):
@@ -337,8 +338,8 @@ def main():
         # a burden on the I/O of most SSD/HD
         for in_label, out_label in comb_list:
             if iteration_counter > 0 and iteration_counter % 100 == 0:
-                logging.info('Split {} nodes out of {}'.format(iteration_counter,
-                                                               len(comb_list)))
+                logging.info('Split {} nodes out of {}'.format(
+                    iteration_counter, len(comb_list)))
             iteration_counter += 1
 
             pair_info = []
@@ -404,12 +405,14 @@ def main():
 
             valid_length_sft = raw_sft[valid_length_ids]
             _save_if_needed(valid_length_sft, hdf5_file, args,
-                            'intermediate', 'valid_length', in_label, out_label)
+                            'intermediate', 'valid_length', in_label,
+                            out_label)
 
             if not args.no_remove_loops:
-                no_loop_ids = remove_loops_and_sharp_turns(valid_length,
-                                                           args.loop_max_angle,
-                                                           num_processes=nbr_cpu)
+                no_loop_ids = remove_loops_and_sharp_turns(
+                    valid_length,
+                    args.loop_max_angle,
+                    num_processes=nbr_cpu)
                 loop_ids = np.setdiff1d(np.arange(len(valid_length)),
                                         no_loop_ids)
 
@@ -428,10 +431,11 @@ def main():
                             'intermediate', 'no_loops', in_label, out_label)
 
             if not args.no_remove_outliers:
-                outliers_ids, inliers_ids = remove_outliers(no_loops,
-                                                            args.outlier_threshold,
-                                                            nb_samplings=10,
-                                                            fast_approx=True)
+                outliers_ids, inliers_ids = remove_outliers(
+                    no_loops,
+                    args.outlier_threshold,
+                    nb_samplings=10,
+                    fast_approx=True)
 
                 outliers_sft = no_loops_sft[outliers_ids]
                 inliers = no_loops[inliers_ids]

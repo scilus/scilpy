@@ -29,10 +29,12 @@ import scipy.ndimage as ndi
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractograms.streamline_and_mask_operations import \
-    cut_outside_of_mask_streamlines, cut_between_masks_streamlines
+    cut_outside_of_mask_streamlines, cut_between_mask_two_blobs_streamlines
 from scilpy.tractograms.streamline_operations import \
     resample_streamlines_step_size
 
@@ -56,6 +58,7 @@ def _build_arg_parser():
     p.add_argument('--biggest_blob', action='store_true',
                    help='Use the biggest entity and force the 1 ROI scenario.')
     add_overwrite_arg(p)
+    add_reference_arg(p)
     add_verbose_arg(p)
     return p
 
@@ -92,15 +95,16 @@ def main():
         new_sft = cut_outside_of_mask_streamlines(sft, binary_mask)
     elif len(unique) == 3:
         logging.info('The provided mask has 2 entity '
-                     'cut_between_masks_streamlines function selected.')
-        new_sft = cut_between_masks_streamlines(sft, binary_mask)
+                     'cut_between_mask_two_blobs_streamlines '
+                     'function selected.')
+        new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
 
     else:
         logging.warning('The provided mask has MORE THAN 2 entity '
-                        'cut_between_masks_streamlines function selected. '
-                        'This may cause problems with the outputed '
+                        'cut_between_mask_two_blobs_streamlines function '
+                        'selected. This may cause problems with the outputed '
                         'streamlines. Please inspect the output carefully.')
-        new_sft = cut_between_masks_streamlines(sft, binary_mask)
+        new_sft = cut_between_mask_two_blobs_streamlines(sft, binary_mask)
 
     if len(new_sft) == 0:
         logging.warning('No streamline intersected the provided mask. '
