@@ -119,28 +119,6 @@ def check_b0_threshold(
     return b0_thr
 
 
-def get_shell_indices(bvals, shell, tol=10):
-    """
-    Get shell indices
-
-    Parameters
-    ----------
-    bvals: array (N,)
-        array of bvals
-    shell: list
-        list of bvals
-    tol: int
-        tolerance to accept a bval
-
-    Returns
-    -------
-        numpy.ndarray where shells are found
-    """
-
-    return np.where(
-        np.logical_and(bvals < shell + tol, bvals > shell - tol))[0]
-
-
 def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     """
     Convert a fsl dir_grad.bvec/.bval files to mrtrix encoding.b file.

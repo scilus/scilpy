@@ -19,11 +19,6 @@ def test_check_b0_threshold():
     pass
 
 
-def test_get_shell_indices():
-    # toDo
-    pass
-
-
 def test_fsl2mrtrix():
     # toDo
     pass
