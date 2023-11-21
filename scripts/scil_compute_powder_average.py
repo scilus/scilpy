@@ -21,7 +21,8 @@ import nibabel as nib
 
 import numpy as np
 
-from dipy.io.gradients import read_bvals_bvecs, get_bval_indices
+from dipy.core.gradients import get_bval_indices
+from dipy.io.gradients import read_bvals_bvecs
 
 from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,

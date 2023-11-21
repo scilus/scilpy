@@ -12,8 +12,8 @@ Axial, coronal and sagittal slices are captured.
 import argparse
 import os
 
-from dipy.core.gradients import gradient_table
-from dipy.io.gradients import read_bvals_bvecs, get_bval_indices
+from dipy.core.gradients import gradient_table, get_bval_indices
+from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.dti import fractional_anisotropy, TensorModel
 from fury import actor
 import nibabel as nib
