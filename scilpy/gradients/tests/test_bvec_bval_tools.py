@@ -55,16 +55,16 @@ def test_round_bvals_to_shell():
     # 1. Verify that works even with inverted shells
     bvals = np.asarray([0, 1, 1.5, 9, 1000, 991, 1009, 0, 0])
     shells = [1000, 0]
-    out_bvals = round_bvals_to_shell(bvals, tolerance, shells)
+    out_bvals = round_bvals_to_shell(bvals, shells, tol=tolerance)
     assert np.array_equal(out_bvals, [0, 0, 0, 0, 1000, 1000, 1000, 0, 0])
 
     # 2. Verify that doesn't work with value on the limit: data on inexpected
     # shell
-    bvals = np.asarray([0, 10])
+    bvals = np.asarray([0, 11])
     shells = [0]
     success = True
     try:
-        _ = round_bvals_to_shell(bvals, tolerance, shells)
+        _ = round_bvals_to_shell(bvals, shells, tol=tolerance)
     except ValueError:
         success = False
     assert not success
@@ -74,29 +74,7 @@ def test_round_bvals_to_shell():
     shells = [0, 1000]
     success = True
     try:
-        _ = round_bvals_to_shell(bvals, tolerance, shells)
+        _ = round_bvals_to_shell(bvals, shells, tol=tolerance)
     except ValueError:
         success = False
     assert not success
-
-    # 4. Verify that works with given shell not exactly on centroid
-    bvals = np.asarray([5, 1, 1.5, 9, 1000, 991, 1009, 0, 0])
-    shells = [0, 1000]
-    out_bvals = round_bvals_to_shell(bvals, tolerance, shells)
-    assert np.array_equal(out_bvals, [0, 0, 0, 0, 1000, 1000, 1000, 0, 0])
-
-    # 5. KNOWN LIMIT: Very weird and rare case. The b-val 11 is accepted as 0,
-    # because it is less than 10 from centroid 7, even though it is more than
-    # 10 from expected shell 0. toDo
-    bvals = np.asarray([7, 8, 9, 11, 0, 0])
-    shells = [0]
-    out_bvals = round_bvals_to_shell(bvals, tolerance, shells)
-    assert np.array_equal(out_bvals, [0, 0, 0, 0, 0, 0])
-
-    # 6. KNOWN BUG: [1000, 991, 1009] works. But [991, 1009, 1000] fails
-    # because first centroid becomes 991, and then 1009 is out of tolerance.
-    # toDo
-    bvals = np.asarray([1000, 991, 1009])
-    shells = [1000]
-    out_bvals = round_bvals_to_shell(bvals, tolerance, shells)
-    assert np.array_equal(out_bvals, [1000, 1000, 1000])
