@@ -1,7 +1,9 @@
 import os
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages, Extension, Command
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install_scripts import install_scripts
+from setuptools.errors import SetupError
 
 with open('requirements.txt') as f:
     required_dependencies = f.read().splitlines()
@@ -64,7 +66,9 @@ opts = dict(name=NAME,
             platforms=PLATFORMS,
             version=VERSION,
             packages=find_packages(),
-            cmdclass={'build_ext': CustomBuildExtCommand},
+            cmdclass={
+                'build_ext': CustomBuildExtCommand
+            },
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
             setup_requires=['cython', 'numpy'],
@@ -72,7 +76,10 @@ opts = dict(name=NAME,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
                     os.path.basename(s),
-                    os.path.basename(s).split(".")[0]) for s in SCRIPTS]
+                    os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
+                ["{}=scripts.legacy.{}:main".format(
+                    os.path.basename(s),
+                    os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
             },
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",

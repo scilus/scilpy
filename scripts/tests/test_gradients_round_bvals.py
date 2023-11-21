@@ -12,14 +12,15 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_flip_gradients.py', '--help')
+    ret = script_runner.run('scil_gradients_round_bvals.py',
+                            '--help')
     assert ret.success
 
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
-                               '1000.b')
-    ret = script_runner.run('scil_flip_gradients.py', in_encoding,
-                            '1000_flip.b', 'x', '--mrtrix')
+    in_bval = os.path.join(get_home(), 'processing', '1000.bval')
+    ret = script_runner.run('scil_gradients_round_bvals.py',
+                            in_bval, '0', '1000', '1000_resample.b', "20",
+                            "-v")
     assert ret.success

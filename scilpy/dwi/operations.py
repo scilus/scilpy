@@ -2,6 +2,35 @@ import logging
 import numpy as np
 
 
+def apply_bias_field(dwi_data, bias_field_data, mask_data):
+    """
+    ToDo: Explain formula why applying field = dividing?
+     + why we need to rescale after?
+
+    Parameters
+    ----------
+    dwi_data: np.ndarray
+        The 4D dwi data.
+    bias_field_data: np.ndarray
+        The 3D bias field.
+    mask_data: np.ndarray
+        The mask where to apply the bias field.
+
+    Returns
+    -------
+    dwi_data: np.ndarray
+        The modified 4D dwi_data.
+    """
+    nuc_dwi_data = np.divide(
+        dwi_data[mask_data],
+        bias_field_data[mask_data].reshape((len(mask_data[0]), 1)))
+
+    rescaled_nuc_data = _rescale_dwi(dwi_data[mask_data], nuc_dwi_data)
+    dwi_data[mask_data] = rescaled_nuc_data
+
+    return dwi_data
+
+
 def _rescale_intensity(val, slope, in_max, bc_max):
     """
     Rescale an intensity value given a scaling factor.
@@ -30,7 +59,7 @@ def _rescale_intensity(val, slope, in_max, bc_max):
 
 
 # https://github.com/stnava/ANTs/blob/master/Examples/N4BiasFieldCorrection.cxx
-def rescale_dwi(in_data, bc_data):
+def _rescale_dwi(in_data, bc_data):
     """
     Apply N4 Bias Field Correction to a DWI volume.
     bc stands for bias correction. The code comes
