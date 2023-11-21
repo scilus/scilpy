@@ -14,6 +14,13 @@ Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
 Algo 'ptt': Parallel-Transport Tractography. See [1] for more details.
 
+NOTE: eudx can be used with pre-computed peaks from fodf as well as
+evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
+
+NOTE: If tracking with PTT, the step-size should be smaller than usual,
+i.e 0.1-0.2mm or lower. The maximum angle between segments (theta) should
+be between 10 and 20 degrees.
+
 The local tracking algorithm can also run on the GPU using the --use_gpu
 option (experimental). By default, GPU tracking behaves the same as
 DIPY. Below is a list of known divergences between the CPU and GPU
@@ -28,9 +35,6 @@ implementations:
     * Forward tracking: For GPU tracking, the `--forward_only` flag can be used
         to disable backward tracking. This option isn't available for CPU
         tracking.
-
-NOTE: eudx can be used with pre-computed peaks from fodf as well as
-evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
 
 All the input nifti files must be in isotropic resolution.
 
