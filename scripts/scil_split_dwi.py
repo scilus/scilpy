@@ -31,10 +31,8 @@ def _build_arg_parser():
 
     p.add_argument('in_dwi',
                    help='The DW image file to split.')
-
     p.add_argument('in_bval',
                    help='The b-values file in FSL format (.bval).')
-
     p.add_argument('in_bvec',
                    help='The b-vectors file in FSL format (.bvec).')
 

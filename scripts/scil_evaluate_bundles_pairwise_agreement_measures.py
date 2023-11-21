@@ -128,8 +128,7 @@ def load_data_tmp_saving(args):
     else:
         transformation, dimensions, _, _ = sft.space_attributes
         density = compute_tract_counts_map(streamlines, dimensions)
-        endpoints_density = get_endpoints_density_map(streamlines, dimensions,
-                                                      point_to_select=3)
+        endpoints_density = get_endpoints_density_map(sft, point_to_select=3)
         thresholds = [32, 24, 12, 6]
         if disable_centroids:
             centroids = []

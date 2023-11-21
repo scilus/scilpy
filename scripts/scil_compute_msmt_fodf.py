@@ -33,8 +33,8 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              add_sh_basis_args, add_processes_arg,
                              add_verbose_arg)
 from scilpy.reconst.multi_processes import fit_from_model, convert_sh_basis
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
-                                          is_normalized_bvecs)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold, normalize_bvecs,
+                                              is_normalized_bvecs)
 
 
 def _build_arg_parser():

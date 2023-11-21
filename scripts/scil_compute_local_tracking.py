@@ -21,8 +21,6 @@ implementations:
         GPU implementation uses an in-house OpenCL implementation.
     * Algo: For the GPU implementation, the only available algorithm is
         Algo 'prob'.
-    * Tracking sphere: The only sphere available for GPU tracking is
-        `symmetric724` and `--sub_sphere` is not available for GPU tracking.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
@@ -76,7 +74,7 @@ from scilpy.tracking.tracker import GPUTacker
 DEFAULT_BATCH_SIZE = 10000
 DEFAULT_SH_INTERP = 'trilinear'
 DEFAULT_FWD_ONLY = False
-DEFAULT_GPU_SPHERE = 'symmetric724'
+DEFAULT_GPU_SPHERE = 'repulsion724'
 
 
 def _build_arg_parser():
@@ -90,7 +88,7 @@ def _build_arg_parser():
     track_g.add_argument('--algo', default='prob',
                          choices=['det', 'prob', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
-    add_sphere_arg(track_g, symmetric_only=True)
+    add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
@@ -275,12 +273,6 @@ def main():
             parser.error('Algo `{}` not supported for GPU tracking. '
                          'Set --algo to `prob` for GPU tracking.'
                          .format(args.algo))
-        if args.sphere != DEFAULT_GPU_SPHERE:
-            parser.error('Cannot use sphere `{}`. Only symmetric724 is '
-                         'available for GPU tracking.'.format(args.sphere))
-        if args.sub_sphere:
-            parser.error('Invalid argument --sub_sphere. Not implemented '
-                         'for GPU.')
     else:
         if args.batch_size is not None:
             parser.error('Invalid argument --batch_size. '
@@ -377,6 +369,9 @@ def main():
         # data volume
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
+        # GPU tracking needs the full sphere
+        sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
+
         streamlines_generator = GPUTacker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
@@ -386,7 +381,8 @@ def main():
             sh_basis=args.sh_basis,
             batch_size=batch_size,
             forward_only=forward_only,
-            rng_seed=args.seed)
+            rng_seed=args.seed,
+            sphere=sphere)
 
     # dump streamlines on-the-fly to file
     _save_tractogram(streamlines_generator, tracts_format,

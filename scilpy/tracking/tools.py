@@ -15,12 +15,13 @@ def get_theta(requested_theta, tracking_type):
     return theta
 
 
-def sample_distribution(dist):
+def sample_distribution(dist, random_generator: np.random.Generator):
     """
     Parameters
     ----------
     dist: numpy.array
         The empirical distribution to sample from.
+    random_generator: numpy Generator
 
     Return
     ------
@@ -30,4 +31,5 @@ def sample_distribution(dist):
     cdf = dist.cumsum()
     if cdf[-1] == 0:
         return None
-    return cdf.searchsorted(np.random.random() * cdf[-1])
+
+    return cdf.searchsorted(random_generator.random() * cdf[-1])

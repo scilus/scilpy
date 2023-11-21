@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import itertools
 import glob
+import os
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
 _version_major = 1
@@ -82,6 +84,9 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-SCRIPTS = glob.glob("scripts/*.py")
+LEGACY_SCRIPTS = filter(lambda s: not os.path.basename(s) == "__init__.py",
+                        glob.glob("scripts/legacy/*.py"))
+SCRIPTS = filter(lambda s: not os.path.basename(s) == "__init__.py",
+                 glob.glob("scripts/*.py"))
 
 PREVIOUS_MAINTAINERS=["Jean-Christophe Houde"]
