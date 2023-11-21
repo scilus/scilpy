@@ -33,7 +33,7 @@ def random_uniform_on_sphere(nb_vectors):
 
 def get_new_order_philips(philips_table, dwi, bvals, bvecs):
     """
-    Reorder bval and bvec files
+    Reorder bval and bvec files based on the philips table.
 
     Parameters
     ----------
