@@ -25,14 +25,6 @@ scilpy.reconst.divide module
    :undoc-members:
    :show-inheritance:
 
-scilpy.reconst.dti module
----------------------------------------------
-
-.. automodule:: scilpy.reconst.dti
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.reconst.dwi module
 ---------------------------------
 
