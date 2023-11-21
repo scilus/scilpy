@@ -27,7 +27,7 @@ from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 
-from scilpy.utils.bvec_bval_tools import get_shell_indices
+from scilpy.gradients.bvec_bval_tools import get_shell_indices
 
 logger = logging.getLogger("Compute_Powder_Average")
 logger.setLevel(logging.INFO)

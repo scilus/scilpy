@@ -57,9 +57,9 @@ from scipy.ndimage import gaussian_filter
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_force_b0_arg)
-from scilpy.utils.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
-                                          check_b0_threshold,
-                                          identify_shells)
+from scilpy.gradients.bvec_bval_tools import (normalize_bvecs, is_normalized_bvecs,
+                                              check_b0_threshold,
+                                              identify_shells)
 
 
 def _build_arg_parser():

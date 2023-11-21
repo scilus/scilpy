@@ -113,13 +113,20 @@ def _build_arg_parser():
                          help="Mask interpolation: nearest-neighbor or "
                               "trilinear. [%(default)s]")
     track_g.add_argument(
-        '--discard_last_out_point', action='store_true',
-        help="If set, discard the last point (once out of the tracking mask) "
-             "of \nthe streamline. Default: append them. This is the default "
+        '--keep_last_out_point', action='store_true',
+        help="If set, keep the last point (once out of the tracking mask) "
+             "of \nthe streamline. Default: discard them. This is the default "
              " in \nDipy too. Note that points obtained after an invalid "
              "direction \n(based on the propagator's definition of invalid; "
              "ex when \nangle is too sharp of sh_threshold not reached) are "
-             "never added.")
+             "never added.\n")
+    # ToDo Our results (our endpoints) seem to differ from dipy's, with or
+    #  witout option. This should be investigated.
+    track_g.add_argument(
+        "--n_repeats_per_seed", type=int, default=1,
+        help="By default, each seed position is used only once. This option\n"
+             "allows for tracking from the exact same seed n_repeats_per_seed"
+             "\ntimes. [%(default)s]")
 
     add_seeding_options(p)
 
@@ -195,17 +202,18 @@ def main():
 
     seed_res = seed_img.header.get_zooms()[:3]
     seed_generator = SeedGenerator(seed_data, seed_res,
-                                   space=our_space, origin=our_origin)
+                                   space=our_space, origin=our_origin,
+                                   n_repeats=args.n_repeats_per_seed)
     if args.npv:
         # toDo. This will not really produce n seeds per voxel, only true
         #  in average.
-        nbr_seeds = len(seed_generator.seeds_vox) * args.npv
+        nbr_seeds = len(seed_generator.seeds_vox_corner) * args.npv
     elif args.nt:
         nbr_seeds = args.nt
     else:
         # Setting npv = 1.
-        nbr_seeds = len(seed_generator.seeds_vox)
-    if len(seed_generator.seeds_vox) == 0:
+        nbr_seeds = len(seed_generator.seeds_vox_corner)
+    if len(seed_generator.seeds_vox_corner) == 0:
         parser.error('Seed mask "{}" does not have any voxel with value > 0.'
                      .format(args.in_seed))
 
@@ -236,7 +244,6 @@ def main():
         space=our_space, origin=our_origin)
 
     logging.debug("Instantiating tracker.")
-    append_last_point = not args.discard_last_out_point
     tracker = Tracker(propagator, mask, seed_generator, nbr_seeds, min_nbr_pts,
                       max_nbr_pts, args.max_invalid_nb_points,
                       compression_th=args.compress,
@@ -244,7 +251,8 @@ def main():
                       save_seeds=args.save_seeds,
                       mmap_mode='r+', rng_seed=args.rng_seed,
                       track_forward_only=args.forward_only,
-                      skip=args.skip, append_last_point=append_last_point,
+                      skip=args.skip,
+                      append_last_point=args.keep_last_out_point,
                       verbose=args.verbose)
 
     start = time.time()

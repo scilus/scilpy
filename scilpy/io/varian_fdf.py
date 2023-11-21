@@ -402,7 +402,7 @@ def write_gradient_information(dwi_header, b0_header,
             'Could not save gradient. Some keys are missing.')
 
 
-def correct_dwi_intensity(dwi_data, dwi_path, b0_path):
+def correct_procpar_intensity(dwi_data, dwi_path, b0_path):
     """Applies a linear value correction based on gain difference
         found in procpar files. The basic formulae provided by Luc Tremblay
         Luc.Tremblay@usherbrooke.ca is:
