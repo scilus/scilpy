@@ -2,9 +2,10 @@
 
 from dipy.utils.deprecator import cmp_pkg_version, ExpiredDeprecationError
 from functools import wraps
-from importlib import metadata
 from packaging.version import parse
 import warnings
+
+import scilpy.version
 
 
 class ScilpyExpiredDeprecation(ExpiredDeprecationError):
@@ -60,7 +61,7 @@ def deprecate_script(script, message, from_version):
     from_version = parse(from_version)
     expiration_minor = from_version.minor + DEFAULT_DEPRECATION_WINDOW
     expiration_version = f"{from_version.major}.{expiration_minor}.0"
-    current_version = metadata.version('scilpy')
+    current_version = scilpy.version.__version__
 
     def _deprecation_decorator(func):
         @wraps(func)
