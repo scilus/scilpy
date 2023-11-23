@@ -161,3 +161,50 @@ def recursive_print(data):
         recursive_print(data[list(data.keys())[0]])
     else:
         return
+
+
+def nonneg_linear(data):
+    """Scale data linearly to [0, 1]."""
+    min_val = np.min(data)
+    max_val = np.max(data)
+    return (data - min_val) / (max_val - min_val)
+
+
+def linear(data):
+    """Scale data linearly to [-1, 1]."""
+    min_val = np.min(data)
+    max_val = np.max(data)
+    return 2 * (data - min_val) / (max_val - min_val) - 1
+
+
+def nonneg_sigmoid(data):
+    """Scale data using sigmoid to [0, 1]."""
+    return 1 / (1 + np.exp(-data))
+
+
+def sigmoid(data):
+    """Scale data using sigmoid and then to [-1, 1]."""
+    return 2 * (1 / (1 + np.exp(-data))) - 1
+
+
+def nonneg_tanh(data):
+    """Scale data using tanh and then to [0, 1]."""
+    return (np.tanh(data) + 1) / 2
+
+
+def tanh(data):
+    """Scale data using tanh to [-1, 1]."""
+    return np.tanh(data)
+
+
+def nonneg_exp(data):
+    """Scale data using exp and then to [0, 1]."""
+    exp_data = np.exp(data)
+    return exp_data / np.max(exp_data)
+
+
+def exp(data):
+    """Scale data using exp and then to [-1, 1]."""
+    exp_data = np.exp(data)
+    scaled_data = exp_data / np.max(exp_data)
+    return 2 * scaled_data - 1
