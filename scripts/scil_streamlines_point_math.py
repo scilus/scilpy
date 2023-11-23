@@ -257,7 +257,7 @@ def main():
     # Perform the requested operation.
     if not is_singular:
         if args.operation == 'correlation':
-            logging.info('Performing {}} across endpoint data')
+            logging.info('Performing {} across endpoint data.'.format(args.operation))
             new_data_per_streamline = perform_operation_across_endpoints(
                 args.operation, sft, args.dpp_name)
 
