@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Projects metrics extracted from a map onto the endpoints of streamlines. 
+Projects metrics extracted from a map onto the endpoints of streamlines.
 
-The default options will take data from a nifti image (3D or ND) and 
+The default options will take data from a nifti image (3D or ND) and
 project it onto the endpoints of streamlines.
 """
 
@@ -41,13 +41,13 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
     Optional:
     ---------
     endpoints_only: bool
-        If True, will only project the metric onto the endpoints of the 
-        streamlines (all values along streamlines set to zero). If False, 
+        If True, will only project the metric onto the endpoints of the
+        streamlines (all values along streamlines set to zero). If False,
         will project the metric onto all points of the streamlines.
 
     Returns
     -------
-    streamline_data: 
+    streamline_data:
         metric projected to each point of the streamlines.
     """
     if len(metric.data.shape) == 4:

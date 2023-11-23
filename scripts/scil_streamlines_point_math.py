@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Performs an operation on data per point from streamlines 
+Performs an operation on data per point from streamlines
 resulting in data per streamline.  The supported
 operations are:
 
@@ -12,10 +12,10 @@ sum: sum across points per streamline
 min: min value across points per streamline
 max: max value across points per streamline
 
-endpoints_only is set, min/max/mean/sum will only 
+endpoints_only is set, min/max/mean/sum will only
 be calculated using the streamline endpoints
 
-If the input is multivalued per point then: 
+If the input is multivalued per point then:
 mean: mean calculated per point for each streamline
 sum: sum calculated per point for each streamline
 min: min value calculated per point for each streamline
