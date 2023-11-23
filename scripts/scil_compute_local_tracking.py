@@ -48,36 +48,23 @@ IEEE transactions on medical imaging, 40(2), 635-647.
 import argparse
 import logging
 from time import perf_counter
-from typing import Iterable
 
-from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
-from dipy.direction import (DeterministicMaximumDirectionGetter,
-                            ProbabilisticDirectionGetter,
-                            PTTDirectionGetter)
-from dipy.direction.peaks import PeaksAndMetrics
-from dipy.io.utils import (get_reference_info,
-                           create_tractogram_header)
 from dipy.tracking.local_tracking import LocalTracking
 from dipy.tracking.stopping_criterion import BinaryStoppingCriterion
-from dipy.tracking.streamlinespeed import length, compress_streamlines
 from dipy.tracking import utils as track_utils
 import nibabel as nib
-from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
 from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
-from tqdm import tqdm
-
-from scilpy.reconst.utils import (find_order_from_nb_coeff,
-                                  get_b_matrix, get_maximas)
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
-from scilpy.tracking.tools import get_theta
+from scilpy.tracking.tools import get_theta, get_direction_getter
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
+                                   save_tractogram,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 from scilpy.tracking.tracker import GPUTacker
@@ -129,150 +116,6 @@ def _build_arg_parser():
     log_g = p.add_argument_group('Logging options')
     add_verbose_arg(log_g)
     return p
-
-
-def _get_direction_getter(args):
-    odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-
-    sphere = HemiSphere.from_sphere(
-        get_sphere(args.sphere)).subdivide(args.sub_sphere)
-
-    theta = get_theta(args.theta, args.algo)
-
-    non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
-
-    if args.algo in ['det', 'prob', 'ptt']:
-        if non_first_val_count / non_zeros_count > 0.5:
-            logging.warning('Input detected as peaks. Input should be'
-                            'fodf for det/prob, verify input just in case.')
-
-        kwargs = {}
-        if args.algo == 'ptt':
-            dg_class = PTTDirectionGetter
-            kwargs = {'probe_length': args.voxel_size}
-        elif args.algo == 'det':
-            dg_class = DeterministicMaximumDirectionGetter
-        else:
-            dg_class = ProbabilisticDirectionGetter
-        return dg_class.from_shcoeff(
-            shcoeff=odf_data, max_angle=theta, sphere=sphere,
-            basis_type=args.sh_basis,
-            relative_peak_threshold=args.sf_threshold, **kwargs)
-    elif args.algo == 'eudx':
-        # Code for type EUDX. We don't use peaks_from_model
-        # because we want the peaks from the provided sh.
-        odf_shape_3d = odf_data.shape[:-1]
-        dg = PeaksAndMetrics()
-        dg.sphere = sphere
-        dg.ang_thr = theta
-        dg.qa_thr = args.sf_threshold
-
-        # Heuristic to find out if the input are peaks or fodf
-        # fodf are always around 0.15 and peaks around 0.75
-        if non_first_val_count / non_zeros_count > 0.5:
-            logging.info('Input detected as peaks.')
-            nb_peaks = odf_data.shape[-1] // 3
-            slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(odf_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(odf_shape_3d+(nb_peaks,))
-
-            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
-                idx = tuple(idx)
-                for i in range(nb_peaks):
-                    peak_values[idx][i] = np.linalg.norm(
-                        odf_data[idx][slices[i]:slices[i+1]], axis=-1)
-                    peak_indices[idx][i] = sphere.find_closest(
-                        odf_data[idx][slices[i]:slices[i+1]])
-
-            dg.peak_dirs = odf_data
-        else:
-            logging.info('Input detected as fodf.')
-            npeaks = 5
-            peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((odf_shape_3d + (npeaks, )))
-            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1,
-                                   dtype='int')
-            b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(odf_data), sphere, args.sh_basis)
-
-            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
-                idx = tuple(idx)
-                directions, values, indices = get_maximas(odf_data[idx],
-                                                          sphere, b_matrix,
-                                                          args.sf_threshold, 0)
-                if values.shape[0] != 0:
-                    n = min(npeaks, values.shape[0])
-                    peak_dirs[idx][:n] = directions[:n]
-                    peak_values[idx][:n] = values[:n]
-                    peak_indices[idx][:n] = indices[:n]
-
-            dg.peak_dirs = peak_dirs
-
-        dg.peak_values = peak_values
-        dg.peak_indices = peak_indices
-
-        return dg
-
-
-def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
-    if verbose:
-        return tqdm(generator, *args, **kwargs)
-    return generator
-
-
-def _save_tractogram(streamlines_generator, tracts_format, odf_sh_img,
-                     total_nb_seeds, args):
-    voxel_size = odf_sh_img.header.get_zooms()[0]
-
-    scaled_min_length = args.min_length / voxel_size
-    scaled_max_length = args.max_length / voxel_size
-
-    # Tracking is expected to be returned in voxel space, origin `center`.
-    def tracks_generator_wrapper():
-        for strl, seed in tqdm_if_verbose(streamlines_generator,
-                                          verbose=args.verbose,
-                                          total=total_nb_seeds,
-                                          miniters=int(total_nb_seeds / 100),
-                                          leave=False):
-            if (scaled_min_length <= length(strl) <= scaled_max_length):
-                # Seeds are saved with origin `center` by our own convention.
-                # Other scripts (e.g. scil_compute_seed_density_map) expect so.
-                dps = {}
-                if args.save_seeds:
-                    dps['seeds'] = seed
-
-                if args.compress:
-                    # compression threshold is given in mm, but we
-                    # are in voxel space
-                    strl = compress_streamlines(
-                        strl, args.compress / voxel_size)
-
-                # TODO: Use nibabel utilities for dealing with spaces
-                if tracts_format is TrkFile:
-                    # Streamlines are dumped in mm space with
-                    # origin `corner`. This is what is expected by
-                    # LazyTractogram for .trk files (although this is not
-                    # specified anywhere in the doc)
-                    strl += 0.5
-                    strl *= voxel_size  # in mm.
-                else:
-                    # Streamlines are dumped in true world space with
-                    # origin center as expected by .tck files.
-                    strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
-                        odf_sh_img.affine[:3, 3]
-
-                yield TractogramItem(strl, dps, {})
-
-    tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
-    tractogram.affine_to_rasmm = odf_sh_img.affine
-
-    filetype = nib.streamlines.detect_format(args.out_tractogram)
-    reference = get_reference_info(odf_sh_img)
-    header = create_tractogram_header(filetype, *reference)
-
-    # Use generator to save the streamlines on-the-fly
-    nib.streamlines.save(tractogram, args.out_tractogram, header=header)
 
 
 def main():
@@ -350,9 +193,6 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
 
-    if args.algo == 'ptt':
-        args.voxel_size = voxel_size
-
     if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
@@ -374,7 +214,10 @@ def main():
         max_steps_per_direction = int(args.max_length / args.step_size)
 
         streamlines_generator = LocalTracking(
-            _get_direction_getter(args),
+            get_direction_getter(
+                args.in_odf, args.algo, args.sphere,
+                args.sub_sphere, args.theta, args.sh_basis,
+                voxel_size, args.sf_threshold),
             BinaryStoppingCriterion(mask_data),
             seeds, np.eye(4),
             step_size=vox_step_size, max_cross=1,
@@ -406,9 +249,11 @@ def main():
             rng_seed=args.seed,
             sphere=sphere)
 
-    # dump streamlines on-the-fly to file
-    _save_tractogram(streamlines_generator, tracts_format,
-                     odf_sh_img, total_nb_seeds, args)
+    # save streamlines on-the-fly to file
+    save_tractogram(streamlines_generator, tracts_format,
+                    odf_sh_img, total_nb_seeds, args.out_tractogram,
+                    args.min_length, args.max_length, args.compress,
+                    args.save_seeds, args.verbose)
 
     # Final logging
     logging.info('Saved tractogram to {0}.'.format(args.out_tractogram))

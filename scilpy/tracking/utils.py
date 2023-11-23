@@ -1,4 +1,16 @@
 # -*- coding: utf-8 -*-
+import nibabel as nib
+import numpy as np
+
+from tqdm import tqdm
+from typing import Iterable
+
+from dipy.io.utils import (get_reference_info,
+                           create_tractogram_header)
+from dipy.tracking.streamlinespeed import length, compress_streamlines
+from nibabel.streamlines import TrkFile
+from nibabel.streamlines.tractogram import LazyTractogram, TractogramItem
+
 from scilpy.io.utils import add_sh_basis_args, add_overwrite_arg
 
 
@@ -131,3 +143,96 @@ def verify_seed_options(parser, args):
 
     if args.nt and args.nt <= 0:
         parser.error('Total number of seeds must be > 0.')
+
+
+def tqdm_if_verbose(generator: Iterable, verbose: bool, *args, **kwargs):
+    if verbose:
+        return tqdm(generator, *args, **kwargs)
+    return generator
+
+
+def save_tractogram(
+    streamlines_generator, tracts_format, odf_sh_img, total_nb_seeds,
+    out_tractogram, min_length, max_length, compress, save_seeds, verbose
+):
+    """ Save the streamlines on-the-fly using a generator. Tracts are
+    filtered according to their length and compressed if requested. Seeds
+    are saved if requested. The tractogram is shifted and scaled according
+    to the file format.
+
+    Parameters
+    ----------
+    streamlines_generator : generator
+        Streamlines generator.
+    tracts_format : TrkFile or TckFile
+        Tractogram format.
+    odf_sh_img : nibabel.Nifti1Image
+        ODF spherical harmonics image used as reference.
+    total_nb_seeds : int
+        Total number of seeds.
+    out_tractogram : str
+        Output tractogram filename.
+    min_length : float
+        Minimum length of a streamline in mm.
+    max_length : float
+        Maximum length of a streamline in mm.
+    compress : float
+        Distance threshold for compressing streamlines in mm.
+    save_seeds : bool
+        If True, save the seeds used for the tracking in the
+        data_per_streamline property.
+    verbose : bool
+        If True, display progression bar.
+
+    """
+
+    voxel_size = odf_sh_img.header.get_zooms()[0]
+
+    scaled_min_length = min_length / voxel_size
+    scaled_max_length = max_length / voxel_size
+
+    # Tracking is expected to be returned in voxel space, origin `center`.
+    def tracks_generator_wrapper():
+        for strl, seed in tqdm_if_verbose(streamlines_generator,
+                                          verbose=verbose,
+                                          total=total_nb_seeds,
+                                          miniters=int(total_nb_seeds / 100),
+                                          leave=False):
+            if (scaled_min_length <= length(strl) <= scaled_max_length):
+                # Seeds are saved with origin `center` by our own convention.
+                # Other scripts (e.g. scil_compute_seed_density_map) expect so.
+                dps = {}
+                if save_seeds:
+                    dps['seeds'] = seed
+
+                if compress:
+                    # compression threshold is given in mm, but we
+                    # are in voxel space
+                    strl = compress_streamlines(
+                        strl, compress / voxel_size)
+
+                # TODO: Use nibabel utilities for dealing with spaces
+                if tracts_format is TrkFile:
+                    # Streamlines are dumped in mm space with
+                    # origin `corner`. This is what is expected by
+                    # LazyTractogram for .trk files (although this is not
+                    # specified anywhere in the doc)
+                    strl += 0.5
+                    strl *= voxel_size  # in mm.
+                else:
+                    # Streamlines are dumped in true world space with
+                    # origin center as expected by .tck files.
+                    strl = np.dot(strl, odf_sh_img.affine[:3, :3]) +\
+                        odf_sh_img.affine[:3, 3]
+
+                yield TractogramItem(strl, dps, {})
+
+    tractogram = LazyTractogram.from_data_func(tracks_generator_wrapper)
+    tractogram.affine_to_rasmm = odf_sh_img.affine
+
+    filetype = nib.streamlines.detect_format(out_tractogram)
+    reference = get_reference_info(odf_sh_img)
+    header = create_tractogram_header(filetype, *reference)
+
+    # Use generator to save the streamlines on-the-fly
+    nib.streamlines.save(tractogram, out_tractogram, header=header)
