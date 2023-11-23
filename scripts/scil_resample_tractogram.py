@@ -61,13 +61,14 @@ def _build_arg_parser():
 
     # For upsampling:
     upsampling_group = p.add_argument_group('Upsampling params')
-    std_group = upsampling_group.add_mutually_exclusive_group()
-    std_group.add_argument('--point_wise_std', type=float,
+    upsampling_group.add_argument('--point_wise_std', type=float, default=1,
                            help='Noise to add to existing streamlines\'' +
-                                ' points to generate new ones.')
-    std_group.add_argument('--streamline_wise_std', type=float,
+                                ' points to generate new ones [%(default)s].')
+    upsampling_group.add_argument('--streamline_wise_std', type=float, default=1,
                            help='Noise to add to existing whole' +
-                                ' streamlines to generate new ones.')
+                                ' streamlines to generate new ones [%(default)s].')
+    upsampling_group.add_argument('--keep_tube', action='store_true',
+                            help='Keep streamlines as tube (default: False).')
     sub_p = upsampling_group.add_mutually_exclusive_group()
     sub_p.add_argument('--gaussian', metavar='SIGMA', type=int,
                        help='Sigma for smoothing. Use the value of surronding'
@@ -146,6 +147,7 @@ def main():
         sft = upsample_tractogram(
             sft, args.nb_streamlines,
             args.point_wise_std, args.streamline_wise_std,
+            args.keep_tube,
             args.gaussian, args.spline, args.seed)
     elif args.nb_streamlines < original_number:
         if args.downsample_per_cluster:
