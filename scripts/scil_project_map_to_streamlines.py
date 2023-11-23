@@ -14,7 +14,7 @@ from copy import deepcopy
 
 from numpy import asarray, reshape, repeat
 
-from scilpy.io.image import assert_same_resolution, load_img
+from scilpy.io.image import load_img
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
@@ -138,7 +138,6 @@ def main():
 
     logging.debug("Loading the metric...")
     metric_img, metric_dtype = load_img(args.in_metric)
-    assert_same_resolution((args.in_tractogram, args.in_metric))
     metric_data = metric_img.get_fdata(caching='unchanged', dtype=float)
     metric_res = metric_img.header.get_zooms()[:3]
 
