@@ -5,7 +5,7 @@ from functools import wraps
 from packaging.version import parse
 import warnings
 
-import scilpy.version
+from scilpy import version
 
 
 class ScilpyExpiredDeprecation(ExpiredDeprecationError):
@@ -60,8 +60,8 @@ def _raise_warning(header, footer, func, *args, **kwargs):
 def deprecate_script(script, message, from_version):
     from_version = parse(from_version)
     expiration_minor = from_version.minor + DEFAULT_DEPRECATION_WINDOW
-    expiration_version = f"{from_version.major}.{expiration_minor}.0"
-    current_version = scilpy.version.__version__
+    expiration_version = f"{from_version.major}.{expiration_minor}"
+    current_version = f"{version._version_major}.{version._version_minor}"
 
     def _deprecation_decorator(func):
         @wraps(func)
