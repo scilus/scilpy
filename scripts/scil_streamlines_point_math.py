@@ -46,6 +46,7 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
+
 def perform_operation_per_point(op_name, sft, dpp_name='metric', endpoints_only=False):
     """Peforms an operation per point for all streamlines.
 
@@ -60,7 +61,7 @@ def perform_operation_per_point(op_name, sft, dpp_name='metric', endpoints_only=
         The name of the data per point to be used in the operation.
     endpoints_only: bool
         If True, will only perform operation on endpoints
-    
+
     Returns
     -------
     new_sft: StatefulTractogram
@@ -76,17 +77,20 @@ def perform_operation_per_point(op_name, sft, dpp_name='metric', endpoints_only=
                 this_data_per_point.append(asarray(0.))
             this_data_per_point[0] = call_op(s[0])
             this_data_per_point[-1] = call_op(s[-1])
-            new_data_per_point.append(reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(
+                reshape(this_data_per_point, (len(this_data_per_point), 1)))
     else:
         new_data_per_point = []
         for s in sft.data_per_point[dpp_name]:
             this_data_per_point = []
             for p in s:
                 this_data_per_point.append(call_op(p))
-            new_data_per_point.append(reshape(this_data_per_point, (len(this_data_per_point), 1)))
+            new_data_per_point.append(
+                reshape(this_data_per_point, (len(this_data_per_point), 1)))
 
     # Extracting streamlines
     return new_data_per_point
+
 
 def perform_operation_per_streamline(op_name, sft, dpp_name='metric', endpoints_only=False):
     """Peforms an operation across points for each streamline.
@@ -102,7 +106,7 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric', endpoints_
         The name of the data per point to be used in the operation.
     endpoints_only: bool
         If True, will only perform operation on endpoints
-    
+
     Returns
     -------
     new_sft: StatefulTractogram
@@ -121,6 +125,7 @@ def perform_operation_per_streamline(op_name, sft, dpp_name='metric', endpoints_
 
     return new_data_per_streamline
 
+
 def perform_operation_across_endpoints(op_name, sft, dpp_name='metric'):
     """Peforms an operation across endpoints for each streamline.
 
@@ -133,7 +138,7 @@ def perform_operation_across_endpoints(op_name, sft, dpp_name='metric'):
         The streamlines used in the operation.
     dpp_name: str
         The name of the data per point to be used in the operation.
-    
+
     Returns
     -------
     new_sft: StatefulTractogram
@@ -143,24 +148,30 @@ def perform_operation_across_endpoints(op_name, sft, dpp_name='metric'):
     call_op = OPERATIONS[op_name]
     new_data_per_streamline = []
     for s in sft.data_per_point[dpp_name]:
-        new_data_per_streamline.append(call_op(s[0], s[-1])[0,1])
+        new_data_per_streamline.append(call_op(s[0], s[-1])[0, 1])
 
     return new_data_per_streamline
+
 
 def mean(array):
     return np.mean(array)
 
+
 def sum(array):
     return np.sum(array)
+
 
 def min(array):
     return np.min(array)
 
+
 def max(array):
     return np.max(array)
 
+
 def correlation(array1, array2):
     return np.corrcoef(array1, array2)
+
 
 OPERATIONS = {
     'mean': mean,
@@ -169,6 +180,7 @@ OPERATIONS = {
     'max': max,
     'correlation': correlation,
 }
+
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(
@@ -187,14 +199,14 @@ def _build_arg_parser():
     p.add_argument('out_tractogram', metavar='OUTPUT_FILE',
                    help='The file where the remaining streamlines '
                         'are saved.')
-    
+
     p.add_argument('--endpoints_only', action='store_true', default=False,
-                        help='If set, will only perform operation on endpoints \n'
-                        'If not set, will perform operation on all streamline points.')
+                   help='If set, will only perform operation on endpoints \n'
+                   'If not set, will perform operation on all streamline points.')
     p.add_argument('--dpp_name', default='metric',
                    help='Name of the data_per_point for operation to be '
                         'performed on. (Default: %(default)s)')
-    
+
     p.add_argument('--output_dpp_name', default='metric_math',
                    help='Name of the resulting data_per_point to be saved in the output '
                         'tractogram. (Default: %(default)s)')
@@ -205,6 +217,7 @@ def _build_arg_parser():
     add_bbox_arg(p)
 
     return p
+
 
 def main():
     parser = _build_arg_parser()
@@ -227,9 +240,9 @@ def main():
     # Check to see if the data per point exists.
     if args.dpp_name not in sft.data_per_point:
         logging.info('Data per point {} not found in input tractogram.'
-                         .format(args.dpp_name))
+                     .format(args.dpp_name))
         return
-    
+
     # check size of first streamline data_per_point
     if sft.data_per_point[args.dpp_name][0].shape[1] == 1:
         is_singular = True
@@ -238,22 +251,24 @@ def main():
 
     if args.operation == 'correlation' and is_singular:
         logging.info('Correlation operation requires multivalued data per '
-                         'point. Exiting.')
+                     'point. Exiting.')
         return
-    
+
     # Perform the requested operation.
     if not is_singular:
         if args.operation == 'correlation':
             logging.info('Performing {}} across endpoint data')
-            new_data_per_streamline = perform_operation_across_endpoints(args.operation,sft, args.dpp_name)
-        
+            new_data_per_streamline = perform_operation_across_endpoints(
+                args.operation, sft, args.dpp_name)
+
             # Adding data per streamline to new_sft
             new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
                                          sft.space, sft.origin,
                                          data_per_streamline={args.output_dpp_name: new_data_per_streamline})
         else:
             # Results in new data per point
-            logging.info('Performing {} on data from each streamine point.'.format(args.operation))
+            logging.info(
+                'Performing {} on data from each streamine point.'.format(args.operation))
             new_data_per_point = perform_operation_per_point(
                 args.operation, sft, args.dpp_name, args.endpoints_only)
 
@@ -263,10 +278,11 @@ def main():
                                          data_per_point={args.output_dpp_name: new_data_per_point})
     else:
         # Results in new data per streamline
-        logging.info('Performing {} across each streamline.'.format(args.operation))
+        logging.info(
+            'Performing {} across each streamline.'.format(args.operation))
         new_data_per_streamline = perform_operation_per_streamline(
             args.operation, sft, args.output_dpp_name, args.endpoints_only)
-        
+
         # Adding data per streamline to new_sft
         new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
                                      sft.space, sft.origin,
@@ -281,6 +297,7 @@ def main():
                                                        args.out_tractogram))
     save_tractogram(new_sft, args.out_tractogram,
                     bbox_valid_check=args.bbox_check)
+
 
 if __name__ == "__main__":
     main()
