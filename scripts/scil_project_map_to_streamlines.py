@@ -159,8 +159,6 @@ def main():
     out_sft = StatefulTractogram(sft.streamlines, metric_img,
                                  sft.space, sft.origin, data_per_point=data_per_point)
     save_tractogram(out_sft, args.out_tractogram)
-    print(out_sft.data_per_point[args.dpp_name][0][0])
-    print(out_sft.data_per_point[args.dpp_name][0][-1])
 
 
 if __name__ == '__main__':
