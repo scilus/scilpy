@@ -12,11 +12,11 @@ import argparse
 import nibabel as nib
 import numpy as np
 
+from scilpy.dwi.operations import apply_bias_field
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.dwi.utils import apply_bias_field
 
 
 def _build_arg_parser():

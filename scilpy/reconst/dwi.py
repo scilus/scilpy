@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import logging
 
 from dipy.core.sphere import Sphere
@@ -8,6 +7,7 @@ import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold, identify_shells,
                                               is_normalized_bvecs, normalize_bvecs)
+from scilpy.dwi.operations import compute_dwi_attenuation
 
 
 def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
@@ -84,38 +84,3 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         sh *= mask[..., None]
 
     return sh
-
-
-def compute_dwi_attenuation(dwi_weights: np.ndarray, b0: np.ndarray):
-    """ Compute signal attenuation by dividing the dwi signal with the b0.
-
-    Parameters:
-    -----------
-    dwi_weights : np.ndarray of shape (X, Y, Z, #gradients)
-        Diffusion weighted images.
-    b0 : np.ndarray of shape (X, Y, Z)
-        B0 image.
-
-    Returns
-    -------
-    dwi_attenuation : np.ndarray
-        Signal attenuation (Diffusion weights normalized by the B0).
-    """
-    b0 = b0[..., None]  # Easier to work if it is a 4D array.
-
-    # Make sure that, in every voxels, weights are lower in the b0. Should
-    # always be the case, but with the noise we never know!
-    erroneous_voxels = np.any(dwi_weights > b0, axis=3)
-    nb_erroneous_voxels = np.sum(erroneous_voxels)
-    if nb_erroneous_voxels != 0:
-        logging.info("# of voxels where `dwi_signal > b0` in any direction: "
-                     "{}".format(nb_erroneous_voxels))
-        dwi_weights = np.minimum(dwi_weights, b0)
-
-    # Compute attenuation
-    dwi_attenuation = dwi_weights / b0
-
-    # Make sure we didn't divide by 0.
-    dwi_attenuation[np.logical_not(np.isfinite(dwi_attenuation))] = 0.
-
-    return dwi_attenuation

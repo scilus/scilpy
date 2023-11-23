@@ -3,6 +3,7 @@
 import logging
 from enum import Enum
 
+from dipy.core.gradients import get_bval_indices
 import numpy as np
 
 from scilpy.io.gradients import (save_gradient_sampling_fsl,
@@ -117,28 +118,6 @@ def check_b0_threshold(
                              .format(bvals_min, b0_thr))
 
     return b0_thr
-
-
-def get_shell_indices(bvals, shell, tol=10):
-    """
-    Get shell indices
-
-    Parameters
-    ----------
-    bvals: array (N,)
-        array of bvals
-    shell: list
-        list of bvals
-    tol: int
-        tolerance to accept a bval
-
-    Returns
-    -------
-        numpy.ndarray where shells are found
-    """
-
-    return np.where(
-        np.logical_and(bvals < shell + tol, bvals > shell - tol))[0]
 
 
 def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
@@ -361,7 +340,7 @@ def swap_gradient_axis(bvecs, final_order, sampling_type):
     return new_bvecs
 
 
-def round_bvals_to_shell(bvals, tolerance, shells_to_extract):
+def round_bvals_to_shell(bvals, shells_to_extract, tol=20):
     """
     Return bvals equal to a list of chosen bvals, up to a tolerance.
 
@@ -369,31 +348,27 @@ def round_bvals_to_shell(bvals, tolerance, shells_to_extract):
     ----------
     bvals: np.array
         All the b-values.
-    tolerance: float
-        The tolerance
     shells_to_extract: list
         The shells of interest.
+    tol: float, optional
+        The tolerance
     """
     new_bvals = bvals.copy()
     shells_to_extract = np.sort(shells_to_extract)
+    modified = np.ones((bvals.shape))
 
-    # Find the volume indices that correspond to the shells to extract.
-    sorted_centroids, sorted_indices = identify_shells(bvals, tolerance,
-                                                       sort=True)
-    nb_new_shells = np.shape(shells_to_extract)[0]
+    for shell in shells_to_extract:
+        shell_idx = get_bval_indices(bvals, shell, tol=tol)
+        new_bvals[shell_idx] = shell
+        modified[shell_idx] = 0
+        if shell_idx.size == 0:
+            raise ValueError('''Shell {} was not found.
+                             '''.format(shell))
 
-    if (not len(sorted_centroids) == len(shells_to_extract) or
-            not np.allclose(sorted_centroids, shells_to_extract,
-                            atol=tolerance)):
-        raise ValueError("With given tolerance, some b-values cannot be "
-                         "associated with the expected shells to extract! \n"
-                         "   Expected shells: {}\n"
-                         "   Shells obtained: {}\n"
-                         "Please increase the tolerance or adjust the shells"
-                         "to extract."
-                         .format(shells_to_extract, sorted_centroids))
-
-    for i in range(nb_new_shells):
-        new_bvals[np.where(sorted_indices == i)] = shells_to_extract[i]
+    if np.sum(modified) != 0:
+        raise ValueError('''Shells {} were not associated with any shells to
+                         extract. Consider increasing the tolerance or
+                         changing the shells to extract.
+                         '''.format(bvals[modified.astype(bool)]))
 
     return new_bvals
