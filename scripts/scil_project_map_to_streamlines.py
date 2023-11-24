@@ -156,9 +156,9 @@ def main():
     metric = DataVolume(metric_data, metric_res, interp)
 
     logging.debug("Projecting metric onto streamlines")
-    streamline_data = project_metric_to_streamlines(sft, metric,
-                                                    endpoints_only=
-                                                    args.endpoints_only)
+    streamline_data = project_metric_to_streamlines(
+        sft, metric,
+        endpoints_only=args.endpoints_only)
 
     logging.debug("Saving the tractogram...")
     data_per_point = {}
