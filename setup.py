@@ -48,10 +48,30 @@ class CustomBuildExtCommand(build_ext):
         build_ext.run(self)
 
 
+# Get the requiered python version
+PYTHON_VERSION = ""
+with open('.python-version') as f:
+    py_version = f.readline().strip("\n").split(".")
+    py_major = py_version[0]
+    py_minor = py_version[1]
+    py_micro = "*"
+    py_extra = None
+    if len(py_version) > 2:
+        py_micro = py_version[2]
+    if len(py_version) > 3:
+        py_extra = py_version[3]
+
+    PYTHON_VERSION = ".".join([py_major, py_minor, py_micro])
+    if py_extra:
+        PYTHON_VERSION = ".".join([PYTHON_VERSION, py_extra])
+
+    PYTHON_VERSION = "".join(["==", PYTHON_VERSION])
+
 # Get version and release info, which is all stored in scilpy/version.py
 ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
+
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
