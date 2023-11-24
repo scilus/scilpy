@@ -26,9 +26,7 @@ from scipy.spatial import cKDTree
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
     smooth_line_spline, resample_streamlines_step_size
 from scilpy.utils.streamlines import cut_invalid_streamlines
-from scilpy.utils.spatial_ops import sample_points_on_circle, normalize_vector
-from scilpy.utils.util import (nonneg_linear, linear, nonneg_sigmoid, sigmoid,
-                               nonneg_tanh, tanh, nonneg_exp, exp)
+from scilpy.utils.spatial_ops import parallel_transport_streamline
 
 MIN_NB_POINTS = 10
 KEY_INDEX = np.concatenate((range(5), range(-1, -6, -1)))
@@ -608,8 +606,8 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
 
 
 def upsample_tractogram(sft, nb, point_wise_std=None,
-                                   streamline_wise_std=None, keep_tube=False,
-                                   gaussian=None, spline=None, seed=None):
+                        streamline_wise_std=None, keep_tube=True,
+                        gaussian=None, spline=None, seed=None):
     """
     Generates new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
@@ -642,53 +640,49 @@ def upsample_tractogram(sft, nb, point_wise_std=None,
     new_sft : StatefulTractogram
         The upsampled tractogram.
     """
+    def linear(data):
+        """Scale data linearly to [-1, 1]."""
+        min_val = np.min(data)
+        max_val = np.max(data)
+        return 2 * (data - min_val) / (max_val - min_val) - 1
+
+    def sigmoid(data):
+        """Scale data using sigmoid and then to [-1, 1]."""
+        return 2 * (1 / (1 + np.exp(-data))) - 1
+
+    def tanh(data):
+        """Scale data using tanh to [-1, 1]."""
+        return np.tanh(data)
+
+    def exp(data):
+        """Scale data using exp and then to [-1, 1]."""
+        exp_data = np.exp(data)
+        scaled_data = exp_data / np.max(exp_data)
+        return 2 * scaled_data - 1
 
     rng = np.random.RandomState(seed)
 
     # Get the streamlines that will serve as a base for new ones
-    indices = rng.choice(len(sft.streamlines), nb)
     resample_sft = resample_streamlines_step_size(sft, 1)
     new_streamlines = []
-
+    indices = np.random.choice(len(resample_sft), nb,
+                               replace=True)
     # For all selected streamlines, add noise and smooth
     for s in resample_sft.streamlines[indices]:
         if len(s) < 3:
             new_streamlines.append(s)
-        q1 = len(s) // 4
-        q3 = len(s) - q1
-        mid_pos = len(s) // 2
-        mid_pts = s[mid_pos]
-        gradient = s[mid_pos-1] - s[mid_pos+1]
-        orthogonal_pts = sample_points_on_circle(mid_pts, streamline_wise_std,
-                                                 gradient, 1)
 
-        # Randomly choose a scaling method
-        scaling_methods = {'nonneg_linear': nonneg_linear, 'linear': linear,
-                           'nonneg_sigmoid': nonneg_sigmoid, 'sigmoid': sigmoid,
-                           'nonneg_tanh': nonneg_tanh, 'tanh': tanh,
-                           'nonneg_exp': nonneg_exp, 'exp': exp}
-
-        scaling_method = np.random.choice(list(scaling_methods.keys()))
-        data = np.linspace(-1, 1, len(s))
-        new_data = scaling_methods[scaling_method](data)
-        if np.random.rand() > 0.5:
-            new_data = new_data[::-1]
-        if keep_tube:
-            new_s = s + (mid_pts - orthogonal_pts)
-        else:
-            new_s = s + (mid_pts - orthogonal_pts) * \
-                np.expand_dims(new_data, axis=1)
-
-
+        new_s = parallel_transport_streamline(s, 1,
+                                              streamline_wise_std)[0]
 
         # Generate smooth noise_factor
         noise = np.random.normal(loc=0, scale=point_wise_std,
-                                 size=len(new_data))
-        noise[noise < 0] = 0
+                                 size=len(s))
         x = np.arange(len(noise))
         poly_coeffs = np.polyfit(x, noise, 3)
         polynomial = Polynomial(poly_coeffs[::-1])
         noise_factor = polynomial(x)
+        # print(noise_factor)
 
         vec = s - new_s
         vec /= np.linalg.norm(vec, axis=0)
