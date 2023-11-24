@@ -6,7 +6,7 @@ from scripts.scil_tractogram_register import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_register_tractogram.py. Please change
+This script has been renamed scil_tractogram_register.py. Please change
 your existing pipelines accordingly.
 
 """
