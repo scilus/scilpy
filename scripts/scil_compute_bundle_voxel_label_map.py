@@ -60,12 +60,12 @@ import numpy as np
 import scipy.ndimage as ndi
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import SGDClassifier
-from sklearn.kernel_approximation import RBFSampler
+from sklearn.svm import SVC
+from sklearn.kernel_approximation import RBFSampler, Nystroem
 
 from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
                              add_reference_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
@@ -120,8 +120,10 @@ def _build_arg_parser():
     p.add_argument('--correlation_thr', type=float, default=0.1,
                    help='Threshold for the correlation map. Only for multi '
                         'bundle case. [%(default)s]')
+    p.add_argument('--streamlines_thr', type=int, default=2,
+                help='Threshold for the minimum number of streamlines in a '
+                     'voxel to be included [%(default)s].' )
 
-    add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -175,7 +177,7 @@ def main():
         density = compute_tract_counts_map(sft.streamlines,
                                            sft.dimensions).astype(float)
         binary = np.zeros(sft.dimensions, dtype=np.uint8)
-        binary[density > 0] = 1
+        binary[density >= args.streamlines_thr] = 1
         binary_list.append(binary)
         density_list.append(density)
 
@@ -196,9 +198,10 @@ def main():
 
     # Slightly cut the bundle at the edgge to clean up single streamline voxels
     # with no neighbor. Remove isolated voxels to keep a single 'blob'
-    binary_map = np.zeros(corr_map.shape, dtype=bool)
-    binary_map[corr_map > args.correlation_thr] = 1
+    binary_map = np.max(binary_list, axis=0)
+    binary_map[corr_map < args.correlation_thr] = 0
 
+    # TODO eliminate the bottom quartile of the blob
     bundle_disjoint, _ = ndi.label(binary_map)
     unique, count = np.unique(bundle_disjoint, return_counts=True)
     val = unique[np.argmax(count[1:])+1]
@@ -224,8 +227,10 @@ def main():
         else args.nb_pts
 
     # This allows to have a more uniform (in size) first and last labels
-    if args.hyperplane:
+    endpoints_extended = False
+    if args.hyperplane and args.nb_pts >= 5:
         args.nb_pts += 2
+        endpoints_extended = True
 
     sft_centroid = resample_streamlines_num_points(sft_centroid, args.nb_pts)
 
@@ -249,61 +254,53 @@ def main():
         # Associate the labels to the streamlines using the centroids as
         # reference (to handle shorter bundles due to missing data)
         mini_timer = time.time()
-        labels, _, _ = associate_labels(tmp_sft, sft_centroid,
-                                        args.nb_pts)
-        print('\tAssociated labels to_centroids in {} seconds'.format(
-            round(time.time() - mini_timer, 3)))
+        sample_size = np.count_nonzero(binary_map) // args.nb_pts
+        labels, points, = associate_labels(tmp_sft, sft_centroid,
+                                           args.nb_pts, sample_set=True,
+                                           sample_size=sample_size)
 
-        # Initialize the scaler and the RBF sampler
+        logging.info('\tAssociated labels to centroids in {} seconds'.format(
+            round(time.time() - mini_timer, 3)))
+        
+        # Initialize the scaler
+        mini_timer = time.time()
         scaler = MinMaxScaler(feature_range=(-1, 1))
-        rbf_feature = RBFSampler(gamma=1.0, n_components=1000, random_state=1)
+        scaler.fit(points)
+        scaled_streamline_data = scaler.transform(points)
 
-        # Fit the scaler to the streamline data and transform it
-        mini_timer = time.time()
-        scaler.fit(tmp_sft.streamlines._data)
-        scaled_streamline_data = scaler.transform(tmp_sft.streamlines._data)
+        svc = SVC(C=1.0, kernel='rbf', random_state=1)
 
-        # Fit the RBFSampler to the scaled data and transform it
-        rbf_feature.fit(scaled_streamline_data)
-        features = rbf_feature.transform(scaled_streamline_data)
-        print('\tScaler and RBF kernel approximation in {} seconds'.format(
+        svc.fit(X=scaled_streamline_data, y=labels)
+        logging.info('\tSVC fit of training data in {} seconds'.format(
             round(time.time() - mini_timer, 3)))
 
-        # Initialize and fit the SGDClassifier with log loss
-        mini_timer = time.time()
-        sgd_clf = SGDClassifier(loss='log_loss', max_iter=10000, tol=1e-5,
-                                alpha=0.0001, random_state=1,
-                                n_jobs=min(args.nb_pts, args.nbr_processes))
-        sgd_clf.fit(X=features, y=labels)
-        print('\tSGDClassifier fit of training data in {} seconds'.format(
-            round(time.time() - mini_timer, 3)))
-
-        # Scale the coordinates of the voxels and transform with RBFSampler
+        # Scale the coordinates of the voxels
         mini_timer = time.time()
         voxel_coords = np.array(np.where(binary_map)).T
         scaled_voxel_coords = scaler.transform(voxel_coords)
-        transformed_voxel_coords = rbf_feature.transform(scaled_voxel_coords)
 
         # Predict the labels for the voxels
-        labels = sgd_clf.predict(X=transformed_voxel_coords)
-        print('\tSGDClassifier prediction of labels in {} seconds'.format(
+        labels = svc.predict(X=scaled_voxel_coords)
+        logging.info('\tSVC prediction of labels in {} seconds'.format(
             round(time.time() - mini_timer, 3)))
 
-        logging.info('Computed labels using the hyperplane method '
-                     'in {} seconds'.format(round(time.time() - timer, 3)))
+    logging.info('Computed labels using the hyperplane method '
+                 'in {} seconds'.format(round(time.time() - timer, 3)))
     labels_map = np.zeros(binary_map.shape, dtype=np.uint16)
     labels_map[np.where(binary_map)] = labels
 
-    # Correct the hyperplane labels to have a more uniform size
-    if args.hyperplane:
+    # # Correct the hyperplane labels to have a more uniform size
+
+    timer = time.time()
+    tmp_sft = resample_streamlines_step_size(concat_sft, 1.0)
+    labels_map = correct_labels_jump(labels_map, tmp_sft.streamlines,
+                                     args.nb_pts - 2)
+                                     
+    if args.hyperplane and endpoints_extended:
         labels_map[labels_map == args.nb_pts] = args.nb_pts - 1
         labels_map[labels_map == 1] = 2
         labels_map[labels_map > 0] -= 1
         args.nb_pts -= 2
-
-    timer = time.time()
-    labels_map = correct_labels_jump(labels_map, concat_sft.streamlines,
-                                     args.nb_pts)
     logging.info('Corrected labels jump in {} seconds'.format(
         round(time.time() - timer, 3)))
 

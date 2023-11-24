@@ -58,8 +58,8 @@ def uniformize_bundle_sft(sft, axis=None, ref_bundle=None, swap=False):
             else:
                 centroid = get_streamlines_centroid(sft.streamlines, 20)[0]
             endpoints_distance = np.abs(centroid[0] - centroid[-1])
-            total_travel = np.abs(
-                np.sum(np.gradient(centroid, axis=0), axis=0))
+            total_travel = np.sum(
+                np.abs(np.gradient(centroid, axis=0)), axis=0)
 
             # Reweigth the distance to the endpoints and the total travel
             # to avoid having a XYbundle oriented in the wrong direction

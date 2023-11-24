@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from scilpy.tractograms.streamline_and_mask_operations import get_head_tail_density_maps
 import heapq
 
 from dipy.tracking.metrics import length
@@ -9,49 +10,90 @@ from scipy.spatial import KDTree
 from scipy.spatial.distance import pdist, squareform
 
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVC
+from sklearn.kernel_approximation import RBFSampler, Nystroem
 
 
-def min_dist_to_centroid(target_pts, source_pts, nb_pts=None,
-                         pre_computed_labels=None):
-    if nb_pts is None and pre_computed_labels is None:
-        raise ValueError('Either nb_pts or labels must be provided.')
-
+def min_dist_to_centroid(target_pts, source_pts, nb_pts=None):
     tree = KDTree(source_pts, copy_data=True)
     _, labels = tree.query(target_pts, k=1)
-
-    if pre_computed_labels is None:
-        labels = np.mod(labels, nb_pts) + 1
-    else:
-        labels = pre_computed_labels[labels]
+    labels = np.mod(labels, nb_pts) + 1
 
     return labels.astype(np.uint16)
 
 
-def associate_labels(target_sft, source_sft, nb_pts=20):
-    # KDTree for the target streamlines
-    source_kdtree = KDTree(source_sft.streamlines._data)
-    final_labels = np.zeros(target_sft.streamlines._data.shape[0],
-                            dtype=float)
+def associate_labels(target_sft, source_sft, nb_pts=20, sample_set=False,
+                     sample_size=None):
     curr_ind = 0
+    source_labels = np.zeros(source_sft.streamlines._data.shape[0],
+                             dtype=float)
+    for streamline in source_sft.streamlines:
+        curr_length = np.insert(length(streamline, along=True), 0, 0)
+        curr_labels = np.interp(curr_length,
+                                [0, curr_length[-1]],
+                                [1, nb_pts])
+        curr_labels = np.round(curr_labels)
+        source_labels[curr_ind:curr_ind+len(streamline)] = curr_labels
+        curr_ind += len(streamline)
+
+    scaler = MinMaxScaler(feature_range=(-1, 1))
+    scaler.fit(target_sft.streamlines._data)
+    scaled_streamline_data = scaler.transform(source_sft.streamlines._data)
+
+    svc = SVC(C=1.0, kernel='rbf', random_state=1)
+    svc.fit(X=scaled_streamline_data, y=source_labels)
+
+    curr_ind = 0
+    target_labels = np.zeros(target_sft.streamlines._data.shape[0],
+                             dtype=float)
     for streamline in target_sft.streamlines:
-        distances, ids = source_kdtree.query(streamline,
-                                             k=max(1, nb_pts // 5))
+        head_tail = [streamline[0], streamline[-1]]
+        scaled_head_tail_data = scaler.transform(head_tail)
+        head_tail_labels = svc.predict(X=scaled_head_tail_data)
+        curr_length = np.insert(length(streamline, along=True), 0, 0)
+        curr_labels = np.interp(curr_length,
+                                [0, curr_length[-1]],
+                                head_tail_labels)
+        target_labels[curr_ind:curr_ind+len(streamline)] = curr_labels
+        curr_ind += len(streamline)
 
-        valid_points = distances != np.inf
+    target_labels = np.round(target_labels).astype(int)
 
-        curr_labels = np.mod(ids[valid_points], nb_pts) + 1
+    if sample_set:
+        if sample_size is None:
+            sample_size = np.unique(target_labels, return_counts=True)[1].min()
 
-        head = np.min(curr_labels)
-        tail = np.max(curr_labels)
+        # Sort points by labels
+        sorted_indices = target_labels.argsort()
+        sorted_points = target_sft.streamlines._data[sorted_indices]
+        sorted_labels = target_labels[sorted_indices]
 
-        lengths = np.insert(length(streamline, along=True), 0, 0)[::-1]
-        lengths = (lengths / np.max(lengths)) * \
-            (head - tail) + tail
+        # Find the start and end of each label
+        unique_labels, start_indices = np.unique(
+            sorted_labels, return_index=True)
+        end_indices = np.roll(start_indices, -1)
+        end_indices[-1] = len(target_labels)
 
-        final_labels[curr_ind:curr_ind+len(lengths)] = lengths
-        curr_ind += len(lengths)
+        # Sample points and labels for each label
+        sampled_points = []
+        sampled_labels = []
+        for start, end, label in zip(start_indices, end_indices, unique_labels):
+            num_points = end - start
+            indices_to_sample = min(num_points, sample_size)
+            sampled_indices = np.random.choice(
+                np.arange(start, end), size=indices_to_sample, replace=False)
+            sampled_points.append(sorted_points[sampled_indices])
+            sampled_labels.extend([label] * indices_to_sample)
 
-    return np.round(final_labels), head, tail
+        # Concatenate all sampled points
+        sampled_points = np.concatenate(sampled_points)
+        sampled_labels = np.array(sampled_labels)
+
+        return sampled_labels, sampled_points
+    else:
+        return target_labels, target_sft.streamlines._data
 
 
 def find_medoid(points, max_points=10000):
@@ -233,6 +275,8 @@ def compute_distance_map(labels_map, binary_map, is_euclidian, nb_pts):
 def correct_labels_jump(labels_map, streamlines, nb_pts):
     labels_data = ndi.map_coordinates(labels_map, streamlines._data.T - 0.5,
                                       order=0)
+    binary_map = np.zeros(labels_map.shape, dtype=np.uint8)
+    binary_map[labels_map > 0] = 1
 
     # It is not allowed that labels jumps labels for consistency
     # Streamlines should have continous labels
@@ -241,15 +285,18 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     curr_ind = 0
     for streamline in streamlines:
         next_ind = curr_ind + len(streamline)
-        curr_labels = labels_data[curr_ind:next_ind]
+        curr_labels = labels_data[curr_ind:next_ind].astype(int)
         curr_ind = next_ind
 
         # Flip streamlines so the labels increase (facilitate if/else)
         # Should always be ordered in nextflow pipeline
-        gradient = np.gradient(curr_labels)
+        gradient = np.ediff1d(curr_labels)
+
+        is_flip = False
         if len(np.argwhere(gradient < 0)) > len(np.argwhere(gradient > 0)):
             streamline = streamline[::-1]
             curr_labels = curr_labels[::-1]
+            is_flip = True
 
         # Find jumps, cut them and find the longest
         gradient = np.ediff1d(curr_labels)
@@ -273,6 +320,9 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
             streamline = np.split(streamline,
                                   pos_jump)[max_pos]
 
+        if is_flip:
+            streamline = streamline[::-1]
+            curr_labels = curr_labels[::-1]
         final_streamlines.append(streamline)
         final_labels.append(curr_labels)
 
@@ -286,18 +336,20 @@ def correct_labels_jump(labels_map, streamlines, nb_pts):
     labels_map = np.zeros(labels_map.shape, dtype=np.uint16)
 
     for ind in indices:
-        neighbor_dists, neighbor_ids = kd_tree.query(ind, k=5)
-
+        neighbor_ids = kd_tree.query_ball_point(ind, r=2.0)
         if not len(neighbor_ids):
-            continue
+            _, neighbor_ids = kd_tree.query(ind, k=5)
+        labels_val = np.median(final_labels._data[neighbor_ids])
 
-        labels_val = final_labels._data[neighbor_ids]
-        sum_dists_vox = np.sum(neighbor_dists)
-        weights = np.exp(-neighbor_dists / sum_dists_vox)
 
-        vote = np.bincount(labels_val, weights=weights)
-        total = np.arange(np.amax(labels_val+1))
-        winner = total[np.argmax(vote)]
-        labels_map[ind[0], ind[1], ind[2]] = winner
+        labels_map[ind[0], ind[1], ind[2]] = labels_val
+    # return labels_map
+    # To ensure spatial smoothness, we apply a gaussian filter on the labels
+    tmp_labels_map = np.zeros(labels_map.shape+(nb_pts+3,), dtype=float)
+    for i in np.unique(labels_map)[1:]:
+        tmp_labels_map[labels_map == i, i] = 1
+        tmp_labels_map[..., i] = ndi.gaussian_filter(tmp_labels_map[..., i],
+                                                    sigma=2)
+    labels_map = np.argmax(tmp_labels_map, axis=-1).astype(np.uint16)
 
-    return labels_map
+    return binary_map * labels_map
