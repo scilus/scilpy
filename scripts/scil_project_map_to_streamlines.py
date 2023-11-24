@@ -64,8 +64,11 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
                 s[-1][0], s[-1][1], s[-1][2], space=sft.space, origin=sft.origin)
             thisstreamline_data = []
             for p in s:
-                thisstreamline_data.append(
-                    asarray(repeat(0, p1_data.shape[0])))
+                if dimension == 1:
+                    thisstreamline_data.append(0)
+                else:
+                    thisstreamline_data.append(
+                        asarray(repeat(0, p1_data.shape[0])))
 
             thisstreamline_data[0] = p1_data
             thisstreamline_data[-1] = p2_data
