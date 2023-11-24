@@ -129,7 +129,7 @@ def main():
 
     logging.debug("Loading the tractogram...")
     sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
-    sft.to_vox()
+    sft.to_voxmm()
     sft.to_corner()
 
     if len(sft.streamlines) == 0:
