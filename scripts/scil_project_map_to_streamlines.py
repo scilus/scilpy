@@ -10,7 +10,6 @@ project it onto the endpoints of streamlines.
 
 import argparse
 import logging
-from copy import deepcopy
 
 from numpy import asarray, reshape, repeat
 
