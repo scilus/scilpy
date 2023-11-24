@@ -157,7 +157,8 @@ def main():
 
     logging.debug("Projecting metric onto streamlines")
     streamline_data = project_metric_to_streamlines(sft, metric,
-                        endpoints_only=args.endpoints_only)
+                                                    endpoints_only=
+                                                    args.endpoints_only)
 
     logging.debug("Saving the tractogram...")
     data_per_point = {}
