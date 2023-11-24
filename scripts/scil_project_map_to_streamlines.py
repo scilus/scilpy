@@ -58,9 +58,11 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
     if endpoints_only:
         for s in sft.streamlines:
             p1_data = metric.get_value_at_coordinate(
-                s[0][0], s[0][1], s[0][2], space=sft.space, origin=sft.origin)
+                s[0][0], s[0][1], s[0][2],
+                space=sft.space, origin=sft.origin)
             p2_data = metric.get_value_at_coordinate(
-                s[-1][0], s[-1][1], s[-1][2], space=sft.space, origin=sft.origin)
+                s[-1][0], s[-1][1], s[-1][2],
+                space=sft.space, origin=sft.origin)
             thisstreamline_data = []
             for p in s:
                 if dimension == 1:
@@ -74,7 +76,8 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
             thisstreamline_data = asarray(thisstreamline_data)
 
             streamline_data.append(
-                reshape(thisstreamline_data, (len(thisstreamline_data), dimension)))
+                reshape(thisstreamline_data,
+                        (len(thisstreamline_data), dimension)))
     else:
         for s in sft.streamlines:
             thisstreamline_data = []
@@ -83,7 +86,8 @@ def project_metric_to_streamlines(sft, metric, endpoints_only=False):
                     p[0], p[1], p[2], space=sft.space, origin=sft.origin))
 
             streamline_data.append(
-                reshape(thisstreamline_data, (len(thisstreamline_data), dimension)))
+                reshape(thisstreamline_data,
+                        (len(thisstreamline_data), dimension)))
 
     return streamline_data
 
@@ -108,13 +112,14 @@ def _build_arg_parser():
                         'by default.')
 
     p.add_argument('--endpoints_only', action='store_true',
-                   help='If set, will only project the metric onto the endpoints \n'
-                   'of the streamlines (all other values along streamlines set to zero). \n'
-                   'If not set, will project the metric onto all points of the streamlines.')
+                   help='If set, will only project the metric onto the \n'
+                   'endpoints of the streamlines (all other values along \n'
+                   ' streamlines set to zero). If not set, will project \n'
+                   ' the metric onto all points of the streamlines.')
 
     p.add_argument('--dpp_name', default='metric',
-                   help='Name of the data_per_point to be saved in the output tractogram. \n'
-                        '(Default: %(default)s)')
+                   help='Name of the data_per_point to be saved in the \n'
+                   'output tractogram. (Default: %(default)s)')
     add_reference_arg(p)
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -152,13 +157,14 @@ def main():
 
     logging.debug("Projecting metric onto streamlines")
     streamline_data = project_metric_to_streamlines(sft, metric,
-                                                    endpoints_only=args.endpoints_only)
+                        endpoints_only=args.endpoints_only)
 
     logging.debug("Saving the tractogram...")
     data_per_point = {}
     data_per_point[args.dpp_name] = streamline_data
     out_sft = StatefulTractogram(sft.streamlines, metric_img,
-                                 sft.space, sft.origin, data_per_point=data_per_point)
+                                 sft.space, sft.origin,
+                                 data_per_point=data_per_point)
     save_tractogram(out_sft, args.out_tractogram)
 
 

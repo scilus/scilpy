@@ -47,7 +47,8 @@ from scilpy.io.utils import (add_bbox_arg,
                              assert_outputs_exist)
 
 
-def perform_operation_per_point(op_name, sft, dpp_name='metric', endpoints_only=False):
+def perform_operation_per_point(op_name, sft, dpp_name='metric',
+                                endpoints_only=False):
     """Peforms an operation per point for all streamlines.
 
     Parameters
@@ -92,7 +93,8 @@ def perform_operation_per_point(op_name, sft, dpp_name='metric', endpoints_only=
     return new_data_per_point
 
 
-def perform_operation_per_streamline(op_name, sft, dpp_name='metric', endpoints_only=False):
+def perform_operation_per_streamline(op_name, sft, dpp_name='metric',
+                                     endpoints_only=False):
     """Peforms an operation across points for each streamline.
 
     Parameters
@@ -202,14 +204,15 @@ def _build_arg_parser():
 
     p.add_argument('--endpoints_only', action='store_true', default=False,
                    help='If set, will only perform operation on endpoints \n'
-                   'If not set, will perform operation on all streamline points.')
+                   'If not set, will perform operation on all streamline \n'
+                   'points.')
     p.add_argument('--dpp_name', default='metric',
                    help='Name of the data_per_point for operation to be '
                         'performed on. (Default: %(default)s)')
 
     p.add_argument('--output_dpp_name', default='metric_math',
-                   help='Name of the resulting data_per_point to be saved in the output '
-                        'tractogram. (Default: %(default)s)')
+                   help='Name of the resulting data_per_point to be saved \n'
+                   'in the output tractogram. (Default: %(default)s)')
 
     add_reference_arg(p)
     add_verbose_arg(p)
@@ -257,25 +260,33 @@ def main():
     # Perform the requested operation.
     if not is_singular:
         if args.operation == 'correlation':
-            logging.info('Performing {} across endpoint data.'.format(args.operation))
+            logging.info('Performing {} across endpoint data.'.format(
+                args.operation))
             new_data_per_streamline = perform_operation_across_endpoints(
                 args.operation, sft, args.dpp_name)
 
             # Adding data per streamline to new_sft
-            new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
+            new_sft = StatefulTractogram(sft.streamlines,
+                                         sft.space_attributes,
                                          sft.space, sft.origin,
-                                         data_per_streamline={args.output_dpp_name: new_data_per_streamline})
+                                         data_per_streamline={
+                                             args.output_dpp_name:
+                                             new_data_per_streamline})
         else:
             # Results in new data per point
             logging.info(
-                'Performing {} on data from each streamine point.'.format(args.operation))
+                'Performing {} on data from each streamine point.'.format(
+                    args.operation))
             new_data_per_point = perform_operation_per_point(
                 args.operation, sft, args.dpp_name, args.endpoints_only)
 
             # Adding data per point to new_sft
-            new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
+            new_sft = StatefulTractogram(sft.streamlines,
+                                         sft.space_attributes,
                                          sft.space, sft.origin,
-                                         data_per_point={args.output_dpp_name: new_data_per_point})
+                                         data_per_point={
+                                             args.output_dpp_name:
+                                             new_data_per_point})
     else:
         # Results in new data per streamline
         logging.info(
@@ -286,7 +297,9 @@ def main():
         # Adding data per streamline to new_sft
         new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
                                      sft.space, sft.origin,
-                                     data_per_streamline={args.dpp_name: new_data_per_streamline})
+                                     data_per_streamline={
+                                         args.dpp_name:
+                                         new_data_per_streamline})
 
     if len(new_sft) == 0 and not args.save_empty:
         logging.info("Empty resulting tractogram. Not saving results.")
