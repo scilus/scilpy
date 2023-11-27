@@ -6,7 +6,8 @@ Script to compute signal to noise ratio (SNR) in a region of interest (ROI)
 of a DWI volume.
 
 It will compute the SNR for all DWI volumes of the input image seperately.
-The output will contain the SNR which is the ratio of mean(signal) / std(noise).
+The output will contain the SNR which is the ratio of
+mean(signal) / std(noise).
 The mean of the signal is computed inside the mask.
 The standard deviation of the noise is estimated inside the noise_mask
 or inside the same mask if a noise_map is provided.
@@ -20,15 +21,19 @@ It is heavily dependent on the ROI and its quality.
 
 We highly recommend using a noise_map if you can acquire one.
 See refs [1, 2] that describe the noise map acquisition.
-[1] St-Jean, et al (2016). Non Local Spatial and Angular Matching... https://doi.org/10.1016/j.media.2016.02.010
-[2] Reymbaut, et al (2021). Magic DIAMOND... https://doi.org/10.1016/j.media.2021.101988
+[1] St-Jean, et al (2016). Non Local Spatial and Angular Matching...
+    https://doi.org/10.1016/j.media.2016.02.010
+[2] Reymbaut, et al (2021). Magic DIAMOND...
+    https://doi.org/10.1016/j.media.2021.101988
 
 """
 
 import argparse
 import logging
 
+from dipy.io.gradients import read_bvals_bvecs
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 import pandas as pd
 
@@ -91,7 +96,7 @@ def main():
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval,
                                  args.in_bvec, args.in_mask],
-                                [args.noise_mask, args.noise_map])
+                        [args.noise_mask, args.noise_map])
 
     basename, ext = split_name_with_nii(args.in_dwi)
 
@@ -100,10 +105,22 @@ def main():
 
     logging.info('Basename: {}'.format(basename))
 
-    values = compute_snr(args.in_dwi, args.in_bval, args.in_bvec, args.b0_thr,
-                         args.in_mask,
-                         noise_mask=args.noise_mask,
-                         noise_map=args.noise_map,
+    # Loadings inputs.
+    dwi = nib.load(args.in_dwi)
+    bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    mask = nib.load(args.in_mask)
+
+    if args.noise_mask:
+        noise_mask = nib.load(args.noise_mask)
+        noise_map = None
+    else:
+        noise_map = nib.load(args.noise_map)
+        noise_mask = None
+
+    values = compute_snr(dwi, bvals, bvecs, args.b0_thr,
+                         mask,
+                         noise_mask=noise_mask,
+                         noise_map=noise_map,
                          split_shells=args.split_shells,
                          basename=basename,
                          verbose=args.verbose)
@@ -127,12 +144,15 @@ def main():
             plt.savefig(out_png, bbox_inches='tight', dpi=300)
             plt.clf()
 
-            logging.info('Min SNR for B={} is {}'.format(str(curr_shell),
-                                                         str(np.min(curr_values))))
-            logging.info('Max SNR for B={} is {}'.format(str(curr_shell),
-                                                         str(np.max(curr_values))))
-            logging.info('Mean SNR for B={} is {}'.format(str(curr_shell),
-                                                          str(np.mean(curr_values))))
+            logging.info('Min SNR for B={} is {}'
+                         .format(str(curr_shell),
+                                 str(np.min(curr_values))))
+            logging.info('Max SNR for B={} is {}'
+                         .format(str(curr_shell),
+                                 str(np.max(curr_values))))
+            logging.info('Mean SNR for B={} is {}'
+                         .format(str(curr_shell),
+                                 str(np.mean(curr_values))))
 
     else:
         b0_values = df.loc[df['bval'] == 0.0]['snr']
@@ -146,18 +166,23 @@ def main():
         plt.xlabel("Volume (excluding B0)")
         plt.ylabel("Estimated SNR")
         plt.xlim([-1, len(df)])
-        plt.text(1, 9, 'Min SNR B0 = ' + str(np.min(df.loc[df['bval'] == 0.0]['snr'])))
-        plt.text(1, 5, 'Max SNR B0 = ' + str(np.max(df.loc[df['bval'] == 0.0]['snr'])))
-        plt.text(1, 1, 'Mean SNR B0 = ' + str(np.mean(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.text(1, 9, 'Min SNR B0 = ' +
+                 str(np.min(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.text(1, 5, 'Max SNR B0 = ' +
+                 str(np.max(df.loc[df['bval'] == 0.0]['snr'])))
+        plt.text(1, 1, 'Mean SNR B0 = ' +
+                 str(np.mean(df.loc[df['bval'] == 0.0]['snr'])))
         plt.savefig(basename + "_graph.png", bbox_inches='tight', dpi=300)
         plt.close()
 
     min_value = df[df['snr'] == np.min(df['snr'])].index[0]
     max_value = df[df['snr'] == np.max(df['snr'])].index[0]
-    logging.info('Min SNR is {} and from B={}'.format(str(df['snr'][min_value]),
-                                                      str(df['bval'][min_value])))
-    logging.info('Max SNR is {} and from B={}'.format(str(df['snr'][max_value]),
-                                                      str(df['bval'][max_value])))
+    logging.info('Min SNR is {} and from B={}'
+                 .format(str(df['snr'][min_value]),
+                         str(df['bval'][min_value])))
+    logging.info('Max SNR is {} and from B={}'
+                 .format(str(df['snr'][max_value]),
+                         str(df['bval'][max_value])))
 
     with open(basename + "_SNR.json", "w") as f:
         df.T.to_json(f, indent=args.indent)

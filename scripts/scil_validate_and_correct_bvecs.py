@@ -21,6 +21,8 @@ argument --peaks_vals.
 
 import argparse
 import logging
+
+from dipy.io.gradients import read_bvals_bvecs
 import numpy as np
 import nibabel as nib
 
@@ -28,7 +30,6 @@ from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, add_verbose_arg)
 from scilpy.io.image import get_data_as_mask
 from scilpy.reconst.fiber_coherence import compute_fiber_coherence_table
-from dipy.io.gradients import read_bvals_bvecs
 
 
 EPILOG = """
@@ -53,15 +54,17 @@ def _build_arg_parser():
                    help='Path to corrected bvec file (FSL format).')
 
     p.add_argument('--mask',
-                   help='Path to an optional mask.')
+                   help='Path to an optional mask. If set, FA and Peaks will '
+                        'only be used inside the mask.')
     p.add_argument('--peaks_vals',
-                   help='Path to peaks values file.')
+                   help='Path to peaks values file. If more than one peak per '
+                        'voxel is found, the maximal peak only will be used.')
     p.add_argument('--fa_th', default=0.2, type=float,
                    help='FA threshold. Only voxels with FA higher '
                         'than fa_th will be considered. [%(default)s]')
     p.add_argument('--column_wise', action='store_true',
-                   help='Specify input peaks are column-wise (..., 3, N)'
-                        ' instead of row-wise (..., N, 3).')
+                   help='Specify if input peaks are column-wise (..., 3, N) '
+                        'instead of row-wise (..., N, 3).')
 
     add_verbose_arg(p)
     add_overwrite_arg(p)
@@ -107,8 +110,7 @@ def main():
         peaks[np.logical_not(mask)] = 0
 
     peaks[fa < args.fa_th] = 0
-    coherence, transform =\
-        compute_fiber_coherence_table(peaks, fa)
+    coherence, transform = compute_fiber_coherence_table(peaks, fa)
 
     best_t = transform[np.argmax(coherence)]
     if (best_t == np.eye(3)).all():

@@ -11,7 +11,7 @@ import logging
 from scilpy.io.utils import (assert_gradients_filenames_valid,
                              assert_inputs_exist, assert_outputs_exist,
                              add_overwrite_arg, add_verbose_arg)
-from scilpy.utils.bvec_bval_tools import fsl2mrtrix
+from scilpy.gradients.bvec_bval_tools import fsl2mrtrix
 
 
 def _build_arg_parser():

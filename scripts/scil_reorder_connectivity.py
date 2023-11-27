@@ -7,8 +7,8 @@ The first row are the (x) and the second row the (y), must be space separated.
 The resulting matrix does not have to be square (support unequal number of
 x and y).
 
-The values refers to the coordinates (starting at 0) in the matrix, but if the
---labels_list parameter is used, the values will refers to the label which will
+The values refer to the coordinates (starting at 0) in the matrix, but if the
+--labels_list parameter is used, the values will refer to the label which will
 be converted to the appropriate coordinates. This file must be the same as the
 one provided to the scil_decompose_connectivity.py
 
@@ -26,9 +26,8 @@ import os
 
 import numpy as np
 
-from scilpy.connectivity.utils import (compute_OLO,
-                                       parse_ordering,
-                                       apply_reordering)
+from scilpy.connectivity.connectivity_tools import (compute_olo,
+                                                    apply_reordering)
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              load_matrix_in_any_format,
@@ -71,6 +70,26 @@ def _build_arg_parser():
     return p
 
 
+def parse_ordering(in_ordering_file, labels_list=None):
+    """
+    toDo. Docstring please.
+    """
+    with open(in_ordering_file, 'r') as my_file:
+        lines = my_file.readlines()
+        ordering = [[int(val) for val in lines[0].split()],
+                    [int(val) for val in lines[1].split()]]
+    if labels_list:
+        labels_list = np.loadtxt(labels_list,
+                                 dtype=np.int16).tolist()
+        # If the reordering file refers to labels and not indices
+        real_ordering = [[], []]
+        real_ordering[0] = [labels_list.index(i) for i in ordering[0]]
+        real_ordering[1] = [labels_list.index(i) for i in ordering[1]]
+        return real_ordering
+
+    return ordering
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -85,7 +104,7 @@ def main():
         assert_outputs_exist(parser, args, args.optimal_leaf_ordering)
 
         matrix = load_matrix_in_any_format(args.in_matrices[0])
-        perm = compute_OLO(matrix).astype(np.uint16)
+        perm = compute_olo(matrix).astype(np.uint16)
         np.savetxt(args.optimal_leaf_ordering, [perm.tolist(), perm.tolist()],
                    fmt='%i')
     else:

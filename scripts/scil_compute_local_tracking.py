@@ -12,6 +12,14 @@ Algo 'det': the maxima of the spherical function (SF) the most closely aligned
 to the previous direction.
 Algo 'prob': a direction drawn from the empirical distribution function defined
 from the SF.
+Algo 'ptt': Parallel-Transport Tractography. See [1] for more details.
+
+NOTE: eudx can be used with pre-computed peaks from fodf as well as
+evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
+
+NOTE: If tracking with PTT, the step-size should be smaller than usual,
+i.e 0.1-0.2mm or lower. The maximum angle between segments (theta) should
+be between 10 and 20 degrees.
 
 The local tracking algorithm can also run on the GPU using the --use_gpu
 option (experimental). By default, GPU tracking behaves the same as
@@ -21,8 +29,6 @@ implementations:
         GPU implementation uses an in-house OpenCL implementation.
     * Algo: For the GPU implementation, the only available algorithm is
         Algo 'prob'.
-    * Tracking sphere: The only sphere available for GPU tracking is
-        `symmetric724` and `--sub_sphere` is not available for GPU tracking.
     * SH interpolation: For GPU tracking, SH interpolation can be set to either
         nearest neighbour or trilinear (default). With DIPY, the only available
         method is trilinear.
@@ -30,10 +36,13 @@ implementations:
         to disable backward tracking. This option isn't available for CPU
         tracking.
 
-NOTE: eudx can be used with pre-computed peaks from fodf as well as
-evecs_v1.nii.gz from scil_compute_dti_metrics.py (experimental).
-
 All the input nifti files must be in isotropic resolution.
+
+References
+----------
+
+[1]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
+IEEE transactions on medical imaging, 40(2), 635-647.
 """
 
 import argparse
@@ -44,7 +53,8 @@ from typing import Iterable
 from dipy.core.sphere import HemiSphere
 from dipy.data import get_sphere
 from dipy.direction import (DeterministicMaximumDirectionGetter,
-                            ProbabilisticDirectionGetter)
+                            ProbabilisticDirectionGetter,
+                            PTTDirectionGetter)
 from dipy.direction.peaks import PeaksAndMetrics
 from dipy.io.utils import (get_reference_info,
                            create_tractogram_header)
@@ -76,7 +86,7 @@ from scilpy.tracking.tracker import GPUTacker
 DEFAULT_BATCH_SIZE = 10000
 DEFAULT_SH_INTERP = 'trilinear'
 DEFAULT_FWD_ONLY = False
-DEFAULT_GPU_SPHERE = 'symmetric724'
+DEFAULT_GPU_SPHERE = 'repulsion724'
 
 
 def _build_arg_parser():
@@ -88,9 +98,9 @@ def _build_arg_parser():
 
     track_g = add_tracking_options(p)
     track_g.add_argument('--algo', default='prob',
-                         choices=['det', 'prob', 'eudx'],
+                         choices=['det', 'prob', 'ptt', 'eudx'],
                          help='Algorithm to use. [%(default)s]')
-    add_sphere_arg(track_g, symmetric_only=True)
+    add_sphere_arg(track_g, symmetric_only=False)
     track_g.add_argument('--sub_sphere',
                          type=int, default=0,
                          help='Subdivides each face of the sphere into 4^s new'
@@ -123,25 +133,32 @@ def _build_arg_parser():
 
 def _get_direction_getter(args):
     odf_data = nib.load(args.in_odf).get_fdata(dtype=np.float32)
-    sphere = HemiSphere.from_sphere(get_sphere(args.sphere))\
-        .subdivide(args.sub_sphere)
+
+    sphere = HemiSphere.from_sphere(
+        get_sphere(args.sphere)).subdivide(args.sub_sphere)
+
     theta = get_theta(args.theta, args.algo)
 
     non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
     non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
 
-    if args.algo in ['det', 'prob']:
+    if args.algo in ['det', 'prob', 'ptt']:
         if non_first_val_count / non_zeros_count > 0.5:
             logging.warning('Input detected as peaks. Input should be'
                             'fodf for det/prob, verify input just in case.')
-        if args.algo == 'det':
+
+        kwargs = {}
+        if args.algo == 'ptt':
+            dg_class = PTTDirectionGetter
+            kwargs = {'probe_length': args.voxel_size}
+        elif args.algo == 'det':
             dg_class = DeterministicMaximumDirectionGetter
         else:
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
             shcoeff=odf_data, max_angle=theta, sphere=sphere,
             basis_type=args.sh_basis,
-            relative_peak_threshold=args.sf_threshold)
+            relative_peak_threshold=args.sf_threshold, **kwargs)
     elif args.algo == 'eudx':
         # Code for type EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
@@ -275,12 +292,6 @@ def main():
             parser.error('Algo `{}` not supported for GPU tracking. '
                          'Set --algo to `prob` for GPU tracking.'
                          .format(args.algo))
-        if args.sphere != DEFAULT_GPU_SPHERE:
-            parser.error('Cannot use sphere `{}`. Only symmetric724 is '
-                         'available for GPU tracking.'.format(args.sphere))
-        if args.sub_sphere:
-            parser.error('Invalid argument --sub_sphere. Not implemented '
-                         'for GPU.')
     else:
         if args.batch_size is not None:
             parser.error('Invalid argument --batch_size. '
@@ -339,6 +350,9 @@ def main():
     vox_step_size = args.step_size / voxel_size
     seed_img = nib.load(args.in_seed)
 
+    if args.algo == 'ptt':
+        args.voxel_size = voxel_size
+
     if np.count_nonzero(seed_img.get_fdata(dtype=np.float32)) == 0:
         raise IOError('The image {} is empty. '
                       'It can\'t be loaded as '
@@ -377,6 +391,9 @@ def main():
         # data volume
         odf_sh = odf_sh_img.get_fdata(dtype=np.float32)
 
+        # GPU tracking needs the full sphere
+        sphere = get_sphere(args.sphere).subdivide(args.sub_sphere)
+
         streamlines_generator = GPUTacker(
             odf_sh, mask_data, seeds,
             vox_step_size, max_strl_len,
@@ -386,7 +403,8 @@ def main():
             sh_basis=args.sh_basis,
             batch_size=batch_size,
             forward_only=forward_only,
-            rng_seed=args.seed)
+            rng_seed=args.seed,
+            sphere=sphere)
 
     # dump streamlines on-the-fly to file
     _save_tractogram(streamlines_generator, tracts_format,

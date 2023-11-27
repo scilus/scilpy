@@ -18,7 +18,8 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, assert_outputs_exist,
+                             assert_roi_radii_format)
 from scilpy.reconst.frf import compute_ssst_frf
 
 
@@ -66,13 +67,15 @@ def _build_arg_parser():
                         'as single fiber voxels in the automatic '
                         'estimation. [%(default)s]')
 
-    p.add_argument('--roi_radii', nargs='+',
-                   default=[20],  type=int,
+    p.add_argument('--roi_radii',
+                   default=[20], nargs='+', type=int,
                    help='If supplied, use those radii to select a cuboid roi '
-                        'to estimate the response functions. The roi will be '
-                        'a cuboid spanning from the middle of the volume in '
-                        'each direction with the different radii. The type is '
-                        'either an int or an array-like (3,). [%(default)s]')
+                        'to estimate the \nresponse functions. The roi will '
+                        'be a cuboid spanning from the middle of \nthe volume '
+                        'in each direction with the different radii. The type '
+                        'is either \nan int (e.g. --roi_radii 10) or an '
+                        'array-like (3,) (e.g. --roi_radii 20 30 10). '
+                        '[%(default)s]')
     p.add_argument('--roi_center', metavar='tuple(3)', nargs=3, type=int,
                    help='If supplied, use this center to span the roi of size '
                         'roi_radius. [center of the 3D volume]')
@@ -93,13 +96,7 @@ def main():
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
     assert_outputs_exist(parser, args, args.frf_file)
 
-    if len(args.roi_radii) == 1:
-        roi_radii = args.roi_radii[0]
-    elif len(args.roi_radii) == 3:
-        roi_radii = args.roi_radii
-    else:
-        parser.error('Wrong size for --roi_radii, can only be a scalar' +
-                     'or an array of size (3,)')
+    roi_radii = assert_roi_radii_format(parser)
 
     vol = nib.load(args.in_dwi)
     data = vol.get_fdata(dtype=np.float32)

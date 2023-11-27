@@ -42,21 +42,18 @@ implemented.
 """
 
 import argparse
-from copy import copy
-import itertools
 
 import nibabel as nib
 import numpy as np
 
-from scilpy.image.labels import get_data_as_labels
+from scilpy.connectivity.connectivity_tools import \
+    normalize_matrix_from_values, normalize_matrix_from_parcel
 from scilpy.image.volume_math import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format)
-from scilpy.tractanalysis.reproducibility_measures import \
-    approximate_surface_node
 
 
 def _build_arg_parser():
@@ -73,14 +70,15 @@ def _build_arg_parser():
     edge_p = p.add_argument_group('Edge-wise options')
     length = edge_p.add_mutually_exclusive_group()
     length.add_argument('--length', metavar='LENGTH_MATRIX',
-                        help='Length matrix used for '
-                        'edge-wise multiplication.')
+                        help='Length matrix used for edge-wise '
+                             'multiplication.')
     length.add_argument('--inverse_length', metavar='LENGTH_MATRIX',
                         help='Length matrix used for edge-wise division.')
     edge_p.add_argument('--bundle_volume', metavar='VOLUME_MATRIX',
                         help='Volume matrix used for edge-wise division.')
 
     vol = edge_p.add_mutually_exclusive_group()
+    # toDo. Same description for the two options
     vol.add_argument('--parcel_volume', nargs=2,
                      metavar=('ATLAS', 'LABELS_LIST'),
                      help='Atlas and labels list for edge-wise division.')
@@ -111,76 +109,41 @@ def main():
                                                  args.bundle_volume])
     assert_outputs_exist(parser, args, args.out_matrix)
 
-    in_matrix = load_matrix_in_any_format(args.in_matrix)
-
-    # Parcel volume and surface normalization require the atlas
-    # This script should be used directly after scil_decompose_connectivity.py
+    atlas_filepath = None
+    labels_filepath = None
     if args.parcel_volume or args.parcel_surface:
         atlas_tuple = args.parcel_volume if args.parcel_volume \
             else args.parcel_surface
         atlas_filepath, labels_filepath = atlas_tuple
         assert_inputs_exist(parser, [atlas_filepath, labels_filepath])
 
-        atlas_img = nib.load(atlas_filepath)
-        atlas_data = get_data_as_labels(atlas_img)
+    in_matrix = load_matrix_in_any_format(args.in_matrix)
 
-        voxels_size = atlas_img.header.get_zooms()[:3]
-        if voxels_size[0] != voxels_size[1] \
-           or voxels_size[0] != voxels_size[2]:
-            parser.error('Atlas must have an isotropic resolution.')
-
-        voxels_vol = np.prod(atlas_img.header.get_zooms()[:3])
-        voxels_sur = np.prod(atlas_img.header.get_zooms()[:2])
-
-        # Excluding background (0)
-        labels_list = np.loadtxt(labels_filepath)
-        if len(labels_list) != in_matrix.shape[0] \
-                and len(labels_list) != in_matrix.shape[1]:
-            parser.error('Atlas should have the same number of label as the '
-                         'input matrix.')
-
-    # Normalization can be combined together
+    # Normalization can be combined.
     out_matrix = in_matrix
-    if args.length:
-        length_mat = load_matrix_in_any_format(args.length)
-        out_matrix[length_mat > 0] *= length_mat[length_mat > 0]
-    elif args.inverse_length:
-        length_mat = load_matrix_in_any_format(args.inverse_length)
-        out_matrix[length_mat > 0] /= length_mat[length_mat > 0]
+    if args.length or args.inverse_length:
+        inverse = args.inverse_length is not None
+        matrix_file = args.inverse_length if inverse else args.length
+        length_matrix = load_matrix_in_any_format(matrix_file)
+        out_matrix = normalize_matrix_from_values(
+            out_matrix, length_matrix, inverse)
 
     if args.bundle_volume:
         volume_mat = load_matrix_in_any_format(args.bundle_volume)
-        out_matrix[volume_mat > 0] /= volume_mat[volume_mat > 0]
+        out_matrix = normalize_matrix_from_values(
+            out_matrix, volume_mat, inverse=True)
 
     # Node-wise computation are necessary for this type of normalize
+    # Parcel volume and surface normalization require the atlas
+    # This script should be used directly after scil_decompose_connectivity.py
     if args.parcel_volume or args.parcel_surface:
-        out_matrix = copy(in_matrix)
-        pos_list = range(len(labels_list))
-        all_comb = list(itertools.combinations(pos_list, r=2))
-        all_comb.extend(zip(pos_list, pos_list))
+        atlas_img = nib.load(atlas_filepath)
+        labels_list = np.loadtxt(labels_filepath)
+        out_matrix = normalize_matrix_from_parcel(
+            out_matrix, atlas_img, labels_list,
+            parcel_from_volume=args.parcel_volume)
 
-        # Prevent useless computions for approximate_surface_node()
-        factor_list = []
-        for label in labels_list:
-            if args.parcel_volume:
-                factor_list.append(np.count_nonzero(
-                    atlas_data == label) * voxels_vol)
-            else:
-                if np.count_nonzero(atlas_data == label):
-                    roi = np.zeros(atlas_data.shape)
-                    roi[atlas_data == label] = 1
-                    factor_list.append(
-                        approximate_surface_node(roi) * voxels_sur)
-                else:
-                    factor_list.append(0)
-
-        for pos_1, pos_2 in all_comb:
-            factor = factor_list[pos_1] + factor_list[pos_2]
-            if abs(factor) > 0.001:
-                out_matrix[pos_1, pos_2] /= factor
-                out_matrix[pos_2, pos_1] /= factor
-
-    # Load as image
+    # Save as image
     ref_matrix = nib.Nifti1Image(in_matrix, np.eye(4))
     # Simple scaling of the whole matrix, facilitate comparison across subject
     if args.max_at_one:
