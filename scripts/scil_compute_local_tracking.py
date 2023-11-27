@@ -60,10 +60,11 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_sphere_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compression_th)
-from scilpy.tracking.tools import get_theta, get_direction_getter
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
+                                   get_theta,
+                                   get_direction_getter,
                                    save_tractogram,
                                    verify_streamline_length_options,
                                    verify_seed_options)

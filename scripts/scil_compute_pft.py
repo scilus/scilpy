@@ -46,7 +46,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.tracking.tools import get_theta
+from scilpy.tracking.utils import get_theta
 
 
 def _build_arg_parser():
