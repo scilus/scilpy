@@ -42,13 +42,13 @@ import numpy as np
 
 from scilpy.dwi.utils import extract_dwi_shell
 from scilpy.image.utils import extract_affine
+from scilpy.io.b_tensor import generate_btensor_input
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg,
                              add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_roi_radii_format)
 from scilpy.reconst.frf import compute_msmt_frf
-from scilpy.reconst.b_tensor_utils import generate_btensor_input
 
 
 def buildArgsParser():

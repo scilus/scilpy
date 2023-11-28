@@ -1,7 +1,9 @@
 import os
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages, Extension, Command
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install_scripts import install_scripts
+from setuptools.errors import SetupError
 
 with open('requirements.txt') as f:
     required_dependencies = f.read().splitlines()
@@ -46,10 +48,30 @@ class CustomBuildExtCommand(build_ext):
         build_ext.run(self)
 
 
+# Get the requiered python version
+PYTHON_VERSION = ""
+with open('.python-version') as f:
+    py_version = f.readline().strip("\n").split(".")
+    py_major = py_version[0]
+    py_minor = py_version[1]
+    py_micro = "*"
+    py_extra = None
+    if len(py_version) > 2:
+        py_micro = py_version[2]
+    if len(py_version) > 3:
+        py_extra = py_version[3]
+
+    PYTHON_VERSION = ".".join([py_major, py_minor, py_micro])
+    if py_extra:
+        PYTHON_VERSION = ".".join([PYTHON_VERSION, py_extra])
+
+    PYTHON_VERSION = "".join(["==", PYTHON_VERSION])
+
 # Get version and release info, which is all stored in scilpy/version.py
 ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
+
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
@@ -64,7 +86,9 @@ opts = dict(name=NAME,
             platforms=PLATFORMS,
             version=VERSION,
             packages=find_packages(),
-            cmdclass={'build_ext': CustomBuildExtCommand},
+            cmdclass={
+                'build_ext': CustomBuildExtCommand
+            },
             ext_modules=get_extensions(),
             python_requires=PYTHON_VERSION,
             setup_requires=['cython', 'numpy'],
@@ -72,7 +96,10 @@ opts = dict(name=NAME,
             entry_points={
                 'console_scripts': ["{}=scripts.{}:main".format(
                     os.path.basename(s),
-                    os.path.basename(s).split(".")[0]) for s in SCRIPTS]
+                    os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
+                ["{}=scripts.legacy.{}:main".format(
+                    os.path.basename(s),
+                    os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
             },
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",

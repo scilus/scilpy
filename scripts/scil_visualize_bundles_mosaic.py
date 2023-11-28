@@ -123,7 +123,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
         # Name splited in two lines
         draw.text((i + text_pos_x, j + text_pos_y),
                   name[:name.find('_')], font=font)
-        draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
+        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+        draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
                   name[1+name.find('_'):], font=font)
 
     # First column, last row: description of the information to show
@@ -131,7 +132,8 @@ def draw_column_with_names(draw, output_names, text_pos_x,
     i = 0
     draw.text((i + text_pos_x, j + text_pos_y),
               ('Bundle'), font=font)
-    draw.text((i + text_pos_x, j + text_pos_y + font.getsize(' ')[1]*1.5),
+    h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+    draw.text((i + text_pos_x, j + text_pos_y + h*1.5),
               ('Elements'), font=font)
 
 
@@ -142,7 +144,8 @@ def draw_bundle_information(draw, bundle_file_name, nbr_of_elem,
         draw.text((pos_x, pos_y),
                   (bundle_file_name), font=font)
     if nbr_of_elem is not None:
-        draw.text((pos_x, pos_y + font.getsize(' ')[1]*1.5),
+        h = font.getbbox(' ')[3] - font.getbbox(' ')[1]
+        draw.text((pos_x, pos_y + h*1.5),
                   ('{}'.format(nbr_of_elem)), font=font)
 
 
