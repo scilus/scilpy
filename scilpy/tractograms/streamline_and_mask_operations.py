@@ -224,12 +224,10 @@ def _get_longest_streamline_segment_in_roi(all_strl_indices):
     # Find the gradient of the indices of the voxels intersecting with
     # the ROIs
     strl_indices_grad = np.gradient(all_strl_indices)
-    # Contiguous segments should have an indices gradient of 1
-    strl_indices_grad_mask = strl_indices_grad == 1
     # Split the indices of the voxels intersecting with the ROIs into
     # segments where the gradient is 1 (i.e a chunk of consecutive indices)
     strl_indices_split = np.split(
-        all_strl_indices, np.where(strl_indices_grad_mask is False)[0])
+        all_strl_indices, np.where(strl_indices_grad != 1)[0])
     # Find the length of each segment
     lens_strl_indices_split = [len(x) for x in strl_indices_split]
     # Keep the segment with the longest length
