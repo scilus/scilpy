@@ -3,49 +3,6 @@
 import numpy as np
 
 
-def normalize_vector(v):
-    """Normalize a 3D vector."""
-    norm = np.linalg.norm(v)
-    return v / norm if norm != 0 else v
-
-
-def find_perpendicular_vectors(v):
-    """Find two perpendicular unit vectors for a given normalized 3D vector."""
-    if v[0] == 0 and v[1] == 0:
-        if v[2] == 0:
-            # v is a zero vector, can't find perpendicular vectors
-            return None, None
-        # v is along the z-axis, choose x and y axes as perpendicular vectors
-        return np.array([1, 0, 0]), np.array([0, 1, 0])
-
-    # General case, find one vector perpendicular to v and z-axis
-    u = np.cross(v, [0, 0, 1])
-    u = normalize_vector(u)
-
-    # Find another vector perpendicular to both v and u
-    w = np.cross(v, u)
-    w = normalize_vector(w)
-
-    return u, w
-
-
-def project_on_plane(vector, u, w):
-    """Project a vector onto the plane defined by vectors u and w."""
-    # Calculate projections onto u and w
-    proj_u = np.dot(vector, u) * u
-    proj_w = np.dot(vector, w) * w
-
-    # Combine projections
-    projection = proj_u + proj_w
-
-    # Normalize and scale to match the original vector's norm
-    norm_vector = np.linalg.norm(vector)
-    normalized_projection = normalize_vector(projection)
-    scaled_projection = normalized_projection * norm_vector
-
-    return scaled_projection
-
-
 def parallel_transport_streamline(streamline, nb_streamlines, radius):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.
@@ -107,8 +64,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius):
     V = np.zeros_like(T)
     # Set the normal vector at the first point to be [0, 1, 0]
     # (arbitrary choice)
-    V[0] = np.random.rand(3)
-
+    V[0] = np.roll(streamline[0] - streamline[1], 1)
+    V[0] = V[0] / np.linalg.norm(V[0])
     # For each point
     for i in range(0, T.shape[0]-1):
         # Compute the torsion vector
