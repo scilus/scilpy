@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_local_tracking_dev.py',
+    ret = script_runner.run('scil_tracking_local_dev.py',
                             '--help')
     assert ret.success
 
@@ -24,7 +24,7 @@ def test_execution_tracking_fodf(script_runner):
                            'fodf.nii.gz')
     in_mask = os.path.join(get_home(), 'tracking',
                            'seeding_mask.nii.gz')
-    ret = script_runner.run('scil_compute_local_tracking_dev.py', in_fodf,
+    ret = script_runner.run('scil_tracking_local_dev.py', in_fodf,
                             in_mask, in_mask, 'local_prob.trk', '--nt', '10',
                             '--compress', '0.1', '--sh_basis', 'descoteaux07',
                             '--min_length', '20', '--max_length', '200',

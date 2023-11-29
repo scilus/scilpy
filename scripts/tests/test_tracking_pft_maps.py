@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_maps_for_particle_filter_tracking.py',
+    ret = script_runner.run('scil_tracking_pft_maps.py',
                             '--help')
     assert ret.success
 
@@ -26,6 +26,6 @@ def test_execution_tracking(script_runner):
                          'map_gm.nii.gz')
     in_csf = os.path.join(get_home(), 'tracking',
                           'map_csf.nii.gz')
-    ret = script_runner.run('scil_compute_maps_for_particle_filter_tracking.py',
+    ret = script_runner.run('scil_tracking_pft_maps.py',
                             in_wm, in_gm, in_csf)
     assert ret.success

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_flip_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_flip.py', '--help')
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_surface_vtk_fib(script_runner):
                           'gyri_fanning.fib')
     in_fa = os.path.join(get_home(), 'surface_vtk_fib',
                          'fa.nii.gz')
-    ret = script_runner.run('scil_flip_streamlines.py', in_fib,
+    ret = script_runner.run('scil_tractogram_flip.py', in_fib,
                             'gyri_fanning.tck', 'x', '--reference', in_fa)
     assert ret.success

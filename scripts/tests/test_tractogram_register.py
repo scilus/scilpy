@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_register_tractogram.py', '--help')
+    ret = script_runner.run('scil_tractogram_register.py', '--help')
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_execution_bundles(script_runner):
                              'bundle_0.trk')
     in_ref = os.path.join(get_home(), 'bundles',
                           'bundle_all_1mm.nii.gz')
-    ret = script_runner.run('scil_register_tractogram.py', in_moving,
+    ret = script_runner.run('scil_tractogram_register.py', in_moving,
                             in_static, '--only_rigid',
                             '--moving_tractogram_ref', in_ref)
     assert ret.success

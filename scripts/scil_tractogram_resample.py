@@ -22,7 +22,7 @@ Downsampling:
     ensure that all clusters are represented in the final tractogram.
 
 Example usage:
-$ scil_resample_tractogram.py input.trk 1000 output.trk \
+$ scil_tractogram_resample.py input.trk 1000 output.trk \
 --point_wise_std 0.5 --spline 5 10 --keep_invalid_streamlines
 $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
 """
