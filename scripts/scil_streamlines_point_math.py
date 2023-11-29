@@ -292,13 +292,13 @@ def main():
         logging.info(
             'Performing {} across each streamline.'.format(args.operation))
         new_data_per_streamline = perform_operation_per_streamline(
-            args.operation, sft, args.output_dpp_name, args.endpoints_only)
+            args.operation, sft, args.dpp_name, args.endpoints_only)
 
         # Adding data per streamline to new_sft
         new_sft = StatefulTractogram(sft.streamlines, sft.space_attributes,
                                      sft.space, sft.origin,
                                      data_per_streamline={
-                                         args.dpp_name:
+                                         args.output_dpp_name:
                                          new_data_per_streamline})
 
     if len(new_sft) == 0 and not args.save_empty:
