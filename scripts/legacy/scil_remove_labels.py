@@ -6,14 +6,14 @@ from scripts.scil_tracking_local import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_labels_dilate.py.
+This script has been renamed scil_labels_remove.py.
 Now, all our scripts using labels start with scil_labels_...!
 
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_labels_dilate.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_remove_labels.py", DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 
