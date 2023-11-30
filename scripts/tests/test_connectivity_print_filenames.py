@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_print_connectivity_filenames.py', '--help')
+    ret = script_runner.run('scil_connectivity_print_filenames.py', '--help')
     assert ret.success
 
 
@@ -23,6 +23,6 @@ def test_execution_connectivity(script_runner):
                          'sc_norm.npy')
     in_labels_list = os.path.join(get_home(), 'connectivity',
                                   'labels_list.txt')
-    ret = script_runner.run('scil_print_connectivity_filenames.py', in_sc,
+    ret = script_runner.run('scil_connectivity_print_filenames.py', in_sc,
                             in_labels_list, 'success.txt')
     assert ret.success

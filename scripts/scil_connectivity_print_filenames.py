@@ -8,9 +8,9 @@ the scil_filter_connectivity.py script.
 
 Example:
 # Keep connections with more than 1000 streamlines for 100% of a population
-scil_filter_connectivity.py filtering_mask.npy
+scil_connectivity_filter.py filtering_mask.npy
     --greater_than */streamlines_count.npy 1000 1.0
-scil_print_connectivity_filenames.py filtering_mask.npy
+scil_connectivity_print_filenames.py filtering_mask.npy
     labels_list.txt pass.txt
 for file in $(cat pass.txt);
     do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
