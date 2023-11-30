@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_split_volume_by_ids.py', '--help')
+    ret = script_runner.run('scil_labels_split_volume_from_lut.py', '--help')
     assert ret.success
 
 
@@ -20,6 +20,9 @@ def test_execution_atlas(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_atlas = os.path.join(get_home(), 'atlas',
                             'atlas_freesurfer_v2.nii.gz')
-    ret = script_runner.run('scil_split_volume_by_ids.py', in_atlas,
-                            '--out_prefix', 'brainstem', '-r', '173', '175')
+    in_json = os.path.join(get_home(), 'atlas',
+                           'atlas_freesurfer_v2_LUT.json')
+    ret = script_runner.run('scil_labels_split_volume_from_lut.py', in_atlas,
+                            '--out_prefix', 'brainstem',
+                            '--custom_lut', in_json)
     assert ret.success
