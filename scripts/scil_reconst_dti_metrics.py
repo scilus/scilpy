@@ -49,7 +49,7 @@ from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
                                               check_b0_threshold)
 from scilpy.utils.filenames import add_filename_suffix, split_name_with_nii
 
-logger = logging.getLogger("Compute_DTI_Metrics")
+logger = logging.getLogger("Reconst_DTI_Metrics")
 logger.setLevel(logging.INFO)
 
 

@@ -26,7 +26,7 @@ def test_execution_processing(script_runner):
                            '1000.bvec')
 
     # generate the peaks file and fa map we'll use to test our script
-    script_runner.run('scil_compute_dti_metrics.py', in_dwi, in_bval, in_bvec,
+    script_runner.run('scil_reconst_dti_metrics.py', in_dwi, in_bval, in_bvec,
                       '--not_all', '--fa', 'fa.nii.gz',
                       '--evecs', 'evecs.nii.gz')
     # test the actual script
