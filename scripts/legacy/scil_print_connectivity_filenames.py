@@ -7,13 +7,14 @@ from scripts.scil_tractogram_flip import main as new_main
 
 DEPRECATION_MSG = """
 This script has been renamed scil_connectivity_print_filenames.py.
-All our scripts regarding connectivity now start with scil_connectivity_...!  
+All our scripts regarding connectivity now start with scil_connectivity_...!
 
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_print_connectivity_filenames.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_print_connectivity_filenames.py",
+                  DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

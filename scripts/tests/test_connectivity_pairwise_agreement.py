@@ -13,7 +13,8 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_connectivity_pairwise_agreement.py', '--help')
+    ret = script_runner.run('scil_connectivity_pairwise_agreement.py',
+                            '--help')
     assert ret.success
 
 

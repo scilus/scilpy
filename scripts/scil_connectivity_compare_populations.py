@@ -10,7 +10,8 @@ groups must have the same number of observations.
 
 For example, if you have streamline count weighted matrices for a MCI and a
 control group and you want to investiguate differences in their connectomes:
->>> scil_connectivity_compare_populations.py pval.npy --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
+   >>> scil_connectivity_compare_populations.py pval.npy
+           --g1 MCI/*_sc.npy --g2 CTL/*_sc.npy
 
 --filtering_mask will simply multiply the binary mask to all input
 matrices before performing the statistical comparison. Reduces the number of
