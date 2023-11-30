@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_sh_from_signal.py', '--help')
+    ret = script_runner.run('scil_reconst_sh_from_signal.py', '--help')
     assert ret.success
 
 
@@ -24,6 +24,6 @@ def test_execution_processing(script_runner):
                            '3000.bval')
     in_bvec = os.path.join(get_home(), 'processing',
                            '3000.bvec')
-    ret = script_runner.run('scil_compute_sh_from_signal.py', in_dwi, in_bval,
+    ret = script_runner.run('scil_reconst_sh_from_signal.py', in_dwi, in_bval,
                             in_bvec, 'sh_1000.nii.gz')
     assert ret.success
