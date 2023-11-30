@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_combine_labels.py', '--help')
+    ret = script_runner.run('scil_labels_combine.py', '--help')
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_atlas(script_runner):
     in_atlas_1 = os.path.join(get_home(), 'atlas',
                               'atlas_freesurfer_v2.nii.gz')
     in_brainstem = os.path.join(get_home(), 'atlas', 'brainstem.nii.gz')
-    ret = script_runner.run('scil_combine_labels.py',
+    ret = script_runner.run('scil_labels_combine.py',
                             'atlas_freesurfer_v2_single_brainstem.nii.gz',
                             '--volume_ids', in_atlas_1, '8', '47', '251',
                             '252', '253', '254', '1022', '1024', '2022',
@@ -34,7 +34,7 @@ def test_execution_atlas_merge(script_runner):
     in_atlas_1 = os.path.join(get_home(), 'atlas',
                               'atlas_freesurfer_v2.nii.gz')
     in_brainstem = os.path.join(get_home(), 'atlas', 'brainstem.nii.gz')
-    ret = script_runner.run('scil_combine_labels.py',
+    ret = script_runner.run('scil_labels_combine.py',
                             'atlas_freesurfer_v2_merge_brainstem.nii.gz',
                             '--volume_ids', in_atlas_1, '8', '47', '251',
                             '252', '253', '254', '1022', '1024', '2022',
