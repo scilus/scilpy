@@ -8,7 +8,7 @@ diffusion images.
 By default will output an average image calculated from all images with
 non-zero bvalue.
 
-specify --bvalue to output an image for a single shell
+Specify --bvalue to output an image for a single shell
 
 Script currently does not take into account the diffusion gradient directions
 being averaged.
