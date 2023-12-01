@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_kurtosis_metrics.py', '--help')
+    ret = script_runner.run('scil_reconst_dki_metrics.py', '--help')
     assert ret.success
 
 
@@ -24,7 +24,7 @@ def test_execution_processing(script_runner):
                            'dwi.bval')
     in_bvec = os.path.join(get_home(), 'processing',
                            'dwi.bvec')
-    ret = script_runner.run('scil_compute_kurtosis_metrics.py', in_dwi,
+    ret = script_runner.run('scil_reconst_dki_metrics.py', in_dwi,
                             in_bval, in_bvec, '--not_all',
                             '--dki_fa', 'dki_fa.nii.gz',
                             '--dki_md', 'dki_md.nii.gz',
