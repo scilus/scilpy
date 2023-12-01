@@ -24,7 +24,9 @@ def _build_arg_parser():
                    help='Path to gradient sampling file. (.bvec or .b)')
 
     p.add_argument('out_gradient_sampling_file',
-                   help='Where to save the flipped gradient sampling file.')
+                   help='Where to save the flipped gradient sampling file.'
+                        'Extension (.bvec or .b) must be the same as '
+                        'in_gradient_sampling_file')
 
     # Note: We can't ask for text such as '-x' or '-xyz' because -x is
     # understood as another option -x by the argparser. With ints, we can
@@ -34,10 +36,10 @@ def _build_arg_parser():
                    choices=[1, 2, 3, -1, -2, -3],
                    help="The final order of the axes, compared to original "
                         "order: x=1 y=2 z=3.\n"
-                        "Ex: to only flip y: --final_order 1 -2 3.\n"
-                        "Ex: to only swap x and y: --final_order 2 1 3.\n"
+                        "Ex: to only flip y: 1 -2 3.\n"
+                        "Ex: to only swap x and y: 2 1 3.\n"
                         "Ex: to first flip x, then permute all three axes: "
-                        "--final_order 3 -1 2.")
+                        " 3 -1 2.")
 
     add_overwrite_arg(p)
 
@@ -51,11 +53,15 @@ def main():
     assert_inputs_exist(parser, args.in_gradient_sampling_file)
     assert_outputs_exist(parser, args, args.out_gradient_sampling_file)
 
-    _, ext = os.path.splitext(args.in_gradient_sampling_file)
-    if ext not in ['.bvec', '.b']:
+    _, ext_in = os.path.splitext(args.in_gradient_sampling_file)
+    if ext_in not in ['.bvec', '.b']:
         parser.error('Extension for MRtrix format should .b, and extension '
                      'for FSL format should be .bvec. Got {}, we do not know '
-                     'how to interpret.'.format(ext))
+                     'how to interpret.'.format(ext_in))
+    _, ext_out = os.path.splitext(args.out_gradient_sampling_file)
+    if ext_in != ext_out:
+        parser.error("Output format (.bvec or .b) should be the same as the "
+                     "input's. We do not support conversion in this script.")
 
     # Format final order
     # Our scripts use axes as 0, 1, 2 rather than 1, 2, 3: adding -1.
@@ -75,7 +81,7 @@ def main():
         parser.error("final_order should contain the three axis.")
 
     bvecs = np.loadtxt(args.in_gradient_sampling_file)
-    if ext == '.bvec':
+    if ext_in == '.bvec':
         # Supposing FSL format
         bvecs = flip_gradient_sampling(bvecs, axes_to_flip, 'fsl')
         bvecs = swap_gradient_axis(bvecs, swapped_order, 'fsl')
