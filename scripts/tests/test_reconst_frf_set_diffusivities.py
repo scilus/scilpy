@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_set_response_function.py', '--help')
+    ret = script_runner.run('scil_reconst_frf_set_diffusivities.py', '--help')
     assert ret.success
 
 
@@ -20,6 +20,6 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(get_home(), 'processing',
                           'frf.txt')
-    ret = script_runner.run('scil_set_response_function.py', in_frf, '15,4,4',
-                            'nfrf.txt')
+    ret = script_runner.run('scil_reconst_frf_set_diffusivities.py', in_frf,
+                            '15,4,4', 'nfrf.txt')
     assert ret.success
