@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_convert_sh_basis.py', '--help')
+    ret = script_runner.run('scil_reconst_sh_convert_basis.py', '--help')
     assert ret.success
 
 
@@ -20,7 +20,7 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fodf = os.path.join(get_home(), 'processing',
                            'fodf.nii.gz')
-    ret = script_runner.run('scil_convert_sh_basis.py', in_fodf,
+    ret = script_runner.run('scil_reconst_sh_convert_basis.py', in_fodf,
                             'fodf_descoteaux07.nii.gz', 'tournier07',
                             '--processes', '1')
     assert ret.success
