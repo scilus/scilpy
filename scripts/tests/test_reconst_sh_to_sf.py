@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_sf_from_sh.py', '--help')
+    ret = script_runner.run('scil_reconst_sh_to_sf.py', '--help')
     assert ret.success
 
 
@@ -22,7 +22,7 @@ def test_execution_processing(script_runner):
     in_b0 = os.path.join(get_home(), 'processing', 'fa.nii.gz')
     in_bval = os.path.join(get_home(), 'processing', '1000.bval')
 
-    ret = script_runner.run('scil_compute_sf_from_sh.py', in_sh,
+    ret = script_runner.run('scil_reconst_sh_to_sf.py', in_sh,
                             'sf_724.nii.gz', '--in_bval',
                             in_bval, '--in_b0', in_b0, '--out_bval',
                             'sf_724.bval', '--out_bvec', 'sf_724.bvec',
