@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_mean_frf.py', '--help')
+    ret = script_runner.run('scil_reconst_frf_mean.py', '--help')
     assert ret.success
 
 
@@ -20,5 +20,5 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_frf = os.path.join(get_home(), 'processing',
                           'frf.txt')
-    ret = script_runner.run('scil_compute_mean_frf.py', in_frf, 'mfrf.txt')
+    ret = script_runner.run('scil_reconst_frf_mean.py', in_frf, 'mfrf.txt')
     assert ret.success
