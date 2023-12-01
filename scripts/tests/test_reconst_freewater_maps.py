@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_freewater.py', '--help')
+    ret = script_runner.run('scil_reconst_freewater_maps.py', '--help')
     assert ret.success
 
 
@@ -26,7 +26,7 @@ def test_execution_commit_amico(script_runner):
                            'dwi.bvec')
     mask = os.path.join(get_home(), 'commit_amico',
                         'mask.nii.gz')
-    ret = script_runner.run('scil_compute_freewater.py', in_dwi,
+    ret = script_runner.run('scil_reconst_freewater_maps.py', in_dwi,
                             in_bval, in_bvec, '--mask', mask,
                             '--out_dir', 'freewater', '--b_thr', '30',
                             '--para_diff', '0.0015',
