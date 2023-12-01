@@ -4,7 +4,8 @@
 import os
 import tempfile
 
-from scilpy.io.fetcher import fetch_data, get_home, get_testing_files_dict
+from scilpy.io.fetcher import get_testing_files_dict, fetch_data, get_home
+
 
 # If they already exist, this only takes 5 seconds (check md5sum)
 fetch_data(get_testing_files_dict(), keys=['processing.zip'])
@@ -12,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_extract_b0.py', '--help')
+    ret = script_runner.run('scil_dwi_apply_bias_field.py', '--help')
     assert ret.success
 
 
@@ -20,10 +21,8 @@ def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_dwi = os.path.join(get_home(), 'processing',
                           'dwi_crop.nii.gz')
-    in_bval = os.path.join(get_home(), 'processing',
-                           'dwi.bval')
-    in_bvec = os.path.join(get_home(), 'processing',
-                           'dwi.bvec')
-    ret = script_runner.run('scil_extract_b0.py', in_dwi, in_bval, in_bvec,
-                            'b0_mean.nii.gz', '--mean', '--b0', '20')
+    in_bias = os.path.join(get_home(), 'processing',
+                           'bias_field_b0.nii.gz')
+    ret = script_runner.run('scil_dwi_apply_bias_field.py', in_dwi,
+                            in_bias, 'dwi_crop_n4.nii.gz')
     assert ret.success
