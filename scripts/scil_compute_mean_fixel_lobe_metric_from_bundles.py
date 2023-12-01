@@ -13,7 +13,7 @@ possibility to capture fixel-based fiber spread (FS) and fiber fraction (FF).
 FD from the bingham should be "equivalent" to the AFD_fixel we are used to.
 
 Bingham coefficients volume must come from scil_fit_bingham_to_fodf.py and
-lobe-specific metrics comes from scil_compute_lobe_specific_fodf_metrics.py.
+lobe-specific metrics comes from scil_reconst_fodf_lobe_specific_metrics.py.
 
 Lobe-specific metrics are metrics extracted from Bingham distributions fitted
 to fODF. Their are as many values per voxel as there are lobes extracted. The

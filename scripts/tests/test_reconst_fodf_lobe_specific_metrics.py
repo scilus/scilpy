@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_reconst_fodf_lobe_specific_metrics.py',
                             '--help')
     assert ret.success
 
@@ -22,7 +22,7 @@ def test_execution_processing(script_runner):
     in_bingham = os.path.join(get_home(), 'processing',
                               'fodf_bingham.nii.gz')
 
-    ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_reconst_fodf_lobe_specific_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1')
 
@@ -36,7 +36,7 @@ def test_execution_processing_mask(script_runner):
     in_mask = os.path.join(get_home(), 'processing',
                            'seed.nii.gz')
 
-    ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_reconst_fodf_lobe_specific_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1', '--mask', in_mask, '-f')
 
@@ -48,7 +48,7 @@ def test_execution_processing_not_all(script_runner):
     in_bingham = os.path.join(get_home(), 'processing',
                               'fodf_bingham.nii.gz')
 
-    ret = script_runner.run('scil_compute_lobe_specific_fodf_metrics.py',
+    ret = script_runner.run('scil_reconst_fodf_lobe_specific_metrics.py',
                             in_bingham, '--nbr_integration_steps', '10',
                             '--processes', '1', '--not_all', '--out_fs',
                             'fs.nii.gz', '-f')
