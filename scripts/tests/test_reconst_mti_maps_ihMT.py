@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_ihMT_maps.py', '--help')
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', '--help')
     assert ret.success
 
 
@@ -64,7 +64,7 @@ def test_execution_ihMT_no_option(script_runner):
                              'ihMT', 'echo-3_acq-T1w_ihmt.nii.gz')
 
     # no option
-    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', tmp_dir.name,
                             in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -127,7 +127,7 @@ def test_execution_ihMT_prefix(script_runner):
                              'ihMT', 'echo-3_acq-T1w_ihmt.nii.gz')
 
     # --out_prefix
-    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', tmp_dir.name,
                             in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -193,7 +193,7 @@ def test_execution_ihMT_filtering(script_runner):
                              'ihMT', 'echo-3_acq-T1w_ihmt.nii.gz')
 
     # --filtering
-    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', tmp_dir.name,
                             in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -260,7 +260,7 @@ def test_execution_ihMT_B1_map(script_runner):
                              'ihMT', 'B1map.nii.gz')
 
     # --filtering
-    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', tmp_dir.name,
                             in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
@@ -325,7 +325,7 @@ def test_execution_ihMT_single_echo(script_runner):
                              'ihMT', 'echo-3_acq-T1w_ihmt.nii.gz')
 
     # --out_prefix
-    ret = script_runner.run('scil_compute_ihMT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_ihMT.py', tmp_dir.name,
                             in_mask,
                             '--in_altnp', in_e1_altnp, in_e2_altnp,
                             in_e3_altnp,
