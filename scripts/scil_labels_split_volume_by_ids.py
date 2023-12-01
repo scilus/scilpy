@@ -50,8 +50,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    required = args.in_labels
-    assert_inputs_exist(parser, required)
+    assert_inputs_exist(parser, args.in_labels)
 
     label_img = nib.load(args.in_labels)
     label_img_data = get_data_as_labels(label_img)

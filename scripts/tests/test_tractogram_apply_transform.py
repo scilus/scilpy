@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_apply_transform_to_tractogram.py', '--help')
+    ret = script_runner.run('scil_tractogram_apply_transform.py', '--help')
     assert ret.success
 
 
@@ -27,7 +27,7 @@ def test_execution_bst(script_runner):
                           'output0GenericAffine.mat')
     in_warp = os.path.join(get_home(), 'bst',
                            'output1InverseWarp.nii.gz')
-    ret = script_runner.run('scil_apply_transform_to_tractogram.py',
+    ret = script_runner.run('scil_tractogram_apply_transform.py',
                             in_model, in_fa, in_aff, 'rpt_m_warp.trk',
                             '--inverse', '--in_deformation', in_warp,
                             '--cut')

@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_dilate_labels.py', '--help')
+    ret = script_runner.run('scil_labels_dilate.py', '--help')
     assert ret.success
 
 
@@ -20,7 +20,7 @@ def test_execution_atlas(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_atlas = os.path.join(get_home(), 'atlas',
                             'atlas_freesurfer_v2_single_brainstem.nii.gz')
-    ret = script_runner.run('scil_dilate_labels.py', in_atlas,
+    ret = script_runner.run('scil_labels_dilate.py', in_atlas,
                             'atlas_freesurfer_v2_single_brainstem_dil.nii.gz',
                             '--processes', '1', '--distance', '2')
     assert ret.success

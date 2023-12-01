@@ -8,7 +8,7 @@ modified more easily by our team when testing new algorithms and parameters,
 and that can be used as parent classes in sub-projects of our lab such as in
 dwi_ml.
 
-As in scil_compute_local_tracking:
+As in scil_tracking_local:
 
     The tracking direction is chosen in the aperture cone defined by the
     previous tracking direction and the angular constraint.
@@ -18,7 +18,7 @@ As in scil_compute_local_tracking:
     defined from the SF.
     - Algo 'eudx' is not yet available!
 
-Contrary to scil_compute_local_tracking:
+Contrary to scil_tracking_local:
     - Input nifti files do not necessarily need to be in isotropic resolution.
     - The script works with asymmetric input ODF.
     - The interpolation for the tracking mask and spherical function can be
@@ -49,7 +49,7 @@ import nibabel as nib
 import numpy as np
 
 from dipy.io.stateful_tractogram import StatefulTractogram, Space, \
-                                        set_sft_logger_level
+    set_sft_logger_level
 from dipy.io.stateful_tractogram import Origin
 from dipy.io.streamline import save_tractogram
 from nibabel.streamlines import detect_format, TrkFile

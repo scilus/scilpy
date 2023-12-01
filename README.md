@@ -43,6 +43,12 @@ The library and scripts can be installed locally by using:
 pip install -e .
 ```
 
+If you don't want to install legacy scripts:
+```
+export SCILPY_LEGACY='False'
+pip install -e .
+```
+
 On Linux, most likely you will have to install libraries for COMMIT/AMICO
 ```
 sudo apt install libblas-dev liblapack-dev
