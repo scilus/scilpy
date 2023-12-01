@@ -11,7 +11,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_qball_metrics.py', '--help')
+    ret = script_runner.run('scil_reconst_qball_metrics.py', '--help')
     assert ret.success
 
 
@@ -23,7 +23,7 @@ def test_execution_processing(script_runner):
                            '1000.bval')
     in_bvec = os.path.join(get_home(), 'processing',
                            '1000.bvec')
-    ret = script_runner.run('scil_compute_qball_metrics.py', in_dwi,
+    ret = script_runner.run('scil_reconst_qball_metrics.py', in_dwi,
                             in_bval, in_bvec)
     assert ret.success
 
@@ -36,6 +36,6 @@ def test_execution_not_all(script_runner):
                            '1000.bval')
     in_bvec = os.path.join(get_home(), 'processing',
                            '1000.bvec')
-    ret = script_runner.run('scil_compute_qball_metrics.py', in_dwi,
+    ret = script_runner.run('scil_reconst_qball_metrics.py', in_dwi,
                             in_bval, in_bvec, "--not_all", "--sh", "2.nii.gz")
     assert ret.success
