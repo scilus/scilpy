@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup, find_packages, Extension, Command
+from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 
 with open('requirements.txt') as f:
