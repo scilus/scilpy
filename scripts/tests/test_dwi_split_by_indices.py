@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_split_dwi.py', '--help')
+    ret = script_runner.run('scil_dwi_split_by_indices.py', '--help')
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_processing(script_runner):
     in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop.nii.gz')
     in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
     in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
-    ret = script_runner.run('scil_split_dwi.py', in_dwi,
+    ret = script_runner.run('scil_dwi_split_by_indices.py', in_dwi,
                             in_bval, in_bvec, 'dwi', '5', '15', '25')
     assert ret.success
 
@@ -31,9 +31,9 @@ def test_execution_processing_wrong_indices_given(script_runner):
     in_dwi = os.path.join(get_home(), 'processing', 'dwi_crop.nii.gz')
     in_bval = os.path.join(get_home(), 'processing', 'dwi.bval')
     in_bvec = os.path.join(get_home(), 'processing', 'dwi.bvec')
-    ret = script_runner.run('scil_split_dwi.py', in_dwi,
+    ret = script_runner.run('scil_dwi_split_by_indices.py', in_dwi,
                             in_bval, in_bvec, 'dwi', '0', '15', '25')
     assert (not ret.success)
-    ret = script_runner.run('scil_split_dwi.py', in_dwi,
+    ret = script_runner.run('scil_dwi_split_by_indices.py', in_dwi,
                             in_bval, in_bvec, 'dwi', '5', '15', '200')
     assert (not ret.success)
