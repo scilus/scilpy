@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_MT_maps.py', '--help')
+    ret = script_runner.run('scil_reconst_mti_maps_MT.py', '--help')
     assert ret.success
 
 
@@ -55,7 +55,7 @@ def test_execution_MT_no_option(script_runner):
                              'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
     # no option
-    ret = script_runner.run('scil_compute_MT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_MT.py', tmp_dir.name,
                             in_mask,
                             '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -106,7 +106,7 @@ def test_execution_MT_prefix(script_runner):
                              'MT', 'sub-001_echo-5_acq-t1w_mtsat.nii.gz')
 
     # --out_prefix
-    ret = script_runner.run('scil_compute_MT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_MT.py', tmp_dir.name,
                             in_mask,
                             '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
@@ -160,7 +160,7 @@ def test_execution_MT_B1_map(script_runner):
                              'MT', 'sub-001_run-01_B1map.nii.gz')
 
     # --in_B1_map
-    ret = script_runner.run('scil_compute_MT_maps.py', tmp_dir.name,
+    ret = script_runner.run('scil_reconst_mti_maps_MT.py', tmp_dir.name,
                             in_mask,
                             '--in_mtoff', in_e1_mtoff, in_e2_mtoff,
                             in_e3_mtoff, in_e4_mtoff, in_e5_mtoff,
