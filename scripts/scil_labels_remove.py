@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-    Script to remove specific labels from an atlas volume.
+Script to remove specific labels from an atlas volume.
 
-    >>> scil_remove_labels.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
+    >>> scil_labels_remove.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
 """
 
 
@@ -29,13 +29,11 @@ def _build_arg_parser():
 
     p.add_argument('in_labels',
                    help='Input labels volume.')
-
     p.add_argument('out_labels',
                    help='Output labels volume.')
 
     p.add_argument('-i', '--indices', type=int, nargs='+', required=True,
                    help='List of labels indices to remove.')
-
     p.add_argument('--background', type=int, default=0,
                    help='Integer used for removed labels [%(default)s].')
     add_overwrite_arg(p)
