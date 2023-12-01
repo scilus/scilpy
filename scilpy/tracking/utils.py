@@ -248,13 +248,13 @@ def save_tractogram(
 
 
 def get_direction_getter(
-    in_odf, algo, sphere, sub_sphere, theta, sh_basis, voxel_size, sf_threshold
+    in_img, algo, sphere, sub_sphere, theta, sh_basis, voxel_size, sf_threshold
 ):
     """ Return the direction getter object.
 
     Parameters
     ----------
-    in_odf: str
+    in_img: str
         Path to the input odf file.
     algo: str
         Algorithm to use for tracking. Can be 'det', 'prob', 'ptt' or 'eudx'.
@@ -277,7 +277,7 @@ def get_direction_getter(
         The direction getter object.
     """
 
-    odf_data = nib.load(in_odf).get_fdata(dtype=np.float32)
+    img_data = nib.load(in_img).get_fdata(dtype=np.float32)
 
     sphere = HemiSphere.from_sphere(
         get_sphere(sphere)).subdivide(sub_sphere)
@@ -286,14 +286,18 @@ def get_direction_getter(
     theta = get_theta(theta, algo)
 
     # Heuristic to find out if the input are peaks or fodf
-    non_zeros_count = np.count_nonzero(np.sum(odf_data, axis=-1))
-    non_first_val_count = np.count_nonzero(np.argmax(odf_data, axis=-1))
+    # fodf are always around 0.15 and peaks around 0.75
+    # Peaks have more zero values than fodf. The first value of fodf is
+    # usually the highest.
+    non_zeros_count = np.count_nonzero(np.sum(img_data, axis=-1))
+    non_first_val_count = np.count_nonzero(np.argmax(img_data, axis=-1))
+    is_peaks = non_first_val_count / non_zeros_count > 0.5
 
     if algo in ['det', 'prob', 'ptt']:
-        if non_first_val_count / non_zeros_count > 0.5:
-            logging.warning('Input detected as peaks. Input should be'
-                            'fodf for det/prob, verify input just in case.')
-
+        if is_peaks:
+            logging.warning(
+                'Input detected as peaks. Input should be fodf for '
+                'det/prob/ptt, verify input just in case.')
         kwargs = {}
         if algo == 'ptt':
             dg_class = PTTDirectionGetter
@@ -305,51 +309,51 @@ def get_direction_getter(
         else:
             dg_class = ProbabilisticDirectionGetter
         return dg_class.from_shcoeff(
-            shcoeff=odf_data, max_angle=theta, sphere=sphere,
+            shcoeff=img_data, max_angle=theta, sphere=sphere,
             basis_type=sh_basis,
             relative_peak_threshold=sf_threshold, **kwargs)
     elif algo == 'eudx':
-        # Code for type EUDX. We don't use peaks_from_model
+        # Code for algo EUDX. We don't use peaks_from_model
         # because we want the peaks from the provided sh.
-        odf_shape_3d = odf_data.shape[:-1]
+        img_shape_3d = img_data.shape[:-1]
         dg = PeaksAndMetrics()
         dg.sphere = sphere
         dg.ang_thr = theta
         dg.qa_thr = sf_threshold
 
-        # Heuristic to find out if the input are peaks or fodf
-        # fodf are always around 0.15 and peaks around 0.75
-        if non_first_val_count / non_zeros_count > 0.5:
+        if is_peaks:
+            # If the input is peaks, we compute their amplitude and
+            # find the closest direction on the sphere.
             logging.info('Input detected as peaks.')
-            nb_peaks = odf_data.shape[-1] // 3
+            nb_peaks = img_data.shape[-1] // 3
             slices = np.arange(0, 15+1, 3)
-            peak_values = np.zeros(odf_shape_3d+(nb_peaks,))
-            peak_indices = np.zeros(odf_shape_3d+(nb_peaks,))
+            peak_values = np.zeros(img_shape_3d+(nb_peaks,))
+            peak_indices = np.zeros(img_shape_3d+(nb_peaks,))
 
-            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
+            for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
                 for i in range(nb_peaks):
                     peak_values[idx][i] = np.linalg.norm(
-                        odf_data[idx][slices[i]:slices[i+1]], axis=-1)
+                        img_data[idx][slices[i]:slices[i+1]], axis=-1)
                     peak_indices[idx][i] = sphere.find_closest(
-                        odf_data[idx][slices[i]:slices[i+1]])
+                        img_data[idx][slices[i]:slices[i+1]])
 
-            dg.peak_dirs = odf_data
+            dg.peak_dirs = img_data
         else:
             # If the input is not peaks, we assume it is fodf
             # and we compute the peaks from the fodf.
             logging.info('Input detected as fodf.')
             npeaks = 5
-            peak_dirs = np.zeros((odf_shape_3d + (npeaks, 3)))
-            peak_values = np.zeros((odf_shape_3d + (npeaks, )))
-            peak_indices = np.full((odf_shape_3d + (npeaks, )), -1,
+            peak_dirs = np.zeros((img_shape_3d + (npeaks, 3)))
+            peak_values = np.zeros((img_shape_3d + (npeaks, )))
+            peak_indices = np.full((img_shape_3d + (npeaks, )), -1,
                                    dtype='int')
             b_matrix = get_b_matrix(
-                find_order_from_nb_coeff(odf_data), sphere, sh_basis)
+                find_order_from_nb_coeff(img_data), sphere, sh_basis)
 
-            for idx in np.argwhere(np.sum(odf_data, axis=-1)):
+            for idx in np.argwhere(np.sum(img_data, axis=-1)):
                 idx = tuple(idx)
-                directions, values, indices = get_maximas(odf_data[idx],
+                directions, values, indices = get_maximas(img_data[idx],
                                                           sphere, b_matrix,
                                                           sf_threshold, 0)
                 if values.shape[0] != 0:
