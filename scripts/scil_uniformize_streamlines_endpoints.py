@@ -51,9 +51,9 @@ def _build_arg_parser():
     method.add_argument('--auto', action='store_true',
                         help='Match endpoints of the streamlines along an '
                              'automatically determined axis.')
-    method.add_argument('--centroid', metavar='FILE',
-                        help='Match endpoints of the streamlines along an '
-                             'automatically determined axis.')
+    method.add_argument('--centroid', metavar='tractogram',
+                        help='Match endpoints of the streamlines to align it '
+                             'to a reference unique streamline (centroid).')
     method.add_argument('--target_roi', nargs='+',
                         help='Provide a target ROI and the labels to use.\n'
                              'Align heads to be closest to the mask barycenter.\n'

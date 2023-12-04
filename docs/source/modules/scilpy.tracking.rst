@@ -1,10 +1,10 @@
 scilpy.tracking package
 =======================
 
-scilpy.tracking.tools module
+scilpy.tracking.utils module
 ----------------------------
 
-.. automodule:: scilpy.tracking.tools
+.. automodule:: scilpy.tracking.utils
    :members:
    :undoc-members:
    :show-inheritance:
