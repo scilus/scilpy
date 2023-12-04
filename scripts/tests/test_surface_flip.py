@@ -13,14 +13,16 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_smooth_surface.py', '--help')
+    ret = script_runner.run('scil_surface_flip.py', '--help')
     assert ret.success
 
 
 def test_execution_surface_vtk_fib(script_runner):
+    # Weird behavior, flip around the origin in RASMM rather than the center of
+    # the volume in VOX
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_surf = os.path.join(get_home(), 'surface_vtk_fib',
                            'lhpialt.vtk')
-    ret = script_runner.run('scil_smooth_surface.py', in_surf,
-                            'lhpialt_smooth.vtk', '-n', '5', '-s', '1')
+    ret = script_runner.run('scil_surface_flip.py', in_surf, 'rhpialt.vtk',
+                            'x')
     assert ret.success
