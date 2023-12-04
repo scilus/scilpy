@@ -49,3 +49,36 @@ def apply_transform(mesh, ants_affine=None, ants_warp=None):
         mesh.set_vertices(mesh.get_vertices() + np.array([tx, ty, tz]).T)
 
     return mesh
+
+
+def flip(mesh, axes):
+    """
+    Apply flip to a surface
+
+    Parameters
+    ----------
+    mesh: trimeshpy - Triangle Mesh VTK class
+        Moving surface
+
+    axes: list
+        Axes (or normal orientation) you want to flip
+        
+    Returns
+    -------
+    mesh: trimeshpy - Triangle Mesh VTK class
+        Surface flipped
+    """    
+    # Flip axes
+    flip = (-1 if 'x' in axes else 1,
+            -1 if 'y' in axes else 1,
+            -1 if 'z' in axes else 1)
+    tris, vts = mesh.flip_triangle_and_vertices(flip)
+    mesh.set_vertices(vts)
+    mesh.set_triangles(tris)
+
+    # Reverse surface orientation
+    if 'n' in axes:
+        tris = mesh.triangles_face_flip()
+        mesh.set_triangles(tris)
+    
+    return mesh

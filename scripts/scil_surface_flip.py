@@ -20,6 +20,7 @@ from trimeshpy.io import load_mesh_from_file
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
+from scilpy.surfaces.surface_operations import flip
 
 EPILOG = """
 References:
@@ -57,19 +58,7 @@ def main():
     # Load mesh
     mesh = load_mesh_from_file(args.in_surface)
 
-    # Flip axes
-    flip = (-1 if 'x' in args.axes else 1,
-            -1 if 'y' in args.axes else 1,
-            -1 if 'z' in args.axes else 1)
-    tris, vts = mesh.flip_triangle_and_vertices(flip)
-    mesh.set_vertices(vts)
-    mesh.set_triangles(tris)
-
-    # Reverse surface orientation
-    if 'n' in args.axes:
-        tris = mesh.triangles_face_flip()
-        mesh.set_triangles(tris)
-
+    mesh = flip(mesh, args.axes)
     # Save
     mesh.save(args.out_surface)
 
