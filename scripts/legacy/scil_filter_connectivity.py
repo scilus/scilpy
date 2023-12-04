@@ -7,7 +7,7 @@ from scripts.scil_tractogram_flip import main as new_main
 
 DEPRECATION_MSG = """
 This script has been renamed scil_connectivity_filter.py.
-All our scripts regarding connectivity now start with scil_connectivity_...!  
+All our scripts regarding connectivity now start with scil_connectivity_...!
 
 Please change your existing pipelines accordingly.
 """
