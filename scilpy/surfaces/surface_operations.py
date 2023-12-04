@@ -62,12 +62,12 @@ def flip(mesh, axes):
 
     axes: list
         Axes (or normal orientation) you want to flip
-        
+
     Returns
     -------
     mesh: trimeshpy - Triangle Mesh VTK class
         Surface flipped
-    """    
+    """
     # Flip axes
     flip = (-1 if 'x' in axes else 1,
             -1 if 'y' in axes else 1,
@@ -80,5 +80,5 @@ def flip(mesh, axes):
     if 'n' in axes:
         tris = mesh.triangles_face_flip()
         mesh.set_triangles(tris)
-    
+
     return mesh
