@@ -13,21 +13,18 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_connectivity.py', '--help')
+    ret = script_runner.run('scil_connectivity_compute_matrices.py', '--help')
     assert ret.success
 
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_h5 = os.path.join(get_home(), 'connectivity',
-                         'decompose.h5')
+    in_h5 = os.path.join(get_home(), 'connectivity', 'decompose.h5')
     in_atlas = os.path.join(get_home(), 'connectivity',
                             'endpoints_atlas.nii.gz')
-    in_avg = os.path.join(get_home(), 'connectivity',
-                          'avg_density_maps/')
-    in_afd = os.path.join(get_home(), 'connectivity',
-                          'afd_max.nii.gz')
-    ret = script_runner.run('scil_compute_connectivity.py', in_h5,
+    in_avg = os.path.join(get_home(), 'connectivity', 'avg_density_maps/')
+    in_afd = os.path.join(get_home(), 'connectivity', 'afd_max.nii.gz')
+    ret = script_runner.run('scil_connectivity_compute_matrices.py', in_h5,
                             in_atlas, '--volume', 'vol.npy',
                             '--streamline_count', 'sc.npy',
                             '--length', 'len.npy',

@@ -13,19 +13,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compare_connectivity.py', '--help')
+    ret = script_runner.run('scil_connectivity_compare_populations.py',
+                            '--help')
     assert ret.success
 
 
 def test_execution_connectivity(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'connectivity',
-                        'sc.npy')
-    in_2 = os.path.join(get_home(), 'connectivity',
-                        'sc_norm.npy')
-    in_mask = os.path.join(get_home(), 'connectivity',
-                           'mask.npy')
-    ret = script_runner.run('scil_compare_connectivity.py', 'pval.npy',
-                            '--in_g1', in_1, '--in_g2', in_2,
+    in_1 = os.path.join(get_home(), 'connectivity', 'sc.npy')
+    in_2 = os.path.join(get_home(), 'connectivity', 'sc_norm.npy')
+    in_mask = os.path.join(get_home(), 'connectivity', 'mask.npy')
+    ret = script_runner.run('scil_connectivity_compare_populations.py',
+                            'pval.npy', '--in_g1', in_1, '--in_g2', in_2,
                             '--filtering_mask', in_mask)
     assert ret.success

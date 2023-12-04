@@ -3,12 +3,14 @@
 
 """
 Script to facilitate filtering of connectivity matrices.
-The same could be achieved through a complex sequence of scil_connectivity_math.py.
+The same could be achieved through a complex sequence of
+scil_connectivity_math.py.
 
-Can be used with any connectivity matrix from scil_compute_connectivity.py.
+Can be used with any connectivity matrix from
+scil_connectivity_compute_matrices.py.
 
 For example, a simple filtering (Jasmeen style) would be:
-scil_filter_connectivity.py out_mask.npy
+scil_connectivity_filter.py out_mask.npy
     --greater_than */sc.npy 1 0.90
     --lower_than */sim.npy 2 0.90
     --greater_than */len.npy 40 0.90 -v;
