@@ -14,7 +14,7 @@ in Scilpy):
 - tensorrt
 - tensorflow
 
-NOTE: There is no tests for this scripts due to the dependencies.
+NOTE: There is no test for this scripts due to the dependencies.
 """
 
 
@@ -49,13 +49,13 @@ def _build_arg_parser():
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_b0',
-                   help='Input b0 image.')
+                   help='Input b0 image (with skull).')
     p.add_argument('in_b0_mask',
-                   help='Input b0 mask.')
+                   help='Input b0 brain mask.')
     p.add_argument('in_t1',
-                   help='Input t1w image.')
+                   help='Input t1w image (with skull).')
     p.add_argument('in_t1_mask',
-                   help='Input t1w mask.')
+                   help='Input t1w brain mask.')
     p.add_argument('out_b0',
                    help='Output b0 image without distortion.')
 
