@@ -62,11 +62,11 @@ from scilpy.io.utils import (add_processes_arg, add_sphere_arg,
 from scilpy.image.volume_space_management import DataVolume
 from scilpy.tracking.propagator import ODFPropagator
 from scilpy.tracking.seed import SeedGenerator
-from scilpy.tracking.tools import get_theta
 from scilpy.tracking.tracker import Tracker
 from scilpy.tracking.utils import (add_mandatory_options_tracking,
                                    add_out_options, add_seeding_options,
                                    add_tracking_options,
+                                   get_theta,
                                    verify_streamline_length_options,
                                    verify_seed_options)
 
