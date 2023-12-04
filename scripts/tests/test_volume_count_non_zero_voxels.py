@@ -13,14 +13,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_resample_volume.py', '--help')
+    ret = script_runner.run('scil_volume_count_non_zero_voxels.py', '--help')
     assert ret.success
 
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(get_home(), 'others',
-                          'fa.nii.gz')
-    ret = script_runner.run('scil_resample_volume.py', in_img,
-                            'fa_resample.nii.gz', '--voxel_size', '2')
+                          'rgb.nii.gz')
+    ret = script_runner.run('scil_volume_count_non_zero_voxels.py', in_img)
     assert ret.success

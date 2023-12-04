@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_apply_transform_to_image.py', '--help')
+    ret = script_runner.run('scil_volume_apply_transform.py', '--help')
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_execution_bst(script_runner):
                          'fa.nii.gz')
     in_aff = os.path.join(get_home(), 'bst',
                           'output0GenericAffine.mat')
-    ret = script_runner.run('scil_apply_transform_to_image.py',
+    ret = script_runner.run('scil_volume_apply_transform.py',
                             in_model, in_fa, in_aff,
                             'template_lin.nii.gz', '--inverse')
     assert ret.success
