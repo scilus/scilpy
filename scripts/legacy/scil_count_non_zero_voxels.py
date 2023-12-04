@@ -6,8 +6,8 @@ from scripts.scil_volume_count_non_zero_voxels import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_volume_count_non_zero_voxels.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_volume_count_non_zero_voxels.py.
+Please change your existing pipelines accordingly.
 
 """
 
