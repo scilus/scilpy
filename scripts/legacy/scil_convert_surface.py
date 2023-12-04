@@ -11,7 +11,7 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_surface_convert.py",
+@deprecate_script("scil_convert_surface.py",
                   DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
