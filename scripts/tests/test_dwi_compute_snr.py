@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_snr_in_roi.py', '--help')
+    ret = script_runner.run('scil_dwi_compute_snr.py', '--help')
     assert ret.success
 
 
@@ -29,7 +29,7 @@ def test_snr(script_runner):
     noise_mask = os.path.join(get_home(), 'processing',
                               'small_roi_gm_mask.nii.gz')
 
-    ret = script_runner.run('scil_snr_in_roi.py', in_dwi,
+    ret = script_runner.run('scil_dwi_compute_snr.py', in_dwi,
                             in_bval, in_bvec, in_mask,
                             '--noise_mask', noise_mask,
                             '--b0_thr', '10')

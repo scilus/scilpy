@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_flip_volume.py', '--help')
+    ret = script_runner.run('scil_volume_flip.py', '--help')
     assert ret.success
 
 
@@ -21,6 +21,6 @@ def test_execution_surface_vtk_fib(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_fa = os.path.join(get_home(), 'surface_vtk_fib',
                          'fa.nii.gz')
-    ret = script_runner.run('scil_flip_volume.py', in_fa, 'fa_flip.nii.gz',
+    ret = script_runner.run('scil_volume_flip.py', in_fa, 'fa_flip.nii.gz',
                             'x')
     assert ret.success
