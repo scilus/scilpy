@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tracking_local import main as new_main
+from scripts.scil_labels_split_volume_from_lut import main as new_main
 
 
 DEPRECATION_MSG = """
