@@ -6,9 +6,8 @@ from scripts.scil_volume_reshape_to_reference import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_image_reshape_to_reference.py. Please change
-your existing pipelines accordingly.
-
+This script has been renamed scil_volume_reshape_to_reference.py.
+Please change your existing pipelines accordingly.
 """
 
 
