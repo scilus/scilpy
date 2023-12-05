@@ -12,6 +12,7 @@ Best usage with ANTs from T1 to b0:
 
 The input surface needs to be in *T1 world LPS* coordinates
 (aligned over the T1 in MI-Brain).
+The script will use the linear affine first and then the warp image from ANTs.
 The resulting surface should be aligned *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
 """
@@ -66,13 +67,9 @@ def main():
     # Load mesh
     mesh = load_mesh_from_file(args.in_surface)
 
-    affine = None
     warp_img = None
-
-    # Affine transformation
-    if args.ants_affine:
-        # Load affine
-        affine = np.loadtxt(args.ants_affine)
+    # Load affine
+    affine = np.loadtxt(args.ants_affine)
 
     # Non linear transformation
     if args.ants_warp:
