@@ -78,7 +78,8 @@ import os
 from dipy.io.streamline import save_tractogram
 from dipy.io.utils import is_header_compatible
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import (load_tractogram_with_reference,
+                                   verify_compatibility_with_reference_sft)
 from scilpy.io.utils import (add_bbox_arg,
                              add_overwrite_arg,
                              add_json_args,
@@ -86,7 +87,6 @@ from scilpy.io.utils import (add_bbox_arg,
                              add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             verify_compatibility_with_reference_sft,
                              assert_outputs_exist)
 from scilpy.segment.tractogram_from_roi import (compute_masks_from_bundles,
                                                 compute_endpoint_masks,
