@@ -437,7 +437,7 @@ def correct_procpar_intensity(dwi_data, dwi_path, b0_path):
     correction_factor = 10 ** (gain_difference / 20.0)
 
     # The dwi intensity is divided by factor instead of multiplying b0's
-    # intensity. This allows the scaling step in reconst_dti_metrics to
+    # intensity. This allows the scaling step in dti_metrics to
     # be applyed correclty.
     dwi_data *= 1.0 / correction_factor
 

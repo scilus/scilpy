@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_reconst_frf_set_diffusivities import main as new_main
+from scripts.scil_frf_set_diffusivities import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_reconst_frf_set_diffusivities.py.
+This script has been renamed scil_frf_set_diffusivities.py.
 Please change your existing pipelines accordingly.
 """
 

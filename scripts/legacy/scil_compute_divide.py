@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_reconst_divide_metrics import main as new_main
+from scripts.scil_btensor_metrics import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_reconst_divide_metrics.py.
+This script has been renamed scil_btensor_metrics.py.
 Please change your existing pipelines accordingly.
 """
 

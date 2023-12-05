@@ -7,7 +7,7 @@ at each voxel, the b-vectors and the fractional anisotropy map and outputs
 a corrected b-vectors file.
 
 A typical pipeline could be:
->>> scil_reconst_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
+>>> scil_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
     --evecs peaks.nii.gz
 >>> scil_validate_and_correct_bvecs.py bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
 

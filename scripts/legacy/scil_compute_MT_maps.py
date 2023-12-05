@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_reconst_mti_maps_MT import main as new_main
+from scripts.scil_mti_maps_MT import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_reconst_mti_maps_MT.py.
+This script has been renamed scil_mti_maps_MT.py.
 Please change your existing pipelines accordingly.
 """
 

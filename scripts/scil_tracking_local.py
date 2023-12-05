@@ -15,7 +15,7 @@ from the SF.
 Algo 'ptt': Parallel-Transport Tractography. See [1] for more details.
 
 NOTE: eudx can be used with pre-computed peaks from fodf as well as
-evecs_v1.nii.gz from scil_reconst_dti_metrics.py (experimental).
+evecs_v1.nii.gz from scil_dti_metrics.py (experimental).
 
 NOTE: If tracking with PTT, the step-size should be smaller than usual,
 i.e 0.1-0.2mm or lower. The maximum angle between segments (theta) should

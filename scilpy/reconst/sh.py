@@ -221,7 +221,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     absolute_threshold : float, optional
         Absolute threshold on fODF amplitude. This value should be set to
         approximately 1.5 to 2 times the maximum fODF amplitude in isotropic
-        voxels (ex. ventricles). `scil_reconst_fodf_max_in_ventricles.py`
+        voxels (ex. ventricles). `scil_fodf_max_in_ventricles.py`
         can be used to find the maximal value.
         Default: 0
     min_separation_angle : float in [0, 90], optional
