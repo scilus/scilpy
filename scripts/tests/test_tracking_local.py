@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tracking_local.py','--help')
+    ret = script_runner.run('scil_tracking_local.py', '--help')
     assert ret.success
 
 

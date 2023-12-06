@@ -48,7 +48,7 @@ export SCILPY_LEGACY='False'
 pip install -e .
 ```
 
-(Then without the legacy scripts, if you want to use pytest, use:)
+(Then, without the legacy scripts, if you want to use pytest, use:)
 ```
 pytest --ignore=scripts/legacy
 ```

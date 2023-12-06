@@ -5,4 +5,3 @@
 def test_help_option(script_runner):
     ret = script_runner.run('scil_filter_connectivity.py', '--help')
     assert ret.success
-

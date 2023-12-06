@@ -3,5 +3,6 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_evaluate_connectivity_pairwise_agreement_measures.py', '--help')
+    ret = script_runner.run(
+        'scil_evaluate_connectivity_pairwise_agreement_measures.py', '--help')
     assert ret.success
