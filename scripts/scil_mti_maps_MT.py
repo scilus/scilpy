@@ -48,9 +48,9 @@ The output consist in two types of images in two folders :
       The MT saturation is a pseudo-quantitative maps representing
       the signal change between the bound and free water pools.
 
->>> scil_mti_maps_MT.py path/to/output/directory
-    path/to/mask_bin.nii.gz --in_mtoff path/to/echo*mtoff.nii.gz
-    --in_mton path/to/echo*mton.nii.gz --in_t1w path/to/echo*T1w.nii.gz
+>>> scil_mti_maps_MT.py path/to/output/directory path/to/mask_bin.nii.gz
+    --in_mtoff path/to/echo*mtoff.nii.gz --in_mton path/to/echo*mton.nii.gz
+    --in_t1w path/to/echo*T1w.nii.gz
 
 """
 

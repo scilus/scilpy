@@ -52,8 +52,7 @@ The output consist in two types of images in two folders :
   These final maps can be corrected by an empiric B1 correction with
   --in_B1_map option, suffix *B1_corrected is added for each map.
 
->>> scil_mti_maps_ihMT.py path/to/output/directory
-    path/to/mask_bin.nii.gz
+>>> scil_mti_maps_ihMT.py path/to/output/directory path/to/mask_bin.nii.gz
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
     --in_mtoff path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
     --in_positive path/to/echo*pos.nii.gz --in_t1w path/to/echo*T1w.nii.gz
