@@ -226,7 +226,8 @@ def _build_arg_parser():
 
     p.add_argument('--out_labels_list', metavar='OUT_FILE',
                    help='Save the labels list as text file.\n'
-                        'Needed for scil_compute_connectivity.py and others.')
+                        'Needed for scil_connectivity_compute_matrices.py and '
+                        'others.')
 
     add_reference_arg(p)
     add_processes_arg(p)
