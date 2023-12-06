@@ -11,7 +11,8 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_validate_and_correct_eddy_gradients.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_validate_and_correct_eddy_gradients.py",
+                  DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

@@ -21,7 +21,7 @@ def test_help_option(script_runner):
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bvecs = os.path.join(get_home(), 'processing',
-                           'dwi.bvec')
+                            'dwi.bvec')
     in_aff = os.path.join(get_home(), 'bst',
                           'output0GenericAffine.mat')
     ret = script_runner.run('scil_gradients_apply_transform.py',
