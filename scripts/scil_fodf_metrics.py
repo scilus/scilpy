@@ -63,7 +63,7 @@ def _build_arg_parser():
                    help='Absolute threshold on fODF amplitude. This '
                         'value should be set to\napproximately 1.5 to 2 times '
                         'the maximum fODF amplitude in isotropic voxels\n'
-                        '(ie. ventricles).\nUse fodf_max_in_ventricles.py '
+                        '(ie. ventricles).\nUse scil_fodf_max_in_ventricles.py '
                         'to find the maximal value.\n'
                         'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
