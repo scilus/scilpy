@@ -6,14 +6,13 @@ import os
 import tempfile
 
 from dipy.io.streamline import load_tractogram
-import nibabel as nib
 from dipy.io.utils import is_header_compatible
+import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.utils import load_matrix_in_any_format
-from scilpy.utils.filenames import split_name_with_nii
 
 
 def check_tracts_same_format(parser, tractogram_1, tractogram_2):
@@ -198,30 +197,16 @@ def load_dps_files_as_dps(parser, dps_files, sft, keys=None):
     return sft, new_keys
 
 
-def load_map_values_as_dpp(sft, map_files, dpp_keys: list = None,
-                           uncompress=True, endpoints_only=False):
-    if uncompress and endpoints_only:
-        raise ValueError("Options uncompress end endpoints_only are "
-                         "incompatible.")
+def load_map_values_as_dpp(sft, map_files, dpp_keys: list,
+                           endpoints_only=False):
 
     init_space = sft.space
     init_orig = sft.origin
     sft.to_vox()
     sft.to_corner()
 
-    if uncompress:
-        raise NotImplementedError
-
     dpp_keys = dpp_keys or []
-    for i, map_file in enumerate(map_files):
-        if dpp_keys is None:
-            # Prepare dpp key from filename.
-            name = os.path.basename(map_file)
-            dpp_key, ext = split_name_with_nii(name)
-            dpp_keys.append(dpp_key)
-        else:
-            dpp_key = dpp_keys[i]
-
+    for dpp_key, map_file in zip(dpp_keys, map_files):
         logging.info("Loading file {}".format(map_file))
         the_map = nib.load(map_file).get_fdata(dtype=np.float32)
 

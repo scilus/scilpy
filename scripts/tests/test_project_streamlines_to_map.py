@@ -19,24 +19,21 @@ def test_help_option(script_runner):
 
 def test_execution_tractometry_default(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM_uni.trk')
-    in_ref = os.path.join(get_home(), 'tractometry',
-                          'mni_masked.nii.gz')
+    in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
+    in_ref = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     ret = script_runner.run('scil_project_streamlines_to_map.py', in_bundle,
-                            'out_def/', '--in_metrics', in_ref)
+                            'out_def/', '--in_metrics', in_ref,
+                            '--from_endpoints', '--to_endpoints')
 
     assert ret.success
 
 
 def test_execution_tractometry_wm(script_runner):
-    os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM_uni.trk')
-    in_ref = os.path.join(get_home(), 'tractometry',
-                          'mni_masked.nii.gz')
+    os.chdir('/home/local/USHERBROOKE/rene2201/my_applications/scil_vital/scilpy') # os.path.expanduser(tmp_dir.name))
+    in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM_uni.trk')
+    in_ref = os.path.join(get_home(), 'tractometry', 'mni_masked.nii.gz')
     ret = script_runner.run('scil_project_streamlines_to_map.py', in_bundle,
                             'out_wm/', '--in_metrics', in_ref,
                             '--to_wm', '--from_wm')
-
+    exit(1)
     assert ret.success

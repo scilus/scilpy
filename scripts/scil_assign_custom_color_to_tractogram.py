@@ -45,12 +45,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import map_coordinates
 
-from scilpy.io.streamlines import load_tractogram_with_reference
+from scilpy.io.streamlines import load_tractogram_with_reference, load_dps_files_as_dps, \
+    load_dpp_files_as_dpp
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
                              load_matrix_in_any_format)
+from scilpy.tractograms.dpp_dps_management import add_map_values_as_dpp
 from scilpy.utils.streamlines import get_color_streamlines_along_length, \
     get_color_streamlines_from_angle, clip_and_normalize_data_for_cmap
 from scilpy.viz.utils import get_colormap
@@ -197,27 +199,23 @@ def main():
         elif args.use_dpp:
             data = np.squeeze(sft.data_per_point[args.use_dpp]._data)
         elif args.load_dps:
-            data = np.squeeze(load_matrix_in_any_format(args.load_dps))
-            if len(data) != len(sft):
-                parser.error('Wrong dps size!')
+            sft, _ = load_dps_files_as_dps(parser, [args.load_dps], sft,
+                                           keys=['from_dps'])
+            data = sft.data_per_streamline['from_dps']
         else:  # args.load_dpp
-            data = np.squeeze(load_matrix_in_any_format(args.load_dpp))
-            if len(data) != len(sft.streamlines._data):
-                parser.error('Wrong dpp size!')
+            sft, _ = load_dpp_files_as_dpp(parser, [args.load_dps], sft,
+                                           keys=['from_dpp'])
+            data = sft.data_per_point['from_dpp']
         values, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
     elif args.from_anatomy:
         data = nib.load(args.from_anatomy).get_fdata()
         data, lbound, ubound = clip_and_normalize_data_for_cmap(args, data)
-
-        sft.to_vox()
-        values = map_coordinates(data, sft.streamlines._data.T, order=0)
-        sft.to_rasmm()
+        sft = add_map_values_as_dpp(sft, [data], ['from_anatomy'])
+        values = sft.data_per_point['from_anatomy']
     elif args.along_profile:
-        values, lbound, ubound = get_color_streamlines_along_length(
-            sft, args)
+        values, lbound, ubound = get_color_streamlines_along_length(sft, args)
     elif args.local_angle:
-        values, lbound, ubound = get_color_streamlines_from_angle(
-            sft, args)
+        values, lbound, ubound = get_color_streamlines_from_angle(sft, args)
     else:
         parser.error('No coloring method specified.')
 
