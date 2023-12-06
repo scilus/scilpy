@@ -11,8 +11,7 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_reorder_dwi_philips.py",
-                  DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_reorder_dwi_philips.py", DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 
