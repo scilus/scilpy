@@ -158,6 +158,10 @@ def main():
                                                       args.in_bvecs))))
     assert_outputs_exist(parser, args, arglist)
 
+    if args.op and not args.fa:
+        parser.error('Computation of the OP requires a precomputed ' +
+                     'FA map (given using --fa).')
+
     if not (len(args.in_dwis) == len(args.in_bvals)
             == len(args.in_bvecs) == len(args.in_bdeltas)):
         msg = """The number of given dwis, bvals, bvecs and bdeltas must be the
@@ -213,12 +217,9 @@ def main():
     if args.ufa:
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)
     if args.op:
-        if args.fa is not None:
-            OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
-            OP[microFA < FA] = 0
-            nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
-        else:
-            logging.warning('The FA must be given in order to compute the OP.')
+        OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
+        OP[microFA < FA] = 0
+        nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
     if args.mk_i:
         nib.save(nib.Nifti1Image(MK_I.astype(np.float32), affine), args.mk_i)
     if args.mk_a:
