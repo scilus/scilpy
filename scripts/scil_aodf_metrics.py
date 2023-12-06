@@ -93,7 +93,7 @@ def _build_arg_parser():
                         'value should be set to\napproximately 1.5 to 2 times '
                         'the maximum fODF amplitude in isotropic voxels\n'
                         '(ie. ventricles).\n'
-                        'Use fodf_max_in_ventricles.py to find the '
+                        'Use scil_fodf_max_in_ventricles.py to find the '
                         'maximal value.\n'
                         'See [Dell\'Acqua et al HBM 2013] [%(default)s].')
     p.add_argument('--rt', dest='r_threshold', type=float, default='0.1',
