@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Re-order gradient according to original table
+Re-order gradient according to original table (Philips)
+This script is not needed for version 5.6 and higher
 """
 
 import argparse
 import json
 import logging
 from packaging import version
+import sys
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
@@ -70,13 +72,16 @@ def main():
         with open(args.json) as curr_json:
             dwi_json = json.load(curr_json)
         if 'SoftwareVersions' in dwi_json.keys():
-
             curr_version = dwi_json['SoftwareVersions']
-            curr_version = curr_version.replace('\\', ' ').replace('_', ' ')
+            curr_version = curr_version.replace('\\',
+                                                ' ').replace('_',
+                                                             ' ').split()[0]
             if version.parse(SOFTWARE_VERSION_MIN) <= version.parse(curr_version):
-                logging.error('There is no need for reording since your'
-                              ' dwi comes from a philips machine '
-                              'version {}'.format(curr_version))
+                sys.exit('ERROR: There is no need for reording since your '
+                         'dwi comes from a philips machine with '
+                         'version {}. '.format(curr_version) +
+                         'No file will be created. \n'
+                         'Use -f to force overwriting.')
 
     philips_table = np.loadtxt(args.in_table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
