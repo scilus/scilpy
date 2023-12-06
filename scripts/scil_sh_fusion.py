@@ -9,7 +9,7 @@ by taking, for each coefficient, the one with the largest magnitude.
 Can be used to merge fODFs computed from different shells into 1, while
 conserving the most relevant information.
 
-Based on [1].
+Based on [1] and [2].
 """
 
 import argparse
@@ -28,6 +28,11 @@ Reference:
     How to perform best ODF reconstruction from the Human Connectome
     Project sampling scheme?
     ISMRM 2014.
+
+[2] Khachaturian, M. H., Wisco, J. J., & Tuch, D. S. (2007). Boosting the
+    sampling efficiency of q‐ball imaging using multiple wavevector fusion.
+    Magnetic Resonance in Medicine: An Official Journal of the International
+    Society for Magnetic Resonance in Medicine, 57(2), 289-296.
 """
 
 
