@@ -25,14 +25,6 @@ scilpy.reconst.divide module
    :undoc-members:
    :show-inheritance:
 
-scilpy.reconst.dwi module
----------------------------------
-
-.. automodule:: scilpy.reconst.dwi
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scilpy.reconst.fiber\_coherence module
 ---------------------------------------------
 
