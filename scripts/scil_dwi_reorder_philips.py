@@ -66,7 +66,7 @@ def main():
     assert_inputs_exist(parser, required_args, args.json)
     assert_outputs_exist(parser, args, output_filenames)
 
-    if args.json and args.force:
+    if args.json and not args.overwrite:
         with open(args.json) as curr_json:
             dwi_json = json.load(curr_json)
         if 'SoftwareVersions' in dwi_json.keys():
