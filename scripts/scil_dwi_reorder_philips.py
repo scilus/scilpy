@@ -6,7 +6,9 @@ Re-order gradient according to original table
 """
 
 import argparse
+import json
 import logging
+from packaging import version
 
 from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
@@ -18,6 +20,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
+
+SOFTWARE_VERSION_MIN = '5.6'
 
 
 def _build_arg_parser():
@@ -34,6 +38,10 @@ def _build_arg_parser():
                    help='Original philips table - first line is skipped.')
     p.add_argument('out_basename',
                    help='Basename output file.')
+
+    p.add_argument('--json',
+                   help='If you json file, it will check if you need'
+                        ' to reorder your philips dwi.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -55,8 +63,20 @@ def main():
                         args.out_basename + '.bval',
                         args.out_basename + '.bvec']
 
-    assert_inputs_exist(parser, required_args)
+    assert_inputs_exist(parser, required_args, args.json)
     assert_outputs_exist(parser, args, output_filenames)
+
+    if args.json and args.force:
+        with open(args.json) as curr_json:
+            dwi_json = json.load(curr_json)
+        if 'SoftwareVersions' in dwi_json.keys():
+
+            curr_version = dwi_json['SoftwareVersions']
+            curr_version = curr_version.replace('\\', ' ').replace('_', ' ')
+            if version.parse(SOFTWARE_VERSION_MIN) <= version.parse(curr_version):
+                logging.error('There is no need for reording since your'
+                              ' dwi comes from a philips machine '
+                              'version {}'.format(curr_version))
 
     philips_table = np.loadtxt(args.in_table, skiprows=1)
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
