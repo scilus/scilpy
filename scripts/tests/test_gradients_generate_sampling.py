@@ -13,13 +13,13 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_generate_gradient_sampling.py', '--help')
+    ret = script_runner.run('scil_gradients_generate_sampling.py', '--help')
     assert ret.success
 
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    ret = script_runner.run('scil_generate_gradient_sampling.py',
+    ret = script_runner.run('scil_gradients_generate_sampling.py',
                             '6', '6', 'encoding.b', '--mrtrix', '--eddy',
                             '--duty', '--b0_every', '25', '--b0_end',
                             '--bvals', '800', '1200')
