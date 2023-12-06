@@ -89,7 +89,7 @@ def _build_arg_parser():
     p.add_argument(
         '--do_multiple_s0', action='store_false',
         help='If set, does not take into account multiple baseline signals.')
-    
+
     g2 = p.add_argument_group(title='Order parameter (OP)')
     g2.add_argument(
         '--op',
