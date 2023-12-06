@@ -4,10 +4,93 @@ import logging
 import multiprocessing
 import numpy as np
 
+from dipy.core.sphere import Sphere
 from dipy.direction.peaks import peak_directions
 from dipy.reconst.odf import gfa
-from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef,
+from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
                               sph_harm_ind_list)
+
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              identify_shells,
+                                              is_normalized_bvecs,
+                                              normalize_bvecs)
+from scilpy.dwi.operations import compute_dwi_attenuation
+
+
+def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
+                            basis_type='descoteaux07', smooth=0.006,
+                            use_attenuation=False, force_b0_threshold=False,
+                            mask=None, sphere=None):
+    """Fit a diffusion signal with spherical harmonics coefficients.
+
+    Parameters
+    ----------
+    dwi : nib.Nifti1Image object
+        Diffusion signal as weighted images (4D).
+    gradient_table : GradientTable
+        Dipy object that contains all bvals and bvecs.
+    sh_order : int, optional
+        SH order to fit, by default 4.
+    smooth : float, optional
+        Lambda-regularization coefficient in the SH fit, by default 0.006.
+    basis_type: str
+        Either 'tournier07' or 'descoteaux07'
+    use_attenuation: bool, optional
+        If true, we will use DWI attenuation. [False]
+    force_b0_threshold : bool, optional
+        If set, will continue even if the minimum bvalue is suspiciously high.
+    mask: nib.Nifti1Image object, optional
+        Binary mask. Only data inside the mask will be used for computations
+        and reconstruction.
+    sphere: Sphere
+        Dipy object. If not provided, will use Sphere(xyz=bvecs).
+
+    Returns
+    -------
+    sh_coeffs : np.ndarray with shape (X, Y, Z, #coeffs)
+        Spherical harmonics coefficients at every voxel. The actual number
+        of coefficients depends on `sh_order`.
+    """
+
+    # Extracting infos
+    b0_mask = gradient_table.b0s_mask
+    bvecs = gradient_table.bvecs
+    bvals = gradient_table.bvals
+
+    # Checks
+    if not is_normalized_bvecs(bvecs):
+        logging.warning("Your b-vectors do not seem normalized...")
+        bvecs = normalize_bvecs(bvecs)
+
+    b0_threshold = check_b0_threshold(force_b0_threshold, bvals.min())
+
+    # Ensure that this is on a single shell.
+    shell_values, _ = identify_shells(bvals)
+    shell_values.sort()
+    if shell_values.shape[0] != 2 or shell_values[0] > b0_threshold:
+        raise ValueError("Can only work on single shell signals.")
+
+    # Keeping b0-based infos
+    bvecs = bvecs[np.logical_not(b0_mask)]
+    weights = dwi[..., np.logical_not(b0_mask)]
+
+    # Compute attenuation using the b0.
+    if use_attenuation:
+        b0 = dwi[..., b0_mask].mean(axis=3)
+        weights = compute_dwi_attenuation(weights, b0)
+
+    # Get cartesian coords from bvecs
+    if sphere is None:
+        sphere = Sphere(xyz=bvecs)
+
+    # Fit SH
+    sh = sf_to_sh(weights, sphere, sh_order, basis_type, smooth=smooth)
+
+    # Apply mask
+    if mask is not None:
+        sh *= mask[..., None]
+
+    return sh
 
 
 def compute_rish(sh, mask=None, full_basis=False):
@@ -138,7 +221,7 @@ def peaks_from_sh(shm_coeff, sphere, mask=None, relative_peak_threshold=0.5,
     absolute_threshold : float, optional
         Absolute threshold on fODF amplitude. This value should be set to
         approximately 1.5 to 2 times the maximum fODF amplitude in isotropic
-        voxels (ex. ventricles). `scil_compute_fodf_max_in_ventricles.py`
+        voxels (ex. ventricles). `scil_fodf_max_in_ventricles.py`
         can be used to find the maximal value.
         Default: 0
     min_separation_angle : float in [0, 90], optional
