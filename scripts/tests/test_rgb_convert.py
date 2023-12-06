@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_rgb_convert_rgb.py', '--help')
+    ret = script_runner.run('scil_rgb_convert.py', '--help')
     assert ret.success
 
 
@@ -21,6 +21,6 @@ def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_img = os.path.join(get_home(), 'others',
                           'rgb.nii.gz')
-    ret = script_runner.run('scil_rgb_convert_rgb.py',
+    ret = script_runner.run('scil_rgb_convert.py',
                             in_img, 'rgb_4D.nii.gz')
     assert ret.success
