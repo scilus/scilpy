@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_run_commit.py', '--help')
+    ret = script_runner.run('scil_tractogram_commit.py', '--help')
     assert ret.success
 
 
@@ -30,7 +30,7 @@ def test_execution_commit_amico(script_runner):
                            'mask.nii.gz')
     in_peaks = os.path.join(get_home(), 'commit_amico',
                             'peaks.nii.gz')
-    ret = script_runner.run('scil_run_commit.py', in_tracking, in_dwi,
+    ret = script_runner.run('scil_tractogram_commit.py', in_tracking, in_dwi,
                             in_bval, in_bvec, 'results_bzs/',
                             '--b_thr', '30', '--nbr_dir', '500',
                             '--nbr_iter', '500', '--in_peaks', in_peaks,
