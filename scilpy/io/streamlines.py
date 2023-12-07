@@ -10,6 +10,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
+from scilpy.tractograms.uncompress import uncompress
 from scipy.ndimage import map_coordinates
 
 from scilpy.io.utils import load_matrix_in_any_format
@@ -198,12 +199,16 @@ def load_dps_files_as_dps(parser, dps_files, sft, keys=None):
 
 
 def load_map_values_as_dpp(sft, map_files, dpp_keys: list,
-                           endpoints_only=False):
+                           uncompress_first=True, endpoints_only=False):
 
     init_space = sft.space
     init_orig = sft.origin
     sft.to_vox()
     sft.to_corner()
+
+    if uncompress_first:
+        logging.info("Uncompressing streamlines...")
+        sft.streamlines = uncompress(sft.streamlines)
 
     dpp_keys = dpp_keys or []
     for dpp_key, map_file in zip(dpp_keys, map_files):

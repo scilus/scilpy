@@ -221,16 +221,11 @@ def main():
         else:
             del sft.data_per_streamline[key]
 
-    # Uncompress if necessary
-    if args.to_wm and not (
-            (args.use_dpp or args.load_dpp) and args.point_by_point):
-        sft.streamlines = uncompress(sft.streamlines)
-
     # Ok, now ready for last case. Returns None for other points if we only
     # need the endpoint to avoid non-useful interpolation.
     if args.in_metrics:
         sft, dpp_to_use = load_map_values_as_dpp(
-            sft, args.in_metrics,
+            sft, args.in_metrics, metrics_names, uncompress_first=True,
             endpoints_only=(args.mean_endpoints or args.to_endpoints))
 
     # -------- Formatting streamlines  ----------
@@ -242,6 +237,11 @@ def main():
                                  endpoints_only=args.mean_endpoints)
         dps_to_use = dpp_to_use
         dpp_to_use = None
+
+    # Uncompress if necessary. Already done with --in_metrics.
+    if not (args.in_metrics or (args.to_wm and args.point_by_point)):
+        logging.info("Uncompressing streamlines...")
+        sft.streamlines = uncompress(sft.streamlines)
 
     # Now, if we we project to_endpoints, keep only the endpoint coordinates.
     if args.to_endpoints:
@@ -259,7 +259,6 @@ def main():
     # -------- Projection  ----------
 
     maps = project_dpp_to_map(sft, dpp_to_use)
-    logging.info("sucess")
 
     # -------- Save final maps ----------
     for i, the_map in enumerate(maps):
