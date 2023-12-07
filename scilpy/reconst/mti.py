@@ -354,6 +354,8 @@ def read_fit_values_from_mat_file(fit_values_file):
     coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
     fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
     Est_M0b_from_R1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
+    cf_eq = fit_SS_eqn.replace('^', '**').replace('Raobs.','Raobs').replace('M0b.','M0b').replace('b1.','b1')
+    r1_to_m0b = Est_M0b_from_R1.replace('^', '**').replace('Raobs.','Raobs').replace('M0b.','M0b').replace('b1.','b1')
     return coeffs
 
 
@@ -381,6 +383,7 @@ def compute_B1_correction_factor_map(b1_map, r1, coeffs, r1_to_m0b, b1_ref=1):
     b1 = b1_map * b1_ref
 
     # Try eval() instead.
+    # cf_act = eval(cf_eq)
 
     idx = 0
     cf_act = np.zeros(b1_map.shape)
