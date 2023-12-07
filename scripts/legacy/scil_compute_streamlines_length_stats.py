@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_compute_density_map import main as new_main
+from scripts.scil_tractogram_print_info import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_compute_density_map.py.
+This script has been renamed scil_tractogram_print_info.py.
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_compute_streamlines_density_map.py",
+@deprecate_script("scil_compute_streamlines_length_stats.py",
                   DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
