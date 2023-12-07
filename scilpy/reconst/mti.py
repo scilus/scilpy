@@ -362,9 +362,25 @@ def compute_B1_correction_factor_map(b1_map, r1, coeffs, r1_to_m0b, b1_ref=1):
     m0b_coeff_num = 2
     r1_coeff_num = 4
 
+    # low_flip_angle = 15;    % flip angle in degrees -> Customize
+    # high_flip_angle = 30;  % flip angle in degrees -> Customize
+    # TR1 = 112;               % low flip angle repetition time of the GRE kernel in milliseconds -> Customize
+    # TR2 = 20;               % high flip angle repetition time of the GRE kernel in milliseconds -> Customize
+
+    # a1 = deg2rad(low_flip_angle) * b1; 
+    # a2 = deg2rad(high_flip_angle)* b1; 
+
+    # R1 = 0.5 .* (hfa.*a2./ TR2 - lfa.*a1./TR1) ./ (lfa./(a1) - hfa./(a2));
+    # App = lfa .* hfa .* (TR1 .* a2./a1 - TR2.* a1./a2) ./ (hfa.* TR1 .*a2 - lfa.* TR2 .*a1);
+
+    # T1 = 1./R1 .*mask1;
+    # R1_s = (1./T1) *1000; % convert to 1/ms to 1/s
+
     m0b = r1_to_m0b(r1)
 
     b1 = b1_map * b1_ref
+
+    # Try eval() instead.
 
     idx = 0
     cf_act = np.zeros(b1_map.shape)
