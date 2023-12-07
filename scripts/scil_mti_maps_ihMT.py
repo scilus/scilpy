@@ -77,7 +77,11 @@ from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_ihMT_maps, threshold_maps,
                                 compute_MT_maps_from_ihMT,
-                                apply_B1_correction)
+                                apply_B1_correction_empiric,
+                                ajust_b1_map_intensities,
+                                smooth_B1_map,
+                                read_fit_values_from_mat_file,
+                                compute_B1_correction_factor_map)
 
 EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
@@ -107,13 +111,25 @@ def _build_arg_parser():
                         'T1 segmentation (GM+WM+CSF).')
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
-    p.add_argument('--in_B1_map',
-                   help='Path to B1 coregister map to MT contrasts.')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing. '
                         'Not recommended.')
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
+    
+    b = p.add_argument_group(title='B1 correction')
+    b.add_argument('--in_B1_map',
+                   help='Path to B1 coregister map to MT contrasts.')
+    b.add_argument('--B1_correction_method',
+                   choices=['empiric', 'model_based'], default='empiric',
+                   help='Choice of B1 correction method. Choose between '
+                    'empiric and model-based. Note that the model-based '
+                    'method requires a B1 fitvalues file. [%(default)s]')
+    b.add_argument('--in_B1_fitvalues',
+                   help='Path to B1 fitvalues file obtained externally(.mat).')
+    b.add_argument('--nominal_B1', default=100,
+                   help='Nominal value for the B1 map. For Philips, should be '
+                        '100. [%(default)s]')
 
     g = p.add_argument_group(title='ihMT contrasts', description='Path to '
                              'echoes corresponding to contrasts images. All '
@@ -173,6 +189,11 @@ def main():
         if len(curr_map) != len(maps[0]):
             parser.error('Not the same number of echoes per contrast')
 
+    if args.B1_correction_method == 'model_based' and not args.in_B1_fitvalues:
+        parser.error('A fitvalues files must be given when choosing the '
+                     'model-based B1 correction method. Please use '
+                     '--in_B1_fitvalues')
+
     # Set TR and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
     parameters = []
@@ -229,8 +250,19 @@ def main():
                              idx_contrast_list=[4, 3, 1, 0],
                              contrasts_maps=computed_contrasts)
     if args.in_B1_map:
-        ihMTR = apply_B1_correction(ihMTR, args.in_B1_map)
-        ihMTsat = apply_B1_correction(ihMTsat, args.in_B1_map)
+        # Load B1 image
+        B1_img = nib.load(args.in_B1_map)
+        B1_map = B1_img.get_fdata(dtype=np.float32)
+        B1_map = ajust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = smooth_B1_map(B1_map)
+        if args.B1_correction_method == 'empiric':
+            ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
+            ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
+        else:
+            coeffs = read_fit_values_from_mat_file(args.in_B1_fitvalues)
+            cf_map = compute_B1_correction_factor_map(B1_map, r1, coeffs,
+                                                      r1_to_m0b, b1_ref=1)
+            
 
     # Compute and thresold non-ihMT maps
     MTR, MTsat = compute_MT_maps_from_ihMT(computed_contrasts, parameters)
@@ -239,7 +271,7 @@ def main():
                                   idx_contrast_list=[4, 2],
                                   contrasts_maps=computed_contrasts)
         if args.in_B1_map:
-            curr_map = apply_B1_correction(curr_map, args.in_B1_map)
+            curr_map = apply_B1_correction_empiric(curr_map, args.in_B1_map)
 
     # Save ihMT and MT images
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']

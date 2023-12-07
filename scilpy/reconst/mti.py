@@ -4,6 +4,7 @@ import json
 
 import nibabel as nib
 import numpy as np
+import scipy.io
 import scipy.ndimage
 
 from scilpy.io.image import get_data_as_mask
@@ -309,7 +310,7 @@ def threshold_maps(computed_map,  in_mask,
     return computed_map
 
 
-def apply_B1_correction(MT_map, B1_map):
+def apply_B1_correction_empiric(MT_map, B1_map):
     """
     Function to apply an empiric B1 correction.
 
@@ -325,16 +326,62 @@ def apply_B1_correction(MT_map, B1_map):
     ----------
     Corrected MT matrix in 3D-array.
     """
-    # Load B1 image
-    B1_img = nib.load(B1_map)
-    B1_img_data = B1_img.get_fdata(dtype=np.float32)
-
-    # Apply a light smoothing to the B1 map
-    h = np.ones((5, 5, 1))/25
-    B1_smooth_map = scipy.ndimage.convolve(B1_img_data,
-                                           h).astype(np.float32)
 
     # Apply an empiric B1 correction via B1 smooth data on MT data
-    MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_smooth_map/100))
+    MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_map))
 
     return MT_map_B1_corrected
+
+
+def ajust_b1_map_intensities(b1_map, nominal=100):
+    b1_map /= nominal
+    mean_b1 = np.mean(b1_map)
+    if np.isclose(mean_b1, 1.0, atol=0.2):
+        raise ValueError("Intensities of the B1 map are wrong.")
+    b1_map = np.clip(b1_map, 0.5, 1.4) # Not sure if should clip or cut
+    return b1_map
+
+
+def smooth_B1_map(B1_map):
+    # Apply a light smoothing to the B1 map
+    h = np.ones((5, 5, 1))/25
+    B1_map_smooth = scipy.ndimage.convolve(B1_map, h).astype(np.float32)
+    return B1_map_smooth
+
+
+def read_fit_values_from_mat_file(fit_values_file):
+    fit_values = scipy.io.loadmat(fit_values_file)
+    coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
+    fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
+    Est_M0b_from_R1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
+    return coeffs
+
+
+def compute_B1_correction_factor_map(b1_map, r1, coeffs, r1_to_m0b, b1_ref=1):
+    b1_coeff_num = 5
+    m0b_coeff_num = 2
+    r1_coeff_num = 4
+
+    m0b = r1_to_m0b(r1)
+
+    b1 = b1_map * b1_ref
+
+    idx = 0
+    cf_act = np.zeros(b1_map.shape)
+    cf_nom = np.zeros(b1_map.shape)
+    for i in range(0, m0b_coeff_num + 1):
+        for j in range(0, b1_coeff_num + 1):
+            for k in range(0, r1_coeff_num + 1):
+                cf_act += coeffs[idx] * m0b ** i * b1 ** j * r1 ** k
+                cf_nom += coeffs[idx] * m0b ** i * b1_ref ** j * r1 ** k
+
+                idx += 1
+
+    cf_map = (cf_nom - cf_act) / cf_act
+
+    return cf_map
+
+
+def apply_B1_correction_model_based(MTsat, cf_map):
+    MTsat_corr = MTsat + MTsat * cf_map
+    return MTsat_corr
