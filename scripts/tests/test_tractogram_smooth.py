@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_smooth_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_smooth.py', '--help')
     assert ret.success
 
 
