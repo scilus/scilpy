@@ -250,7 +250,7 @@ def main():
     # Finally, if we are dealing with dps, convert to dpp (copy the same
     # value everywhere).
     if dps_to_use is not None:
-        assert dpp_to_use is not None
+        assert dpp_to_use is None
         sft = repeat_dps_as_dpp(sft, dps_to_use, remove_dps=True)
         dpp_to_use = dps_to_use
     else:

@@ -30,7 +30,7 @@ def average_dpp_as_dps(sft: StatefulTractogram, dpp_keys, remove_dpp=True,
         dpp = sft.data_per_point[key]
 
         if remove_dpp:
-            sft.data_per_point[key] = []
+            del sft.data_per_point[key]
 
         if endpoints_only:
             sft.data_per_streamline[key] = [np.mean(s[[0, -1], :])
