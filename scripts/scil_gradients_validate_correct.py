@@ -9,7 +9,7 @@ a corrected b-vectors file.
 A typical pipeline could be:
 >>> scil_dti_metrics.py dwi.nii.gz bval bvec --not_all --fa fa.nii.gz
     --evecs peaks.nii.gz
->>> scil_validate_and_correct_bvecs.py bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
+>>> scil_gradients_validate_correct.py bvec peaks_v1.nii.gz fa.nii.gz bvec_corr
 
 Note that peaks_v1.nii.gz is the file containing the direction associated
 to the highest eigenvalue at each voxel.

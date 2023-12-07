@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_merge_sh.py', '--help')
+    ret = script_runner.run('scil_sh_fusion.py', '--help')
     assert ret.success
 
 
@@ -22,5 +22,5 @@ def test_execution_processing(script_runner):
                            'sh_1000.nii.gz')
     in_sh_2 = os.path.join(get_home(), 'processing',
                            'sh_3000.nii.gz')
-    ret = script_runner.run('scil_merge_sh.py', in_sh_1, in_sh_2, 'sh.nii.gz')
+    ret = script_runner.run('scil_sh_fusion.py', in_sh_1, in_sh_2, 'sh.nii.gz')
     assert ret.success

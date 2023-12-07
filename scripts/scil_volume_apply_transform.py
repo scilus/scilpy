@@ -70,7 +70,7 @@ def main():
     if moving.get_fdata().ndim == 4:
         warnings.warn('You are applying a transform to a 4D dwi volume, '
                       'make sure to rotate your bvecs with '
-                      'scil_apply_transform_to_bvecs.py')
+                      'scil_gradients_apply_transform.py')
 
     reference = nib.load(args.in_target_file)
 
