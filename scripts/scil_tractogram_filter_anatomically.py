@@ -35,10 +35,10 @@ each step and outliers) and volumes can be saved throughout the process.
 Example usages:
 
 # Filter length, looping angle and anatomical ending region
->>> scil_filter_tractogram_anatomically.py tractogram.trk wmparc.nii.gz
+>>> scil_tractogram_filter_anatomically.py tractogram.trk wmparc.nii.gz
     path/to/output/directory --minL 20 --maxL 200 -a 300
 # Filter only anatomical ending region, with WM dilation and provided csf mask
->>> scil_filter_tractogram_anatomically.py tractogram.trk wmparc.nii.gz
+>>> scil_tractogram_filter_anatomically.py tractogram.trk wmparc.nii.gz
     path/to/output/directory --csf_bin csf_bin.nii.gz --ctx_dilation_radius 2
 """
 
@@ -550,7 +550,7 @@ def main():
             return
 
         logging.debug('The file {} contains 0 streamlines after '.format(
-                          out_sft_name) + step + ' filtering')
+            out_sft_name) + step + ' filtering')
         save_tractogram(new_sft, out_sft_name)
 
     if args.verbose:
