@@ -108,6 +108,7 @@ def project_dpp_to_map(sft, dpp_keys, sum_lines=False):
     sft.to_corner()
     epsilon = 1e-6
 
+    # count: could also use compute_tract_counts_map. Trying to avoid one loop.
     count = np.zeros(sft.dimensions)
     maps = []
     for i, dpp_key in enumerate(dpp_keys):

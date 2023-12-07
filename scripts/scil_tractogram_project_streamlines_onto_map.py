@@ -147,7 +147,7 @@ def main():
             metrics_names.append(name)
     else:
         metrics_names = args.use_dpp or args.use_dps
-    out_files = [args.out_prefix + m for m in metrics_names]
+    out_files = [args.out_prefix + m + '.nii.gz' for m in metrics_names]
     assert_outputs_exist(parser, args, out_files)
 
     # -------- Loading streamlines and checking compatibility ----------

@@ -218,9 +218,11 @@ def load_map_values_as_dpp(sft, map_files, dpp_keys: list,
         if endpoints_only:
             # Avoid interpolation where not needed.
             raise NotImplementedError
-            data = [start, None*..., data]
+            data = [start] + [None*..., data]
         else:
+            lengths = [len(s) for s in sft.streamlines]
             data = map_coordinates(the_map, sft.streamlines._data.T, order=0)
+            data = np.split()
         sft.data_per_point[dpp_key] = data
 
     sft.to_space(init_space)
