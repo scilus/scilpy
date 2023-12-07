@@ -22,11 +22,11 @@ def test_execution_processing(script_runner):
     # mrtrix
     in_encoding = os.path.join(get_home(), 'processing', '1000.b')
     ret = script_runner.run('scil_gradients_modify_axes.py', in_encoding,
-                            '1000_flip.b', 'x-zy')
+                            '1000_flip.b', '-1', '3', '2')
     assert ret.success
 
     # FSL
     in_encoding = os.path.join(get_home(), 'processing', '1000.bvec')
     ret = script_runner.run('scil_gradients_modify_axes.py', in_encoding,
-                            '1000_flip.bvec', 'x-zy')
+                            '1000_flip.bvec', '1', '-3', '2')
     assert ret.success
