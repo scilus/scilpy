@@ -178,5 +178,5 @@ legacy_scripts_list_tag_1_6_0 = [
 # test that all scripts available in scilpy 1.6.0 can be called
 def test_help_option(script_runner):
     for script in legacy_scripts_list_tag_1_6_0:
-        ret = script_runner.run('  ' + script, '--help')
+        ret = script_runner.run(script, '--help')
         assert ret.success
