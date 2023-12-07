@@ -12,15 +12,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_convert_gradients_mrtrix_to_fsl.py',
+    ret = script_runner.run('scil_gradients_convert_fsl_to_mrtrix.py',
                             '--help')
     assert ret.success
 
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_encoding = os.path.join(get_home(), 'processing',
-                               '1000.b')
-    ret = script_runner.run('scil_convert_gradients_mrtrix_to_fsl.py',
-                            in_encoding, '1000.bval', '1000.bvec')
+    in_bval = os.path.join(get_home(), 'processing',
+                           '1000.bval')
+    in_bvec = os.path.join(get_home(), 'processing',
+                           '1000.bvec')
+    ret = script_runner.run('scil_gradients_convert_fsl_to_mrtrix.py',
+                            in_bval, in_bvec, '1000.b')
     assert ret.success
