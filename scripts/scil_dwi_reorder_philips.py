@@ -43,7 +43,7 @@ def _build_arg_parser():
 
     p.add_argument('--json',
                    help='If you json file, it will check if you need'
-                        ' to reorder your philips dwi.')
+                        ' to reorder your Philips dwi.')
 
     add_overwrite_arg(p)
     add_verbose_arg(p)
@@ -78,7 +78,7 @@ def main():
                                                              ' ').split()[0]
             if version.parse(SOFTWARE_VERSION_MIN) <= version.parse(curr_version):
                 sys.exit('ERROR: There is no need for reording since your '
-                         'dwi comes from a philips machine with '
+                         'dwi comes from a Philips machine with '
                          'version {}. '.format(curr_version) +
                          'No file will be created. \n'
                          'Use -f to force overwriting.')
