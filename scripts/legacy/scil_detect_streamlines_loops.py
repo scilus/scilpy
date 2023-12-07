@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_flip import main as new_main
+from scripts.scil_tractogram_detect_loops import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_flip.py. Please change
+This script has been renamed scil_tractogram_detect_loops.py. Please change
 your existing pipelines accordingly.
+
 """
 
 
-@deprecate_script("scil_flip_streamlines.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_detect_streamlines_loops.py", DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

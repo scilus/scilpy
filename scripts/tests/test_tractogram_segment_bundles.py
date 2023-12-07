@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_recognize_multi_bundles.py', '--help')
+    ret = script_runner.run('scil_tractogram_segment_bundles.py', '--help')
     assert ret.success
 
 
@@ -27,7 +27,7 @@ def test_execution_bundles(script_runner):
     in_models = os.path.join(get_home(), 'bundles', 'fibercup_atlas')
     in_aff = os.path.join(get_home(), 'bundles',
                           'affine.txt')
-    
+
     tmp_config = {}
     for i in range(1, 6):
         tmp_config['bundle_{}.trk'.format(i)] = 4
@@ -35,7 +35,7 @@ def test_execution_bundles(script_runner):
     with open('config.json', 'w') as outfile:
         json.dump(tmp_config, outfile)
 
-    ret = script_runner.run('scil_recognize_multi_bundles.py',
+    ret = script_runner.run('scil_tractogram_segment_bundles.py',
                             in_tractogram, 'config.json',
                             in_models,
                             in_aff, '--inverse',

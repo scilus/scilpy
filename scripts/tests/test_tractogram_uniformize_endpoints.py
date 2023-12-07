@@ -13,15 +13,15 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_resample_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_uniformize_endpoints.py',
+                            '--help')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM_uni_c.trk')
-    ret = script_runner.run('scil_resample_streamlines.py',
-                            in_bundle, 'IFGWM_uni_c_10.trk',
-                            '--nb_pts_per_streamline', '10')
+                             'IFGWM.trk')
+    ret = script_runner.run('scil_tractogram_uniformize_endpoints.py',
+                            in_bundle, 'IFGWM_uni.trk', '--auto')
     assert ret.success

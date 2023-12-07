@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_smooth_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_smooth.py', '--help')
     assert ret.success
 
 
@@ -20,7 +20,7 @@ def test_execution_tracking(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_tracto = os.path.join(get_home(), 'tracking',
                              'union_shuffle_sub.trk')
-    ret = script_runner.run('scil_smooth_streamlines.py', in_tracto,
+    ret = script_runner.run('scil_tractogram_smooth.py', in_tracto,
                             'union_shuffle_sub_smooth.trk', '--gaussian', '10',
                             '-e', '0.05')
     assert ret.success

@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_tractogram_filter.py', '--help')
+    ret = script_runner.run('scil_tractogram_filter_by_roi.py', '--help')
     assert ret.success
 
 
@@ -25,7 +25,7 @@ def test_execution_filtering(script_runner):
                           'mask.nii.gz')
     in_bdo = os.path.join(get_home(), 'filtering',
                           'sc.bdo')
-    ret = script_runner.run('scil_tractogram_filter.py', in_tractogram,
+    ret = script_runner.run('scil_tractogram_filter_by_roi.py', in_tractogram,
                             'bundle_4.trk', '--display_counts',
                             '--drawn_roi', in_roi, 'any', 'include',
                             '--bdo', in_bdo, 'any', 'include',
@@ -41,7 +41,7 @@ def test_execution_filtering_distance(script_runner):
                           'mask.nii.gz')
     in_bdo = os.path.join(get_home(), 'filtering',
                           'sc.bdo')
-    ret = script_runner.run('scil_tractogram_filter.py', in_tractogram,
+    ret = script_runner.run('scil_tractogram_filter_by_roi.py', in_tractogram,
                             'bundle_5.trk', '--display_counts',
                             '--drawn_roi', in_roi, 'any', 'include', '2',
                             '--bdo', in_bdo, 'any', 'include', '3',
