@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_filter_anatomically import main as new_main
+from scripts.scil_tractogram_filter_by_anatomy import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_filter_anatomically.py.
+This script has been renamed scil_tractogram_filter_by_anatomy.py.
 Please change your existing pipelines accordingly.
 """
 
