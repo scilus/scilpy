@@ -2,13 +2,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Evaluate basic measurements of bundles, all at once.
-All tractograms must be in the same space (aligned to one reference)
+Evaluate basic measurements of bundle(s).
+
 The computed measures are:
-volume, volume_endpoints, streamlines_count, avg_length, std_length,
-min_length, max_length, span, curl, diameter, elongation, surface area,
-irregularity, end surface area, radius, end surface irregularity,
-mean_curvature, fractal dimension.
+    - volume_info: volume, volume_endpoints
+    - streamlines_info: streamlines_count, avg_length (in mm or in number of
+      point), average step size, min_length, max_length.
+      ** You may also get this information with scil_tractogram_print_info.
+    - shape_info: span, curl, diameter, elongation, surface area,
+      irregularity, end surface area, radius, end surface irregularity,
+      mean_curvature, fractal dimension.
+      ** The diameter, here, is a simple estimation using volume / length.
+      For a more complex calculation, see scil_bundle_diameter.py.
+
+With more than one bundle, the measures are averaged over bundles. All
+tractograms must be in the same space.
 
 The set average contains the average measures of all input bundles. The
 measures that are dependent on the streamline count are weighted by the number
@@ -17,7 +25,7 @@ first summing the multiple of a measure and the streamline count of each
 bundle and divide the sum by the total number of streamlines. Thus, measures
 including length and span are essentially averages of all the streamlines.
 Other streamline-related set measure are computed with other set averages.
-Whereas, bundle-related measures are computed as an average of all bundles.
+Whereas bundle-related measures are computed as an average of all bundles.
 These measures include volume and surface area.
 
 The fractal dimension is dependent on the voxel size and the number of voxels.
@@ -65,11 +73,11 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
                    help='Path of the input bundles.')
-    p.add_argument('out_json',
-                   help='Path of the output file.')
+    p.add_argument('--out_json',
+                   help='Path of the output file. If not given, the output '
+                        'is simply printed on screen.')
     p.add_argument('--group_statistics', action='store_true',
-                   help='Show average measures \n'
-                        '[%(default)s].')
+                   help='Show average measures [%(default)s].')
 
     p.add_argument('--no_uniformize', action='store_true',
                    help='Do NOT automatically uniformize endpoints for the'
@@ -185,7 +193,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
     assert_inputs_exist(parser, args.in_bundles)
-    assert_outputs_exist(parser, args, args.out_json)
+    assert_outputs_exist(parser, args, [], args.out_json)
 
     nbr_cpu = validate_nbr_processes(parser, args)
     bundles_references_tuple_extended = link_bundles_and_reference(
@@ -268,9 +276,14 @@ def main():
                 output_measures_dict['irregularity_of_end_surface_tail'])
         output_measures_dict['group_stats']['avg_fractal_dimension'] = \
             np.average(output_measures_dict['fractal_dimension'])
-    with open(args.out_json, 'w') as outfile:
-        json.dump(output_measures_dict, outfile,
-                  indent=args.indent, sort_keys=args.sort_keys)
+
+    if args.out_json:
+        with open(args.out_json, 'w') as outfile:
+            json.dump(output_measures_dict, outfile,
+                      indent=args.indent, sort_keys=args.sort_keys)
+    else:
+        print(json.dumps(output_measures_dict,
+                         indent=args.indent, sort_keys=args.sort_keys))
 
 
 if __name__ == "__main__":

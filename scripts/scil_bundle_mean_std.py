@@ -65,6 +65,9 @@ def _build_arg_parser():
                    help='If set, weight statistics by the correlation strength '
                         'between longitudinal data.')
 
+    p.add_argument('--out_json',
+                   help='Path of the output file. If not given, the output '
+                        'is simply printed on screen.')
     add_reference_arg(p)
     add_json_args(p)
 
@@ -139,7 +142,6 @@ def main():
                     'mean': mean,
                     'std': std
                 }
-        print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
     else:
         # Per point
         labels_img = nib.load(args.in_labels)
@@ -149,13 +151,12 @@ def main():
             sft.streamlines, bundle_name, metrics, labels,
             distances_map, correlation_map, args.density_weighting)
 
-        if args.out_json:
-            with open(args.out_json, 'w') as outfile:
-                json.dump(stats, outfile, indent=args.indent,
-                          sort_keys=args.sort_keys)
-        else:
-            print(json.dumps(stats, indent=args.indent,
-                             sort_keys=args.sort_keys))
+    if args.out_json:
+        with open(args.out_json, 'w') as outfile:
+            json.dump(stats, outfile,
+                      indent=args.indent, sort_keys=args.sort_keys)
+    else:
+        print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
 
 if __name__ == '__main__':
