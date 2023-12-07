@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_count_streamlines.py', '--help')
+    ret = script_runner.run('scil_tractogram_count_streamlines.py', '--help')
     assert ret.success
 
 
@@ -21,5 +21,5 @@ def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
     in_bundle = os.path.join(get_home(), 'others',
                              'IFGWM_sub.trk')
-    ret = script_runner.run('scil_count_streamlines.py', in_bundle)
+    ret = script_runner.run('scil_tractogram_count_streamlines.py', in_bundle)
     assert ret.success
