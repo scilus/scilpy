@@ -7,9 +7,8 @@ Transform bvecs using an affine/rigid transformation.
 
 import argparse
 
-import numpy as np
-
 from dipy.io.gradients import read_bvals_bvecs
+import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
                              assert_outputs_exist, load_matrix_in_any_format)
