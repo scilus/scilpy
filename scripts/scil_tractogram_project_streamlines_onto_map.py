@@ -196,19 +196,30 @@ def main():
     # else, args.in_metrics, but we will refactor the streamlines first.
 
     # Verify that we have singular values. (Ex, not colors)
-    if dpp_to_use is not None:
-        for key in dpp_to_use:
+    # Remove unused keys
+
+    # Need to list keys before; changes during iteration.
+    all_keys = list(sft.data_per_point.keys())
+    for key in all_keys:
+        if dpp_to_use is not None and key in dpp_to_use:
             if len(sft.data_per_point[key][0].squeeze().shape) > 1:
-                raise ValueError("Expecting scalar values as data_per_point. "
-                                 "Got data of shape {}."
-                                 .format(sft.data_per_point[key][0].shape[1]))
-    if dps_to_use is not None:
-        for key in dpp_to_use:
+                raise ValueError(
+                    "Expecting scalar values as data_per_point.  Got data of "
+                    "shape {}.".format(sft.data_per_point[key][0].shape[1]))
+        else:
+            del sft.data_per_point[key]
+
+    all_keys = list(sft.data_per_streamline.keys())
+    for key in all_keys:
+        if dps_to_use is not None and key in dps_to_use:
             if not np.array_equal(
                     sft.data_per_streamline[key][0].squeeze().shape, [1,]):
-                raise ValueError("Expecting scalar values as "
-                                 "data_per_streamline. Got data of shape {}."
-                                 .format(sft.data_per_streamline[key][0].shape))
+                raise ValueError(
+                    "Expecting scalar values as data_per_streamline. Got data "
+                    "of shape {}."
+                    .format(sft.data_per_streamline[key][0].shape))
+        else:
+            del sft.data_per_streamline[key]
 
     # Uncompress if necessary
     if args.to_wm and not (

@@ -63,7 +63,7 @@ def repeat_dps_as_dpp(sft: StatefulTractogram, dps_keys, remove_dps=True):
         dps = sft.data_per_streamline[key]
 
         if remove_dps:
-            sft.data_per_streamline[key] = []
+            del sft.data_per_streamline[key]
 
         sft.data_per_point[key] = [val*np.ones(len(s))
                                    for val, s in zip(dps, sft.streamlines)]
@@ -71,15 +71,18 @@ def repeat_dps_as_dpp(sft: StatefulTractogram, dps_keys, remove_dps=True):
     return sft
 
 
-def keep_only_endpoints(sft):
+def keep_only_endpoints(sft: StatefulTractogram):
     """
     Keeps only the endpoints, both in the streamlines and in associated
     data_per_point.
     """
-    sft.streamlines = [s[[0, -1], :] for s in sft.streamlines]
+    streamlines = [s[[0, -1], :] for s in sft.streamlines]
+    dpp = dict(sft.data_per_point)
     for key in sft.data_per_point.keys():
-        sft.data_per_point[key] = [s[[0, -1]] for s in sft.data_per_point[key]]
-    return sft
+        dpp[key] = [s[[0, -1], :] for s in dpp[key]]
+
+    return sft.from_sft(streamlines, sft, data_per_point=dpp,
+                        data_per_streamline=sft.data_per_streamline)
 
 
 def project_dpp_to_map(sft, dpp_keys, sum_lines=False):
