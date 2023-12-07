@@ -74,7 +74,7 @@ def repeat_dps_as_dpp(sft: StatefulTractogram, dps_keys, remove_dps=True):
 def keep_only_endpoints(sft: StatefulTractogram):
     """
     Keeps only the endpoints, both in the streamlines and in associated
-    data_per_point.
+    data_per_point (data_per_streamline does not need to be modified).
     """
     streamlines = [s[[0, -1], :] for s in sft.streamlines]
     dpp = dict(sft.data_per_point)

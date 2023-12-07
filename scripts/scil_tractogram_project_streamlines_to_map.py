@@ -5,9 +5,10 @@
 Projects metrics onto the underlying voxels of a streamlines.
 
 How to load the metrics for each point of the streamline:
-    - From metric maps: uses the value of underlying voxels.
     - From dps: uses the same value for each point of the streamline.
     - From dpp: one value per point.
+    - Hint: To use metrics from nifti maps on your streamlines, see
+      scil_tractogram_project_map_to_streamlines.py
 
 How to use the metrics:
     1. Average all points of the streamline to get a mean value.
@@ -49,9 +50,7 @@ from scilpy.tractograms.uncompress import uncompress
 
 from scilpy.io.streamlines import (load_tractogram_with_reference,
                                    load_dps_files_as_dps,
-                                   load_dpp_files_as_dpp,
-                                   load_map_values_as_dpp,
-                                   verify_compatibility_with_reference_sft)
+                                   load_dpp_files_as_dpp)
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
@@ -70,18 +69,13 @@ def _build_arg_parser():
                    help='Fiber bundle file.')
     p.add_argument('out_prefix',
                    help='Folder + prefix to save endpoints metric(s). We will '
-                        'save one nifti \nfile per in_metrics, or one per '
-                        'dpp/dps key given. \n'
+                        'save one nifti \nfile per per dpp/dps key given.\n'
                         'Ex: my_path/subjX_bundleY_ with --use_dpp key1 '
                         'will output \nmy_path/subjX_bundleY_key1.nii.gz')
 
     p1 = p.add_argument_group(
         description='Where to get the statistics from. (Choose one)')
     p1 = p1.add_mutually_exclusive_group(required=True)
-    p1.add_argument('--in_metrics', nargs='+', default=[],
-                    help='Nifti metric(s) to compute statistics on. Projects '
-                         'the value \nof underlying voxels onto the '
-                         'streamlines, loading them as dpp.')
     p1.add_argument('--use_dps', metavar='key', nargs='+',
                     help='Use the data_per_streamline from the tractogram.\n'
                          'It must be a trk.')
@@ -134,11 +128,11 @@ def main():
                      "with the --mean_streamline processing choice.")
 
     assert_inputs_exist(parser, [args.in_bundle],
-                        args.in_metrics + args.load_dps + args.load_dpp)
+                        args.load_dps + args.load_dpp)
 
     # Find all final output files
-    if args.in_metrics or args.load_dps or args.load_dpp:
-        files = args.in_metrics or args.load_dps or args.load_dpp
+    if args.load_dps or args.load_dpp:
+        files = args.load_dps or args.load_dpp
         metrics_names = []
         for file in files:
             # Prepare dpp key from filename.
@@ -156,10 +150,6 @@ def main():
     sft.to_vox()
     sft.to_corner()
 
-    if args.in_metrics:
-        verify_compatibility_with_reference_sft(sft, args.in_metrics,
-                                                parser, args)
-
     if len(sft.streamlines) == 0:
         logging.warning('Empty bundle file {}. Skipping'.format(args.bundle))
         return
@@ -172,7 +162,6 @@ def main():
 
     # 1. With options --use_dps, --use_dpp: check that dps / dpp key is found.
     # 2. With --load_dps, --load_dpp: Load them now to SFT.
-    # 3. With option --in_metrics: format streamlines and load as dpp.
     if args.use_dps:
         dps_to_use = args.use_dps
         for key in args.use_dps:
@@ -188,12 +177,11 @@ def main():
     elif args.load_dps:
         logging.info("Loading dps from file.")
         sft, dps_to_use = load_dps_files_as_dps(parser, args.load_dps, sft)
-    elif args.load_dpp:
+    else:  # args.load_dpp:
         # Loading dpp for all points even if we won't use them all to make
         # sure that the loaded files have the correct shape.
         logging.info("Loading dpp from file")
         sft, dpp_to_use = load_dpp_files_as_dpp(parser, args.load_dpp, sft)
-    # else, args.in_metrics, but we will refactor the streamlines first.
 
     # Verify that we have singular values. (Ex, not colors)
     # Remove unused keys
@@ -221,13 +209,6 @@ def main():
         else:
             del sft.data_per_streamline[key]
 
-    # Ok, now ready for last case. Returns None for other points if we only
-    # need the endpoint to avoid non-useful interpolation.
-    if args.in_metrics:
-        sft, dpp_to_use = load_map_values_as_dpp(
-            sft, args.in_metrics, metrics_names, uncompress_first=True,
-            endpoints_only=(args.mean_endpoints or args.to_endpoints))
-
     # -------- Formatting streamlines  ----------
 
     # In case where we average the dpp, average it now and pretend it's a dps.
@@ -238,8 +219,8 @@ def main():
         dps_to_use = dpp_to_use
         dpp_to_use = None
 
-    # Uncompress if necessary. Already done with --in_metrics.
-    if not (args.in_metrics or (args.to_wm and args.point_by_point)):
+    # Uncompress if necessary.
+    if not (args.to_wm and args.point_by_point):
         logging.info("Uncompressing streamlines...")
         sft.streamlines = uncompress(sft.streamlines)
 

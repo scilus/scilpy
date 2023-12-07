@@ -198,39 +198,6 @@ def load_dps_files_as_dps(parser, dps_files, sft, keys=None):
     return sft, new_keys
 
 
-def load_map_values_as_dpp(sft, map_files, dpp_keys: list,
-                           uncompress_first=True, endpoints_only=False):
-
-    init_space = sft.space
-    init_orig = sft.origin
-    sft.to_vox()
-    sft.to_corner()
-
-    if uncompress_first:
-        logging.info("Uncompressing streamlines...")
-        sft.streamlines = uncompress(sft.streamlines)
-
-    dpp_keys = dpp_keys or []
-    for dpp_key, map_file in zip(dpp_keys, map_files):
-        logging.info("Loading file {}".format(map_file))
-        the_map = nib.load(map_file).get_fdata(dtype=np.float32)
-
-        if endpoints_only:
-            # Avoid interpolation where not needed.
-            raise NotImplementedError
-            data = [start] + [None*..., data]
-        else:
-            lengths = [len(s) for s in sft.streamlines]
-            data = map_coordinates(the_map, sft.streamlines._data.T, order=0)
-            data = np.split()
-        sft.data_per_point[dpp_key] = data
-
-    sft.to_space(init_space)
-    sft.to_origin(init_orig)
-
-    return sft, dpp_keys
-
-
 def load_dpp_files_as_dpp(parser, dpp_files, sft, keys=None):
     """
     Load dps information.
