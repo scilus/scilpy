@@ -13,7 +13,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_recognize_single_bundle.py', '--help')
+    ret = script_runner.run('scil_tractogram_segment_one_bundles.py', '--help')
     assert ret.success
 
 
@@ -27,9 +27,10 @@ def test_execution_bundles(script_runner):
                           'affine.txt')
     in_ref = os.path.join(get_home(), 'bundles',
                           'bundle_all_1mm.nii.gz')
-    ret = script_runner.run('scil_recognize_single_bundle.py', in_tractogram,
-                            in_model, in_aff, 'bundle_0_reco.tck',
-                            '--inverse', '--tractogram_clustering_thr', '12',
+    ret = script_runner.run('scil_tractogram_segment_one_bundles.py',
+                            in_tractogram, in_model, in_aff,
+                            'bundle_0_reco.tck', '--inverse',
+                            '--tractogram_clustering_thr', '12',
                             '--slr_threads', '1', '--out_pickle',
                             'clusters.pkl', '--reference', in_ref)
     assert ret.success
