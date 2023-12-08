@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute label image (Nifti) from bundle and centroid.
+Compute the label image (Nifti) from a centroid and tractograms (all
+representing the same bundle). The label image represents the coverage of
+the bundle, segmented into regions labelled from 0 to --nb_pts, starting from
+the head, ending in the tail.
+
 Each voxel will have the label of its nearest centroid point.
 
 The number of labels will be the same as the centroid's number of points.
@@ -47,7 +51,15 @@ def _build_arg_parser():
     p.add_argument('in_centroid',
                    help='Centroid streamline corresponding to bundle.')
     p.add_argument('out_dir',
-                   help='Directory to save all mapping and coloring file.')
+                   help='Directory to save all mapping and coloring files:\n'
+                        '  - correlation_map.nii.gz\n'
+                        '  - session_x/labels_map.nii.gz\n'
+                        '  - session_x/distance_map.nii.gz\n'
+                        '  - session_x/correlation_map.nii.gz\n'
+                        '  - session_x/labels.trk\n'
+                        '  - session_x/distance.trk\n'
+                        '  - session_x/correlation.trk\n'
+                        'Where session_x is numbered with each bundle.')
 
     p.add_argument('--nb_pts', type=int,
                    help='Number of divisions for the bundles.\n'
