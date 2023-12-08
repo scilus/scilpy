@@ -2,9 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-Evaluate binary classification measures between gold standard and bundles.
-All tractograms must be in the same space (aligned to one reference)
-The measures can be applied to voxel-wise or streamline-wise representation.
+This script is intended to score many versions of a same bundle, compared to
+ONE ground truth / gold standard.
+
+See also scil_bundle_score_many_bundles_one_tractogram.py to score all bundles
+from a single tractogram by comparing each valid bundle to its ground truth.
+
+All tractograms must be in the same space (aligned to one reference).
+The measures can be applied to a voxel-wise or streamline-wise representation.
 
 A gold standard must be provided for the desired representation.
 A gold standard would be a segmentation from an expert or a group of experts.
