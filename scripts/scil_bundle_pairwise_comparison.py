@@ -3,16 +3,16 @@
 
 """
 Evaluate pair-wise similarity measures of bundles.
-All tractograms must be in the same space (aligned to one reference)
+All tractograms must be in the same space (aligned to one reference).
 
-For the voxel representation the computed similarity measures are:
-bundle_adjacency_voxels, dice_voxels, w_dice_voxels, density_correlation
-volume_overlap, volume_overreach
+For the voxel representation, the computed similarity measures are:
+    bundle_adjacency_voxels, dice_voxels, w_dice_voxels, density_correlation
+    volume_overlap, volume_overreach
 The same measures are also evluated for the endpoints.
 
-For the streamline representation the computed similarity measures are:
-bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
-streamlines_count_overreach
+For the streamline representation, the computed similarity measures are:
+    bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
+    streamlines_count_overreach
 """
 
 import argparse

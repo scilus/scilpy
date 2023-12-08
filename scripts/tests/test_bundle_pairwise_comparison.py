@@ -14,21 +14,18 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
-        '--help')
+        'scil_bundle_pairwise_comparison.py', '--help')
     assert ret.success
 
 
 def test_execution_bundles(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'bundles',
-                        'bundle_0_reco.tck')
+    in_1 = os.path.join(get_home(), 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
                         'bundle_0.trk')
-    in_ref = os.path.join(get_home(), 'bundles',
-                          'bundle_all_1mm.nii.gz')
+    in_ref = os.path.join(get_home(), 'bundles', 'bundle_all_1mm.nii.gz')
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
+        'scil_bundle_pairwise_comparison.py',
         in_1, in_2, 'AF_L_similarity.json',
         '--streamline_dice', '--reference', in_ref,
         '--processes', '1')
@@ -37,14 +34,12 @@ def test_execution_bundles(script_runner):
 
 def test_single(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'bundles',
-                        'bundle_0_reco.tck')
+    in_1 = os.path.join(get_home(), 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
                         'bundle_0.trk')
-    in_ref = os.path.join(get_home(), 'bundles',
-                          'bundle_all_1mm.nii.gz')
+    in_ref = os.path.join(get_home(), 'bundles', 'bundle_all_1mm.nii.gz')
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
+        'scil_bundle_pairwise_comparison.py',
         in_2, 'AF_L_similarity_single.json',
         '--streamline_dice', '--reference', in_ref,
         '--single_compare', in_1,
@@ -54,14 +49,12 @@ def test_single(script_runner):
 
 def test_no_overlap(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'bundles',
-                        'bundle_0_reco.tck')
+    in_1 = os.path.join(get_home(), 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
                         'bundle_0.trk')
-    in_ref = os.path.join(get_home(), 'bundles',
-                          'bundle_all_1mm.nii.gz')
+    in_ref = os.path.join(get_home(), 'bundles', 'bundle_all_1mm.nii.gz')
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
+        'scil_bundle_pairwise_comparison.py', in_1,
         in_2, 'AF_L_similarity_no_overlap.json',
         '--streamline_dice', '--reference', in_ref,
         '--bundle_adjency_no_overlap',
@@ -71,14 +64,12 @@ def test_no_overlap(script_runner):
 
 def test_ratio(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'bundles',
-                        'bundle_0_reco.tck')
+    in_1 = os.path.join(get_home(), 'bundles', 'bundle_0_reco.tck')
     in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
                         'bundle_0.trk')
-    in_ref = os.path.join(get_home(), 'bundles',
-                          'bundle_all_1mm.nii.gz')
+    in_ref = os.path.join(get_home(), 'bundles', 'bundle_all_1mm.nii.gz')
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
+        'scil_bundle_pairwise_comparison.py',
         in_2, 'AF_L_similarity_ratio.json',
         '--streamline_dice', '--reference', in_ref,
         '--single_compare', in_1,
@@ -92,14 +83,12 @@ def test_ratio_fail(script_runner):
     The test should fail.
     """
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_1 = os.path.join(get_home(), 'bundles',
-                        'bundle_0_reco.tck')
+    in_1 = os.path.join(get_home(), 'bundles',  'bundle_0_reco.tck')
     in_2 = os.path.join(get_home(), 'bundles', 'voting_results',
                         'bundle_0.trk')
-    in_ref = os.path.join(get_home(), 'bundles',
-                          'bundle_all_1mm.nii.gz')
+    in_ref = os.path.join(get_home(), 'bundles', 'bundle_all_1mm.nii.gz')
     ret = script_runner.run(
-        'scil_evaluate_bundles_pairwise_agreement_measures.py',
+        'scil_bundle_pairwise_comparison.py',
         in_1, in_2, 'AF_L_similarity_fail.json',
         '--streamline_dice', '--reference', in_ref,
         '--processes', '1',
