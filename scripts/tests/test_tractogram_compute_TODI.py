@@ -13,18 +13,17 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_todi.py', '--help')
+    ret = script_runner.run('scil_tractogram_compute_TODI.py', '--help')
     assert ret.success
 
 
 def test_execution_bst(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'bst',
-                             'rpt_m_warp.trk')
-    in_mask = os.path.join(get_home(), 'bst',
-                           'mask.nii.gz')
-    ret = script_runner.run('scil_compute_todi.py', in_bundle, '--mask',
-                            in_mask, '--out_mask', 'todi_mask.nii.gz',
+    in_bundle = os.path.join(get_home(), 'bst', 'rpt_m_warp.trk')
+    in_mask = os.path.join(get_home(), 'bst', 'mask.nii.gz')
+    ret = script_runner.run('scil_tractogram_compute_TODI.py', in_bundle,
+                            '--mask', in_mask,
+                            '--out_mask', 'todi_mask.nii.gz',
                             '--out_tdi', 'tdi.nii.gz',
                             '--out_todi_sh', 'todi_sh.nii.gz',
                             '--sh_order', '6',
@@ -35,9 +34,8 @@ def test_execution_bst(script_runner):
 
 def test_execution_asym(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'bst',
-                             'rpt_m_warp.trk')
-    ret = script_runner.run('scil_compute_todi.py', in_bundle,
+    in_bundle = os.path.join(get_home(), 'bst', 'rpt_m_warp.trk')
+    ret = script_runner.run('scil_tractogram_compute_TODI.py', in_bundle,
                             '--out_todi_sh', 'atodi_sh_8.nii.gz',
                             '--asymmetric', '--n_steps', '2')
 
