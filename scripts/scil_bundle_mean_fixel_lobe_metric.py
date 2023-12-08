@@ -16,7 +16,7 @@ Bingham coefficients volume must come from scil_fodf_to_bingham.py
 and lobe-specific metrics comes from scil_fodf_lobe_specific_metrics.py.
 
 Lobe-specific metrics are metrics extracted from Bingham distributions fitted
-to fODF. Their are as many values per voxel as there are lobes extracted. The
+to fODF. There are as many values per voxel as there are lobes extracted. The
 values chosen for a given voxelis the one belonging to the lobe better aligned
 with the current streamline segment.
 
@@ -44,14 +44,14 @@ def _build_arg_parser():
     p.add_argument('in_bingham',
                    help='Path of the Bingham volume.')
     p.add_argument('in_lobe_metric',
-                   help='Path of the lobe-specific metric (FD, FS, or FF)'
-                        ' volume.')
+                   help='Path of the lobe-specific metric (FD, FS, or FF) '
+                        'volume.')
     p.add_argument('out_mean_map',
                    help='Path of the output mean map.')
 
     p.add_argument('--length_weighting', action='store_true',
                    help='If set, will weigh the FD values according to '
-                        'segment lengths. [%(default)s]')
+                        'segment lengths.')
 
     p.add_argument('--max_theta', default=60, type=float,
                    help='Maximum angle (in degrees) condition on lobe '
