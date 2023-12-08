@@ -128,7 +128,6 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_remove_invalid_streamlines.py",
     "scil_remove_labels.py",
     "scil_remove_outliers_ransac.py",
-    "scil_remove_similar_streamlines.py",
     "scil_reorder_connectivity.py",
     "scil_reorder_dwi_philips.py",
     "scil_resample_bvals.py",
