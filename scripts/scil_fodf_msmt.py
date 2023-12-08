@@ -67,7 +67,7 @@ def _build_arg_parser():
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
-            'extract and the current b-value. [%(default)s]')
+             'extract and the current b-value. [%(default)s]')
 
     add_force_b0_arg(p)
     add_sh_basis_args(p)
@@ -172,7 +172,7 @@ def main():
                          'Invalid or deprecated FRF format')
     ubvals = unique_bvals_tolerance(bvals, tol=tol)
     msmt_response = multi_shell_fiber_response(sh_order, ubvals,
-                                               wm_frf, gm_frf, csf_frf, 
+                                               wm_frf, gm_frf, csf_frf,
                                                tol=tol)
 
     # Loading spheres
