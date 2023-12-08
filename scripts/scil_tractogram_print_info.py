@@ -12,7 +12,7 @@ For trk files: also prints the data_per_point and data_per_streamline keys.
 
 See also:
     - scil_print_header.py to see the header, affine, volume dimension.
-    - scil_bundle_print_shape_measures.py to see bundle-specific information.
+    - scil_bundle_shape_measures.py to see bundle-specific information.
 """
 
 import argparse

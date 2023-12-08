@@ -3,6 +3,10 @@
 
 """
 Script to estimate the diameter of bundle(s) along their length.
+See also scil_bundle_shape_measures.py, which prints a quick estimate of
+the diameter (volume / length). The computation here is more complex and done
+for each section of the bundle.
+
 The script expects:
 - bundles with coherent endpoints from scil_uniformize_streamlines_endpoints.py
 - labels maps with around 5-50 points scil_compute_bundle_voxel_label_map.py
@@ -48,14 +52,14 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundles', nargs='+',
-                   help='List of tractography files supported by nibabel.')
+                   help='List of tractography files.')
     p.add_argument('in_labels', nargs='+',
-                   help='List of labels maps that matches the bundles.')
+                   help='List of labels maps that match the bundles.')
 
     p.add_argument('--fitting_func', choices=['lin_up', 'lin_down', 'exp',
-                                              'inv', 'log'], default=None,
+                                              'inv', 'log'],
                    help='Function to weigh points using their distance.'
-                   '\n[Default: %(default)s]')
+                        '\n[Default: %(default)s]')
 
     p2 = p.add_argument_group(title='Visualization options')
     p3 = p2.add_mutually_exclusive_group()

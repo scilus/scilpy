@@ -11,7 +11,7 @@ The labels can be obtained by scil_bundle_compute_voxel_label_map.py
 This estimation is typically performed at resolution around 1mm3.
 
 To get the volume and other measures directly from the (whole) bundle, use
-scil_bundle_print_shape_measures.py.
+scil_bundle_shape_measures.py.
 """
 
 import argparse
