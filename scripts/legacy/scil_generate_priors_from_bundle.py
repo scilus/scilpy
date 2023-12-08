@@ -13,7 +13,7 @@ Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_generate_priors_from_bundles.py",
+@deprecate_script("scil_generate_priors_from_bundle.py",
                   DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
