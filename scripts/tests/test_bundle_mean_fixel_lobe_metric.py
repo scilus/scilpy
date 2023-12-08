@@ -13,22 +13,19 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(
-        'scil_compute_mean_fixel_lobe_metric_from_bundles.py',
-        '--help')
+        'scil_bundle_mean_fixel_lobe_metric.py', '--help')
 
     assert ret.success
 
 
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bingham = os.path.join(get_home(), 'processing',
-                              'fodf_bingham.nii.gz')
-    in_metric = os.path.join(get_home(), 'processing',
-                             'fd.nii.gz')
+    in_bingham = os.path.join(get_home(), 'processing', 'fodf_bingham.nii.gz')
+    in_metric = os.path.join(get_home(), 'processing', 'fd.nii.gz')
     in_bundles = os.path.join(get_home(), 'processing', 'tracking.trk')
 
     ret = script_runner.run(
-        'scil_compute_mean_fixel_lobe_metric_from_bundles.py',
+        'scil_bundle_mean_fixel_lobe_metric.py',
         in_bundles, in_bingham, in_metric,
         'fixel_mean_fd.nii.gz', '--length_weighting')
 
