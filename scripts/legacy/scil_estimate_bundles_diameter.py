@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_bundle_volume_per_label import main as new_main
+from scripts.scil_bundle_diameter import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_bundle_volume_per_label.py.
+This script has been renamed scil_bundle_diameter.py.
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_compute_bundle_volume_per_label.py",
+@deprecate_script("scil_estimate_bundles_diameter.py",
                   DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
