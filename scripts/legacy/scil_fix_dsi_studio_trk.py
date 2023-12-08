@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_tractogram_filter_by_anatomy import main as new_main
+from scripts.scil_tractogram_fix_trk import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_filter_by_anatomy.py.
+This script has been renamed scil_tractogram_fix_trk.py.
+
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_filter_streamlines_anatomically.py", DEPRECATION_MSG,
-                  '1.7.0')
+@deprecate_script("scil_fix_dsi_studio_trk.py", DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

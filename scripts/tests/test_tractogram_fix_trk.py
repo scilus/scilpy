@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_swap_gradient_axis.py', '--help')
+    ret = script_runner.run('scil_tractogram_fix_trk.py', '--help')
     assert ret.success
