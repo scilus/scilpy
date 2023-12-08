@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_bundle_fixel_afd.py', '--help')
+    ret = script_runner.run('scil_bundle_mean_fixel_afd.py', '--help')
     assert ret.success
 
 
@@ -21,7 +21,7 @@ def test_execution_processing(script_runner):
     in_tracking = os.path.join(get_home(), 'processing', 'tracking.trk')
     in_fodf = os.path.join(get_home(), 'processing',
                            'fodf_descoteaux07.nii.gz')
-    ret = script_runner.run('scil_bundle_fixel_afd.py', in_tracking, in_fodf,
-                            'afd_test.nii.gz',
+    ret = script_runner.run('scil_bundle_mean_fixel_afd.py', in_tracking,
+                            in_fodf, 'afd_test.nii.gz',
                             '--sh_basis', 'descoteaux07', '--length_weighting')
     assert ret.success

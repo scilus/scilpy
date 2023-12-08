@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Use multiple bundles to perform a voxel-wise vote (occurence across input).
-If streamlines originate from the same tractogram, streamline-wise vote
-is available.
+Use multiple versions of a same bundle and detect the most probable voxels by
+using a threshold on the occurence, voxel-wise. With threshold 0.5, this is
+a majority vote. This is useful to generate an average representation from
+bundles of a given population.
 
-Useful to generate an average representation from bundles of a given population
-or multiple bundle segmentations (gold standard).
-
-Input tractograms must have identical header.
+If streamlines originate from the same tractogram (ex, to compare various
+bundle clustering techniques), streamline-wise vote is available to find the
+streamlines most often included in the bundle.
 """
 
 
@@ -32,25 +32,27 @@ from scilpy.tractograms.tractogram_operations import (
 
 
 def _build_arg_parser():
-    p = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=__doc__)
+    p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                description=__doc__)
 
     p.add_argument('in_bundles', nargs='+',
-                   help='Input bundles filename.')
+                   help='Input bundles filename(s). All tractograms must have '
+                        'identical headers.')
+    p.add_argument('output_prefix',
+                   help='Output prefix. Ex: my_path/voting_. The suffixes '
+                        'will be: streamlines.trk and voxels.nii.gz')
 
-    p.add_argument('--ratio_streamlines', type=float, default=0.5,
-                   help='Minimum vote to be considered for streamlines '
-                   '[%(default)s].')
-    p.add_argument('--ratio_voxels', type=float, default=0.5,
-                   help='Minimum vote to be considered for voxels'
-                   ' [%(default)s].')
-
-    p.add_argument('--same_tractogram', action='store_true',
-                   help='All bundles need to come from the same tractogram,\n'
-                        'will generate a voting for streamlines too.')
-    p.add_argument('--output_prefix', default='voting_',
-                   help='Output prefix, [%(default)s].')
+    p.add_argument('--ratio_voxels', type=float, nargs='?', const=0.5,
+                   help='Threshold on the ratio of bundles with at least one '
+                        'streamine in a \ngiven voxel to consider it '
+                        'as part of the \'gold standard\'. Default if '
+                        'set: 0.5.')
+    p.add_argument('--ratio_streamlines', type=float, nargs='?', const=0.5,
+                   help='If all bundles come from the same tractogram, use '
+                        'this to generate \na voting for streamlines too. The '
+                        'associated value is the threshold on the ratio of \n'
+                        'bundles including the streamline to consider it '
+                        'as part of the \'gold standard\'. [0.5]')
 
     add_reference_arg(p)
     add_overwrite_arg(p)
@@ -73,24 +75,22 @@ def main():
         parser.error('Ratios must be between 0 and 1.')
 
     fusion_streamlines = []
-    if args.reference:
-        reference_file = args.reference
-    else:
-        reference_file = args.in_bundles[0]
+    if not args.reference:
+        args.reference = args.in_bundles[0]
     sft_list = []
     for name in args.in_bundles:
         tmp_sft = load_tractogram_with_reference(parser, args, name)
         tmp_sft.to_vox()
         tmp_sft.to_corner()
 
-        if not is_header_compatible(reference_file, tmp_sft):
+        if not is_header_compatible(args.reference, tmp_sft):
             raise ValueError('Headers are not compatible.')
         sft_list.append(tmp_sft)
         fusion_streamlines.append(tmp_sft.streamlines)
 
     fusion_streamlines, _ = union_robust(fusion_streamlines)
 
-    transformation, dimensions, _, _ = get_reference_info(reference_file)
+    transformation, dimensions, _, _ = get_reference_info(args.reference)
     volume = np.zeros(dimensions)
     streamlines_vote = dok_matrix((len(fusion_streamlines),
                                    len(args.in_bundles)))
@@ -100,13 +100,12 @@ def main():
         binary = compute_tract_counts_map(sft.streamlines, dimensions)
         volume[binary > 0] += 1
 
-        if args.same_tractogram:
+        if args.ratio_streamlines is not None:
             _, indices = intersection_robust([fusion_streamlines,
                                               sft.streamlines])
             streamlines_vote[list(indices), [i]] += 1
 
-    if args.same_tractogram:
-        real_indices = []
+    if args.ratio_streamlines is not None:
         ratio_value = int(args.ratio_streamlines*len(args.in_bundles))
         real_indices = np.where(np.sum(streamlines_vote,
                                        axis=1) >= ratio_value)[0]
