@@ -69,13 +69,25 @@ def compute_contrasts_maps(merged_images, single_echo=False,
     return contrast_map
 
 
-def compute_saturation(cPD1, cPD2, cT1, acq_parameters):
+def compute_R1app(cPD1, cT1, acq_parameters, B1_map):
+    TR1 = acq_parameters[0][0] # TR of high flip angle images (MT)
+    TR2 = acq_parameters[1][0] # TR of low flip angle images (T1w)
+    a1 = acq_parameters[0][1] * B1_map # Low flip angle (MT)
+    a2 = acq_parameters[1][1] * B1_map # High flip angle (T1w)
+    T1app_num = (cPD1 / a1) - (cT1 / a2)
+    T1app_den = 0.5 * ((cT1 * a2) / TR2 - (cPD1 * a1) / TR1)
+    T1app = T1app_num / T1app_den
+    R1app = 1 / T1app
+    return R1app
+
+
+def compute_saturation(cPD1, cPD2, cT1, acq_parameters, B1_map):
     """
     Compute saturation of given contrast.
-    Saturation is computed from apparent longitudinal relaxation rate
-    (R1app) and apparent signal amplitude (Aapp). The estimation of the
+    Saturation is computed from apparent longitudinal relaxation time
+    (T1app) and apparent signal amplitude (Aapp). The estimation of the
     saturation includes correction for the effects of excitation flip angle
-    and longitudinal relaxation rate, and remove the effect of T1-weighted
+    and longitudinal relaxation time, and remove the effect of T1-weighted
     image.
 
     see Helms et al., 2008
@@ -93,40 +105,42 @@ def compute_saturation(cPD1, cPD2, cT1, acq_parameters):
     -------
     MT ratio and MT saturation matrice in 3D-array.
     """
-    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
+    TR1 = acq_parameters[0][0] # TR of high flip angle images (MT)
+    TR2 = acq_parameters[1][0] # TR of low flip angle images (T1w)
+    a1 = acq_parameters[0][1] * B1_map # Low flip angle (MT)
+    a2 = acq_parameters[1][1] * B1_map # High flip angle (T1w)
+
+    Aapp_num = (TR1 / (a1 ** 2)) - (TR2 / (a2 ** 2))
+    Aapp_den = (TR1 / (a1 * cPD1)) - (TR2 / (a2 * cT1))
     Aapp = Aapp_num / Aapp_den
 
-    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
-    R1app = R1app_num / R1app_den
+    T1app_num = (cPD1 / a1) - (cT1 / a2)
+    T1app_den = 0.5 * ((cT1 * a2) / TR2 - (cPD1 * a1) / TR1)
+    T1app = T1app_num / T1app_den
 
-    sat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0] / R1app
-                 ) / cPD2) - (acq_parameters[0][0] / R1app) -
-               (acq_parameters[0][1]**2) / 2)
+    sat = ((Aapp * a1 * TR1 / T1app) / cPD2) - (TR1 / T1app) - (a1 ** 2) / 2
+    sat *= 100
 
     return sat
 
 
-def compute_ihMT_maps(contrasts_maps, acq_parameters):
+def compute_ihMT_maps(contrasts_maps, acq_parameters, B1_map):
     """
     Compute Inhomogenous Magnetization transfer ratio and saturation maps.
+    - MT ratio (MTR) is computed as the percentage difference of single
+    frequency mean image from the reference.
     - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
     single frequency.
-    - ihMT saturation (ihMTsat) is computed as the difference of longitudinal
-    relaxation rates of bound to macromolecules pool from free water pool
-    saturation. The estimation of the ihMT saturation includes correction for
-    the effects of excitation flip angle and longitudinal relaxation rate, and
-    remove the effect of T1-weighted image.
+    - MT saturations (MTsat_sp, MTsat_sn, MTsat_d) are computed as the
+    difference of longitudinal relaxation times of bound to macromolecules pool
+    from free water pool saturation. The estimation of the ihMT saturation
+    includes correction for the effects of excitation flip angle and
+    longitudinal relaxation time, and remove the effect of T1-weighted image.
         cPD : contrast proton density
-            a : mean of positive and negative proton density
-            b : mean of two dual proton density
+            sp : positive single frequency proton density
+            sn : negative single frequency proton density
+            b : mean of two dual frequency proton density
         cT1 : contrast T1-weighted
-        num : numberator
-        den : denumerator
 
     see Varma et al., 2015
     www.sciencedirect.com/science/article/pii/S1090780715001998
@@ -141,69 +155,35 @@ def compute_ihMT_maps(contrasts_maps, acq_parameters):
                         [TR, Flipangle]
     Returns
     -------
-    ihMT ratio (ihMTR) and ihMT saturation (ihMTsat) matrices in 3D-array.
-
-    """
-    # Compute ihMT ratio map
-    ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
-                 contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
-
-    # Compute MT saturation maps
-    cPD1 = contrasts_maps[2]
-    cPDa = (contrasts_maps[4] + contrasts_maps[3]) / 2
-    cPDb = (contrasts_maps[1] + contrasts_maps[0]) / 2
-    cT1 = contrasts_maps[5]
-
-    MT_sat_single = compute_saturation(cPD1, cPDa, cT1, acq_parameters)
-    MT_sat_dual = compute_saturation(cPD1, cPDb, cT1, acq_parameters)
-    ihMTsat = MT_sat_dual - MT_sat_single
-
-    return ihMTR, ihMTsat
-
-
-def compute_MT_maps_from_ihMT(contrasts_maps, acq_parameters):
-    """
-    Compute Magnetization transfer ratio and saturation maps.
-    MT ratio is computed as the percentage difference of two images, one
-    acquired with off-resonance saturation (MT-on) and one without (MT-off).
-    MT saturation is computed from apparent longitudinal relaxation rate
-    (R1app) and apparent signal amplitude (Aapp). The estimation of the MT
-    saturation includes correction for the effects of excitation flip angle
-    and longitudinal relaxation rate, and remove the effect of T1-weighted
-    image.
-        cPD : contrast proton density
-            1 : reference proton density (MT-off)
-            2 : mean of positive and negative proton density (MT-on)
-        cT1 : contrast T1-weighted
-        num : numberator
-        den : denumerator
-
-    see Helms et al., 2008
-    https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21732
-
-    Parameters
-    ----------
-    contrasts_maps:     List of 3D-array constrats matrices : list of all
-                        contrast maps computed with compute_ihMT_contrasts
-    acq_parameters:     List of TR and Flipangle for ihMT and T1w images
-                        [TR, Flipangle]
-    Returns
-    -------
-    MT ratio and MT saturation matrice in 3D-array.
+    MT ratio (MTR), ihMT ratio (ihMTR), positive MT saturation (MTsat_sp),
+    negative MT saturation (MTsat_sn) and dual MT saturation (MTsat_d)
+    matrices in 3D-array.
     """
     # Compute MT Ratio map
     MTR = 100*((contrasts_maps[2] -
                (contrasts_maps[4] + contrasts_maps[3]) / 2) /
                contrasts_maps[2])
 
+    # Compute ihMT ratio map
+    ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
+                 contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
+
     # Compute MT saturation maps
+    # We compute the single positive and negative frequency saturations
+    # separatly because of the MT assymetry. B1 correction will not be the
+    # same for both. We average the dual frequency images to compute only one
+    # dual saturation image.
     cPD1 = contrasts_maps[2]
-    cPD2 = (contrasts_maps[4] + contrasts_maps[3]) / 2
+    cPDsp = contrasts_maps[4]
+    cPDsn = contrasts_maps[3]
+    cPDd = (contrasts_maps[1] + contrasts_maps[0]) / 2
     cT1 = contrasts_maps[5]
 
-    MTsat = compute_saturation(cPD1, cPD2, cT1, acq_parameters)
+    MTsat_sp = compute_saturation(cPD1, cPDsp, cT1, acq_parameters, B1_map)
+    MTsat_sn = compute_saturation(cPD1, cPDsn, cT1, acq_parameters, B1_map)
+    MTsat_d = compute_saturation(cPD1, cPDd, cT1, acq_parameters, B1_map)
 
-    return MTR, MTsat
+    return MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d
 
 
 def compute_MT_maps(contrasts_maps, acq_parameters):
@@ -211,10 +191,10 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     Compute Magnetization transfer ratio and saturation maps.
     MT ratio is computed as the percentage difference of two images, one
     acquired with off-resonance saturation (MT-on) and one without (MT-off).
-    MT saturation is computed from apparent longitudinal relaxation rate
-    (R1app) and apparent signal amplitude (Aapp). The estimation of the MT
+    MT saturation is computed from apparent longitudinal relaxation time
+    (T1app) and apparent signal amplitude (Aapp). The estimation of the MT
     saturation includes correction for the effects of excitation flip angle
-    and longitudinal relaxation rate, and remove the effect of T1-weighted
+    and longitudinal relaxation time, and remove the effect of T1-weighted
     image.
         cPD : contrast proton density
             1 : reference proton density (MT-off)
@@ -244,19 +224,19 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     cPD2 = contrasts_maps[1]
     cT1 = contrasts_maps[2]
 
-    Aapp_num = ((2*acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
-                (2*acq_parameters[1][0] / (acq_parameters[1][1]**2)))
-    Aapp_den = (((2*acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
-                ((2*acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
+    Aapp_num = ((acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
+                (acq_parameters[1][0] / (acq_parameters[1][1]**2)))
+    Aapp_den = (((acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
+                ((acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
     Aapp = Aapp_num / Aapp_den
 
-    R1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    R1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
+    T1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
+    T1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
                  (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
-    R1app = R1app_num / R1app_den
+    T1app = T1app_num / T1app_den
 
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/R1app) /
-                  cPD2) - (acq_parameters[0][0]/R1app) -
+    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app) /
+                  cPD2) - (acq_parameters[0][0]/T1app) -
                  (acq_parameters[0][1]**2)/2)
 
     return MTR, MTsat
@@ -329,14 +309,15 @@ def apply_B1_correction_empiric(MT_map, B1_map):
 
     # Apply an empiric B1 correction via B1 smooth data on MT data
     MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_map))
+    # !!!!!!!!!! Not sure this method can be applied to MTR or ihMTR.!!!!!!!!!
 
     return MT_map_B1_corrected
 
 
-def ajust_b1_map_intensities(b1_map, nominal=100):
+def adjust_b1_map_intensities(b1_map, nominal=100):
     b1_map /= nominal
-    mean_b1 = np.mean(b1_map)
-    if np.isclose(mean_b1, 1.0, atol=0.2):
+    med_b1 = np.median(b1_map)
+    if not np.isclose(med_b1, 1.0, atol=0.2):
         raise ValueError("Intensities of the B1 map are wrong.")
     b1_map = np.clip(b1_map, 0.5, 1.4) # Not sure if should clip or cut
     return b1_map
@@ -349,41 +330,32 @@ def smooth_B1_map(B1_map):
     return B1_map_smooth
 
 
-def read_fit_values_from_mat_file(fit_values_file):
-    fit_values = scipy.io.loadmat(fit_values_file)
-    # coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
-    fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
-    est_m0b_from_r1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
-    cf_eq = fit_SS_eqn.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1')
-    r1_to_m0b = est_m0b_from_r1.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1')
+def read_fit_values_from_mat_files(fit_values_files):
+    cf_eq = np.empty((3), dtype=object)
+    r1_to_m0b = np.empty((3), dtype=object)
+    for i, file in enumerate(fit_values_files):
+        fit_values = scipy.io.loadmat(file)
+        # coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
+        fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
+        est_m0b_from_r1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
+        cf_eq[i] = fit_SS_eqn.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1').replace('Raobs','r1').replace('M0b','m0b').replace('b1','b1')
+        r1_to_m0b[i] = est_m0b_from_r1.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1').replace('Raobs','r1').replace('M0b','m0b').replace('b1','b1')
     return cf_eq, r1_to_m0b
 
 
-def compute_B1_correction_factor_map(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
+def compute_B1_correction_factor_maps(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
 
-    # low_flip_angle = 15;    % flip angle in degrees -> Customize
-    # high_flip_angle = 30;  % flip angle in degrees -> Customize
-    # TR1 = 112;               % low flip angle repetition time of the GRE kernel in milliseconds -> Customize
-    # TR2 = 20;               % high flip angle repetition time of the GRE kernel in milliseconds -> Customize
+    cf_maps = np.zeros(b1_map.shape + (3,))
+    for i in range(3):
+        m0b = eval(r1_to_m0b[i], {"r1": r1})
+        b1 = b1_map * b1_ref
+        cf_act = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
+        b1 = b1_ref
+        cf_nom = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
 
-    # a1 = deg2rad(low_flip_angle) * b1; 
-    # a2 = deg2rad(high_flip_angle)* b1; 
+        cf_maps[..., i] = (cf_nom - cf_act) / cf_act
 
-    # R1 = 0.5 .* (hfa.*a2./ TR2 - lfa.*a1./TR1) ./ (lfa./(a1) - hfa./(a2));
-    # App = lfa .* hfa .* (TR1 .* a2./a1 - TR2.* a1./a2) ./ (hfa.* TR1 .*a2 - lfa.* TR2 .*a1);
-
-    # T1 = 1./R1 .*mask1;
-    # R1_s = (1./T1) *1000; % convert to 1/ms to 1/s
-
-    m0b = eval(r1_to_m0b, {"r1": r1})
-    b1 = b1_map * b1_ref
-    cf_act = eval(cf_eq, {"r1": r1, "b1": b1, "m0b": m0b})
-    b1 = b1_ref
-    cf_nom = eval(cf_eq, {"r1": r1, "b1": b1, "m0b": m0b})
-
-    cf_map = (cf_nom - cf_act) / cf_act
-
-    return cf_map
+    return cf_maps
 
 
 def apply_B1_correction_model_based(MTsat, cf_map):

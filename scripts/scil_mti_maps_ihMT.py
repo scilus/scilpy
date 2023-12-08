@@ -76,13 +76,13 @@ from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
 from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_ihMT_maps, threshold_maps,
-                                compute_MT_maps_from_ihMT,
                                 apply_B1_correction_empiric,
                                 apply_B1_correction_model_based,
-                                ajust_b1_map_intensities,
+                                adjust_b1_map_intensities,
                                 smooth_B1_map,
-                                read_fit_values_from_mat_file,
-                                compute_B1_correction_factor_map)
+                                read_fit_values_from_mat_files,
+                                compute_B1_correction_factor_maps,
+                                compute_R1app)
 
 EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
@@ -127,8 +127,11 @@ def _build_arg_parser():
                     'empiric and model-based. Note that the model-based '
                     'method requires a B1 fitvalues file, and will only '
                     'correction the saturation measures. [%(default)s]')
-    b.add_argument('--in_B1_fitvalues', nargs=3, # !!!!!!!!!!!!!!!!!! il faut 3 .mat... dual, pos et neg....
-                   help='Path to B1 fitvalues files obtained externally(.mat).')
+    b.add_argument('--in_B1_fitvalues', nargs=3,
+                   help='Path to B1 fitvalues files obtained externally. '
+                        'Should be three .mat files given in this specific '
+                        'order: positive frequency saturation, negative '
+                        'frequency saturation, dual frequency saturation.')
     b.add_argument('--nominal_B1', default=100,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
@@ -201,7 +204,7 @@ def main():
     parameters = []
     for curr_map in maps[4][0], maps[5][0]:
         acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
-                                                            '.json'),
+                                                            '.json'), # TODO CHANGE THAT. ASSUMES THE JSONS ARE THERE...
                                            ['RepetitionTime', 'FlipAngle'])
         acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
         parameters.append(acq_parameter)
@@ -216,10 +219,12 @@ def main():
     if args.in_B1_map:
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = ajust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
         B1_map = smooth_B1_map(B1_map)
+        B1_corr = True
     else:
         B1_map = np.ones(ref_img.get_fdata().shape)
+        B1_corr = False
 
     # Define contrasts maps names
     contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
@@ -253,37 +258,40 @@ def main():
                               contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
-    ihMTR, ihMTsat = compute_ihMT_maps(computed_contrasts, parameters)
+    MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d \
+        = compute_ihMT_maps(computed_contrasts, parameters, B1_map)
+    
+    if args.in_B1_map and args.B1_correction_method == 'model_based':
+        cf_eq, r1_to_m0b = read_fit_values_from_mat_files(args.in_B1_fitvalues)
+        r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
+                           parameters, B1_map) * 1000 # convert 1/ms to 1/s
+        cf_maps = compute_B1_correction_factor_maps(B1_map, r1, cf_eq,
+                                                    r1_to_m0b, b1_ref=1)
+        MTsat_sp = apply_B1_correction_model_based(MTsat_sp, cf_maps[..., 0])
+        MTsat_sn = apply_B1_correction_model_based(MTsat_sn, cf_maps[..., 1])
+        MTsat_d = apply_B1_correction_model_based(MTsat_d, cf_maps[..., 2])
+
+    MTsat = (MTsat_sp + MTsat_sn) / 2
+    ihMTsat = MTsat_d - MTsat
+
+    if args.in_B1_map and args.B1_correction_method == 'empiric':
+        MTR = apply_B1_correction_empiric(MTR, B1_map)
+        MTsat = apply_B1_correction_empiric(MTsat, B1_map)
+        ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
+        ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
+
     ihMTR = threshold_maps(ihMTR, args.in_mask, 0, 100,
                            idx_contrast_list=[4, 3, 1, 0, 2],
                            contrasts_maps=computed_contrasts)
     ihMTsat = threshold_maps(ihMTsat, args.in_mask, 0, 10,
                              idx_contrast_list=[4, 3, 1, 0],
-                             contrasts_maps=computed_contrasts)
-    if args.in_B1_map:
-        if args.B1_correction_method == 'empiric':
-            ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
-            ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
-        else:
-            cf_eq, r1_to_m0b = read_fit_values_from_mat_file(args.in_B1_fitvalues)
-            cf_map = compute_B1_correction_factor_map(B1_map, r1, cf_eq,
-                                                      r1_to_m0b, b1_ref=1)
-            ihMTsat = apply_B1_correction_model_based(MTsat, cf_map) # MARCHE PAS, faut corriger séparément le dual et single
-            
-
-    # Compute and thresold non-ihMT maps
-    MTR, MTsat = compute_MT_maps_from_ihMT(computed_contrasts, parameters)
-    for curr_map in MTR, MTsat:
-        curr_map = threshold_maps(curr_map, args.in_mask, 0, 100,
-                                  idx_contrast_list=[4, 2],
-                                  contrasts_maps=computed_contrasts)
-        if args.in_B1_map and args.B1_correction_method == 'empiric':
-            curr_map = apply_B1_correction_empiric(curr_map, B1_map)
-    if args.in_B1_map and args.B1_correction_method == 'model_based':
-        cf_eq, r1_to_m0b = read_fit_values_from_mat_file(args.in_B1_fitvalues)
-        cf_map = compute_B1_correction_factor_map(B1_map, r1, cf_eq,
-                                                  r1_to_m0b, b1_ref=1)
-        ihMTsat = apply_B1_correction_model_based(MTsat, cf_map) # MARCHE PAS, faut corriger séparément le dual et single
+                             contrasts_maps=computed_contrasts)      
+    MTR = threshold_maps(MTR, args.in_mask, 0, 100,
+                         idx_contrast_list=[4, 2],
+                         contrasts_maps=computed_contrasts)
+    MTsat = threshold_maps(MTsat, args.in_mask, 0, 100,
+                           idx_contrast_list=[4, 2],
+                           contrasts_maps=computed_contrasts)      
 
     # Save ihMT and MT images
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
