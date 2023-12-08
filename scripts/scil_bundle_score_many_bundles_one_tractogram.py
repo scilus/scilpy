@@ -3,8 +3,17 @@
 
 
 """
-This script is similar to scil_score_tractogram, but it supposes that the
-bundles are already segmented, and saved as follow:
+This script is intended to score all bundles from a single tractogram. Each
+valid bundle is compared to its ground truth.
+Ex: It was used for the ISMRM 2015 Challenge scoring.
+
+See also scil_bundle_score_same_bundle_many_segmentations.py to score many
+versions of a same bundle, compared to ONE ground truth / gold standard.
+
+This script is the second part of script scil_score_tractogram, which also
+segments the wholebrain tractogram into bundles first.
+
+Here we suppose that the bundles are already segmented and saved as follows:
     main_dir/
         segmented_VB/*_VS.trk.
         segmented_IB/*_*_IC.trk   (optional)
@@ -13,7 +22,6 @@ bundles are already segmented, and saved as follow:
 
 Config file
 -----------
-
 The config file needs to be a json containing a dict of the ground-truth
 bundles as keys. The value for each bundle is itself a dictionnary with:
 

@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_score_bundles.py',
+    ret = script_runner.run('scil_bundle_score_many_bundles_one_tractogram.py',
                             '--help')
     assert ret.success
 
@@ -42,7 +42,7 @@ def test_score_bundles(script_runner):
     with open(os.path.join("config_file.json"), "w") as f:
         json.dump(json_contents, f)
 
-    ret = script_runner.run('scil_score_bundles.py',
+    ret = script_runner.run('scil_bundle_score_many_bundles_one_tractogram.py',
                             "config_file.json", "./", '--no_bbox_check')
 
     assert ret.success
