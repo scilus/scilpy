@@ -78,6 +78,7 @@ from scilpy.reconst.mti import (compute_contrasts_maps,
                                 compute_ihMT_maps, threshold_maps,
                                 compute_MT_maps_from_ihMT,
                                 apply_B1_correction_empiric,
+                                apply_B1_correction_model_based,
                                 ajust_b1_map_intensities,
                                 smooth_B1_map,
                                 read_fit_values_from_mat_file,
@@ -124,9 +125,10 @@ def _build_arg_parser():
                    choices=['empiric', 'model_based'], default='empiric',
                    help='Choice of B1 correction method. Choose between '
                     'empiric and model-based. Note that the model-based '
-                    'method requires a B1 fitvalues file. [%(default)s]')
-    b.add_argument('--in_B1_fitvalues',
-                   help='Path to B1 fitvalues file obtained externally(.mat).')
+                    'method requires a B1 fitvalues file, and will only '
+                    'correction the saturation measures. [%(default)s]')
+    b.add_argument('--in_B1_fitvalues', nargs=3, # !!!!!!!!!!!!!!!!!! il faut 3 .mat... dual, pos et neg....
+                   help='Path to B1 fitvalues files obtained externally(.mat).')
     b.add_argument('--nominal_B1', default=100,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
@@ -210,6 +212,15 @@ def main():
     # Define reference image for saving maps
     ref_img = nib.load(maps[4][0])
 
+    # Load B1 image
+    if args.in_B1_map:
+        B1_img = nib.load(args.in_B1_map)
+        B1_map = B1_img.get_fdata(dtype=np.float32)
+        B1_map = ajust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = smooth_B1_map(B1_map)
+    else:
+        B1_map = np.ones(ref_img.get_fdata().shape)
+
     # Define contrasts maps names
     contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
                       'T1w']
@@ -250,18 +261,14 @@ def main():
                              idx_contrast_list=[4, 3, 1, 0],
                              contrasts_maps=computed_contrasts)
     if args.in_B1_map:
-        # Load B1 image
-        B1_img = nib.load(args.in_B1_map)
-        B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = ajust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
-        B1_map = smooth_B1_map(B1_map)
         if args.B1_correction_method == 'empiric':
             ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
             ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
         else:
-            coeffs = read_fit_values_from_mat_file(args.in_B1_fitvalues)
-            cf_map = compute_B1_correction_factor_map(B1_map, r1, coeffs,
+            cf_eq, r1_to_m0b = read_fit_values_from_mat_file(args.in_B1_fitvalues)
+            cf_map = compute_B1_correction_factor_map(B1_map, r1, cf_eq,
                                                       r1_to_m0b, b1_ref=1)
+            ihMTsat = apply_B1_correction_model_based(MTsat, cf_map) # MARCHE PAS, faut corriger séparément le dual et single
             
 
     # Compute and thresold non-ihMT maps
@@ -270,8 +277,13 @@ def main():
         curr_map = threshold_maps(curr_map, args.in_mask, 0, 100,
                                   idx_contrast_list=[4, 2],
                                   contrasts_maps=computed_contrasts)
-        if args.in_B1_map:
-            curr_map = apply_B1_correction_empiric(curr_map, args.in_B1_map)
+        if args.in_B1_map and args.B1_correction_method == 'empiric':
+            curr_map = apply_B1_correction_empiric(curr_map, B1_map)
+    if args.in_B1_map and args.B1_correction_method == 'model_based':
+        cf_eq, r1_to_m0b = read_fit_values_from_mat_file(args.in_B1_fitvalues)
+        cf_map = compute_B1_correction_factor_map(B1_map, r1, cf_eq,
+                                                  r1_to_m0b, b1_ref=1)
+        ihMTsat = apply_B1_correction_model_based(MTsat, cf_map) # MARCHE PAS, faut corriger séparément le dual et single
 
     # Save ihMT and MT images
     img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']

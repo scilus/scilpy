@@ -351,18 +351,15 @@ def smooth_B1_map(B1_map):
 
 def read_fit_values_from_mat_file(fit_values_file):
     fit_values = scipy.io.loadmat(fit_values_file)
-    coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
+    # coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
     fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
-    Est_M0b_from_R1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
-    cf_eq = fit_SS_eqn.replace('^', '**').replace('Raobs.','Raobs').replace('M0b.','M0b').replace('b1.','b1')
-    r1_to_m0b = Est_M0b_from_R1.replace('^', '**').replace('Raobs.','Raobs').replace('M0b.','M0b').replace('b1.','b1')
-    return coeffs
+    est_m0b_from_r1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
+    cf_eq = fit_SS_eqn.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1')
+    r1_to_m0b = est_m0b_from_r1.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1')
+    return cf_eq, r1_to_m0b
 
 
-def compute_B1_correction_factor_map(b1_map, r1, coeffs, r1_to_m0b, b1_ref=1):
-    b1_coeff_num = 5
-    m0b_coeff_num = 2
-    r1_coeff_num = 4
+def compute_B1_correction_factor_map(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
 
     # low_flip_angle = 15;    % flip angle in degrees -> Customize
     # high_flip_angle = 30;  % flip angle in degrees -> Customize
@@ -378,23 +375,11 @@ def compute_B1_correction_factor_map(b1_map, r1, coeffs, r1_to_m0b, b1_ref=1):
     # T1 = 1./R1 .*mask1;
     # R1_s = (1./T1) *1000; % convert to 1/ms to 1/s
 
-    m0b = r1_to_m0b(r1)
-
+    m0b = eval(r1_to_m0b, {"r1": r1})
     b1 = b1_map * b1_ref
-
-    # Try eval() instead.
-    # cf_act = eval(cf_eq)
-
-    idx = 0
-    cf_act = np.zeros(b1_map.shape)
-    cf_nom = np.zeros(b1_map.shape)
-    for i in range(0, m0b_coeff_num + 1):
-        for j in range(0, b1_coeff_num + 1):
-            for k in range(0, r1_coeff_num + 1):
-                cf_act += coeffs[idx] * m0b ** i * b1 ** j * r1 ** k
-                cf_nom += coeffs[idx] * m0b ** i * b1_ref ** j * r1 ** k
-
-                idx += 1
+    cf_act = eval(cf_eq, {"r1": r1, "b1": b1, "m0b": m0b})
+    b1 = b1_ref
+    cf_nom = eval(cf_eq, {"r1": r1, "b1": b1, "m0b": m0b})
 
     cf_map = (cf_nom - cf_act) / cf_act
 
