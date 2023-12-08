@@ -12,12 +12,16 @@ of `--in_dwis`, `--in_bvals`, `--in_bvecs` and `--in_bdeltas` must have the
 same number of arguments. Be sure to keep the same order of encodings
 throughout all these inputs and to set `--in_bdeltas` accordingly (IMPORTANT).
 
-By default, will output all possible files, using default names.
-Specific names can be specified using the file flags specified in the
-"File flags" section.
+By default, will output all possible files, using default names. Thus, this
+script outputs the results from the DIVIDE fit or direct derivatives:
+mean diffusivity (MD), isotropic mean kurtosis (mk_i), anisotropic mean
+kurtosis (mk_a), total mean kurtosis (mk_t) and finally micro-FA (uFA).
+Specific names can be specified using the
+file flags specified in the "File flags" section.
 
 If --not_all is set, only the files specified explicitly by the flags
-will be output.
+will be output. The order parameter can also be computed from the uFA and a
+precomputed FA, using separate input parameters.
 
 Based on Markus Nilsson, Filip Szczepankiewicz, Björn Lampinen, André Ahlgren,
 João P. de Almeida Martins, Samo Lasic, Carl-Fredrik Westin,
@@ -64,9 +68,6 @@ def _build_arg_parser():
         help='Path to a binary mask. Only the data inside the '
              'mask will be used for computations and reconstruction.')
     p.add_argument(
-        '--fa',
-        help='Path to a FA map. Needed for calculating the OP.')
-    p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
              'extract\nand the current b-value. [%(default)s]')
@@ -89,6 +90,16 @@ def _build_arg_parser():
         '--do_multiple_s0', action='store_false',
         help='If set, does not take into account multiple baseline signals.')
 
+    g2 = p.add_argument_group(title='Order parameter (OP)')
+    g2.add_argument(
+        '--op',
+        help='Output filename for the order parameter. The OP will not be '
+             'outputed if this is not given. Computation of the OP also '
+             'requires a precomputed FA map (given using --fa).')
+    g2.add_argument(
+        '--fa',
+        help='Path to a FA map. Needed for calculating the OP.')
+
     add_force_b0_arg(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
@@ -107,9 +118,6 @@ def _build_arg_parser():
     g.add_argument(
         '--ufa', metavar='file', default='',
         help='Output filename for the microscopic FA.')
-    g.add_argument(
-        '--op', metavar='file', default='',
-        help='Output filename for the order parameter.')
     g.add_argument(
         '--mk_i', metavar='file', default='',
         help='Output filename for the isotropic mean kurtosis.')
@@ -135,12 +143,11 @@ def main():
     if not args.not_all:
         args.md = args.md or 'md.nii.gz'
         args.ufa = args.ufa or 'ufa.nii.gz'
-        args.op = args.op or 'op.nii.gz'
         args.mk_i = args.mk_i or 'mk_i.nii.gz'
         args.mk_a = args.mk_a or 'mk_a.nii.gz'
         args.mk_t = args.mk_t or 'mk_t.nii.gz'
 
-    arglist = [args.md, args.ufa, args.op, args.mk_i, args.mk_a, args.mk_t]
+    arglist = [args.md, args.ufa, args.mk_i, args.mk_a, args.mk_t]
     if args.not_all and not any(arglist):
         parser.error('When using --not_all, you need to specify at least ' +
                      'one file to output.')
@@ -150,6 +157,10 @@ def main():
                                                       args.in_bvals,
                                                       args.in_bvecs))))
     assert_outputs_exist(parser, args, arglist)
+
+    if args.op and not args.fa:
+        parser.error('Computation of the OP requires a precomputed ' +
+                     'FA map (given using --fa).')
 
     if not (len(args.in_dwis) == len(args.in_bvals)
             == len(args.in_bvecs) == len(args.in_bdeltas)):
@@ -203,16 +214,12 @@ def main():
     if args.md:
         nib.save(nib.Nifti1Image(parameters[..., 1].astype(np.float32),
                                  affine), args.md)
-
     if args.ufa:
         nib.save(nib.Nifti1Image(microFA.astype(np.float32), affine), args.ufa)
     if args.op:
-        if args.fa is not None:
-            OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
-            OP[microFA < FA] = 0
-            nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
-        else:
-            logging.warning('The FA must be given in order to compute the OP.')
+        OP = np.sqrt((3 * (microFA ** (-2)) - 2) / (3 * (FA ** (-2)) - 2))
+        OP[microFA < FA] = 0
+        nib.save(nib.Nifti1Image(OP.astype(np.float32), affine), args.op)
     if args.mk_i:
         nib.save(nib.Nifti1Image(MK_I.astype(np.float32), affine), args.mk_i)
     if args.mk_a:
