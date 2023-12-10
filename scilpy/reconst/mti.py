@@ -316,9 +316,9 @@ def apply_B1_correction_empiric(MT_map, B1_map):
 
 def adjust_b1_map_intensities(b1_map, nominal=100):
     b1_map /= nominal
-    med_b1 = np.median(b1_map[np.nonzero(b1_map)[0]])
-    if not np.isclose(med_b1, 1.0, atol=0.3):
-        raise ValueError("Intensities of the B1 map are wrong. Median is {}".format(med_b1))
+    med_b1 = np.nanmedian(np.where(b1_map == 0, np.nan, b1_map))
+    if not np.isclose(med_b1, 1.0, atol=0.2):
+        raise ValueError("Intensities of the B1 map are wrong.")
     # b1_map = np.clip(b1_map, 0.5, 1.4)
     return b1_map
 
