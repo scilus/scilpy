@@ -361,3 +361,12 @@ def compute_B1_correction_factor_maps(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
 def apply_B1_correction_model_based(MTsat, cf_map):
     MTsat_corr = MTsat + MTsat * cf_map
     return MTsat_corr
+
+
+def adjust_b1_map_header(b1_img, slope):
+    b1_map = b1_img.get_fdata()
+    b1_map /= slope
+    b1_img.header.set_slope_inter(1, 0)
+    new_b1_img = nib.nifti1.Nifti1Image(b1_map, b1_img.affine,
+                                        header=b1_img.header)
+    return new_b1_img
