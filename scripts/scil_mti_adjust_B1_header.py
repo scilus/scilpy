@@ -10,9 +10,9 @@ import json
 
 import nibabel as nib
 
-from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_outputs_exist)
 from scilpy.reconst.mti import (adjust_b1_map_header)
 
 
@@ -35,7 +35,7 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_output_dirs_exist_and_empty(parser, args, args.out_B1_map)
+    assert_outputs_exist(parser, args, args.out_B1_map)
 
     assert_inputs_exist(parser, (args.in_B1_map, args.in_B1_json))
 
