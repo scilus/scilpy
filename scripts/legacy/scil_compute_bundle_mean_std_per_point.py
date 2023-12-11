@@ -6,7 +6,7 @@ from scripts.scil_bundle_mean_std import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been merged with new script scil_bundle_mean_std.py. It is 
+This script has been merged with new script scil_bundle_mean_std.py. It is
 now available through option '--per_point'.
 Please change your existing pipelines accordingly.
 """

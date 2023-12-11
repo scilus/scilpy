@@ -62,8 +62,8 @@ def _build_arg_parser():
                    help='If set, weights statistics by the inverse of the '
                         'distance between a streamline and the centroid.')
     p.add_argument('--correlation_weighting', metavar='CORRELATION_NII',
-                   help='If set, weight statistics by the correlation strength '
-                        'between longitudinal data.')
+                   help='If set, weight statistics by the correlation '
+                        'strength between longitudinal data.')
 
     p.add_argument('--out_json',
                    help='Path of the output file. If not given, the output '

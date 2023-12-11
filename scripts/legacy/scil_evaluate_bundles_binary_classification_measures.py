@@ -7,7 +7,7 @@ from scripts.scil_bundle_score_same_bundle_many_segmentations import \
 
 
 DEPRECATION_MSG = """
-This script has been renamed 
+This script has been renamed
 scil_bundle_score_same_bundle_many_segmentations.py.
 Please change your existing pipelines accordingly.
 """

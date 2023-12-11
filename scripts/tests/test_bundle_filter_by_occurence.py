@@ -24,7 +24,7 @@ def test_execution(script_runner):
     in_3 = os.path.join(get_home(), 'filtering',
                         'bundle_4_filtered_no_loops.trk')
 
-    prefix='test_voting_'
+    prefix = 'test_voting_'
     ret = script_runner.run('scil_bundle_filter_by_occurence.py', in_1, in_2,
                             in_3, prefix, '--ratio_streamlines', '0.5',
                             '--ratio_voxels', '0.5')
