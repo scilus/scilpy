@@ -397,8 +397,8 @@ def create_peaks_actor(peaks, mask, opacity=1.0, linewidth=1.0, color=None,
                        symmetric=False, lut_values=None, lod=False,
                        lod_nb_points=10000, lod_points_size=3):
     """
-    Create a Peaks actor from a N-dimensional array. Data can be from 2D 
-    (M 3D peaks) to 5D (XxYxZxM 3D peaks). Color is None by default so coloring 
+    Create a Peaks actor from a N-dimensional array. Data can be from 2D
+    (M 3D peaks) to 5D (XxYxZxM 3D peaks). Color is None by default so coloring
     defaults to orientation coloring.
 
     Parameters

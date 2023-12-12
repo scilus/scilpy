@@ -3,17 +3,19 @@
 from fury import window
 from scilpy.utils.util import get_axis_index
 
-from scilpy.viz.backends.fury import (create_peaks_actor, create_scene,
+from scilpy.viz.backends.fury import (create_scene,
                                       set_display_extent,
                                       set_viewport,
                                       snapshot_slices)
 from scilpy.viz.backends.pil import (annotate_image,
+                                     any2grayscale,
                                      create_canvas,
-                                     draw_2d_array_at_position,
-                                     any2grayscale)
+                                     draw_2d_array_at_position)
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.utils import compute_cell_topleft_pos
-from scilpy.viz.slice import create_peaks_slicer, create_texture_slicer, create_contours_slicer
+from scilpy.viz.slice import (create_contours_slicer,
+                              create_peaks_slicer,
+                              create_texture_slicer)
 
 
 def screenshot_volume(img, orientation, slice_ids, size):
@@ -199,8 +201,8 @@ def compose_image(img_scene, img_size, slice_number, corner_position=(0, 0),
                               mask_overlay=mask_overlay_scene,
                               mask_overlay_alpha=mask_overlay_alpha,
                               mask_overlay_color=mask_overlay_color,
-                              peaks_overlay=peaks_overlay_scene,
-                              peaks_overlay_alpha=peaks_overlay_alpha,
+                              peak_overlay=peaks_overlay_scene,
+                              peak_overlay_alpha=peaks_overlay_alpha,
                               vol_lut=vol_lut, labelmap_lut=labelmap_lut)
 
     annotate_image(canvas, slice_number, display_slice_number,

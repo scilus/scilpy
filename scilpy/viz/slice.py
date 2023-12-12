@@ -5,7 +5,9 @@ from fury import actor
 import numpy as np
 
 from scilpy.reconst.bingham import bingham_to_sf
-from scilpy.viz.backends.fury import (create_contours_actor, create_odf_actors, create_peaks_actor,
+from scilpy.viz.backends.fury import (create_contours_actor,
+                                      create_odf_actors,
+                                      create_peaks_actor,
                                       set_display_extent)
 from scilpy.viz.backends.vtk import contours_from_data
 from scilpy.viz.color import generate_n_colors
