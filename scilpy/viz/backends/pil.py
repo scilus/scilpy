@@ -173,7 +173,7 @@ def annotate_image(image, slice_number, display_slice_number,
     display_slice_number : bool
         Display the slice number in the upper left corner.
     display_lr : int
-        Display the left/right labels in the middle of the image. If 
+        Display the left/right labels in the middle of the image. If
         negative, the labels are inverted.
     lr_labels : list, optional
         Left/right labels.
@@ -214,8 +214,8 @@ def draw_2d_array_at_position(canvas, array_2d, size,
                               mask_overlay=None,
                               mask_overlay_alpha=0.7,
                               mask_overlay_color=None,
-                              peaks_overlay=None,
-                              peaks_overlay_alpha=0.7,
+                              peak_overlay=None,
+                              peak_overlay_alpha=0.7,
                               vol_lut=None,
                               labelmap_lut=None):
     """
@@ -295,14 +295,14 @@ def draw_2d_array_at_position(canvas, array_2d, size,
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)
 
-    if peaks_overlay is not None:
-        for img in peaks_overlay:
+    if peak_overlay is not None:
+        for img in peak_overlay:
             overlay = create_image_from_2d_array(
                 (img * 255).astype(np.uint8), size, "RGB")
 
             # Create transparency mask over the mask overlay image
             overlay_transparency = create_image_from_2d_array(
-                (img * peaks_overlay_alpha).astype(np.uint8), size).convert("L")
+                (img * peak_overlay_alpha).astype(np.uint8), size).convert("L")
 
             canvas.paste(overlay, (left_position, top_position),
                          mask=overlay_transparency)

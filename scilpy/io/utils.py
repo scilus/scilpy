@@ -498,12 +498,12 @@ def add_nifti_screenshot_peaks_arg(parser):
     parser.add_argument(
         "--in_peaks", nargs="+", help="Peaks Nifti image (.nii/.nii.gz).")
     # TODO: check if possible, it would be cool to color by angular lut
-    # or peak intensity. Maybe we do need peeks scalars here, or 
+    # or peak intensity. Maybe we do need peeks scalars here, or
     # its simple to use
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--peaks_cmap_name", default="viridis",
     #    help="Colormap name for the peaks image data. [%(default)s]")
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--peaks_scalars", help="Peaks scalars Nifti image (.nii/.nii.gz) "
     #                            "used as values for the LUT.")
     parser.add_argument(

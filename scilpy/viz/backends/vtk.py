@@ -6,7 +6,7 @@ import vtk
 
 def get_color_by_name(color_name):
     """
-    Get a vtkColor by name. See : 
+    Get a vtkColor by name. See :
         https://vtk.org/doc/nightly/html/classvtkNamedColors.html
 
     Some color names can be found in the CSS3 specification :
