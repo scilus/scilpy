@@ -353,7 +353,8 @@ def compute_B1_correction_factor_maps(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
         b1 = b1_ref
         cf_nom = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
 
-        cf_maps[..., i] = (cf_nom - cf_act) / cf_act
+        # cf_maps[..., i] = (cf_nom - cf_act) / cf_act
+        cf_maps[..., i] = (cf_act - cf_nom) / cf_nom
 
     return cf_maps
 

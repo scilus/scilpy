@@ -109,7 +109,7 @@ def _build_arg_parser():
     p.add_argument('in_mask',
                    help='Path to the T1 binary brain mask. Must be the sum '
                         'of the three tissue probability maps from '
-                        'T1 segmentation (GM+WM+CSF).')
+                        'T1 segmentation (GM+WM+CSF).') # Why is this mandatory?
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
     p.add_argument('--filtering', action='store_true',
@@ -267,6 +267,9 @@ def main():
                            parameters, B1_map) * 1000 # convert 1/ms to 1/s
         cf_maps = compute_B1_correction_factor_maps(B1_map, r1, cf_eq,
                                                     r1_to_m0b, b1_ref=1)
+        nib.save(nib.Nifti1Image(r1, img.affine), "Contrasts_ihMT_maps/R1obs.nii.gz")
+        nib.save(nib.Nifti1Image(B1_map, img.affine), "Contrasts_ihMT_maps/B1_map.nii.gz")
+        nib.save(nib.Nifti1Image(cf_maps, img.affine), "Contrasts_ihMT_maps/cf_maps.nii.gz")
         MTsat_sp = apply_B1_correction_model_based(MTsat_sp, cf_maps[..., 0])
         MTsat_sn = apply_B1_correction_model_based(MTsat_sn, cf_maps[..., 1])
         MTsat_d = apply_B1_correction_model_based(MTsat_d, cf_maps[..., 2])
