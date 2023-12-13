@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Create a json file from a BIDS dataset detailling all info 
+Create a json file from a BIDS dataset detailling all info
 needed for tractoflow
 - DWI/rev_DWI
 - T1
@@ -294,7 +294,7 @@ def get_data(layout, nSub, dwis, t1s, fs, default_readout, clean):
         else:
             t1_paths = [curr_t1.path for curr_t1 in t1_nSess]
             logging.warning('More than one T1 file found.'
-                         ' [{}]'.format(','.join(t1_paths)))
+                            ' [{}]'.format(','.join(t1_paths)))
 
     return {'subject': nSub,
             'session': nSess,
@@ -409,7 +409,7 @@ def associate_dwis(layout, nSub):
                     if rev_curr_entity[direction] == rev_dwi.entities[direction]:
                         # Print difference between entities
                         logging.warning('DWIs {} and {} have opposite phase encoding directions but different entities.'
-                                     'Please check their respective json files.'.format(curr_dwi, rev_dwi))
+                                        'Please check their respective json files.'.format(curr_dwi, rev_dwi))
 
         # drop all rev_dwi used
         logging.info('Checking dwi {}'.format(all_dwis[0]))
@@ -458,28 +458,43 @@ def main():
         logging.info("-" * len(mess))
         logging.info(mess)
         dwis = associate_dwis(layout, nSub)
-        fs_inputs = []
-        t1s = []
 
-        if args.fs:
-            abs_fs = os.path.abspath(args.fs)
-            logging.info("Looking for FS files")
-            t1_fs = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/T1.mgz'))
-            wmparc = glob(os.path.join(abs_fs, 'sub-' + nSub, 'mri/wmparc.mgz'))
-            aparc_aseg = glob(os.path.join(abs_fs, 'sub-' + nSub,
-                                           'mri/aparc+aseg.mgz'))
-            if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
-                fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
-                logging.info("Found FS files")
-        else:
-            logging.info("Looking for T1 files")
-            t1s = layout.get(subject=nSub,
-                             datatype='anat', extension='nii.gz',
-                             suffix='T1w')
-            if t1s:
-                logging.info("Found {} T1 files".format(len(t1s)))
         # Get the data for each run of DWIs
         for dwi in dwis:
+            fs_inputs = []
+            t1s = []
+            if args.fs:
+                abs_fs = os.path.abspath(args.fs)
+
+                logging.info("Looking for FS files")
+                test_fs_sub_path = os.path.join(abs_fs, 'sub-' + nSub)
+                fs_sub_path = ""
+                if os.path.exists(test_fs_sub_path):
+                    fs_sub_path = test_fs_sub_path
+                elif 'session' in dwi[0].entities:
+                    nSess = dwi[0].entities['session']
+                    test_fs_sub_path = os.path.join(abs_fs, 'sub-' + nSub + '_ses-' + nSess)
+                    if os.path.exists(test_fs_sub_path):
+                        fs_sub_path = test_fs_sub_path
+
+                if fs_sub_path:
+                    t1_fs = glob(os.path.join(fs_sub_path, 'mri/T1.mgz'))
+                    wmparc = glob(os.path.join(fs_sub_path, 'mri/wmparc.mgz'))
+                    aparc_aseg = glob(os.path.join(fs_sub_path, 'mri/aparc+aseg.mgz'))
+
+                    if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
+                        fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
+                        logging.info("Found FS files")
+                else:
+                    logging.info("NOT Found FS files")
+            else:
+                logging.info("Looking for T1 files")
+                t1s = layout.get(subject=nSub,
+                                 datatype='anat', extension='nii.gz',
+                                 suffix='T1w')
+                if t1s:
+                    logging.info("Found {} T1 files".format(len(t1s)))
+
             data.append(get_data(layout,
                                  nSub,
                                  dwi,
