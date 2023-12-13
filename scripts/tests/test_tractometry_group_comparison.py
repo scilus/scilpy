@@ -14,7 +14,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 def test_help_option(script_runner):
     ret = script_runner.run(
-        'scil_group_comparison.py',
+        'scil_tractometry_group_comparison.py',
         '--help')
     assert ret.success
 
@@ -24,7 +24,7 @@ def test_execution_bundles(script_runner):
     in_json = os.path.join(get_home(), 'stats/group', 'participants.tsv')
     in_participants = os.path.join(get_home(), 'stats/group', 'meanstd_all.json')
 
-    ret = script_runner.run('scil_group_comparison.py',
+    ret = script_runner.run('scil_tractometry_group_comparison.py',
                             in_participants, in_json, 'Group',
                             '-b', 'AF_L',
                             '-m', 'FIT_FW',
