@@ -6,6 +6,8 @@ Plot all mean/std per point for a subject or population json file from
 tractometry-flow.
 WARNING: For population, the displayed STDs is only showing the variation
 of the means. It does not account intra-subject STDs.
+
+Formerly: scil_plot_mean_std_per_point.py
 """
 
 import argparse
