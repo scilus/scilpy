@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import pytest
+
 legacy_scripts_list_tag_1_6_0 = [
     "scil_add_tracking_mask_to_pft_maps.py",
     "scil_analyse_lesions_load.py",
@@ -175,6 +177,7 @@ legacy_scripts_list_tag_1_6_0 = [
 
 
 # test that all scripts available in scilpy 1.6.0 can be called
+@pytest.mark.filterwarnings("ignore")
 def test_help_option(script_runner):
     for script in legacy_scripts_list_tag_1_6_0:
         ret = script_runner.run(script, '--help')
