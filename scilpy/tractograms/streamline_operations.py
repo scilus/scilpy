@@ -402,6 +402,7 @@ def perform_streamline_operation_per_point(op_name, sft, dpp_name='metric',
     new_sft: StatefulTractogram
         sft with data per streamline resulting from the operation.
     """
+    
     # Performing operation
     call_op = OPERATIONS[op_name]
     if endpoints_only:
