@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script to compute angle-aware bilateral filtering.
+Script to estimate asymmetric ODFs (aODFs) from a spherical harmonics image.
 
-Angle-aware bilateral filtering is an extension of bilateral filtering
-considering the angular distance between sphere directions for filtering
-5-dimensional spatio-angular images.
+Two methods are available:
+    * Angle-aware bilateral filtering [1] is an extension of bilateral
+      filtering considering the angular distance between sphere directions
+      for filtering 5-dimensional spatio-angular images.
+    * Cosine filtering [2] is a simpler implementation using cosine distance
+      for assigning weights to neighbours.
 
-The filtering can be performed on the GPU using pyopencl by specifying
---use_gpu. Make sure you have pyopencl installed to use this option.
-Otherwise, the filtering also runs entirely on the CPU, optionally using
-multiple processes.
-
-Using default parameters, fODF filtering for a HCP subject processed with
-Tractoflow takes about 12 minutes on the GPU versus 90 minutes using 16 CPU
-threads. The time required scales with the sigma_spatial parameter. For
-example, sigma_spatial=3.0 takes about 4.15 hours on the GPU versus 7.67 hours
-on the CPU using 16 threads.
+Angle-aware bilateral filtering can be performed on the GPU using pyopencl by
+specifying --use_gpu. Make sure you have pyopencl installed to use this option.
+Otherwise, the filtering runs entirely on the CPU.
 """
 
 import argparse
@@ -104,6 +100,9 @@ def main():
 
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
+
+    if args.use_gpu and args.method == 'cosine':
+        parser.error('Option --use_gpu is not supported for cosine filtering.')
 
     outputs = [args.out_sh]
     if args.out_sym:

@@ -122,8 +122,13 @@ def test_cosine_method(script_runner, mock_filtering, in_fodf, out_fodf):
                             print_result=True, shell=True)
 
     assert ret.success
+
+    # method cosine is fast and not mocked
     mock_filtering.assert_not_called()
 
     ret_fodf = nib.load("out_fodf1.nii.gz")
     test_fodf = nib.load(out_fodf)
+
+    # We expect the output to be different from the
+    # one obtained with angle-aware bilateral filtering
     assert not np.allclose(ret_fodf.get_fdata(), test_fodf.get_fdata())
