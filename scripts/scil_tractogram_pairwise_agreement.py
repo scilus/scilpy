@@ -217,9 +217,7 @@ def main():
     logging.info('Loading tractograms...')
     global sft_1, sft_2
     sft_1 = load_tractogram_with_reference(parser, args, args.in_tractogram_1)
-    # sft_1 = resample_streamlines_step_size(sft_1, 0.5)
     sft_2 = load_tractogram_with_reference(parser, args, args.in_tractogram_2)
-    # sft_2 = resample_streamlines_step_size(sft_2, 0.5)
     sft_1.to_vox()
     sft_2.to_vox()
     sft_1.streamlines._data = sft_1.streamlines._data.astype(np.float16)
