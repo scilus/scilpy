@@ -6,7 +6,7 @@ from scripts.scil_volume_stats_in_labels import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_volume_stats_in_labels.
+This script has been renamed scil_volume_stats_in_labels.py.
 Please change your existing pipelines accordingly.
 """
 
