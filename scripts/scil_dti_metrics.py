@@ -44,9 +44,9 @@ from dipy.reconst.dti import mode as dipy_mode
 from scilpy.dwi.operations import compute_residuals, \
     compute_residuals_statistics
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_verbose_arg,
-                             add_force_b0_arg)
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_skip_b0_validation_arg, add_verbose_arg,
+                             assert_inputs_exist,assert_outputs_exist)
 from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
 from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
@@ -141,8 +141,9 @@ def _build_arg_parser():
         '--residual', dest='residual', metavar='file', default='',
         help='Output filename for the map of the residual of the tensor fit.')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_validation_arg(p)
     add_verbose_arg(p)
-    add_force_b0_arg(p)
 
     return p
 
@@ -266,9 +267,14 @@ def main():
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    b0_thr = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), bvals.min())
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+    # How the b0_threshold is used: gtab.b0s_mask is used
+    # 1) In TensorModel in Dipy:
+    #       - The S0 images used as any other image in the design matrix and in
+    #         method .fit().
+    # 2) But we do use this information below, with options p_i_signal,
+    #    pulsation and residual.
+    check_b0_threshold(bvals.min(), args)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.b0_threshold)
 
     # Processing
 
