@@ -9,16 +9,16 @@ For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
 Example:
-To apply transform from ANTS to tractogram. If the ANTS commands was
-MOVING->REFERENCE, this will bring a tractogram from MOVING->REFERENCE
-scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+To apply transform from ANTS to hdf5 (.h5). If the ANTS commands was
+MOVING->REFERENCE, this will bring a hdf5 (.h5) from MOVING->REFERENCE
+scil_apply_transform_to_hdf5.py ${MOVING_FILE} ${REFERENCE_FILE}
                                         0GenericAffine.mat ${OUTPUT_NAME}
                                         --inverse
                                         --in_deformation 1InverseWarp.nii.gz
 
-If the ANTS commands was MOVING->REFERENCE, this will bring a tractogram
+If the ANTS commands was MOVING->REFERENCE, this will bring a hdf5
 from REFERENCE->MOVING
-scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
+scil_apply_transform_to_hdf5.py ${MOVING_FILE} ${REFERENCE_FILE}
                                         0GenericAffine.mat ${OUTPUT_NAME}
                                         --in_deformation 1Warp.nii.gz
                                         --reverse_operation
@@ -47,14 +47,14 @@ def _build_arg_parser():
                                 description=__doc__)
 
     p.add_argument('in_hdf5',
-                   help='Path of the tractogram to be transformed.')
+                   help='Path of the hdf5 (.h5) to be transformed.')
     p.add_argument('in_target_file',
-                   help='Path of the reference target file (.trk or .nii).')
+                   help='Path of the reference target file (.nii).')
     p.add_argument('in_transfo',
                    help='Path of the file containing the 4x4 \n'
                         'transformation, matrix (.txt, .npy or .mat).')
     p.add_argument('out_hdf5',
-                   help='Output tractogram filename (transformed data).')
+                   help='Output hdf5 (.h5) filename (transformed data).')
 
     p.add_argument('--inverse', action='store_true',
                    help='Apply the inverse linear transformation.')
@@ -117,25 +117,27 @@ def main():
                             moving_sft.data_per_streamline[dps_key] \
                                 = in_hdf5_file[key][dps_key]
 
-                new_sft = transform_warp_sft(moving_sft, transfo, target_img,
-                                             inverse=args.inverse,
-                                             deformation_data=deformation_data,
-                                             reverse_op=args.reverse_operation,
-                                             remove_invalid=not args.cut_invalid,
-                                             cut_invalid=args.cut_invalid)
+                new_sft = transform_warp_sft(
+                            moving_sft, transfo, target_img,
+                            inverse=args.inverse,
+                            deformation_data=deformation_data,
+                            reverse_op=args.reverse_operation,
+                            remove_invalid=not args.cut_invalid,
+                            cut_invalid=args.cut_invalid)
                 new_sft.to_vox()
                 new_sft.to_corner()
 
-                affine, dimensions, voxel_sizes, voxel_order = get_reference_info(
-                    target_img)
+                affine, dimensions, voxel_sizes, voxel_order =\
+                    get_reference_info(target_img)
                 out_hdf5_file.attrs['affine'] = affine
                 out_hdf5_file.attrs['dimensions'] = dimensions
                 out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
                 out_hdf5_file.attrs['voxel_order'] = voxel_order
 
                 group = out_hdf5_file[key]
-                group.create_dataset('data',
-                                     data=new_sft.streamlines._data.astype(np.float32))
+                group.create_dataset(
+                        'data',
+                        data=new_sft.streamlines._data.astype(np.float32))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
                 group.create_dataset('lengths',
@@ -144,11 +146,13 @@ def main():
                     if dps_key not in ['data', 'offsets', 'lengths']:
                         if in_hdf5_file[key][dps_key].shape \
                                 == in_hdf5_file[key]['offsets']:
-                            group.create_dataset(dps_key,
-                                                 data=new_sft.data_per_streamline[dps_key])
+                            group.create_dataset(
+                                    dps_key,
+                                    data=new_sft.data_per_streamline[dps_key])
                         else:
-                            group.create_dataset(dps_key,
-                                                 data=in_hdf5_file[key][dps_key])
+                            group.create_dataset(
+                                    dps_key,
+                                    data=in_hdf5_file[key][dps_key])
 
 
 if __name__ == "__main__":

@@ -26,9 +26,11 @@ Specific names can be specified using the file flags specified in the
 If --not_all is set, only the files specified explicitly by the flags
 will be output.
 
-Based on P. Karan et al., Bridging the gap between constrained spherical 
-deconvolution and diffusional variance decomposition via tensor-valued 
+Based on P. Karan et al., Bridging the gap between constrained spherical
+deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
+
+Formally: scil_compute_memsmt_fodf.py
 """
 
 import argparse

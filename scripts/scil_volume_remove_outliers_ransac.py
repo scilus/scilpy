@@ -6,6 +6,8 @@ Remove outliers from image using the RANSAC algorithm.
 The RANSAC algorithm parameters are sensitive to the input data.
 
 NOTE: Current default parameters are tuned for ad/md/rd images only.
+
+Formally: scil_remove_outliers_ransac.py
 """
 
 import argparse

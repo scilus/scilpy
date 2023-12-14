@@ -14,6 +14,8 @@ coordinates in anterior-posterior axis, a streamline from the ...
 
 Note: we consider that x, y, z are the coordinates of the streamlines; we
 do not verify if they are aligned with the brain's orientation.
+
+Formally: scil_filter_streamlines_by_orientation.py
 """
 
 import argparse

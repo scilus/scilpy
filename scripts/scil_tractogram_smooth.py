@@ -21,6 +21,8 @@ WARNING:
 - too low of a sigma (e.g: 1) with a lot of control points (e.g: 15)
 will create crazy streamlines that could end up out of the bounding box.
 - data_per_point will be lost.
+
+Formally: scil_smooth_streamlines.py
 """
 
 import argparse
@@ -51,8 +53,8 @@ def _build_arg_parser():
 
     sub_p = p.add_mutually_exclusive_group(required=True)
     sub_p.add_argument('--gaussian', metavar='SIGMA', type=int,
-                       help='Sigma for smoothing. Use the value of surronding\n'
-                            'X,Y,Z points on the streamline to blur the'
+                       help='Sigma for smoothing. Use the value of surronding'
+                            '\nX,Y,Z points on the streamline to blur the'
                             ' streamlines.\nA good sigma choice would be '
                             'around 5.')
     sub_p.add_argument('--spline', nargs=2, metavar=('SIGMA', 'NB_CTRL_POINT'),
@@ -95,8 +97,9 @@ def main():
             smoothed_streamlines.append(compress_streamlines(tmp_streamlines,
                                                              args.error_rate))
 
-    smoothed_sft = StatefulTractogram.from_sft(smoothed_streamlines, sft,
-                                               data_per_streamline=sft.data_per_streamline)
+    smoothed_sft = StatefulTractogram.from_sft(
+                        smoothed_streamlines, sft,
+                        data_per_streamline=sft.data_per_streamline)
     save_tractogram(smoothed_sft, args.out_tractogram)
 
 

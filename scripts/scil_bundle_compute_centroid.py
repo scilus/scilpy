@@ -3,6 +3,8 @@
 
 """
 Compute a single bundle centroid, using an 'infinite' QuickBundles threshold.
+
+Formally: scil_compute_centroid.py
 """
 
 import argparse

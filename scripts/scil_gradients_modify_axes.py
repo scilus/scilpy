@@ -4,6 +4,8 @@
 Flip (ex, x --> -x) or swap (ex, x <-> y) chosen axes of the gradient sampling
 matrix. Result will be saved in the same format as input gradient sampling
 file.
+
+Formally: scil_flip_gradients.py or scil_swap_gradient_axis.py
 """
 import argparse
 import os

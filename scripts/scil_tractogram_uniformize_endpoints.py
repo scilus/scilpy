@@ -14,6 +14,8 @@ defined axis is smaller than their last point (--swap does the opposite).
 The --target option will use the barycenter of the target mask to define the
 axis. The target mask can be a binary mask or an atlas. If an atlas is
 used, labels are expected in the form of --target atlas.nii.gz 2 3 5:7.
+
+Formally: scil_uniformize_streamlines_endpoints.py
 """
 
 import argparse
@@ -45,8 +47,8 @@ def _build_arg_parser():
 
     method = p.add_mutually_exclusive_group(required=True)
     method.add_argument('--axis', choices=['x', 'y', 'z'],
-                        help='Match endpoints of the streamlines along this axis.'
-                        '\nSUGGESTION: Commissural = x, Association = y, '
+                        help='Match endpoints of the streamlines along this '
+                        'axis.\nSUGGESTION: Commissural = x, Association = y, '
                         'Projection = z')
     method.add_argument('--auto', action='store_true',
                         help='Match endpoints of the streamlines along an '
@@ -56,8 +58,9 @@ def _build_arg_parser():
                              'to a reference unique streamline (centroid).')
     method.add_argument('--target_roi', nargs='+',
                         help='Provide a target ROI and the labels to use.\n'
-                             'Align heads to be closest to the mask barycenter.\n'
-                             'If no labels are provided, all labels will be used.')
+                             'Align heads to be closest to the mask barycenter'
+                             '.\nIf no labels are provided, all labels will be'
+                             ' used.')
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '
                         'Can be useful when the reference is not in RAS.')

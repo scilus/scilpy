@@ -8,6 +8,8 @@ Any streamline that do not respect these two conditions are removed.
 
 The --cut_invalid option will cut streamlines so that their longest segment are
 within the bounding box
+
+Formally: scil_remove_invalid_streamlines.py
 """
 
 import argparse
@@ -41,7 +43,8 @@ def _build_arg_parser():
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
-                   help='Consider streamlines with overlapping points invalid.')
+                   help='Consider streamlines with overlapping points invalid.'
+                   )
     p.add_argument('--threshold', type=float, default=0.001,
                    help='Maximum distance between two points to be considered'
                         ' overlapping [%(default)s mm].')

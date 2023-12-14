@@ -8,7 +8,7 @@ The computed measures are:
     - volume_info: volume, volume_endpoints
     - streamlines_info: streamlines_count, avg_length (in mm or in number of
       point), average step size, min_length, max_length.
-      ** You may also get this information with scil_tractogram_print_info.
+      ** You may also get this information with scil_tractogram_print_info.py.
     - shape_info: span, curl, diameter, elongation, surface area,
       irregularity, end surface area, radius, end surface irregularity,
       mean_curvature, fractal dimension.
@@ -30,6 +30,9 @@ These measures include volume and surface area.
 
 The fractal dimension is dependent on the voxel size and the number of voxels.
 If data comparison is performed, the bundles MUST be in same resolution.
+
+Formally: scil_compute_bundle_volume.py or
+scil_evaluate_bundles_individual_measures.py
 """
 
 import argparse

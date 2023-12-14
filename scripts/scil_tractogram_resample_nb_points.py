@@ -4,6 +4,8 @@
 """
 Script to resample a set of streamlines to either a new number of points per
 streamline or to a fixed step size. WARNING: data_per_point is not carried.
+
+Formally: scil_resample_streamlines.py
 """
 import argparse
 

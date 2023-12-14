@@ -4,10 +4,12 @@
 """
 Generate a linear transformation matrix from the registration of
 2 tractograms. Typically, this script is run before
-scil_apply_transform_to_tractogram.py.
+scil_tractogram_apply_transform.py.
 
 For more informations on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
+
+Formally: scil_register_tractogram.py
 """
 
 import argparse

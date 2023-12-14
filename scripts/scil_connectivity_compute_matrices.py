@@ -35,6 +35,8 @@ specified folder. They represent the number of lesion, the total volume of
 lesion(s) and the total of streamlines going through the lesion(s) for  of each
 connection. Each connection can be seen as a 'bundle' and then something
 similar to scil_analyse_lesion_load.py is run for each 'bundle'.
+
+Formally: scil_compute_connectivity.py
 """
 
 import argparse
@@ -60,7 +62,8 @@ from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
                              add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              validate_nbr_processes)
-from scilpy.tractanalysis.reproducibility_measures import compute_bundle_adjacency_voxel
+from scilpy.tractanalysis.reproducibility_measures import \
+    compute_bundle_adjacency_voxel
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.utils.metrics_tools import compute_lesion_stats
 
@@ -257,7 +260,8 @@ def _build_arg_parser():
                    help='Minimum lesion volume in mm3 [%(default)s].')
 
     p.add_argument('--density_weighting', action="store_true",
-                   help='Use density-weighting for the metric weighted matrix.')
+                   help='Use density-weighting for the metric weighted'
+                   'matrix.')
     p.add_argument('--no_self_connection', action="store_true",
                    help='Eliminate the diagonal from the matrices.')
     p.add_argument('--include_dps', metavar='OUT_DIR',
@@ -377,13 +381,14 @@ def main():
     measures_dict_list = []
     if nbr_cpu == 1:
         for comb in comb_list:
-            measures_dict_list.append(_processing_wrapper([args.in_hdf5,
-                                                           img_labels, comb,
-                                                           measures_to_compute,
-                                                           args.similarity,
-                                                           args.density_weighting,
-                                                           args.include_dps,
-                                                           args.min_lesion_vol]))
+            measures_dict_list.append(_processing_wrapper(
+                                                [args.in_hdf5,
+                                                 img_labels, comb,
+                                                 measures_to_compute,
+                                                 args.similarity,
+                                                 args.density_weighting,
+                                                 args.include_dps,
+                                                 args.min_lesion_vol]))
     else:
         pool = multiprocessing.Pool(nbr_cpu)
         measures_dict_list = pool.map(_processing_wrapper,
@@ -396,7 +401,8 @@ def main():
                                           itertools.repeat(
                                           args.density_weighting),
                                           itertools.repeat(args.include_dps),
-                                          itertools.repeat(args.min_lesion_vol)))
+                                          itertools.repeat(args.min_lesion_vol)
+                                          ))
         pool.close()
         pool.join()
 

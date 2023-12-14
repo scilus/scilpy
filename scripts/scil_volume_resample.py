@@ -4,6 +4,8 @@
 """
 Script to resample a dataset to match the resolution of another
 reference dataset or to the resolution specified as in argument.
+
+Formally: scil_resample_volume.py
 """
 
 import argparse

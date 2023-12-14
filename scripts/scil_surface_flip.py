@@ -11,6 +11,8 @@ Best usage for FreeSurfer to LPS vtk (for MI-Brain):
 !!! important FreeSurfer surfaces must be in their respective folder !!!
 > mris_convert --to-scanner lh.white lh.white.vtk
 > scil_surface_flip.py lh.white.vtk lh_white_lps.vtk x y
+
+Formally: scil_flip_surface.py
 """
 
 import argparse

@@ -4,6 +4,8 @@
 Conversion of '.tck', '.trk', '.fib', '.vtk' and 'dpy' files using updated file
 format standard. TRK file always needs a reference file, a NIFTI, for
 conversion. The FIB file format is in fact a VTK, MITK Diffusion supports it.
+
+Formally: scil_convert_tractogram.py
 """
 
 import argparse

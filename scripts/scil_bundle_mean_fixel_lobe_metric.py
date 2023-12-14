@@ -7,7 +7,7 @@ metric at each voxel intersected by the bundle. Intersected voxels are
 found by computing the intersection between the voxel grid and each streamline
 in the input tractogram.
 
-This script behaves like scil_compute_mean_fixel_afd_from_bundles.py for fODFs,
+This script behaves like scil_bundle_mean_fixel_afd.py for fODFs,
 but here for Bingham distributions. These latest distributions add the unique
 possibility to capture fixel-based fiber spread (FS) and fiber fraction (FF).
 FD from the bingham should be "equivalent" to the AFD_fixel we are used to.
@@ -21,6 +21,8 @@ values chosen for a given voxelis the one belonging to the lobe better aligned
 with the current streamline segment.
 
 Please use a bundle file rather than a whole tractogram.
+
+Formally: scil_compute_mean_fixel_obe_metric_from_bundles.py
 """
 
 import argparse

@@ -13,6 +13,8 @@ The same measures are also evluated for the endpoints.
 For the streamline representation, the computed similarity measures are:
     bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
     streamlines_count_overreach
+
+Formally: scil_evaluate_bundles_pairwise_agreement_measures.py
 """
 
 import argparse
@@ -94,12 +96,14 @@ def load_data_tmp_saving(args):
     disable_centroids = args[3]
 
     # Since data is often re-use when comparing multiple bundles, anything
-    # that can be computed once is saved temporarily and simply loaded on demand
+    # that can be computed once is saved temporarily and simply loaded on
+    # demand
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
     tmp_density_filename = os.path.join('tmp_measures/',
                                         '{}_density.nii.gz'.format(hash_tmp))
     tmp_endpoints_filename = os.path.join('tmp_measures/',
-                                          '{}_endpoints.nii.gz'.format(hash_tmp))
+                                          '{}_endpoints.nii.gz'.format(
+                                                                    hash_tmp))
     tmp_centroids_filename = os.path.join('tmp_measures/',
                                           '{}_centroids.trk'.format(hash_tmp))
 
@@ -300,9 +304,11 @@ def main():
         bundles_references_tuple_extended = link_bundles_and_reference(
             parser, args, bundles_list)
 
-        single_compare_reference_tuple = bundles_references_tuple_extended.pop()
-        comb_dict_keys = list(itertools.product(bundles_references_tuple_extended,
-                                                [single_compare_reference_tuple]))
+        single_compare_reference_tuple = \
+            bundles_references_tuple_extended.pop()
+        comb_dict_keys = list(itertools.product(
+                                        bundles_references_tuple_extended,
+                                        [single_compare_reference_tuple]))
     else:
         bundles_list = args.in_bundles
         # Pre-compute the needed files, to avoid conflict when the number

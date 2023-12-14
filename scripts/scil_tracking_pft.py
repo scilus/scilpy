@@ -6,8 +6,7 @@ Local streamline HARDI tractography including Particle Filtering tracking.
 
 The tracking is done inside partial volume estimation maps and uses the
 particle filtering tractography (PFT) algorithm. See
-scil_compute_maps_for_particle_filter_tracking.py
-to generate PFT required maps.
+scil_tracking_pft_maps.py to generate PFT required maps.
 
 Streamlines longer than min_length and shorter than max_length are kept.
 The tracking direction is chosen in the aperture cone defined by the
@@ -23,6 +22,8 @@ For streamline compression, a rule of thumb is to set it to 0.1mm for the
 deterministic algorithm and 0.2mm for probabilitic algorithm.
 
 All the input nifti files must be in isotropic resolution.
+
+Formally: scil_compute_pft.py
 """
 
 import argparse
@@ -63,11 +64,13 @@ def _build_arg_parser():
     p.add_argument('in_seed',
                    help='Seeding mask (.nii.gz).')
     p.add_argument('in_map_include',
-                   help='The probability map (.nii.gz) of ending the streamline\n'
-                        'and including it in the output (CMC, PFT [1])')
+                   help='The probability map (.nii.gz) of ending the\n'
+                        'streamline and including it in the output (CMC, PFT '
+                        '[1])')
     p.add_argument('map_exclude_file',
-                   help='The probability map (.nii.gz) of ending the streamline\n'
-                        'and excluding it in the output (CMC, PFT [1]).')
+                   help='The probability map (.nii.gz) of ending the\n'
+                        'streamline and excluding it in the output (CMC, PFT '
+                        '[1]).')
     p.add_argument('out_tractogram',
                    help='Tractogram output file (must be .trk or .tck).')
 
@@ -111,12 +114,14 @@ def _build_arg_parser():
 
     pft_g = p.add_argument_group('PFT options')
     pft_g.add_argument('--particles', type=int, default=15,
-                       help='Number of particles to use for PFT. [%(default)s]')
+                       help='Number of particles to use for PFT. [%(default)s]'
+                       )
     pft_g.add_argument('--back', dest='back_tracking', type=float, default=2.,
                        help='Length of PFT back tracking (mm). [%(default)s]')
     pft_g.add_argument('--forward', dest='forward_tracking',
                        type=float, default=1.,
-                       help='Length of PFT forward tracking (mm). [%(default)s]')
+                       help='Length of PFT forward tracking (mm). '
+                       '[%(default)s]')
 
     out_g = p.add_argument_group('Output options')
     out_g.add_argument('--compress', type=float,
@@ -223,13 +228,15 @@ def main():
     voxel_size = np.average(map_include_img.header['pixdim'][1:4])
 
     if not args.act:
-        tissue_classifier = CmcStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
-                                                 map_exclude_img.get_fdata(dtype=np.float32),
-                                                 step_size=args.step_size,
-                                                 average_voxel_size=voxel_size)
+        tissue_classifier = CmcStoppingCriterion(
+                                map_include_img.get_fdata(dtype=np.float32),
+                                map_exclude_img.get_fdata(dtype=np.float32),
+                                step_size=args.step_size,
+                                average_voxel_size=voxel_size)
     else:
-        tissue_classifier = ActStoppingCriterion(map_include_img.get_fdata(dtype=np.float32),
-                                                 map_exclude_img.get_fdata(dtype=np.float32))
+        tissue_classifier = ActStoppingCriterion(
+                                map_include_img.get_fdata(dtype=np.float32),
+                                map_exclude_img.get_fdata(dtype=np.float32))
 
     if args.npv:
         nb_seeds = args.npv

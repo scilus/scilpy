@@ -19,6 +19,8 @@ You can also use the Optimal Leaf Ordering(OLO) algorithm to transform a
 sparse matrix into an ordering that reduces the matrix bandwidth. The output
 file can then be re-used with --in_ordering. Only one input can be used with
 this option, we recommand an average streamline count or volume matrix.
+
+Formally: scil_reorder_connectivity.py
 """
 
 import argparse

@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-    Convert a SH file between the two commonly used bases
-    ('descoteaux07' or 'tournier07'). The specified basis corresponds to the
-    input data basis. Note that by default, both legacy 'descoteaux07' and
-    legacy 'tournier07' bases will be assumed. For more information, see
-    https://dipy.org/documentation/1.4.0./theory/sh_basis/.
+Convert a SH file between the two commonly used bases
+('descoteaux07' or 'tournier07'). The specified basis corresponds to the
+input data basis. Note that by default, both legacy 'descoteaux07' and
+legacy 'tournier07' bases will be assumed. For more information, see
+https://dipy.org/documentation/1.4.0./theory/sh_basis/.
+
+Formally: scil_convert_sh_basis.py
 """
 
 import argparse
@@ -29,7 +31,7 @@ def _build_arg_parser():
                    help='Input SH filename. (nii or nii.gz)')
     p.add_argument('out_sh',
                    help='Output SH filename. (nii or nii.gz)')
-    
+
     p.add_argument('--in_sh_is_not_legacy', action='store_true',
                    help='If set, this means that the input SH are not encoded '
                         'with the legacy version of their SH basis.')

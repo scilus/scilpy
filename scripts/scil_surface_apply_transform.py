@@ -15,6 +15,8 @@ The input surface needs to be in *T1 world LPS* coordinates
 The script will use the linear affine first and then the warp image from ANTs.
 The resulting surface should be aligned *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
+
+Formally: scil_apply_transform_to_surface.py.
 """
 
 import argparse

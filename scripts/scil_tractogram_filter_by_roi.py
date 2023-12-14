@@ -32,6 +32,8 @@ conditions will be sequentially applied.
 WARNING: DISTANCE is optional and it should be used carefully with large
 voxel size (e.g > 2.5mm). The value is in voxel for ROIs and in mm for
 bounding box. Anisotropic data will affect each direction differently
+
+Formally: scil_filter_tractogram.py
 """
 
 import argparse
@@ -104,8 +106,10 @@ def _build_arg_parser():
                    '(i.e. drawn_roi mask.nii.gz both_ends include 1).')
 
     p.add_argument('--overwrite_distance', nargs='+', action='append',
-                   help='MODE CRITERIA DISTANCE (distance in voxel for ROIs and in mm for bounding box).\n'
-                        'If set, it will overwrite the distance associated to a specific mode/criteria.')
+                   help='MODE CRITERIA DISTANCE (distance in voxel for ROIs '
+                        'and in mm for bounding box).\n'
+                        'If set, it will overwrite the distance associated to '
+                        'a specific mode/criteria.')
 
     p.add_argument('--extract_masks_atlas_roi', action='store_true',
                    help='Extract atlas roi masks.')
@@ -163,10 +167,12 @@ def prepare_filtering_list(parser, args):
             else:
                 roi_opt_list.append(roi_opt.strip().split())
 
-    if (len(roi_opt_list[-1]) < 4 or len(roi_opt_list) > 5) and roi_opt_list[-1][0] != 'atlas_roi':
+    if (len(roi_opt_list[-1]) < 4 or len(roi_opt_list) > 5) and \
+            roi_opt_list[-1][0] != 'atlas_roi':
         logging.error("Please specify 3 or 4 values "
                       "for {} filtering.".format(roi_opt_list[-1][0]))
-    elif (len(roi_opt_list[-1]) < 5 or len(roi_opt_list) > 6) and roi_opt_list[-1][0] == 'atlas_roi':
+    elif (len(roi_opt_list[-1]) < 5 or len(roi_opt_list) > 6) and \
+            roi_opt_list[-1][0] == 'atlas_roi':
         logging.error("Please specify 4 or 5 values"
                       " for {} filtering.".format(roi_opt_list[-1][0]))
 
@@ -174,15 +180,18 @@ def prepare_filtering_list(parser, args):
     for index, roi_opt in enumerate(roi_opt_list):
         if roi_opt[0] == 'atlas_roi':
             if len(roi_opt) == 5:
-                filter_type, filter_arg, _, filter_mode, filter_criteria = roi_opt
+                filter_type, filter_arg, _, filter_mode, filter_criteria = \
+                                                                    roi_opt
                 roi_opt_list[index].append(0)
             else:
-                filter_type, filter_arg, _, filter_mode, filter_criteria, filter_distance = roi_opt
+                filter_type, filter_arg, _, filter_mode, filter_criteria, \
+                    filter_distance = roi_opt
         elif len(roi_opt) == 4:
             filter_type, filter_arg, filter_mode, filter_criteria = roi_opt
             roi_opt_list[index].append(0)
         else:
-            filter_type, filter_arg, filter_mode, filter_criteria, filter_distance = roi_opt
+            filter_type, filter_arg, filter_mode, filter_criteria, \
+                filter_distance = roi_opt
 
         if filter_type not in ['x_plane', 'y_plane', 'z_plane']:
             if not os.path.isfile(filter_arg):
@@ -210,7 +219,8 @@ def check_overwrite_distance(parser, args):
                              'It should be MODE CRITERIA DISTANCE.')
             elif '-'.join([distance[0], distance[1]]) in dict_distance:
                 parser.error('Overwrite distance dictionnary MODE '
-                             '"{}" has been set multiple times.'.format(distance[0]))
+                             '"{}" has been set multiple times.'.format(
+                                                                distance[0]))
             elif distance[0] in MODES and distance[1] in CRITERIA:
                 curr_key = '-'.join([distance[0], distance[1]])
                 dict_distance[curr_key] = distance[2]
@@ -238,7 +248,8 @@ def main():
         set_sft_logger_level('WARNING')
 
     if overwrite_distance:
-        logging.debug('Overwrite distance dictionnary {}'.format(overwrite_distance))
+        logging.debug('Overwrite distance dictionnary {}'.format(
+                                                        overwrite_distance))
 
     roi_opt_list, only_filtering_list = prepare_filtering_list(parser, args)
     o_dict = {}
@@ -262,7 +273,8 @@ def main():
             filter_type, filter_arg, filter_arg_2, \
                 filter_mode, filter_criteria, filter_distance = roi_opt
         else:
-            filter_type, filter_arg, filter_mode, filter_criteria, filter_distance = roi_opt
+            filter_type, filter_arg, filter_mode, filter_criteria, \
+                filter_distance = roi_opt
 
         curr_dict['filename'] = os.path.abspath(filter_arg)
         curr_dict['type'] = filter_type
@@ -278,7 +290,8 @@ def main():
         try:
             filter_distance = int(curr_dict['distance'])
         except ValueError:
-            parser.error('Distance filter {} should is not an integer.'.format(curr_dict['distance']))
+            parser.error('Distance filter {} should is not an integer.'.format(
+                                                        curr_dict['distance']))
 
         is_exclude = False if filter_criteria == 'include' else True
 
@@ -296,7 +309,9 @@ def main():
                 if args.extract_masks_atlas_roi:
                     atlas_roi_item = atlas_roi_item + 1
                     nib.Nifti1Image(mask.astype(np.uint16),
-                                    img.affine).to_filename('mask_atlas_roi_{}.nii.gz'.format(str(atlas_roi_item)))
+                                    img.affine).to_filename(
+                                        'mask_atlas_roi_{}.nii.gz'.format(
+                                            str(atlas_roi_item)))
 
             filtered_sft, kept_ids = filter_grid_roi(sft, mask,
                                                      filter_mode, is_exclude,

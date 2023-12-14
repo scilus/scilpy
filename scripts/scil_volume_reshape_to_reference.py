@@ -6,9 +6,10 @@ Reshape / reslice / resample *.nii or *.nii.gz using a reference.
 This script can be used to align freesurfer/civet output, as .mgz,
 to the original input image.
 
-
->>> scil_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz \\
+>>> scil_volume_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz\\
     --interpolation nearest
+
+Formally: scil_reshape_to_reference.py
 """
 
 import argparse

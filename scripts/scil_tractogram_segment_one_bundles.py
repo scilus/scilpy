@@ -12,6 +12,8 @@ option (-v) and try with and without the --inverse flag. If you are not using
 the right transformation 'direction' a warning will popup. If there is no
 warning in both case it means the transformation is very close to identity and
 both 'direction' will work.
+
+Formally: scil_recognize_single_bundles.py
 """
 
 import argparse

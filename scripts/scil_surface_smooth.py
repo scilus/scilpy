@@ -9,6 +9,8 @@ Smoothing_time = step_size * nb_steps
     [1, 10] for a small smoothing
     [10, 100] for a moderate smoothing
     [100, 1000] for a big smoothing
+
+Formally: scil_smooth_surface.py
 """
 
 import argparse
