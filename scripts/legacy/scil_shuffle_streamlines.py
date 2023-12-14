@@ -7,12 +7,7 @@ from scripts.scil_tractogram_shuffle import main as new_main
 
 DEPRECATION_MSG = """
 This script has been renamed scil_tractogram_shuffle.py. Please change
-your existing pipelines accordingly. We will try to keep the following
-convention:
-
-- Scripts on 'streamlines' treat each streamline individually.
-- Scripts on 'tractograms' apply the same operation on all streamlines of the
-  tractogram.
+your existing pipelines accordingly.
 """
 
 
