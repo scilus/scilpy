@@ -35,12 +35,22 @@ In order to install the library and scripts flawlessly (we hope), please follow 
 pip install packaging>=19.0
 pip install numpy==1.23.*
 pip install Cython==0.29.*
-pip install -e . 
 ```
 
 The library and scripts can be installed locally by using:
 ```
 pip install -e .
+```
+
+If you don't want to install legacy scripts:
+```
+export SCILPY_LEGACY='False'
+pip install -e .
+```
+
+(Then, without the legacy scripts, if you want to use pytest, use:)
+```
+pytest --ignore=scripts/legacy
 ```
 
 On Linux, most likely you will have to install libraries for COMMIT/AMICO

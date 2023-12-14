@@ -3,7 +3,7 @@
 """
 Prepare a typical command for eddy and create the necessary files. When using
 multiple acquisitions and/or opposite phase directions, images, b-values and
-b-vectors should be merged together using scil_concatenate_dwi.py. If using
+b-vectors should be merged together using scil_dwi_concatenate.py. If using
 topup prior to calling this script, images should be concatenated in the same
 order as the b0s used with prepare_topup.
 """
@@ -32,7 +32,7 @@ def _build_arg_parser():
                    help='Input DWI Nifti image. If using multiple '
                         'acquisition and/or opposite phase directions, please '
                         'merge in the same order as for prepare_topup using '
-                        'scil_concatenate_dwi.py.')
+                        'scil_dwi_concatenate.py.')
 
     p.add_argument('in_bvals',
                    help='Input b-values file in FSL format.')
