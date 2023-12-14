@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from scilpy.gradients.bvec_bval_tools import round_bvals_to_shell
+from scilpy.gradients.bvec_bval_tools import (is_normalized_bvecs,
+                                              round_bvals_to_shell, normalize_bvecs)
+
+bvecs = np.asarray([[1.0, 1.0, 1.0],
+                    [1.0, 0.0, 1.0],
+                    [0.0, 1.0, 0.0]])
 
 
 def test_is_normalized_bvecs():
-    # toDO
-    pass
+    assert not is_normalized_bvecs(bvecs)
+    assert is_normalized_bvecs(
+        bvecs / np.linalg.norm(bvecs, axis=1, keepdims=True))
 
 
 def test_normalize_bvecs():
-    # toDo
-    pass
+    assert is_normalized_bvecs(normalize_bvecs(bvecs))
 
 
 def test_check_b0_threshold():
