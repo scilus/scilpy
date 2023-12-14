@@ -5,7 +5,7 @@ Compute a Track Orientation Density Image (TODI).
 Each segment of the streamlines is weighted by its length
 (to support compressed streamlines).
 This script can afterwards output a Track Density Image (TDI)
-or a TODI with SF or SH representation, based on streamlines' segments.\n\n
+or a TODI with SF or SH representation, based on streamlines' segments.
 """
 
 import argparse

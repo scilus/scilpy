@@ -23,17 +23,17 @@ def _build_arg_parser():
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('in_bundle',
-                   help='Tractogram filename. Format must be one of \n'
-                        'trk, tck, vtk, fib, dpy.')
+                   help='Tractogram filename.')
     p.add_argument('out_img',
                    help='path of the output image file.')
 
     p.add_argument('--binary', metavar='FIXED_VALUE', type=int,
                    nargs='?', const=1,
-                   help='If set, will store the same value for all intersected'
-                        ' voxels, creating a binary map.\n'
-                        'When set without a value, 1 is used (and dtype uint8).\n'
-                        'If a value is given, will be used as the stored value.')
+                   help='If set, will store the same value for all '
+                        'intersected voxels, creating a binary map.\n'
+                        'When set without a value, 1 is used (and dtype '
+                        'uint8). \nIf a value is given, will be used as the '
+                        'stored value.')
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p
@@ -66,8 +66,8 @@ def main():
             dtype_to_use = np.uint8
         streamline_count[streamline_count > 0] = args.binary
 
-    nib.save(nib.Nifti1Image(streamline_count.astype(dtype_to_use), transformation),
-             args.out_img)
+    img = nib.Nifti1Image(streamline_count.astype(dtype_to_use), transformation)
+    nib.save(img, args.out_img)
 
 
 if __name__ == "__main__":
