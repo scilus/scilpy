@@ -10,8 +10,8 @@ Algo 'eudx': select the peak from the spherical function (SF) most closely
 aligned to the previous direction, and follow an average of it and the previous
 direction [1].
 
-Algo 'det': select the orientation corresponding to the maximum of the spherical
-function.
+Algo 'det': select the orientation corresponding to the maximum of the
+spherical function.
 
 Algo 'prob': select a direction drawn from the empirical distribution function
 defined from the SF.
