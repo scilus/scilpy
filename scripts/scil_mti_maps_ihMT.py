@@ -14,9 +14,12 @@ myelin content in white matter of the brain.
 Different contrasts can be done with an off-resonance pulse prior to image
 acquisition (a prepulse), saturating the protons on non-aqueous molecules,
 by applying different frequency irradiation. The two MT maps and two ihMT maps
-are obtained using five contrasts: single frequency positive or negative and
-dual frequency with an alternation of both positive and negative frequency
-(saturated images); and one unsaturated contrast as reference (T1weighted).
+are obtained using six contrasts: single positive frequency image, single
+negative frequency image, dual alternating positive/negative frequency image,
+dual alternating negative/positive frequency image (saturated images); 
+and two unsaturated contrasts as reference. These two references should be
+acquired with predominant PD (proton density) and T1 weighting at different
+excitation flip angles (a_PD, a_T1) and repetition times (TR_PD, TR_T1).
 
 
 Input Data recommendation:
@@ -24,38 +27,55 @@ Input Data recommendation:
     https://github.com/rordenlab/dcm2niix/releases/tag/v1.0.20200331
   - dcm2niix conversion will create all echo files for each contrast and
     corresponding json files
-  - all input must have a matching json file with the same filename
   - all contrasts must have a same number of echoes and coregistered
-    between them before running the script.
+    between them before running the script
   - Mask must be coregistered to the echo images
   - ANTs can be used for the registration steps (http://stnava.github.io/ANTs/)
 
 
-The output consist in two types of images in two folders :
-  1. Contrasts_ihMT_maps which contains the 5 contrast images
-      - altnp.nii.gz : alternating negative and positive frequency pulses
-      - altpn.nii.gz : alternating positive and negative frequency pulses
-      - positive.nii.gz : pulses applied at positive frequency
-      - negative.nii.gz : pulses applied at negative frequency
-      - reference.nii.gz : no pulse
+The output consists of a ihMT_native_maps folder containing the 4 myelin maps:
+    - MTR.nii.gz : Magnetization Transfer Ratio map
+    - ihMTR.nii.gz : inhomogeneous Magnetization Transfer Ratio map
+    The (ih)MT ratio is a measure reflecting the amount of bound protons.
 
-  2. ihMT_native_maps which contains the 4 myelin maps
-      - MTR.nii.gz : Magnetization Transfer Ratio map
-      - ihMTR.nii.gz : inhomogeneous Magnetization Transfer Ratio map
-      The (ih)MT ratio is a measure reflecting the amount of bound protons.
+    - MTsat.nii.gz : Magnetization Transfer saturation map
+    - ihMTsat.nii.gz : inhomogeneous Magnetization Transfer saturation map
+    The (ih)MT saturation is a pseudo-quantitative maps representing
+    the signal change between the bound and free water pools.
 
-      - MTsat.nii.gz : Magnetization Transfer saturation map
-      - ihMTsat.nii.gz : inhomogeneous Magnetization Transfer saturation map
-      The (ih)MT saturation is a pseudo-quantitative maps representing
-      the signal change between the bound and free water pools.
+As an option, the Complementary_maps folder contains the following images:
+    - altnp.nii.gz : dual alternating negative and positive frequency image
+    - altpn.nii.gz : dual alternating positive and negative frequency image
+    - positive.nii.gz : single positive frequency image
+    - negative.nii.gz : single negative frequency image
+    - mtoff_PD.nii.gz : unsaturated proton density weighted image
+    - mtoff_T1.nii.gz : unsaturated T1 weighted image
+    - MTsat_d.nii.gz : MTsat computed from the mean dual frequency images
+    - MTsat_sp.nii.gz : MTsat computed from the single positive frequency image
+    - MTsat_sn.nii.gz : MTsat computed from the single negative frequency image
+    - R1app.nii.gz : Apparent R1 map computed for MTsat.
+    - B1_map.nii.gz : B1 map after correction and smoothing (if given).
 
-  These final maps can be corrected by an empiric B1 correction with
+The final maps from ihMT_native_maps can be corrected for B1+ field
+  inhomogeneity, using either an empiric method with
   --in_B1_map option, suffix *B1_corrected is added for each map.
+  --B1_correction_method empiric
+  or a model-based method with
+  --in_B1_map option, suffix *B1_corrected is added for each map.
+  --B1_correction_method model_based
+  --in_B1_fitValues 3 .mat files, obtained externally from 
+    https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction,
+    and given in this order: positive frequency saturation, negative frequency
+    saturation, dual frequency saturation.
+For both methods, the nominal value of the B1 map can be set with
+  --B1_nominal value
 
->>> scil_mti_maps_ihMT.py path/to/output/directory path/to/mask_bin.nii.gz
+
+>>> scil_mti_maps_ihMT.py path/to/output/directory
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
-    --in_mtoff path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
-    --in_positive path/to/echo*pos.nii.gz --in_t1w path/to/echo*T1w.nii.gz
+    --in_mtoff_PD path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
+    --in_positive path/to/echo*pos.nii.gz --in_mtoff_T1 path/to/echo*T1w.nii.gz
+    --mask path/to/mask_bin.nii.gz
 
 By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo add --single_echo to the command line and
@@ -106,10 +126,7 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('out_dir',
                    help='Path to output folder.')
-    p.add_argument('in_mask',
-                   help='Path to the T1 binary brain mask. Must be the sum '
-                        'of the three tissue probability maps from '
-                        'T1 segmentation (GM+WM+CSF).') # Why is this mandatory?
+
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
     p.add_argument('--filtering', action='store_true',
@@ -117,6 +134,8 @@ def _build_arg_parser():
                         'Not recommended.')
     p.add_argument('--single_echo', action='store_true',
                    help='Use this option when there is only one echo.')
+    p.add_argument('--mask',
+                   help='Path to the binary brain mask.')
     
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
@@ -132,7 +151,7 @@ def _build_arg_parser():
                         'Should be three .mat files given in this specific '
                         'order: positive frequency saturation, negative '
                         'frequency saturation, dual frequency saturation.')
-    b.add_argument('--nominal_B1', default=100,
+    b.add_argument('--B1_nominal', default=100,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
 
@@ -143,7 +162,7 @@ def _build_arg_parser():
                              'Use * to include all echoes.')
     g.add_argument('--in_altnp', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
-                        'alternation of Negative and Positive'
+                        'alternation of Negative and Positive '
                         'frequency saturation pulse.')
     g.add_argument('--in_altpn', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
@@ -219,7 +238,7 @@ def main():
     if args.in_B1_map and args.B1_correction_method == 'model_based':
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map)
     else:
         B1_map = np.ones(ref_img.get_fdata().shape)
@@ -285,7 +304,7 @@ def main():
         print("Empiric correction")
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map)
         r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
                            parameters, B1_map) * 1000 # convert 1/ms to 1/s
