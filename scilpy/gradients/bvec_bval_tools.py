@@ -37,7 +37,7 @@ def is_normalized_bvecs(bvecs):
                                 bvecs_norm == 0))
 
 
-def normalize_bvecs(bvecs, filename=None):
+def normalize_bvecs(bvecs):
     """
     Normalize b-vectors
 
@@ -45,8 +45,6 @@ def normalize_bvecs(bvecs, filename=None):
     ----------
     bvecs : (N, 3) array
         input b-vectors (N, 3) array
-    filename : string
-        output filename where to save the normalized bvecs
 
     Returns
     -------
@@ -57,10 +55,6 @@ def normalize_bvecs(bvecs, filename=None):
     bvecs_norm = np.linalg.norm(bvecs, axis=1)
     idx = bvecs_norm != 0
     bvecs[idx] /= bvecs_norm[idx, None]
-
-    if filename is not None:
-        logging.info('Saving new bvecs: {}'.format(filename))
-        np.savetxt(filename, np.transpose(bvecs), "%.8f")
 
     return bvecs
 
