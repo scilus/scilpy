@@ -17,6 +17,8 @@ from dipy.io.stateful_tractogram import StatefulTractogram, Space
 from dipy.io.utils import get_reference_info, is_header_compatible
 from dipy.segment.clustering import qbx_and_merge
 from dipy.tracking.streamline import transform_streamlines
+from dipy.tracking.streamlinespeed import compress_streamlines
+from nibabel.streamlines import TrkFile, TckFile
 from nibabel.streamlines.array_sequence import ArraySequence
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
@@ -24,7 +26,7 @@ from scipy.ndimage import map_coordinates
 from scipy.spatial import cKDTree
 
 from scilpy.tractograms.streamline_operations import smooth_line_gaussian, \
-    smooth_line_spline, resample_streamlines_step_size
+    resample_streamlines_step_size
 from scilpy.utils.streamlines import cut_invalid_streamlines
 from scilpy.utils.spatial_ops import parallel_transport_streamline
 
@@ -605,9 +607,19 @@ def transform_warp_sft(sft, linear_transfo, target, inverse=False,
     return new_sft
 
 
-def upsample_tractogram(sft, nb, point_wise_std=None,
-                        streamline_wise_std=None, keep_tube=True,
-                        gaussian=None, spline=None, seed=None):
+def compress_streamlines_wrapper(tractogram, error_rate):
+    if isinstance(tractogram, (TrkFile, TckFile)):
+        return lambda: (compress_streamlines(
+            s, error_rate) for s in tractogram.streamlines)
+    else:
+        if hasattr(tractogram, 'streamlines'):
+            tractogram = tractogram.streamlines
+        return [compress_streamlines(
+            s, error_rate) for s in tractogram]
+
+
+def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
+                        gaussian=None, error_rate=None, seed=None):
     """
     Generates new streamlines by either adding gaussian noise around
     streamlines' points, or by translating copies of existing streamlines
@@ -622,11 +634,8 @@ def upsample_tractogram(sft, nb, point_wise_std=None,
     point_wise_std : float
         The standard deviation of the gaussian to use to generate point-wise
         noise on the streamlines.
-    streamline_wise_std : float
-        The standard deviation of the gaussian to use to generate
-        streamline-wise noise on the streamlines.
-    keep_tube : bool
-        If True, simply move the streamlines along their tangent uniformely.
+    error_rate : float
+        The maximum distance (in mm) to the original position of any point.
     gaussian: float
         The sigma used for smoothing streamlines.
     spline: (float, int)
@@ -640,40 +649,20 @@ def upsample_tractogram(sft, nb, point_wise_std=None,
     new_sft : StatefulTractogram
         The upsampled tractogram.
     """
-    def linear(data):
-        """Scale data linearly to [-1, 1]."""
-        min_val = np.min(data)
-        max_val = np.max(data)
-        return 2 * (data - min_val) / (max_val - min_val) - 1
-
-    def sigmoid(data):
-        """Scale data using sigmoid and then to [-1, 1]."""
-        return 2 * (1 / (1 + np.exp(-data))) - 1
-
-    def tanh(data):
-        """Scale data using tanh to [-1, 1]."""
-        return np.tanh(data)
-
-    def exp(data):
-        """Scale data using exp and then to [-1, 1]."""
-        exp_data = np.exp(data)
-        scaled_data = exp_data / np.max(exp_data)
-        return 2 * scaled_data - 1
-
-    rng = np.random.RandomState(seed)
+    _ = np.random.RandomState(seed)
 
     # Get the streamlines that will serve as a base for new ones
     resample_sft = resample_streamlines_step_size(sft, 1)
     new_streamlines = []
-    indices = np.random.choice(len(resample_sft), nb,
-                               replace=True)
-    # For all selected streamlines, add noise and smooth
-    for s in resample_sft.streamlines[indices]:
-        if len(s) < 3:
-            new_streamlines.append(s)
+    indices = np.random.choice(len(resample_sft), nb, replace=True)
+    unique_indices, count = np.unique(indices, return_counts=True)
 
-        new_s = parallel_transport_streamline(s, 1,
-                                              streamline_wise_std)[0]
+    # For all selected streamlines, add noise and smooth
+    for i, c in zip(unique_indices, count):
+        s = resample_sft.streamlines[i]
+        if len(s) < 3:
+            new_streamlines.extend(np.repeat(s, c).tolist())
+        new_s = parallel_transport_streamline(s, c, tube_radius)
 
         # Generate smooth noise_factor
         noise = np.random.normal(loc=0, scale=point_wise_std,
@@ -682,20 +671,23 @@ def upsample_tractogram(sft, nb, point_wise_std=None,
         poly_coeffs = np.polyfit(x, noise, 3)
         polynomial = Polynomial(poly_coeffs[::-1])
         noise_factor = polynomial(x)
-        # print(noise_factor)
 
         vec = s - new_s
         vec /= np.linalg.norm(vec, axis=0)
         new_s += vec * np.expand_dims(noise_factor, axis=1)
 
         if gaussian:
-            new_s = smooth_line_gaussian(new_s, gaussian)
-        elif spline:
-            new_s = smooth_line_spline(new_s, spline[0], spline[1])
+            new_s = [smooth_line_gaussian(s, gaussian) for s in new_s]
 
-        new_streamlines.append(new_s)
+        new_streamlines.extend(new_s)
 
-    new_sft = StatefulTractogram.from_sft(new_streamlines, sft)
+    if error_rate:
+        compressed_streamlines = compress_streamlines_wrapper(new_streamlines,
+                                                              error_rate)
+    else:
+        compressed_streamlines = new_streamlines
+
+    new_sft = StatefulTractogram.from_sft(compressed_streamlines, sft)
     return new_sft
 
 

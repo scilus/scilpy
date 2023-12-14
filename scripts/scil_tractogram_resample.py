@@ -22,8 +22,8 @@ Downsampling:
     ensure that all clusters are represented in the final tractogram.
 
 Example usage:
-$ scil_tractogram_resample.py input.trk 1000 output.trk \
---point_wise_std 0.5 --spline 5 10 --keep_invalid_streamlines
+$ scil_resample_tractogram.py input.trk 1000 output.trk \
+--point_wise_std 0.5 --gaussian 5 --keep_invalid_streamlines
 $ scil_visualize_bundles.py output.trk --local_coloring --width=0.1
 """
 
@@ -62,25 +62,23 @@ def _build_arg_parser():
     # For upsampling:
     upsampling_group = p.add_argument_group('Upsampling params')
     upsampling_group.add_argument('--point_wise_std', type=float, default=1,
-                           help='Noise to add to existing streamlines\'' +
-                                ' points to generate new ones [%(default)s].')
-    upsampling_group.add_argument('--streamline_wise_std', type=float, default=1,
-                           help='Noise to add to existing whole' +
-                                ' streamlines to generate new ones [%(default)s].')
-    upsampling_group.add_argument('--keep_tube', action='store_true',
-                            help='Keep streamlines as tube (default: False).')
-    sub_p = upsampling_group.add_mutually_exclusive_group()
-    sub_p.add_argument('--gaussian', metavar='SIGMA', type=int,
-                       help='Sigma for smoothing. Use the value of surronding'
-                            ' X,Y,Z points on \nthe streamline to blur the'
-                            ' streamlines. A good sigma choice would \nbe '
-                            'around 5.')
-    sub_p.add_argument('--spline', nargs=2, metavar=('SIGMA', 'NB_CTRL_POINT'),
-                       type=int,
-                       help='Sigma and number of points for smoothing. Models '
-                            'each streamline \nas a spline. A good sigma '
-                            'choice would be around 5 and control \npoints '
-                            'around 10.')
+                                  help='Noise to add to existing streamlines '
+                                       'points to generate new ones [%(default)s].')
+    upsampling_group.add_argument('--tube_radius', type=float, default=1,
+                                  help='Maximum distance to generate streamlines '
+                                       ' around the original ones [%(default)s].')
+    upsampling_group.add_argument('--force_tube', action='store_true',
+                                  help='Force the use of parellel transport to '
+                                       'resample, even if the output tractogram '
+                                       'has fewer streamlines.')
+    upsampling_group.add_argument('--gaussian', metavar='SIGMA', type=int,
+                                  help='Sigma for smoothing. Use the value of '
+                                       'surrounding X,Y,Z points on the '
+                                       'streamline to blur the streamlines.\n'
+                                       'A good sigma choice would around 5.')
+    upsampling_group.add_argument('-e', dest='error_rate', type=float, default=0.1,
+                                  help='Maximum compression distance in mm '
+                                       '[%(default)s].')
 
     upsampling_group.add_argument(
         '--keep_invalid_streamlines', action='store_true',
@@ -116,8 +114,8 @@ def main():
     args = parser.parse_args()
 
     if (args.point_wise_std is not None and args.point_wise_std <= 0) or \
-            (args.streamline_wise_std is not None and
-             args.streamline_wise_std <= 0):
+            (args.tube_radius is not None and
+             args.tube_radius <= 0):
         parser.error('STD needs to be above 0.')
 
     assert_inputs_exist(parser, args.in_tractogram)
@@ -139,16 +137,15 @@ def main():
     logging.debug("Done. Now getting {} streamlines."
                   .format(args.nb_streamlines))
 
-    if args.nb_streamlines > original_number:
+    if args.nb_streamlines > original_number or args.tube_radius:
         # Check is done here because it is not required if downsampling
         if not args.point_wise_std and not args.streamline_wise_std:
             parser.error("one of the arguments --point_wise_std " +
                          "--streamline_wise_std is required")
         sft = upsample_tractogram(
             sft, args.nb_streamlines,
-            args.point_wise_std, args.streamline_wise_std,
-            args.keep_tube,
-            args.gaussian, args.spline, args.seed)
+            args.point_wise_std, args.tube_radius,
+            args.gaussian, args.error_rate, args.seed)
     elif args.nb_streamlines < original_number:
         if args.downsample_per_cluster:
             # output contains rejected streamlines, we don't use them.
