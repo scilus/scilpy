@@ -12,7 +12,7 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_metrics_stats_in_ROI.py', '--help')
+    ret = script_runner.run('scil_volume_stats_in_ROI.py', '--help')
     assert ret.success
 
 
@@ -22,6 +22,6 @@ def test_execution_tractometry(script_runner):
                            'IFGWM.nii.gz')
     in_ref = os.path.join(get_home(), 'tractometry',
                           'mni_masked.nii.gz')
-    ret = script_runner.run('scil_compute_metrics_stats_in_ROI.py',
+    ret = script_runner.run('scil_volume_stats_in_ROI.py',
                             in_mask, '--metrics', in_ref)
     assert ret.success
