@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_gradients_convert_mrtrix_to_fsl import main as new_main
+from scripts.scil_gradients_convert import main as new_main
 
 
 DEPRECATION_MSG = """
