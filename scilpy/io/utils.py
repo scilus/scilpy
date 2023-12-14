@@ -112,7 +112,7 @@ def check_tracts_same_format(parser, filename_list):
             parser.error('All tracts file must use the same format.')
 
 
-def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
+def assert_gradients_filenames_valid(parser, filename_list, input_is_fsl):
     """
     Validate if gradients filenames follow BIDS or MRtrix convention
 
@@ -122,11 +122,9 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
         Parser.
     filename_list: list
         list of gradient paths.
-    gradient_format : str
-        Can be either fsl or mrtrix.
+    input_is_fsl: bool
+        Whether the input is in FSL format or MRtrix format.
 
-    Returns
-    -------
     """
 
     valid_fsl_extensions = ['.bval', '.bvec']
@@ -135,7 +133,7 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
     if isinstance(filename_list, str):
         filename_list = [filename_list]
 
-    if gradient_format == 'fsl':
+    if input_is_fsl:
         if len(filename_list) == 2:
             filename_1 = filename_list[0]
             filename_2 = filename_list[1]
@@ -158,7 +156,7 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
         else:
             parser.error('You should have two files for fsl format.')
 
-    elif gradient_format == 'mrtrix':
+    else:
         if len(filename_list) == 1:
             curr_filename = filename_list[0]
             basename, ext = os.path.splitext(curr_filename)
@@ -167,8 +165,6 @@ def assert_gradients_filenames_valid(parser, filename_list, gradient_format):
                              'valid for mrtrix format.'.format(basename, ext))
         else:
             parser.error('You should have one file for mrtrix format.')
-    else:
-        parser.error('Gradient file format should be either fsl or mrtrix.')
 
 
 def add_json_args(parser):

@@ -26,3 +26,12 @@ def test_execution_processing(script_runner):
     ret = script_runner.run('scil_gradients_convert_fsl_to_mrtrix.py',
                             in_bval, in_bvec, '1000.b')
     assert ret.success
+
+
+def test_execution_processing(script_runner):
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    in_encoding = os.path.join(get_home(), 'processing',
+                               '1000.b')
+    ret = script_runner.run('scil_gradients_convert_mrtrix_to_fsl.py',
+                            in_encoding, '1000.bval', '1000.bvec')
+    assert ret.success

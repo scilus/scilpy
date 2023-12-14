@@ -6,7 +6,8 @@ from scripts.scil_gradients_convert_fsl_to_mrtrix import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_gradients_convert_fsl_to_mrtrix.py.
+This script has been merged with scil_gradients_convert_mrtrix_to_fsl.py
+and renamed scil_gradients_convert.py.
 Please change your existing pipelines accordingly.
 """
 
