@@ -16,7 +16,7 @@ for file in $(cat pass.txt);
     do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
 done
 
-Formally: scil_print_connectivity_filenames.py
+Formerly: scil_print_connectivity_filenames.py
 """
 
 import argparse

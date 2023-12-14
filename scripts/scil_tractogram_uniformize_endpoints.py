@@ -15,7 +15,7 @@ The --target option will use the barycenter of the target mask to define the
 axis. The target mask can be a binary mask or an atlas. If an atlas is
 used, labels are expected in the form of --target atlas.nii.gz 2 3 5:7.
 
-Formally: scil_uniformize_streamlines_endpoints.py
+Formerly: scil_uniformize_streamlines_endpoints.py
 """
 
 import argparse

@@ -10,7 +10,7 @@ When ufactor is close to:
 *  1 it defines U-fibers
 * -1 it defines S-fibers
 
-Formally: scil_extract_ushape.py
+Formerly: scil_extract_ushape.py
 """
 
 import argparse

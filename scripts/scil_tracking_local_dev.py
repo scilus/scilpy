@@ -40,7 +40,7 @@ References: [1] Girard, G., Whittingstall K., Deriche, R., and
             Descoteaux, M. (2014). Towards quantitative connectivity analysis:
             reducing tractography biases. Neuroimage, 98, 266-278.
 
-Formally: scil_compute_local_tracking_dev.py
+Formerly: scil_compute_local_tracking_dev.py
 """
 import argparse
 import logging

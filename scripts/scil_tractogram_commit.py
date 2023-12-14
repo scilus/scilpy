@@ -60,7 +60,7 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Inspect the (N)RMSE map and look for peaks or anomalies
     - Compare the density map before and after (essential tractogram)
 
-Formally: scil_run_commit.py
+Formerly: scil_run_commit.py
 """
 
 import argparse

@@ -30,7 +30,7 @@ Based on P. Karan et al., Bridging the gap between constrained spherical
 deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
 
-Formally: scil_compute_memsmt_fodf.py
+Formerly: scil_compute_memsmt_fodf.py
 """
 
 import argparse

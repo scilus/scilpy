@@ -9,7 +9,7 @@ to the original input image.
 >>> scil_volume_reshape_to_reference.py wmparc.mgz t1.nii.gz wmparc_t1.nii.gz\\
     --interpolation nearest
 
-Formally: scil_reshape_to_reference.py
+Formerly: scil_reshape_to_reference.py
 """
 
 import argparse

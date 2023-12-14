@@ -7,7 +7,7 @@ estimated from a MD and FA threshold.
 
 This allows to clip the noise of fODF using an absolute thresold.
 
-Formally: scil_compute_fodf_max_in_ventricles.py
+Formerly: scil_compute_fodf_max_in_ventricles.py
 """
 
 import argparse

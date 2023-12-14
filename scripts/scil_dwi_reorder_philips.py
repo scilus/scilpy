@@ -5,7 +5,7 @@
 Re-order gradient according to original table (Philips)
 This script is not needed for version 5.6 and higher
 
-Formally: scil_reorder_dwi_philips.py
+Formerly: scil_reorder_dwi_philips.py
 """
 
 import argparse

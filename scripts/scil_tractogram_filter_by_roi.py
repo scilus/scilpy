@@ -33,7 +33,7 @@ WARNING: DISTANCE is optional and it should be used carefully with large
 voxel size (e.g > 2.5mm). The value is in voxel for ROIs and in mm for
 bounding box. Anisotropic data will affect each direction differently
 
-Formally: scil_filter_tractogram.py
+Formerly: scil_filter_tractogram.py
 """
 
 import argparse

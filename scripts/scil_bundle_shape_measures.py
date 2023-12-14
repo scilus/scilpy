@@ -31,7 +31,7 @@ These measures include volume and surface area.
 The fractal dimension is dependent on the voxel size and the number of voxels.
 If data comparison is performed, the bundles MUST be in same resolution.
 
-Formally: scil_compute_bundle_volume.py or
+Formerly: scil_compute_bundle_volume.py or
 scil_evaluate_bundles_individual_measures.py
 """
 

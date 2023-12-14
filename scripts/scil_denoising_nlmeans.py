@@ -4,7 +4,7 @@
 """
 Script to denoise a dataset with the Non Local Means algorithm.
 
-Formally: scil_run_nlmeans.py
+Formerly: scil_run_nlmeans.py
 """
 
 import argparse

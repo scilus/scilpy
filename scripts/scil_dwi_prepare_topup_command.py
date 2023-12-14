@@ -5,7 +5,7 @@
 Prepare a typical command for topup and create the necessary files.
 The reversed b0 must be in a different file.
 
-Formally: scil_prepare_topup_command.py
+Formerly: scil_prepare_topup_command.py
 """
 
 import argparse

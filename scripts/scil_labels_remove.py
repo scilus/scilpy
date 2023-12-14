@@ -6,7 +6,7 @@ Script to remove specific labels from an atlas volume.
 
     >>> scil_labels_remove.py DKT_labels.nii out_labels.nii.gz -i 5001 5002
 
-Formally: scil_remove_labels.py
+Formerly: scil_remove_labels.py
 """
 
 

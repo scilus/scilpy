@@ -39,7 +39,7 @@ therein.
 [1] examples_built/reconst_dki/#example-reconst-dki
 [2] examples_built/reconst_msdki/#example-reconst-msdki
 
-Formally: scil_compute_kurtosis_metrics.py
+Formerly: scil_compute_kurtosis_metrics.py
 """
 
 import argparse

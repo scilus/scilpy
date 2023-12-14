@@ -26,7 +26,7 @@ The computed binary classification measures are:
 sensitivity, specificity, precision, accuracy, dice, kappa, youden for both
 the streamline and voxel representation (if provided).
 
-Formally: scil_evaluate_bundles_binary_classification_measures.py
+Formerly: scil_evaluate_bundles_binary_classification_measures.py
 """
 
 import argparse

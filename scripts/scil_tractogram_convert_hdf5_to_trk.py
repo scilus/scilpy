@@ -19,7 +19,7 @@ out_dir/
     |-- [...]
     |-- LABEL90_LABEL90.trk
 
-Formally: scil_save_connections_from_hdf5.py
+Formerly: scil_save_connections_from_hdf5.py
 """
 
 import argparse

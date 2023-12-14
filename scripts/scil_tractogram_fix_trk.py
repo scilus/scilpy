@@ -39,7 +39,7 @@ WARNING: This script is still experimental, DSI-Studio and Startrack
 evolve quickly and results may vary depending on the data itself
 as well as DSI-studio/Startrack version.
 
-Formally: scil_fix_dsi_studio_trk.py
+Formerly: scil_fix_dsi_studio_trk.py
 """
 
 import argparse

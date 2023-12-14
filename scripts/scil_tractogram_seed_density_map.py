@@ -4,7 +4,7 @@
 """
 Compute a density map of seeds saved in .trk file.
 
-Formally: scil_compute_seed_density_map.py
+Formerly: scil_compute_seed_density_map.py
 """
 
 import argparse

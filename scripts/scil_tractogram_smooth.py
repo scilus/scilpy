@@ -22,7 +22,7 @@ WARNING:
 will create crazy streamlines that could end up out of the bounding box.
 - data_per_point will be lost.
 
-Formally: scil_smooth_streamlines.py
+Formerly: scil_smooth_streamlines.py
 """
 
 import argparse

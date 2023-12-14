@@ -14,7 +14,7 @@ Compute mean and std for each metric.
 Density weighting modifies the contribution of voxel with lower/higher
 streamline count to reduce influence of spurious streamlines.
 
-Formally: scil_compute_bundle_mean_std_per_point.py or
+Formerly: scil_compute_bundle_mean_std_per_point.py or
 scil_compute_bundle_mean_std.py
 """
 

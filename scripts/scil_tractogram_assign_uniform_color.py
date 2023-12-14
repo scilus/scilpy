@@ -11,7 +11,7 @@ Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 If called with .tck, the output will always be .trk, because data_per_point has
 no equivalent in tck file.
 
-Formally: scil_assign_uniform_color_to_tractograms.py
+Formerly: scil_assign_uniform_color_to_tractograms.py
 """
 
 import argparse

@@ -10,7 +10,7 @@ If converting from SH to a DWI-like SF volume, --in_bval and --in_b0 need
 to be provided to concatenate the b0 image to the SF, and to generate the new
 bvals file. Otherwise, no .bval file will be created.
 
-Formally: scil_compute_sf_from_sh.py
+Formerly: scil_compute_sf_from_sh.py
 """
 
 import argparse

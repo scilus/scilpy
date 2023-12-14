@@ -37,7 +37,7 @@ Exemple config file:
   }
 }
 
-Formally: scil_score_bundles.py
+Formerly: scil_score_bundles.py
 """
 import argparse
 import glob

@@ -10,7 +10,7 @@ of each connection, averaged at every voxel.
 
 Please use a hdf5 (.h5) file containing decomposed connections
 
-Formally: scil_compute_fixel_afd_from_hdf5.py
+Formerly: scil_compute_fixel_afd_from_hdf5.py
 """
 
 import argparse

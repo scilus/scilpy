@@ -15,7 +15,7 @@ Files that are too large to be loaded in memory can still be processed by
 setting the --block-size argument. A block size of X means that X DWI volumes
 are loaded at a time for processing.
 
-Formally: scil_extract_dwi_shell.py
+Formerly: scil_extract_dwi_shell.py
 """
 
 import argparse

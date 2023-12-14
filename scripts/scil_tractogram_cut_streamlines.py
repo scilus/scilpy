@@ -15,7 +15,7 @@ bounding box or going from binary mask #1 to binary mask #2.
 
 Both scenarios will erase data_per_point and data_per_streamline.
 
-Formally: scil_cut_streamlines.py
+Formerly: scil_cut_streamlines.py
 """
 
 import argparse

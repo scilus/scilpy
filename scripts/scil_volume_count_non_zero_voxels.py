@@ -9,7 +9,7 @@ If you give it an image with more than 3 dimensions, it will summarize the 4th
 This means that if there is at least one non-zero voxel in the 4th dimension,
 this voxel of the 3D volume will be considered as non-zero.
 
-Formally: scil_count_non_zero_voxels.py
+Formerly: scil_count_non_zero_voxels.py
 """
 
 import argparse

@@ -13,7 +13,7 @@ overwrite them based on the input order.
             --volume_ids a2009s_aseg.nii.gz all
             --volume_ids clean/s1__DKT.nii.gz 1028 2028
 
-Formally: scil_combine_labels.py.
+Formerly: scil_combine_labels.py.
 """
 
 

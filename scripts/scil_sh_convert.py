@@ -8,7 +8,7 @@ input data basis. Note that by default, both legacy 'descoteaux07' and
 legacy 'tournier07' bases will be assumed. For more information, see
 https://dipy.org/documentation/1.4.0./theory/sh_basis/.
 
-Formally: scil_convert_sh_basis.py
+Formerly: scil_convert_sh_basis.py
 """
 
 import argparse

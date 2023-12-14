@@ -13,7 +13,7 @@ Specify --bvalue to output an image for a single shell
 Script currently does not take into account the diffusion gradient directions
 being averaged.
 
-Formally: scil_compute_powder_average.py
+Formerly: scil_compute_powder_average.py
 """
 
 import argparse

@@ -12,7 +12,7 @@ Note: If the streamlines are not ordered the head/tail are random and not
 really two coherent groups. Use the following script to order streamlines:
 scil_tractogram_uniformize_endpoints.py
 
-Formally: scil_compute_endpoints_map.py
+Formerly: scil_compute_endpoints_map.py
 """
 
 import argparse

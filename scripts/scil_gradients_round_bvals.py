@@ -13,7 +13,7 @@ between [1980, 2020] and round them to the value of 2000.
 
 >> scil_gradients_round_bvals.py bvals 0 1000 2000 newbvals --tolerance 20
 
-Formally: scil_resample_bvals.py
+Formerly: scil_resample_bvals.py
 """
 
 import argparse

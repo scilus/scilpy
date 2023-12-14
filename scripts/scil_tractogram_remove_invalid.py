@@ -9,7 +9,7 @@ Any streamline that do not respect these two conditions are removed.
 The --cut_invalid option will cut streamlines so that their longest segment are
 within the bounding box
 
-Formally: scil_remove_invalid_streamlines.py
+Formerly: scil_remove_invalid_streamlines.py
 """
 
 import argparse

@@ -26,7 +26,7 @@ For RAM usage, it is recommanded to use this heuristic:
 This is important because many instances of data structures are initialized
 in parallel and can lead to a RAM overflow.
 
-Formally: scil_recognize_multi_bundles.py
+Formerly: scil_recognize_multi_bundles.py
 """
 
 import argparse

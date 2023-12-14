@@ -18,7 +18,7 @@ Output
          tuple of 3 elements, one for each value (uint8).
 -Case 2: 4D image where the 4th dimension contains 3 values (uint8).
 
-Formally: scil_convert_rgb.py
+Formerly: scil_convert_rgb.py
 """
 
 import argparse

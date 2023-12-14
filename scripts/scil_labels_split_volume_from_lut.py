@@ -9,7 +9,7 @@ are extracted.
 
 IMPORTANT: your label image must be of an integer type.
 
-Formally: scil_split_volume_by_labels.py
+Formerly: scil_split_volume_by_labels.py
 """
 
 import argparse

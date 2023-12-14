@@ -5,7 +5,7 @@
 Compute clusters using QuickBundlesX and save them separately.
 We cannot know the number of clusters in advance.
 
-Formally: scil_compute_qbx.py
+Formerly: scil_compute_qbx.py
 """
 
 import argparse

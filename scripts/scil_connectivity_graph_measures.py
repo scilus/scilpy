@@ -28,7 +28,7 @@ For more details about the measures, please refer to
 This script is under the GNU GPLv3 license, for more detail please refer to
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Formally: scil_evaluate_connectivity_graph_measures.py
+Formerly: scil_evaluate_connectivity_graph_measures.py
 """
 
 import argparse

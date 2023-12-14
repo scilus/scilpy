@@ -5,7 +5,7 @@
 Concatenate DWI, bval and bvecs together. File must be specified in matching
 order. Default data type will be the same as the first input DWI.
 
-Formally: scil_concatenate_dwi.py
+Formerly: scil_concatenate_dwi.py
 """
 
 import argparse

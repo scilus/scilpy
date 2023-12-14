@@ -14,7 +14,7 @@ For the streamline representation, the computed similarity measures are:
     bundle_adjacency_streamlines, dice_streamlines, streamlines_count_overlap,
     streamlines_count_overreach
 
-Formally: scil_evaluate_bundles_pairwise_agreement_measures.py
+Formerly: scil_evaluate_bundles_pairwise_agreement_measures.py
 """
 
 import argparse

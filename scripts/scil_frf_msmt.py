@@ -25,7 +25,7 @@ Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
 
-Formally: scil_compute_msmt_frf.py
+Formerly: scil_compute_msmt_frf.py
 """
 
 import argparse

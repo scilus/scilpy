@@ -13,7 +13,7 @@ This estimation is typically performed at resolution around 1mm3.
 To get the volume and other measures directly from the (whole) bundle, use
 scil_bundle_shape_measures.py.
 
-Formally: scil_compute_bundle_volume_per_label.py
+Formerly: scil_compute_bundle_volume_per_label.py
 """
 
 import argparse

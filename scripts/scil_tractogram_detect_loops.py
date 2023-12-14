@@ -18,7 +18,7 @@ Reference:
 QuickBundles based on [Garyfallidis12] Frontiers in Neuroscience, 2012.
 ----------------------------------------------------------------------------
 
-Formally: scil_detect_streamlines_loops.py
+Formerly: scil_detect_streamlines_loops.py
 """
 
 import argparse

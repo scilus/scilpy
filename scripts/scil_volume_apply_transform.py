@@ -7,7 +7,7 @@ Transform Nifti (.nii.gz) using an affine/rigid transformation.
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Formally: scil_apply_transform_to_image.py.
+Formerly: scil_apply_transform_to_image.py.
 """
 
 import argparse

@@ -4,7 +4,7 @@
 """
 Compute the axial (para_diff) and mean (iso_diff) diffusivity priors for NODDI.
 
-Formally: scil_compute_NODDI_priors.py
+Formerly: scil_compute_NODDI_priors.py
 """
 
 import argparse

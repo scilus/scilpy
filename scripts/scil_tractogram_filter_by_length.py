@@ -4,7 +4,7 @@
 """
 Script to filter streamlines based on their lengths.
 
-Formally: scil_filter_streamlines_by_length.py
+Formerly: scil_filter_streamlines_by_length.py
 """
 
 import argparse

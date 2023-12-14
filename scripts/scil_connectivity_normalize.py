@@ -41,7 +41,7 @@ metric for the study of complex structural networks." PLOS one 10.7 (2015).
 However, the proposed weighting of edge presented in this publication is not
 implemented.
 
-Formally: scil_normalize_connectivity.py
+Formerly: scil_normalize_connectivity.py
 """
 
 import argparse

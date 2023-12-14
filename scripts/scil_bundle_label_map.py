@@ -11,7 +11,7 @@ Each voxel will have the label of its nearest centroid point.
 
 The number of labels will be the same as the centroid's number of points.
 
-Formally: scil_compute_bundle_voxel_label_map.py
+Formerly: scil_compute_bundle_voxel_label_map.py
 """
 
 import argparse

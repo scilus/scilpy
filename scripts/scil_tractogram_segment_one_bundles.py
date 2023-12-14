@@ -13,7 +13,7 @@ the right transformation 'direction' a warning will popup. If there is no
 warning in both case it means the transformation is very close to identity and
 both 'direction' will work.
 
-Formally: scil_recognize_single_bundles.py
+Formerly: scil_recognize_single_bundles.py
 """
 
 import argparse

@@ -7,7 +7,7 @@ b-vectors should be merged together using scil_dwi_concatenate.py. If using
 topup prior to calling this script, images should be concatenated in the same
 order as the b0s used with prepare_topup.
 
-Formally: scil_prepare_eddy_command.py
+Formerly: scil_prepare_eddy_command.py
 """
 
 import argparse

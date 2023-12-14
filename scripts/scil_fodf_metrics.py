@@ -30,7 +30,7 @@ output.
 See [Raffelt et al. NeuroImage 2012] and [Dell'Acqua et al HBM 2013] for the
 definitions.
 
-Formally: scil_compute_fodf_metrics.py
+Formerly: scil_compute_fodf_metrics.py
 """
 
 import argparse

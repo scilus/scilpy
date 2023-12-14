@@ -4,7 +4,7 @@
 """
 Script to convert bval/bvec FSL style to MRtrix style.
 
-Formally: scil_convert_gradients_fsl_to_mrtrix.py
+Formerly: scil_convert_gradients_fsl_to_mrtrix.py
 """
 
 import argparse

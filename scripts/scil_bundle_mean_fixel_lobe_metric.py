@@ -22,7 +22,7 @@ with the current streamline segment.
 
 Please use a bundle file rather than a whole tractogram.
 
-Formally: scil_compute_mean_fixel_obe_metric_from_bundles.py
+Formerly: scil_compute_mean_fixel_obe_metric_from_bundles.py
 """
 
 import argparse

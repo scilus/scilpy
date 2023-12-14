@@ -6,7 +6,7 @@ Computes the information from the seeding map for each cortical region
 Here we want to estimate the seeding attribution to cortical area
 affected by the bundle
 
-Formally: scil_compute_seed_by_labels.py
+Formerly: scil_compute_seed_by_labels.py
 """
 
 import argparse

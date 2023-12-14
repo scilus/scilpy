@@ -14,7 +14,7 @@ will be output.
 See [Descoteaux et al MRM 2007, Aganj et al MRM 2009] for details and
 [Cote et al MEDIA 2013] for quantitative comparisons.
 
-Formally: scil_compute_qball_metrics.py
+Formerly: scil_compute_qball_metrics.py
 """
 import argparse
 import logging

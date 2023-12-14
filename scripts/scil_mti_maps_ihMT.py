@@ -61,7 +61,7 @@ By default, the script uses all the echoes available in the input folder.
 If you want to use a single echo add --single_echo to the command line and
 replace the * with the specific number of the echo.
 
-Formally: scil_compute_ihMT_maps.py
+Formerly: scil_compute_ihMT_maps.py
 """
 
 import argparse

@@ -37,7 +37,7 @@ share the same type of metadata. If this is not the case, use the option
 --no_metadata to strip the metadata from the output. Or --fake_metadata to
 initialize dummy metadata in the file missing them.
 
-Formally: scil_streamlines_math.py
+Formerly: scil_streamlines_math.py
 """
 
 import argparse

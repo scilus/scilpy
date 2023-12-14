@@ -6,7 +6,7 @@ Generation of priors and enhanced-FOD from an example/template bundle.
 The bundle must have been cleaned thorougly before use. The E-FOD can then
 be used for bundle-specific tractography, but not for FOD metrics.
 
-Formally: scil_generate_priors_from_bundle.py
+Formerly: scil_generate_priors_from_bundle.py
 """
 
 import argparse

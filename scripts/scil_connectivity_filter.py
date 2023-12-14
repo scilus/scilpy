@@ -32,7 +32,7 @@ conditions must be met in order not to be filtered.
 If the user wants to manually handle the requirements, --keep_condition_count
 can be used and manually binarized using scil_connectivity_math.py
 
-Formally: scil_filter_connectivity.py
+Formerly: scil_filter_connectivity.py
 """
 
 import argparse

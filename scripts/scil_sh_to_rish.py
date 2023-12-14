@@ -18,7 +18,7 @@ Each RISH feature will be saved as a separate file.
 multiple sites and scanners." MICCAI 2015.
 https://scholar.harvard.edu/files/hengameh/files/miccai2015.pdf
 
-Formally: scil_compute_rish_from_sh.py
+Formerly: scil_compute_rish_from_sh.py
 """
 import argparse
 

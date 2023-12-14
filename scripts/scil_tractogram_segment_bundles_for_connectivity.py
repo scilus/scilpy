@@ -27,7 +27,7 @@ Example: on a tractogram with 1.8M streamlines, running on a SSD:
 - 30 minutes with full post-processing, only saving final bundles.
 - 60 minutes with full post-processing, saving all possible files.
 
-Formally: scil_decompose_connectivity.py
+Formerly: scil_decompose_connectivity.py
 """
 
 import argparse

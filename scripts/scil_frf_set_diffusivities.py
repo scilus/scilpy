@@ -8,7 +8,7 @@ and keep the mean b0.
 
 The FRF file is obtained from scil_frf_ssst.py
 
-Formally: scil_set_response_function.py
+Formerly: scil_set_response_function.py
 """
 
 import argparse

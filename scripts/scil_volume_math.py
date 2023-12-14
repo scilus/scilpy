@@ -12,7 +12,7 @@ Some operations such as multiplication or addition accept float value as
 parameters instead of images.
 > scil_volume_math.py multiplication img.nii.gz 10 mult_10.nii.gz
 
-Formally: scil_image_math.py
+Formerly: scil_image_math.py
 """
 
 import argparse

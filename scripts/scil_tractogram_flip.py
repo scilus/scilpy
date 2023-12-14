@@ -8,7 +8,7 @@ IMPORTANT: this script should only be used in case of absolute necessity.
 It's better to fix the real tools than to force flipping streamlines to
 have them fit in the tools.
 
-Formally: scil_flip_streamlines.py
+Formerly: scil_flip_streamlines.py
 """
 
 import argparse

@@ -41,7 +41,7 @@ Example usages:
 >>> scil_tractogram_filter_by_anatomy.py tractogram.trk wmparc.nii.gz
     path/to/output/directory --csf_bin csf_bin.nii.gz --ctx_dilation_radius 2
 
-Formally: scil_filter_streamlines_anatomically.py
+Formerly: scil_filter_streamlines_anatomically.py
 """
 
 import argparse

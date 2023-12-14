@@ -10,7 +10,7 @@ flipped to maximize spread for eddy current correction, b0s are interleaved at
 equal spacing and the non-b0 samples are finally shuffled to minimize the total
 diffusion gradient amplitude over a few TR.
 
-Formally: scil_generate_gradient_sampling.py
+Formerly: scil_generate_gradient_sampling.py
 """
 
 import argparse

@@ -37,7 +37,7 @@ lesion(s) and the total of streamlines going through the lesion(s) for  of each
 connection. Each connection can be seen as a 'bundle' and then something
 similar to scil_analyse_lesion_load.py is run for each 'bundle'.
 
-Formally: scil_compute_connectivity.py
+Formerly: scil_compute_connectivity.py
 """
 
 import argparse

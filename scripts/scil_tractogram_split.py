@@ -11,7 +11,7 @@ Optionally, you can split streamlines...
      on).
     - randomly, but per Quickbundles clusters.
 
-Formally: scil_split_tractogram.py
+Formerly: scil_split_tractogram.py
 """
 import argparse
 import logging

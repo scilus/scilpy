@@ -17,7 +17,7 @@ control group and you want to investiguate differences in their connectomes:
 matrices before performing the statistical comparison. Reduces the number of
 statistical tests, useful when using --fdr or --bonferroni.
 
-Formally: scil_compare_connectivity.py
+Formerly: scil_compare_connectivity.py
 """
 
 import argparse

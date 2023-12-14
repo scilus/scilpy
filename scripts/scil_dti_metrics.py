@@ -21,7 +21,7 @@ signals, pulsation and misalignment artifacts, see
 [J-D Tournier, S. Mori, A. Leemans. Diffusion Tensor Imaging and Beyond.
 MRM 2011].
 
-Formally: scil_compute_dti_metrics.py
+Formerly: scil_compute_dti_metrics.py
 """
 
 import argparse

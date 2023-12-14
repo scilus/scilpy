@@ -10,7 +10,7 @@ of the bundle provided, averaged at every voxel.
 
 Please use a bundle file rather than a whole tractogram.
 
-Formally: scil_compute_fixel_afd_from_bundles.py
+Formerly: scil_compute_fixel_afd_from_bundles.py
 """
 
 import argparse

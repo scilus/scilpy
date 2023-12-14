@@ -32,7 +32,7 @@ scil_tractogram_apply_transform.py ${MOVING_FILE} ${REFERENCE_FILE}
                                    --in_deformation 1Warp.nii.gz
                                    --reverse_operation
 
-Formally: scil_apply_transform_to_tractogram.py
+Formerly: scil_apply_transform_to_tractogram.py
 """
 
 import argparse

@@ -24,7 +24,7 @@ and the tube with varying diameter is not easy to color/visualize,
 the script comes with its own VTK rendering to allow exploration of the data.
 (optional).
 
-Formally: scil_estimate_bundles_diameter.py
+Formerly: scil_estimate_bundles_diameter.py
 """
 
 import argparse

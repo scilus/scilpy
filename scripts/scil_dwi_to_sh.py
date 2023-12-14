@@ -4,7 +4,7 @@
 """
 Script to compute the SH coefficient directly on the raw DWI signal.
 
-Formally: scil_compute_sh_from_signal.py
+Formerly: scil_compute_sh_from_signal.py
 """
 
 import argparse

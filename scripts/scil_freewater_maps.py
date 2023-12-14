@@ -5,7 +5,7 @@
 Compute Free Water maps [1] using AMICO.
 This script supports both single and multi-shell data.
 
-Formally: scil_compute_freewater.py
+Formerly: scil_compute_freewater.py
 """
 
 import argparse

@@ -9,7 +9,7 @@ scil_tractogram_apply_transform.py.
 For more informations on how to use the various registration scripts
 see the doc/tractogram_registration.md readme file
 
-Formally: scil_register_tractogram.py
+Formerly: scil_register_tractogram.py
 """
 
 import argparse

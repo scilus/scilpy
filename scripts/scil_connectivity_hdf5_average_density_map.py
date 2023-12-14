@@ -16,7 +16,7 @@ out_dir/
     |-- [...]
     |-- LABEL90_LABEL90.nii.gz
 
-Formally: scil_compute_hdf5_average_density_map.py
+Formerly: scil_compute_hdf5_average_density_map.py
 """
 
 import argparse

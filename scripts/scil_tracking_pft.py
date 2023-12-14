@@ -23,7 +23,7 @@ deterministic algorithm and 0.2mm for probabilitic algorithm.
 
 All the input nifti files must be in isotropic resolution.
 
-Formally: scil_compute_pft.py
+Formerly: scil_compute_pft.py
 """
 
 import argparse

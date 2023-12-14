@@ -44,7 +44,7 @@ References
 [1]: Aydogan, D. B., & Shi, Y. (2020). Parallel transport tractography.
 IEEE transactions on medical imaging, 40(2), 635-647.
 
-Formally: scil_compute_local_tracking.py
+Formerly: scil_compute_local_tracking.py
 """
 
 import argparse
