@@ -215,11 +215,21 @@ def add_overwrite_arg(parser):
         help='Force overwriting of the output files.')
 
 
-def add_force_b0_arg(parser):
-    parser.add_argument('--force_b0_threshold', action='store_true',
-                        help='If set, the script will continue even if the '
-                             'minimum bvalue is suspiciously high ( > {})'
-                        .format(DEFAULT_B0_THRESHOLD))
+def add_skip_b0_validation_arg(parser, b0_tol_name='--b0_threshold'):
+    parser.add_argument(
+        '--skip_b0_validation', action='store_true',
+        help='By default, we supervise that at least one b0 exists in your '
+             'data \n(i.e. b-values below the default {}). Use this option to '
+             'allow continuing even if the minimum \nbvalue is suspiciously '
+             'high.\nUse with care, and only if you understand your data.'
+             .format(b0_tol_name))
+
+
+def add_b0_thresh_arg(parser):
+    parser.add_argument(
+        '--b0_threshold', type=float, default=DEFAULT_B0_THRESHOLD,
+        help='Threshold under which b-values are considered to be b0s.\n'
+             'Default if not set is {}.'.format(DEFAULT_B0_THRESHOLD))
 
 
 def add_verbose_arg(parser):
