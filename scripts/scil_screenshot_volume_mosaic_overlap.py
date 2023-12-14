@@ -73,6 +73,7 @@ from scilpy.io.utils import (
     add_nifti_screenshot_default_args,
     add_nifti_screenshot_overlays_args,
     add_overwrite_arg,
+    add_verbose_arg,
     assert_inputs_exist,
     assert_outputs_exist,
     ranged_type
@@ -110,6 +111,7 @@ def _build_arg_parser():
         help="The overlap factor with respect to the dimension. [%(default)s]"
     )
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

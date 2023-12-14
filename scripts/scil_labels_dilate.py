@@ -24,7 +24,8 @@ import numpy as np
 from scilpy.image.labels import get_data_as_labels, dilate_labels
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, add_verbose_arg,
+                             assert_outputs_exist)
 
 EPILOG = """
     References:
@@ -57,6 +58,7 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Only dilate values inside the mask.')
 
+    add_verbose_arg(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
 

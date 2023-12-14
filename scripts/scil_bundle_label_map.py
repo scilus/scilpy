@@ -30,6 +30,7 @@ from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -70,6 +71,7 @@ def _build_arg_parser():
     p.add_argument('--new_labelling', action='store_true',
                    help='Use the new labelling method (multi-centroids).')
 
+    add_verbose_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 

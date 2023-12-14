@@ -73,6 +73,7 @@ from scilpy.io.utils import (
     add_nifti_screenshot_default_args,
     add_nifti_screenshot_overlays_args,
     assert_overlay_colors,
+    add_verbose_arg,
     add_overwrite_arg,
     assert_inputs_exist
 )
@@ -93,6 +94,7 @@ def _build_arg_parser():
     add_nifti_screenshot_default_args(p, False, False)
     add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

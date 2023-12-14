@@ -31,6 +31,7 @@ import numpy as np
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.lobe_metrics_along_streamlines \
     import lobe_specific_metric_map_along_streamlines
@@ -57,6 +58,7 @@ def _build_arg_parser():
                    help='Maximum angle (in degrees) condition on lobe '
                         'alignment. [%(default)s]')
 
+    add_verbose_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
     return p

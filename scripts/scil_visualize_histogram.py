@@ -19,7 +19,7 @@ import numpy as np
 
 from scilpy.io.image import (get_data_as_mask, assert_same_resolution)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -49,6 +49,7 @@ def _build_arg_parser():
                    help='Do not save the figure, only display.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

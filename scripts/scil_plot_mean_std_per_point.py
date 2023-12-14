@@ -16,7 +16,8 @@ import os
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_output_dirs_exist_and_empty)
+                             assert_output_dirs_exist_and_empty,
+                             add_verbose_arg)
 from scilpy.utils.metrics_tools import plot_metrics_stats
 
 
@@ -51,6 +52,8 @@ def _build_arg_parser():
                          'Same convention as --color.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
+    
     return p
 
 

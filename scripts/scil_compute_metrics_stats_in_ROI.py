@@ -24,6 +24,7 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              add_json_args,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              is_header_compatible_multiple_files)
 from scilpy.utils.filenames import split_name_with_nii
@@ -58,6 +59,7 @@ def _build_arg_parser():
 
     add_overwrite_arg(p)
     add_json_args(p)
+    add_verbose_arg(p)
 
     return p
 

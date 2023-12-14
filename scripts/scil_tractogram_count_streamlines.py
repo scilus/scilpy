@@ -10,7 +10,9 @@ import argparse
 import json
 import os
 
-from scilpy.io.utils import add_json_args, assert_inputs_exist
+from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
+                             assert_inputs_exist)
 from scilpy.tractograms.lazy_tractogram_operations import \
     lazy_streamlines_count
 
@@ -24,7 +26,10 @@ def _build_arg_parser():
                    help="If true, prints the result only. \nElse, prints the "
                         "bundle name and count formatted as a json dict."
                         "(default)")
+
+    add_verbose_arg(p)
     add_json_args(p)
+
     return p
 
 

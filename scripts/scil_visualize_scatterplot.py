@@ -49,7 +49,9 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -130,6 +132,7 @@ def _build_arg_parser():
                         ' Not avalaible with --in_atlas option.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

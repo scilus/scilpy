@@ -55,6 +55,7 @@ import numpy as np
 
 from scilpy.image.volume_operations import crop_data_with_default_cube
 from scilpy.io.utils import (add_bbox_arg,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -113,6 +114,7 @@ def _build_arg_parser():
     g2.add_argument('--reference',
                     help='Reference anatomy (.nii or .nii.gz).')
 
+    add_verbose_arg(p)
     add_bbox_arg(p)
     add_overwrite_arg(p)
 

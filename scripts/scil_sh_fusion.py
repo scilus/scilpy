@@ -19,7 +19,7 @@ import numpy as np
 
 from scilpy.io.image import assert_same_resolution
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 EPILOG = """
@@ -46,6 +46,7 @@ def _build_arg_parser():
                    help='output SH file.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

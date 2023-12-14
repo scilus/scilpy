@@ -40,6 +40,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              load_matrix_in_any_format,
+                             add_verbose_arg,
                              add_reference_arg)
 from scilpy.segment.voting_scheme import VotingScheme
 
@@ -82,6 +83,7 @@ def _build_arg_parser():
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 
+    add_verbose_arg(p)
     add_processes_arg(p)
     add_overwrite_arg(p)
     add_reference_arg(p)

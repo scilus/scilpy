@@ -13,7 +13,7 @@ import numpy as np
 from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
                                               swap_gradient_axis)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -42,6 +42,7 @@ def _build_arg_parser():
                         " 3 -1 2.")
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

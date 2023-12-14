@@ -24,6 +24,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
+                             add_verbose_arg,
                              add_reference_arg)
 
 
@@ -52,6 +53,7 @@ def _build_arg_parser():
                     help='Output filename of colored tractogram (.trk).\n'
                          'Cannot be used with --dict_colors.')
 
+    add_verbose_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 

@@ -18,6 +18,7 @@ from scilpy.surfaces.utils import (convert_freesurfer_into_polydata,
                                    flip_LPS)
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -47,6 +48,7 @@ def _build_arg_parser():
                    help='Flip for Surface/MI-Brain LPS')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

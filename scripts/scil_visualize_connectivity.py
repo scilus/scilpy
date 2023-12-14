@@ -39,7 +39,8 @@ import numpy as np
 
 from scilpy.image.volume_math import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                             assert_outputs_exist, add_verbose_arg,
+                             load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy
 from scilpy.viz.utils import get_colormap
 
@@ -123,6 +124,7 @@ def _build_arg_parser():
                    help='Do not save the figure, simply display it.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     return p
 

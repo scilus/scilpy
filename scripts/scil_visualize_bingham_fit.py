@@ -16,6 +16,7 @@ import numpy as np
 from dipy.data import get_sphere, SPHERE_FILES
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.viz.scene_utils import (create_bingham_slicer,
@@ -53,6 +54,7 @@ def _build_arg_parser():
     p.add_argument('--output', help='Path to output file.')
 
     add_overwrite_arg(p)
+    add_verbose_arg(p)
 
     p.add_argument('--sphere', default='symmetric362',
                    choices=sorted(SPHERE_FILES.keys()),

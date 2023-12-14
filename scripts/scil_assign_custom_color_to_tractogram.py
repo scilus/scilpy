@@ -50,6 +50,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              load_matrix_in_any_format)
 from scilpy.utils.streamlines import get_color_streamlines_along_length, \
     get_color_streamlines_from_angle, clip_and_normalize_data_for_cmap
@@ -123,6 +124,7 @@ def _build_arg_parser():
                          'elements, integers from 1-20 in the data will be\n'
                          'replaced by the value in the file (.npy or .txt)')
 
+    add_verbose_arg(p)
     add_reference_arg(p)
     add_overwrite_arg(p)
 
