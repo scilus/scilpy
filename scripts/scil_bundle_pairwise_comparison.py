@@ -95,7 +95,7 @@ def load_data_tmp_saving(args):
     init_only = args[2]
     disable_centroids = args[3]
 
-    # Since data is often re-use when comparing multiple bundles, anything
+    # Since data is often re-used when comparing multiple bundles, anything
     # that can be computed once is saved temporarily and simply loaded on
     # demand
     hash_tmp = hashlib.md5(filename.encode()).hexdigest()
