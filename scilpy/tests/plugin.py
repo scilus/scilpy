@@ -3,6 +3,7 @@
 from glob import glob
 from os.path import realpath
 import pytest
+import warnings
 
 
 # Load mock modules from all library tests
@@ -76,15 +77,18 @@ def pytest_configure(config):
 @pytest.fixture
 def mock_collector(request):
     def _collector(mock_name):
-        _fixture = request(mock_name)
-        print(_fixture)
-        return _fixture.getfixturevalue()
+        try:
+            return request.getfixturevalue(mock_name)
+        except pytest.FixtureLookupError:
+            warnings.warn(f"Fixture {mock_name} not found.")
+            return None
     return _collector
 
 
 @pytest.fixture
-def mock_creator(module_name, object_name, mocker,
-                 side_effect=None):
+def mock_creator(mocker):
+    def _mocker(module_name, object_name, side_effect=None):
+        return mocker.patch("{}.{}".format(module_name, object_name),
+                            side_effect=side_effect, create=True)
 
-    return mocker.patch("{}.{}".format(module_name, object_name),
-                        side_effect=side_effect, create=True)
+    return _mocker

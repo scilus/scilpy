@@ -23,14 +23,17 @@ def test_help_option(script_runner):
     assert ret.success
 
 
-@pytest.mark.parametrize("in_fodf,out_fodf",
+@pytest.mark.parametrize("in_fodf,expected_results",
     [[os.path.join(data_path, 'fodf_descoteaux07_sub.nii.gz'),
       os.path.join(data_path, 'fodf_descoteaux07_sub_full.nii.gz')]],
     scope='function')
 def test_asym_basis_output(
-    script_runner, in_fodf, out_fodf, mock_collector):
-    os.chdir(os.path.expanduser(tmp_dir.name))
+    script_runner, in_fodf, expected_results, mock_collector, request):
 
+    os.chdir(os.path.expanduser(tmp_dir.name))
+    _mock = mock_collector("bilateral_filtering_script")
+
+    print(request.fixturenames)
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
                             'out_fodf1.nii.gz',
@@ -44,21 +47,22 @@ def test_asym_basis_output(
 
     assert ret.success
 
-    _mock = mock_collector("bilateral_filtering")
     if _mock:
         _mock.assert_called_once()
 
-    assert_images_close(nib.load(out_fodf), nib.load("out_fodf1.nii.gz"))
+    assert_images_close(nib.load(expected_results), nib.load("out_fodf1.nii.gz"))
 
 
-@pytest.mark.parametrize("in_fodf,out_fodf,sym_fodf",
+@pytest.mark.parametrize("in_fodf,expected_results,sym_fodf",
     [[os.path.join(data_path, "fodf_descoteaux07_sub.nii.gz"),
       os.path.join(data_path, "fodf_descoteaux07_sub_full.nii.gz"),
       os.path.join(data_path, "fodf_descoteaux07_sub_sym.nii.gz")]],
     scope='function')
 def test_sym_basis_output(
-    script_runner, in_fodf, out_fodf, sym_fodf, mock_collector):
+    script_runner, in_fodf, expected_results, sym_fodf, mock_collector):
+
     os.chdir(os.path.expanduser(tmp_dir.name))
+    _mock = mock_collector("bilateral_filtering_script")
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
@@ -74,19 +78,20 @@ def test_sym_basis_output(
 
     assert ret.success
 
-    _mock = mock_collector("bilateral_filtering")
     if _mock:
         _mock.assert_called_once()
 
     assert_images_close(nib.load(sym_fodf), nib.load("out_sym.nii.gz"))
 
 
-@pytest.mark.parametrize("in_fodf,out_fodf",
+@pytest.mark.parametrize("in_fodf,expected_results",
     [[os.path.join(data_path, "fodf_descoteaux07_sub_full.nii.gz"),
       os.path.join(data_path, "fodf_descoteaux07_sub_twice.nii.gz")]],
     scope='function')
-def test_asym_input(script_runner, in_fodf, out_fodf, mock_collector):
+def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
+
     os.chdir(os.path.expanduser(tmp_dir.name))
+    _mock = mock_collector("bilateral_filtering_script")
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
@@ -101,8 +106,7 @@ def test_asym_input(script_runner, in_fodf, out_fodf, mock_collector):
 
     assert ret.success
 
-    _mock = mock_collector("bilateral_filtering")
     if _mock:
         _mock.assert_called_once()
 
-    assert_images_close(nib.load(out_fodf), nib.load("out_fodf3.nii.gz"))
+    assert_images_close(nib.load(expected_results), nib.load("out_fodf3.nii.gz"))
