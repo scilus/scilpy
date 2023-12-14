@@ -177,7 +177,7 @@ def main():
             color = subsample(
                 tractogram_gen.data_per_point[args.color_from_points])
         elif args.uniform_coloring:  # Assign uniform coloring to streamlines
-            color = tuple(np.asarray(args.uniform_coloring + [5]) / 255)
+            color = tuple(np.asarray(args.uniform_coloring) / 255)
         elif args.local_coloring:  # Compute coloring from local orientations
             # Compute segment orientation
             diff = [np.diff(list(s), axis=0) for s in streamlines]
