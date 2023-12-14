@@ -18,6 +18,7 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
+import importlib.metadata
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -876,3 +877,12 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
+
+
+def add_scilpy_version(verbose = True):
+
+    version = importlib.metadata.version('scilpy')
+
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info("Scilpy version: {}".format(version))
+
