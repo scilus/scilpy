@@ -6,8 +6,8 @@ from scripts.scil_tractogram_assign_uniform_color import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_assign_uniform_color.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_tractogram_assign_uniform_color.py.
+Please change your existing pipelines accordingly.
 
 """
 

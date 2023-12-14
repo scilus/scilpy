@@ -6,12 +6,13 @@ from scripts.scil_tractogram_convert_hdf5_to_trk import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_convert_hdf5_to_trk.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_tractogram_convert_hdf5_to_trk.py.
+Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_save_connections_from_hdf5.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_save_connections_from_hdf5.py", DEPRECATION_MSG,
+                  '1.7.0')
 def main():
     new_main()
 
