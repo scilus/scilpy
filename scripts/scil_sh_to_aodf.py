@@ -31,7 +31,7 @@ from scilpy.denoise.asym_filtering import (cosine_filtering,
                                            angle_aware_bilateral_filtering)
 
 
-EPILOG="""
+EPILOG = """
 [1] Poirier et al, 2022, "Intuitive Angle-Aware Bilateral Filtering Revealing
     Asymmetric Fiber ODF for Improved Tractography", ISMRM 2022 (abstract 3552)
 
