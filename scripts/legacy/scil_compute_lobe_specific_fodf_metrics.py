@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_fodf_lobe_specific_metrics import main as new_main
+from scripts.scil_fodf_bingham_metrics import main as new_main
 
 
 DEPRECATION_MSG = """
