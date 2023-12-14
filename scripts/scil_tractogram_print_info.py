@@ -43,9 +43,9 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_inputs_exist(parser, args.in_bundle)
+    assert_inputs_exist(parser, args.in_tractogram)
 
-    sft = load_tractogram_with_reference(parser, args, args.in_bundle)
+    sft = load_tractogram_with_reference(parser, args, args.in_tractogram)
 
     lengths = [len(s) for s in sft.streamlines]
     lengths_mm = list(length(sft.streamlines))
