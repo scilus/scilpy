@@ -85,6 +85,7 @@ replace the * with the specific number of the echo.
 
 import argparse
 import os
+import sys
 
 import nibabel as nib
 import numpy as np
@@ -182,17 +183,34 @@ def _build_arg_parser():
                         'saturation pulse.')
     g.add_argument("--in_mtoff_t1", nargs='+',
                    help='Path to all echoes corresponding to the predominant '
-                        'T1 weighting images with no saturation pulse.')
-    
-    a = p.add_argument_group(title='Acquisition parameters')
-    a.add_argument('--in_pd_json',
+                        'T1 weighting images with no saturation pulse. This '
+                        'one is optional, since it is only needed for the '
+                        'calculation of MTsat and ihMTsat. Acquisition '
+                        'parameters should also be set with this image.')
+
+    a = p.add_mutually_exclusive_group(title='Acquisition parameters',
+                                       required='--in_mtoff_t1' in sys.argv,
+                                       help='Acquisition parameters required '
+                                            'for MTsat and ihMTsat '
+                                            'calculation. These are the '
+                                            'excitation flip angles '
+                                            '(a_PD, a_T1) and repetition '
+                                            'times (TR_PD, TR_T1) of the '
+                                            'PD and T1 images.')
+    a1 = a.add_argument_group(title='Json files option',
+                              help='Use the json files to get the acquisition '
+                                   'parameters.')
+    a1.add_argument('--in_pd_json',
                    help='Path to MToff PD json file.')
-    a.add_argument('--in_t1_json',
+    a1.add_argument('--in_t1_json',
                    help='Path to MToff T1 json file.')
-    a.add_argument('--flip_angles',
-                   help='TOTO')
-    a.add_argument('--rep_times',
-                   help='TOTO')
+    a2 = a.add_argument_group(title='Parameters values option',
+                              help='Give the acquisition parameters directly')
+    a2.add_argument('--flip_angles',
+                   help='Flip angle of mtoff_PD and mtoff_T1, in that order.')
+    a2.add_argument('--rep_times',
+                   help='Repetition time of mtoff_PD and mtoff_T1, in that '
+                        'order.')
 
     add_overwrite_arg(p)
 
@@ -217,41 +235,41 @@ def main():
                                            create_dir=True)
 
     # Merge all echos path into a list
-    maps = [args.in_altnp, args.in_altpn, args.in_negative, args.in_positive,
-            args.in_mtoff_pd, args.in_mtoff_t1]
-
-    maps_flat = (args.in_altnp + args.in_altpn + args.in_negative +
-                 args.in_positive + args.in_mtoff_pd +args.in_mtoff_t1)
-
-    jsons = [curr_map.replace('.nii.gz', '.json')
-             for curr_map in maps_flat]
+    maps_list = [args.in_altnp, args.in_altpn, args.in_negative, args.in_positive,
+                 args.in_mtoff_pd]
+    
+    if args.in_mtoff_t1:
+        maps_list.append(args.in_mtoff_t1)
 
     # check echoes number and jsons
-    assert_inputs_exist(parser, jsons + maps_flat)
-    for curr_map in maps[1:]:
-        if len(curr_map) != len(maps[0]):
+    assert_inputs_exist(parser, maps_list)
+    for curr_map in maps_list[1:]:
+        if len(curr_map) != len(maps_list[0]):
             parser.error('Not the same number of echoes per contrast')
 
     if args.B1_correction_method == 'model_based' and not args.in_B1_fitvalues:
-        parser.error('A fitvalues files must be given when choosing the '
+        parser.error('Fitvalues files must be given when choosing the '
                      'model-based B1 correction method. Please use '
-                     '--in_B1_fitvalues')
+                     '--in_B1_fitvalues.')
 
     # Set TR and FlipAngle parameters for ihMT (positive contrast)
     # and T1w images
-    parameters = []
-    for curr_map in maps[4][0], maps[5][0]:
-        acq_parameter = get_acq_parameters(curr_map.replace('.nii.gz',
-                                                            '.json'), # TODO CHANGE THAT. ASSUMES THE JSONS ARE THERE...
-                                           ['RepetitionTime', 'FlipAngle'])
-        acq_parameter = acq_parameter[0]*1000, acq_parameter[1]*np.pi/180
-        parameters.append(acq_parameter)
+    if args.flip_angles:
+        flip_angles = args.flip_angles
+        rep_times = args.rep_times
+    else:
+        for i, curr_json in enumerate(args.in_pd_json, args.in_t1_json):
+            acq_parameter = get_acq_parameters(curr_json,
+                                               ['RepetitionTime', 'FlipAngle'])
+            rep_times[i] = acq_parameter[0] * 1000
+            flip_angles[i] = acq_parameter[1] * np.pi / 180.
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
-    # Define reference image for saving maps
-    ref_img = nib.load(maps[4][0])
+    # Define affine and data shape
+    affine = nib.load(maps_list[4][0]).affine
+    data_shape = nib.load(maps_list[4][0]).get_fdata().shape
 
     # Load B1 image
     if args.in_B1_map and args.B1_correction_method == 'model_based':
@@ -260,25 +278,24 @@ def main():
         B1_map = adjust_b1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map)
     else:
-        B1_map = np.ones(ref_img.get_fdata().shape)
+        B1_map = np.ones(data_shape)
 
     # Define contrasts maps names
-    contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
-                      'T1w']
+    contrasts_name = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
+                      'mtoff_T1']
     if args.filtering:
         contrasts_name = [curr_name + '_filter'
                           for curr_name in contrasts_name]
     if args.single_echo:
         contrasts_name = [curr_name + '_single_echo'
                           for curr_name in contrasts_name]
-
     if args.out_prefix:
         contrasts_name = [args.out_prefix + '_' + curr_name
                           for curr_name in contrasts_name]
 
 # Compute contrasts maps
     computed_contrasts = []
-    for idx, curr_map in enumerate(maps):
+    for idx, curr_map in enumerate(maps_list):
         input_images = []
         for image in curr_map:
             img, _ = load_img(image)
@@ -289,7 +306,7 @@ def main():
                                   single_echo=args.single_echo))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
-                                 ref_img.affine),
+                                 affine),
                  os.path.join(args.out_dir, 'Complementary_maps',
                               contrasts_name[idx] + '.nii.gz'))
 
@@ -370,7 +387,7 @@ def main():
     img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
-                                 ref_img.affine),
+                                 affine),
                  os.path.join(args.out_dir, 'ihMT_native_maps',
                               name + '.nii.gz'))
 
