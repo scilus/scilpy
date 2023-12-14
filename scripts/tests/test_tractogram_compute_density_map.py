@@ -13,24 +13,22 @@ tmp_dir = tempfile.TemporaryDirectory()
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_compute_streamlines_density_map.py',
+    ret = script_runner.run('scil_tractogram_compute_density_map.py',
                             '--help')
     assert ret.success
 
 
 def test_execution_others(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'others',
-                             'IFGWM.trk')
-    ret = script_runner.run('scil_compute_streamlines_density_map.py',
+    in_bundle = os.path.join(get_home(), 'others', 'IFGWM.trk')
+    ret = script_runner.run('scil_tractogram_compute_density_map.py',
                             in_bundle, 'binary.nii.gz', '--binary')
     assert ret.success
 
 
 def test_execution_tractometry(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
-    in_bundle = os.path.join(get_home(), 'tractometry',
-                             'IFGWM.trk')
-    ret = script_runner.run('scil_compute_streamlines_density_map.py',
+    in_bundle = os.path.join(get_home(), 'tractometry', 'IFGWM.trk')
+    ret = script_runner.run('scil_tractogram_compute_density_map.py',
                             in_bundle, 'IFGWM.nii.gz', '--binary')
     assert ret.success
