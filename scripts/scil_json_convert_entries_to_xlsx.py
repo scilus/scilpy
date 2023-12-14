@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Convert a final aggregated json file to an Excel spreadsheet. Typically
-used during the tractometry pipeline.
+""" Convert a final aggregated json file to an Excel spreadsheet.
+Typically used during the tractometry pipeline.
 """
 
 import argparse
