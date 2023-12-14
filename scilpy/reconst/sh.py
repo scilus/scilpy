@@ -10,18 +10,17 @@ from dipy.reconst.odf import gfa
 from dipy.reconst.shm import (sh_to_sf_matrix, order_from_ncoef, sf_to_sh,
                               sph_harm_ind_list)
 
-from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              identify_shells,
+from scilpy.gradients.bvec_bval_tools import (identify_shells,
                                               is_normalized_bvecs,
                                               normalize_bvecs)
 from scilpy.dwi.operations import compute_dwi_attenuation
 
 
-def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
+def compute_sh_coefficients(dwi, gradient_table, b0_threshold, sh_order=4,
                             basis_type='descoteaux07', smooth=0.006,
-                            use_attenuation=False, force_b0_threshold=False,
-                            mask=None, sphere=None):
+                            use_attenuation=False, mask=None, sphere=None):
     """Fit a diffusion signal with spherical harmonics coefficients.
+    Data must come from a single shell acquisition.
 
     Parameters
     ----------
@@ -29,6 +28,9 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         Diffusion signal as weighted images (4D).
     gradient_table : GradientTable
         Dipy object that contains all bvals and bvecs.
+    b0_threshold: float
+        Threshold for the b0 values. Used to validate that the data contains
+        single shell signal.
     sh_order : int, optional
         SH order to fit, by default 4.
     smooth : float, optional
@@ -37,8 +39,6 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
         Either 'tournier07' or 'descoteaux07'
     use_attenuation: bool, optional
         If true, we will use DWI attenuation. [False]
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
     mask: nib.Nifti1Image object, optional
         Binary mask. Only data inside the mask will be used for computations
         and reconstruction.
@@ -61,8 +61,6 @@ def compute_sh_coefficients(dwi, gradient_table, sh_order=4,
     if not is_normalized_bvecs(bvecs):
         logging.warning("Your b-vectors do not seem normalized...")
         bvecs = normalize_bvecs(bvecs)
-
-    b0_threshold = check_b0_threshold(force_b0_threshold, bvals.min())
 
     # Ensure that this is on a single shell.
     shell_values, _ = identify_shells(bvals)
