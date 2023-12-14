@@ -1,4 +1,11 @@
 pipeline {
+    options {
+        disableConcurrentBuilds(abortPrevious: true)
+        throttleJobProperty(categories: ['ci_all_builds'],
+                            throttleEnabled: true,
+                            throttleOption: 'category')
+    }
+
     agent any
 
     stages {
