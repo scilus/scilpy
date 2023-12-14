@@ -55,7 +55,7 @@ def normalize_bvecs(bvecs):
     return bvecs
 
 
-def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
+def check_b0_threshold(min_bval, args, b0_thr=None):
     """
     Check if the minimal bvalue is under the threshold. If not, raise an
     error to ask user to update the b0_thr.
@@ -72,8 +72,11 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
             args.skip_b0_validation: bool
                 If True, and no b0 is found, only print a warning, do not raise
                 an error.
-            args.b0_threshold: float  (or args[b0_arg])
+            args.b0_threshold: float
                 Maximum bvalue considered as a b0.
+    b0_thr: float
+        If set, we will use this value instead of args.b0_threshold as a
+        threshold.
 
     Raises
     ------
@@ -81,13 +84,13 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
         If the minimal bvalue is over the threshold (and skip_b0_validation is
         False).
     """
-    b0_thr = vars(args)[b0_arg]  # Converting Namespace to dict to allow access
+    b0_thr = b0_thr or args.b0_threshold
 
     if b0_thr > DEFAULT_B0_THRESHOLD:
         logging.warning(
             'Warning: Your defined b0 threshold (option --{}) is {}. This is '
             'suspicious. We recommend using volumes with bvalues no higher '
-            'than {} as b0s.'.format(b0_arg, b0_thr, DEFAULT_B0_THRESHOLD))
+            'than {} as b0s.'.format(b0_thr, b0_thr, DEFAULT_B0_THRESHOLD))
 
     if min_bval < 0:
         logging.warning(
@@ -102,7 +105,7 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
                 'defined with --{}: {}.\n'
                 'Since --skip_b0_validation was specified, the script will'
                 'proceed with a b0 threshold of {}.'
-                .format(min_bval, b0_arg, b0_thr, min_bval))
+                .format(min_bval, b0_thr, b0_thr, min_bval))
             return min_bval
         else:
             raise ValueError(
@@ -111,7 +114,7 @@ def check_b0_threshold(min_bval, args, b0_arg='b0_threshold'):
                 'Please check your data to ensure everything is correct.\n'
                 'You may also increase the threshold or use '
                 '--skip_b0_validation'
-                .format(min_bval, b0_arg, b0_thr, min_bval))
+                .format(min_bval, b0_thr, b0_thr, min_bval))
     return b0_thr
 
 

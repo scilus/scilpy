@@ -33,9 +33,10 @@ from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               normalize_bvecs,
                                               is_normalized_bvecs)
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg,
-                             add_sh_basis_args, add_processes_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_sh_basis_args,  add_skip_b0_validation_arg,
+                             assert_inputs_exist, assert_outputs_exist,
+
                              add_verbose_arg)
 from scilpy.reconst.fodf import fit_from_model
 from scilpy.reconst.sh import convert_sh_basis
@@ -69,13 +70,14 @@ def _build_arg_parser():
     p.add_argument(
         '--tolerance', type=int, default=20,
         help='The tolerated gap between the b-values to '
-             'extract and the current b-value. [%(default)s]')
-
-    add_force_b0_arg(p)
+             'extract and the current b-value.\n'
+             'We would expect to find at least one b-value in the range '
+             '[0, tolerance], acting as a b0.\n'
+             'To skip this check, use --skip_b0_validation.\n'
+             'Default: [%(default)s]')
+    add_skip_b0_validation_arg(p, b0_tol_name='--tolerance')
     add_sh_basis_args(p)
     add_processes_arg(p)
-    add_verbose_arg(p)
-    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
@@ -99,6 +101,9 @@ def _build_arg_parser():
     g.add_argument(
         '--vf_rgb', metavar='file', default='',
         help='Output filename for the volume fractions map in rgb.')
+
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -142,13 +147,8 @@ def main():
         if mask.shape != data.shape[:-1]:
             raise ValueError("Mask is not the same shape as data.")
 
-    tol = args.tolerance
-    sh_order = args.sh_order
-
     # Checking data and sh_order
-    b0_thr = check_b0_threshold(
-        args.force_b0_threshold, bvals.min(), bvals.min())
-
+    sh_order = args.sh_order
     if data.shape[-1] < (sh_order + 1) * (sh_order + 2) / 2:
         logging.warning(
             'We recommend having at least {} unique DWIs volumes, but you '
@@ -160,7 +160,15 @@ def main():
     if not is_normalized_bvecs(bvecs):
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+
+    # Note. This script does not currently allow using a separate b0_threshold
+    # for the b0s. Using the tolerance. To change this, we would have to
+    # change many things in dipy. An issue has been added in dipy to
+    # ask them to clarify the usage of gtab.b0s_mask. See here:
+    #  https://github.com/dipy/dipy/issues/3015
+    # b0_threshold option in gradient_table probably unused.
+    check_b0_threshold(bvals.min(), args, b0_thr=args.tolerance)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=args.tolerance)
 
     # Checking response functions and computing msmt response function
     if not wm_frf.shape[1] == 4:
@@ -172,10 +180,10 @@ def main():
     if not csf_frf.shape[1] == 4:
         raise ValueError('CSF frf file did not contain 4 elements. '
                          'Invalid or deprecated FRF format')
-    ubvals = unique_bvals_tolerance(bvals, tol=tol)
+    ubvals = unique_bvals_tolerance(bvals, tol=args.tolerance)
     msmt_response = multi_shell_fiber_response(sh_order, ubvals,
                                                wm_frf, gm_frf, csf_frf,
-                                               tol=tol)
+                                               tol=args.tolerance)
 
     # Loading spheres
     reg_sphere = get_sphere('symmetric362')
