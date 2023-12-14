@@ -4,8 +4,8 @@
 """
 Script to flip a given surface (FreeSurfer or VTK supported).
 
-Can flip vertices coordinates around a chosen (or multiple) axes (x, y or z)
-as well as reverse the orientation of the surface normals.
+Can flip vertice coordinates around a single or multiple axes
+Can also be used to reverse the orientation of the surface normals.
 """
 
 import argparse
