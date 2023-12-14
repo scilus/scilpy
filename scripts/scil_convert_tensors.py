@@ -13,9 +13,9 @@ import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist, assert_outputs_exist)
-from scilpy.reconst.dti import (supported_tensor_formats,
-                                tensor_format_description,
-                                convert_tensor_format)
+from scilpy.io.tensor import (supported_tensor_formats,
+                              tensor_format_description,
+                              convert_tensor_format)
 
 
 def _build_arg_parser():

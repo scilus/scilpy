@@ -5,7 +5,7 @@
 Compute a density map for each connection from a hdf5 file.
 Typically use after scil_decompose_connectivity.py in order to obtain the
 average density map of each connection to allow the use of --similarity
-in scil_compute_connectivity.py.
+in scil_connectivity_compute_matrices.py.
 
 This script is parallelized, but will run much slower on non-SSD if too many
 processes are used. The output is a directory containing the thousands of
