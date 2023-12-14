@@ -8,20 +8,6 @@ nonlinear deformation (optional).
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
-Example:
-To apply transform from ANTS to tractogram. If the ANTS commands was
-MOVING->REFERENCE, this will bring a tractogram from MOVING->REFERENCE
-scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
-                                        0GenericAffine.mat ${OUTPUT_NAME}
-                                        --inverse
-                                        --in_deformation 1InverseWarp.nii.gz
-
-If the ANTS commands was MOVING->REFERENCE, this will bring a tractogram
-from REFERENCE->MOVING
-scil_apply_transform_to_tractogram.py ${MOVING_FILE} ${REFERENCE_FILE}
-                                        0GenericAffine.mat ${OUTPUT_NAME}
-                                        --in_deformation 1Warp.nii.gz
-                                        --reverse_operation
 """
 
 import argparse

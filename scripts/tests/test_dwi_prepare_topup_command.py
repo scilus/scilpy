@@ -3,5 +3,5 @@
 
 
 def test_help_option(script_runner):
-    ret = script_runner.run('scil_prepare_eddy_command.py', '--help')
+    ret = script_runner.run('scil_dwi_prepare_topup_command.py', '--help')
     assert ret.success
