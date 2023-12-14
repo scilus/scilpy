@@ -4,11 +4,13 @@
 """
 Script to smooth a surface with a Laplacian blur.
 
-step_size from 0.1 to 10 is recommended
-Smoothing_time = step_size * nb_steps
-    [1, 10] for a small smoothing
-    [10, 100] for a moderate smoothing
-    [100, 1000] for a big smoothing
+For a standard FreeSurfer white matter mesh a step_size from 0.1 to 10
+is recommended
+
+Smoothing time = step_size * nb_steps
+    small amount of smoothing [step_size 1, nb_steps 10]
+    moderate amount of smoothing [step_size 10, nb_steps 100]
+    large amount of smoothing [step_size 100, nb_steps 1000]
 """
 
 import argparse
@@ -41,7 +43,7 @@ def _build_arg_parser():
                    help='Output smoothed surface (.vtk).')
 
     p.add_argument('-m', '--vts_mask',
-                   help='Vertices mask, where to apply the flow (.npy).')
+                   help='Vertex mask, no smoothing where mask equals 0 (.npy).')
 
     p.add_argument('-n', '--nb_steps', type=int, default=2,
                    help='Number of steps for laplacian smooth [%(default)s].')
@@ -63,10 +65,10 @@ def main():
 
     # Check smoothing parameters
     if args.nb_steps < 1:
-        parser.error("Number of steps should be strictly positive")
+        parser.error("Number of steps should be positive")
 
     if args.step_size <= 0.0:
-        parser.error("Step size should be strictly positive")
+        parser.error("Step size should be positive")
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
