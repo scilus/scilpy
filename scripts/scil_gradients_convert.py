@@ -52,16 +52,17 @@ def main():
     assert_gradients_filenames_valid(parser, args.gradients, input_is_fsl)
     assert_inputs_exist(parser, args.gradients)
 
-    if not input_is_fsl:
-        output = [args.output + '.bval', args.output + '.bvec']
-        assert_outputs_exist(parser, args, output[0], output[1])
-        mrtrix_b = args.gradients[0]
-        mrtrix2fsl(mrtrix_b, args.output)
-    else:
+    if input_is_fsl:
         output = args.output + '.b'
         assert_outputs_exist(parser, args, output)
         fsl_bval, fsl_bvec = args.gradients
         fsl2mrtrix(fsl_bval, fsl_bvec, args.output)
+    else:
+        output = [args.output + '.bval', args.output + '.bvec']
+        assert_outputs_exist(parser, args, output[0])
+        assert_outputs_exist(parser, args, output[1])
+        mrtrix_b = args.gradients[0]
+        mrtrix2fsl(mrtrix_b, args.output)
 
 
 if __name__ == "__main__":
