@@ -254,7 +254,7 @@ def add_sh_basis_args(parser, mandatory=False):
     choices = ['descoteaux07', 'tournier07']
     def_val = 'descoteaux07'
     help_msg = 'Spherical harmonics basis used for the SH coefficients. ' +\
-               '\nMustbe either \'descoteaux07\' or \'tournier07\'' +\
+               '\nMust be either \'descoteaux07\' or \'tournier07\'' +\
                ' [%(default)s]:\n' +\
                '    \'descoteaux07\': SH basis from the Descoteaux et al.\n' +\
                '                      MRM 2007 paper\n' +\
