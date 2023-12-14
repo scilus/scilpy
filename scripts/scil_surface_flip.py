@@ -4,7 +4,7 @@
 """
 Script to flip a given surface (FreeSurfer or VTK supported).
 
-Can flip vertice coordinates around a single or multiple axes
+Can flip surface coordinates around a single or multiple axes
 Can also be used to reverse the orientation of the surface normals.
 """
 
