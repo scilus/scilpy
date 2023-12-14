@@ -105,8 +105,8 @@ def compute_saturation(cPD1, cPD2, cT1, acq_parameters, B1_map):
     -------
     MT ratio and MT saturation matrice in 3D-array.
     """
-    TR1 = acq_parameters[0][0] # TR of high flip angle images (MT)
-    TR2 = acq_parameters[1][0] # TR of low flip angle images (T1w)
+    TR1 = acq_parameters[0][0] # TR of low flip angle images (MT)
+    TR2 = acq_parameters[1][0] # TR of high flip angle images (T1w)
     a1 = acq_parameters[0][1] * B1_map # Low flip angle (MT)
     a2 = acq_parameters[1][1] * B1_map # High flip angle (T1w)
 
@@ -325,8 +325,12 @@ def adjust_b1_map_intensities(b1_map, nominal=100):
 
 def smooth_B1_map(B1_map):
     # Apply a light smoothing to the B1 map
-    h = np.ones((5, 5, 1))/25
+    h = np.ones((5, 5, 1))/25 # TODO : should depend on the resolution
+    # h = np.ones((2, 2, 1))/4
     B1_map_smooth = scipy.ndimage.convolve(B1_map, h).astype(np.float32)
+    # shift = 0.15
+    # exp = 1.15
+    # B1_map_smooth = (B1_map_smooth + shift) ** exp
     return B1_map_smooth
 
 
@@ -353,8 +357,7 @@ def compute_B1_correction_factor_maps(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
         b1 = b1_ref
         cf_nom = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
 
-        # cf_maps[..., i] = (cf_nom - cf_act) / cf_act
-        cf_maps[..., i] = (cf_act - cf_nom) / cf_nom
+        cf_maps[..., i] = (cf_nom - cf_act) / cf_act
 
     return cf_maps
 

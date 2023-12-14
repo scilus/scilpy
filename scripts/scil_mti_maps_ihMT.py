@@ -216,15 +216,13 @@ def main():
     ref_img = nib.load(maps[4][0])
 
     # Load B1 image
-    if args.in_B1_map:
+    if args.in_B1_map and args.B1_correction_method == 'model_based':
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
         B1_map = adjust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
         B1_map = smooth_B1_map(B1_map)
-        B1_corr = True
     else:
         B1_map = np.ones(ref_img.get_fdata().shape)
-        B1_corr = False
 
     # Define contrasts maps names
     contrasts_name = ['altnp', 'altpn', 'reference', 'negative', 'positive',
@@ -260,14 +258,20 @@ def main():
     # Compute and thresold ihMT maps
     MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d \
         = compute_ihMT_maps(computed_contrasts, parameters, B1_map)
-    
+
+    nib.save(nib.Nifti1Image(MTsat_sp, img.affine), "Contrasts_ihMT_maps/MTsat_sp.nii.gz")
+    nib.save(nib.Nifti1Image(MTsat_sn, img.affine), "Contrasts_ihMT_maps/MTsat_sn.nii.gz")
+    nib.save(nib.Nifti1Image(MTsat_d, img.affine), "Contrasts_ihMT_maps/MTsat_d.nii.gz")
+
     if args.in_B1_map and args.B1_correction_method == 'model_based':
+        print("Model-based correction")
         cf_eq, r1_to_m0b = read_fit_values_from_mat_files(args.in_B1_fitvalues)
         r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
                            parameters, B1_map) * 1000 # convert 1/ms to 1/s
         cf_maps = compute_B1_correction_factor_maps(B1_map, r1, cf_eq,
                                                     r1_to_m0b, b1_ref=1)
         nib.save(nib.Nifti1Image(r1, img.affine), "Contrasts_ihMT_maps/R1obs.nii.gz")
+        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Contrasts_ihMT_maps/T1obs.nii.gz")
         nib.save(nib.Nifti1Image(B1_map, img.affine), "Contrasts_ihMT_maps/B1_map.nii.gz")
         nib.save(nib.Nifti1Image(cf_maps, img.affine), "Contrasts_ihMT_maps/cf_maps.nii.gz")
         MTsat_sp = apply_B1_correction_model_based(MTsat_sp, cf_maps[..., 0])
@@ -278,9 +282,19 @@ def main():
     ihMTsat = MTsat_d - MTsat
 
     if args.in_B1_map and args.B1_correction_method == 'empiric':
-        MTR = apply_B1_correction_empiric(MTR, B1_map)
+        print("Empiric correction")
+        B1_img = nib.load(args.in_B1_map)
+        B1_map = B1_img.get_fdata(dtype=np.float32)
+        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.nominal_B1)
+        B1_map = smooth_B1_map(B1_map)
+        r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
+                           parameters, B1_map) * 1000 # convert 1/ms to 1/s
+        nib.save(nib.Nifti1Image(r1, img.affine), "Contrasts_ihMT_maps/R1obs.nii.gz")
+        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Contrasts_ihMT_maps/T1obs.nii.gz")
+        nib.save(nib.Nifti1Image(B1_map, img.affine), "Contrasts_ihMT_maps/B1_map.nii.gz")
+        # MTR = apply_B1_correction_empiric(MTR, B1_map)
         MTsat = apply_B1_correction_empiric(MTsat, B1_map)
-        ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
+        # ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
         ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
 
     ihMTR = threshold_maps(ihMTR, args.in_mask, 0, 100,
