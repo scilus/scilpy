@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from contextlib import redirect_stdout
-import io
-
 legacy_scripts_list_tag_1_6_0 = [
     "scil_add_tracking_mask_to_pft_maps.py",
     "scil_analyse_lesions_load.py",
