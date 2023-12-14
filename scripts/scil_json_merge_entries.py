@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Merge multiple json file into a single one.
+""" Merge multiple json files into a single one.
 Typically used during the tractometry pipeline.
 
 Without option it will simply merge all entries at the top level, the top

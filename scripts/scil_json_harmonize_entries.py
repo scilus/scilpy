@@ -4,7 +4,7 @@
 """ This script will harmonize a json file by adding missing keys and values
 that differs between the different layers of the dictionary.
 
-This is use only (for now) in Aggregate_All_* portion of tractometry-flow,
+This is used only (for now) in Aggregate_All_* portion of tractometry-flow,
 to counter the problem of missing bundles/metrics/lesions between subjects.
 
 The most common use case is when specific subjects have missing bundles
