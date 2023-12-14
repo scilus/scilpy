@@ -73,8 +73,8 @@ For both methods, the nominal value of the B1 map can be set with
 
 >>> scil_mti_maps_ihMT.py path/to/output/directory
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
-    --in_mtoff_PD path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
-    --in_positive path/to/echo*pos.nii.gz --in_mtoff_T1 path/to/echo*T1w.nii.gz
+    --in_mtoff_pd path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
+    --in_positive path/to/echo*pos.nii.gz --in_mtoff_t1 path/to/echo*T1w.nii.gz
     --mask path/to/mask_bin.nii.gz
 
 By default, the script uses all the echoes available in the input folder.
@@ -136,6 +136,8 @@ def _build_arg_parser():
                    help='Use this option when there is only one echo.')
     p.add_argument('--mask',
                    help='Path to the binary brain mask.')
+    p.add_argument('--extended_output', action='store_true',
+                   help='If set, outputs the folder Complementary_maps.')
     
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
@@ -143,9 +145,9 @@ def _build_arg_parser():
     b.add_argument('--B1_correction_method',
                    choices=['empiric', 'model_based'], default='empiric',
                    help='Choice of B1 correction method. Choose between '
-                    'empiric and model-based. Note that the model-based '
-                    'method requires a B1 fitvalues file, and will only '
-                    'correction the saturation measures. [%(default)s]')
+                        'empiric and model-based. Note that the model-based '
+                        'method requires a B1 fitvalues file, and will only '
+                        'correct the saturation measures. [%(default)s]')
     b.add_argument('--in_B1_fitvalues', nargs=3,
                    help='Path to B1 fitvalues files obtained externally. '
                         'Should be three .mat files given in this specific '
@@ -168,18 +170,29 @@ def _build_arg_parser():
                    help='Path to all echoes corresponding to the '
                         'alternation of Positive and Negative '
                         'frequency saturation pulse.')
-    g.add_argument("--in_mtoff", nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'no frequency saturation pulse (reference image).')
     g.add_argument("--in_negative", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'Negative frequency saturation pulse.')
     g.add_argument("--in_positive", nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
                         'Positive frequency saturation pulse.')
-    g.add_argument("--in_t1w", nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'T1-weigthed.')
+    g.add_argument("--in_mtoff_pd", nargs='+', required=True,
+                   help='Path to all echoes corresponding to the predominant '
+                        'PD (proton density) weighting images with no '
+                        'saturation pulse.')
+    g.add_argument("--in_mtoff_t1", nargs='+',
+                   help='Path to all echoes corresponding to the predominant '
+                        'T1 weighting images with no saturation pulse.')
+    
+    a = p.add_argument_group(title='Acquisition parameters')
+    a.add_argument('--in_pd_json',
+                   help='Path to MToff PD json file.')
+    a.add_argument('--in_t1_json',
+                   help='Path to MToff T1 json file.')
+    a.add_argument('--flip_angles',
+                   help='TOTO')
+    a.add_argument('--rep_times',
+                   help='TOTO')
 
     add_overwrite_arg(p)
 
@@ -190,19 +203,25 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    assert_output_dirs_exist_and_empty(parser, args,
-                                       os.path.join(args.out_dir,
-                                                    'Contrasts_ihMT_maps'),
-                                       os.path.join(args.out_dir,
-                                                    'ihMT_native_maps'),
-                                       create_dir=True)
+    if args.extended_output:
+        assert_output_dirs_exist_and_empty(parser, args,
+                                           os.path.join(args.out_dir,
+                                                        'Complementary_maps'),
+                                           os.path.join(args.out_dir,
+                                                        'ihMT_native_maps'),
+                                           create_dir=True)
+    else:
+        assert_output_dirs_exist_and_empty(parser, args,
+                                           os.path.join(args.out_dir,
+                                                        'ihMT_native_maps'),
+                                           create_dir=True)
 
     # Merge all echos path into a list
-    maps = [args.in_altnp, args.in_altpn, args.in_mtoff, args.in_negative,
-            args.in_positive, args.in_t1w]
+    maps = [args.in_altnp, args.in_altpn, args.in_negative, args.in_positive,
+            args.in_mtoff_pd, args.in_mtoff_t1]
 
-    maps_flat = (args.in_altnp + args.in_altpn + args.in_mtoff +
-                 args.in_negative + args.in_positive + args.in_t1w)
+    maps_flat = (args.in_altnp + args.in_altpn + args.in_negative +
+                 args.in_positive + args.in_mtoff_pd +args.in_mtoff_t1)
 
     jsons = [curr_map.replace('.nii.gz', '.json')
              for curr_map in maps_flat]
@@ -271,16 +290,16 @@ def main():
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
                                  ref_img.affine),
-                 os.path.join(args.out_dir, 'Contrasts_ihMT_maps',
+                 os.path.join(args.out_dir, 'Complementary_maps',
                               contrasts_name[idx] + '.nii.gz'))
 
     # Compute and thresold ihMT maps
     MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d \
         = compute_ihMT_maps(computed_contrasts, parameters, B1_map)
 
-    nib.save(nib.Nifti1Image(MTsat_sp, img.affine), "Contrasts_ihMT_maps/MTsat_sp.nii.gz")
-    nib.save(nib.Nifti1Image(MTsat_sn, img.affine), "Contrasts_ihMT_maps/MTsat_sn.nii.gz")
-    nib.save(nib.Nifti1Image(MTsat_d, img.affine), "Contrasts_ihMT_maps/MTsat_d.nii.gz")
+    nib.save(nib.Nifti1Image(MTsat_sp, img.affine), "Complementary_maps/MTsat_sp.nii.gz")
+    nib.save(nib.Nifti1Image(MTsat_sn, img.affine), "Complementary_maps/MTsat_sn.nii.gz")
+    nib.save(nib.Nifti1Image(MTsat_d, img.affine), "Complementary_maps/MTsat_d.nii.gz")
 
     if args.in_B1_map and args.B1_correction_method == 'model_based':
         print("Model-based correction")
@@ -289,10 +308,10 @@ def main():
                            parameters, B1_map) * 1000 # convert 1/ms to 1/s
         cf_maps = compute_B1_correction_factor_maps(B1_map, r1, cf_eq,
                                                     r1_to_m0b, b1_ref=1)
-        nib.save(nib.Nifti1Image(r1, img.affine), "Contrasts_ihMT_maps/R1obs.nii.gz")
-        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Contrasts_ihMT_maps/T1obs.nii.gz")
-        nib.save(nib.Nifti1Image(B1_map, img.affine), "Contrasts_ihMT_maps/B1_map.nii.gz")
-        nib.save(nib.Nifti1Image(cf_maps, img.affine), "Contrasts_ihMT_maps/cf_maps.nii.gz")
+        nib.save(nib.Nifti1Image(r1, img.affine), "Complementary_maps/R1obs.nii.gz")
+        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Complementary_maps/T1obs.nii.gz")
+        nib.save(nib.Nifti1Image(B1_map, img.affine), "Complementary_maps/B1_map.nii.gz")
+        nib.save(nib.Nifti1Image(cf_maps, img.affine), "Complementary_maps/cf_maps.nii.gz")
         MTsat_sp = apply_B1_correction_model_based(MTsat_sp, cf_maps[..., 0])
         MTsat_sn = apply_B1_correction_model_based(MTsat_sn, cf_maps[..., 1])
         MTsat_d = apply_B1_correction_model_based(MTsat_d, cf_maps[..., 2])
@@ -308,9 +327,9 @@ def main():
         B1_map = smooth_B1_map(B1_map)
         r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
                            parameters, B1_map) * 1000 # convert 1/ms to 1/s
-        nib.save(nib.Nifti1Image(r1, img.affine), "Contrasts_ihMT_maps/R1obs.nii.gz")
-        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Contrasts_ihMT_maps/T1obs.nii.gz")
-        nib.save(nib.Nifti1Image(B1_map, img.affine), "Contrasts_ihMT_maps/B1_map.nii.gz")
+        nib.save(nib.Nifti1Image(r1, img.affine), "Complementary_maps/R1obs.nii.gz")
+        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Complementary_maps/T1obs.nii.gz")
+        nib.save(nib.Nifti1Image(B1_map, img.affine), "Complementary_maps/B1_map.nii.gz")
         # MTR = apply_B1_correction_empiric(MTR, B1_map)
         MTsat = apply_B1_correction_empiric(MTsat, B1_map)
         # ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
