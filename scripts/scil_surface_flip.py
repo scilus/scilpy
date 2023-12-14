@@ -2,15 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Script to flip and reverse a surface (FreeSurfer or VTK supported).
-Can be used to flip in chosen axes (x, y or z),
-it can also flip inside out the surface orientation (normal).
+Script to flip a given surface (FreeSurfer or VTK supported).
 
-
-Best usage for FreeSurfer to LPS vtk (for MI-Brain):
-!!! important FreeSurfer surfaces must be in their respective folder !!!
-> mris_convert --to-scanner lh.white lh.white.vtk
-> scil_surface_flip.py lh.white.vtk lh_white_lps.vtk x y
+Can flip vertices coordinates around a chosen (or multiple) axes (x, y or z)
+as well as reverse the orientation of the surface normals.
 """
 
 import argparse
@@ -41,8 +36,9 @@ def _build_arg_parser():
 
     p.add_argument('axes',
                    choices=['x', 'y', 'z', 'n'], nargs='+',
-                   help='The axes (or normal orientation) you want to flip.'
-                        ' eg: to flip the x and y axes use: x y.')
+                   help='The axes you want to flip.'
+                        ' eg: to flip the x and y axes use: x y.'
+                        ' to reverse the surface normals use: n')
 
     add_overwrite_arg(p)
     return p
