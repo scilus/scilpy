@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
+Normalize a connectivity matrix coming from
+scil_tractogram_segment_bundles_for_connectivity.py.
 3 categories of normalization are available:
 -- Edge attributes
  - length: Multiply each edge by the average bundle length.
@@ -31,7 +32,7 @@ Normalize a connectivity matrix coming from scil_decompose_connectivity.py.
  - log_10: Apply a base 10 logarithm to all edges weight
 
 The volume and length matrix should come from the
-scil_decompose_connectivity.py script.
+scil_tractogram_segment_bundles_for_connectivity.py script.
 
 A review of the type of normalization is available in:
 Colon-Perez, Luis M., et al. "Dimensionless, scale-invariant, edge weight
@@ -137,7 +138,8 @@ def main():
 
     # Node-wise computation are necessary for this type of normalize
     # Parcel volume and surface normalization require the atlas
-    # This script should be used directly after scil_decompose_connectivity.py
+    # This script should be used directly after
+    # scil_tractogram_segment_bundles_for_connectivity.py
     if args.parcel_volume or args.parcel_surface:
         atlas_img = nib.load(atlas_filepath)
         labels_list = np.loadtxt(labels_filepath)

@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Convert a final aggregated json file to an Excel spreadsheet. Typically
+"""
+Convert a final aggregated json file to an Excel spreadsheet. Typically
 used during the tractometry pipeline.
+
+Formally: scil_convert_json_to_xlsx.py
 """
 
 import argparse

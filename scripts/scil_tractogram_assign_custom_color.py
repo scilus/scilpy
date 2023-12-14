@@ -34,6 +34,8 @@ using the --out_colorbar option.
 
 The script can also be used to color streamlines according to their length
 using the --along_profile option. The streamlines must be uniformized.
+
+Formally: scil_assign_custom_color_to_tractogram.py
 """
 
 import argparse

@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Save individual connection of an hd5f from scil_decompose_connectivity.py.
+Save individual connection of an hd5f from
+scil_tractogram_segment_bundles_for_connectivity.py.
 Useful for quality control and visual inspections.
 
 It can either save all connections, individual connections specified with
@@ -17,6 +18,8 @@ out_dir/
     |-- LABEL1_LABEL2.trk
     |-- [...]
     |-- LABEL90_LABEL90.trk
+
+Formally: scil_save_connections_from_hdf5.py
 """
 
 import argparse
@@ -111,7 +114,8 @@ def main():
             if args.include_dps:
                 for dps_key in hdf5_file[key].keys():
                     if dps_key not in ['data', 'offsets', 'lengths']:
-                        sft.data_per_streamline[dps_key] = hdf5_file[key][dps_key]
+                        sft.data_per_streamline[dps_key] = \
+                            hdf5_file[key][dps_key]
 
             save_tractogram(sft, '{}.trk'
                             .format(os.path.join(args.out_dir, key)))

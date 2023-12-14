@@ -3,7 +3,8 @@
 
 """
 This script computes a variety of measures in the form of connectivity
-matrices. This script is made to follow scil_decompose_connectivity and
+matrices. This script is made to follow
+scil_tractogram_segment_bundles_for_connectivity.py and
 uses the same labels list as input.
 
 The script expects a folder containing all relevants bundles following the
@@ -110,7 +111,8 @@ def _processing_wrapper(args):
     # Precompute to save one transformation, insert later
     if 'length' in measures_to_compute:
         streamlines_copy = list(streamlines)
-        # scil_decompose_connectivity.py requires isotropic voxels
+        # scil_tractogram_segment_bundles_for_connectivity.py requires
+        # isotropic voxels
         mean_length = np.average(length(streamlines_copy))*voxel_sizes[0]
 
     # If density is not required, do not compute it
@@ -229,7 +231,8 @@ def _build_arg_parser():
         formatter_class=argparse.RawTextHelpFormatter,)
     p.add_argument('in_hdf5',
                    help='Input filename for the hdf5 container (.h5).\n'
-                        'Obtained from scil_decompose_connectivity.py.')
+                        'Obtained from '
+                        'scil_tractogram_segment_bundles_for_connectivity.py.')
     p.add_argument('in_labels',
                    help='Labels file name (nifti).\n'
                         'This generates a NxN connectivity matrix.')

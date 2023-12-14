@@ -8,6 +8,7 @@ nonlinear deformation (optional).
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
 
+Formally: scil_apply_transform_to_hdf5.py
 """
 
 import argparse
@@ -103,25 +104,27 @@ def main():
                             moving_sft.data_per_streamline[dps_key] \
                                 = in_hdf5_file[key][dps_key]
 
-                new_sft = transform_warp_sft(moving_sft, transfo, target_img,
-                                             inverse=args.inverse,
-                                             deformation_data=deformation_data,
-                                             reverse_op=args.reverse_operation,
-                                             remove_invalid=not args.cut_invalid,
-                                             cut_invalid=args.cut_invalid)
+                new_sft = transform_warp_sft(
+                                    moving_sft, transfo, target_img,
+                                    inverse=args.inverse,
+                                    deformation_data=deformation_data,
+                                    reverse_op=args.reverse_operation,
+                                    remove_invalid=not args.cut_invalid,
+                                    cut_invalid=args.cut_invalid)
                 new_sft.to_vox()
                 new_sft.to_corner()
 
-                affine, dimensions, voxel_sizes, voxel_order = get_reference_info(
-                    target_img)
+                affine, dimensions, voxel_sizes, voxel_order = \
+                    get_reference_info(target_img)
                 out_hdf5_file.attrs['affine'] = affine
                 out_hdf5_file.attrs['dimensions'] = dimensions
                 out_hdf5_file.attrs['voxel_sizes'] = voxel_sizes
                 out_hdf5_file.attrs['voxel_order'] = voxel_order
 
                 group = out_hdf5_file[key]
-                group.create_dataset('data',
-                                     data=new_sft.streamlines._data.astype(np.float32))
+                group.create_dataset(
+                            'data',
+                            data=new_sft.streamlines._data.astype(np.float32))
                 group.create_dataset('offsets',
                                      data=new_sft.streamlines._offsets)
                 group.create_dataset('lengths',
@@ -130,11 +133,13 @@ def main():
                     if dps_key not in ['data', 'offsets', 'lengths']:
                         if in_hdf5_file[key][dps_key].shape \
                                 == in_hdf5_file[key]['offsets']:
-                            group.create_dataset(dps_key,
-                                                 data=new_sft.data_per_streamline[dps_key])
+                            group.create_dataset(
+                                    dps_key,
+                                    data=new_sft.data_per_streamline[dps_key])
                         else:
-                            group.create_dataset(dps_key,
-                                                 data=in_hdf5_file[key][dps_key])
+                            group.create_dataset(
+                                    dps_key,
+                                    data=in_hdf5_file[key][dps_key])
 
 
 if __name__ == "__main__":

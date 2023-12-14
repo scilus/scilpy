@@ -3,7 +3,7 @@
 
 """
 Script to display a connectivity matrix and adjust the desired visualization.
-Made to work with scil_decompose_connectivity.py and
+Made to work with scil_tractogram_segment_bundles_for_connectivity.py and
 scil_connectivity_reorder_rois.py.
 
 This script can either display the axis labels as:
@@ -22,8 +22,9 @@ The chord chart is always displaying parting in the order they are defined
 thickness of the line represent the 'size/intensity', the greater the value is
 the thicker the line will be. In order to hide the low values, two options are
 available:
-- Angle threshold + alpha, any connections with a small angle on the chord chart
-    will be slightly transparent to increase the focus on bigger connections.
+- Angle threshold + alpha, any connections with a small angle on the chord
+    chart will be slightly transparent to increase the focus on bigger
+    connections.
 - Percentile, hide any connections with a value below that percentile
 """
 
@@ -82,7 +83,8 @@ def _build_arg_parser():
     g2.add_argument('--legend_min_max', nargs=2, metavar=('MIN', 'MAX'),
                     type=float, default=None,
                     help='Manually define the min/max of the legend.')
-    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE', 'DECIMAL'),
+    g2.add_argument('--write_values', nargs=2, metavar=('FONT_SIZE',
+                                                        'DECIMAL'),
                     default=None, type=int,
                     help='Write the values at the center of each node.\n'
                          'The font size and the rouding parameters can be '
@@ -90,7 +92,8 @@ def _build_arg_parser():
 
     histo = p.add_argument_group(title='Histogram options')
     histo.add_argument('--histogram', metavar='FILENAME',
-                       help='Compute and display/save an histogram of weights.')
+                       help='Compute and display/save an histogram of weights.'
+                       )
     histo.add_argument('--nb_bins', type=int,
                        help='Number of bins to use for the histogram.')
     histo.add_argument('--exclude_zeros', action='store_true',
@@ -98,7 +101,8 @@ def _build_arg_parser():
 
     chord = p.add_argument_group(title='Chord chart options')
     chord.add_argument('--chord_chart', metavar='FILENAME',
-                       help='Compute and display/save a chord chart of weigth.')
+                       help='Compute and display/save a chord chart of weigth.'
+                       )
     chord.add_argument('--percentile_threshold', type=int, default=0,
                        help='Discard connections below that percentile.'
                             '[%(default)s]')
@@ -107,8 +111,8 @@ def _build_arg_parser():
                             'Use --alpha to set opacity. Value typically'
                             'between 0.1 and 5 degrees. [%(default)s]')
     chord.add_argument('--alpha', type=float, default=0.9,
-                       help='Opacity for the smaller angle on the chord (0-1). '
-                            '[%(default)s]')
+                       help='Opacity for the smaller angle on the chord (0-1).'
+                            ' [%(default)s]')
     chord.add_argument('--text_size', default=10, type=float,
                        help='Size of the font for the parcels name/number '
                             '[%(default)s].')

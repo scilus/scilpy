@@ -61,7 +61,8 @@ def main():
         in_label = labels_list[pos_1]
         out_label = labels_list[pos_2]
 
-        # scil_decompose_connectivity.py only save the lower triangular files
+        # scil_tractogram_segment_bundles_for_connectivity.py only save the
+        # lower triangular files
         if out_label < in_label:
             continue
         text_file.write('{}_{}.trk\n'.format(in_label, out_label))

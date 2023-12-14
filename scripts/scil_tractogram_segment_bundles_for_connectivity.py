@@ -26,6 +26,8 @@ Example: on a tractogram with 1.8M streamlines, running on a SSD:
 - 15 minutes without post-processing, only saving final bundles.
 - 30 minutes with full post-processing, only saving final bundles.
 - 60 minutes with full post-processing, saving all possible files.
+
+Formally: scil_decompose_connectivity.py
 """
 
 import argparse
@@ -286,8 +288,8 @@ def main():
         if sft is None:
             sft = load_tractogram_with_reference(parser, args, in_tractogram)
             if not is_header_compatible(sft, img_labels):
-                raise IOError('{} and {}do not have a compatible header'.format(
-                    in_tractogram, args.in_labels))
+                raise IOError('{} and {} do not have a compatible '
+                              'header'.format(in_tractogram, args.in_labels))
         else:
             sft += load_tractogram_with_reference(parser, args, in_tractogram)
 

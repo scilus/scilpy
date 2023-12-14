@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Merge multiple json file into a single one.
+"""
+Merge multiple json file into a single one.
 the --keep_separate option will add an entry for each file, the basename will
 become the key.
+
+Formally: scil_merge_json.py
 """
 
 import argparse

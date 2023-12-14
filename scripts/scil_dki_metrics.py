@@ -9,9 +9,9 @@ to be multi-shell, i.e. multi-bvalued.
 Since the diffusion kurtosis model involves the estimation of a large number
 of parameters and since the non-Gaussian components of the diffusion signal
 are more sensitive to artefacts, you should really denoise your DWI volume
-before using this DKI script (e.g. scil_run_nlmeans.py). Moreover, to remove
-biases due to fiber dispersion, fiber crossings and other mesoscopic properties
-of the underlying tissue, MSDKI does a powder-average of DWI for all
+before using this DKI script (e.g. scil_denoising_nlmeans.py). Moreover, to
+remove biases due to fiber dispersion, fiber crossings and other mesoscopic
+properties of the underlying tissue, MSDKI does a powder-average of DWI for all
 directions, thus removing the orientational dependencies and creating an
 alternative mean kurtosis map.
 
