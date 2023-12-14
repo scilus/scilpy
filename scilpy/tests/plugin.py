@@ -76,19 +76,24 @@ def pytest_configure(config):
 
 @pytest.fixture
 def mock_collector(request):
-    def _collector(mock_name):
+    def _collector(mock_names, patch_path):
         try:
-            return request.getfixturevalue(mock_name)
+            return {_name: request.getfixturevalue(_name)(patch_path)
+                    for _name in mock_names}
         except pytest.FixtureLookupError:
-            warnings.warn(f"Fixture {mock_name} not found.")
+            warnings.warn(f"Some fixtures in {mock_names} cannot be found.")
             return None
     return _collector
 
 
 @pytest.fixture
 def mock_creator(mocker):
-    def _mocker(module_name, object_name, side_effect=None):
-        return mocker.patch("{}.{}".format(module_name, object_name),
-                            side_effect=side_effect, create=True)
+    def _mocker(base_module, object_name, side_effect=None):
+        def _patcher(module_name=None):
+            _base = base_module if module_name is None else module_name
+            return mocker.patch("{}.{}".format(_base, object_name),
+                                side_effect=side_effect, create=True)
+
+        return _patcher
 
     return _mocker

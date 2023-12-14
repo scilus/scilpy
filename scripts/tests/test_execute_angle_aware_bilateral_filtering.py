@@ -31,7 +31,8 @@ def test_asym_basis_output(
     script_runner, in_fodf, expected_results, mock_collector, request):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mock = mock_collector("bilateral_filtering_script")
+    _mocks = mock_collector(["bilateral_filtering"],
+                            "scripts.scil_execute_angle_aware_bilateral_filtering")
 
     print(request.fixturenames)
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
@@ -47,8 +48,8 @@ def test_asym_basis_output(
 
     assert ret.success
 
-    if _mock:
-        _mock.assert_called_once()
+    if _mocks["bilateral_filtering"]:
+        _mocks["bilateral_filtering"].assert_called_once()
 
     assert_images_close(nib.load(expected_results), nib.load("out_fodf1.nii.gz"))
 
@@ -62,7 +63,8 @@ def test_sym_basis_output(
     script_runner, in_fodf, expected_results, sym_fodf, mock_collector):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mock = mock_collector("bilateral_filtering_script")
+    _mocks = mock_collector(["bilateral_filtering"],
+                            "scripts.scil_execute_angle_aware_bilateral_filtering")
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
@@ -78,8 +80,8 @@ def test_sym_basis_output(
 
     assert ret.success
 
-    if _mock:
-        _mock.assert_called_once()
+    if _mocks["bilateral_filtering"]:
+        _mocks["bilateral_filtering"].assert_called_once()
 
     assert_images_close(nib.load(sym_fodf), nib.load("out_sym.nii.gz"))
 
@@ -91,7 +93,8 @@ def test_sym_basis_output(
 def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mock = mock_collector("bilateral_filtering_script")
+    _mocks = mock_collector(["bilateral_filtering"],
+                            "scripts.scil_execute_angle_aware_bilateral_filtering")
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
@@ -106,7 +109,7 @@ def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
 
     assert ret.success
 
-    if _mock:
-        _mock.assert_called_once()
+    if _mocks["bilateral_filtering"]:
+        _mocks["bilateral_filtering"].assert_called_once()
 
     assert_images_close(nib.load(expected_results), nib.load("out_fodf3.nii.gz"))
