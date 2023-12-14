@@ -27,7 +27,7 @@ def _build_arg_parser():
     p.add_argument('in_json',
                    help='JSON file containing the mean/std per point. For '
                         'example, can be created using '
-                        'scil_compute_metrics_along_streamline.')
+                        'scil_bundle_mean_std.py.')
     p.add_argument('out_dir',
                    help='Output directory.')
 
