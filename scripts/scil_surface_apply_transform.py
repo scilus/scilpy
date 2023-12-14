@@ -53,8 +53,8 @@ def _build_arg_parser():
     p.add_argument('--ants_warp',
                    help='Warp image from ANTs (NIfTI format).')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

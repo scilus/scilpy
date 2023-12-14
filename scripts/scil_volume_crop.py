@@ -37,8 +37,9 @@ def _build_arg_parser():
                    help='Ignore voxel size compatibility test between input '
                         'bounding box and data. Warning, use only if you '
                         'know what you are doing.')
-    add_overwrite_arg(p)
+
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     g1 = p.add_mutually_exclusive_group()
     g1.add_argument('--input_bbox',

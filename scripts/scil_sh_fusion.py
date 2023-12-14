@@ -45,8 +45,8 @@ def _build_arg_parser():
     p.add_argument('out_sh',
                    help='output SH file.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

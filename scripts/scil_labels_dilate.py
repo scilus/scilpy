@@ -58,8 +58,8 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Only dilate values inside the mask.')
 
-    add_verbose_arg(p)
     add_processes_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -38,8 +38,8 @@ def _build_arg_parser():
                    help='If set, will normalize all matrices from zero to '
                         'one.')
 
-    add_verbose_arg(p)
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

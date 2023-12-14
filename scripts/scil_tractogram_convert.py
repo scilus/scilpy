@@ -29,10 +29,10 @@ def _build_arg_parser():
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy')
 
-    add_reference_arg(p)
-    add_overwrite_arg(p)
-    add_verbose_arg(p)
     add_bbox_arg(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

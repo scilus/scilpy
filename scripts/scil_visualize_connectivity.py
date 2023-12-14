@@ -123,8 +123,8 @@ def _build_arg_parser():
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

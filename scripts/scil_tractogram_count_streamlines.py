@@ -27,8 +27,8 @@ def _build_arg_parser():
                         "bundle name and count formatted as a json dict."
                         "(default)")
 
-    add_verbose_arg(p)
     add_json_args(p)
+    add_verbose_arg(p)
 
     return p
 

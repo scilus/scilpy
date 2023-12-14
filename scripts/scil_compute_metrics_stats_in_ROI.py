@@ -57,9 +57,9 @@ def _build_arg_parser():
                    help='If set, the weights will be normalized to the [0,1] '
                         'range.')
 
-    add_overwrite_arg(p)
     add_json_args(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

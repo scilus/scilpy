@@ -46,9 +46,9 @@ def _build_arg_parser():
                    help='If set, will weigh the AFD values according to '
                         'segment lengths. [%(default)s]')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

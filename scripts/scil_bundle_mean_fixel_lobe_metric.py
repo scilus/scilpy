@@ -58,9 +58,10 @@ def _build_arg_parser():
                    help='Maximum angle (in degrees) condition on lobe '
                         'alignment. [%(default)s]')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

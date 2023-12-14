@@ -48,8 +48,8 @@ def _build_arg_parser():
     p.add_argument('--binary', action='store_true',
                    help='Binarize density maps before the population average.')
 
-    add_verbose_arg(p)
     add_processes_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

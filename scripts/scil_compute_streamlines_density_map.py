@@ -36,8 +36,8 @@ def _build_arg_parser():
                         'When set without a value, 1 is used (and dtype uint8).\n'
                         'If a value is given, will be used as the stored value.')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

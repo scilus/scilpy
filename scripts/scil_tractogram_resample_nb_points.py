@@ -34,8 +34,8 @@ def _build_arg_parser():
     g.add_argument('--step_size', type=float,
                    help='Step size in the output (in mm).')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

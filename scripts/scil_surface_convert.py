@@ -47,8 +47,8 @@ def _build_arg_parser():
     p.add_argument('--to_lps', action='store_true',
                    help='Flip for Surface/MI-Brain LPS')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

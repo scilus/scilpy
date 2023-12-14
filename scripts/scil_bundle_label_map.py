@@ -71,8 +71,8 @@ def _build_arg_parser():
     p.add_argument('--new_labelling', action='store_true',
                    help='Use the new labelling method (multi-centroids).')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

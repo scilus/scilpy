@@ -70,8 +70,8 @@ def _build_arg_parser():
                         'Keep the longest segment only.\n'
                         'By default, invalid streamline are removed.')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

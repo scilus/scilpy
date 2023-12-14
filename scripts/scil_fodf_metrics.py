@@ -76,9 +76,9 @@ def _build_arg_parser():
                         'given as unit directions instead of being '
                         'proportional to peak_values. [%(default)s]')
     add_sh_basis_args(p)
-    add_overwrite_arg(p)
-    add_processes_arg(p)
     add_verbose_arg(p)
+    add_processes_arg(p)
+    add_overwrite_arg(p)
     p.add_argument('--not_all', action='store_true',
                    help='If set, only saves the files specified using the '
                         'file flags [%(default)s].')

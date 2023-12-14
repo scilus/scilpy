@@ -114,8 +114,8 @@ def _build_arg_parser():
     g2.add_argument('--reference',
                     help='Reference anatomy (.nii or .nii.gz).')
 
-    add_verbose_arg(p)
     add_bbox_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

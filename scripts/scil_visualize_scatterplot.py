@@ -131,8 +131,8 @@ def _build_arg_parser():
                    help='Do not save the figure, only display. '
                         ' Not avalaible with --in_atlas option.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

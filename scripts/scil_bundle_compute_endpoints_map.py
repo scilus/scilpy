@@ -53,8 +53,8 @@ def _build_arg_parser():
                         " of the streamlines. [%(default)s]")
 
     add_json_args(p)
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

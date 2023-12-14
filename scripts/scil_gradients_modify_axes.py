@@ -41,8 +41,8 @@ def _build_arg_parser():
                         "Ex: to first flip x, then permute all three axes: "
                         " 3 -1 2.")
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

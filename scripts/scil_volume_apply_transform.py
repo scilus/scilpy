@@ -40,8 +40,8 @@ def _build_arg_parser():
                    help='If True, keeps the data_type of the input image '
                         '(in_file) when saving the output image (out_name).')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

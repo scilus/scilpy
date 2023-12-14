@@ -67,8 +67,8 @@ def _build_arg_parser():
     p.add_argument('--to_wm', action='store_true',
                    help='Project metrics into streamlines coverage.')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

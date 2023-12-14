@@ -45,8 +45,8 @@ def _build_arg_parser():
                    help='The axes (or normal orientation) you want to flip.'
                         ' eg: to flip the x and y axes use: x y.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

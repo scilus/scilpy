@@ -55,8 +55,8 @@ def _build_arg_parser():
                         'bundles including the streamline to consider it '
                         'as part of the \'gold standard\'. [0.5]')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -40,8 +40,9 @@ def _build_arg_parser():
     p.add_argument('out_image',
                    help='name of output RGB image.\n' +
                         'Either 3D or 4D image.')
-    add_overwrite_arg(p)
+
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

@@ -82,10 +82,10 @@ def _build_arg_parser():
                    help='Output filename for the anisotropic power map'
                         '[anisotropic_power.nii.gz].')
 
-    add_verbose_arg(p)
-    add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
+    add_verbose_arg(p)
+    add_force_b0_arg(p)
 
     return p
 

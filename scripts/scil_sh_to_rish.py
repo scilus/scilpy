@@ -43,8 +43,8 @@ def _build_arg_parser():
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computation.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

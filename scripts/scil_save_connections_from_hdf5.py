@@ -63,8 +63,8 @@ def _build_arg_parser():
                    help='A txt file containing a list '
                         'saved by the decomposition script.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

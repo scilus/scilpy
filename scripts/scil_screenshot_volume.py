@@ -93,8 +93,8 @@ def _build_arg_parser():
 
     add_nifti_screenshot_default_args(p, False, False)
     add_nifti_screenshot_overlays_args(p, transparency_is_overlay=False)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

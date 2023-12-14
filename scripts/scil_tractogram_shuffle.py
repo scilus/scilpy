@@ -28,8 +28,8 @@ def _build_arg_parser():
     p.add_argument('--seed', type=int, default=None,
                    help='Random number generator seed [%(default)s].')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

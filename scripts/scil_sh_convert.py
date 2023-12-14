@@ -39,8 +39,8 @@ def _build_arg_parser():
 
     add_sh_basis_args(p, mandatory=True)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

@@ -37,9 +37,9 @@ def _build_arg_parser():
                    help='Merge all entries at the lowest layers.')
     p.add_argument('--average_last_layer', action='store_true',
                    help='Average all entries at the lowest layers.')
-    
-    add_verbose_arg(p)
+
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

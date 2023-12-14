@@ -39,11 +39,11 @@ def _build_arg_parser():
                    'of individual streamlines will be pruned. [%(default)s]')
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering')
-    
-    add_verbose_arg(p)
-    add_reference_arg(p)
-    add_overwrite_arg(p)
+
     add_json_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

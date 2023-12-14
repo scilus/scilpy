@@ -83,10 +83,10 @@ def _build_arg_parser():
     p.add_argument('--inverse', action='store_true',
                    help='Use the inverse transformation.')
 
-    add_verbose_arg(p)
-    add_processes_arg(p)
-    add_overwrite_arg(p)
     add_reference_arg(p)
+    add_processes_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

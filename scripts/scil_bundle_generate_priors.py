@@ -61,9 +61,9 @@ def _build_arg_parser():
                    help='Output directory for all generated files,\n'
                         'default is current directory.')
 
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_reference_arg(p)
 
     return p
 

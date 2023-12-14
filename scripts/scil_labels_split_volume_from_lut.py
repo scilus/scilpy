@@ -45,8 +45,8 @@ def _build_arg_parser():
         '--custom_lut',
         help='Path of the lookup table file, used to name the output files.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

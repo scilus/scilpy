@@ -76,8 +76,8 @@ def _build_arg_parser():
                    help='Number of steps for streamline segments '
                         'subdivision prior to binning [%(default)s].')
 
-    add_verbose_arg(p)
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

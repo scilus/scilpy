@@ -124,8 +124,8 @@ def _build_arg_parser():
                          'elements, integers from 1-20 in the data will be\n'
                          'replaced by the value in the file (.npy or .txt)')
 
-    add_verbose_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

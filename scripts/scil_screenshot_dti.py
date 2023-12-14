@@ -48,8 +48,9 @@ def _build_arg_parser():
                    help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
-    add_overwrite_arg(p)
+
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

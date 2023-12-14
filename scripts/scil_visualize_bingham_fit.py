@@ -53,8 +53,8 @@ def _build_arg_parser():
 
     p.add_argument('--output', help='Path to output file.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     p.add_argument('--sphere', default='symmetric362',
                    choices=sorted(SPHERE_FILES.keys()),

@@ -69,10 +69,9 @@ def _build_arg_parser():
                    help='Path of the output file. If not given, the output '
                         'is simply printed on screen.')
     
-    add_verbose_arg(p)
     add_reference_arg(p)
     add_json_args(p)
-
+    add_verbose_arg(p)
     return p
 
 

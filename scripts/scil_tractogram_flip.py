@@ -37,8 +37,8 @@ def _build_arg_parser():
                         'and y axes use: x y.')
 
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
     
     return p
 

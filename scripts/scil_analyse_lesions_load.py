@@ -60,9 +60,9 @@ def _build_arg_parser():
                    help='Save the lesion-wise streamline count (.json).')
 
     add_json_args(p)
+    add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_reference_arg(p)
 
     return p
 
