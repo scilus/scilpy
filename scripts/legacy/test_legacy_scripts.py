@@ -67,8 +67,6 @@ legacy_scripts_list_tag_1_6_0 = [
     "scil_concatenate_dwi.py",
     "scil_connectivity_math.py",
     "scil_convert_fdf.py",
-    "scil_convert_gradients_fsl_to_mrtrix.py",
-    "scil_convert_gradients_mrtrix_to_fsl.py",
     "scil_convert_json_to_xlsx.py",
     "scil_convert_rgb.py",
     "scil_convert_sh_basis.py",

@@ -118,7 +118,7 @@ def main():
 
     # Generage a scheme file from the bvals and bvecs files
     tmp_dir = tempfile.TemporaryDirectory()
-    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,
