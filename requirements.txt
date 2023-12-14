@@ -22,6 +22,7 @@ nibabel==4.0.*
 nilearn==0.9.*
 numpy==1.23.*
 openpyxl==3.0.*
+packaging == 23.2.*
 Pillow==10.0.*
 pybids==0.15.*
 pyparsing==3.0.*
@@ -37,11 +38,10 @@ scipy==1.9.*
 six==1.16.*
 spams==2.6.*
 statsmodels==0.13.*
-trimeshpy==0.0.2
+trimeshpy==0.0.3
 vtk==9.2.*
 # Dipy requirements
 h5py>=2.8.0
-packaging>=19.0
 tqdm>=4.30.0
 
 -e git+https://github.com/scilus/hot_dipy@1.8.0.dev0#egg=dipy

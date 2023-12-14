@@ -252,3 +252,33 @@ for i in range(2, 8):
 ref_out_labels = copy.deepcopy(ref_in_labels)
 for i in range(1, 8, 2):
     ref_out_labels[ref_out_labels == i] = 0
+
+# mri-info log.txt output file from freesurfer input
+xform = ['Volume information for mni__mask.nii.gz', 'type: nii',
+         'dimensions: 193 x 229 x 193',
+         'voxel sizes: 1.000000, 1.000000, 1.000000',
+         'type: SHORT (4)', 'fov: 193.000', 'dof: 1',
+         'xstart: -96.5, xend: 96.5', 'ystart: -114.5, yend: 114.5',
+         'zstart: -96.5, zend: 96.5',
+         'TR: 0.0 msec, TE: 0.0 msec, TI: 0.0 msec, flip angle: 0.0 degrees',
+         'nframes: 1', 'PhEncDir: UNKNOWN', 'FieldStrength: 0.000000',
+         'ras xform present',
+         'xform info: x_r = 1.0000, y_r = 0.0000, z_r = 0.0000, c_r = 0.5000',
+         ': x_a = 0.0000, y_a = 1.0000, z_a = 0.0000, c_a = -17.5000',
+         ': x_s = 0.0000, y_s = 0.0000, z_s = 1.0000, c_s = 18.5000',
+         'Orientation   : RAS', 'Primary Slice Direction: axial',
+         '', 'voxel to ras transform:',
+         '1.0000   0.0000   0.0000   -96.0000',
+         '0.0000   1.0000   0.0000  -132.0000',
+         '0.0000   0.0000   1.0000   -78.0000',
+         '0.0000   0.0000   0.0000     1.0000',
+         '', 'voxel-to-ras determinant 1',
+         '', 'ras to voxel transform:',
+         '1.0000   0.0000   0.0000    96.0000',
+         '0.0000   1.0000   0.0000   132.0000',
+         '0.0000   0.0000   1.0000    78.0000',
+         '0.0000   0.0000   0.0000     1.0000']
+
+# Reference matrix for xform file
+xform_matrix_ref = np.array(((1, 0, 0, 0.5), (0, 1, 0, -17.5),
+                             (0, 0, 1, 18.5), (0, 0, 0, 1)))

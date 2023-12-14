@@ -206,7 +206,8 @@ def setup(app):
 
     commit_scripts = ["scil_run_commit.py"]
 
-    amico_scripts = ["scil_compute_NODDI.py", "scil_compute_freewater.py"]
+    amico_scripts = ["scil_NODDI_maps.py",
+                     "scil_freewater_maps.py"]
 
     with open(join(path_src, "scripts/modules.rst"), "w") as m:
 
