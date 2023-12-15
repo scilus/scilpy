@@ -136,8 +136,7 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
                      mask=None, mask_wm=None, mask_gm=None, mask_csf=None,
                      fa_thr_wm=0.7, fa_thr_gm=0.2, fa_thr_csf=0.1,
                      md_thr_gm=0.0007, md_thr_csf=0.003, min_nvox=300,
-                     roi_radii=10, roi_center=None, tol=20,
-                     force_b0_threshold=False):
+                     roi_radii=10, roi_center=None, tol=20):
     """Compute a multi-shell, multi-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -151,6 +150,11 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         1D bvals array with shape (N,)
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
+    btens: ?
+    data_dti: ?
+    bvals_dti: ?
+    bvecs_dti: ?
+    btens_dti: ?
     mask : ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -199,8 +203,6 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         3D volume).
     tol : int
         tolerance gap for b-values clustering. Defaults to 20
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -220,9 +222,10 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
         logging.warning('Your b-vectors do not seem normalized...')
         bvecs = normalize_bvecs(bvecs)
 
-    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
-
-    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=b0_thr)
+    # toDo. Using a fake b0_threshold here because currently, the
+    #  gtab.b0s_mask is not used. Below, we use the tolerance only in dipy.
+    #  An issue has been added in dipy too.
+    gtab = gradient_table(bvals, bvecs, btens=btens, b0_threshold=bvals.min())
 
     if data_dti is None and bvals_dti is None and bvecs_dti is None:
         logging.warning(
@@ -243,7 +246,6 @@ def compute_msmt_frf(data, bvals, bvecs, btens=None, data_dti=None,
             logging.warning('Your b-vectors do not seem normalized...')
             bvecs_dti = normalize_bvecs(bvecs_dti)
 
-        check_b0_threshold(force_b0_threshold, bvals_dti.min())
         gtab_dti = gradient_table(bvals_dti, bvecs_dti, btens=btens_dti)
 
         wm_frf_mask, gm_frf_mask, csf_frf_mask \
