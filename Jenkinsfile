@@ -31,9 +31,15 @@ pipeline {
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
-                        pytest --cov-report=xml --cov-report term-missing:skip-covered --cov=scilpy
+                        pytest --cov-report term-missing:skip-covered
                     '''
                 }
+                discoverGitReferenceBuild()
+                recordCoverage(
+                    name: 'Scilpy Coverage Report',
+                    sourceCodeRetention: 'MODIFIED',
+                    tools: [[parser: 'COBERTURA',
+                    pattern: '**/.test_reports/coverage.xml']])
             }
         }
 
