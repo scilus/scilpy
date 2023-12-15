@@ -136,6 +136,60 @@ def _build_arg_parser():
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing. '
                         'Not recommended.')
+
+    g = p.add_argument_group(title='Contrast maps', description='Path to '
+                             'echoes corresponding to contrast images. All '
+                             'constrasts must have \nthe same number of echoes '
+                             'and coregistered between them. '
+                             'Use * to include all echoes.')
+    g.add_argument('--in_altnp', nargs='+', required=True,
+                   help='Path to all echoes corresponding to the '
+                        'alternation of \nnegative and positive '
+                        'frequency saturation pulse.')
+    g.add_argument('--in_altpn', nargs='+', required=True,
+                   help='Path to all echoes corresponding to the '
+                        'alternation of \npositive and negative '
+                        'frequency saturation pulse.')
+    g.add_argument("--in_negative", nargs='+', required=True,
+                   help='Path to all echoes corresponding to the '
+                        'negative frequency \nsaturation pulse.')
+    g.add_argument("--in_positive", nargs='+', required=True,
+                   help='Path to all echoes corresponding to the '
+                        'positive frequency \nsaturation pulse.')
+    g.add_argument("--in_mtoff_pd", nargs='+', required=True,
+                   help='Path to all echoes corresponding to the predominant '
+                        'PD \n(proton density) weighting images with no '
+                        'saturation pulse.')
+    g.add_argument("--in_mtoff_t1", nargs='+',
+                   help='Path to all echoes corresponding to the predominant '
+                        'T1 \nweighting images with no saturation pulse. This '
+                        'one is optional, \nsince it is only needed for the '
+                        'calculation of MTsat and ihMTsat. \nAcquisition '
+                        'parameters should also be set with this image.')
+
+    a = p.add_argument_group(title='Acquisition parameters',
+                             description='Acquisition parameters required '
+                                         'for MTsat and ihMTsat '
+                                         'calculation. \nThese are the '
+                                         'excitation flip angles '
+                                         '(a_PD, a_T1), in DEGREES, and \n'
+                                         'repetition times (TR_PD, TR_T1) of '
+                                         'the PD and T1 images, in SECONDS. '
+                                         '\nCan be given through json files '
+                                         '(--in_jsons) or directly '
+                                         '(--in_acq_parameters).')
+    a1 = a.add_mutually_exclusive_group(required='--in_mtoff_t1' in sys.argv)
+    a1.add_argument('--in_jsons', nargs=2,
+                    metavar=('PD_json', 'T1_json'),
+                    help='Path to MToff PD json file and MToff T1 json file, '
+                         'in that order. \nThe acquisition parameters will be '
+                         'extracted from these files.')
+    a1.add_argument('--in_acq_parameters', nargs=4,
+                    metavar=('PD flip angle', 'T1 flip angle',
+                             'PD repetition time', 'T1 repetition time'),
+                    help='Acquisition parameters in that order: flip angle of '
+                         'mtoff_PD, \nflip angle of mtoff_T1, repetition time '
+                         'of mtoff_PD, \nrepetition time of mtoff_T1')
     
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
@@ -143,71 +197,17 @@ def _build_arg_parser():
     b.add_argument('--B1_correction_method',
                    choices=['empiric', 'model_based'], default='empiric',
                    help='Choice of B1 correction method. Choose between '
-                        'empiric and model-based. Note that the model-based '
-                        'method requires a B1 fitvalues file, and will only '
+                        'empiric and model-based. \nNote that the model-based '
+                        'method requires a B1 fitvalues file, \nand will only '
                         'correct the saturation measures. [%(default)s]')
     b.add_argument('--in_B1_fitvalues', nargs=3,
                    help='Path to B1 fitvalues files obtained externally. '
-                        'Should be three .mat files given in this specific '
-                        'order: positive frequency saturation, negative '
+                        'Should be three .mat \nfiles given in this specific '
+                        'order: positive frequency saturation, \nnegative '
                         'frequency saturation, dual frequency saturation.')
     b.add_argument('--B1_nominal', default=100,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
-
-    g = p.add_argument_group(title='ihMT contrasts', description='Path to '
-                             'echoes corresponding to contrasts images. All '
-                             'constrasts must have the same number of echoes '
-                             'and coregistered between them. '
-                             'Use * to include all echoes.')
-    g.add_argument('--in_altnp', nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'alternation of Negative and Positive '
-                        'frequency saturation pulse.')
-    g.add_argument('--in_altpn', nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'alternation of Positive and Negative '
-                        'frequency saturation pulse.')
-    g.add_argument("--in_negative", nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'Negative frequency saturation pulse.')
-    g.add_argument("--in_positive", nargs='+', required=True,
-                   help='Path to all echoes corresponding to the '
-                        'Positive frequency saturation pulse.')
-    g.add_argument("--in_mtoff_pd", nargs='+', required=True,
-                   help='Path to all echoes corresponding to the predominant '
-                        'PD (proton density) weighting images with no '
-                        'saturation pulse.')
-    g.add_argument("--in_mtoff_t1", nargs='+',
-                   help='Path to all echoes corresponding to the predominant '
-                        'T1 weighting images with no saturation pulse. This '
-                        'one is optional, since it is only needed for the '
-                        'calculation of MTsat and ihMTsat. Acquisition '
-                        'parameters should also be set with this image.')
-
-    a = p.add_mutually_exclusive_group(title='Acquisition parameters',
-                                       required='--in_mtoff_t1' in sys.argv,
-                                       help='Acquisition parameters required '
-                                            'for MTsat and ihMTsat '
-                                            'calculation. These are the '
-                                            'excitation flip angles '
-                                            '(a_PD, a_T1) and repetition '
-                                            'times (TR_PD, TR_T1) of the '
-                                            'PD and T1 images.')
-    a1 = a.add_argument_group(title='Json files option',
-                              help='Use the json files to get the acquisition '
-                                   'parameters.')
-    a1.add_argument('--in_pd_json', # TODO Find a way to make both required if this option is chosen
-                   help='Path to MToff PD json file.')
-    a1.add_argument('--in_t1_json',
-                   help='Path to MToff T1 json file.')
-    a2 = a.add_argument_group(title='Parameters values option',
-                              help='Give the acquisition parameters directly')
-    a2.add_argument('--flip_angles', # TODO Find a way to make both required if this option is chosen
-                   help='Flip angle of mtoff_PD and mtoff_T1, in that order.')
-    a2.add_argument('--rep_times',
-                   help='Repetition time of mtoff_PD and mtoff_T1, in that '
-                        'order.')
 
     add_overwrite_arg(p)
 
@@ -253,14 +253,16 @@ def main():
 
     # Set TR and FlipAngle parameters
     if args.flip_angles:
-        flip_angles = args.flip_angles
-        rep_times = args.rep_times
-    elif args.in_pd_json:
-        for i, curr_json in enumerate(args.in_pd_json, args.in_t1_json):
+        flip_angles = args.in_acq_parameters[:2]
+        rep_times = args.in_acq_parameters[2:]
+    elif args.in_jsons:
+        rep_times = []
+        flip_angles = []
+        for curr_json in args.in_jsons:
             acq_parameter = get_acq_parameters(curr_json,
                                                ['RepetitionTime', 'FlipAngle'])
-            rep_times[i] = acq_parameter[0] * 1000
-            flip_angles[i] = acq_parameter[1] * np.pi / 180.
+            rep_times.append(acq_parameter[0] * 1000) # convert ms.
+            flip_angles.append(acq_parameter[1] * np.pi / 180.) # convert rad.
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
