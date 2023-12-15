@@ -13,7 +13,7 @@ import numpy as np
 
 from scilpy.image.volume_operations import flip_volume
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -28,7 +28,10 @@ def _build_arg_parser():
                    choices=['x', 'y', 'z'], nargs='+',
                    help='The axes you want to flip. eg: to flip the x '
                         'and y axes use: x y.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

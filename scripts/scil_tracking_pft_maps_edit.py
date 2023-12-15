@@ -14,6 +14,7 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 
@@ -32,7 +33,10 @@ def _build_arg_parser():
                         help='Corrected PFT map include output file name.')
     parser.add_argument('map_exclude_corr',
                         help='Corrected PFT map exclude output file name.')
+
+    add_verbose_arg(parser)
     add_overwrite_arg(parser)
+
     return parser
 
 

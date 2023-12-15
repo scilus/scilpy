@@ -22,7 +22,8 @@ from dipy.data import get_sphere
 
 from scilpy.reconst.utils import get_sh_order_and_fullness
 from scilpy.io.utils import (add_sh_basis_args, add_overwrite_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, add_verbose_arg,
+                             assert_outputs_exist)
 from scilpy.io.image import assert_same_resolution, get_data_as_mask
 from scilpy.viz.scene_utils import (create_odf_slicer, create_texture_slicer,
                                     create_peaks_slicer, create_scene,
@@ -98,6 +99,8 @@ def _build_arg_parser():
 
     p.add_argument('--norm_off', action='store_true',
                    help='Disable normalization of ODF slicer.')
+    
+    add_verbose_arg(p)
 
     # Background image options
     bg = p.add_argument_group('Background arguments')

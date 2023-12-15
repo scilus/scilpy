@@ -59,9 +59,11 @@ def _build_arg_parser():
                    help='Maximum compression distance in mm [%(default)s].')
     p.add_argument('--biggest_blob', action='store_true',
                    help='Use the biggest entity and force the 1 ROI scenario.')
-    add_overwrite_arg(p)
+
     add_reference_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

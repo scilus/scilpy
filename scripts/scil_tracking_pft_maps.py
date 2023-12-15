@@ -51,8 +51,10 @@ def _build_arg_parser():
                    type=float, default=0.1,
                    help='Minimum gm and wm PVE values in a voxel to be into '
                         'the interface. [%(default)s]')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
+
     return p
 
 

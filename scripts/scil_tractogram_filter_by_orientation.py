@@ -76,10 +76,10 @@ def _build_arg_parser():
     p.add_argument('--save_rejected', metavar='filename',
                    help="Save the SFT of rejected streamlines.")
 
-    add_reference_arg(p)
-    add_overwrite_arg(p)
-    add_verbose_arg(p)
     add_json_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

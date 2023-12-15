@@ -19,7 +19,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.volume_operations import count_non_zero_voxels
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.utils import assert_inputs_exist, add_verbose_arg
 
 
 def _build_arg_parser():
@@ -42,6 +42,9 @@ def _build_arg_parser():
         help='Id of the current count. If used, the value of this argument '
              'will be\noutput (followed by a ":") before the count value.\n'
              'Mostly useful with --stats.')
+
+    add_verbose_arg(p)
+
     return p
 
 

@@ -81,8 +81,9 @@ def _build_arg_parser():
                     help='Compute kernels only, --save_kernels must be used.')
 
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

@@ -53,6 +53,7 @@ from scilpy.connectivity.connectivity_tools import \
     normalize_matrix_from_values, normalize_matrix_from_parcel
 from scilpy.image.volume_math import normalize_max, normalize_sum, base_10_log
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format,
@@ -98,6 +99,7 @@ def _build_arg_parser():
     scale.add_argument('--log_10', action='store_true',
                        help='Apply a base 10 logarithm to the matrix.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

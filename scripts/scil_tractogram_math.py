@@ -99,11 +99,11 @@ def _build_arg_parser():
                    help="If set, we will save all results, even if tractogram "
                         "if empty.")
 
+    add_bbox_arg(p)
     add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_bbox_arg(p)
 
     return p
 

@@ -29,6 +29,7 @@ from scilpy.io.streamlines import reconstruct_streamlines_from_hdf5
 from scilpy.io.utils import (add_overwrite_arg,
                              add_processes_arg,
                              add_sh_basis_args,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              validate_nbr_processes)
@@ -88,6 +89,7 @@ def _build_arg_parser():
 
     add_processes_arg(p)
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

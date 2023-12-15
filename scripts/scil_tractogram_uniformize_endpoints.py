@@ -64,6 +64,7 @@ def _build_arg_parser():
     p.add_argument('--swap', action='store_true',
                    help='Swap head <-> tail convention. '
                         'Can be useful when the reference is not in RAS.')
+
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)

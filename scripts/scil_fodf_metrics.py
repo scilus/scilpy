@@ -42,7 +42,7 @@ from dipy.direction.peaks import reshape_peaks_for_visualization
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_processes_arg,
+                             add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.reconst.sh import peaks_from_sh, maps_from_sh
 
@@ -78,8 +78,9 @@ def _build_arg_parser():
                         'given as unit directions instead of being '
                         'proportional to peak_values. [%(default)s]')
     add_sh_basis_args(p)
-    add_overwrite_arg(p)
+    add_verbose_arg(p)
     add_processes_arg(p)
+    add_overwrite_arg(p)
     p.add_argument('--not_all', action='store_true',
                    help='If set, only saves the files specified using the '
                         'file flags [%(default)s].')

@@ -35,6 +35,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              load_matrix_in_any_format,
                              save_matrix_in_any_format,
                              assert_outputs_exist,
+                             add_verbose_arg,
                              assert_output_dirs_exist_and_empty)
 
 
@@ -67,6 +68,7 @@ def _build_arg_parser():
                         '--in_ordering must contain labels rather than '
                         'coordinates (.txt).')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

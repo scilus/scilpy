@@ -16,7 +16,9 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
-from scilpy.io.utils import add_overwrite_arg, assert_inputs_exist
+from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
+                             assert_inputs_exist)
 
 
 def _build_arg_parser():
@@ -31,6 +33,7 @@ def _build_arg_parser():
     p.add_argument('in_seed_maps',
                    help='Path of the input seed map file.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

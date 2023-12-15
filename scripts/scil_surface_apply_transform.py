@@ -26,6 +26,7 @@ import numpy as np
 from trimeshpy.io import load_mesh_from_file
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.surfaces.surface_operations import apply_transform
@@ -54,7 +55,9 @@ def _build_arg_parser():
     p.add_argument('--ants_warp',
                    help='Warp image from ANTs (NIfTI format).')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

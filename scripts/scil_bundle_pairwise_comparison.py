@@ -39,6 +39,7 @@ from scilpy.io.utils import (add_json_args,
                              add_overwrite_arg,
                              add_processes_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              link_bundles_and_reference,
@@ -84,6 +85,7 @@ def _build_arg_parser():
     add_processes_arg(p)
     add_reference_arg(p)
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

@@ -67,8 +67,8 @@ def _build_arg_parser():
                         'outputs a single image instead of a numbered series '
                         'of images.')
 
-    add_force_b0_arg(p)
     add_verbose_arg(p)
+    add_force_b0_arg(p)
 
     return p
 

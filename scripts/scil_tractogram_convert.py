@@ -16,7 +16,7 @@ from dipy.io.streamline import save_tractogram
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_bbox_arg, add_overwrite_arg,
                              add_reference_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -31,9 +31,10 @@ def _build_arg_parser():
                    help='Output filename. Format must be one of \n'
                         'trk, tck, vtk, fib, dpy')
 
-    add_reference_arg(p)
-    add_overwrite_arg(p)
     add_bbox_arg(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

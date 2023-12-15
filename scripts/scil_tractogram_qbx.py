@@ -47,8 +47,8 @@ def _build_arg_parser():
                         'Format must be readable by the Nibabel API.')
 
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

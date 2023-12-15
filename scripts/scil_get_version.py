@@ -18,13 +18,14 @@ import pkg_resources
 import platform
 import os
 import time
-
+from scilpy.io.utils import add_verbose_arg
 
 def _build_arg_parser():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('--show_dependencies', action='store_true',
                    help='Show the dependencies of scilpy.')
+    add_verbose_arg(p)
     return p
 
 

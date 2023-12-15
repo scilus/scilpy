@@ -14,7 +14,7 @@ import argparse
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -31,7 +31,10 @@ def _build_arg_parser():
                    help='Out bvec file.')
     p.add_argument('out_bval',
                    help='Out bval file.')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

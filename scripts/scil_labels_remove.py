@@ -16,7 +16,7 @@ import nibabel as nib
 
 from scilpy.image.labels import get_data_as_labels, remove_labels
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist)
 EPILOG = """
     References:
         [1] Al-Sharif N.B., St-Onge E., Vogel J.W., Theaud G.,
@@ -38,7 +38,10 @@ def _build_arg_parser():
                    help='List of labels indices to remove.')
     p.add_argument('--background', type=int, default=0,
                    help='Integer used for removed labels [%(default)s].')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

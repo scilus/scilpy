@@ -43,7 +43,8 @@ from dipy.reconst.dti import mode as dipy_mode
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, add_force_b0_arg)
+                             assert_outputs_exist, add_verbose_arg,
+                             add_force_b0_arg)
 from scilpy.io.tensor import convert_tensor_from_dipy_format, \
     supported_tensor_formats, tensor_format_description
 from scilpy.gradients.bvec_bval_tools import (normalize_bvecs,
@@ -138,6 +139,7 @@ def _build_arg_parser():
         '--residual', dest='residual', metavar='file', default='',
         help='Output filename for the map of the residual of the tensor fit.')
 
+    add_verbose_arg(p)
     add_force_b0_arg(p)
 
     return p

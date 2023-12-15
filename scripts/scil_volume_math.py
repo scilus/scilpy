@@ -56,8 +56,8 @@ def _build_arg_parser():
                    help='Does not affect the background of the original '
                         'images.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

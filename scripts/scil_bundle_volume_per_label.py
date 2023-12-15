@@ -24,6 +24,7 @@ import numpy as np
 
 from scilpy.image.labels import get_data_as_labels
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist)
 
@@ -38,6 +39,7 @@ def _build_arg_parser():
                    help='Bundle name.')
 
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

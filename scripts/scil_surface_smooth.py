@@ -51,8 +51,9 @@ def _build_arg_parser():
     p.add_argument('-s', '--step_size', type=float, default=5.0,
                    help='Laplacian smooth step size [%(default)s].')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

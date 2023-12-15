@@ -72,9 +72,10 @@ def _build_arg_parser():
                    help='Optional mask file. Only SH inside'
                         ' the mask are fitted.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
     add_processes_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 
