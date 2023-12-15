@@ -17,9 +17,10 @@ from dipy.io.gradients import read_bvals_bvecs
 import nibabel as nib
 import numpy as np
 
+from scilpy.gradients.bvec_bval_tools import check_b0_threshold
 from scilpy.io.image import get_data_as_mask
-from scilpy.io.utils import (add_force_b0_arg,
-                             add_overwrite_arg, add_verbose_arg,
+from scilpy.io.utils import (add_b0_thresh_arg, add_overwrite_arg,
+                             add_skip_b0_validation_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              assert_roi_radii_format)
 from scilpy.reconst.frf import compute_ssst_frf
@@ -40,8 +41,6 @@ def _build_arg_parser():
     p.add_argument('frf_file',
                    help='Path to the output FRF file, in .txt format, '
                         'saved by Numpy.')
-
-    add_force_b0_arg(p)
 
     p.add_argument('--mask',
                    help='Path to a binary mask. Only the data inside the '
@@ -82,6 +81,8 @@ def _build_arg_parser():
                    help='If supplied, use this center to span the roi of size '
                         'roi_radius. [center of the 3D volume]')
 
+    add_b0_thresh_arg(p)
+    add_skip_b0_validation_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
 
@@ -102,6 +103,7 @@ def main():
     data = vol.get_fdata(dtype=np.float32)
 
     bvals, bvecs = read_bvals_bvecs(args.in_bval, args.in_bvec)
+    args.b0_threshold = check_b0_threshold(bvals.min(), args)
 
     mask = None
     if args.mask:
@@ -112,13 +114,10 @@ def main():
         mask_wm = get_data_as_mask(nib.load(args.mask_wm), dtype=bool)
 
     full_response = compute_ssst_frf(
-        data, bvals, bvecs, mask=mask,
+        data, bvals, bvecs, args.b0_threshold, mask=mask,
         mask_wm=mask_wm, fa_thresh=args.fa_thresh,
-        min_fa_thresh=args.min_fa_thresh,
-        min_nvox=args.min_nvox,
-        roi_radii=roi_radii,
-        roi_center=args.roi_center,
-        force_b0_threshold=args.force_b0_threshold)
+        min_fa_thresh=args.min_fa_thresh, min_nvox=args.min_nvox,
+        roi_radii=roi_radii, roi_center=args.roi_center)
 
     np.savetxt(args.frf_file, full_response)
 

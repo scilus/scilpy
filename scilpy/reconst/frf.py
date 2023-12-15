@@ -10,12 +10,13 @@ from dipy.segment.mask import applymask
 import numpy as np
 
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
-                                              is_normalized_bvecs, normalize_bvecs)
+                                              is_normalized_bvecs,
+                                              normalize_bvecs)
 
 
-def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
-                     fa_thresh=0.7, min_fa_thresh=0.5, min_nvox=300,
-                     roi_radii=10, roi_center=None, force_b0_threshold=False):
+def compute_ssst_frf(data, bvals, bvecs, b0_threshold,
+                     mask=None, mask_wm=None, fa_thresh=0.7, min_fa_thresh=0.5,
+                     min_nvox=300, roi_radii=10, roi_center=None):
     """Compute a single-shell (under b=1500), single-tissue single Fiber
     Response Function from a DWI volume.
     A DTI fit is made, and voxels containing a single fiber population are
@@ -29,6 +30,8 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         1D bvals array with shape (N,)
     bvecs : ndarray
         2D bvecs array with shape (N, 3)
+    b0_threshold: float
+        Value under which bvals are considered b0s.
     mask : ndarray, optional
         3D mask with shape (X,Y,Z)
         Binary mask. Only the data inside the mask will be used for
@@ -55,8 +58,6 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
     roi_center : tuple(3), optional
         Use this center to span the roi of size roi_radius (center of the
         3D volume).
-    force_b0_threshold : bool, optional
-        If set, will continue even if the minimum bvalue is suspiciously high.
 
     Returns
     -------
@@ -78,9 +79,7 @@ def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
         logging.warning("Your b-vectors do not seem normalized... Normalizing")
         bvecs = normalize_bvecs(bvecs)
 
-    b0_thr = check_b0_threshold(force_b0_threshold, bvals.min(), bvals.min())
-
-    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_thr)
+    gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
 
     if mask is not None:
         data = applymask(data, mask)
