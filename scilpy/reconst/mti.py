@@ -90,7 +90,9 @@ def compute_saturation_map(MT, PD, T1, a, TR):
                     mean of positive and negative for example)
     PD:             Reference proton density weighted image (MToff PD)
     T1:             Reference T1 weighted image (MToff T1)
-    a:              List of two flip angles corresponding to PD and T1.
+    a:              List of two flip angles corresponding to PD and T1. If B1
+                    correction is on, this should be two 3D-array of flip
+                    angles varying spatially with respect to the B1 map.
     TR:             List of two repetition times corresponding to PD and T1.
 
     Returns
@@ -243,9 +245,10 @@ def threshold_map(computed_map,  in_mask,
     computed_map[computed_map > upper_threshold] = 0
 
     # Load and apply sum of T1 probability maps on myelin maps
-    mask_image = nib.load(in_mask)
-    mask_data = get_data_as_mask(mask_image)
-    computed_map[np.where(mask_data == 0)] = 0
+    if in_mask is not None:
+        mask_image = nib.load(in_mask)
+        mask_data = get_data_as_mask(mask_image)
+        computed_map[np.where(mask_data == 0)] = 0
 
     # Apply threshold based on combination of specific contrast maps
     if idx_contrast_list and contrast_maps:
@@ -367,17 +370,17 @@ def _read_fitvalues_from_file(fitvalues_file):
     est_M0b_from_R1 = fitvalues['fitValues']['Est_M0b_from_R1'][0][0][0]
     cf_eq = fit_SS_eq.replace('^',
                               '**').replace('Raobs.',
-                                            'R1').replace('M0b.',
-                                                          'M0b').replace('b1.',
-                                                                         'B1')
+                                            'Raobs').replace('M0b.',
+                                                             'M0b').replace('b1.',
+                                                                            'B1')
     R1_to_M0b = est_M0b_from_R1.replace('^',
                                         '**').replace('Raobs.',
-                                                      'R1').replace('M0b.',
-                                                                    'M0b')
+                                                      'Raobs').replace('M0b.',
+                                                                       'M0b')
     return cf_eq, R1_to_M0b
 
 
-def _compute_B1_corr_factor_map(B1_map, R1, cf_eq, R1_to_M0b, B1_ref=1):
+def _compute_B1_corr_factor_map(B1_map, Raobs, cf_eq, R1_to_M0b, B1_ref=1):
     """
     Compute the correction factor map for B1 correction.
 
@@ -387,7 +390,7 @@ def _compute_B1_corr_factor_map(B1_map, R1, cf_eq, R1_to_M0b, B1_ref=1):
     Parameters
     ----------
     B1_map:             B1 coregister map.
-    R1:                 R1 map, obtained from compute_saturation_map.
+    Raobs:                 R1 map, obtained from compute_saturation_map.
     cf_eq:              Correction factor equation extracted with
                         _read_fitvalues_from_file.
     R1_to_M0b:          Conversion equation from R1 to M0b extracted with
@@ -398,12 +401,12 @@ def _compute_B1_corr_factor_map(B1_map, R1, cf_eq, R1_to_M0b, B1_ref=1):
     ----------
     Correction factor map.
     """
-    M0b = eval(R1_to_M0b, {"R1": R1})
+    M0b = eval(R1_to_M0b, {"Raobs": Raobs})
 
     B1 = B1_map * B1_ref
-    cf_act = eval(cf_eq, {"R1": R1, "B1": B1, "M0b": M0b})
+    cf_act = eval(cf_eq, {"Raobs": Raobs, "B1": B1, "M0b": M0b})
     B1 = B1_ref
-    cf_nom = eval(cf_eq, {"R1": R1, "B1": B1, "M0b": M0b})
+    cf_nom = eval(cf_eq, {"Raobs": Raobs, "B1": B1, "M0b": M0b})
 
     cf_map = (cf_nom - cf_act) / cf_act
     return cf_map

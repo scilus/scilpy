@@ -184,7 +184,7 @@ def _build_arg_parser():
                     help='Path to MToff PD json file and MToff T1 json file, '
                          'in that order. \nThe acquisition parameters will be '
                          'extracted from these files.')
-    a1.add_argument('--in_acq_parameters', nargs=4,
+    a1.add_argument('--in_acq_parameters', nargs=4, type=float,
                     metavar=('PD flip angle', 'T1 flip angle',
                              'PD repetition time', 'T1 repetition time'),
                     help='Acquisition parameters in that order: flip angle of '
@@ -205,7 +205,7 @@ def _build_arg_parser():
                         'Should be three .mat \nfiles given in this specific '
                         'order: positive frequency saturation, \nnegative '
                         'frequency saturation, dual frequency saturation.')
-    b.add_argument('--B1_nominal', default=100,
+    b.add_argument('--B1_nominal', default=100, type=float,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
 
@@ -229,13 +229,15 @@ def main():
 
     # Merge all echos path into a list
     input_maps = [args.in_altnp, args.in_altpn, args.in_negative,
-                     args.in_positive, args.in_mtoff_pd]
-    
+                  args.in_positive, args.in_mtoff_pd]
+    maps_flat = (args.in_altnp + args.in_altpn + args.in_negative +
+                 args.in_positive + args.in_mtoff_pd)
     if args.in_mtoff_t1:
         input_maps.append(args.in_mtoff_t1)
+        maps_flat += args.in_mtoff_t1
 
     # check echoes number and jsons
-    assert_inputs_exist(parser, input_maps)
+    assert_inputs_exist(parser, maps_flat)
     for curr_map in input_maps[1:]:
         if len(curr_map) != len(input_maps[0]):
             parser.error('Not the same number of echoes per contrast')
@@ -252,9 +254,9 @@ def main():
                      '--in_B1_fitvalues.')
 
     # Set TR and FlipAngle parameters
-    if args.flip_angles:
-        flip_angles = args.in_acq_parameters[:2]
-        rep_times = args.in_acq_parameters[2:]
+    if args.in_acq_parameters:
+        flip_angles = np.asarray(args.in_acq_parameters[:2]) * np.pi / 180.
+        rep_times = np.asarray(args.in_acq_parameters[2:]) * 1000
     elif args.in_jsons:
         rep_times = []
         flip_angles = []
@@ -278,10 +280,11 @@ def main():
         B1_map = smooth_B1_map(B1_map)
         if args.B1_correction_method == 'model_based':
             # Apply the B1 map to the flip angles for model-based correction
-            flip_angles *= B1_map
+            flip_angles[0] *= B1_map
+            flip_angles[1] *= B1_map
         if args.extended:
             nib.save(nib.Nifti1Image(B1_map, affine),
-                     os.path.join(extended_dir + "B1_map.nii.gz"))
+                     os.path.join(extended_dir, "B1_map.nii.gz"))
 
     # Define contrasts maps names
     contrasts_name = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
@@ -319,7 +322,7 @@ def main():
                                     mt_on_dual=(contrast_maps[0] +
                                                 contrast_maps[1]) / 2)
     img_name = ['ihMTR', 'MTR']
-    img_data = [ihMTR, MTR]
+    img_data = ihMTR, MTR
 
     # Compute saturation maps
     if args.in_mtoff_t1:            
@@ -338,21 +341,21 @@ def main():
         R1app = 1000 / T1app # convert 1/ms to 1/s
         if args.extended:
             nib.save(nib.Nifti1Image(MTsat_sp, affine),
-                     os.path.join(extended_dir + "MTsat_sp.nii.gz"))
+                     os.path.join(extended_dir, "MTsat_sp.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_sn, affine),
-                     os.path.join(extended_dir + "MTsat_sn.nii.gz"))
+                     os.path.join(extended_dir, "MTsat_sn.nii.gz"))
             nib.save(nib.Nifti1Image(MTsat_d, affine),
-                     os.path.join(extended_dir + "MTsat_d.nii.gz"))
+                     os.path.join(extended_dir, "MTsat_d.nii.gz"))
             nib.save(nib.Nifti1Image(R1app, affine),
-                     os.path.join(extended_dir + "R1app.nii.gz"))
+                     os.path.join(extended_dir, "R1app.nii.gz"))
 
         MTsat_maps = MTsat_sp, MTsat_sn, MTsat_d
 
         # Apply model-based B1 correction
         if args.in_B1_map and args.B1_correction_method == 'model_based':
-            for i, MTsat_map in enumerate(MTsat_maps):# TODO verify that it changes MTsat_maps
+            for i, MTsat_map in enumerate(MTsat_maps):
                 MTsat_map = apply_B1_corr_model_based(MTsat_map, B1_map, R1app,
-                                                      args.in_B1_fitValues[i])
+                                                      args.in_B1_fitvalues[i])
 
         # Compute MTsat and ihMTsat from saturations
         MTsat = (MTsat_maps[0] + MTsat_maps[1]) / 2
@@ -365,16 +368,16 @@ def main():
             MTsat = apply_B1_corr_empiric(MTsat, B1_map)
             ihMTsat = apply_B1_corr_empiric(ihMTsat, B1_map)
 
-        img_name.append('ihMTsat', 'MTsat')
-        img_data.append(ihMTsat, MTsat)
+        img_name.extend(('ihMTsat', 'MTsat'))
+        img_data += ihMTsat, MTsat
 
     # Apply thresholds on maps
     upper_thresholds = [100, 100, 10, 100]
     idx_contrast_lists = [[0, 1, 2, 3, 4], [3, 4], [0, 1, 2, 3], [3, 4]]
-    for i, map in enumerate(img_data):# TODO verify that it changes img_data
-        map = threshold_map(map, args.in_mask, 0, upper_thresholds[i],
+    for i, map in enumerate(img_data):
+        map = threshold_map(map, args.mask, 0, upper_thresholds[i],
                             idx_contrast_list=idx_contrast_lists[i],
-                            contrasts_maps=contrast_maps)
+                            contrast_maps=contrast_maps)
 
     # Save ihMT and MT images
     if args.filtering:
