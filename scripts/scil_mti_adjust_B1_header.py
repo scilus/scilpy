@@ -13,7 +13,7 @@ import nibabel as nib
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.reconst.mti import (adjust_b1_map_header)
+from scilpy.reconst.mti import (adjust_B1_map_header)
 
 
 def _build_arg_parser():
@@ -48,7 +48,7 @@ def main():
 
     b1_img = nib.load(args.in_B1_map)
 
-    new_b1_img = adjust_b1_map_header(b1_img, slope)
+    new_b1_img = adjust_B1_map_header(b1_img, slope)
 
     nib.save(new_b1_img, args.out_B1_map)
 

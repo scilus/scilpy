@@ -37,7 +37,6 @@ The output consists of a ihMT_native_maps folder containing the 4 myelin maps:
     - MTR.nii.gz : Magnetization Transfer Ratio map
     - ihMTR.nii.gz : inhomogeneous Magnetization Transfer Ratio map
     The (ih)MT ratio is a measure reflecting the amount of bound protons.
-
     - MTsat.nii.gz : Magnetization Transfer saturation map
     - ihMTsat.nii.gz : inhomogeneous Magnetization Transfer saturation map
     The (ih)MT saturation is a pseudo-quantitative maps representing
@@ -84,6 +83,7 @@ replace the * with the specific number of the echo.
 """
 
 import argparse
+import logging
 import os
 import sys
 
@@ -95,15 +95,14 @@ from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
-from scilpy.reconst.mti import (compute_contrasts_maps,
-                                compute_ihMT_maps, threshold_maps,
-                                apply_B1_correction_empiric,
-                                apply_B1_correction_model_based,
-                                adjust_b1_map_intensities,
-                                smooth_B1_map,
-                                read_fit_values_from_mat_files,
-                                compute_B1_correction_factor_maps,
-                                compute_R1app)
+from scilpy.reconst.mti import (adjust_B1_map_intensities,
+                                apply_B1_corr_empiric,
+                                apply_B1_corr_model_based,
+                                compute_ratio_map,
+                                compute_saturation_map,
+                                process_contrast_map,
+                                threshold_map,
+                                smooth_B1_map)
 
 EPILOG = """
 Varma G, Girard OM, Prevost VH, Grant AK, Duhamel G, Alsop DC.
@@ -130,15 +129,13 @@ def _build_arg_parser():
 
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
+    p.add_argument('--mask',
+                   help='Path to the binary brain mask.')
+    p.add_argument('--extended', action='store_true',
+                   help='If set, outputs the folder Complementary_maps.')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing. '
                         'Not recommended.')
-    p.add_argument('--single_echo', action='store_true',
-                   help='Use this option when there is only one echo.')
-    p.add_argument('--mask',
-                   help='Path to the binary brain mask.')
-    p.add_argument('--extended_output', action='store_true',
-                   help='If set, outputs the folder Complementary_maps.')
     
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
@@ -200,13 +197,13 @@ def _build_arg_parser():
     a1 = a.add_argument_group(title='Json files option',
                               help='Use the json files to get the acquisition '
                                    'parameters.')
-    a1.add_argument('--in_pd_json',
+    a1.add_argument('--in_pd_json', # TODO Find a way to make both required if this option is chosen
                    help='Path to MToff PD json file.')
     a1.add_argument('--in_t1_json',
                    help='Path to MToff T1 json file.')
     a2 = a.add_argument_group(title='Parameters values option',
                               help='Give the acquisition parameters directly')
-    a2.add_argument('--flip_angles',
+    a2.add_argument('--flip_angles', # TODO Find a way to make both required if this option is chosen
                    help='Flip angle of mtoff_PD and mtoff_T1, in that order.')
     a2.add_argument('--rep_times',
                    help='Repetition time of mtoff_PD and mtoff_T1, in that '
@@ -221,43 +218,44 @@ def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
 
-    if args.extended_output:
-        assert_output_dirs_exist_and_empty(parser, args,
-                                           os.path.join(args.out_dir,
-                                                        'Complementary_maps'),
-                                           os.path.join(args.out_dir,
-                                                        'ihMT_native_maps'),
-                                           create_dir=True)
+    outut_dir = os.path.join(args.out_dir, 'ihMT_native_maps')
+    if args.extended:
+        extended_dir = os.path.join(args.out_dir, 'Complementary_maps')
+        assert_output_dirs_exist_and_empty(parser, args, extended_dir,
+                                           outut_dir, create_dir=True)
     else:
-        assert_output_dirs_exist_and_empty(parser, args,
-                                           os.path.join(args.out_dir,
-                                                        'ihMT_native_maps'),
+        assert_output_dirs_exist_and_empty(parser, args, outut_dir,
                                            create_dir=True)
 
     # Merge all echos path into a list
-    maps_list = [args.in_altnp, args.in_altpn, args.in_negative, args.in_positive,
-                 args.in_mtoff_pd]
+    input_maps = [args.in_altnp, args.in_altpn, args.in_negative,
+                     args.in_positive, args.in_mtoff_pd]
     
     if args.in_mtoff_t1:
-        maps_list.append(args.in_mtoff_t1)
+        input_maps.append(args.in_mtoff_t1)
 
     # check echoes number and jsons
-    assert_inputs_exist(parser, maps_list)
-    for curr_map in maps_list[1:]:
-        if len(curr_map) != len(maps_list[0]):
+    assert_inputs_exist(parser, input_maps)
+    for curr_map in input_maps[1:]:
+        if len(curr_map) != len(input_maps[0]):
             parser.error('Not the same number of echoes per contrast')
+    if len(input_maps[0]) == 1:
+        single_echo = True
+
+    if args.in_B1_map and not args.in_mtoff_t1:
+        logging.warning('No B1 correction was applied because no MTsat or '
+                        'ihMTsat can be computed without the in_mtoff_t1.')
 
     if args.B1_correction_method == 'model_based' and not args.in_B1_fitvalues:
         parser.error('Fitvalues files must be given when choosing the '
                      'model-based B1 correction method. Please use '
                      '--in_B1_fitvalues.')
 
-    # Set TR and FlipAngle parameters for ihMT (positive contrast)
-    # and T1w images
+    # Set TR and FlipAngle parameters
     if args.flip_angles:
         flip_angles = args.flip_angles
         rep_times = args.rep_times
-    else:
+    elif args.in_pd_json:
         for i, curr_json in enumerate(args.in_pd_json, args.in_t1_json):
             acq_parameter = get_acq_parameters(curr_json,
                                                ['RepetitionTime', 'FlipAngle'])
@@ -267,18 +265,21 @@ def main():
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
 
-    # Define affine and data shape
-    affine = nib.load(maps_list[4][0]).affine
-    data_shape = nib.load(maps_list[4][0]).get_fdata().shape
+    # Define affine
+    affine = nib.load(input_maps[4][0]).affine
 
     # Load B1 image
-    if args.in_B1_map and args.B1_correction_method == 'model_based':
+    if args.in_B1_map and args.in_mtoff_t1:
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.B1_nominal)
+        B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map)
-    else:
-        B1_map = np.ones(data_shape)
+        if args.B1_correction_method == 'model_based':
+            # Apply the B1 map to the flip angles for model-based correction
+            flip_angles *= B1_map
+        if args.extended:
+            nib.save(nib.Nifti1Image(B1_map, affine),
+                     os.path.join(extended_dir + "B1_map.nii.gz"))
 
     # Define contrasts maps names
     contrasts_name = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
@@ -286,7 +287,7 @@ def main():
     if args.filtering:
         contrasts_name = [curr_name + '_filter'
                           for curr_name in contrasts_name]
-    if args.single_echo:
+    if single_echo:
         contrasts_name = [curr_name + '_single_echo'
                           for curr_name in contrasts_name]
     if args.out_prefix:
@@ -294,102 +295,103 @@ def main():
                           for curr_name in contrasts_name]
 
 # Compute contrasts maps
-    computed_contrasts = []
-    for idx, curr_map in enumerate(maps_list):
+    contrast_maps = []
+    for idx, curr_map in enumerate(input_maps):
         input_images = []
         for image in curr_map:
             img, _ = load_img(image)
             input_images.append(img)
         merged_curr_map = concatenate(input_images, input_images[0])
-        computed_contrasts.append(compute_contrasts_maps(
-                                  merged_curr_map, filtering=args.filtering,
-                                  single_echo=args.single_echo))
+        contrast_maps.append(process_contrast_map(merged_curr_map,
+                                                  filtering=args.filtering,
+                                                  single_echo=single_echo))
+        if args.extended:
+            nib.save(nib.Nifti1Image(contrast_maps[idx].astype(np.float32),
+                                     affine),
+                     os.path.join(extended_dir,
+                                  contrasts_name[idx] + '.nii.gz'))
 
-        nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
-                                 affine),
-                 os.path.join(args.out_dir, 'Complementary_maps',
-                              contrasts_name[idx] + '.nii.gz'))
+    # Compute ratio maps
+    MTR, ihMTR = compute_ratio_map((contrast_maps[2] + contrast_maps[3]) / 2,
+                                    contrast_maps[4],
+                                    mt_on_dual=(contrast_maps[0] +
+                                                contrast_maps[1]) / 2)
+    img_name = ['ihMTR', 'MTR']
+    img_data = [ihMTR, MTR]
 
-    # Compute and thresold ihMT maps
-    MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d \
-        = compute_ihMT_maps(computed_contrasts, parameters, B1_map)
+    # Compute saturation maps
+    if args.in_mtoff_t1:            
+        MTsat_sp, T1app = compute_saturation_map(contrast_maps[3],
+                                                 contrast_maps[4],
+                                                 contrast_maps[5],
+                                                 flip_angles, rep_times)
+        MTsat_sn, _ = compute_saturation_map(contrast_maps[2],
+                                             contrast_maps[4],
+                                             contrast_maps[5],
+                                             flip_angles, rep_times)
+        MTsat_d, _ = compute_saturation_map((contrast_maps[0] +
+                                             contrast_maps[1]) / 2,
+                                            contrast_maps[4], contrast_maps[5],
+                                            flip_angles, rep_times)
+        R1app = 1000 / T1app # convert 1/ms to 1/s
+        if args.extended:
+            nib.save(nib.Nifti1Image(MTsat_sp, affine),
+                     os.path.join(extended_dir + "MTsat_sp.nii.gz"))
+            nib.save(nib.Nifti1Image(MTsat_sn, affine),
+                     os.path.join(extended_dir + "MTsat_sn.nii.gz"))
+            nib.save(nib.Nifti1Image(MTsat_d, affine),
+                     os.path.join(extended_dir + "MTsat_d.nii.gz"))
+            nib.save(nib.Nifti1Image(R1app, affine),
+                     os.path.join(extended_dir + "R1app.nii.gz"))
 
-    nib.save(nib.Nifti1Image(MTsat_sp, img.affine), "Complementary_maps/MTsat_sp.nii.gz")
-    nib.save(nib.Nifti1Image(MTsat_sn, img.affine), "Complementary_maps/MTsat_sn.nii.gz")
-    nib.save(nib.Nifti1Image(MTsat_d, img.affine), "Complementary_maps/MTsat_d.nii.gz")
+        MTsat_maps = MTsat_sp, MTsat_sn, MTsat_d
 
-    if args.in_B1_map and args.B1_correction_method == 'model_based':
-        print("Model-based correction")
-        cf_eq, r1_to_m0b = read_fit_values_from_mat_files(args.in_B1_fitvalues)
-        r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
-                           parameters, B1_map) * 1000 # convert 1/ms to 1/s
-        cf_maps = compute_B1_correction_factor_maps(B1_map, r1, cf_eq,
-                                                    r1_to_m0b, b1_ref=1)
-        nib.save(nib.Nifti1Image(r1, img.affine), "Complementary_maps/R1obs.nii.gz")
-        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Complementary_maps/T1obs.nii.gz")
-        nib.save(nib.Nifti1Image(B1_map, img.affine), "Complementary_maps/B1_map.nii.gz")
-        nib.save(nib.Nifti1Image(cf_maps, img.affine), "Complementary_maps/cf_maps.nii.gz")
-        MTsat_sp = apply_B1_correction_model_based(MTsat_sp, cf_maps[..., 0])
-        MTsat_sn = apply_B1_correction_model_based(MTsat_sn, cf_maps[..., 1])
-        MTsat_d = apply_B1_correction_model_based(MTsat_d, cf_maps[..., 2])
+        # Apply model-based B1 correction
+        if args.in_B1_map and args.B1_correction_method == 'model_based':
+            for i, MTsat_map in enumerate(MTsat_maps):# TODO verify that it changes MTsat_maps
+                MTsat_map = apply_B1_corr_model_based(MTsat_map, B1_map, R1app,
+                                                      args.in_B1_fitValues[i])
 
-    MTsat = (MTsat_sp + MTsat_sn) / 2
-    ihMTsat = MTsat_d - MTsat
+        # Compute MTsat and ihMTsat from saturations
+        MTsat = (MTsat_maps[0] + MTsat_maps[1]) / 2
+        ihMTsat = MTsat_maps[2] - MTsat
 
-    if args.in_B1_map and args.B1_correction_method == 'empiric':
-        print("Empiric correction")
-        B1_img = nib.load(args.in_B1_map)
-        B1_map = B1_img.get_fdata(dtype=np.float32)
-        B1_map = adjust_b1_map_intensities(B1_map, nominal=args.B1_nominal)
-        B1_map = smooth_B1_map(B1_map)
-        r1 = compute_R1app(computed_contrasts[2], computed_contrasts[5],
-                           parameters, B1_map) * 1000 # convert 1/ms to 1/s
-        nib.save(nib.Nifti1Image(r1, img.affine), "Complementary_maps/R1obs.nii.gz")
-        nib.save(nib.Nifti1Image(np.clip(1/r1, 0, 10), img.affine), "Complementary_maps/T1obs.nii.gz")
-        nib.save(nib.Nifti1Image(B1_map, img.affine), "Complementary_maps/B1_map.nii.gz")
-        # MTR = apply_B1_correction_empiric(MTR, B1_map)
-        MTsat = apply_B1_correction_empiric(MTsat, B1_map)
-        # ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
-        ihMTsat = apply_B1_correction_empiric(ihMTsat, B1_map)
+        # Apply empiric B1 correction
+        if args.in_B1_map and args.B1_correction_method == 'empiric':
+            # MTR = apply_B1_correction_empiric(MTR, B1_map)
+            # ihMTR = apply_B1_correction_empiric(ihMTR, B1_map)
+            MTsat = apply_B1_corr_empiric(MTsat, B1_map)
+            ihMTsat = apply_B1_corr_empiric(ihMTsat, B1_map)
 
-    ihMTR = threshold_maps(ihMTR, args.in_mask, 0, 100,
-                           idx_contrast_list=[4, 3, 1, 0, 2],
-                           contrasts_maps=computed_contrasts)
-    ihMTsat = threshold_maps(ihMTsat, args.in_mask, 0, 10,
-                             idx_contrast_list=[4, 3, 1, 0],
-                             contrasts_maps=computed_contrasts)      
-    MTR = threshold_maps(MTR, args.in_mask, 0, 100,
-                         idx_contrast_list=[4, 2],
-                         contrasts_maps=computed_contrasts)
-    MTsat = threshold_maps(MTsat, args.in_mask, 0, 100,
-                           idx_contrast_list=[4, 2],
-                           contrasts_maps=computed_contrasts)      
+        img_name.append('ihMTsat', 'MTsat')
+        img_data.append(ihMTsat, MTsat)
+
+    # Apply thresholds on maps
+    upper_thresholds = [100, 100, 10, 100]
+    idx_contrast_lists = [[0, 1, 2, 3, 4], [3, 4], [0, 1, 2, 3], [3, 4]]
+    for i, map in enumerate(img_data):# TODO verify that it changes img_data
+        map = threshold_map(map, args.in_mask, 0, upper_thresholds[i],
+                            idx_contrast_list=idx_contrast_lists[i],
+                            contrasts_maps=contrast_maps)
 
     # Save ihMT and MT images
-    img_name = ['ihMTR', 'ihMTsat', 'MTR', 'MTsat']
-
     if args.filtering:
         img_name = [curr_name + '_filter'
                     for curr_name in img_name]
-
-    if args.single_echo:
+    if single_echo:
         img_name = [curr_name + '_single_echo'
                     for curr_name in img_name]
-
     if args.in_B1_map:
         img_name = [curr_name + '_B1_corrected'
                     for curr_name in img_name]
-
     if args.out_prefix:
         img_name = [args.out_prefix + '_' + curr_name
                     for curr_name in img_name]
 
-    img_data = ihMTR, ihMTsat, MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
                                  affine),
-                 os.path.join(args.out_dir, 'ihMT_native_maps',
-                              name + '.nii.gz'))
+                 os.path.join(outut_dir, name + '.nii.gz'))
 
 
 if __name__ == '__main__':

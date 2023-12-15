@@ -19,9 +19,10 @@ def py_fspecial_gauss(shape, sigma):
 
     Parameters
     ----------
-    shape    Vector to specify the size of square matrix (rows, columns).
-             Ex.: (3, 3)
-    sigma    Value for standard deviation (Sigma value of 0.5 is recommended).
+    shape:      Vector to specify the size of square matrix (rows, columns).
+                Ex.: (3, 3)
+    sigma:      Value for standard deviation (Sigma value of 0.5 is
+                recommended).
 
     Returns
     -------
@@ -37,16 +38,16 @@ def py_fspecial_gauss(shape, sigma):
     return h
 
 
-def compute_contrasts_maps(merged_images, single_echo=False,
+def process_contrast_map(merged_images, single_echo=False,
                            filtering=False):
     """
-    Load echoes and compute corresponding contrast map.
+    Average echoes of a contrast map and apply gaussian filter.
 
     Parameters
     ----------
-    4d_image        4D images
-    single_echo     Apply when only one echo is used to compute contrast maps
-    filtering       Apply Gaussian filtering to remove Gibbs ringing
+    4d_image:       4D image, containing every echoes of the contrast map
+    single_echo:    Apply when only one echo is used to compute contrast map
+    filtering:      Apply Gaussian filtering to remove Gibbs ringing
                     (default is False).
 
     Returns
@@ -69,23 +70,13 @@ def compute_contrasts_maps(merged_images, single_echo=False,
     return contrast_map
 
 
-def compute_R1app(cPD1, cT1, acq_parameters, B1_map):
-    TR1 = acq_parameters[0][0] # TR of high flip angle images (MT)
-    TR2 = acq_parameters[1][0] # TR of low flip angle images (T1w)
-    a1 = acq_parameters[0][1] * B1_map # Low flip angle (MT)
-    a2 = acq_parameters[1][1] * B1_map # High flip angle (T1w)
-    T1app_num = (cPD1 / a1) - (cT1 / a2)
-    T1app_den = 0.5 * ((cT1 * a2) / TR2 - (cPD1 * a1) / TR1)
-    T1app = T1app_num / T1app_den
-    R1app = 1 / T1app
-    return R1app
-
-
-def compute_saturation(cPD1, cPD2, cT1, acq_parameters, B1_map):
+def compute_saturation_map(MT, PD, T1, a, TR):
     """
-    Compute saturation of given contrast.
+    Compute saturation of given contrast (MT).
     Saturation is computed from apparent longitudinal relaxation time
-    (T1app) and apparent signal amplitude (Aapp). The estimation of the
+    (T1app) and apparent signal amplitude (Aapp), as the difference of
+    longitudinal relaxation times of bound to macromolecules pool
+    from free water pool saturation. The estimation of the
     saturation includes correction for the effects of excitation flip angle
     and longitudinal relaxation time, and remove the effect of T1-weighted
     image.
@@ -95,95 +86,69 @@ def compute_saturation(cPD1, cPD2, cT1, acq_parameters, B1_map):
 
     Parameters
     ----------
-    cPD1:               Reference proton density (MT-off)
-    cPD2:               Contrast of choice (can be a single contrast or the
-                        mean of positive and negative for example)
-    cT1:                Contrast T1-weighted
-    acq_parameters:     List of TR and Flipangle for MT contrast and T1w images
-                        [TR, Flipangle]
+    MT:             Contrast of choice (can be a single contrast or the
+                    mean of positive and negative for example)
+    PD:             Reference proton density weighted image (MToff PD)
+    T1:             Reference T1 weighted image (MToff T1)
+    a:              List of two flip angles corresponding to PD and T1.
+    TR:             List of two repetition times corresponding to PD and T1.
+
     Returns
     -------
-    MT ratio and MT saturation matrice in 3D-array.
+    MT saturation matrice in 3D-array (sat), computed apparent T1 map (T1app).
     """
-    TR1 = acq_parameters[0][0] # TR of low flip angle images (MT)
-    TR2 = acq_parameters[1][0] # TR of high flip angle images (T1w)
-    a1 = acq_parameters[0][1] * B1_map # Low flip angle (MT)
-    a2 = acq_parameters[1][1] * B1_map # High flip angle (T1w)
-
-    Aapp_num = (TR1 / (a1 ** 2)) - (TR2 / (a2 ** 2))
-    Aapp_den = (TR1 / (a1 * cPD1)) - (TR2 / (a2 * cT1))
+    Aapp_num = (TR[0] / (a[0] ** 2)) - (TR[1] / (a[1] ** 2))
+    Aapp_den = (TR[0] / (a[0] * PD)) - (TR[1] / (a[1] * T1))
     Aapp = Aapp_num / Aapp_den
 
-    T1app_num = (cPD1 / a1) - (cT1 / a2)
-    T1app_den = 0.5 * ((cT1 * a2) / TR2 - (cPD1 * a1) / TR1)
+    T1app_num = (PD / a[0]) - (T1 / a[1])
+    T1app_den = 0.5 * ((T1 * a[1]) / TR[1] - (PD * a[0]) / TR[0])
     T1app = T1app_num / T1app_den
 
-    sat = ((Aapp * a1 * TR1 / T1app) / cPD2) - (TR1 / T1app) - (a1 ** 2) / 2
+    sat = Aapp * a[0] * TR[0] / T1app / MT - (TR[0] / T1app) - (a[0] ** 2) / 2
     sat *= 100
 
-    return sat
+    return sat, T1app
 
 
-def compute_ihMT_maps(contrasts_maps, acq_parameters, B1_map):
+def compute_ratio_map(mt_on_single, mt_off, mt_on_dual=None):
     """
-    Compute Inhomogenous Magnetization transfer ratio and saturation maps.
+    Compute magnetization transfer ratio (MTR), and inhomogenous magnetization
+    transfer ratio (ihMTR) if mt_on_dual is given.
     - MT ratio (MTR) is computed as the percentage difference of single
     frequency mean image from the reference.
     - ihMT ratio (ihMTR) is computed as the percentage difference of dual from
     single frequency.
-    - MT saturations (MTsat_sp, MTsat_sn, MTsat_d) are computed as the
-    difference of longitudinal relaxation times of bound to macromolecules pool
-    from free water pool saturation. The estimation of the ihMT saturation
-    includes correction for the effects of excitation flip angle and
-    longitudinal relaxation time, and remove the effect of T1-weighted image.
-        cPD : contrast proton density
-            sp : positive single frequency proton density
-            sn : negative single frequency proton density
-            b : mean of two dual frequency proton density
-        cT1 : contrast T1-weighted
 
-    see Varma et al., 2015
+    For ihMTR, see Varma et al., 2015
     www.sciencedirect.com/science/article/pii/S1090780715001998
-    see Manning et al., 2017
-    www.sciencedirect.com/science/article/pii/S1090780716302488?via%3Dihub
 
     Parameters
     ----------
-    contrasts_maps:     List of matrices : list of all contrast maps computed
-                                           with compute_contrasts_maps
-    acq_parameters:     List of TR and Flipangle values for ihMT and T1w images
-                        [TR, Flipangle]
+    mt_on_single:       MT-on image with single frequency pulse: can be one
+                        single positive/negative frequency MT image or the
+                        average of both images (positive and negative).
+    mt_off:             MT-off image: the reference image without MT
+                        preparation.
+    mt_on_dual:         MT-on image with dual frequency pulse: can be one
+                        dual alternating positive/negative frequency MT image
+                        or the average of both images. Optional. If given, will
+                        compute the ihMTR also.
+
     Returns
     -------
-    MT ratio (MTR), ihMT ratio (ihMTR), positive MT saturation (MTsat_sp),
-    negative MT saturation (MTsat_sn) and dual MT saturation (MTsat_d)
-    matrices in 3D-array.
+    MT ratio (MTR), ihMT ratio (ihMTR).
     """
     # Compute MT Ratio map
-    MTR = 100*((contrasts_maps[2] -
-               (contrasts_maps[4] + contrasts_maps[3]) / 2) /
-               contrasts_maps[2])
+    MTR = 100 * ((mt_off - mt_on_single) / mt_off)
 
     # Compute ihMT ratio map
-    ihMTR = 100*(contrasts_maps[4] + contrasts_maps[3] -
-                 contrasts_maps[1] - contrasts_maps[0]) / contrasts_maps[2]
-
-    # Compute MT saturation maps
-    # We compute the single positive and negative frequency saturations
-    # separatly because of the MT assymetry. B1 correction will not be the
-    # same for both. We average the dual frequency images to compute only one
-    # dual saturation image.
-    cPD1 = contrasts_maps[2]
-    cPDsp = contrasts_maps[4]
-    cPDsn = contrasts_maps[3]
-    cPDd = (contrasts_maps[1] + contrasts_maps[0]) / 2
-    cT1 = contrasts_maps[5]
-
-    MTsat_sp = compute_saturation(cPD1, cPDsp, cT1, acq_parameters, B1_map)
-    MTsat_sn = compute_saturation(cPD1, cPDsn, cT1, acq_parameters, B1_map)
-    MTsat_d = compute_saturation(cPD1, cPDd, cT1, acq_parameters, B1_map)
-
-    return MTR, ihMTR, MTsat_sp, MTsat_sn, MTsat_d
+    if mt_on_dual is not None:
+        # The factor 2 is there to account for the /2 in mt_on mean images.
+        ihMTR = 2 * 100 * (mt_on_single - mt_on_dual) / mt_off
+        return MTR, ihMTR
+    
+    return MTR
 
 
 def compute_MT_maps(contrasts_maps, acq_parameters):
@@ -242,31 +207,31 @@ def compute_MT_maps(contrasts_maps, acq_parameters):
     return MTR, MTsat
 
 
-def threshold_maps(computed_map,  in_mask,
-                   lower_threshold, upper_threshold,
-                   idx_contrast_list=None, contrasts_maps=None):
+def threshold_map(computed_map,  in_mask,
+                  lower_threshold, upper_threshold,
+                  idx_contrast_list=None, contrast_maps=None):
     """
     Remove NaN and apply different threshold based on
        - maximum and minimum threshold value
        - T1 mask
-       - combination of specific contrasts maps
-    idx_contrast_list and contrasts_maps are required for
+       - combination of specific contrast maps
+    idx_contrast_list and contrast_maps are required for
     thresholding of ihMT images.
 
     Parameters
     ----------
-    computed_map        3D-Array data.
-                        Myelin map (ihMT or non-ihMT maps)
-    in_mask             Path to binary T1 mask from T1 segmentation.
-                        Must be the sum of GM+WM+CSF.
-    lower_threshold     Value for low thresold <int>
-    upper_thresold      Value for up thresold <int>
-    idx_contrast_list   List of indexes of contrast maps corresponding to
-                        that of input contrasts_maps ex.: [0, 2, 5]
-                        Altnp = 0; Atlpn = 1; Reference = 2; Negative = 3;
-                        Positive = 4; T1weighted = 5
-    contrasts_maps      List of 3D-Array. File must containing the
-                        6 contrasts maps.
+    computed_map:           3D-Array data.
+                            Myelin map (ihMT or non-ihMT maps)
+    in_mask:                Path to binary T1 mask from T1 segmentation.
+                            Must be the sum of GM+WM+CSF.
+    lower_threshold:        Value for low thresold <int>
+    upper_thresold:         Value for up thresold <int>
+    idx_contrast_list:      List of indexes of contrast maps corresponding to
+                            that of input contrast_maps ex.: [0, 2, 4]
+                            Altnp = 0; Atlpn = 1; Negative = 2; Positive = 3;
+                            PD = 4; T1 = 5
+    contrast_maps:          List of 3D-Array. File must containing the
+                            5 or 6 contrast maps.
     Returns
     ----------
     Thresholded matrix in 3D-array.
@@ -282,95 +247,185 @@ def threshold_maps(computed_map,  in_mask,
     mask_data = get_data_as_mask(mask_image)
     computed_map[np.where(mask_data == 0)] = 0
 
-    # Apply threshold based on combination of specific contrasts maps
-    if idx_contrast_list and contrasts_maps:
+    # Apply threshold based on combination of specific contrast maps
+    if idx_contrast_list and contrast_maps:
         for idx in idx_contrast_list:
-            computed_map[contrasts_maps[idx] == 0] = 0
+            computed_map[contrast_maps[idx] == 0] = 0
 
     return computed_map
 
 
-def apply_B1_correction_empiric(MT_map, B1_map):
+def adjust_B1_map_intensities(B1_map, nominal=100):
     """
-    Function to apply an empiric B1 correction.
+    Adjust and verify the values of the B1 map. We want the B1 map to have
+    values around 1.0, so we divide by the nominal B1 value if it is not
+    already the case. Sometimes the scaling of the B1 map is wrong, leading
+    to weird values after this process, which what is verified here.
+
+    Parameters
+    ----------
+    B1_map:           B1 coregister map.
+    nominal:          Nominal values of B1. For Philips, should be 1.
+
+    Returns
+    ----------
+    Ajusted B1 map in 3d-array.
+    """
+    B1_map /= nominal
+    med_bB = np.nanmedian(np.where(B1_map == 0, np.nan, B1_map))
+    if not np.isclose(med_bB, 1.0, atol=0.2):
+        raise ValueError("Intensities of the B1 map are wrong.")
+    # B1_map = np.clip(b1_map, 0.5, 1.4)
+    return B1_map
+
+
+def smooth_B1_map(B1_map, wdims=5):
+    """
+    Apply a smoothing to the B1 map.
+
+    Parameters
+    ----------
+    B1_map:           B1 coregister map.
+    wdims:            Window dimension (in voxels) for the smoothing.
+
+    Returns
+    ----------
+    Smoothed B1 map in 3d-array.
+    """
+    h = np.ones((wdims, wdims, 1)) / wdims ** 2
+    B1_map_smooth = scipy.ndimage.convolve(B1_map, h).astype(np.float32)
+    return B1_map_smooth
+
+
+def apply_B1_corr_empiric(MT_map, B1_map):
+    """
+    Apply an empiric B1 correction on MT map.
 
     see Weiskopf et al., 2013
     https://www.frontiersin.org/articles/10.3389/fnins.2013.00095/full
 
     Parameters
     ----------
-    MT_map           3D-Array Myelin map.
-    B1_map           Path to B1 coregister map.
+    MT_map:           3D-Array MT map.
+    B1_map:           B1 coregister map.
 
     Returns
     ----------
     Corrected MT matrix in 3D-array.
     """
-
-    # Apply an empiric B1 correction via B1 smooth data on MT data
     MT_map_B1_corrected = MT_map*(1.0-0.4)/(1-0.4*(B1_map))
-    # !!!!!!!!!! Not sure this method can be applied to MTR or ihMTR.!!!!!!!!!
-
     return MT_map_B1_corrected
 
 
-def adjust_b1_map_intensities(b1_map, nominal=100):
-    b1_map /= nominal
-    med_b1 = np.nanmedian(np.where(b1_map == 0, np.nan, b1_map))
-    if not np.isclose(med_b1, 1.0, atol=0.2):
-        raise ValueError("Intensities of the B1 map are wrong.")
-    # b1_map = np.clip(b1_map, 0.5, 1.4)
-    return b1_map
+def apply_B1_corr_model_based(MTsat, B1_map, R1app, fitvalues_file, B1_ref=1):
+    """
+    Apply a model-based B1 correction on MT map.
 
+    see Rowley et al., 2021
+    https://onlinelibrary.wiley.com/doi/10.1002/mrm.28831
 
-def smooth_B1_map(B1_map):
-    # Apply a light smoothing to the B1 map
-    h = np.ones((5, 5, 1))/25 # TODO : should depend on the resolution
-    # h = np.ones((2, 2, 1))/4
-    B1_map_smooth = scipy.ndimage.convolve(B1_map, h).astype(np.float32)
-    # shift = 0.15
-    # exp = 1.15
-    # B1_map_smooth = (B1_map_smooth + shift) ** exp
-    return B1_map_smooth
+    Parameters
+    ----------
+    MTsat:              3D-Array MTsat map.
+    B1_map:             B1 coregister map.
+    R1app:              Apparent R1 map, obtained from compute_saturation_map.
+    fitvalues_file:     Path to the fitValues_*.mat file corresponding to the
+                        MTsat map. This file is computed with Christopher
+                        Rowley's Matlab library.
+    B1_ref:             Reference B1 value used for the fit (usually 1).
 
-
-def read_fit_values_from_mat_files(fit_values_files):
-    cf_eq = np.empty((3), dtype=object)
-    r1_to_m0b = np.empty((3), dtype=object)
-    for i, file in enumerate(fit_values_files):
-        fit_values = scipy.io.loadmat(file)
-        # coeffs = fit_values['fitValues']['fitvals_coeff'][0][0][0]
-        fit_SS_eqn = fit_values['fitValues']['fit_SS_eqn'][0][0][0]
-        est_m0b_from_r1 = fit_values['fitValues']['Est_M0b_from_R1'][0][0][0]
-        cf_eq[i] = fit_SS_eqn.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1').replace('Raobs','r1').replace('M0b','m0b').replace('b1','b1')
-        r1_to_m0b[i] = est_m0b_from_r1.replace('^', '**').replace('Raobs.','r1').replace('M0b.','m0b').replace('b1.','b1').replace('Raobs','r1').replace('M0b','m0b').replace('b1','b1')
-    return cf_eq, r1_to_m0b
-
-
-def compute_B1_correction_factor_maps(b1_map, r1, cf_eq, r1_to_m0b, b1_ref=1):
-
-    cf_maps = np.zeros(b1_map.shape + (3,))
-    for i in range(3):
-        m0b = eval(r1_to_m0b[i], {"r1": r1})
-        b1 = b1_map * b1_ref
-        cf_act = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
-        b1 = b1_ref
-        cf_nom = eval(cf_eq[i], {"r1": r1, "b1": b1, "m0b": m0b})
-
-        cf_maps[..., i] = (cf_nom - cf_act) / cf_act
-
-    return cf_maps
-
-
-def apply_B1_correction_model_based(MTsat, cf_map):
+    Returns
+    ----------
+    Corrected MTsat matrix in 3D-array.
+    """
+    cf_eq, R1_to_M0b = _read_fitvalues_from_file(fitvalues_file)
+    cf_map = _compute_B1_corr_factor_map(B1_map, R1app, cf_eq,
+                                         R1_to_M0b, B1_ref=B1_ref)
     MTsat_corr = MTsat + MTsat * cf_map
     return MTsat_corr
 
 
-def adjust_b1_map_header(b1_img, slope):
-    b1_map = b1_img.get_fdata()
-    b1_map /= slope
-    b1_img.header.set_slope_inter(1, 0)
-    new_b1_img = nib.nifti1.Nifti1Image(b1_map, b1_img.affine,
-                                        header=b1_img.header)
+def _read_fitvalues_from_file(fitvalues_file):
+    """
+    Extract equations from fitValues_*.mat file.
+
+    see Rowley et al., 2021
+    https://onlinelibrary.wiley.com/doi/10.1002/mrm.28831
+
+    Parameters
+    ----------
+    fitvalues_file:     Path to the fitValues_*.mat file corresponding to the
+                        MTsat map. This file is computed with Christopher
+                        Rowley's Matlab library.
+
+    Returns
+    ----------
+    Correction factor equation (cf_eq), R1 to M0b equation (R1_to_M0b)
+    """
+    fitvalues = scipy.io.loadmat(fitvalues_file)
+    fit_SS_eq = fitvalues['fitValues']['fit_SS_eqn'][0][0][0]
+    est_M0b_from_R1 = fitvalues['fitValues']['Est_M0b_from_R1'][0][0][0]
+    cf_eq = fit_SS_eq.replace('^',
+                              '**').replace('Raobs.',
+                                            'R1').replace('M0b.',
+                                                          'M0b').replace('b1.',
+                                                                         'B1')
+    R1_to_M0b = est_M0b_from_R1.replace('^',
+                                        '**').replace('Raobs.',
+                                                      'R1').replace('M0b.',
+                                                                    'M0b')
+    return cf_eq, R1_to_M0b
+
+
+def _compute_B1_corr_factor_map(B1_map, R1, cf_eq, R1_to_M0b, B1_ref=1):
+    """
+    Compute the correction factor map for B1 correction.
+
+    see Rowley et al., 2021
+    https://onlinelibrary.wiley.com/doi/10.1002/mrm.28831
+
+    Parameters
+    ----------
+    B1_map:             B1 coregister map.
+    R1:                 R1 map, obtained from compute_saturation_map.
+    cf_eq:              Correction factor equation extracted with
+                        _read_fitvalues_from_file.
+    R1_to_M0b:          Conversion equation from R1 to M0b extracted with
+                        _read_fitvalues_from_file.
+    B1_ref:             Reference B1 value used for the fit (usually 1).
+
+    Returns
+    ----------
+    Correction factor map.
+    """
+    M0b = eval(R1_to_M0b, {"R1": R1})
+
+    B1 = B1_map * B1_ref
+    cf_act = eval(cf_eq, {"R1": R1, "B1": B1, "M0b": M0b})
+    B1 = B1_ref
+    cf_nom = eval(cf_eq, {"R1": R1, "B1": B1, "M0b": M0b})
+
+    cf_map = (cf_nom - cf_act) / cf_act
+    return cf_map
+
+
+def adjust_B1_map_header(B1_img, slope):
+    """
+    Fixe issue in B1 map header, by applying the scaling (slope) and setting
+    the slope to 1.
+
+    Parameters
+    ----------
+    B1_img:           B1 nifti image object.
+    slope:            Slope value, obtained from the image header.
+
+    Returns
+    ----------
+    Adjusted B1 nifti image object (new_b1_img)
+    """
+    B1_map = B1_img.get_fdata()
+    B1_map /= slope
+    B1_img.header.set_slope_inter(1, 0)
+    new_b1_img = nib.nifti1.Nifti1Image(B1_map, B1_img.affine,
+                                        header=B1_img.header)
     return new_b1_img
