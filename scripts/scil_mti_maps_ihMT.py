@@ -62,7 +62,7 @@ The final maps from ihMT_native_maps can be corrected for B1+ field
   or a model-based method with
   --in_B1_map option, suffix *B1_corrected is added for each map.
   --B1_correction_method model_based
-  --in_B1_fitValues 3 .mat files, obtained externally from 
+  --B1_fitValues 3 .mat files, obtained externally from 
     https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction,
     and given in this order: positive frequency saturation, negative frequency
     saturation, dual frequency saturation.
@@ -200,7 +200,7 @@ def _build_arg_parser():
                         'empiric and model-based. \nNote that the model-based '
                         'method requires a B1 fitvalues file, \nand will only '
                         'correct the saturation measures. [%(default)s]')
-    b.add_argument('--in_B1_fitvalues', nargs=3,
+    b.add_argument('--B1_fitvalues', nargs=3,
                    help='Path to B1 fitvalues files obtained externally. '
                         'Should be three .mat \nfiles given in this specific '
                         'order: positive frequency saturation, \nnegative '
@@ -208,6 +208,9 @@ def _build_arg_parser():
     b.add_argument('--B1_nominal', default=100, type=float,
                    help='Nominal value for the B1 map. For Philips, should be '
                         '100. [%(default)s]')
+    b.add_argument('--B1_smooth_dims', default=5, type=int,
+                   help='Dimension of the squared window used for B1 '
+                        'smoothing, in number of voxels. [%(default)s]')
 
     add_overwrite_arg(p)
 
@@ -248,10 +251,10 @@ def main():
         logging.warning('No B1 correction was applied because no MTsat or '
                         'ihMTsat can be computed without the in_mtoff_t1.')
 
-    if args.B1_correction_method == 'model_based' and not args.in_B1_fitvalues:
+    if args.B1_correction_method == 'model_based' and not args.B1_fitvalues:
         parser.error('Fitvalues files must be given when choosing the '
                      'model-based B1 correction method. Please use '
-                     '--in_B1_fitvalues.')
+                     '--B1_fitvalues.')
 
     # Set TR and FlipAngle parameters
     if args.in_acq_parameters:
@@ -277,7 +280,7 @@ def main():
         B1_img = nib.load(args.in_B1_map)
         B1_map = B1_img.get_fdata(dtype=np.float32)
         B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
-        B1_map = smooth_B1_map(B1_map)
+        B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
         if args.B1_correction_method == 'model_based':
             # Apply the B1 map to the flip angles for model-based correction
             flip_angles[0] *= B1_map
@@ -322,7 +325,7 @@ def main():
                                     mt_on_dual=(contrast_maps[0] +
                                                 contrast_maps[1]) / 2)
     img_name = ['ihMTR', 'MTR']
-    img_data = ihMTR, MTR
+    img_data = [ihMTR, MTR]
 
     # Compute saturation maps
     if args.in_mtoff_t1:            
@@ -349,13 +352,14 @@ def main():
             nib.save(nib.Nifti1Image(R1app, affine),
                      os.path.join(extended_dir, "R1app.nii.gz"))
 
-        MTsat_maps = MTsat_sp, MTsat_sn, MTsat_d
+        MTsat_maps = [MTsat_sp, MTsat_sn, MTsat_d]
 
         # Apply model-based B1 correction
         if args.in_B1_map and args.B1_correction_method == 'model_based':
             for i, MTsat_map in enumerate(MTsat_maps):
-                MTsat_map = apply_B1_corr_model_based(MTsat_map, B1_map, R1app,
-                                                      args.in_B1_fitvalues[i])
+                MTsat_maps[i] = apply_B1_corr_model_based(MTsat_map, B1_map,
+                                                          R1app,
+                                                          args.B1_fitvalues[i])
 
         # Compute MTsat and ihMTsat from saturations
         MTsat = (MTsat_maps[0] + MTsat_maps[1]) / 2
@@ -369,15 +373,15 @@ def main():
             ihMTsat = apply_B1_corr_empiric(ihMTsat, B1_map)
 
         img_name.extend(('ihMTsat', 'MTsat'))
-        img_data += ihMTsat, MTsat
+        img_data.extend((ihMTsat, MTsat))
 
     # Apply thresholds on maps
     upper_thresholds = [100, 100, 10, 100]
     idx_contrast_lists = [[0, 1, 2, 3, 4], [3, 4], [0, 1, 2, 3], [3, 4]]
     for i, map in enumerate(img_data):
-        map = threshold_map(map, args.mask, 0, upper_thresholds[i],
-                            idx_contrast_list=idx_contrast_lists[i],
-                            contrast_maps=contrast_maps)
+        img_data[i] = threshold_map(map, args.mask, 0, upper_thresholds[i],
+                                    idx_contrast_list=idx_contrast_lists[i],
+                                    contrast_maps=contrast_maps)
 
     # Save ihMT and MT images
     if args.filtering:
