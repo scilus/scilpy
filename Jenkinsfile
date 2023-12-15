@@ -24,7 +24,7 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.10') {
                     sh '''
-                        pip3 install pytest-cov
+                        pip3 install pytest-cov pytest-html
                         pip3 install wheel==0.38.*
                         pip3 install numpy==1.23.*
                         pip3 install packaging==23.*

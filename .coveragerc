@@ -1,0 +1,20 @@
+[run]
+branch = True
+concurrency = multiprocessing
+data_file = .test_reports/.coverage
+source =
+    scilpy/
+    scripts/
+omit =
+    scripts/tests/*.py
+    scilpy/tests/**/*.py
+    scilpy/**/tests/*.py
+    scilpy/**/tests/**/*.py
+    scripts/tests/*.py
+    scripts/tests/**/*.py
+
+[report]
+skip_empty = True
+
+[html]
+title = Scilpy Coverage Report
