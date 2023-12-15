@@ -16,7 +16,7 @@ acquisition (a prepulse), saturating the protons on non-aqueous molecules,
 by applying different frequency irradiation. The two MT maps and two ihMT maps
 are obtained using six contrasts: single positive frequency image, single
 negative frequency image, dual alternating positive/negative frequency image,
-dual alternating negative/positive frequency image (saturated images); 
+dual alternating negative/positive frequency image (saturated images);
 and two unsaturated contrasts as reference. These two references should be
 acquired with predominant PD (proton density) and T1 weighting at different
 excitation flip angles (a_PD, a_T1) and repetition times (TR_PD, TR_T1).
@@ -63,7 +63,7 @@ The final maps from ihMT_native_maps can be corrected for B1+ field
   or a model-based method with
   --in_B1_map option, suffix *B1_corrected is added for each map.
   --B1_correction_method model_based
-  --B1_fitValues 3 .mat files, obtained externally from 
+  --B1_fitValues 3 .mat files, obtained externally from
     https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction,
     and given in this order: positive frequency saturation, negative frequency
     saturation, dual frequency saturation.
@@ -190,7 +190,7 @@ def _build_arg_parser():
                     help='Acquisition parameters in that order: flip angle of '
                          'mtoff_PD, \nflip angle of mtoff_T1, repetition time '
                          'of mtoff_PD, \nrepetition time of mtoff_T1')
-    
+
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
                    help='Path to B1 coregister map to MT contrasts.')
@@ -268,8 +268,8 @@ def main():
         for curr_json in args.in_jsons:
             acq_parameter = get_acq_parameters(curr_json,
                                                ['RepetitionTime', 'FlipAngle'])
-            rep_times.append(acq_parameter[0] * 1000) # convert ms.
-            flip_angles.append(acq_parameter[1] * np.pi / 180.) # convert rad.
+            rep_times.append(acq_parameter[0] * 1000)  # convert ms.
+            flip_angles.append(acq_parameter[1] * np.pi / 180.)  # convert rad.
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
@@ -323,14 +323,14 @@ def main():
 
     # Compute ratio maps
     MTR, ihMTR = compute_ratio_map((contrast_maps[2] + contrast_maps[3]) / 2,
-                                    contrast_maps[4],
-                                    mt_on_dual=(contrast_maps[0] +
-                                                contrast_maps[1]) / 2)
+                                   contrast_maps[4],
+                                   mt_on_dual=(contrast_maps[0] +
+                                               contrast_maps[1]) / 2)
     img_name = ['ihMTR', 'MTR']
     img_data = [ihMTR, MTR]
 
     # Compute saturation maps
-    if args.in_mtoff_t1:            
+    if args.in_mtoff_t1:    
         MTsat_sp, T1app = compute_saturation_map(contrast_maps[3],
                                                  contrast_maps[4],
                                                  contrast_maps[5],
@@ -343,7 +343,7 @@ def main():
                                              contrast_maps[1]) / 2,
                                             contrast_maps[4], contrast_maps[5],
                                             flip_angles, rep_times)
-        R1app = 1000 / T1app # convert 1/ms to 1/s
+        R1app = 1000 / T1app  # convert 1/ms to 1/s
         if args.extended:
             nib.save(nib.Nifti1Image(MTsat_sp, affine),
                      os.path.join(extended_dir, "MTsat_sp.nii.gz"))

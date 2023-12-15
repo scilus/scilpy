@@ -13,7 +13,7 @@ associated with myelin content in white matter of the brain.
 
 Different contrasts can be done with an off-resonance pulse to saturating the
 protons on non-aqueous molecules a frequency irradiation. The MT maps are
-obtained using three or four contrasts: a single positive frequency image 
+obtained using three or four contrasts: a single positive frequency image
 and/or a single negative frequency image, and two unsaturated contrasts as
 reference. These two references should be acquired with predominant PD
 (proton density) and T1 weighting at different excitation flip angles
@@ -57,7 +57,7 @@ The final maps from MT_native_maps can be corrected for B1+ field
   or a model-based method with
   --in_B1_map option, suffix *B1_corrected is added for each map.
   --B1_correction_method model_based
-  --B1_fitValues 1 or 2 .mat files, obtained externally from 
+  --B1_fitValues 1 or 2 .mat files, obtained externally from
     https://github.com/TardifLab/OptimizeIHMTimaging/tree/master/b1Correction,
     and given in this order: positive frequency saturation, negative frequency
     saturation.
@@ -145,7 +145,7 @@ def _build_arg_parser():
                         'one is optional, \nsince it is only needed for the '
                         'calculation of MTsat. \nAcquisition '
                         'parameters should also be set with this image.')
-    
+
     a = p.add_argument_group(title='Acquisition parameters',
                              description='Acquisition parameters required '
                                          'for MTsat and ihMTsat '
@@ -169,7 +169,7 @@ def _build_arg_parser():
                     help='Acquisition parameters in that order: flip angle of '
                          'mtoff_PD, \nflip angle of mtoff_T1, repetition time '
                          'of mtoff_PD, \nrepetition time of mtoff_T1')
-    
+
     b = p.add_argument_group(title='B1 correction')
     b.add_argument('--in_B1_map',
                    help='Path to B1 coregister map to MT contrasts.')
@@ -226,7 +226,7 @@ def main():
         contrast_names.append('mtoff_T1')
 
     # check data
-    assert_inputs_exist(parser, args.in_mtoff_pd) # Problem with maps_flat...
+    assert_inputs_exist(parser, args.in_mtoff_pd)  # Problem with maps_flat...
     # cannot verify the not required input. Somehow it breaks the input_maps...
     # even if it is not linked at all. WTF.
     for curr_map in input_maps[1:]:
@@ -256,8 +256,8 @@ def main():
         for curr_json in args.in_jsons:
             acq_parameter = get_acq_parameters(curr_json,
                                                ['RepetitionTime', 'FlipAngle'])
-            rep_times.append(acq_parameter[0] * 1000) # convert ms.
-            flip_angles.append(acq_parameter[1] * np.pi / 180.) # convert rad.
+            rep_times.append(acq_parameter[0] * 1000)  # convert ms.
+            flip_angles.append(acq_parameter[1] * np.pi / 180.)  # convert rad.
 
     # Fix issue from the presence of invalide value and division by zero
     np.seterr(divide='ignore', invalid='ignore')
@@ -320,7 +320,7 @@ def main():
 
     # Compute MTsat
     if args.in_mtoff_t1:
-        MTsat_maps = []    
+        MTsat_maps = []
         if 'positive' in contrast_names_og:
             MTsat_sp, T1app = compute_saturation_map(contrast_maps[0],
                                                      contrast_maps[-2],
@@ -333,7 +333,7 @@ def main():
                                                      contrast_maps[-1],
                                                      flip_angles, rep_times)
             MTsat_maps.append(MTsat_sn)
-        R1app = 1000 / T1app # convert 1/ms to 1/s
+        R1app = 1000 / T1app  # convert 1/ms to 1/s
         if args.extended:
             if 'positive' in contrast_names_og:
                 nib.save(nib.Nifti1Image(MTsat_sp, affine),

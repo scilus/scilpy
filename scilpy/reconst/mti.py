@@ -149,7 +149,7 @@ def compute_ratio_map(mt_on_single, mt_off, mt_on_dual=None):
         # The factor 2 is there to account for the /2 in mt_on mean images.
         ihMTR = 2 * 100 * (mt_on_single - mt_on_dual) / mt_off
         return MTR, ihMTR
-    
+
     return MTR
 
 
