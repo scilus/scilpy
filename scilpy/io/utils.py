@@ -231,6 +231,11 @@ def add_force_b0_arg(parser):
 def add_verbose_arg(parser):
     parser.add_argument('-v', action='store_true', dest='verbose',
                         help='If set, produces verbose output.')
+    
+    version = importlib.metadata.version('scilpy')
+
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info("Scilpy version: {}".format(version))
 
 
 def add_bbox_arg(parser):
@@ -878,11 +883,4 @@ def get_default_screenshotting_data(args):
         mask_imgs, \
         masks_colors
 
-
-def add_scilpy_version(verbose = True):
-
-    version = importlib.metadata.version('scilpy')
-
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Scilpy version: {}".format(version))
 
