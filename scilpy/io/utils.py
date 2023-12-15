@@ -231,7 +231,7 @@ def add_force_b0_arg(parser):
 def add_verbose_arg(parser):
     parser.add_argument('-v', action='store_true', dest='verbose',
                         help='If set, produces verbose output.')
-    
+
     version = importlib.metadata.version('scilpy')
 
     logging.getLogger().setLevel(logging.INFO)
