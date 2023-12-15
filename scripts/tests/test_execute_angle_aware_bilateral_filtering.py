@@ -51,7 +51,8 @@ def test_asym_basis_output(
     if _mocks["bilateral_filtering"]:
         _mocks["bilateral_filtering"].assert_called_once()
 
-    assert_images_close(nib.load(expected_results), nib.load("out_fodf1.nii.gz"))
+    assert_images_close(nib.load(expected_results),
+                        nib.load("out_fodf1.nii.gz"))
 
 
 @pytest.mark.parametrize("in_fodf,expected_results,sym_fodf",
@@ -112,4 +113,5 @@ def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
     if _mocks["bilateral_filtering"]:
         _mocks["bilateral_filtering"].assert_called_once()
 
-    assert_images_close(nib.load(expected_results), nib.load("out_fodf3.nii.gz"))
+    assert_images_close(nib.load(expected_results),
+                        nib.load("out_fodf3.nii.gz"))

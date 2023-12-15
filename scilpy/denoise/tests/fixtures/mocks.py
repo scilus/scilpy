@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import nibabel as nib
 import numpy as np
@@ -6,6 +7,10 @@ import pytest
 
 @pytest.fixture(scope='function')
 def bilateral_filtering(mock_creator, expected_results):
+    """
+    Mock to patch the angle aware bilateral filtering function.
+    Needs to be namespace patched by scripts.
+    """
     def _mock_side_effect(*args, **kwargs):
         if expected_results is None or len(expected_results) == 0:
             return None
