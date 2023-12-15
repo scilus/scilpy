@@ -226,7 +226,9 @@ def main():
         contrast_names.append('mtoff_T1')
 
     # check data
-    assert_inputs_exist(parser, args.in_mtoff_pd) # Problem with maps_flat... cannot verify the not required input. Somehow it breaks the input_maps... even if it is not linked at all. WTF.
+    assert_inputs_exist(parser, args.in_mtoff_pd) # Problem with maps_flat...
+    # cannot verify the not required input. Somehow it breaks the input_maps...
+    # even if it is not linked at all. WTF.
     for curr_map in input_maps[1:]:
         if len(curr_map) != len(input_maps[0]):
             parser.error('Not the same number of echoes per contrast')
