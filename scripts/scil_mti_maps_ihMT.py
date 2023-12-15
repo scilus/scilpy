@@ -139,8 +139,8 @@ def _build_arg_parser():
 
     g = p.add_argument_group(title='Contrast maps', description='Path to '
                              'echoes corresponding to contrast images. All '
-                             'constrasts must have \nthe same number of echoes '
-                             'and coregistered between them. '
+                             'constrasts must have \nthe same number of '
+                             'echoes and coregistered between them. '
                              'Use * to include all echoes.')
     g.add_argument('--in_altnp', nargs='+', required=True,
                    help='Path to all echoes corresponding to the '
@@ -246,6 +246,8 @@ def main():
             parser.error('Not the same number of echoes per contrast')
     if len(input_maps[0]) == 1:
         single_echo = True
+    else:
+        single_echo = False
 
     if args.in_B1_map and not args.in_mtoff_t1:
         logging.warning('No B1 correction was applied because no MTsat or '

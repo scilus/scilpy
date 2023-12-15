@@ -65,7 +65,7 @@ from scilpy.io.utils import (get_acq_parameters, add_overwrite_arg,
                              assert_output_dirs_exist_and_empty)
 from scilpy.io.image import load_img
 from scilpy.image.volume_math import concatenate
-from scilpy.reconst.mti import (compute_contrasts_maps,
+from scilpy.reconst.mti import (process_contrast_map,
                                 compute_MT_maps, threshold_maps,
                                 apply_B1_correction)
 
@@ -82,32 +82,34 @@ def _build_arg_parser():
                                 formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument('out_dir',
                    help='Path to output folder.')
-    p.add_argument('in_mask',
-                   help='Path to the T1 binary brain mask. Must be the sum '
-                        'of the three tissue probability maps from '
-                        'T1 segmentation (GM+WM+CSF).')
     p.add_argument('--out_prefix',
                    help='Prefix to be used for each output image.')
-    p.add_argument('--in_B1_map',
-                   help='Path to B1 coregister map to MT contrasts.')
+    p.add_argument('--mask',
+                   help='Path to the binary brain mask.')
+    p.add_argument('--extended', action='store_true',
+                   help='If set, outputs the folder Complementary_maps.')
     p.add_argument('--filtering', action='store_true',
                    help='Gaussian filtering to remove Gibbs ringing. '
                         'Not recommended.')
 
-    g = p.add_argument_group(title='MT contrasts', description='Path to '
-                             'echoes corresponding to contrasts images. All '
-                             'constrasts must have the same number of echoes '
-                             'and coregistered between them.'
+    g = p.add_argument_group(title='Contrast maps', description='Path to '
+                             'echoes corresponding to contrast images. All '
+                             'constrasts must have \nthe same number of '
+                             'echoes and coregistered between them. '
                              'Use * to include all echoes.')
-    g.add_argument("--in_mtoff", nargs='+',
-                   help='Path to all echoes corresponding to the '
-                        'no frequency saturation pulse (reference image).')
     g.add_argument("--in_mton", nargs='+',
                    help='Path to all echoes corresponding to the '
-                        'Positive frequency saturation pulse.')
-    g.add_argument("--in_t1w", nargs='+',
-                   help='Path to all echoes corresponding to the '
-                        'T1-weigthed.')
+                        'positive frequency saturation pulse.')
+    g.add_argument("--in_mtoff_pd", nargs='+', required=True,
+                   help='Path to all echoes corresponding to the predominant '
+                        'PD \n(proton density) weighting images with no '
+                        'saturation pulse.')
+    g.add_argument("--in_mtoff_t1", nargs='+',
+                   help='Path to all echoes corresponding to the predominant '
+                        'T1 \nweighting images with no saturation pulse. This '
+                        'one is optional, \nsince it is only needed for the '
+                        'calculation of MTsat. \nAcquisition '
+                        'parameters should also be set with this image.')
 
     add_overwrite_arg(p)
 
@@ -171,7 +173,7 @@ def main():
             input_images.append(img)
         merged_curr_map = concatenate(input_images, input_images[0])
 
-        computed_contrasts.append(compute_contrasts_maps(
+        computed_contrasts.append(process_contrast_map(
             merged_curr_map, filtering=args.filtering))
 
         nib.save(nib.Nifti1Image(computed_contrasts[idx].astype(np.float32),
