@@ -43,7 +43,7 @@ def _build_arg_parser():
                    help='Output smoothed surface (.vtk).')
 
     p.add_argument('-m', '--vts_mask',
-                   help='Vertex mask, no smoothing where mask equals 0 (.npy).')
+                   help='Vertex mask no smoothing where mask equals 0 (.npy).')
 
     p.add_argument('-n', '--nb_steps', type=int, default=2,
                    help='Number of steps for laplacian smooth [%(default)s].')
