@@ -153,62 +153,6 @@ def compute_ratio_map(mt_on_single, mt_off, mt_on_dual=None):
     return MTR
 
 
-def compute_MT_maps(contrasts_maps, acq_parameters):
-    """
-    Compute Magnetization transfer ratio and saturation maps.
-    MT ratio is computed as the percentage difference of two images, one
-    acquired with off-resonance saturation (MT-on) and one without (MT-off).
-    MT saturation is computed from apparent longitudinal relaxation time
-    (T1app) and apparent signal amplitude (Aapp). The estimation of the MT
-    saturation includes correction for the effects of excitation flip angle
-    and longitudinal relaxation time, and remove the effect of T1-weighted
-    image.
-        cPD : contrast proton density
-            1 : reference proton density (MT-off)
-            2 : mean of positive and negative proton density (MT-on)
-        cT1 : contrast T1-weighted
-        num : numberator
-        den : denumerator
-
-    see Helms et al., 2008
-    https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.21732
-
-    Parameters
-    ----------
-    contrasts_maps:      List of 3D-array constrats matrices : list of all
-                        contrast maps computed with compute_ihMT_contrasts
-    acq_parameters:     List of TR and Flipangle for ihMT and T1w images
-                        [TR, Flipangle]
-    Returns
-    -------
-    MT ratio and MT saturation matrice in 3D-array.
-    """
-    # Compute MT Ratio map
-    MTR = 100*(contrasts_maps[0] - contrasts_maps[1]) / contrasts_maps[0]
-
-    # Compute MT saturation maps: cPD1 = mt-off; cPD2 = mt-on
-    cPD1 = contrasts_maps[0]
-    cPD2 = contrasts_maps[1]
-    cT1 = contrasts_maps[2]
-
-    Aapp_num = ((acq_parameters[0][0] / (acq_parameters[0][1]**2)) -
-                (acq_parameters[1][0] / (acq_parameters[1][1]**2)))
-    Aapp_den = (((acq_parameters[0][0]) / (acq_parameters[0][1]*cPD1)) -
-                ((acq_parameters[1][0]) / (acq_parameters[1][1]*cT1)))
-    Aapp = Aapp_num / Aapp_den
-
-    T1app_num = ((cPD1 / acq_parameters[0][1]) - (cT1 / acq_parameters[1][1]))
-    T1app_den = ((cT1*acq_parameters[1][1]) / (2*acq_parameters[1][0]) -
-                 (cPD1*acq_parameters[0][1]) / (2*acq_parameters[0][0]))
-    T1app = T1app_num / T1app_den
-
-    MTsat = 100*(((Aapp*acq_parameters[0][1]*acq_parameters[0][0]/T1app) /
-                  cPD2) - (acq_parameters[0][0]/T1app) -
-                 (acq_parameters[0][1]**2)/2)
-
-    return MTR, MTsat
-
-
 def threshold_map(computed_map,  in_mask,
                   lower_threshold, upper_threshold,
                   idx_contrast_list=None, contrast_maps=None):
