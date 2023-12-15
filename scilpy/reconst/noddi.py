@@ -18,7 +18,7 @@ def get_evaluator(dwi, scheme_filename, mask, para_diff, iso_diff,
         ae.set_model("NODDI")
 
         ae.model.set(para_diff, iso_diff, intra_vol_fraction,
-                    intra_orientation_dist, False)
+                     intra_orientation_dist, False)
 
         ae.set_solver(lambda1=lambda1, lambda2=lambda2)
 

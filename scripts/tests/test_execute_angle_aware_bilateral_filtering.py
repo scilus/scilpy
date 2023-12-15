@@ -27,14 +27,13 @@ def test_help_option(script_runner):
     [[os.path.join(data_path, 'fodf_descoteaux07_sub.nii.gz'),
       os.path.join(data_path, 'fodf_descoteaux07_sub_full.nii.gz')]],
     scope='function')
-def test_asym_basis_output(
-    script_runner, in_fodf, expected_results, mock_collector, request):
+def test_asym_basis_output(script_runner, in_fodf, expected_results,
+                           mock_collector):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mocks = mock_collector(["bilateral_filtering"],
-                            "scripts.scil_execute_angle_aware_bilateral_filtering")
+    _namespace = "scripts.scil_execute_angle_aware_bilateral_filtering"
+    _mocks = mock_collector(["bilateral_filtering"], _namespace)
 
-    print(request.fixturenames)
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
                             'out_fodf1.nii.gz',
@@ -60,12 +59,12 @@ def test_asym_basis_output(
       os.path.join(data_path, "fodf_descoteaux07_sub_full.nii.gz"),
       os.path.join(data_path, "fodf_descoteaux07_sub_sym.nii.gz")]],
     scope='function')
-def test_sym_basis_output(
-    script_runner, in_fodf, expected_results, sym_fodf, mock_collector):
+def test_sym_basis_output(script_runner, in_fodf, expected_results, sym_fodf,
+                          mock_collector):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mocks = mock_collector(["bilateral_filtering"],
-                            "scripts.scil_execute_angle_aware_bilateral_filtering")
+    _namespace = "scripts.scil_execute_angle_aware_bilateral_filtering"
+    _mocks = mock_collector(["bilateral_filtering"], _namespace)
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,
@@ -94,8 +93,8 @@ def test_sym_basis_output(
 def test_asym_input(script_runner, in_fodf, expected_results, mock_collector):
 
     os.chdir(os.path.expanduser(tmp_dir.name))
-    _mocks = mock_collector(["bilateral_filtering"],
-                            "scripts.scil_execute_angle_aware_bilateral_filtering")
+    _namespace = "scripts.scil_execute_angle_aware_bilateral_filtering"
+    _mocks = mock_collector(["bilateral_filtering"], _namespace)
 
     ret = script_runner.run('scil_execute_angle_aware_bilateral_filtering.py',
                             in_fodf,

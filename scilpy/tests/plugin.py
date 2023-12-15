@@ -34,7 +34,7 @@ To make mock creation and collection in test instances, and to allow for a more
 granular selection of mocks from mocking modules, this plugin provides two
 fixtures:
 
-- mock_creator : the mock_creator fixture exposes the bases interface of 
+- mock_creator : the mock_creator fixture exposes the bases interface of
                  unittest.mock patchers, but with a more convenient syntax. It
                  is able to patch mutliple attributes at once, and can be
                  configured to create the patched object if it does not exist.
@@ -49,9 +49,9 @@ Creating a new mock is done using the mock_creator fixture. All mocks must be
 placed inside the scilpy library, in the tests directories of their respective
 modules, in fixtures/mocks.py. This is own they get discovered by the plugin.
 
-- A mock fixture must have a relevant name (e.g. amico_evaluator patches several
-  parts of the amico.Evaluation class). Its return value is the result of
-  calling the mock_creator fixture.
+- A mock fixture must have a relevant name (e.g. amico_evaluator patches
+  several parts of the amico.Evaluation class). Its return value is the result
+  of calling the mock_creator fixture.
 
 - The mock_creator fixture does not need to be imported, it is provided
   automatically by the pytest framework. Simply add mock_creator as a parameter
@@ -59,9 +59,9 @@ modules, in fixtures/mocks.py. This is own they get discovered by the plugin.
 
 Using mocks in tests is done using the mock_collector fixture. Like the
 mock_creator, it is provided automatically by the pytest framework. Simply
-add mock_collector as a parameter to the test function that requires mocking. To
-use the mocks, call the mock_collector fixture with the list of mock names to
-use. Additionally, the mock_collector fixture can be used to modify the
+add mock_collector as a parameter to the test function that requires mocking.
+To use the mocks, call the mock_collector fixture with the list of mock names
+to use. Additionally, the mock_collector fixture can be used to modify the
 namespace into which the mocks are injected, by providing a patch_path argument
 as a second parameter. The returned dictionary indexes loaded mocks by their
 name and can be used to assert their usage throughout the test case.
@@ -160,14 +160,15 @@ def mock_creator(mocker):
 
         def _patcher(module_name=None):
             _base = base_module if module_name is None else module_name
+            _mock_target = "{}.{}".format(_base, object_name)
 
             if mock_attributes is not None:
-                return mocker.patch.multiple("{}.{}".format(_base, object_name),
+                return mocker.patch.multiple(_mock_target,
                                              **{a: AUTOMOCK
                                                 for a in mock_attributes})
 
-            return mocker.patch("{}.{}".format(_base, object_name),
-                                side_effect=side_effect, create=True)
+            return mocker.patch(_mock_target, side_effect=side_effect,
+                                create=True)
 
         return _patcher
 

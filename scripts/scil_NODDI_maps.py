@@ -132,14 +132,14 @@ def main():
 
         # One of those is going to be None, or have a value.If it is a valid
         # kernels path, then everything will work in get_evaluator.
-        kernels_dir = (args.save_kernels or 
+        kernels_dir = (args.save_kernels or
                        args.load_kernels or
                        os.path.join(tmp_dir.name, 'kernels'))
 
         # Load the data
         amico = get_evaluator(args.in_dwi, tmp_scheme_filename, args.mask,
                               args.para_diff, args.iso_diff,
-                              args.lambda1,args.lambda2,
+                              args.lambda1, args.lambda2,
                               intra_vol_frac, intra_orient_distr,
                               kernels_dir=kernels_dir)
 
