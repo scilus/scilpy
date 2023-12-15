@@ -63,6 +63,13 @@ pipeline {
                         pullRequest.createReviewRequests(['frheault'])
                     }
                 }
+                xunit(
+                    checksName: '',
+                    tools: [JUnit(excludesPattern: '', failIfNotNew: false,
+                            pattern: '**/.test_reports/junit.xml',
+                            skipNoTestFiles: true,
+                            stopProcessingIfError: true)]
+                )
             }
         }
         failure {
