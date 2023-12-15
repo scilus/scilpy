@@ -1,4 +1,4 @@
-bids-validator==1.9.*
+bids-validator==1.11.*
 bctpy==0.5.*
 bz2file==0.98.*
 coloredlogs==15.0.*
@@ -18,13 +18,13 @@ h5py==3.7.*
 joblib==1.2.*
 kiwisolver==1.4.*
 matplotlib==3.6.*
-nibabel==4.0.*
+nibabel==5.2.*
 nilearn==0.9.*
 numpy==1.23.*
 openpyxl==3.0.*
 packaging == 23.2.*
 Pillow==10.0.*
-pybids==0.15.*
+pybids==0.16.*
 pyparsing==3.0.*
 PySocks==1.7.*
 pytest==7.2.*
@@ -40,6 +40,3 @@ spams==2.6.*
 statsmodels==0.13.*
 trimeshpy==0.0.3
 vtk==9.2.*
-# Dipy requirements
-h5py>=2.8.0
-tqdm>=4.30.0
