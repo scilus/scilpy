@@ -24,13 +24,14 @@ pipeline {
             steps {
                 withPythonEnv('CPython-3.10') {
                     sh '''
+                        pip3 install pytest-cov
                         pip3 install wheel==0.38.*
                         pip3 install numpy==1.23.*
                         pip3 install packaging==23.*
                         pip3 install -e .
                         export MPLBACKEND="agg"
                         export OPENBLAS_NUM_THREADS=1
-                        pytest -v
+                        pytest --cov-report=xml --cov-report term-missing:skip-covered --cov=scilpy
                     '''
                 }
             }
