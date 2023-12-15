@@ -330,7 +330,7 @@ def main():
     img_data = [ihMTR, MTR]
 
     # Compute saturation maps
-    if args.in_mtoff_t1:    
+    if args.in_mtoff_t1:
         MTsat_sp, T1app = compute_saturation_map(contrast_maps[3],
                                                  contrast_maps[4],
                                                  contrast_maps[5],
