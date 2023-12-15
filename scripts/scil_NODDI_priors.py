@@ -79,8 +79,8 @@ def _build_arg_parser():
                     help='Output path for the ventricule mask.\nIf not set, '
                          'the mask will not be saved.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

@@ -25,8 +25,8 @@ def _build_arg_parser():
     p.add_argument('fsl_bvec',
                    help='Path to output FSL gradient directions file (.bvec).')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

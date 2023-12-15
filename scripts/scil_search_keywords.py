@@ -22,7 +22,7 @@ import subprocess
 
 import numpy as np
 
-from scilpy.io.utils import add_verbose_arg
+from scilpy.io.utils import add_scilpy_version, add_verbose_arg
 
 RED = '\033[31m'
 BOLD = '\033[1m'
@@ -41,7 +41,10 @@ def _build_arg_parser():
                    help='Search through and display the full script argparser '
                         'instead of looking only at the docstring. (warning: '
                         'much slower).')
+
+    add_scilpy_version()
     add_verbose_arg(p)
+
     return p
 
 

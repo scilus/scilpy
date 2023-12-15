@@ -13,6 +13,7 @@ from nibabel.streamlines import detect_format, TrkFile
 import numpy as np
 
 from scilpy.io.utils import (add_bbox_arg,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
@@ -34,8 +35,10 @@ def _build_arg_parser():
                         ' voxels, creating a binary map.\n'
                         'When set without a value, 1 is used (and dtype uint8).\n'
                         'If a value is given, will be used as the stored value.')
-    add_overwrite_arg(p)
+
     add_bbox_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

@@ -64,8 +64,8 @@ def _build_arg_parser():
                         'Add these options using quotes (i.e. "--fwhm=6'
                         ' --miter=4").')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

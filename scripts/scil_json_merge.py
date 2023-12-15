@@ -11,7 +11,8 @@ import json
 import os
 
 from scilpy.io.utils import (add_overwrite_arg, add_json_args,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, add_verbose_arg,
+                             assert_outputs_exist)
 from scilpy.tractanalysis.json_utils import merge_dict, average_dict
 
 
@@ -36,7 +37,9 @@ def _build_arg_parser():
                    help='Merge all entries at the lowest layers.')
     p.add_argument('--average_last_layer', action='store_true',
                    help='Average all entries at the lowest layers.')
+
     add_json_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
