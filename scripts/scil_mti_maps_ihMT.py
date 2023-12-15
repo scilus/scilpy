@@ -55,6 +55,7 @@ As an option, the Complementary_maps folder contains the following images:
     - R1app.nii.gz : Apparent R1 map computed for MTsat.
     - B1_map.nii.gz : B1 map after correction and smoothing (if given).
 
+
 The final maps from ihMT_native_maps can be corrected for B1+ field
   inhomogeneity, using either an empiric method with
   --in_B1_map option, suffix *B1_corrected is added for each map.
@@ -72,14 +73,13 @@ For both methods, the nominal value of the B1 map can be set with
 
 >>> scil_mti_maps_ihMT.py path/to/output/directory
     --in_altnp path/to/echo*altnp.nii.gz --in_altpn path/to/echo*altpn.nii.gz
-    --in_mtoff_pd path/to/echo*mtoff.nii.gz --in_negative path/to/echo*neg.nii.gz
-    --in_positive path/to/echo*pos.nii.gz --in_mtoff_t1 path/to/echo*T1w.nii.gz
-    --mask path/to/mask_bin.nii.gz
+    --in_mtoff_pd path/to/echo*mtoff.nii.gz
+    --in_negative path/to/echo*neg.nii.gz --in_positive path/to/echo*pos.nii.gz
+    --in_mtoff_t1 path/to/echo*T1w.nii.gz --mask path/to/mask_bin.nii.gz
 
 By default, the script uses all the echoes available in the input folder.
-If you want to use a single echo add --single_echo to the command line and
-replace the * with the specific number of the echo.
-
+If you want to use a single echo, replace the * with the specific number of
+the echo.
 """
 
 import argparse
@@ -198,8 +198,9 @@ def _build_arg_parser():
                    choices=['empiric', 'model_based'], default='empiric',
                    help='Choice of B1 correction method. Choose between '
                         'empiric and model-based. \nNote that the model-based '
-                        'method requires a B1 fitvalues file, \nand will only '
-                        'correct the saturation measures. [%(default)s]')
+                        'method requires a B1 fitvalues file. \nBoth method '
+                        'will only correct the saturation measures. '
+                        '[%(default)s]')
     b.add_argument('--B1_fitvalues', nargs=3,
                    help='Path to B1 fitvalues files obtained externally. '
                         'Should be three .mat \nfiles given in this specific '
@@ -292,17 +293,17 @@ def main():
                      os.path.join(extended_dir, "B1_map.nii.gz"))
 
     # Define contrasts maps names
-    contrasts_name = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
+    contrast_names = ['altnp', 'altpn', 'negative', 'positive', 'mtoff_PD',
                       'mtoff_T1']
     if args.filtering:
-        contrasts_name = [curr_name + '_filter'
-                          for curr_name in contrasts_name]
+        contrast_names = [curr_name + '_filter'
+                          for curr_name in contrast_names]
     if single_echo:
-        contrasts_name = [curr_name + '_single_echo'
-                          for curr_name in contrasts_name]
+        contrast_names = [curr_name + '_single_echo'
+                          for curr_name in contrast_names]
     if args.out_prefix:
-        contrasts_name = [args.out_prefix + '_' + curr_name
-                          for curr_name in contrasts_name]
+        contrast_names = [args.out_prefix + '_' + curr_name
+                          for curr_name in contrast_names]
 
 # Compute contrasts maps
     contrast_maps = []
@@ -319,7 +320,7 @@ def main():
             nib.save(nib.Nifti1Image(contrast_maps[idx].astype(np.float32),
                                      affine),
                      os.path.join(extended_dir,
-                                  contrasts_name[idx] + '.nii.gz'))
+                                  contrast_names[idx] + '.nii.gz'))
 
     # Compute ratio maps
     MTR, ihMTR = compute_ratio_map((contrast_maps[2] + contrast_maps[3]) / 2,
