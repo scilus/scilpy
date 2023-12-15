@@ -31,9 +31,10 @@ def _build_arg_parser():
                    help='Input file (json).')
     p.add_argument('out_file',
                    help='Output file (json).')
+
     add_json_args(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

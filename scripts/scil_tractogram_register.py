@@ -48,8 +48,8 @@ def _build_arg_parser():
 
     add_reference_arg(p, 'moving_tractogram')
     add_reference_arg(p, 'static_tractogram')
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

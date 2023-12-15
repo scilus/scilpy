@@ -26,7 +26,7 @@ import numpy as np
 
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 from scilpy.reconst.sh import compute_rish
 
 
@@ -43,6 +43,7 @@ def _build_arg_parser():
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computation.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

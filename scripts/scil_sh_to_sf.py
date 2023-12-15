@@ -21,7 +21,7 @@ from dipy.io import read_bvals_bvecs
 
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_processes_arg, add_sh_basis_args,
-                             assert_inputs_exist,
+                             assert_inputs_exist, add_verbose_arg,
                              assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.sh import convert_sh_to_sf
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold)
@@ -71,9 +71,9 @@ def _build_arg_parser():
                         "coefficients.")
 
     add_processes_arg(p)
-
-    add_overwrite_arg(p)
+    add_verbose_arg(p)
     add_force_b0_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
