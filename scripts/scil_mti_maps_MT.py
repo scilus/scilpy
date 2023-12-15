@@ -211,24 +211,22 @@ def main():
                                            create_dir=True)
 
     # Merge all echos path into a list
-    input_maps = [args.in_mtoff_pd]
-    maps_flat = (args.in_mtoff_pd)
-    contrast_names = ['mtoff_PD']
+    input_maps = []
+    contrast_names = []
     if args.in_positive:
         input_maps.append(args.in_positive)
-        maps_flat += args.in_positive
         contrast_names.append('positive')
     if args.in_negative:
         input_maps.append(args.in_negative)
-        maps_flat += args.in_negative
         contrast_names.append('negative')
+    input_maps.append(args.in_mtoff_pd)
+    contrast_names.append('mtoff_PD')
     if args.in_mtoff_t1:
         input_maps.append(args.in_mtoff_t1)
-        maps_flat += args.in_mtoff_t1
         contrast_names.append('mtoff_T1')
 
     # check data
-    assert_inputs_exist(parser, maps_flat)
+    assert_inputs_exist(parser, args.in_mtoff_pd) # Problem with maps_flat... cannot verify the not required input. Somehow it breaks the input_maps... even if it is not linked at all. WTF.
     for curr_map in input_maps[1:]:
         if len(curr_map) != len(input_maps[0]):
             parser.error('Not the same number of echoes per contrast')
@@ -280,6 +278,7 @@ def main():
                      os.path.join(extended_dir, "B1_map.nii.gz"))
 
     # Define contrasts maps names
+    contrast_names_og = contrast_names
     if args.filtering:
         contrast_names = [curr_name + '_filter'
                           for curr_name in contrast_names]
@@ -308,36 +307,36 @@ def main():
                                   contrast_names[idx] + '.nii.gz'))
 
     # Compute MTR
-    if 'positive' in contrast_names and 'negative' in contrast_names:
-        MTR = compute_ratio_map((contrast_maps[1] + contrast_maps[2]) / 2,
-                                contrast_maps[0])
+    if 'positive' in contrast_names_og and 'negative' in contrast_names_og:
+        MTR = compute_ratio_map((contrast_maps[0] + contrast_maps[1]) / 2,
+                                contrast_maps[2])
     else:
-        MTR = compute_ratio_map(contrast_maps[1], contrast_maps[0])
+        MTR = compute_ratio_map(contrast_maps[0], contrast_maps[1])
 
     img_name = ['MTR']
     img_data = [MTR]
 
     # Compute MTsat
     if args.in_mtoff_t1:
-        MTsat_maps = []     
-        if 'positive' in contrast_names:
-            MTsat_sp, T1app = compute_saturation_map(contrast_maps[1],
-                                                     contrast_maps[0],
+        MTsat_maps = []    
+        if 'positive' in contrast_names_og:
+            MTsat_sp, T1app = compute_saturation_map(contrast_maps[0],
+                                                     contrast_maps[-2],
                                                      contrast_maps[-1],
                                                      flip_angles, rep_times)
             MTsat_maps.append(MTsat_sp)
-        if 'negative' in contrast_names:
-            MTsat_sn, T1app = compute_saturation_map(contrast_maps[-2],
-                                                     contrast_maps[0],
+        if 'negative' in contrast_names_og:
+            MTsat_sn, T1app = compute_saturation_map(contrast_maps[-3],
+                                                     contrast_maps[-2],
                                                      contrast_maps[-1],
                                                      flip_angles, rep_times)
             MTsat_maps.append(MTsat_sn)
         R1app = 1000 / T1app # convert 1/ms to 1/s
         if args.extended:
-            if 'positive' in contrast_names:
+            if 'positive' in contrast_names_og:
                 nib.save(nib.Nifti1Image(MTsat_sp, affine),
                          os.path.join(extended_dir, "MTsat_sp.nii.gz"))
-            if 'negative' in contrast_names:
+            if 'negative' in contrast_names_og:
                 nib.save(nib.Nifti1Image(MTsat_sn, affine),
                          os.path.join(extended_dir, "MTsat_sn.nii.gz"))
             nib.save(nib.Nifti1Image(R1app, affine),
@@ -351,7 +350,7 @@ def main():
                                                           args.B1_fitvalues[i])
 
         # Compute MTsat and ihMTsat from saturations
-        if 'positive' in contrast_names and 'negative' in contrast_names:
+        if 'positive' in contrast_names_og and 'negative' in contrast_names_og:
             MTsat = (MTsat_maps[0] + MTsat_maps[1]) / 2
         else:
             MTsat = MTsat_maps[0]
@@ -361,8 +360,8 @@ def main():
             # MTR = apply_B1_correction_empiric(MTR, B1_map)
             MTsat = apply_B1_corr_empiric(MTsat, B1_map)
 
-        img_name.extend(('MTsat'))
-        img_data.extend((MTsat))
+        img_name.append('MTsat')
+        img_data.append(MTsat)
 
     # Apply thresholds on maps
     for i, map in enumerate(img_data):
@@ -382,7 +381,6 @@ def main():
         img_name = [args.out_prefix + '_' + curr_name
                     for curr_name in img_name]
 
-    img_data = MTR, MTsat
     for img_to_save, name in zip(img_data, img_name):
         nib.save(nib.Nifti1Image(img_to_save.astype(np.float32),
                                  affine),

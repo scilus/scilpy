@@ -238,10 +238,9 @@ def main():
                  args.in_positive + args.in_mtoff_pd)
     if args.in_mtoff_t1:
         input_maps.append(args.in_mtoff_t1)
-        maps_flat += args.in_mtoff_t1
 
     # check echoes number and jsons
-    assert_inputs_exist(parser, maps_flat)
+    assert_inputs_exist(parser, maps_flat, optional=args.in_mtoff_t1)
     for curr_map in input_maps[1:]:
         if len(curr_map) != len(input_maps[0]):
             parser.error('Not the same number of echoes per contrast')
