@@ -222,7 +222,7 @@ def adjust_B1_map_intensities(B1_map, nominal=100):
     med_bB = np.nanmedian(np.where(B1_map == 0, np.nan, B1_map))
     if not np.isclose(med_bB, 1.0, atol=0.2):
         raise ValueError("Intensities of the B1 map are wrong.")
-    # B1_map = np.clip(b1_map, 0.5, 1.4)
+    B1_map = np.clip(B1_map, 0.5, 1.5)
     return B1_map
 
 

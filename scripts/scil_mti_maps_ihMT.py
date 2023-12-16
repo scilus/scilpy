@@ -284,6 +284,10 @@ def main():
         B1_map = adjust_B1_map_intensities(B1_map, nominal=args.B1_nominal)
         B1_map = smooth_B1_map(B1_map, wdims=args.B1_smooth_dims)
         if args.B1_correction_method == 'model_based':
+            # Apply shift to the B1 map for better correction
+            shift = 0.05
+            expt = 1.3
+            B1_map = (B1_map + shift) ** expt
             # Apply the B1 map to the flip angles for model-based correction
             flip_angles[0] *= B1_map
             flip_angles[1] *= B1_map
@@ -378,7 +382,7 @@ def main():
         img_data.extend((ihMTsat, MTsat))
 
     # Apply thresholds on maps
-    upper_thresholds = [100, 100, 10, 100]
+    upper_thresholds = [100, 100, 10, 10]
     idx_contrast_lists = [[0, 1, 2, 3, 4], [3, 4], [0, 1, 2, 3], [3, 4]]
     for i, map in enumerate(img_data):
         img_data[i] = threshold_map(map, args.mask, 0, upper_thresholds[i],
