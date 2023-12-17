@@ -14,14 +14,11 @@ import nibabel as nib
 import numpy as np
 from dipy.data import SPHERE_FILES
 from dipy.io.utils import is_header_compatible
-from fury import window
-from PIL import Image
 from scipy.io import loadmat
 import six
 
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
-from scilpy.utils.util import RAS_AXES_NAMES
 from scilpy.utils.util import RAS_AXES_NAMES
 
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
@@ -958,16 +955,6 @@ def parser_color_type(arg):
         raise argparse.ArgumentTypeError(
             "Argument must be < " + str(MAX_VAL) + "and > " + str(MIN_VAL))
     return f
-
-
-def snapshot(scene, filename, **kwargs):
-    """ Wrapper around fury.window.snapshot
-    For some reason, fury.window.snapshot flips the image vertically.
-    This image unflips the image and then saves it.
-    """
-    out = window.snapshot(scene, **kwargs)
-    image = Image.fromarray(out[::-1])
-    image.save(filename)
 
 
 def ranged_type(value_type, min_value=None, max_value=None):

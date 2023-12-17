@@ -46,11 +46,11 @@ from scilpy.io.utils import (add_json_args,
                              assert_headers_compatible,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
-                             parser_color_type,
-                             snapshot)
-from scilpy.viz.backends.fury import create_interactive_window, create_scene
+                             parser_color_type)
+from scilpy.viz.backends.fury import create_interactive_window, create_scene, snapshot_scenes
 from scilpy.viz.backends.vtk import create_tube_with_radii
 from scilpy.viz.color import get_lookup_table
+from scilpy.viz.screenshot import compose_image
 
 
 def _build_arg_parser():
@@ -208,6 +208,12 @@ def fit_circle_in_space(positions, directions, dist_w=None):
     return center, radius, error
 
 
+def snapshot(scene, win_dims, output_filename):
+    snapshot = next(snapshot_scenes([scene], win_dims))
+    img = compose_image(snapshot, win_dims, "TODO")
+    img.save(output_filename)
+
+
 def main():
     parser = _build_arg_parser()
     args = parser.parse_args()
@@ -322,35 +328,29 @@ def main():
     elif args.save_rendering:
         # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'superior.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'superior.png'))
 
         scene.pitch(180)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'inferior.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'inferior.png'))
 
         scene.pitch(90)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'posterior.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims,  os.path.join(args.save_rendering, 'posterior.png'))
 
         scene.pitch(180)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'anterior.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'anterior.png'))
 
         scene.yaw(90)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'right.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'right.png'))
 
         scene.yaw(180)
         scene.reset_camera()
-        snapshot(scene, os.path.join(args.save_rendering, 'left.png'),
-                 size=args.win_dims, offscreen=True)
+        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'left.png'))
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
