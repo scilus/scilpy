@@ -7,8 +7,9 @@ from tempfile import mkstemp
 from dipy.data import get_sphere
 from fury import actor, window
 
-from scilpy.io.utils import snapshot
 from scilpy.viz.color import generate_n_colors
+from scilpy.viz.backends.fury import snapshot_scenes
+from scilpy.viz.screenshot import compose_image
 
 
 def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
@@ -72,7 +73,9 @@ def plot_each_shell(ms, centroids, plot_sym_vecs=True, use_sphere=True,
 
         if ofile:
             filename = ofile + '_shell_' + str(int(centroids[i])) + '.png'
-            snapshot(scene, filename, size=ores)
+            snapshot = next(snapshot_scenes([scene], ores))
+            img = compose_image(snapshot, ores, "G")
+            img.save(filename)
 
 
 def plot_proj_shell(ms, use_sym=True, use_sphere=True, same_color=False,

@@ -8,7 +8,8 @@ def display_slices(volume_actor, slices,
                    peaks_actor=None, streamlines_actor=None,
                    roi_actors=None):
 
-    from scilpy.io.utils import snapshot
+    from scilpy.viz.backends.fury import snapshot_scenes
+    from scilpy.viz.screenshot import compose_image
     from fury import window
 
     # Setting for the slice of interest
@@ -43,4 +44,6 @@ def display_slices(volume_actor, slices,
                      view_up=view_up_vector,
                      focal_point=focal_point)
 
-    snapshot(scene, output_filename, size=(1920, 1080), offscreen=True)
+    snapshot = next(snapshot_scenes([scene], (1920, 1080)))
+    img = compose_image(snapshot, (1920, 1080), "TODO")
+    img.save(output_filename)
