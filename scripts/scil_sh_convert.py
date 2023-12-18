@@ -17,7 +17,7 @@ import numpy as np
 
 from scilpy.reconst.sh import convert_sh_basis
 from scilpy.io.utils import (add_overwrite_arg, add_sh_basis_args,
-                             add_processes_arg,
+                             add_processes_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 
@@ -39,7 +39,9 @@ def _build_arg_parser():
 
     add_sh_basis_args(p, mandatory=True)
     add_processes_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

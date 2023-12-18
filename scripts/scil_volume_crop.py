@@ -18,6 +18,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.util import compute_nifti_bounding_box
@@ -36,6 +37,8 @@ def _build_arg_parser():
                    help='Ignore voxel size compatibility test between input '
                         'bounding box and data. Warning, use only if you '
                         'know what you are doing.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     g1 = p.add_mutually_exclusive_group()

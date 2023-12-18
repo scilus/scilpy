@@ -74,9 +74,9 @@ def _build_arg_parser():
     p.add_argument('--use_gpu', action='store_true',
                    help='Use GPU for computation.')
 
+    add_processes_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_processes_arg(p)
 
     return p
 
