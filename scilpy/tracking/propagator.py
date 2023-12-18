@@ -10,8 +10,7 @@ from dipy.reconst.shm import sh_to_sf_matrix
 
 from scilpy.reconst.utils import (get_sphere_neighbours,
                                   get_sh_order_and_fullness)
-from scilpy.tracking.tools import sample_distribution
-from scilpy.tracking.utils import TrackingDirection
+from scilpy.tracking.utils import sample_distribution, TrackingDirection
 
 
 class PropagationStatus(Enum):
