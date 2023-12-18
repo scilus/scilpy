@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def parallel_transport_streamline(streamline, nb_streamlines, radius):
+def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.
 
@@ -54,6 +54,8 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius):
                          [z * x * (1 - c) - y * s,
                           z * y * (1 - c) + x * s,
                           c + z**2 * (1 - c)]])
+    if rng is None:
+        rng = np.random.default_rng(0)
 
     # Compute the tangent at each point of the streamline
     T = np.gradient(streamline, axis=0)
@@ -91,8 +93,9 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius):
     new_streamlines = []
     for i in range(nb_streamlines):
         # Get a random number between -1 and 1
-        rand_v = (np.random.rand() * 2 - 1)
-        rand_w = (np.random.rand() * 2 - 1)
+        rand_v = rng.uniform(-1, 1)
+        rand_w = rng.uniform(-1, 1)
+
         # Compute the norm of the "displacement"
         norm = np.sqrt(rand_v**2 + rand_w**2)
         # Displace the normal and binormal vectors by a random amount
@@ -104,7 +107,7 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius):
         # parallel frame. Make sure to normalize the displacement vector
         # so that the new streamline is in a circle around the original one.
 
-        new_s = streamline + (np.random.rand() * VW / norm) * radius
+        new_s = streamline + (rng.uniform(0, 1) * VW / norm) * radius
         new_streamlines.append(new_s)
 
     return new_streamlines
