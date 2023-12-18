@@ -10,7 +10,7 @@ from dipy.io.utils import is_header_compatible
 import nibabel as nib
 import numpy as np
 
-from scilpy.utils.util import str_to_index
+from scilpy.gradients.bvec_bval_tools import str_to_axis_index
 
 
 def load_fdf(file_path):
@@ -385,12 +385,12 @@ def write_gradient_information(dwi_header, b0_header,
             bvecs[2, :] = b0_header['diff_z'] + dwi_header['diff_z']
 
             if flip:
-                axes = [str_to_index(axis) for axis in list(flip)]
+                axes = [str_to_axis_index(axis) for axis in list(flip)]
                 for axis in axes:
                     bvecs[axis, :] *= -1
 
             if swap:
-                axes = [str_to_index(axis) for axis in list(swap)]
+                axes = [str_to_axis_index(axis) for axis in list(swap)]
                 new_bvecs = np.zeros(bvecs.shape)
                 new_bvecs[axes[0], :] = bvecs[axes[1], :]
                 new_bvecs[axes[1], :] = bvecs[axes[0], :]
@@ -402,7 +402,7 @@ def write_gradient_information(dwi_header, b0_header,
             'Could not save gradient. Some keys are missing.')
 
 
-def correct_dwi_intensity(dwi_data, dwi_path, b0_path):
+def correct_procpar_intensity(dwi_data, dwi_path, b0_path):
     """Applies a linear value correction based on gain difference
         found in procpar files. The basic formulae provided by Luc Tremblay
         Luc.Tremblay@usherbrooke.ca is:
@@ -437,7 +437,7 @@ def correct_dwi_intensity(dwi_data, dwi_path, b0_path):
     correction_factor = 10 ** (gain_difference / 20.0)
 
     # The dwi intensity is divided by factor instead of multiplying b0's
-    # intensity. This allows the scaling step in compute_dti_metrics to
+    # intensity. This allows the scaling step in dti_metrics to
     # be applyed correclty.
     dwi_data *= 1.0 / correction_factor
 

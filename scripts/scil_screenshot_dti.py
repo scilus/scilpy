@@ -12,7 +12,7 @@ Axial, coronal and sagittal slices are captured.
 import argparse
 import os
 
-from dipy.core.gradients import gradient_table
+from dipy.core.gradients import gradient_table, get_bval_indices
 from dipy.io.gradients import read_bvals_bvecs
 from dipy.reconst.dti import fractional_anisotropy, TensorModel
 from fury import actor
@@ -20,9 +20,10 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
-from scilpy.utils.bvec_bval_tools import normalize_bvecs, get_shell_indices
+from scilpy.gradients.bvec_bval_tools import normalize_bvecs
 from scilpy.image.volume_operations import register_image
 from scilpy.viz.screenshot import display_slices
 
@@ -47,6 +48,8 @@ def _build_arg_parser():
                    help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -79,7 +82,7 @@ def prepare_data_for_actors(dwi_filename, bvals_filename, bvecs_filename,
     mean_b0 = np.mean(dwi_data[..., b0_idx], axis=3, dtype=dwi_data.dtype)
 
     if shells:
-        indices = [get_shell_indices(bvals, shell) for shell in shells]
+        indices = [get_bval_indices(bvals, shell) for shell in shells]
         indices = np.sort(np.hstack(indices))
 
         if len(indices) < 1:

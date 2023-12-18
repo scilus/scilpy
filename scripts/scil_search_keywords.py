@@ -41,7 +41,9 @@ def _build_arg_parser():
                    help='Search through and display the full script argparser '
                         'instead of looking only at the docstring. (warning: '
                         'much slower).')
+
     add_verbose_arg(p)
+
     return p
 
 

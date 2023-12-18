@@ -13,7 +13,7 @@ import os
 
 from dipy.data import get_sphere
 
-from scilpy.utils.bvec_bval_tools import identify_shells
+from scilpy.gradients.bvec_bval_tools import identify_shells
 from scilpy.io.utils import (add_overwrite_arg,
                              add_verbose_arg,
                              assert_gradients_filenames_valid,
@@ -71,8 +71,9 @@ def _build_arg_parser():
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

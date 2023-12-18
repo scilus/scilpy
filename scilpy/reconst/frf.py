@@ -9,8 +9,8 @@ from dipy.reconst.mcsd import mask_for_response_msmt, response_from_mask_msmt
 from dipy.segment.mask import applymask
 import numpy as np
 
-from scilpy.utils.bvec_bval_tools import (check_b0_threshold,
-                                          is_normalized_bvecs, normalize_bvecs)
+from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
+                                              is_normalized_bvecs, normalize_bvecs)
 
 
 def compute_ssst_frf(data, bvals, bvecs, mask=None, mask_wm=None,
