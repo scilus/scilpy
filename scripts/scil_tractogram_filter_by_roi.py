@@ -116,10 +116,10 @@ def _build_arg_parser():
     p.add_argument('--save_rejected', metavar='FILENAME',
                    help='Save rejected streamlines to output tractogram.')
 
+    add_json_args(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_json_args(p)
 
     return p
 

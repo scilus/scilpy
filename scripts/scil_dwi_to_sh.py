@@ -15,7 +15,7 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.utils import (add_force_b0_arg, add_overwrite_arg,
                              add_sh_basis_args, assert_inputs_exist,
-                             assert_outputs_exist)
+                             add_verbose_arg, assert_outputs_exist)
 from scilpy.reconst.sh import compute_sh_coefficients
 
 
@@ -44,6 +44,8 @@ def _build_arg_parser():
     p.add_argument('--mask',
                    help='Path to a binary mask.\nOnly data inside the mask '
                         'will be used for computations and reconstruction ')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

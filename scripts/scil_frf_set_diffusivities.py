@@ -13,8 +13,10 @@ import argparse
 from ast import literal_eval
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             add_verbose_arg,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -32,7 +34,10 @@ def _build_arg_parser():
     p.add_argument('--no_factor', action='store_true',
                    help='If supplied, the fiber response function is\n'
                         'evaluated without the x 10**-4 factor. [%(default)s].')
+    
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+    
     return p
 
 

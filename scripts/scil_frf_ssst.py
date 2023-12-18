@@ -80,8 +80,8 @@ def _build_arg_parser():
                    help='If supplied, use this center to span the roi of size '
                         'roi_radius. [center of the 3D volume]')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
