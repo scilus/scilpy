@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_json_convert_to_xlsx import main as new_main
+from scripts.scil_json_convert_entries_to_xlsx import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_json_convert_to_xlsx.py.
+This script has been renamed scil_json_convert_entries_to_xlsx.py.
 Please change your existing pipelines accordingly.
 """
 
