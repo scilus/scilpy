@@ -24,6 +24,7 @@ from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              assert_output_dirs_exist_and_empty)
@@ -76,8 +77,11 @@ def _build_arg_parser():
     p.add_argument('--no_streamline_number', action='store_true',
                    help='Don\'t display bundle streamlines number '
                         '[%(default)s].')
+
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

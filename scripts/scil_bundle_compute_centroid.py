@@ -14,6 +14,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
+                             add_verbose_arg,
                              add_reference_arg)
 from scilpy.tractanalysis.features import get_streamlines_centroid
 
@@ -32,6 +33,7 @@ def _build_arg_parser():
                         '[%(default)s].')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

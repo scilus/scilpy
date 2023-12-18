@@ -68,9 +68,10 @@ def _build_arg_parser():
                    help='Number of integration steps along the theta axis for'
                         ' fiber density estimation. [%(default)s]')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
     add_processes_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

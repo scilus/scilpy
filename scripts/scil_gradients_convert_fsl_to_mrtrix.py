@@ -27,8 +27,8 @@ def _build_arg_parser():
     p.add_argument('mrtrix_enc',
                    help='Path to gradient directions encoding file (.b).')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

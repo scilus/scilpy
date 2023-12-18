@@ -46,8 +46,10 @@ def _build_arg_parser():
     p.add_argument('--std_scale', type=float, default=2.0,
                    help='How many deviation from the mean are required to be '
                         'considered an outliers. [%(default)s]')
+
     add_force_b0_arg(p)
     add_verbose_arg(p)
+
     return p
 
 

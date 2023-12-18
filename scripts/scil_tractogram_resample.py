@@ -102,9 +102,10 @@ def _build_arg_parser():
     # General
     p.add_argument('--seed', default=None, type=int,
                    help='Use a specific random seed for the resampling.')
+
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
