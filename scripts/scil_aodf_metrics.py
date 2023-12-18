@@ -38,6 +38,7 @@ from scilpy.reconst.aodf import (compute_asymmetry_index,
                                  compute_odd_power_map)
 from scilpy.io.utils import (add_processes_arg,
                              add_sh_basis_args,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg)
@@ -106,6 +107,7 @@ def _build_arg_parser():
 
     add_processes_arg(p)
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

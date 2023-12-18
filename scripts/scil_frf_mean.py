@@ -11,8 +11,10 @@ import logging
 
 import numpy as np
 
-from scilpy.io.utils import (
-    add_overwrite_arg, assert_inputs_exist, assert_outputs_exist)
+from scilpy.io.utils import (add_overwrite_arg,
+                             assert_inputs_exist,
+                             add_verbose_arg,
+                             assert_outputs_exist)
 
 
 def _build_arg_parser():
@@ -25,6 +27,7 @@ def _build_arg_parser():
     p.add_argument('mean_frf', metavar='file',
                    help='Path of the output mean FRF file.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
