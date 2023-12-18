@@ -71,8 +71,9 @@ def _build_arg_parser():
         '--opacity', type=float, default=1.0,
         help='Opacity for the shells.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

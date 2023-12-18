@@ -15,6 +15,7 @@ import argparse
 from scilpy.io.varian_fdf import (correct_procpar_intensity, load_fdf,
                                   save_babel)
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_outputs_exist)
 
 
@@ -42,6 +43,7 @@ def build_arg_parser():
                    help='The axes you want to swap. eg: to swap the x '
                         'and y axes use: x y. [%(default)s]')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

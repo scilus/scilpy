@@ -23,6 +23,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -53,6 +54,7 @@ def _build_arg_parser():
 
     add_json_args(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

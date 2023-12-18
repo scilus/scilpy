@@ -45,8 +45,8 @@ def _build_arg_parser():
                    help='If you json file, it will check if you need'
                         ' to reorder your Philips dwi.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
