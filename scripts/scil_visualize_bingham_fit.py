@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Visualize 2-dimensional Bingham volume slice loaded from disk. The volume is
-assumed to be saved from scil_fit_bingham_to_fodf.py.
+assumed to be saved from scil_fodf_to_bingham.py.
 
 Given an image of Bingham coefficients, this script displays a slice in a
 given orientation.
@@ -16,6 +16,7 @@ import numpy as np
 from dipy.data import get_sphere, SPHERE_FILES
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.viz.scene_utils import (create_bingham_slicer,
@@ -52,6 +53,7 @@ def _build_arg_parser():
 
     p.add_argument('--output', help='Path to output file.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     p.add_argument('--sphere', default='symmetric362',
