@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute the axial (para_diff), radial (perp_diff), 
+Compute the axial (para_diff), radial (perp_diff),
 and mean (iso_diff) diffusivity priors for NODDI.
 """
 
@@ -157,7 +157,7 @@ def main():
 
     cc_avg_para = np.mean(roi_ad[indices])
     cc_std_para = np.std(roi_ad[indices])
-    
+
     cc_avg_perp = np.mean(roi_rd[indices])
     cc_std_perp = np.std(roi_rd[indices])
 
@@ -187,7 +187,7 @@ def main():
 
     if args.out_txt_1fiber_para:
         np.savetxt(args.out_txt_1fiber_para, [cc_avg_para], fmt='%f')
-    
+
     if args.out_txt_1fiber_perp:
         np.savetxt(args.out_txt_1fiber_perp, [cc_avg_perp], fmt='%f')
 
