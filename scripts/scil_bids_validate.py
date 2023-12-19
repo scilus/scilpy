@@ -353,25 +353,29 @@ def associate_dwis(layout, nSub):
     directions.sort()
 
     if not directions and 'PhaseEncodingDirection' in layout.get_entities():
-        logging.info("Found no directions.")
+        logging.info("Found no directions")
         directions = [Query.ANY, Query.ANY]
         phaseEncodingDirection = layout.get_PhaseEncodingDirection(**base_dict)
         if len(phaseEncodingDirection) == 1:
-            logging.info("Found one phaseEncodingDirection.")
+            logging.info("Found one phaseEncodingDirection")
             return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                     layout.get(part='mag', **base_dict)]
+        elif len(phaseEncodingDirection) == 0:
+            logging.warning("PhaseEncodingDirection exists in this "
+                            "dataset, but no DWI was found")
+            return []
     elif len(directions) == 1:
         logging.info("Found one direction.")
         return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
     elif not directions:
-        logging.info("Found no directions or PhaseEncodingDirections.")
+        logging.info("Found no directions or PhaseEncodingDirections")
         return [[el] for el in layout.get(part=Query.NONE, **base_dict) +
                 layout.get(part='mag', **base_dict)]
 
     if len(phaseEncodingDirection) > 2 or len(directions) > 2:
         logging.warning("These acquisitions have "
-                        "too many encoding directions.")
+                        "too many encoding directions")
         return []
 
     all_dwis = layout.get(part=Query.NONE,
@@ -494,7 +498,8 @@ def main():
                 if fs_sub_path:
                     t1_fs = glob(os.path.join(fs_sub_path, 'mri/T1.mgz'))
                     wmparc = glob(os.path.join(fs_sub_path, 'mri/wmparc.mgz'))
-                    aparc_aseg = glob(os.path.join(fs_sub_path, 'mri/aparc+aseg.mgz'))
+                    aparc_aseg = glob(os.path.join(fs_sub_path,
+                                                   'mri/aparc+aseg.mgz'))
 
                     if len(t1_fs) == 1 and len(wmparc) == 1 and len(aparc_aseg) == 1:
                         fs_inputs = [t1_fs[0], wmparc[0], aparc_aseg[0]]
