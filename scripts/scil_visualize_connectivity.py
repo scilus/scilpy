@@ -4,7 +4,7 @@
 """
 Script to display a connectivity matrix and adjust the desired visualization.
 Made to work with scil_decompose_connectivity.py and
-scil_reorder_connectivity.py.
+scil_connectivity_reorder_rois.py.
 
 This script can either display the axis labels as:
 - Coordinates (0..N)
@@ -13,8 +13,9 @@ This script can either display the axis labels as:
 Examples of labels_list.txt and lookup_table.json can be found in the
 freesurfer_flow output (https://github.com/scilus/freesurfer_flow)
 
-If the matrix was made from a bigger matrix using scil_reorder_connectivity.py,
-provide the text file(s), using --labels_list and/or --reorder_txt.
+If the matrix was made from a bigger matrix using
+scil_connectivity_reorder_rois.py, provide the text file(s), using
+--labels_list and/or --reorder_txt.
 
 The chord chart is always displaying parting in the order they are defined
 (clockwise), the color is attributed in that order following a colormap. The
@@ -38,7 +39,8 @@ import numpy as np
 
 from scilpy.image.volume_math import EPSILON
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                             assert_outputs_exist, add_verbose_arg,
+                             load_matrix_in_any_format)
 from scilpy.viz.chord_chart import chordDiagram, polar2xy
 from scilpy.viz.utils import get_colormap
 
@@ -121,6 +123,7 @@ def _build_arg_parser():
     p.add_argument('--show_only', action='store_true',
                    help='Do not save the figure, simply display it.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

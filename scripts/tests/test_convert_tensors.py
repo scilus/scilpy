@@ -19,7 +19,7 @@ def test_help_option(script_runner):
 def test_execution_processing(script_runner):
     os.chdir(os.path.expanduser(tmp_dir.name))
 
-    # No tensor in the current test data! I'm running the compute_dti_metrics
+    # No tensor in the current test data! I'm running the dti_metrics
     # to create one.
     in_dwi = os.path.join(get_home(), 'processing',
                           'dwi_crop_1000.nii.gz')
@@ -27,7 +27,7 @@ def test_execution_processing(script_runner):
                            '1000.bval')
     in_bvec = os.path.join(get_home(), 'processing',
                            '1000.bvec')
-    script_runner.run('scil_compute_dti_metrics.py', in_dwi,
+    script_runner.run('scil_dti_metrics.py', in_dwi,
                       in_bval, in_bvec, '--not_all',
                       '--tensor', 'tensors.nii.gz', '--tensor_format', 'fsl')
 

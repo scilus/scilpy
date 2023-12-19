@@ -1,9 +1,7 @@
 import os
 
-from setuptools import setup, find_packages, Extension, Command
+from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
-from setuptools.command.install_scripts import install_scripts
-from setuptools.errors import SetupError
 
 with open('requirements.txt') as f:
     required_dependencies = f.read().splitlines()
@@ -72,6 +70,12 @@ ver_file = os.path.join('scilpy', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
 
+entry_point_legacy = []
+if os.getenv('SCILPY_LEGACY') != 'False':
+    entry_point_legacy = ["{}=scripts.legacy.{}:main".format(
+                          os.path.basename(s),
+                          os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
+
 opts = dict(name=NAME,
             maintainer=MAINTAINER,
             maintainer_email=MAINTAINER_EMAIL,
@@ -97,9 +101,7 @@ opts = dict(name=NAME,
                 'console_scripts': ["{}=scripts.{}:main".format(
                     os.path.basename(s),
                     os.path.basename(s).split(".")[0]) for s in SCRIPTS] +
-                ["{}=scripts.legacy.{}:main".format(
-                    os.path.basename(s),
-                    os.path.basename(s).split(".")[0]) for s in LEGACY_SCRIPTS]
+                entry_point_legacy
             },
             data_files=[('data/LUT',
                          ["data/LUT/freesurfer_desikan_killiany.json",
