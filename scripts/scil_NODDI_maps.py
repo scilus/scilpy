@@ -79,8 +79,9 @@ def _build_arg_parser():
                     help='Compute kernels only, --save_kernels must be used.')
 
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 
@@ -110,7 +111,7 @@ def main():
 
     # Generage a scheme file from the bvals and bvecs files
     tmp_dir = tempfile.TemporaryDirectory()
-    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.scheme')
+    tmp_scheme_filename = os.path.join(tmp_dir.name, 'gradients.b')
     tmp_bval_filename = os.path.join(tmp_dir.name, 'bval')
     bvals, _ = read_bvals_bvecs(args.in_bval, args.in_bvec)
     shells_centroids, indices_shells = identify_shells(bvals,

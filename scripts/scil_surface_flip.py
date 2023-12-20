@@ -18,6 +18,7 @@ import argparse
 from trimeshpy.io import load_mesh_from_file
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.surfaces.surface_operations import flip
@@ -44,7 +45,9 @@ def _build_arg_parser():
                    help='The axes (or normal orientation) you want to flip.'
                         ' eg: to flip the x and y axes use: x y.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 
