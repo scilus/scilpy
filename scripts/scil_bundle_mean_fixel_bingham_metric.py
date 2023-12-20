@@ -21,6 +21,8 @@ for a given voxelis the one belonging to the lobe better aligned with the
 current streamline segment.
 
 Please use a bundle file rather than a whole tractogram.
+
+Formerly: scil_compute_mean_fixel_obe_metric_from_bundles.py
 """
 
 import argparse
@@ -61,7 +63,7 @@ def _build_arg_parser():
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    
+
     return p
 
 

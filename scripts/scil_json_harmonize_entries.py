@@ -11,6 +11,8 @@ The most common use case is when specific subjects have missing bundles
 which will cause a panda array to be incomplete, and thus crash. Finding out
 the union of all bundles/metrics/lesions will allow to create a complete json
 (but with NaN for missing values).
+
+Formerly: scil_harmonize_json.py
 """
 
 import argparse
