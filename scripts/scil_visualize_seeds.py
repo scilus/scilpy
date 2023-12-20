@@ -6,8 +6,8 @@ Visualize seeds used to generate the tractogram or bundle.
 When tractography was run, each streamline produced by the tracking algorithm
 saved its seeding point (its origin).
 
-The tractogram must have been generated from scil_tracking_local or
-scil_tracking_pft with the --save_seeds option.
+The tractogram must have been generated from scil_tracking_local.py or
+scil_tracking_pft.py with the --save_seeds option.
 """
 
 import argparse
