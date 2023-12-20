@@ -649,12 +649,12 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
     new_sft : StatefulTractogram
         The upsampled tractogram.
     """
-    _ = np.random.RandomState(seed)
+    rng = np.random.default_rng(seed)
 
     # Get the streamlines that will serve as a base for new ones
     resample_sft = resample_streamlines_step_size(sft, 1)
     new_streamlines = []
-    indices = np.random.choice(len(resample_sft), nb, replace=True)
+    indices = rng.choice(len(resample_sft), nb, replace=True)
     unique_indices, count = np.unique(indices, return_counts=True)
 
     # For all selected streamlines, add noise and smooth
@@ -665,8 +665,9 @@ def upsample_tractogram(sft, nb, point_wise_std=None, tube_radius=None,
         new_s = parallel_transport_streamline(s, c, tube_radius)
 
         # Generate smooth noise_factor
-        noise = np.random.normal(loc=0, scale=point_wise_std,
+        noise = rng.normal(loc=0, scale=point_wise_std,
                                  size=len(s))
+
         x = np.arange(len(noise))
         poly_coeffs = np.polyfit(x, noise, 3)
         polynomial = Polynomial(poly_coeffs[::-1])
