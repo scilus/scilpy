@@ -163,9 +163,9 @@ def buildArgsParser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
+    add_verbose_arg(p)
     add_force_b0_arg(p)
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 

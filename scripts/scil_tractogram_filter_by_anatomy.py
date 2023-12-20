@@ -126,11 +126,12 @@ def _build_arg_parser():
     p.add_argument('--no_empty', action='store_true',
                    help='Do not write file if there is no streamlines.')
 
+    add_json_args(p)
     add_processes_arg(p)
     add_reference_arg(p)
     add_verbose_arg(p)
     add_overwrite_arg(p)
-    add_json_args(p)
+
     return p
 
 

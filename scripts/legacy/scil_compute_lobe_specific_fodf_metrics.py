@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_fodf_lobe_specific_metrics import main as new_main
+from scripts.scil_bingham_metrics import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_fodf_lobe_specific_metrics.py.
+This script has been renamed scil_bingham_metrics.py.
 Please change your existing pipelines accordingly.
 """
 
