@@ -7,8 +7,10 @@ def parallel_transport_streamline(streamline, nb_streamlines, radius, rng=None):
     """ Generate new streamlines by parallel transport of the input
     streamline. See [0] and [1] for more details.
 
-    [0]: Hanson, A.J., & Ma, H. (1995). Parallel Transport Approach to Curve Framing. # noqa E501
-    [1]: TD Essentials: Parallel Transport. https://www.youtube.com/watch?v=5LedteSEgOE
+    [0]: Hanson, A.J., & Ma, H. (1995). Parallel Transport Approach to 
+        Curve Framing. # noqa E501
+    [1]: TD Essentials: Parallel Transport.
+        https://www.youtube.com/watch?v=5LedteSEgOE
 
     Parameters
     ----------
