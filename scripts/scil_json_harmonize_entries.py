@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-This script will harmonize a json file by adding missing keys and values that
-differs between the different layers of the dictionary.
+""" This script will harmonize a json file by adding missing keys and values
+that differs between the different layers of the dictionary.
 
-This is use only (for now) in Aggregate_All_* portion of tractometry-flow,
+This is used only (for now) in Aggregate_All_* portion of tractometry-flow,
 to counter the problem of missing bundles/metrics/lesions between subjects.
 
-Formerly: scil_harmonize_json.py
+The most common use case is when specific subjects have missing bundles
+which will cause a panda array to be incomplete, and thus crash. Finding out
+the union of all bundles/metrics/lesions will allow to create a complete json
+(but with NaN for missing values).
 """
 
 import argparse
