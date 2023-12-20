@@ -26,6 +26,7 @@ See refs [1, 2] that describe the noise map acquisition.
 [2] Reymbaut, et al (2021). Magic DIAMOND...
     https://doi.org/10.1016/j.media.2021.101988
 
+Formerly: scil_snr_in_roi.py
 """
 
 import argparse

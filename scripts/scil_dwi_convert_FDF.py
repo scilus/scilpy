@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 
 """
-   Converts a Varian FDF file or directory to a nifti file.
-   If the procpar contains diffusion information, it will be saved as bval and
-   bvec in the same folder as the output file.
+Converts a Varian FDF file or directory to a nifti file.
+If the procpar contains diffusion information, it will be saved as bval and
+bvec in the same folder as the output file.
 
-   ex: scil_dwi_convert_FDF.py semsdw/b0_folder/ semsdw/dwi_folder/ \
-             dwi.nii.gz --bval dwi.bval --bvec dwi.bvec -f
+ex: scil_dwi_convert_FDF.py semsdw/b0_folder/ semsdw/dwi_folder/ \
+        dwi.nii.gz --bval dwi.bval --bvec dwi.bvec -f
+
+Formerly: scil_convert_fdf.py
 """
 
 import argparse

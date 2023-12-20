@@ -45,7 +45,8 @@ streamlines that have non-zero weight and that contribute to explain the DWI
 signal. Streamlines with 0 weight are essentially not necessary according to
 COMMIT.
 
-COMMIT2 is available only for HDF5 data from scil_decompose_connectivity.py and
+COMMIT2 is available only for HDF5 data from
+scil_tractogram_segment_bundles_for_connectivity.py and
 with the --ball_stick option. Use the --commit2 option to activite it, slightly
 longer computation time. This wrapper offers a simplify way to call COMMIT,
 but does not allow to use (or fine-tune) every parameters. If you want to use
@@ -58,6 +59,8 @@ When tunning parameters, such as --iso_diff, --para_diff, --perp_diff or
     - Confirm the quality of WM bundles reconstruction (essential tractogram)
     - Inspect the (N)RMSE map and look for peaks or anomalies
     - Compare the density map before and after (essential tractogram)
+
+Formerly: scil_run_commit.py
 """
 
 import argparse

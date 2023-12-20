@@ -8,6 +8,8 @@ right-thalamus.nii.gz, ...). Only the labels included in the lookup table
 are extracted.
 
 IMPORTANT: your label image must be of an integer type.
+
+Formerly: scil_split_volume_by_labels.py
 """
 
 import argparse

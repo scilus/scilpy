@@ -6,6 +6,8 @@ multiple acquisitions and/or opposite phase directions, images, b-values and
 b-vectors should be merged together using scil_dwi_concatenate.py. If using
 topup prior to calling this script, images should be concatenated in the same
 order as the b0s used with prepare_topup.
+
+Formerly: scil_prepare_eddy_command.py
 """
 
 import argparse
@@ -18,10 +20,9 @@ import numpy as np
 from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_fsl_options_exist,
                              assert_inputs_exist)
-from scilpy.preprocessing.distortion_correction import (create_acqparams,
-                                                        create_index,
-                                                        create_multi_topup_index,
-                                                        create_non_zero_norm_bvecs)
+from scilpy.preprocessing.distortion_correction import \
+    (create_acqparams, create_index, create_multi_topup_index,
+     create_non_zero_norm_bvecs)
 
 
 def _build_arg_parser():
@@ -51,7 +52,7 @@ def _build_arg_parser():
                    help='Topup output name. ' +
                         'If given, apply topup during eddy.\n' +
                         'Should be the same as --out_prefix from ' +
-                        'scil_prepare_topup_command.py.')
+                        'scil_dwi_prepare_topup_command.py.')
 
     p.add_argument('--topup_params', default='',
                    help='Parameters file (typically named acqparams) '

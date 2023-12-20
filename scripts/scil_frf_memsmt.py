@@ -32,6 +32,8 @@ the MD is below threshold_md_gm (or threshold_md_csf).
 Based on P. Karan et al., Bridging the gap between constrained spherical
 deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
+
+Formerly: scil_compute_memsmt_frf.py
 """
 
 import argparse

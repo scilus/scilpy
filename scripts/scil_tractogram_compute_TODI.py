@@ -6,6 +6,8 @@ Each segment of the streamlines is weighted by its length
 (to support compressed streamlines).
 This script can afterwards output a Track Density Image (TDI)
 or a TODI with SF or SH representation, based on streamlines' segments.
+
+Formerly: scil_compute_todi.py
 """
 
 import argparse

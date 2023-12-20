@@ -6,8 +6,8 @@ from scripts.scil_tractogram_resample_nb_points import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_tractogram_resample_nb_points.py. Please change
-your existing pipelines accordingly.
+This script has been renamed scil_tractogram_resample_nb_points.py. Please
+change your existing pipelines accordingly.
 
 """
 

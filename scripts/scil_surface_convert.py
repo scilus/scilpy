@@ -6,6 +6,8 @@ Script to convert a surface (FreeSurfer or VTK supported).
     ".vtk", ".vtp", ".ply", ".stl", ".xml", ".obj"
 
 > scil_surface_convert.py surf.vtk converted_surf.ply
+
+Formerly: scil_convert_surface.py
 """
 import argparse
 import os
