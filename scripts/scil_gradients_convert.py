@@ -4,7 +4,8 @@
 """
 Script to convert gradient tables between FSL and MRtrix formats.
 
-
+Formerly: scil_convert_gradients_mrtrix_to_fsl.py or
+scil_convert_gradients_fsl_to_mrtrix.py
 """
 
 import argparse
