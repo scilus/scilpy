@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from scilpy.io.deprecator import deprecate_script
-from scripts.scil_json_merge import main as new_main
+from scripts.scil_json_merge_entries import main as new_main
 
 
 DEPRECATION_MSG = """
-This script has been renamed scil_json_merge.py.
+This script has been renamed scil_json_merge_entries.py.
 Please change your existing pipelines accordingly.
 """
 
 
-@deprecate_script("scil_merge_json.py", DEPRECATION_MSG, '1.7.0')
+@deprecate_script("scil_json_merge_entries.py",
+                  DEPRECATION_MSG, '1.7.0')
 def main():
     new_main()
 

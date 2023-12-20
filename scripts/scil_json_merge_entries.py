@@ -1,9 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Merge multiple json file into a single one.
-the --keep_separate option will add an entry for each file, the basename will
+""" Merge multiple json files into a single one.
+Typically used during the tractometry pipeline.
+
+Without option it will simply merge all entries at the top level, the top
+level must not have any conflicting keys.
+
+--keep_separate option will add a parent for each file, its basename will
 become the key.
+
+--no_list option will merge all entries at the top level, if there is a
+conflict the lowest level will be extended with the new values (if list) or
+added (if value)
+
+--add_parent_key option will add a parent key before merging all entries.
+
+--remove_parent_key option will remove the parent key before merging all
+entries.
+
+--recursive option will merge all entries (scalar) at the lowest layers as a
+list.
+
+--average_last_layer option will average all entries (scalar) at the lowest
+layers, but instead of creating a list it creates a mean/std level.
 """
 
 import argparse
