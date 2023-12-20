@@ -141,6 +141,9 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     points = np.loadtxt(fsl_bvec_filename)
     bvals = np.unique(shells).tolist()
 
+    # Remove .bval and .bvec if present
+    mrtrix_filename = mrtrix_filename.replace('.b', '')
+
     if not points.shape[0] == 3:
         points = points.transpose()
         logging.warning('WARNING: Your bvecs seem transposed. ' +
@@ -150,11 +153,10 @@ def fsl2mrtrix(fsl_bval_filename, fsl_bvec_filename, mrtrix_filename):
     save_gradient_sampling_mrtrix(points,
                                   shell_idx,
                                   bvals,
-                                  mrtrix_filename)
+                                  mrtrix_filename + '.b')
 
 
-def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
-               fsl_bvec_filename=None):
+def mrtrix2fsl(mrtrix_filename, fsl_filename):
     """
     Convert a mrtrix encoding.b file to fsl dir_grad.bvec/.bval files.
 
@@ -163,14 +165,12 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     mrtrix_filename : str
         path to mrtrix encoding.b file.
     fsl_bval_filename: str
-        path to the output fsl bval file. Default is
-        mrtrix_filename.bval.
-    fsl_bvec_filename: str
-        path to the output fsl bvec file. Default is
-        mrtrix_filename.bvec.
-    Returns
-    -------
+        path to the output fsl files. Files will be named
+        fsl_bval_filename.bval and fsl_bval_filename.bvec.
     """
+    # Remove .bval and .bvec if present
+    fsl_filename = fsl_filename.replace('.bval', '')
+    fsl_filename = fsl_filename.replace('.bvec', '')
 
     mrtrix_b = np.loadtxt(mrtrix_filename)
     if not len(mrtrix_b.shape) == 2 or not mrtrix_b.shape[1] == 4:
@@ -185,8 +185,8 @@ def mrtrix2fsl(mrtrix_filename, fsl_bval_filename=None,
     save_gradient_sampling_fsl(points,
                                shell_idx,
                                bvals,
-                               filename_bval=fsl_bval_filename,
-                               filename_bvec=fsl_bvec_filename)
+                               filename_bval=fsl_filename + '.bval',
+                               filename_bvec=fsl_filename + '.bvec')
 
 
 def identify_shells(bvals, threshold=40.0, roundCentroids=False, sort=False):
