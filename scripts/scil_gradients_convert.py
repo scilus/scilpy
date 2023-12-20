@@ -25,8 +25,9 @@ def _build_arg_parser():
                    '(.bval, .bvec) or MRtrix (.b).')
 
     p.add_argument('output', type=str,
-                   help='Path to output file(s) without extension. Either '
-                   'FSL (output.bval, output.bvec) or MRtrix (output.b).')
+                   help='Basename of output without extension. Extension(s) '
+                        'will be added automatically (.b for MRtrix, '
+                        '.bval/.bvec for FSL.')
 
     grad_format_group = p.add_mutually_exclusive_group(required=True)
     grad_format_group.add_argument('--input_fsl', action='store_true',
@@ -59,8 +60,7 @@ def main():
         fsl2mrtrix(fsl_bval, fsl_bvec, args.output)
     else:
         output = [args.output + '.bval', args.output + '.bvec']
-        assert_outputs_exist(parser, args, output[0])
-        assert_outputs_exist(parser, args, output[1])
+        assert_outputs_exist(parser, args, output)
         mrtrix_b = args.gradients[0]
         mrtrix2fsl(mrtrix_b, args.output)
 
