@@ -6,8 +6,8 @@
    If the procpar contains diffusion information, it will be saved as bval and
    bvec in the same folder as the output file.
 
-   ex: scil_convert_fdf.py semsdw/b0_folder/ semsdw/dwi_folder/ dwi.nii.gz \
-            --bval dwi.bval --bvec dwi.bvec -f
+   ex: scil_dwi_convert_FDF.py semsdw/b0_folder/ semsdw/dwi_folder/ \
+             dwi.nii.gz --bval dwi.bval --bvec dwi.bvec -f
 """
 
 import argparse
@@ -15,6 +15,7 @@ import argparse
 from scilpy.io.varian_fdf import (correct_procpar_intensity, load_fdf,
                                   save_babel)
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_outputs_exist)
 
 
@@ -42,6 +43,7 @@ def build_arg_parser():
                    help='The axes you want to swap. eg: to swap the x '
                         'and y axes use: x y. [%(default)s]')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

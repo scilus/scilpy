@@ -18,6 +18,7 @@ from fury import window
 from PIL import Image
 from scipy.io import loadmat
 import six
+import importlib.metadata
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
@@ -226,6 +227,11 @@ def add_force_b0_arg(parser):
 def add_verbose_arg(parser):
     parser.add_argument('-v', action='store_true', dest='verbose',
                         help='If set, produces verbose output.')
+
+    version = importlib.metadata.version('scilpy')
+
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info("Scilpy version: {}".format(version))
 
 
 def add_bbox_arg(parser):
@@ -872,3 +878,5 @@ def get_default_screenshotting_data(args):
         labelmap_img, \
         mask_imgs, \
         masks_colors
+
+

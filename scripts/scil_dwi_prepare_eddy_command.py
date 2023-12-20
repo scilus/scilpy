@@ -107,8 +107,8 @@ def _build_arg_parser():
                         'Add these options using quotes (i.e. "--ol_nstd=6'
                         ' --mb=4").')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

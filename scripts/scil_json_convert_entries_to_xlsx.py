@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-""" Convert a final aggregated json file to an Excel spreadsheet. Typically
-used during the tractometry pipeline.
+""" Convert a final aggregated json file to an Excel spreadsheet.
+Typically used during the tractometry pipeline.
 """
 
 import argparse
@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 
 
@@ -463,6 +463,7 @@ def _build_arg_parser():
                    help='If set, consider the input stats to be over an '
                         'entire population and not subject-based.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

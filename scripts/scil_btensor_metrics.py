@@ -102,8 +102,8 @@ def _build_arg_parser():
 
     add_force_b0_arg(p)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',
