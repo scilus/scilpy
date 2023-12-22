@@ -47,7 +47,9 @@ from scilpy.io.utils import (add_json_args,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty,
                              parser_color_type)
-from scilpy.viz.backends.fury import create_interactive_window, create_scene, snapshot_scenes
+from scilpy.viz.backends.fury import (create_interactive_window,
+                                      create_scene,
+                                      snapshot_scenes)
 from scilpy.viz.backends.vtk import create_tube_with_radii
 from scilpy.viz.color import get_lookup_table
 from scilpy.viz.screenshot import compose_image
@@ -300,9 +302,10 @@ def main():
         stats[bundle_name] = {'diameter': tmp_dict}
 
         if args.show_rendering or args.save_rendering:
-            tube_actor = create_tube_with_radii(centroid_smooth, radius, error,
-                                                wireframe=args.wireframe,
-                                                error_coloring=args.error_coloring)
+            tube_actor = create_tube_with_radii(
+                centroid_smooth, radius, error,
+                wireframe=args.wireframe,
+                error_coloring=args.error_coloring)
             actor_list.append(tube_actor)
             # TODO : move streamline actor to fury backend
             cmap = get_lookup_table('jet')
@@ -328,29 +331,35 @@ def main():
     elif args.save_rendering:
         # TODO : transform screenshotting to abide with viz module
         scene.reset_camera()
-        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'superior.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'superior.png'))
 
         scene.pitch(180)
         scene.reset_camera()
-        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'inferior.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'inferior.png'))
 
         scene.pitch(90)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, args.win_dims,  os.path.join(args.save_rendering, 'posterior.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'posterior.png'))
 
         scene.pitch(180)
         scene.set_camera(view_up=(0, 0, 1))
         scene.reset_camera()
-        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'anterior.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'anterior.png'))
 
         scene.yaw(90)
         scene.reset_camera()
-        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'right.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'right.png'))
 
         scene.yaw(180)
         scene.reset_camera()
-        snapshot(scene, args.win_dims, os.path.join(args.save_rendering, 'left.png'))
+        snapshot(scene, args.win_dims,
+                 os.path.join(args.save_rendering, 'left.png'))
 
     print(json.dumps(stats, indent=args.indent, sort_keys=args.sort_keys))
 
