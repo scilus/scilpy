@@ -21,6 +21,7 @@ from scilpy.gradients.bvec_bval_tools import DEFAULT_B0_THRESHOLD
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.utils.util import RAS_AXES_NAMES
 
+
 eddy_options = ["mb", "mb_offs", "slspec", "mporder", "s2v_lambda", "field",
                 "field_mat", "flm", "slm", "fwhm", "niter", "s2v_niter",
                 "cnr_maps", "residuals", "fep", "interp", "s2v_interp",

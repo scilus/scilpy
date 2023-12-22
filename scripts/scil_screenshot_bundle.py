@@ -51,13 +51,14 @@ def _build_arg_parser():
     p.add_argument('in_anat',
                    help='Path of the reference file (.nii or nii.gz).')
     p.add_argument('--target_template',
-                   help='Path to the target MNI152 template for registration. \n'
-                        'If in_anat has a skull, select a MNI152 template \n'
+                   help='Path to the target MNI152 template for registration. '
+                        'If in_anat has a skull, select a MNI152 template '
                         'with a skull and vice-versa.')
 
     sub_color = p.add_mutually_exclusive_group()
     sub_color.add_argument('--local_coloring', action='store_true',
-                           help='Color streamlines local segments orientation.')
+                           help='Color streamlines using local '
+                                'segments orientation.')
     sub_color.add_argument('--uniform_coloring', nargs=3,
                            metavar=('R', 'G', 'B'), type=float,
                            help='Color streamlines with uniform coloring.')
@@ -68,13 +69,14 @@ def _build_arg_parser():
     p.add_argument('--roi', nargs='+', action='append',
                    help='Path to a ROI file (.nii or nii.gz).')
     p.add_argument('--right', action='store_true',
-                   help='Take screenshot from the right instead of the left \n'
+                   help='Take screenshot from the right instead of the left '
                         'for the sagittal plane.')
     p.add_argument('--anat_opacity', type=float, default=0.3,
-                   help='Set the opacity for the anatomy, use 0 for complete \n'
+                   help='Set the opacity for the anatomy, use 0 for complete '
                         'transparency, 1 for opaque. [%(default)s]')
     p.add_argument('--output_suffix',
-                   help='Add a suffix to the output, else the axis name is used.')
+                   help='Add a suffix to the output, '
+                        'else the axis name is used.')
     p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
 
@@ -101,10 +103,12 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
 
         # Register the DWI data to the template
         logging.info('Starting registration...')
-        transformed_reference, transformation = register_image(target_template_data,
-                                                               target_template_affine,
-                                                               reference_data,
-                                                               reference_affine)
+        transformed_reference, transformation = register_image(
+            target_template_data,
+            target_template_affine,
+            reference_data,
+            reference_affine)
+
         logging.info('Transforming streamlines...')
         streamlines = transform_streamlines(streamlines,
                                             np.linalg.inv(transformation),
@@ -113,8 +117,10 @@ def prepare_data_for_actors(bundle_filename, reference_filename,
         new_sft = StatefulTractogram(streamlines, target_template_filename,
                                      Space.RASMM)
         affine_map = AffineMap(transformation,
-                               target_template_data.shape, target_template_affine,
-                               reference_data.shape, reference_affine)
+                               target_template_data.shape,
+                               target_template_affine,
+                               reference_data.shape,
+                               reference_affine)
         for i, roi in enumerate(rois):
             roi_data = nib.load(roi[0]).get_fdata()
             resampled = affine_map.transform(roi_data.astype(np.float64),
@@ -169,10 +175,9 @@ def main():
                                                         axis_name,
                                                         args.output_suffix)))
 
-            output_filenames_glass.append(os.path.join(args.out_dir,
-                                                       '{0}_{1}_glass.png'.format(
-                                                           axis_name,
-                                                           args.output_suffix)))
+            output_filenames_glass.append(os.path.join(
+                args.out_dir, '{0}_{1}_glass.png'.format(axis_name,
+                                                         args.output_suffix)))
         else:
             output_filenames_3d.append(os.path.join(args.out_dir,
                                                     '{0}_3d.png'.format(

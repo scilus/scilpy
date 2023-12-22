@@ -61,6 +61,8 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              add_verbose_arg,
+                             assert_inputs_exist,
+                             assert_outputs_exist,
                              load_matrix_in_any_format)
 from scilpy.tractograms.dps_and_dpp_management import add_data_as_color_dpp
 from scilpy.tractograms.streamline_operations import (get_values_along_length,
