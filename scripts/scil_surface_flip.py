@@ -6,6 +6,8 @@ Script to flip a given surface (FreeSurfer or VTK supported).
 
 Can flip surface coordinates around a single or multiple axes
 Can also be used to reverse the orientation of the surface normals.
+
+Formerly: scil_flip_surface.py
 """
 
 import argparse
@@ -13,6 +15,7 @@ import argparse
 from trimeshpy.io import load_mesh_from_file
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.surfaces.surface_operations import flip
@@ -40,7 +43,9 @@ def _build_arg_parser():
                         ' eg: to flip the x and y axes use: x y.'
                         ' to reverse the surface normals use: n')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

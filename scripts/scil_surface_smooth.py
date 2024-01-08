@@ -11,6 +11,8 @@ Smoothing time = step_size * nb_steps
     small amount of smoothing [step_size 1, nb_steps 10]
     moderate amount of smoothing [step_size 10, nb_steps 100]
     large amount of smoothing [step_size 100, nb_steps 1000]
+
+Formerly: scil_smooth_surface.py
 """
 
 import argparse
@@ -51,8 +53,9 @@ def _build_arg_parser():
     p.add_argument('-s', '--step_size', type=float, default=5.0,
                    help='Laplacian smooth step size [%(default)s].')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

@@ -8,6 +8,8 @@ Any streamline that do not respect these two conditions are removed.
 
 The --cut_invalid option will cut streamlines so that their longest segment are
 within the bounding box
+
+Formerly: scil_remove_invalid_streamlines.py
 """
 
 import argparse
@@ -18,7 +20,7 @@ from dipy.io.streamline import save_tractogram
 import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
-from scilpy.io.utils import (add_overwrite_arg,
+from scilpy.io.utils import (add_overwrite_arg, add_verbose_arg,
                              add_reference_arg, assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.utils.streamlines import cut_invalid_streamlines
@@ -41,7 +43,8 @@ def _build_arg_parser():
     p.add_argument('--remove_single_point', action='store_true',
                    help='Consider single point streamlines invalid.')
     p.add_argument('--remove_overlapping_points', action='store_true',
-                   help='Consider streamlines with overlapping points invalid.')
+                   help='Consider streamlines with overlapping points invalid.'
+                   )
     p.add_argument('--threshold', type=float, default=0.001,
                    help='Maximum distance between two points to be considered'
                         ' overlapping [%(default)s mm].')
@@ -49,6 +52,7 @@ def _build_arg_parser():
                    help='Do not save empty tractogram.')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

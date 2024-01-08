@@ -4,6 +4,8 @@
 Flip (ex, x --> -x) or swap (ex, x <-> y) chosen axes of the gradient sampling
 matrix. Result will be saved in the same format as input gradient sampling
 file.
+
+Formerly: scil_flip_gradients.py or scil_swap_gradient_axis.py
 """
 import argparse
 import os
@@ -13,7 +15,7 @@ import numpy as np
 from scilpy.gradients.bvec_bval_tools import (flip_gradient_sampling,
                                               swap_gradient_axis)
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist)
+                             assert_outputs_exist, add_verbose_arg)
 
 
 def _build_arg_parser():
@@ -41,6 +43,7 @@ def _build_arg_parser():
                         "Ex: to first flip x, then permute all three axes: "
                         " 3 -1 2.")
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

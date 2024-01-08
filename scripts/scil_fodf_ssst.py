@@ -5,6 +5,8 @@
 Script to compute Constrained Spherical Deconvolution (CSD) fiber ODFs.
 
 See [Tournier et al. NeuroImage 2007]
+
+Formerly: scil_compute_ssst_fodf.py
 """
 
 import argparse
@@ -55,8 +57,8 @@ def _build_arg_parser():
     add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

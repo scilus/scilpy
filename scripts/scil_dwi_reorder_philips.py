@@ -4,6 +4,8 @@
 """
 Re-order gradient according to original table (Philips)
 This script is not needed for version 5.6 and higher
+
+Formerly: scil_reorder_dwi_philips.py
 """
 
 import argparse
@@ -45,8 +47,8 @@ def _build_arg_parser():
                    help='If you json file, it will check if you need'
                         ' to reorder your Philips dwi.')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -76,7 +78,8 @@ def main():
             curr_version = curr_version.replace('\\',
                                                 ' ').replace('_',
                                                              ' ').split()[0]
-            if version.parse(SOFTWARE_VERSION_MIN) <= version.parse(curr_version):
+            if version.parse(SOFTWARE_VERSION_MIN) <= version.parse(
+                    curr_version):
                 sys.exit('ERROR: There is no need for reording since your '
                          'dwi comes from a Philips machine with '
                          'version {}. '.format(curr_version) +

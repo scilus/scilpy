@@ -20,6 +20,7 @@ import nibabel as nib
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.gradients.bvec_bval_tools import normalize_bvecs
@@ -47,6 +48,8 @@ def _build_arg_parser():
                    help='Add a suffix to the output, else the axis name is used.')
     p.add_argument('--out_dir', default='',
                    help='Put all images in a specific directory.')
+
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

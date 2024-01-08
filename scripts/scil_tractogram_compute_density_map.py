@@ -7,6 +7,8 @@ Compute a density map from a streamlines file.
 A specific value can be assigned instead of using the tract count.
 
 This script correctly handles compressed streamlines.
+
+Formerly: scil_compute_streamlines_density_map.py
 """
 import argparse
 
@@ -15,7 +17,8 @@ import nibabel as nib
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             assert_inputs_exist, assert_outputs_exist)
+                             assert_inputs_exist, add_verbose_arg, 
+                             assert_outputs_exist)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 
 
@@ -35,6 +38,7 @@ def _build_arg_parser():
                         'uint8). \nIf a value is given, will be used as the '
                         'stored value.')
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 
@@ -66,7 +70,8 @@ def main():
             dtype_to_use = np.uint8
         streamline_count[streamline_count > 0] = args.binary
 
-    img = nib.Nifti1Image(streamline_count.astype(dtype_to_use), transformation)
+    img = nib.Nifti1Image(streamline_count.astype(dtype_to_use),
+                          transformation)
     nib.save(img, args.out_img)
 
 

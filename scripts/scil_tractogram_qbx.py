@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-    Compute clusters using QuickBundlesX and save them separately.
-    We cannot know the number of clusters in advance.
+Compute clusters using QuickBundlesX and save them separately.
+We cannot know the number of clusters in advance.
+
+Formerly: scil_compute_qbx.py
 """
 
 import argparse
@@ -45,8 +47,8 @@ def _build_arg_parser():
                         'Format must be readable by the Nibabel API.')
 
     add_reference_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

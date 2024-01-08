@@ -15,6 +15,8 @@ will be output.
 Based on B. Jeurissen et al., Multi-tissue constrained spherical
 deconvolution for improved analysis of multi-shell diffusion
 MRI data. Neuroimage (2014)
+
+Formerly: scil_compute_msmt_fodf.py
 """
 
 import argparse
@@ -72,8 +74,8 @@ def _build_arg_parser():
     add_force_b0_arg(p)
     add_sh_basis_args(p)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',

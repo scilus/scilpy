@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script to compute fODF lobe-specific metrics derived from a Bingham
-distribution fitting, as described in [1]. Resulting metrics are fiber density
+distribution fit, as described in [1]. Resulting metrics are fiber density
 (FD), fiber spread (FS) and fiber fraction (FF) [2].
 
 The Bingham coefficients volume comes from scil_fodf_to_bingham.py.
@@ -15,6 +15,8 @@ FF is the ratio of its FD on the total FD in the voxel.
 
 Using 12 threads, the execution takes 10 minutes for FD estimation for a brain
 with 1mm isotropic resolution. Other metrics take less than a second.
+
+Formerly: scil_compute_lobe_specific_fodf_metrics.py
 """
 
 import nibabel as nib
@@ -23,10 +25,8 @@ import argparse
 import logging
 from scilpy.io.image import get_data_as_mask
 
-from scilpy.io.utils import (add_overwrite_arg,
-                             add_processes_arg,
-                             add_verbose_arg,
-                             assert_inputs_exist,
+from scilpy.io.utils import (add_overwrite_arg, add_processes_arg,
+                             add_verbose_arg, assert_inputs_exist,
                              assert_outputs_exist, validate_nbr_processes)
 from scilpy.reconst.bingham import (compute_fiber_density,
                                     compute_fiber_spread,
@@ -68,9 +68,10 @@ def _build_arg_parser():
                    help='Number of integration steps along the theta axis for'
                         ' fiber density estimation. [%(default)s]')
 
-    add_overwrite_arg(p)
     add_verbose_arg(p)
     add_processes_arg(p)
+    add_overwrite_arg(p)
+
     return p
 
 

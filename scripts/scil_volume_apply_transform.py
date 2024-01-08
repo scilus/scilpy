@@ -6,6 +6,8 @@ Transform Nifti (.nii.gz) using an affine/rigid transformation.
 
 For more information on how to use the registration script, follow this link:
 https://scilpy.readthedocs.io/en/latest/documentation/tractogram_registration.html
+
+Formerly: scil_apply_transform_to_image.py.
 """
 
 import argparse
@@ -16,7 +18,8 @@ import numpy as np
 
 from scilpy.image.volume_operations import apply_transform
 from scilpy.io.utils import (add_overwrite_arg, assert_inputs_exist,
-                             assert_outputs_exist, load_matrix_in_any_format)
+                             assert_outputs_exist, add_verbose_arg,
+                             load_matrix_in_any_format)
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -39,6 +42,7 @@ def _build_arg_parser():
                    help='If True, keeps the data_type of the input image '
                         '(in_file) when saving the output image (out_name).')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

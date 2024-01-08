@@ -15,6 +15,8 @@ scil_connectivity_print_filenames.py filtering_mask.npy
 for file in $(cat pass.txt);
     do mv ${SOMEWHERE}/${FILE} ${SOMEWHERE_ELSE}/;
 done
+
+Formerly: scil_print_connectivity_filenames.py
 """
 
 import argparse
@@ -22,6 +24,7 @@ import argparse
 import numpy as np
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist,
                              load_matrix_in_any_format)
@@ -39,6 +42,7 @@ def _build_arg_parser():
     p.add_argument('out_txt',
                    help='Output text file containing all filenames.')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -59,7 +63,8 @@ def main():
         in_label = labels_list[pos_1]
         out_label = labels_list[pos_2]
 
-        # scil_decompose_connectivity.py only save the lower triangular files
+        # scil_tractogram_segment_bundles_for_connectivity.py only save the
+        # lower triangular files
         if out_label < in_label:
             continue
         text_file.write('{}_{}.trk\n'.format(in_label, out_label))

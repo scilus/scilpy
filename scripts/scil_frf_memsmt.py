@@ -32,6 +32,8 @@ the MD is below threshold_md_gm (or threshold_md_csf).
 Based on P. Karan et al., Bridging the gap between constrained spherical
 deconvolution and diffusional variance decomposition via tensor-valued
 diffusion MRI. Medical Image Analysis (2022)
+
+Formerly: scil_compute_memsmt_frf.py
 """
 
 import argparse
@@ -163,9 +165,9 @@ def buildArgsParser():
                    help='Path to the output CSF frf mask file, the voxels '
                         'used to compute the CSF frf.')
 
+    add_verbose_arg(p)
     add_force_b0_arg(p)
     add_overwrite_arg(p)
-    add_verbose_arg(p)
 
     return p
 

@@ -9,6 +9,8 @@ label map.
 To be considered a valid lesion, the lesion volume must be at least
 min_lesion_vol mm3. This avoid the detection of thousand of single voxel
 lesions if an automatic lesion segmentation tool is used.
+
+Formerly: scil_analyse_lesions_load.py
 """
 
 import argparse
@@ -26,6 +28,7 @@ from scilpy.io.utils import (add_overwrite_arg,
                              assert_inputs_exist,
                              add_json_args,
                              assert_outputs_exist,
+                             add_verbose_arg,
                              add_reference_arg)
 from scilpy.segment.streamlines import filter_grid_roi
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
@@ -59,8 +62,9 @@ def _build_arg_parser():
                    help='Save the lesion-wise streamline count (.json).')
 
     add_json_args(p)
-    add_overwrite_arg(p)
     add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 

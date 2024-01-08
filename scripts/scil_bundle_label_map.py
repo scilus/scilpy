@@ -10,6 +10,8 @@ the head, ending in the tail.
 Each voxel will have the label of its nearest centroid point.
 
 The number of labels will be the same as the centroid's number of points.
+
+Formerly: scil_compute_bundle_voxel_label_map.py
 """
 
 import argparse
@@ -17,7 +19,8 @@ import os
 
 from dipy.align.streamlinear import StreamlineLinearRegistration
 from dipy.io.streamline import save_tractogram
-from dipy.io.stateful_tractogram import StatefulTractogram, set_sft_logger_level
+from dipy.io.stateful_tractogram import (StatefulTractogram,
+                                         set_sft_logger_level)
 from dipy.io.utils import is_header_compatible
 import matplotlib.pyplot as plt
 import nibabel as nib
@@ -30,13 +33,15 @@ from scilpy.image.volume_math import correlation
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_output_dirs_exist_and_empty)
 from scilpy.tractanalysis.streamlines_metrics import compute_tract_counts_map
 from scilpy.tractanalysis.distance_to_centroid import min_dist_to_centroid
 from scilpy.tractograms.streamline_and_mask_operations import \
     cut_outside_of_mask_streamlines
-from scilpy.tractograms.streamline_operations import resample_streamlines_num_points
+from scilpy.tractograms.streamline_operations import \
+    resample_streamlines_num_points
 from scilpy.utils.streamlines import uniformize_bundle_sft
 from scilpy.viz.utils import get_colormap
 
@@ -71,6 +76,7 @@ def _build_arg_parser():
                    help='Use the new labelling method (multi-centroids).')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -160,7 +166,7 @@ def main():
     else:
         srr = StreamlineLinearRegistration()
         srm = srr.optimize(static=tmp_sft.streamlines,
-                        moving=sft_centroid.streamlines)
+                           moving=sft_centroid.streamlines)
         sft_centroid.streamlines = srm.transform(sft_centroid.streamlines)
 
     uniformize_bundle_sft(concat_sft, ref_bundle=sft_centroid[0])

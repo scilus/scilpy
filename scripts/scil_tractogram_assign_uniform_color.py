@@ -10,6 +10,8 @@ Saves the RGB values in the data_per_point (color_x, color_y, color_z).
 
 If called with .tck, the output will always be .trk, because data_per_point has
 no equivalent in tck file.
+
+Formerly: scil_assign_uniform_color_to_tractograms.py
 """
 
 import argparse
@@ -24,6 +26,7 @@ from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
+                             add_verbose_arg,
                              add_reference_arg)
 
 
@@ -53,6 +56,7 @@ def _build_arg_parser():
                          'Cannot be used with --dict_colors.')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p

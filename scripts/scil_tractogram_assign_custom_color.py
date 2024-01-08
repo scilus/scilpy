@@ -34,6 +34,8 @@ using the --out_colorbar option.
 
 The script can also be used to color streamlines according to their length
 using the --along_profile option. The streamlines must be uniformized.
+
+Formerly: scil_assign_custom_color_to_tractogram.py
 """
 
 import argparse
@@ -50,6 +52,7 @@ from scilpy.io.utils import (assert_inputs_exist,
                              assert_outputs_exist,
                              add_overwrite_arg,
                              add_reference_arg,
+                             add_verbose_arg,
                              load_matrix_in_any_format)
 from scilpy.utils.streamlines import get_color_streamlines_along_length, \
     get_color_streamlines_from_angle, clip_and_normalize_data_for_cmap
@@ -116,7 +119,8 @@ def _build_arg_parser():
     g2.add_argument('--max_cmap', type=float,
                     help='Set the maximum value of the colormap.')
     g2.add_argument('--log', action='store_true',
-                    help='Apply a base 10 logarithm for colored trk (dps/dpp).')
+                    help='Apply a base 10 logarithm for colored trk (dps/dpp).'
+                    )
     g2.add_argument('--LUT', metavar='FILE',
                     help='If the dps/dpp or anatomy contain integer labels, '
                          'the value will be substituted.\nIf the LUT has 20 '
@@ -124,6 +128,7 @@ def _build_arg_parser():
                          'replaced by the value in the file (.npy or .txt)')
 
     add_reference_arg(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
 
     return p
@@ -182,7 +187,7 @@ def main():
         if np.any(sft.streamlines._lengths < len(LUT)):
             logging.warning('Some streamlines have fewer point than the size '
                             'of the provided LUT.\nConsider using '
-                            'scil_resample_streamlines.py')
+                            'scil_tractogram_resample_nb_points.py')
 
     cmap = get_colormap(args.colormap)
     if args.use_dps or args.use_dpp or args.load_dps or args.load_dpp:

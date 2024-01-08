@@ -28,6 +28,8 @@ João P. de Almeida Martins, Samo Lasic, Carl-Fredrik Westin,
 and Daniel Topgaard. An open-source framework for analysis of multidimensional
 diffusion MRI data implemented in MATLAB.
 Proc. Intl. Soc. Mag. Reson. Med. (26), Paris, France, 2018.
+
+Formerly: scil_compute_divide.py
 """
 
 import argparse
@@ -102,8 +104,8 @@ def _build_arg_parser():
 
     add_force_b0_arg(p)
     add_processes_arg(p)
-    add_overwrite_arg(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     p.add_argument(
         '--not_all', action='store_true',

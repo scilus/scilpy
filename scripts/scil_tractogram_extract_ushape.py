@@ -9,6 +9,8 @@ When ufactor is close to:
 *  0 it defines straight streamlines
 *  1 it defines U-fibers
 * -1 it defines S-fibers
+
+Formerly: scil_extract_ushape.py
 """
 
 import argparse
@@ -20,6 +22,7 @@ import numpy as np
 
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
+                             add_verbose_arg,
                              add_overwrite_arg,
                              add_reference_arg,
                              assert_inputs_exist,
@@ -49,9 +52,10 @@ def _build_arg_parser():
     p.add_argument('--display_counts', action='store_true',
                    help='Print streamline count before and after filtering.')
 
-    add_overwrite_arg(p)
-    add_reference_arg(p)
     add_json_args(p)
+    add_reference_arg(p)
+    add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -66,7 +70,7 @@ def main():
     check_tracts_same_format(parser, [args.in_tractogram, args.out_tractogram,
                                       args.remaining_tractogram])
 
-    if not(-1 <= args.minU <= 1 and -1 <= args.maxU <= 1):
+    if not (-1 <= args.minU <= 1 and -1 <= args.maxU <= 1):
         parser.error('Min-Max ufactor "{},{}" '.format(args.minU, args.maxU) +
                      'must be between -1 and 1.')
 

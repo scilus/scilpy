@@ -16,6 +16,8 @@ Important: The input surface needs to be in *T1 world LPS* coordinates
 The script will use the linear affine first and then the warp image.
 The resulting surface will be in *b0 world LPS* coordinates
 (aligned over the b0 in MI-Brain).
+
+Formerly: scil_apply_transform_to_surface.py.
 """
 
 import argparse
@@ -25,6 +27,7 @@ import numpy as np
 from trimeshpy.io import load_mesh_from_file
 
 from scilpy.io.utils import (add_overwrite_arg,
+                             add_verbose_arg,
                              assert_inputs_exist,
                              assert_outputs_exist)
 from scilpy.surfaces.surface_operations import apply_transform
@@ -53,7 +56,9 @@ def _build_arg_parser():
     p.add_argument('--ants_warp',
                    help='Warp image from ANTs (Nifti image).')
 
+    add_verbose_arg(p)
     add_overwrite_arg(p)
+
     return p
 
 

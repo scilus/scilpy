@@ -6,6 +6,8 @@ Each segment of the streamlines is weighted by its length
 (to support compressed streamlines).
 This script can afterwards output a Track Density Image (TDI)
 or a TODI with SF or SH representation, based on streamlines' segments.
+
+Formerly: scil_compute_todi.py
 """
 
 import argparse
@@ -17,7 +19,7 @@ import numpy as np
 from scilpy.io.image import get_data_as_mask
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_overwrite_arg, add_reference_arg,
-                             add_sh_basis_args,
+                             add_sh_basis_args, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist)
 from scilpy.tractanalysis.todi import TrackOrientationDensityImaging
 
@@ -77,6 +79,7 @@ def _build_arg_parser():
                         'subdivision prior to binning [%(default)s].')
 
     add_sh_basis_args(p)
+    add_verbose_arg(p)
     add_overwrite_arg(p)
     return p
 

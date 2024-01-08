@@ -9,10 +9,13 @@ Compute mean and std for each metric.
 - Option --per_point: For all streamlines points in the bundle for each metric
   combination, along the bundle, i.e. for each point.
   **To create label_map and distance_map, see
-  scil_compute_bundle_voxel_label_map.py
+  scil_bundle_label_map.py
 
 Density weighting modifies the contribution of voxel with lower/higher
 streamline count to reduce influence of spurious streamlines.
+
+Formerly: scil_compute_bundle_mean_std_per_point.py or
+scil_compute_bundle_mean_std.py
 """
 
 import argparse
@@ -27,7 +30,7 @@ from scilpy.image.labels import get_data_as_labels
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.io.streamlines import load_tractogram_with_reference
 from scilpy.io.utils import (add_json_args,
-                             add_reference_arg,
+                             add_reference_arg, add_verbose_arg,
                              assert_inputs_exist, assert_outputs_exist,
                              verify_compatibility_with_reference_sft)
 from scilpy.utils.metrics_tools import get_bundle_metrics_mean_std, \
@@ -68,9 +71,10 @@ def _build_arg_parser():
     p.add_argument('--out_json',
                    help='Path of the output file. If not given, the output '
                         'is simply printed on screen.')
+    
     add_reference_arg(p)
     add_json_args(p)
-
+    add_verbose_arg(p)
     return p
 
 

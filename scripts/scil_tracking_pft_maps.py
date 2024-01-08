@@ -9,6 +9,8 @@ all voxels of the brain, gm+wm+csf=0 elsewhere.
 References: Girard, G., Whittingstall K., Deriche, R., and Descoteaux, M.
 (2014). Towards quantitative connectivity analysis: reducing tractography
 biases. Neuroimage.
+
+Formerly: scil_compute_maps_for_particle_filter_tracking.py
 """
 
 import argparse
@@ -49,8 +51,10 @@ def _build_arg_parser():
                    type=float, default=0.1,
                    help='Minimum gm and wm PVE values in a voxel to be into '
                         'the interface. [%(default)s]')
+
     add_overwrite_arg(p)
     add_verbose_arg(p)
+
     return p
 
 

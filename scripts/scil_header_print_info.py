@@ -4,6 +4,8 @@
 """
 Print the raw header from the provided file or only the specified keys.
 Support trk, nii and mgz files.
+
+Formerly: scil_print_header.py
 """
 
 import argparse
@@ -11,7 +13,7 @@ import pprint
 
 import nibabel as nib
 
-from scilpy.io.utils import assert_inputs_exist
+from scilpy.io.utils import assert_inputs_exist, add_verbose_arg
 from scilpy.utils.filenames import split_name_with_nii
 
 
@@ -23,6 +25,8 @@ def _build_arg_parser():
                    help='Input file (trk, nii and mgz).')
     p.add_argument('--keys', nargs='+',
                    help='Print only the specified keys.')
+
+    add_verbose_arg(p)
 
     return p
 
