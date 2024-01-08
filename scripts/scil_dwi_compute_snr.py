@@ -30,6 +30,7 @@ See refs [1, 2] that describe the noise map acquisition.
 
 import argparse
 import logging
+import os
 
 from dipy.io.gradients import read_bvals_bvecs
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from scilpy.io.utils import (add_json_args,
+from scilpy.io.utils import (add_json_args, add_overwrite_arg,
                              add_verbose_arg,
                              assert_inputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
@@ -82,6 +83,7 @@ def _build_arg_parser():
 
     add_json_args(p)
     add_verbose_arg(p)
+    add_overwrite_arg(p)
 
     return p
 
@@ -98,7 +100,7 @@ def main():
                                  args.in_bvec, args.in_mask],
                         [args.noise_mask, args.noise_map])
 
-    basename, ext = split_name_with_nii(args.in_dwi)
+    basename, ext = split_name_with_nii(os.path.basename(args.in_dwi))
 
     if args.out_basename:
         basename = args.out_basename
