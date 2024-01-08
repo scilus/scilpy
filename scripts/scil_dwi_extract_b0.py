@@ -19,8 +19,7 @@ import numpy as np
 
 from scilpy.dwi.utils import extract_b0
 from scilpy.io.utils import (assert_inputs_exist, add_force_b0_arg,
-                             add_verbose_arg, assert_outputs_exist,
-                             add_overwrite_arg)
+                             add_verbose_arg, add_overwrite_arg)
 from scilpy.gradients.bvec_bval_tools import (check_b0_threshold,
                                               B0ExtractionStrategy)
 from scilpy.utils.filenames import split_name_with_nii
@@ -91,7 +90,6 @@ def main():
         logging.getLogger().setLevel(logging.INFO)
 
     assert_inputs_exist(parser, [args.in_dwi, args.in_bval, args.in_bvec])
-    assert_outputs_exist(parser, args, args.out_b0)
 
     # Outputs are not checked, since multiple use cases
     # are possible and hard to check

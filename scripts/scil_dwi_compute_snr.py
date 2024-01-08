@@ -38,9 +38,8 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from scilpy.io.utils import (add_overwrite_arg, add_json_args,
-                             add_verbose_arg,
-                             assert_inputs_exist)
+from scilpy.io.utils import (add_json_args, add_overwrite_arg,
+                             add_verbose_arg, assert_inputs_exist)
 from scilpy.utils.filenames import split_name_with_nii
 from scilpy.image.volume_operations import compute_snr
 
