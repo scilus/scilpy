@@ -402,7 +402,7 @@ def main():
                            path_out=tmp_dir.name)
 
         # Preparation for fitting
-        commit.core.setup(ndirs=args.nbr_dir)
+        commit.core.setup()
         mit = commit.Evaluation('.', '.')
 
         # FIX for very small values during HCP processing
